@@ -6,11 +6,12 @@ Before making architectural decisions, always read the documentation under /docs
 
 Priority order:
 
-1. docs/13-adrs.md
-2. docs/05-information-architecture.md
-3. docs/09-backend-architecture.md
-4. docs/10-api-contracts.md
-5. docs/07-physical-database.md
+1. docs/14-adrs.md
+2. docs/06-system-architecture.md (Phase 4 — Enterprise System Architecture; also holds the full ADR reasoning summarized in 14-adrs.md)
+3. docs/05-information-architecture.md (Phase 3 — Information Architecture)
+4. docs/10-backend-architecture.md
+5. docs/11-api-contracts.md
+6. docs/09-physical-database.md
 
 Rules:
 

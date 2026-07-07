@@ -18,7 +18,7 @@ model Account {
 }
 
 // Local mirror of a Keycloak-issued session, for audit/session-validation lookups only.
-// Credential verification and token issuance remain Keycloak's responsibility (docs/09-backend-architecture.md, Section 10).
+// Credential verification and token issuance remain Keycloak's responsibility (docs/10-backend-architecture.md, Section 10).
 model Session {
   id                 String    @id @default(uuid())
   accountId          String
