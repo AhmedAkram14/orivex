@@ -1,0 +1,8 @@
+node_modules
+.pnpm-store
+.env.local
+.env.*.local
+.DS_Store
+coverage
+dist
+.claude/settings.local.json

@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id          String    @id @default(uuid())
+  keycloakId  String    @unique
+  email       String    @unique
+  role        String    @default("patient")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sessions    Session[]
+}
+
+// Local mirror of a Keycloak-issued session, for audit/session-validation lookups only.
+// Credential verification and token issuance remain Keycloak's responsibility (docs/09-backend-architecture.md, Section 10).
+model Session {
+  id                 String    @id @default(uuid())
+  accountId          String
+  account            Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  keycloakSessionId  String    @unique
+  expiresAt          DateTime
+  revokedAt          DateTime?
+  createdAt          DateTime  @default(now())
+}
