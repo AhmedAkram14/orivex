@@ -294,6 +294,8 @@ model ConsultationSession {
   healthGraphNodes  HealthGraphNode[]
   clinicalNotes     ClinicalNote[]
   prescriptions     Prescription[]
+  aiSuggestions     AISuggestion[]
+  pendingAISuggestionAcknowledgments PendingAISuggestionAcknowledgment[]
 
   @@index([state])
 }
@@ -532,4 +534,67 @@ model PrescriptionLineItem {
   instructions   String?
 
   @@index([prescriptionId])
+}
+
+enum AISuggestionType {
+  SOAP_DRAFT
+  PRESCRIPTION_DRAFT
+  INTERACTION_FLAG
+  SUGGESTED_QUESTION
+  SUMMARY
+  FOLLOW_UP_PLAN
+}
+
+enum AISuggestionDecision {
+  APPROVED
+  EDITED
+  REJECTED
+}
+
+// Sprint 12: AIModule's own aggregate (docs/10-backend-architecture.md's
+// AIModule entry; docs/09-physical-database.md's ai_suggestions table).
+// promptVersionId is deliberately omitted -- it would reference a
+// ReferenceDataModule PromptVersion table, which doesn't exist yet (same
+// omission pattern as drugCatalogId in Sprint 11). doctorDecision is
+// settable exactly once -- enforced at the application layer (ConflictError,
+// matching docs/12-openapi.md's documented 409 on a second decision call),
+// not by a DB trigger, consistent with this codebase's existing app-layer
+// enforcement of physical-db-documented invariants (no live Postgres in
+// this sandbox to author triggers against).
+model AISuggestion {
+  id                     String                @id @default(uuid())
+  consultationSessionId  String
+  consultationSession    ConsultationSession   @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  suggestionType         AISuggestionType
+  content                String
+  confidenceScore        Float?
+  safetyFlags            Json                  @default("[]")
+  requiresAcknowledgment Boolean               @default(false)
+  doctorDecision         AISuggestionDecision?
+  decisionJustification  String?
+  generatedAt            DateTime              @default(now())
+  decidedAt              DateTime?
+
+  @@index([consultationSessionId])
+}
+
+// ClinicalModule's own read-model (docs/10-backend-architecture.md's hard
+// rule: "ClinicalModule ... Never depends on AIModule ... Clinical must
+// never block on or require AI availability"). Populated exclusively by
+// Clinical's own event subscriber reacting to AIModule's published
+// AISuggestionGenerated/AISuggestionDecided events -- never by a
+// synchronous query into AIModule. suggestionId intentionally reuses
+// AISuggestion's own id (Clinical was told this id via the event payload,
+// not generating a new identity for someone else's aggregate).
+// SignPrescriptionUseCase's "blocked with 422 if an unacknowledged
+// Warning-tier AI suggestion exists" check (docs/12-openapi.md) queries
+// this table only.
+model PendingAISuggestionAcknowledgment {
+  suggestionId          String              @id
+  consultationSessionId String
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  acknowledgedAt        DateTime?
+  createdAt             DateTime            @default(now())
+
+  @@index([consultationSessionId])
 }
