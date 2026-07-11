@@ -22,3 +22,11 @@ export class ConflictError extends AppError {
   readonly code = 'CONFLICT';
   readonly httpStatus = 409;
 }
+
+// Sprint 9: docs/12-openapi.md documents '402' for initiateCharge's payment-
+// declined case specifically -- a distinct status from the generic 422
+// ValidationError used elsewhere.
+export class PaymentRequiredError extends AppError {
+  readonly code = 'PAYMENT_REQUIRED';
+  readonly httpStatus = 402;
+}
