@@ -1,9 +1,10 @@
-import { ForbiddenError, NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { ForbiddenError, NotFoundError, ValidationError } from '../../../../../shared/errors/app-error.js';
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { Prescription } from '../../../domain/entities/prescription.entity.js';
+import type { PendingAISuggestionAcknowledgmentRepository } from '../../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from '../../../domain/repositories/prescription.repository.js';
 import { GetHealthGraphSubgraphUseCase } from '../get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 
@@ -31,6 +32,7 @@ export class SignPrescriptionUseCase {
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
+    private readonly pendingAISuggestionAcknowledgmentRepository: PendingAISuggestionAcknowledgmentRepository,
   ) {}
 
   async execute(command: SignPrescriptionCommand): Promise<Prescription> {
@@ -56,6 +58,20 @@ export class SignPrescriptionUseCase {
     // 403 Forbidden response.
     if (appointment.getDoctorId() !== command.authoringDoctorId) {
       throw new ForbiddenError('Only the treating doctor for this consultation may sign this prescription.');
+    }
+
+    // docs/12-openapi.md: "Blocked with 422 if an unacknowledged Warning-
+    // tier AI suggestion exists for this consultation." Queries Clinical's
+    // own event-populated read-model only -- never AIModule directly
+    // (docs/10-backend-architecture.md's hard "Clinical never depends on
+    // AIModule" rule; see PendingAISuggestionAcknowledgmentHandler).
+    const hasUnacknowledgedWarning = await this.pendingAISuggestionAcknowledgmentRepository.hasUnacknowledged(
+      command.consultationSessionId,
+    );
+    if (hasUnacknowledgedWarning) {
+      throw new ValidationError(
+        'An unacknowledged Warning-tier AI suggestion exists for this consultation; it must be decided before signing a prescription.',
+      );
     }
 
     const nodes = await this.getHealthGraphSubgraphUseCase.execute({

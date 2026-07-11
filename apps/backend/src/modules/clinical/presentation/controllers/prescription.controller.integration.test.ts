@@ -30,6 +30,7 @@ import { HealthGraph } from '../../domain/entities/health-graph.entity.js';
 import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
 import type { Prescription } from '../../domain/entities/prescription.entity.js';
 import type { HealthGraphRepository } from '../../domain/repositories/health-graph.repository.js';
+import type { PendingAISuggestionAcknowledgmentRepository } from '../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 
 import { PrescriptionController } from './prescription.controller.js';
@@ -109,6 +110,14 @@ class NoopDomainEventDispatcher {
   subscribe(): void {}
 }
 
+class InMemoryPendingAISuggestionAcknowledgmentRepository implements PendingAISuggestionAcknowledgmentRepository {
+  async createPending(): Promise<void> {}
+  async acknowledge(): Promise<void> {}
+  async hasUnacknowledged(): Promise<boolean> {
+    return false;
+  }
+}
+
 describe('PrescriptionController (integration)', () => {
   let app: INestApplication;
   let doctor: DoctorProfile;
@@ -151,6 +160,7 @@ describe('PrescriptionController (integration)', () => {
         new InMemoryHealthGraphRepository(graph),
         new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
       ),
+      new InMemoryPendingAISuggestionAcknowledgmentRepository(),
     );
     const getPrescriptionByIdUseCase = new GetPrescriptionByIdUseCase(prescriptionRepo);
 

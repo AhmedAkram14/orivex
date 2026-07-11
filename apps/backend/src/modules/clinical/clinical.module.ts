@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
@@ -11,11 +12,18 @@ import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/g
 import { PatientModule } from '../patient/patient.module.js';
 
 import {
+  AI_ACKNOWLEDGMENT_EVENT_SUBSCRIBER,
   CLINICAL_NOTE_REPOSITORY,
   HEALTH_GRAPH_REPOSITORY,
   HEALTH_JOURNEY_REPOSITORY,
+  PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY,
   PRESCRIPTION_REPOSITORY,
 } from './application/ports/tokens.js';
+import {
+  PendingAISuggestionAcknowledgmentHandler,
+  type AISuggestionDecidedEventPayload,
+  type AISuggestionGeneratedEventPayload,
+} from './application/event-handlers/pending-ai-suggestion-acknowledgment.handler.js';
 import { GetHealthGraphSubgraphUseCase } from './application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { GetPrescriptionByIdUseCase } from './application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { ListHealthJourneysUseCase } from './application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
@@ -26,10 +34,12 @@ import { UpdateJourneyStageUseCase } from './application/use-cases/update-journe
 import type { ClinicalNoteRepository } from './domain/repositories/clinical-note.repository.js';
 import type { HealthGraphRepository } from './domain/repositories/health-graph.repository.js';
 import type { HealthJourneyRepository } from './domain/repositories/health-journey.repository.js';
+import type { PendingAISuggestionAcknowledgmentRepository } from './domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from './domain/repositories/prescription.repository.js';
 import { PrismaClinicalNoteRepository } from './infrastructure/prisma/prisma-clinical-note.repository.js';
 import { PrismaHealthGraphRepository } from './infrastructure/prisma/prisma-health-graph.repository.js';
 import { PrismaHealthJourneyRepository } from './infrastructure/prisma/prisma-health-journey.repository.js';
+import { PrismaPendingAISuggestionAcknowledgmentRepository } from './infrastructure/prisma/prisma-pending-ai-suggestion-acknowledgment.repository.js';
 import { PrismaPrescriptionRepository } from './infrastructure/prisma/prisma-prescription.repository.js';
 import { ClinicalNoteController } from './presentation/controllers/clinical-note.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
@@ -48,6 +58,29 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     { provide: HEALTH_JOURNEY_REPOSITORY, useClass: PrismaHealthJourneyRepository },
     { provide: CLINICAL_NOTE_REPOSITORY, useClass: PrismaClinicalNoteRepository },
     { provide: PRESCRIPTION_REPOSITORY, useClass: PrismaPrescriptionRepository },
+    { provide: PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY, useClass: PrismaPendingAISuggestionAcknowledgmentRepository },
+    {
+      // Registers Clinical's own event subscriber against the shared
+      // DomainEventDispatcher port (docs/10-backend-architecture.md's hard
+      // "Clinical never depends on AIModule" rule -- this reacts to
+      // AIModule's already-published events by name only, with no import
+      // of any AIModule type). Nest instantiates every provider in a
+      // module's providers array once at bootstrap, so this factory's
+      // subscribe() side effect runs exactly once, before any request is
+      // served.
+      provide: AI_ACKNOWLEDGMENT_EVENT_SUBSCRIBER,
+      useFactory: (repository: PendingAISuggestionAcknowledgmentRepository, dispatcher: DomainEventDispatcher) => {
+        const handler = new PendingAISuggestionAcknowledgmentHandler(repository);
+        dispatcher.subscribe('ai.suggestion.generated', (event: DomainEvent) =>
+          handler.handleSuggestionGenerated(event as unknown as AISuggestionGeneratedEventPayload),
+        );
+        dispatcher.subscribe('ai.suggestion.decided', (event: DomainEvent) =>
+          handler.handleSuggestionDecided(event as unknown as AISuggestionDecidedEventPayload),
+        );
+        return handler;
+      },
+      inject: [PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
     {
       provide: RecordClinicalNoteUseCase,
       useFactory: (
@@ -111,6 +144,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
         getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
+        pendingAISuggestionAcknowledgmentRepository: PendingAISuggestionAcknowledgmentRepository,
       ) =>
         new SignPrescriptionUseCase(
           repository,
@@ -119,6 +153,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
           getAppointmentByIdUseCase,
           getDoctorProfileByIdUseCase,
           getHealthGraphSubgraphUseCase,
+          pendingAISuggestionAcknowledgmentRepository,
         ),
       inject: [
         PRESCRIPTION_REPOSITORY,
@@ -127,6 +162,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         GetAppointmentByIdUseCase,
         GetDoctorProfileByIdUseCase,
         GetHealthGraphSubgraphUseCase,
+        PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY,
       ],
     },
     {

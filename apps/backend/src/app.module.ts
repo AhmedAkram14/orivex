@@ -4,6 +4,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ConfigurationModule } from './core/configuration/configuration.module.js';
 import { AdministrationModule } from './modules/administration/administration.module.js';
+import { AIModule } from './modules/ai/ai.module.js';
 import { AssetModule } from './modules/asset/asset.module.js';
 import { ClinicalModule } from './modules/clinical/clinical.module.js';
 import { ConsultationModule } from './modules/consultation/consultation.module.js';
@@ -39,6 +40,7 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     ConsultationModule,
     PaymentModule,
     ClinicalModule,
+    AIModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

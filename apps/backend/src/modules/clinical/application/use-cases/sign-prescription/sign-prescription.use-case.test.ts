@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ForbiddenError, NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { ForbiddenError, NotFoundError, ValidationError } from '../../../../../shared/errors/app-error.js';
 import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../../consultation/domain/entities/appointment.entity.js';
@@ -20,6 +20,7 @@ import { HealthGraphNodeType } from '../../../domain/enums/health-graph-node-typ
 import { PrescriptionStatus } from '../../../domain/enums/prescription-status.enum.js';
 import type { Prescription } from '../../../domain/entities/prescription.entity.js';
 import type { HealthGraphRepository } from '../../../domain/repositories/health-graph.repository.js';
+import type { PendingAISuggestionAcknowledgmentRepository } from '../../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from '../../../domain/repositories/prescription.repository.js';
 import { GetHealthGraphSubgraphUseCase } from '../get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 
@@ -94,6 +95,15 @@ class NoopDispatcher {
   subscribe(): void {}
 }
 
+class FakePendingAISuggestionAcknowledgmentRepository implements PendingAISuggestionAcknowledgmentRepository {
+  constructor(private readonly unacknowledged: boolean = false) {}
+  async createPending(): Promise<void> {}
+  async acknowledge(): Promise<void> {}
+  async hasUnacknowledged(): Promise<boolean> {
+    return this.unacknowledged;
+  }
+}
+
 function buildScenario() {
   const appointment = Appointment.request({
     patientId: '11111111-1111-4111-8111-111111111111',
@@ -114,6 +124,7 @@ function buildUseCase(props: {
   doctor: DoctorProfile | null;
   graph: HealthGraph | null;
   prescriptionRepo: FakePrescriptionRepository;
+  hasUnacknowledgedWarning?: boolean;
 }): SignPrescriptionUseCase {
   return new SignPrescriptionUseCase(
     props.prescriptionRepo,
@@ -125,6 +136,7 @@ function buildUseCase(props: {
       new FakeHealthGraphRepository(props.graph),
       new GetPatientProfileByIdUseCase(new FakePatientProfileRepository({} as PatientProfile)),
     ),
+    new FakePendingAISuggestionAcknowledgmentRepository(props.hasUnacknowledgedWarning ?? false),
   );
 }
 
@@ -246,6 +258,31 @@ describe('SignPrescriptionUseCase', () => {
           }),
         ),
       ForbiddenError,
+    );
+  });
+
+  it('throws ValidationError when an unacknowledged Warning-tier AI suggestion exists for the consultation', async () => {
+    const { appointment, session, graph, node } = buildScenario();
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: {} as DoctorProfile,
+      graph,
+      prescriptionRepo: new FakePrescriptionRepository(),
+      hasUnacknowledgedWarning: true,
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new SignPrescriptionCommand({
+            consultationSessionId: session.getId(),
+            diagnosisNodeId: node.getId(),
+            authoringDoctorId: appointment.getDoctorId(),
+            lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
+          }),
+        ),
+      ValidationError,
     );
   });
 });
