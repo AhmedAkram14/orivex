@@ -55,6 +55,7 @@ model DoctorProfile {
   updatedAt              DateTime              @updatedAt
   publications           PortfolioPublication[]
   awards                 PortfolioAward[]
+  verificationCases      VerificationCase[]
 }
 
 model PortfolioPublication {
@@ -82,12 +83,55 @@ model PortfolioAward {
 // storage — this table holds pointers/metadata only (docs/09-physical-
 // database.md's assets schema description).
 model MediaAsset {
-  id            String   @id @default(uuid())
-  purpose       String
-  contentType   String
-  sizeEstimate  Int?
-  storageKey    String   @unique
-  status        String   @default("pending")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String                 @id @default(uuid())
+  purpose                String
+  contentType            String
+  sizeEstimate           Int?
+  storageKey             String                 @unique
+  status                 String                 @default("pending")
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  verificationDocuments  VerificationDocument[]
+}
+
+enum VerificationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  MORE_INFO_NEEDED
+  RE_VERIFICATION_DUE
+  SUSPENDED
+}
+
+// Sprint 4: TrustModule's aggregate root (docs/10-backend-architecture.md's
+// TrustModule entry). Documents are modeled as an explicit relation to
+// existing MediaAsset rows (docs/11-api-contracts.md's "reference by ID via
+// AssetModule" pattern), never as a raw ID array.
+model VerificationCase {
+  id            String                 @id @default(uuid())
+  doctorId      String
+  doctorProfile DoctorProfile          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  licenseNumber String
+  specialtyCode String
+  status        VerificationStatus     @default(SUBMITTED)
+  reason        String?
+  submittedAt   DateTime               @default(now())
+  decidedAt     DateTime?
+  documents     VerificationDocument[]
+
+  @@index([doctorId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+model VerificationDocument {
+  id                 String           @id @default(uuid())
+  verificationCaseId String
+  verificationCase   VerificationCase @relation(fields: [verificationCaseId], references: [id], onDelete: Cascade)
+  mediaAssetId       String
+  mediaAsset         MediaAsset       @relation(fields: [mediaAssetId], references: [id], onDelete: Restrict)
+  createdAt          DateTime         @default(now())
+
+  @@unique([verificationCaseId, mediaAssetId])
 }
