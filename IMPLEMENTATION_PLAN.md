@@ -61,6 +61,22 @@ Sprint 9 — PaymentModule
 - Transaction lifecycle
 - Consultation integration
 
-Sprint 10 — PrescriptionModule
+Sprint 10 — ClinicalModule
 
-Sprint 11 — AICopilotModule
+- Health Graph
+- Health Journey
+- Clinical Notes
+- Diagnosis nodes
+- Minimum clinical context required by downstream modules
+
+Sprint 11 — Prescription
+
+- Prescription aggregate
+- Prescription workflow
+- ClinicalModule integration
+
+Sprint 12 — AI Copilot
+
+- AI suggestions
+- Clinical context integration
+- Health Graph integration

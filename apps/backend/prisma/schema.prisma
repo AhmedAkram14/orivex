@@ -60,6 +60,8 @@ model DoctorProfile {
   availabilityWindows    AvailabilityWindow[]
   appointments           Appointment[]
   paymentTransactions    PaymentTransaction[]
+  authoredHealthGraphNodes HealthGraphNode[]
+  authoredClinicalNotes  ClinicalNote[]
 }
 
 model PortfolioPublication {
@@ -166,6 +168,7 @@ model PatientProfile {
   emergencyContacts EmergencyContact[]
   appointments      Appointment[]
   paymentTransactions PaymentTransaction[]
+  healthGraph       HealthGraph?
 }
 
 model EmergencyContact {
@@ -287,6 +290,8 @@ model ConsultationSession {
   updatedAt         DateTime                      @updatedAt
   connectionLogs    SessionConnectionLog[]
   paymentTransactions PaymentTransaction[]
+  healthGraphNodes  HealthGraphNode[]
+  clinicalNotes     ClinicalNote[]
 
   @@index([state])
 }
@@ -341,4 +346,130 @@ model PaymentTransaction {
   @@index([doctorId])
   @@index([consultationSessionId])
   @@index([status])
+}
+
+enum HealthGraphNodeType {
+  CONDITION
+  SYMPTOM
+  MEDICATION
+  LAB_RESULT
+  RADIOLOGY_RESULT
+}
+
+enum CertaintyLevel {
+  SUSPECTED
+  CONFIRMED
+  RULED_OUT
+}
+
+enum NodeSource {
+  CLINICAL
+  PATIENT_REPORTED
+  DEVICE
+}
+
+enum JourneyStage {
+  DIAGNOSIS
+  FOLLOW_UP
+  MONITORING
+  RESOLVED
+  ONGOING_CHRONIC
+  REFERRED_OUT
+}
+
+// Sprint 10: ClinicalModule's aggregate cluster (docs/10-backend-
+// architecture.md's ClinicalModule entry -- "sole owner of clinical
+// truth"). HealthGraph is the per-patient container aggregate root;
+// HealthGraphNode is its child (docs/07-domain-data-model.md's Health
+// Graph Aggregate: "Root: the patient's Health Graph... Child entities:
+// individual nodes"). Lazily created ("Created at first encounter" per
+// docs/09-physical-database.md). HealthGraphEdge is deliberately not
+// modeled this sprint -- no documented endpoint or response schema
+// exercises it (GET /patients/{id}/health-graph returns HealthGraphNode[]
+// only); introduce it in the sprint that actually needs it, with full
+// domain behavior, not speculatively now.
+model HealthGraph {
+  id            String            @id @default(uuid())
+  patientId     String            @unique
+  patientProfile PatientProfile   @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  createdAt     DateTime          @default(now())
+  nodes         HealthGraphNode[]
+  journeys      HealthJourney[]
+}
+
+// icd11_code_id is deliberately omitted -- it would reference
+// reference.icd11_codes (ReferenceDataModule), which doesn't exist yet;
+// no opaque placeholder FK is introduced in its place.
+model HealthGraphNode {
+  id                    String              @id @default(uuid())
+  healthGraphId         String
+  healthGraph           HealthGraph         @relation(fields: [healthGraphId], references: [id], onDelete: Restrict)
+  nodeType              HealthGraphNodeType
+  freeTextDescription   String?
+  certaintyLevel        CertaintyLevel      @default(SUSPECTED)
+  source                NodeSource          @default(CLINICAL)
+  authoringDoctorId     String?
+  doctorProfile         DoctorProfile?      @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  consultationSessionId String?
+  consultationSession   ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  supersedesNodeId      String?
+  supersedes            HealthGraphNode?    @relation("NodeSupersede", fields: [supersedesNodeId], references: [id], onDelete: Restrict)
+  supersededBy          HealthGraphNode[]   @relation("NodeSupersede")
+  createdAt             DateTime            @default(now())
+  journeysAsRoot        HealthJourney[]     @relation("JourneyRootNode")
+  journeyLinks          JourneyNodeLink[]
+
+  @@index([healthGraphId])
+  @@index([nodeType])
+}
+
+// Aggregate root (docs/07-domain-data-model.md's Health Journey Aggregate:
+// "Root: the Journey itself"). linkedNodeIds (docs/12-openapi.md's
+// HealthJourney schema) is backed by the journey_node_links junction table
+// (docs/09-physical-database.md), a simple many-to-many -- not the more
+// general HealthGraphEdge concept.
+model HealthJourney {
+  id            String            @id @default(uuid())
+  healthGraphId String
+  healthGraph   HealthGraph       @relation(fields: [healthGraphId], references: [id], onDelete: Restrict)
+  rootNodeId    String
+  rootNode      HealthGraphNode   @relation("JourneyRootNode", fields: [rootNodeId], references: [id], onDelete: Restrict)
+  stage         JourneyStage      @default(DIAGNOSIS)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  linkedNodes   JourneyNodeLink[]
+
+  @@index([healthGraphId])
+  @@index([stage])
+}
+
+model JourneyNodeLink {
+  id        String          @id @default(uuid())
+  journeyId String
+  journey   HealthJourney   @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  nodeId    String
+  node      HealthGraphNode @relation(fields: [nodeId], references: [id], onDelete: Restrict)
+
+  @@unique([journeyId, nodeId])
+}
+
+// Aggregate root, own PK separate from HealthGraphNode (docs/09-physical-
+// database.md's clinical_notes table). Immutable once created -- addenda
+// are new rows referencing the original via addendumOfNoteId, never a
+// mutation (docs/07-domain-data-model.md's "never rewrite" rule).
+// derivedFromSuggestionId is deliberately not stored -- would reference
+// AISuggestion (AIModule), which doesn't exist yet.
+model ClinicalNote {
+  id                    String        @id @default(uuid())
+  consultationSessionId String
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  authoringDoctorId     String
+  doctorProfile         DoctorProfile @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  content               String
+  addendumOfNoteId      String?
+  addendumOf            ClinicalNote? @relation("NoteAddendum", fields: [addendumOfNoteId], references: [id], onDelete: Restrict)
+  addenda               ClinicalNote[] @relation("NoteAddendum")
+  createdAt             DateTime      @default(now())
+
+  @@index([consultationSessionId])
 }
