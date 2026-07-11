@@ -11,6 +11,7 @@ import { EmailAddress } from '../../../domain/value-objects/email-address.value-
 import type { DomainEventDispatcher } from '../../ports/domain-event-dispatcher.port.js';
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 
+import { SuspendAccountCommand } from './suspend-account.command.js';
 import { SuspendAccountUseCase } from './suspend-account.use-case.js';
 
 class FakeAccountRepository implements AccountRepository {
@@ -63,7 +64,7 @@ describe('SuspendAccountUseCase', () => {
     const repository = new FakeAccountRepository(account);
     const useCase = new SuspendAccountUseCase(repository, dispatcher);
 
-    await useCase.execute({ accountId: account.getId().toString() });
+    await useCase.execute(new SuspendAccountCommand({ accountId: account.getId().toString() }));
 
     assert.equal(account.getStatus(), AccountStatus.Suspended);
     assert.equal(repository.saved.length, 1);
@@ -77,7 +78,8 @@ describe('SuspendAccountUseCase', () => {
     const useCase = new SuspendAccountUseCase(repository, dispatcher);
 
     await assert.rejects(
-      () => useCase.execute({ accountId: '11111111-1111-4111-8111-111111111111' }),
+      () =>
+        useCase.execute(new SuspendAccountCommand({ accountId: '11111111-1111-4111-8111-111111111111' })),
       NotFoundError,
     );
 
@@ -101,7 +103,7 @@ describe('SuspendAccountUseCase', () => {
     const useCase = new SuspendAccountUseCase(repository, dispatcher);
 
     await assert.rejects(
-      () => useCase.execute({ accountId: closedAccount.getId().toString() }),
+      () => useCase.execute(new SuspendAccountCommand({ accountId: closedAccount.getId().toString() })),
       AccountClosedError,
     );
 
@@ -116,7 +118,7 @@ describe('SuspendAccountUseCase', () => {
     const repository = new FakeAccountRepository(account);
     const useCase = new SuspendAccountUseCase(repository, dispatcher);
 
-    await useCase.execute({ accountId: account.getId().toString() });
+    await useCase.execute(new SuspendAccountCommand({ accountId: account.getId().toString() }));
 
     assert.equal(account.getStatus(), AccountStatus.Suspended);
     assert.equal(repository.saved.length, 1);

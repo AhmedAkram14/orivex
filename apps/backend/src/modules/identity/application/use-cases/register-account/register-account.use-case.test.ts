@@ -9,6 +9,7 @@ import type { AccountRepository } from '../../../domain/repositories/account.rep
 import type { EmailAddress } from '../../../domain/value-objects/email-address.value-object.js';
 import type { DomainEventDispatcher } from '../../ports/domain-event-dispatcher.port.js';
 
+import { RegisterAccountCommand } from './register-account.command.js';
 import { RegisterAccountUseCase } from './register-account.use-case.js';
 
 class FakeAccountRepository implements AccountRepository {
@@ -57,12 +58,14 @@ describe('RegisterAccountUseCase', () => {
   });
 
   it('registers a new account, persists it, and dispatches AccountCreated', async () => {
-    const account = await useCase.execute({
-      email: '  Doctor@Example.COM ',
-      keycloakId: 'kc-123',
-      role: AccountRole.Doctor,
-      displayName: 'Dr. Amina Hassan',
-    });
+    const account = await useCase.execute(
+      new RegisterAccountCommand({
+        email: '  Doctor@Example.COM ',
+        keycloakId: 'kc-123',
+        role: AccountRole.Doctor,
+        displayName: 'Dr. Amina Hassan',
+      }),
+    );
 
     assert.equal(account.getEmail().toString(), 'doctor@example.com');
     assert.equal(repository.saved.length, 1);
@@ -83,12 +86,14 @@ describe('RegisterAccountUseCase', () => {
 
     await assert.rejects(
       () =>
-        useCase.execute({
-          email: 'taken@example.com',
-          keycloakId: 'kc-456',
-          role: AccountRole.Patient,
-          displayName: 'Someone',
-        }),
+        useCase.execute(
+          new RegisterAccountCommand({
+            email: 'taken@example.com',
+            keycloakId: 'kc-456',
+            role: AccountRole.Patient,
+            displayName: 'Someone',
+          }),
+        ),
       IdentityDomainError,
     );
 
@@ -99,12 +104,14 @@ describe('RegisterAccountUseCase', () => {
   it('propagates domain validation errors without persisting or dispatching anything', async () => {
     await assert.rejects(
       () =>
-        useCase.execute({
-          email: 'not-an-email',
-          keycloakId: 'kc-789',
-          role: AccountRole.Patient,
-          displayName: 'Someone',
-        }),
+        useCase.execute(
+          new RegisterAccountCommand({
+            email: 'not-an-email',
+            keycloakId: 'kc-789',
+            role: AccountRole.Patient,
+            displayName: 'Someone',
+          }),
+        ),
       InvalidEmailAddressError,
     );
 
