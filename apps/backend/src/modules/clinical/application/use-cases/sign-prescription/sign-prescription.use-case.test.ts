@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { ForbiddenError, NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../../consultation/domain/entities/appointment.entity.js';
@@ -220,6 +220,30 @@ describe('SignPrescriptionUseCase', () => {
           }),
         ),
       NotFoundError,
+    );
+  });
+
+  it('throws ForbiddenError when authoringDoctorId is not the appointment\'s treating doctor', async () => {
+    const { appointment, session, graph, node } = buildScenario();
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: {} as DoctorProfile,
+      graph,
+      prescriptionRepo: new FakePrescriptionRepository(),
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new SignPrescriptionCommand({
+            consultationSessionId: session.getId(),
+            diagnosisNodeId: node.getId(),
+            authoringDoctorId: '55555555-5555-4555-8555-555555555555',
+            lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
+          }),
+        ),
+      ForbiddenError,
     );
   });
 });

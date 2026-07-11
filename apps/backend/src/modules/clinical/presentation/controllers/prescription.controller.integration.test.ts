@@ -46,9 +46,14 @@ class InMemoryPatientProfileRepository implements PatientProfileRepository {
 }
 
 class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
-  constructor(private readonly profile: DoctorProfile) {}
+  private readonly byId = new Map<string, DoctorProfile>();
+  constructor(profiles: DoctorProfile[]) {
+    for (const profile of profiles) {
+      this.byId.set(profile.getId(), profile);
+    }
+  }
   async findById(id: string): Promise<DoctorProfile | null> {
-    return this.profile.getId() === id ? this.profile : null;
+    return this.byId.get(id) ?? null;
   }
   async findByAccountId(): Promise<DoctorProfile | null> {
     return null;
@@ -105,6 +110,7 @@ class NoopDomainEventDispatcher {
 describe('PrescriptionController (integration)', () => {
   let app: INestApplication;
   let doctor: DoctorProfile;
+  let otherDoctor: DoctorProfile;
   let session: ConsultationSession;
   let node: HealthGraphNode;
   let signedPrescriptionId: string;
@@ -115,6 +121,11 @@ describe('PrescriptionController (integration)', () => {
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-1',
       specialty: 'Cardiology',
+    });
+    otherDoctor = DoctorProfile.register({
+      accountId: '55555555-5555-4555-8555-555555555555',
+      licenseNumber: 'LIC-2',
+      specialty: 'Dermatology',
     });
     const appointment = Appointment.request({
       patientId: patient.getId(),
@@ -133,7 +144,7 @@ describe('PrescriptionController (integration)', () => {
       new NoopDomainEventDispatcher(),
       new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)),
       new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)),
-      new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor)),
+      new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository([doctor, otherDoctor])),
       new GetHealthGraphSubgraphUseCase(
         new InMemoryHealthGraphRepository(graph),
         new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
@@ -187,6 +198,22 @@ describe('PrescriptionController (integration)', () => {
     assert.equal(response.body.data.status, 'signed');
     assert.equal(response.body.data.lineItems.length, 1);
     signedPrescriptionId = response.body.data.id;
+  });
+
+  it('POST /prescriptions rejects a doctor who is not the treating doctor with 403', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/prescriptions')
+      .send({
+        authoringDoctorId: otherDoctor.getId(),
+        consultationSessionId: session.getId(),
+        diagnosisNodeId: node.getId(),
+        lineItems: [
+          { drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 },
+        ],
+      })
+      .expect(403);
+
+    assert.equal(response.body.error.code, 'FORBIDDEN');
   });
 
   it('POST /prescriptions rejects an empty lineItems array with 400', async () => {

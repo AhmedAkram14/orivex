@@ -1,4 +1,4 @@
-import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { ForbiddenError, NotFoundError } from '../../../../../shared/errors/app-error.js';
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
@@ -49,6 +49,13 @@ export class SignPrescriptionUseCase {
     const doctor = await this.getDoctorProfileByIdUseCase.execute({ doctorProfileId: command.authoringDoctorId });
     if (!doctor) {
       throw new NotFoundError(`Doctor profile "${command.authoringDoctorId}" not found.`);
+    }
+
+    // "Sign a prescription (treating doctor only)" (docs/12-openapi.md) --
+    // only the appointment's own doctor may sign, matching the documented
+    // 403 Forbidden response.
+    if (appointment.getDoctorId() !== command.authoringDoctorId) {
+      throw new ForbiddenError('Only the treating doctor for this consultation may sign this prescription.');
     }
 
     const nodes = await this.getHealthGraphSubgraphUseCase.execute({
