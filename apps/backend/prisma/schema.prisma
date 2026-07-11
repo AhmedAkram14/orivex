@@ -24,6 +24,7 @@ model Account {
   updatedAt         DateTime  @updatedAt
   sessions          Session[]
   doctorProfile     DoctorProfile?
+  patientProfile    PatientProfile?
 }
 
 // Local mirror of a Keycloak-issued session, for audit/session-validation lookups only.
@@ -134,4 +135,40 @@ model VerificationDocument {
   createdAt          DateTime         @default(now())
 
   @@unique([verificationCaseId, mediaAssetId])
+}
+
+enum EmergencyRelationship {
+  PARENT
+  SPOUSE
+  SIBLING
+  CHILD
+  GUARDIAN
+  OTHER
+}
+
+// Sprint 6 (reduced scope): PatientModule's aggregate root
+// (docs/10-backend-architecture.md's PatientModule entry: "Owned entities:
+// PatientProfile, EmergencyContact, GuardianLink"). GuardianLink is
+// deliberately excluded -- docs/09-physical-database.md doesn't detail its
+// columns and the age-of-majority/guardian-consent business rules aren't
+// specified anywhere concretely. No additional demographic fields beyond
+// what's already documented (accountId, dateOfBirth).
+model PatientProfile {
+  id                String             @id @default(uuid())
+  accountId         String             @unique
+  account           Account            @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  dateOfBirth       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  emergencyContacts EmergencyContact[]
+}
+
+model EmergencyContact {
+  id               String                @id @default(uuid())
+  patientProfileId String
+  patientProfile   PatientProfile        @relation(fields: [patientProfileId], references: [id], onDelete: Cascade)
+  name             String
+  relationship     EmergencyRelationship
+  phoneNumber      String
+  createdAt        DateTime              @default(now())
 }
