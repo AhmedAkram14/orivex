@@ -45,27 +45,22 @@ Sprint 7 — SchedulingModule
 - Slot release
 - Slot confirmation
 
-Sprint 8 — PaymentModule
-
-- Payment authorization
-- Payment status
-- Transaction lifecycle
-
-Sprint 9 — BookingModule
+Sprint 8 — ConsultationModule
 
 - Appointment aggregate
 - Booking workflow
+- ConsultationSession
+- SessionConnectionLog
 - Scheduling integration
-- Payment integration
 
-Sprint 10
+Sprint 9 — PaymentModule
 
-- Consultation
+- PaymentTransaction
+- Payment authorization
+- Payment status
+- Transaction lifecycle
+- Consultation integration
 
-Sprint 11
+Sprint 10 — PrescriptionModule
 
-- Prescription
-
-Sprint 12
-
-- AI Copilot
+Sprint 11 — AICopilotModule

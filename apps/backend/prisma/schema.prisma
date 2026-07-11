@@ -58,6 +58,7 @@ model DoctorProfile {
   awards                 PortfolioAward[]
   verificationCases      VerificationCase[]
   availabilityWindows    AvailabilityWindow[]
+  appointments           Appointment[]
 }
 
 model PortfolioPublication {
@@ -162,6 +163,7 @@ model PatientProfile {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   emergencyContacts EmergencyContact[]
+  appointments      Appointment[]
 }
 
 model EmergencyContact {
@@ -205,7 +207,94 @@ model AvailabilityWindow {
   version          Int                      @default(1)
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
+  appointments     Appointment[]
 
   @@index([doctorId, startTime])
   @@index([status])
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  RESCHEDULED
+  CANCELLED
+  NO_SHOW
+  COMPLETED
+}
+
+enum ConsultationState {
+  WAITING_ROOM
+  IN_PROGRESS
+  COMPLETED
+  INTERRUPTED
+  CLOSED
+  EMERGENCY_ESCALATION
+}
+
+enum ConsultationCompletionReason {
+  COMPLETED
+  INTERRUPTED_TECHNICAL
+  INTERRUPTED_OTHER
+}
+
+// Sprint 8: ConsultationModule's two aggregate roots
+// (docs/10-backend-architecture.md's ConsultationModule entry: "Owned
+// entities: Appointment, ConsultationSession, SessionConnectionLog").
+// linkedJourneyId is deliberately not stored -- Health Journey doesn't
+// exist yet; a real FK relation will be added when it does, not an opaque
+// ID field. rescheduledFrom is a real self-referential relation, not an
+// opaque ID, preserving referential integrity. version supports optimistic
+// locking for both aggregates ahead of concurrent booking/session workflows.
+model Appointment {
+  id                    String              @id @default(uuid())
+  patientId             String
+  patientProfile        PatientProfile      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId              String
+  doctorProfile         DoctorProfile       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  availabilityWindowId  String
+  availabilityWindow    AvailabilityWindow  @relation(fields: [availabilityWindowId], references: [id], onDelete: Restrict)
+  consultationType      ConsultationType
+  status                AppointmentStatus   @default(REQUESTED)
+  scheduledAt           DateTime
+  reasonForVisit        String?
+  rescheduledFromId     String?
+  rescheduledFrom        Appointment?        @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
+  rescheduledTo          Appointment[]       @relation("AppointmentReschedule")
+  version               Int                 @default(1)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  consultationSession   ConsultationSession?
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([availabilityWindowId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+model ConsultationSession {
+  id                String                        @id @default(uuid())
+  appointmentId     String                        @unique
+  appointment       Appointment                   @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  state             ConsultationState             @default(WAITING_ROOM)
+  completionReason  ConsultationCompletionReason?
+  version           Int                           @default(1)
+  startedAt         DateTime?
+  closedAt          DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  connectionLogs    SessionConnectionLog[]
+
+  @@index([state])
+}
+
+model SessionConnectionLog {
+  id                    String              @id @default(uuid())
+  consultationSessionId String
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Cascade)
+  note                  String
+  occurredAt            DateTime            @default(now())
+
+  @@index([consultationSessionId])
+  @@index([occurredAt])
 }
