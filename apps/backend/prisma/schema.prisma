@@ -8,13 +8,21 @@ datasource db {
 }
 
 model Account {
-  id          String    @id @default(uuid())
-  keycloakId  String    @unique
-  email       String    @unique
-  role        String    @default("patient")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  sessions    Session[]
+  id                String    @id @default(uuid())
+  keycloakId        String    @unique
+  email             String    @unique
+  role              String    @default("patient")
+  // Added Sprint 1.1C, synchronizing the persistence model with the already
+  // approved Identity domain (Sprints 1.1A/1.1B) — docs/08-logical-data-model.md
+  // and docs/09-physical-database.md don't yet reflect these fields; a
+  // documentation synchronization task is scheduled after this sprint.
+  status            String    @default("active")
+  displayName       String
+  phoneNumber       String?
+  preferredLanguage String    @default("Arabic")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  sessions          Session[]
 }
 
 // Local mirror of a Keycloak-issued session, for audit/session-validation lookups only.

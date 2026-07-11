@@ -1,0 +1,55 @@
+import type { Account as PrismaAccountRow } from '@prisma/client';
+
+import { Account } from '../../domain/entities/account.entity.js';
+import { UserProfile } from '../../domain/entities/user-profile.entity.js';
+import { AccountRole } from '../../domain/enums/account-role.enum.js';
+import { AccountStatus } from '../../domain/enums/account-status.enum.js';
+import { Language } from '../../domain/enums/language.enum.js';
+import { AccountId } from '../../domain/value-objects/account-id.value-object.js';
+import { DisplayName } from '../../domain/value-objects/display-name.value-object.js';
+import { EmailAddress } from '../../domain/value-objects/email-address.value-object.js';
+
+export interface PersistedAccount {
+  id: string;
+  email: string;
+  keycloakId: string;
+  role: string;
+  status: string;
+  displayName: string;
+  phoneNumber: string | null;
+  preferredLanguage: string;
+}
+
+// The one place that knows how the Account aggregate maps to/from Prisma's
+// row shape. Domain layer stays entirely unaware of Prisma.
+export function toDomainAccount(row: PrismaAccountRow): Account {
+  return Account.reconstitute({
+    id: AccountId.create(row.id),
+    email: EmailAddress.create(row.email),
+    keycloakId: row.keycloakId,
+    role: row.role as AccountRole,
+    status: row.status as AccountStatus,
+    userProfile: UserProfile.create({
+      displayName: DisplayName.create(row.displayName),
+      phoneNumber: row.phoneNumber ?? undefined,
+      preferredLanguage: row.preferredLanguage as Language,
+    }),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  });
+}
+
+export function toPersistedAccount(account: Account): PersistedAccount {
+  const profile = account.getUserProfile();
+
+  return {
+    id: account.getId().toString(),
+    email: account.getEmail().toString(),
+    keycloakId: account.getKeycloakId(),
+    role: account.getRole(),
+    status: account.getStatus(),
+    displayName: profile.getDisplayName().toString(),
+    phoneNumber: profile.getPhoneNumber() ?? null,
+    preferredLanguage: profile.getPreferredLanguage(),
+  };
+}
