@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ConfigurationModule } from './core/configuration/configuration.module.js';
+import { AssetModule } from './modules/asset/asset.module.js';
 import { DoctorModule } from './modules/doctor/doctor.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { PrismaModule } from './platform/database/prisma.module.js';
@@ -23,6 +24,7 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     HealthModule,
     IdentityModule,
     DoctorModule,
+    AssetModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

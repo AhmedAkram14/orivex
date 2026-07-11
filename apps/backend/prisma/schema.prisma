@@ -76,3 +76,18 @@ model PortfolioAward {
   awardedAt       DateTime?
   createdAt       DateTime      @default(now())
 }
+
+// Sprint 3: AssetModule's aggregate root (docs/10-backend-architecture.md's
+// AssetModule entry). Binary content lives in external S3-compatible object
+// storage — this table holds pointers/metadata only (docs/09-physical-
+// database.md's assets schema description).
+model MediaAsset {
+  id            String   @id @default(uuid())
+  purpose       String
+  contentType   String
+  sizeEstimate  Int?
+  storageKey    String   @unique
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
