@@ -108,7 +108,7 @@ export class PatientProfile {
   }
 
   getEmergencyContacts(): EmergencyContact[] {
-    return this.emergencyContacts;
+    return [...this.emergencyContacts];
   }
 
   getCreatedAt(): Date {

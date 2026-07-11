@@ -190,7 +190,7 @@ export class DoctorProfile {
   }
 
   getLanguages(): string[] {
-    return this.languages;
+    return [...this.languages];
   }
 
   getConsultationFeeAmount(): number | undefined {
@@ -198,11 +198,11 @@ export class DoctorProfile {
   }
 
   getPublications(): PortfolioPublication[] {
-    return this.publications;
+    return [...this.publications];
   }
 
   getAwards(): PortfolioAward[] {
-    return this.awards;
+    return [...this.awards];
   }
 
   getCreatedAt(): Date {

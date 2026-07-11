@@ -126,7 +126,7 @@ export class VerificationCase {
   }
 
   getDocumentAssetIds(): string[] {
-    return this.documentAssetIds;
+    return [...this.documentAssetIds];
   }
 
   getStatus(): VerificationStatus {
