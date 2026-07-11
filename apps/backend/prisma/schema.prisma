@@ -59,6 +59,7 @@ model DoctorProfile {
   verificationCases      VerificationCase[]
   availabilityWindows    AvailabilityWindow[]
   appointments           Appointment[]
+  paymentTransactions    PaymentTransaction[]
 }
 
 model PortfolioPublication {
@@ -164,6 +165,7 @@ model PatientProfile {
   updatedAt         DateTime           @updatedAt
   emergencyContacts EmergencyContact[]
   appointments      Appointment[]
+  paymentTransactions PaymentTransaction[]
 }
 
 model EmergencyContact {
@@ -284,6 +286,7 @@ model ConsultationSession {
   createdAt         DateTime                      @default(now())
   updatedAt         DateTime                      @updatedAt
   connectionLogs    SessionConnectionLog[]
+  paymentTransactions PaymentTransaction[]
 
   @@index([state])
 }
@@ -297,4 +300,45 @@ model SessionConnectionLog {
 
   @@index([consultationSessionId])
   @@index([occurredAt])
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCEEDED
+  FAILED
+  SETTLED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentMethod {
+  CARD
+  MOBILE_WALLET
+}
+
+// Sprint 9: PaymentModule's aggregate root (docs/10-backend-architecture.md's
+// PaymentModule entry: "Owned entities: PaymentTransaction, PayoutStatement").
+// PayoutStatement is out of this sprint's scope (not in
+// IMPLEMENTATION_PLAN.md's bullet list). consultationSessionId is nullable,
+// matching docs/09-physical-database.md's payment_transactions table
+// exactly. RESTRICT on every FK -- financial data, never cascade-deleted.
+model PaymentTransaction {
+  id                    String               @id @default(uuid())
+  consultationSessionId String?
+  consultationSession   ConsultationSession?  @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  patientId             String
+  patientProfile        PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId              String
+  doctorProfile         DoctorProfile        @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  amount                Decimal
+  currency              String
+  paymentMethod         PaymentMethod
+  status                PaymentStatus        @default(INITIATED)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([consultationSessionId])
+  @@index([status])
 }
