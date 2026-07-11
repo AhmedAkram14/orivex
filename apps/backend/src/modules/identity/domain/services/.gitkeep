@@ -1,0 +1,3 @@
+Reserved for future domain services (e.g. email-uniqueness checks that need
+repository access). Empty this sprint — no domain service was justified for
+entities/value-objects/repository-interfaces-only scope.
