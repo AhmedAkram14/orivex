@@ -7,6 +7,7 @@ import { AdministrationModule } from './modules/administration/administration.mo
 import { AssetModule } from './modules/asset/asset.module.js';
 import { DoctorModule } from './modules/doctor/doctor.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
+import { PatientModule } from './modules/patient/patient.module.js';
 import { TrustModule } from './modules/trust/trust.module.js';
 import { PrismaModule } from './platform/database/prisma.module.js';
 import { EventsModule } from './platform/events/events.module.js';
@@ -29,6 +30,7 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     AssetModule,
     TrustModule,
     AdministrationModule,
+    PatientModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
