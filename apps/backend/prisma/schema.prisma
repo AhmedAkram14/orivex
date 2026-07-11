@@ -62,6 +62,7 @@ model DoctorProfile {
   paymentTransactions    PaymentTransaction[]
   authoredHealthGraphNodes HealthGraphNode[]
   authoredClinicalNotes  ClinicalNote[]
+  authoredPrescriptions  Prescription[]
 }
 
 model PortfolioPublication {
@@ -292,6 +293,7 @@ model ConsultationSession {
   paymentTransactions PaymentTransaction[]
   healthGraphNodes  HealthGraphNode[]
   clinicalNotes     ClinicalNote[]
+  prescriptions     Prescription[]
 
   @@index([state])
 }
@@ -418,6 +420,7 @@ model HealthGraphNode {
   createdAt             DateTime            @default(now())
   journeysAsRoot        HealthJourney[]     @relation("JourneyRootNode")
   journeyLinks          JourneyNodeLink[]
+  prescriptions         Prescription[]
 
   @@index([healthGraphId])
   @@index([nodeType])
@@ -472,4 +475,61 @@ model ClinicalNote {
   createdAt             DateTime      @default(now())
 
   @@index([consultationSessionId])
+}
+
+enum PrescriptionStatus {
+  DRAFT
+  SIGNED
+  ACTIVE
+  EXPIRED
+  SUPERSEDED
+}
+
+// Sprint 11: ClinicalModule's aggregate root for signed medication orders
+// (docs/10-backend-architecture.md's ClinicalModule entry;
+// docs/09-physical-database.md's prescriptions table). diagnosisNodeId is a
+// real FK to HealthGraphNode -- the actual point of the Sprint 10/11
+// roadmap reordering. supersedesPrescriptionId is deliberately not modeled
+// -- no documented endpoint or use case creates a superseding prescription
+// this sprint; introduce it together with its full domain behavior when a
+// real workflow needs it.
+model Prescription {
+  id                    String              @id @default(uuid())
+  consultationSessionId String
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  diagnosisNodeId       String
+  diagnosisNode         HealthGraphNode     @relation(fields: [diagnosisNodeId], references: [id], onDelete: Restrict)
+  authoringDoctorId     String
+  doctorProfile         DoctorProfile       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  status                PrescriptionStatus  @default(DRAFT)
+  signedAt              DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  lineItems             PrescriptionLineItem[]
+
+  @@index([consultationSessionId])
+  @@index([diagnosisNodeId])
+  @@index([authoringDoctorId])
+  @@index([status])
+}
+
+// Child entity, immutable once the parent Prescription is signed
+// (docs/09-physical-database.md). drugCatalogId is deliberately stored as
+// a plain field with no FK -- it would reference reference.drug_catalog
+// (ReferenceDataModule), which doesn't exist yet. This is real,
+// doctor-supplied data (required by docs/12-openapi.md's
+// PrescriptionLineItem), not an opaque placeholder -- only the referential-
+// integrity check against a real catalog is deferred.
+model PrescriptionLineItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  drugCatalogId  String
+  drugName       String?
+  dosage         String
+  frequency      String
+  durationDays   Int
+  instructions   String?
+
+  @@index([prescriptionId])
 }
