@@ -1,5 +1,5 @@
+import { ConflictError } from '../../../../../shared/errors/app-error.js';
 import { Account } from '../../../domain/entities/account.entity.js';
-import { IdentityDomainError } from '../../../domain/exceptions/identity-domain.error.js';
 import type { AccountRepository } from '../../../domain/repositories/account.repository.js';
 import { DisplayName } from '../../../domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../domain/value-objects/email-address.value-object.js';
@@ -23,9 +23,19 @@ export class RegisterAccountUseCase {
   async execute(command: RegisterAccountCommand): Promise<Account> {
     const email = EmailAddress.create(command.email);
 
+    // This check-then-act is a fast-fail UX nicety, not the actual
+    // uniqueness guarantee: two concurrent registrations for the same email
+    // can both pass this check before either saves. Real enforcement must
+    // come from a unique constraint at the persistence layer (Sprint 1.1C),
+    // with this use case translating that constraint violation into the same
+    // ConflictError below.
     const existing = await this.accountRepository.findByEmail(email);
     if (existing) {
-      throw new IdentityDomainError('An account with this email address already exists.');
+      // ConflictError (shared/errors), not a raw domain exception: the
+      // global exception filter only maps AppError/HttpException to a
+      // sensible HTTP status — anything else falls through to a generic 500,
+      // hiding a real, actionable "already exists" as a server malfunction.
+      throw new ConflictError('An account with this email address already exists.');
     }
 
     const account = Account.register({

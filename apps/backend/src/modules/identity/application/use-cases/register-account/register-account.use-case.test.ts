@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, it } from 'node:test';
 
+import { ConflictError } from '../../../../../shared/errors/app-error.js';
 import type { Account } from '../../../domain/entities/account.entity.js';
 import { AccountRole } from '../../../domain/enums/account-role.enum.js';
-import { IdentityDomainError } from '../../../domain/exceptions/identity-domain.error.js';
 import { InvalidEmailAddressError } from '../../../domain/exceptions/invalid-email-address.error.js';
 import type { AccountRepository } from '../../../domain/repositories/account.repository.js';
 import type { EmailAddress } from '../../../domain/value-objects/email-address.value-object.js';
@@ -94,7 +94,7 @@ describe('RegisterAccountUseCase', () => {
             displayName: 'Someone',
           }),
         ),
-      IdentityDomainError,
+      ConflictError,
     );
 
     assert.equal(repository.saved.length, 0);
