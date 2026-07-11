@@ -10,10 +10,18 @@
     "docker:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
     "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "backend:prisma:generate": "pnpm --filter @orivex/backend prisma:generate",
-    "backend:prisma:migrate": "pnpm --filter @orivex/backend prisma:migrate"
+    "backend:prisma:migrate": "pnpm --filter @orivex/backend prisma:migrate",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.12.0",
+    "@types/node": "^22.10.1",
+    "eslint": "^9.12.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.3.3",
     "typescript": "^5.6.3",
-    "@types/node": "^22.10.1"
+    "typescript-eslint": "^8.8.1"
   }
 }
