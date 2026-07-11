@@ -21,6 +21,8 @@ import type { HealthJourneyRepository } from './domain/repositories/health-journ
 import { PrismaClinicalNoteRepository } from './infrastructure/prisma/prisma-clinical-note.repository.js';
 import { PrismaHealthGraphRepository } from './infrastructure/prisma/prisma-health-graph.repository.js';
 import { PrismaHealthJourneyRepository } from './infrastructure/prisma/prisma-health-journey.repository.js';
+import { ClinicalNoteController } from './presentation/controllers/clinical-note.controller.js';
+import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
 
 // Imports PatientModule, DoctorModule, and ConsultationModule to consume
 // their own exported use cases (module-to-module calls only through a
@@ -29,6 +31,7 @@ import { PrismaHealthJourneyRepository } from './infrastructure/prisma/prisma-he
 // import Clinical back -- no circular imports, no forwardRef().
 @Module({
   imports: [PatientModule, DoctorModule, ConsultationModule],
+  controllers: [ClinicalNoteController, HealthGraphController],
   providers: [
     { provide: HEALTH_GRAPH_REPOSITORY, useClass: PrismaHealthGraphRepository },
     { provide: HEALTH_JOURNEY_REPOSITORY, useClass: PrismaHealthJourneyRepository },
