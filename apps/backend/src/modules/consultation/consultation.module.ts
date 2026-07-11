@@ -23,18 +23,17 @@ import type { AppointmentRepository } from './domain/repositories/appointment.re
 import type { ConsultationSessionRepository } from './domain/repositories/consultation-session.repository.js';
 import { PrismaAppointmentRepository } from './infrastructure/prisma/prisma-appointment.repository.js';
 import { PrismaConsultationSessionRepository } from './infrastructure/prisma/prisma-consultation-session.repository.js';
+import { AppointmentController } from './presentation/controllers/appointment.controller.js';
+import { ConsultationController } from './presentation/controllers/consultation.controller.js';
 
 // Imports PatientModule, DoctorModule, and SchedulingModule to consume their
 // own exported use cases (module-to-module calls only through a published
 // interface, never another module's repository — docs/10-backend-
 // architecture.md Section 11). None of those modules import Consultation
 // back -- no circular imports, no forwardRef().
-//
-// No controllers this sprint's presentation layer is added in a follow-up
-// slice, per the preferred Domain -> Application -> Infrastructure ->
-// Presentation commit order.
 @Module({
   imports: [PatientModule, DoctorModule, SchedulingModule],
+  controllers: [AppointmentController, ConsultationController],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },
     { provide: CONSULTATION_SESSION_REPOSITORY, useClass: PrismaConsultationSessionRepository },
