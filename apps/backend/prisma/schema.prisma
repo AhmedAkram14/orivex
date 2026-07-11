@@ -23,6 +23,7 @@ model Account {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   sessions          Session[]
+  doctorProfile     DoctorProfile?
 }
 
 // Local mirror of a Keycloak-issued session, for audit/session-validation lookups only.
@@ -35,4 +36,43 @@ model Session {
   expiresAt          DateTime
   revokedAt          DateTime?
   createdAt          DateTime  @default(now())
+}
+
+// Sprint 2: DoctorModule's aggregate root (docs/10-backend-architecture.md's
+// DoctorModule entry). Verification status (TrustModule, future sprint) is
+// deliberately not duplicated here - single source of truth per fact.
+model DoctorProfile {
+  id                     String                @id @default(uuid())
+  accountId              String                @unique
+  account                Account               @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  licenseNumber          String
+  specialty              String
+  biography              String?
+  yearsOfExperience      Int?
+  languages              String[]
+  consultationFeeAmount  Decimal?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  publications           PortfolioPublication[]
+  awards                 PortfolioAward[]
+}
+
+model PortfolioPublication {
+  id              String        @id @default(uuid())
+  doctorProfileId String
+  doctorProfile   DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  title           String
+  reference       String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+}
+
+model PortfolioAward {
+  id              String        @id @default(uuid())
+  doctorProfileId String
+  doctorProfile   DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  title           String
+  issuingBody     String?
+  awardedAt       DateTime?
+  createdAt       DateTime      @default(now())
 }

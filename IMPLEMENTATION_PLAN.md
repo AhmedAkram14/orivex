@@ -9,29 +9,47 @@ Sprint 0
 
 Sprint 1
 
-- Identity
-- Authentication
+- Identity (domain, application, infrastructure, REST API)
+- Authentication (deferred to a later sprint - Keycloak/JWT/sessions)
 
-Sprint 2
+Sprint 2 — DoctorModule
 
-- Doctor Verification
+- Domain
+- Application
+- Infrastructure
+- REST API
 
-Sprint 3
+Sprint 3 — AssetModule
 
-- Patient Profile
+- File upload
+- Storage abstraction
+- Document metadata
 
-Sprint 4
+Sprint 4 — TrustModule
 
-- Booking
+- Doctor verification
+- VerificationCase
+- Review workflow
+- Administration integration
 
-Sprint 5
-
-- Consultation
+Sprint 5 — AdministrationModule
 
 Sprint 6
 
-- Prescription
+- Patient Profile
 
 Sprint 7
+
+- Booking
+
+Sprint 8
+
+- Consultation
+
+Sprint 9
+
+- Prescription
+
+Sprint 10
 
 - AI Copilot

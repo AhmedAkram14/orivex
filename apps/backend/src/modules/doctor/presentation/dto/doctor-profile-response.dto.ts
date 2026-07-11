@@ -1,0 +1,59 @@
+import type { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
+
+interface PublicationView {
+  id: string;
+  title: string;
+  reference?: string;
+  publishedAt?: string;
+}
+
+interface AwardView {
+  id: string;
+  title: string;
+  issuingBody?: string;
+  awardedAt?: string;
+}
+
+export class DoctorProfileResponseDto {
+  id!: string;
+  accountId!: string;
+  licenseNumber!: string;
+  specialty!: string;
+  biography?: string;
+  yearsOfExperience?: number;
+  languages!: string[];
+  consultationFeeAmount?: number;
+  publications!: PublicationView[];
+  awards!: AwardView[];
+  createdAt!: string;
+  updatedAt!: string;
+
+  static fromDomain(profile: DoctorProfile): DoctorProfileResponseDto {
+    const dto = new DoctorProfileResponseDto();
+
+    dto.id = profile.getId();
+    dto.accountId = profile.getAccountId();
+    dto.licenseNumber = profile.getLicenseNumber();
+    dto.specialty = profile.getSpecialty();
+    dto.biography = profile.getBiography();
+    dto.yearsOfExperience = profile.getYearsOfExperience();
+    dto.languages = profile.getLanguages();
+    dto.consultationFeeAmount = profile.getConsultationFeeAmount();
+    dto.publications = profile.getPublications().map((p) => ({
+      id: p.getId(),
+      title: p.getTitle(),
+      reference: p.getReference(),
+      publishedAt: p.getPublishedAt()?.toISOString(),
+    }));
+    dto.awards = profile.getAwards().map((a) => ({
+      id: a.getId(),
+      title: a.getTitle(),
+      issuingBody: a.getIssuingBody(),
+      awardedAt: a.getAwardedAt()?.toISOString(),
+    }));
+    dto.createdAt = profile.getCreatedAt().toISOString();
+    dto.updatedAt = profile.getUpdatedAt().toISOString();
+
+    return dto;
+  }
+}

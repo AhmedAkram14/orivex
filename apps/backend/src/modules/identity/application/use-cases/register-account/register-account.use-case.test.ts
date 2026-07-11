@@ -7,7 +7,7 @@ import { AccountRole } from '../../../domain/enums/account-role.enum.js';
 import { InvalidEmailAddressError } from '../../../domain/exceptions/invalid-email-address.error.js';
 import type { AccountRepository } from '../../../domain/repositories/account.repository.js';
 import type { EmailAddress } from '../../../domain/value-objects/email-address.value-object.js';
-import type { DomainEventDispatcher } from '../../ports/domain-event-dispatcher.port.js';
+import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 
 import { RegisterAccountCommand } from './register-account.command.js';
 import { RegisterAccountUseCase } from './register-account.use-case.js';

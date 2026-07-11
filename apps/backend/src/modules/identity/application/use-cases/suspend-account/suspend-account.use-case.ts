@@ -1,7 +1,7 @@
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import type { AccountRepository } from '../../../domain/repositories/account.repository.js';
 import { AccountId } from '../../../domain/value-objects/account-id.value-object.js';
-import type { DomainEventDispatcher } from '../../ports/domain-event-dispatcher.port.js';
+import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 
 import type { SuspendAccountCommand } from './suspend-account.command.js';
 

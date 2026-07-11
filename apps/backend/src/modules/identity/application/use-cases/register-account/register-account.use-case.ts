@@ -3,7 +3,7 @@ import { Account } from '../../../domain/entities/account.entity.js';
 import type { AccountRepository } from '../../../domain/repositories/account.repository.js';
 import { DisplayName } from '../../../domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../domain/value-objects/email-address.value-object.js';
-import type { DomainEventDispatcher } from '../../ports/domain-event-dispatcher.port.js';
+import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 
 import type { RegisterAccountCommand } from './register-account.command.js';
 

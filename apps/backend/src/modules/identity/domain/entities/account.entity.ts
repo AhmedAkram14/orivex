@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 
+import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { AccountRole } from '../enums/account-role.enum.js';
 import { AccountStatus } from '../enums/account-status.enum.js';
 import { Language } from '../enums/language.enum.js';
 import { AccountCreatedEvent } from '../events/account-created.event.js';
 import { AccountSuspendedEvent } from '../events/account-suspended.event.js';
-import type { DomainEvent } from '../events/domain-event.js';
 import { AccountClosedError } from '../exceptions/account-closed.error.js';
 import { IdentityDomainError } from '../exceptions/identity-domain.error.js';
 import { AccountId } from '../value-objects/account-id.value-object.js';

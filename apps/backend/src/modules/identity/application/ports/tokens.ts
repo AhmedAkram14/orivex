@@ -1,6 +1,4 @@
-// NestJS DI injection tokens for the ports this module depends on. Kept in
-// the application layer (not domain) since dependency injection is a
-// framework concern — the domain layer's AccountRepository interface has no
-// knowledge that a token exists for it.
+// NestJS DI injection token for this module's own repository port. The
+// DomainEventDispatcher token is generic/shared (shared/domain/tokens.js),
+// not redeclared here.
 export const ACCOUNT_REPOSITORY = Symbol('AccountRepository');
-export const DOMAIN_EVENT_DISPATCHER = Symbol('DomainEventDispatcher');

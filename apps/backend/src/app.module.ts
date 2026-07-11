@@ -3,8 +3,10 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { ConfigurationModule } from './core/configuration/configuration.module.js';
+import { DoctorModule } from './modules/doctor/doctor.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { PrismaModule } from './platform/database/prisma.module.js';
+import { EventsModule } from './platform/events/events.module.js';
 import { AllExceptionsFilter } from './platform/filters/all-exceptions.filter.js';
 import { HealthModule } from './platform/health/health.module.js';
 import { RequestLoggingInterceptor } from './platform/interceptors/request-logging.interceptor.js';
@@ -16,9 +18,11 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     ConfigurationModule,
     LoggingModule,
     PrismaModule,
+    EventsModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     HealthModule,
     IdentityModule,
+    DoctorModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

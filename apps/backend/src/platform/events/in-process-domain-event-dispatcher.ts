@@ -2,15 +2,15 @@ import { EventEmitter } from 'node:events';
 
 import { Injectable } from '@nestjs/common';
 
-import type { DomainEventDispatcher } from '../../application/ports/domain-event-dispatcher.port.js';
-import type { DomainEvent } from '../../domain/events/domain-event.js';
+import type { DomainEvent } from '../../shared/domain/domain-event.js';
+import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 
 // Simple in-process implementation: emits each event on a local
 // EventEmitter so future subscribers can `.on(eventName, handler)`. No
 // logging, no external broker — purely infrastructure plumbing. Upgrading to
 // a real message broker later is a drop-in replacement behind the same
 // DomainEventDispatcher port (docs/10-backend-architecture.md Section 14's
-// evolution path).
+// evolution path). One singleton instance app-wide (platform/events/events.module.ts).
 @Injectable()
 export class InProcessDomainEventDispatcher implements DomainEventDispatcher {
   private readonly emitter = new EventEmitter();
