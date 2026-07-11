@@ -38,18 +38,34 @@ Sprint 6
 
 - Patient Profile
 
-Sprint 7
+Sprint 7 — SchedulingModule
 
-- Booking
+- AvailabilityWindow
+- Slot reservation
+- Slot release
+- Slot confirmation
 
-Sprint 8
+Sprint 8 — PaymentModule
+
+- Payment authorization
+- Payment status
+- Transaction lifecycle
+
+Sprint 9 — BookingModule
+
+- Appointment aggregate
+- Booking workflow
+- Scheduling integration
+- Payment integration
+
+Sprint 10
 
 - Consultation
 
-Sprint 9
+Sprint 11
 
 - Prescription
 
-Sprint 10
+Sprint 12
 
 - AI Copilot
