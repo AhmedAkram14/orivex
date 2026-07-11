@@ -6,13 +6,15 @@ import { Language } from '../enums/language.enum.js';
 import { AccountCreatedEvent } from '../events/account-created.event.js';
 import { AccountSuspendedEvent } from '../events/account-suspended.event.js';
 import type { DomainEvent } from '../events/domain-event.js';
+import { AccountClosedError } from '../exceptions/account-closed.error.js';
+import { IdentityDomainError } from '../exceptions/identity-domain.error.js';
 import { AccountId } from '../value-objects/account-id.value-object.js';
 import type { DisplayName } from '../value-objects/display-name.value-object.js';
 import type { EmailAddress } from '../value-objects/email-address.value-object.js';
 
 import { UserProfile } from './user-profile.entity.js';
 
-export interface CreateAccountProps {
+export interface RegisterAccountProps {
   email: EmailAddress;
   keycloakId: string;
   role: AccountRole;
@@ -54,10 +56,10 @@ export class Account {
     private updatedAt: Date,
   ) {}
 
-  // Creates a brand-new Account. Raises AccountCreated.
-  static create(props: CreateAccountProps): Account {
+  // Registers a brand-new Account. Raises AccountCreated.
+  static register(props: RegisterAccountProps): Account {
     if (!props.keycloakId || props.keycloakId.trim().length === 0) {
-      throw new Error('Account requires a keycloakId (external identity reference).');
+      throw new IdentityDomainError('Account requires a keycloakId (external identity reference).');
     }
 
     const now = new Date();
@@ -101,7 +103,7 @@ export class Account {
       return;
     }
     if (this.status === AccountStatus.Closed) {
-      throw new Error('A closed account cannot be suspended.');
+      throw new AccountClosedError(this.id.toString());
     }
 
     this.status = AccountStatus.Suspended;
@@ -158,7 +160,7 @@ export class Account {
 
   // Drains recorded events for the (future) application layer to dispatch
   // after a successful persistence write.
-  pullDomainEvents(): DomainEvent[] {
+  releaseDomainEvents(): DomainEvent[] {
     const events = [...this.domainEvents];
     this.domainEvents.length = 0;
     return events;

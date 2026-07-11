@@ -1,4 +1,0 @@
-Reserved for future domain-specific exception types (e.g. InvalidEmailAddressError,
-AccountAlreadyClosedError) once callers need to distinguish failure modes
-programmatically rather than by generic Error message. Plain Error is used
-for invariant violations this sprint.

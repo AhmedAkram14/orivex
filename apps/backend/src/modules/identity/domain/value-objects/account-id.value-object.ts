@@ -1,3 +1,5 @@
+import { IdentityDomainError } from '../exceptions/identity-domain.error.js';
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export class AccountId {
@@ -5,7 +7,7 @@ export class AccountId {
 
   static create(value: string): AccountId {
     if (!UUID_PATTERN.test(value)) {
-      throw new Error(`AccountId must be a valid UUID, received: "${value}".`);
+      throw new IdentityDomainError(`AccountId must be a valid UUID, received: "${value}".`);
     }
     return new AccountId(value);
   }

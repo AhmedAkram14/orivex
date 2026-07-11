@@ -1,3 +1,5 @@
+import { InvalidEmailAddressError } from '../exceptions/invalid-email-address.error.js';
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export class EmailAddress {
@@ -6,7 +8,7 @@ export class EmailAddress {
   static create(value: string): EmailAddress {
     const normalized = value.trim().toLowerCase();
     if (!EMAIL_PATTERN.test(normalized)) {
-      throw new Error(`EmailAddress must be a valid email address, received: "${value}".`);
+      throw new InvalidEmailAddressError(value);
     }
     return new EmailAddress(normalized);
   }

@@ -1,4 +1,5 @@
-const MAX_LENGTH = 100;
+import { MAX_DISPLAY_NAME_LENGTH } from '../constants/identity.constants.js';
+import { InvalidDisplayNameError } from '../exceptions/invalid-display-name.error.js';
 
 export class DisplayName {
   private constructor(private readonly value: string) {}
@@ -6,10 +7,12 @@ export class DisplayName {
   static create(value: string): DisplayName {
     const trimmed = value.trim();
     if (trimmed.length === 0) {
-      throw new Error('DisplayName must not be empty.');
+      throw new InvalidDisplayNameError('DisplayName must not be empty.');
     }
-    if (trimmed.length > MAX_LENGTH) {
-      throw new Error(`DisplayName must not exceed ${MAX_LENGTH} characters.`);
+    if (trimmed.length > MAX_DISPLAY_NAME_LENGTH) {
+      throw new InvalidDisplayNameError(
+        `DisplayName must not exceed ${MAX_DISPLAY_NAME_LENGTH} characters.`,
+      );
     }
     return new DisplayName(trimmed);
   }
