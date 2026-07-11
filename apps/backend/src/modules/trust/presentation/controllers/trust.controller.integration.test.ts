@@ -37,6 +37,9 @@ class InMemoryVerificationCaseRepository implements VerificationCaseRepository {
   async findById(id: string): Promise<VerificationCase | null> {
     return this.byId.get(id) ?? null;
   }
+  async findPendingReview(): Promise<VerificationCase[]> {
+    return [...this.byId.values()];
+  }
   async save(verificationCase: VerificationCase): Promise<void> {
     this.byId.set(verificationCase.getId(), verificationCase);
   }

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { VerificationStatus as PrismaVerificationStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { VerificationCase } from '../../domain/entities/verification-case.entity.js';
@@ -8,6 +9,12 @@ import { toDomainVerificationCase } from './verification-case.mapper.js';
 import { toPrismaVerificationStatus } from './verification-status.mapper.js';
 
 const INCLUDE_DOCUMENTS = { documents: true } as const;
+
+const PENDING_REVIEW_STATUSES: PrismaVerificationStatus[] = [
+  PrismaVerificationStatus.SUBMITTED,
+  PrismaVerificationStatus.UNDER_REVIEW,
+  PrismaVerificationStatus.MORE_INFO_NEEDED,
+];
 
 @Injectable()
 export class PrismaVerificationCaseRepository implements VerificationCaseRepository {
@@ -19,6 +26,15 @@ export class PrismaVerificationCaseRepository implements VerificationCaseReposit
       include: INCLUDE_DOCUMENTS,
     });
     return row ? toDomainVerificationCase(row) : null;
+  }
+
+  async findPendingReview(): Promise<VerificationCase[]> {
+    const rows = await this.prisma.verificationCase.findMany({
+      where: { status: { in: PENDING_REVIEW_STATUSES } },
+      include: INCLUDE_DOCUMENTS,
+      orderBy: { submittedAt: 'asc' },
+    });
+    return rows.map(toDomainVerificationCase);
   }
 
   // Document assets are attached only at creation — no use case in this

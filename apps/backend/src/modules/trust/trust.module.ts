@@ -7,6 +7,7 @@ import { DoctorModule } from '../doctor/doctor.module.js';
 
 import { VERIFICATION_CASE_REPOSITORY } from './application/ports/tokens.js';
 import { DecideVerificationUseCase } from './application/use-cases/decide-verification/decide-verification.use-case.js';
+import { ListPendingVerificationCasesUseCase } from './application/use-cases/list-pending-verification-cases/list-pending-verification-cases.use-case.js';
 import { SubmitDoctorVerificationUseCase } from './application/use-cases/submit-doctor-verification/submit-doctor-verification.use-case.js';
 import type { VerificationCaseRepository } from './domain/repositories/verification-case.repository.js';
 import { PrismaVerificationCaseRepository } from './infrastructure/prisma/prisma-verification-case.repository.js';
@@ -39,7 +40,12 @@ import { VerificationCaseController } from './presentation/controllers/verificat
         new DecideVerificationUseCase(repository, eventDispatcher),
       inject: [VERIFICATION_CASE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
+    {
+      provide: ListPendingVerificationCasesUseCase,
+      useFactory: (repository: VerificationCaseRepository) => new ListPendingVerificationCasesUseCase(repository),
+      inject: [VERIFICATION_CASE_REPOSITORY],
+    },
   ],
-  exports: [SubmitDoctorVerificationUseCase, DecideVerificationUseCase],
+  exports: [SubmitDoctorVerificationUseCase, DecideVerificationUseCase, ListPendingVerificationCasesUseCase],
 })
 export class TrustModule {}

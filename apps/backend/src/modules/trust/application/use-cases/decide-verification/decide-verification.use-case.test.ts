@@ -16,6 +16,9 @@ class FakeVerificationCaseRepository implements VerificationCaseRepository {
   async findById(): Promise<VerificationCase | null> {
     return this.verificationCase;
   }
+  async findPendingReview(): Promise<VerificationCase[]> {
+    return [];
+  }
   async save(verificationCase: VerificationCase): Promise<void> {
     this.saved.push(verificationCase);
   }
