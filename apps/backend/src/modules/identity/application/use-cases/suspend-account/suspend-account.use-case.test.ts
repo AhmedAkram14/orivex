@@ -40,6 +40,8 @@ class FakeDomainEventDispatcher implements DomainEventDispatcher {
     this.dispatched.push(events);
     return Promise.resolve();
   }
+
+  subscribe(): void {}
 }
 
 function buildActiveAccount(): Account {

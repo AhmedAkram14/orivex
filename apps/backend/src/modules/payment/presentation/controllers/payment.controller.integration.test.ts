@@ -80,6 +80,8 @@ class NoopDomainEventDispatcher {
   async dispatch(): Promise<void> {
     // intentionally empty
   }
+
+  subscribe(): void {}
 }
 
 async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplication; sessionId: string }> {

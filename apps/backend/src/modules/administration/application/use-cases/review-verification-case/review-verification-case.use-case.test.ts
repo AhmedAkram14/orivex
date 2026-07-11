@@ -26,6 +26,8 @@ class FakeVerificationCaseRepository implements VerificationCaseRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildSubmittedCase(): VerificationCase {

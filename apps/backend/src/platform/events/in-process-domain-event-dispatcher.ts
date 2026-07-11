@@ -6,8 +6,9 @@ import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 
 // Simple in-process implementation: emits each event on a local
-// EventEmitter so future subscribers can `.on(eventName, handler)`. No
-// logging, no external broker — purely infrastructure plumbing. Upgrading to
+// EventEmitter so subscribers can register via `.subscribe(eventName,
+// handler)`. No logging, no external broker — purely infrastructure
+// plumbing. Upgrading to
 // a real message broker later is a drop-in replacement behind the same
 // DomainEventDispatcher port (docs/10-backend-architecture.md Section 14's
 // evolution path). One singleton instance app-wide (platform/events/events.module.ts).
@@ -21,7 +22,7 @@ export class InProcessDomainEventDispatcher implements DomainEventDispatcher {
     }
   }
 
-  on(eventName: string, handler: (event: DomainEvent) => void): void {
+  subscribe(eventName: string, handler: (event: DomainEvent) => void | Promise<void>): void {
     this.emitter.on(eventName, handler);
   }
 }

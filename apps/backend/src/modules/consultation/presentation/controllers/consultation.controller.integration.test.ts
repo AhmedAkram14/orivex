@@ -109,6 +109,8 @@ class NoopDomainEventDispatcher {
   async dispatch(): Promise<void> {
     // intentionally empty
   }
+
+  subscribe(): void {}
 }
 
 describe('Consultation controllers (integration)', () => {

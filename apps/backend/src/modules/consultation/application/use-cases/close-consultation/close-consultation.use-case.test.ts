@@ -41,6 +41,8 @@ class FakeAppointmentRepository implements AppointmentRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildConfirmedAppointment(): Appointment {

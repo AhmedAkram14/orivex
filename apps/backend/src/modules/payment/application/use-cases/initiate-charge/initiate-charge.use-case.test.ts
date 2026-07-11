@@ -79,6 +79,8 @@ class FakeFailingGateway implements PaymentGatewayPort {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildAppointmentAndSession(): { appointment: Appointment; session: ConsultationSession } {

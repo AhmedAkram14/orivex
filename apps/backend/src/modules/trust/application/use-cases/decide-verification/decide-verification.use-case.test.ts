@@ -29,6 +29,8 @@ class RecordingDispatcher {
   async dispatch(events: unknown[]): Promise<void> {
     this.dispatched.push(...events);
   }
+
+  subscribe(): void {}
 }
 
 function buildSubmittedCase(): VerificationCase {

@@ -27,6 +27,8 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildHeldWindow(): AvailabilityWindow {

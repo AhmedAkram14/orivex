@@ -51,6 +51,8 @@ class FakePatientProfileRepository implements PatientProfileRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildAccount(): Account {

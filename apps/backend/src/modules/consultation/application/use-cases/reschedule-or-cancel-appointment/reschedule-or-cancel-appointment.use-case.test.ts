@@ -51,6 +51,8 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildOpenWindow(consultationType: DoctorConsultationType = DoctorConsultationType.Free): AvailabilityWindow {

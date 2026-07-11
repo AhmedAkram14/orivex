@@ -85,6 +85,8 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildWindow(consultationType: DoctorConsultationType = DoctorConsultationType.Free): AvailabilityWindow {

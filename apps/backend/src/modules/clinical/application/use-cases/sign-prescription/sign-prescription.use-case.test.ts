@@ -90,6 +90,8 @@ class FakePrescriptionRepository implements PrescriptionRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 function buildScenario() {

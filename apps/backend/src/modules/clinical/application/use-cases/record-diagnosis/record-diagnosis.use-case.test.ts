@@ -67,6 +67,8 @@ class FakeHealthJourneyRepository implements HealthJourneyRepository {
 
 class NoopDispatcher {
   async dispatch(): Promise<void> {}
+
+  subscribe(): void {}
 }
 
 describe('RecordDiagnosisUseCase', () => {
