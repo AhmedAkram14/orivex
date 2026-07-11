@@ -12,6 +12,7 @@ import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/p
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import type { PaymentTransactionRepository } from './domain/repositories/payment-transaction.repository.js';
+import { NotConfiguredPaymentGatewayAdapter } from './infrastructure/gateway/not-configured-payment-gateway.adapter.js';
 import { PrismaPaymentTransactionRepository } from './infrastructure/prisma/prisma-payment-transaction.repository.js';
 import { PaymentController } from './presentation/controllers/payment.controller.js';
 
@@ -21,23 +22,19 @@ import { PaymentController } from './presentation/controllers/payment.controller
 // 11). ConsultationModule remains completely unaware PaymentModule exists
 // -- no circular imports, no forwardRef().
 //
-// IMPORTANT: this module is NOT registered in AppModule.imports yet.
-// InitiateChargeUseCase has a real, required dependency on
-// PaymentGatewayPort (the documented "external PSP adapter") -- per
-// architect direction, no concrete adapter or fake is implemented and no
-// provider is registered for PAYMENT_GATEWAY. Wiring this module into the
-// running application would make Nest fail to resolve that token at boot,
-// which would violate the "app must boot cleanly (only P1001 acceptable)"
-// verification standard used for every module so far. The honest
-// resolution is to keep the dependency explicit in code (not fabricated)
-// while leaving the module out of the live app graph until a specific PSP
-// is chosen and a real adapter is bound to PAYMENT_GATEWAY -- at which
-// point this module registers exactly like every other one.
+// PAYMENT_GATEWAY is bound to NotConfiguredPaymentGatewayAdapter -- no PSP
+// has been selected yet, but the module stays fully registered (architect
+// direction: "do not leave finished modules disconnected from AppModule").
+// Dependency inversion stays intact; the missing dependency is explicit;
+// the app boots cleanly; only an actual initiateCharge call fails, with a
+// clear error naming exactly what's missing. Swap this binding for a real
+// adapter the moment a PSP is chosen -- nothing else changes.
 @Module({
   imports: [ConsultationModule],
   controllers: [PaymentController],
   providers: [
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },
+    { provide: PAYMENT_GATEWAY, useClass: NotConfiguredPaymentGatewayAdapter },
     {
       provide: GetPaymentTransactionByIdUseCase,
       useFactory: (repository: PaymentTransactionRepository) => new GetPaymentTransactionByIdUseCase(repository),
