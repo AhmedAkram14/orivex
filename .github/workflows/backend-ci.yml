@@ -33,14 +33,8 @@ jobs:
       - name: Enable corepack (pnpm)
         run: corepack enable
 
-      # --no-frozen-lockfile: pnpm-lock.yaml has not yet been regenerated to
-      # reflect apps/backend/package.json's dependency move (`prisma` ->
-      # dependencies, needed for `prisma migrate deploy` at container
-      # startup -- see apps/backend/Dockerfile). Run `pnpm install` locally
-      # once and commit the updated lockfile, then switch this back to
-      # `--frozen-lockfile` for fully reproducible installs.
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile --filter @orivex/backend...
+        run: pnpm install --frozen-lockfile --filter @orivex/backend...
 
       - name: Prisma generate
         run: pnpm --filter @orivex/backend run prisma:generate

@@ -21,12 +21,7 @@ RUN corepack enable
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/backend/package.json apps/backend/package.json
 
-# --no-frozen-lockfile: pnpm-lock.yaml has not yet been regenerated in this
-# environment to reflect apps/backend/package.json's dependency move
-# (`prisma` -> dependencies, needed for `prisma migrate deploy` at startup).
-# Run `pnpm install` once locally and commit the updated lockfile, then
-# switch this to `--frozen-lockfile` for fully reproducible installs.
-RUN pnpm install --no-frozen-lockfile --filter @orivex/backend...
+RUN pnpm install --frozen-lockfile --filter @orivex/backend...
 
 # ---------------------------------------------------------------------------
 # Stage 2: build -- generate the Prisma client and compile TypeScript.
@@ -54,7 +49,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/backend/package.json apps/backend/package.json
 COPY apps/backend/prisma apps/backend/prisma
 
-RUN pnpm install --no-frozen-lockfile --prod --filter @orivex/backend...
+RUN pnpm install --frozen-lockfile --prod --filter @orivex/backend...
 # Explicit, not relying on @prisma/client's postinstall auto-generate hook:
 # its schema auto-detection is relative to the invoking directory, which is
 # ambiguous inside a pnpm workspace root. Regenerating here guarantees the
