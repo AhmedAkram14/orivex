@@ -18,9 +18,12 @@ import { ConsultationType } from '../../../consultation/domain/enums/consultatio
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
+import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { AvailabilityWindow } from '../../../doctor/domain/entities/availability-window.entity.js';
+import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import { ConsultationType as DoctorConsultationType } from '../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
+import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
@@ -55,6 +58,17 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
   }
   async findOverlapping(): Promise<AvailabilityWindow[]> {
     return [];
+  }
+  async save(): Promise<void> {}
+}
+
+class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
+  constructor(private readonly profile: DoctorProfile) {}
+  async findById(id: string): Promise<DoctorProfile | null> {
+    return this.profile.getId() === id ? this.profile : null;
+  }
+  async findByAccountId(): Promise<DoctorProfile | null> {
+    return null;
   }
   async save(): Promise<void> {}
 }
@@ -100,10 +114,23 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     scheduledAt: window.getStartTime(),
   });
   const session = ConsultationSession.open(appointment.getId());
+  const doctor = DoctorProfile.reconstitute({
+    id: appointment.getDoctorId(),
+    accountId: '44444444-4444-4444-8444-444444444444',
+    licenseNumber: 'LIC-1',
+    specialty: 'Cardiology',
+    consultationFeeAmount: 500,
+    languages: [],
+    publications: [],
+    awards: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
   const availabilityWindowRepo = new InMemoryAvailabilityWindowRepository(window);
   const appointmentRepo = new InMemoryAppointmentRepository(appointment);
   const sessionRepo = new InMemoryConsultationSessionRepository(session);
+  const doctorProfileRepo = new InMemoryDoctorProfileRepository(doctor);
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
 
   const confirmAppointmentUseCase = new ConfirmAppointmentUseCase(
@@ -117,6 +144,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     new NoopDomainEventDispatcher(),
     new GetConsultationSessionByIdUseCase(sessionRepo),
     new GetAppointmentByIdUseCase(appointmentRepo),
+    new GetDoctorProfileByIdUseCase(doctorProfileRepo),
     confirmAppointmentUseCase,
     new FakeGateway(gatewaySucceeds),
   );

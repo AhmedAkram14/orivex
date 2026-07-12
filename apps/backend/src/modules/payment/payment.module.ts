@@ -6,6 +6,8 @@ import { ConfirmAppointmentUseCase } from '../consultation/application/use-cases
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
+import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { DoctorModule } from '../doctor/doctor.module.js';
 
 import type { PaymentGatewayPort } from './application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
@@ -16,11 +18,18 @@ import { NotConfiguredPaymentGatewayAdapter } from './infrastructure/gateway/not
 import { PrismaPaymentTransactionRepository } from './infrastructure/prisma/prisma-payment-transaction.repository.js';
 import { PaymentController } from './presentation/controllers/payment.controller.js';
 
-// Imports ConsultationModule to consume its own exported use cases
-// (module-to-module calls only through a published interface, never
-// another module's repository — docs/10-backend-architecture.md Section
-// 11). ConsultationModule remains completely unaware PaymentModule exists
-// -- no circular imports, no forwardRef().
+// Imports ConsultationModule and DoctorModule to consume their own
+// exported use cases (module-to-module calls only through a published
+// interface, never another module's repository — docs/10-backend-
+// architecture.md Section 11). DoctorModule is a read-only addition
+// (GetDoctorProfileByIdUseCase, used only to validate a charge amount
+// against the doctor's own consultationFeeAmount) -- docs/10-backend-
+// architecture.md's dependency table only forbids PaymentModule from
+// depending on ClinicalModule; it does not forbid this read, and the same
+// read-only-query-through-a-published-use-case pattern is already used by
+// ConsultationModule and ClinicalModule for the same DoctorModule.
+// Neither module imports PaymentModule back -- no circular imports, no
+// forwardRef().
 //
 // PAYMENT_GATEWAY is bound to NotConfiguredPaymentGatewayAdapter -- no PSP
 // has been selected yet, but the module stays fully registered (architect
@@ -30,7 +39,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
 // clear error naming exactly what's missing. Swap this binding for a real
 // adapter the moment a PSP is chosen -- nothing else changes.
 @Module({
-  imports: [ConsultationModule],
+  imports: [ConsultationModule, DoctorModule],
   controllers: [PaymentController],
   providers: [
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },
@@ -47,6 +56,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
         eventDispatcher: DomainEventDispatcher,
         getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         confirmAppointmentUseCase: ConfirmAppointmentUseCase,
         paymentGateway: PaymentGatewayPort,
       ) =>
@@ -55,6 +65,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
           eventDispatcher,
           getConsultationSessionByIdUseCase,
           getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
           confirmAppointmentUseCase,
           paymentGateway,
         ),
@@ -63,6 +74,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
         DOMAIN_EVENT_DISPATCHER,
         GetConsultationSessionByIdUseCase,
         GetAppointmentByIdUseCase,
+        GetDoctorProfileByIdUseCase,
         ConfirmAppointmentUseCase,
         PAYMENT_GATEWAY,
       ],

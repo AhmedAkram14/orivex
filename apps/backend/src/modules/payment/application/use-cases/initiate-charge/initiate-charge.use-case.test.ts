@@ -12,13 +12,17 @@ import type { AppointmentRepository } from '../../../../consultation/domain/repo
 import type { ConsultationSessionRepository } from '../../../../consultation/domain/repositories/consultation-session.repository.js';
 import { ConfirmSlotUseCase } from '../../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
+import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
+import { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
+import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { PaymentTransaction } from '../../../domain/entities/payment-transaction.entity.js';
 import { PaymentMethod } from '../../../domain/enums/payment-method.enum.js';
 import { PaymentStatus } from '../../../domain/enums/payment-status.enum.js';
 import { PaymentAuthorizationFailedError } from '../../../domain/exceptions/payment-authorization-failed.error.js';
+import { PaymentDomainError } from '../../../domain/exceptions/payment-domain.error.js';
 import type { PaymentTransactionRepository } from '../../../domain/repositories/payment-transaction.repository.js';
 import type { PaymentGatewayPort } from '../../ports/payment-gateway.port.js';
 
@@ -51,6 +55,17 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
   }
   async findOverlapping(): Promise<AvailabilityWindow[]> {
     return [];
+  }
+  async save(): Promise<void> {}
+}
+
+class FakeDoctorProfileRepository implements DoctorProfileRepository {
+  constructor(private readonly profile: DoctorProfile | null) {}
+  async findById(): Promise<DoctorProfile | null> {
+    return this.profile;
+  }
+  async findByAccountId(): Promise<DoctorProfile | null> {
+    return null;
   }
   async save(): Promise<void> {}
 }
@@ -101,9 +116,23 @@ function buildAppointmentAndSession(): { appointment: Appointment; session: Cons
   return { appointment, session };
 }
 
+// consultationFeeAmount is required (not defaulted) -- a JS default
+// parameter is NOT applied only when the argument is omitted entirely; an
+// explicitly-passed `undefined` also triggers it, which would silently
+// defeat a test that means to construct a doctor with no configured fee.
+function buildDoctorProfile(consultationFeeAmount: number | undefined): DoctorProfile {
+  return DoctorProfile.register({
+    accountId: '44444444-4444-4444-8444-444444444444',
+    licenseNumber: 'LIC-1',
+    specialty: 'Cardiology',
+    consultationFeeAmount,
+  });
+}
+
 function buildUseCase(props: {
   appointment: Appointment | null;
   session: ConsultationSession | null;
+  doctor?: DoctorProfile | null;
   gateway: PaymentGatewayPort;
   transactionRepo: FakePaymentTransactionRepository;
 }): InitiateChargeUseCase {
@@ -128,6 +157,7 @@ function buildUseCase(props: {
     new NoopDispatcher(),
     new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(props.session)),
     new GetAppointmentByIdUseCase(new FakeAppointmentRepository(props.appointment)),
+    new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(props.doctor === undefined ? buildDoctorProfile(500) : props.doctor)),
     confirmAppointmentUseCase,
     props.gateway,
   );
@@ -205,6 +235,96 @@ describe('InitiateChargeUseCase', () => {
           }),
         ),
       NotFoundError,
+    );
+    assert.equal(transactionRepo.saved.length, 0);
+  });
+
+  it('throws PaymentDomainError when the requested amount does not match the doctor\'s consultation fee', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: buildDoctorProfile(500),
+      gateway: new FakeSucceedingGateway(),
+      transactionRepo,
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new InitiateChargeCommand({
+            consultationSessionId: session.getId(),
+            amount: 1,
+            currency: 'EGP',
+            paymentMethod: PaymentMethod.Card,
+          }),
+        ),
+      PaymentDomainError,
+    );
+    assert.equal(transactionRepo.saved.length, 0);
+  });
+
+  it('throws PaymentDomainError when the doctor has no configured consultation fee', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: buildDoctorProfile(undefined),
+      gateway: new FakeSucceedingGateway(),
+      transactionRepo,
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new InitiateChargeCommand({
+            consultationSessionId: session.getId(),
+            amount: 500,
+            currency: 'EGP',
+            paymentMethod: PaymentMethod.Card,
+          }),
+        ),
+      PaymentDomainError,
+    );
+    assert.equal(transactionRepo.saved.length, 0);
+  });
+
+  it('throws PaymentDomainError when initiating a charge for a free consultation', async () => {
+    const window = AvailabilityWindow.define({
+      doctorId: '33333333-3333-4333-8333-333333333333',
+      startTime: new Date(Date.now() + 60 * 60_000),
+      endTime: new Date(Date.now() + 90 * 60_000),
+      consultationType: DoctorConsultationType.Free,
+    });
+    const freeAppointment = Appointment.request({
+      patientId: '22222222-2222-4222-8222-222222222222',
+      doctorId: '33333333-3333-4333-8333-333333333333',
+      availabilityWindowId: window.getId(),
+      consultationType: ConsultationType.Free,
+      scheduledAt: window.getStartTime(),
+    });
+    const freeSession = ConsultationSession.open(freeAppointment.getId());
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const useCase = buildUseCase({
+      appointment: freeAppointment,
+      session: freeSession,
+      gateway: new FakeSucceedingGateway(),
+      transactionRepo,
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new InitiateChargeCommand({
+            consultationSessionId: freeSession.getId(),
+            amount: 0,
+            currency: 'EGP',
+            paymentMethod: PaymentMethod.Card,
+          }),
+        ),
+      PaymentDomainError,
     );
     assert.equal(transactionRepo.saved.length, 0);
   });
