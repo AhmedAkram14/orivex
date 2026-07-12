@@ -26,12 +26,11 @@ export class RegisterAccountUseCase {
     // This check-then-act is a fast-fail UX nicety, not the actual
     // uniqueness guarantee: two concurrent registrations for the same email
     // can both pass this check before either saves. The Account.email column
-    // is DB-unique (Sprint 1.1C's migration), so a genuine race still fails
-    // safely at the database — but that violation currently surfaces as a
-    // raw, untranslated Prisma error (would 500, not 409). Deciding where
-    // Prisma-error recognition belongs (repository vs. a presentation-layer
-    // mapper) is a layering call intentionally left open rather than decided
-    // here, per this sprint's rule that use cases never translate exceptions.
+    // is DB-unique (Sprint 1.1C's migration); the genuine race is now closed
+    // at the repository layer (PrismaAccountRepository.save() catches the
+    // P2002 violation and throws AccountAlreadyExistsError, mapped to the
+    // same 409 by identity-exception.mapper.ts) rather than surfacing as a
+    // raw, unmapped 500.
     const existing = await this.accountRepository.findByEmail(email);
     if (existing) {
       // ConflictError (shared/errors), not a raw domain exception: the

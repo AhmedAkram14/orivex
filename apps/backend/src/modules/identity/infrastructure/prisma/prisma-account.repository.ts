@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { Account } from '../../domain/entities/account.entity.js';
+import { AccountAlreadyExistsError } from '../../domain/exceptions/account-already-exists.error.js';
 import type { AccountRepository } from '../../domain/repositories/account.repository.js';
 import type { AccountId } from '../../domain/value-objects/account-id.value-object.js';
 import type { EmailAddress } from '../../domain/value-objects/email-address.value-object.js';
 
 import { toDomainAccount, toPersistedAccount } from './account.mapper.js';
+
+function isUniqueConstraintViolation(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+}
 
 @Injectable()
 export class PrismaAccountRepository implements AccountRepository {
@@ -22,13 +28,27 @@ export class PrismaAccountRepository implements AccountRepository {
     return row ? toDomainAccount(row) : null;
   }
 
+  // RegisterAccountUseCase's own check-then-act uniqueness guard is a
+  // fast-fail UX nicety, not the actual guarantee -- two concurrent
+  // registrations for the same email can both pass that check before either
+  // saves. Account.email is DB-unique, so a genuine race still fails safely
+  // here; catching P2002 and translating it to the same domain-level
+  // "already exists" outcome closes the gap this would otherwise leave as
+  // an unmapped 500.
   async save(account: Account): Promise<void> {
     const data = toPersistedAccount(account);
 
-    await this.prisma.account.upsert({
-      where: { id: data.id },
-      create: data,
-      update: data,
-    });
+    try {
+      await this.prisma.account.upsert({
+        where: { id: data.id },
+        create: data,
+        update: data,
+      });
+    } catch (error) {
+      if (isUniqueConstraintViolation(error)) {
+        throw new AccountAlreadyExistsError(account.getEmail().toString());
+      }
+      throw error;
+    }
   }
 }
