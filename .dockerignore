@@ -1,0 +1,22 @@
+# Keeps the production Docker build context small and prevents committed
+# dev-only state (or accidental local secrets) from ever entering an image.
+node_modules
+.pnpm-store
+**/dist
+**/coverage
+**/.tsbuildinfo
+
+.git
+.github
+.claude
+
+docs
+IMPLEMENTATION_PLAN.md
+*.md
+
+.env
+.env.local
+.env.*.local
+.env.development
+
+infrastructure/docker
