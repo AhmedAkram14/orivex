@@ -1,0 +1,66 @@
+# Render Blueprint (Sprint 14 -- First Production Deployment).
+# Connect this repo in the Render dashboard ("New +" -> "Blueprint") and
+# Render reads this file to provision the services below. Docker build
+# uses the existing production Dockerfile from Sprint 13 unchanged --
+# nothing about the image itself is Render-specific.
+#
+# Do NOT set PORT in envVars below -- Render injects its own PORT value
+# for Docker-based web services, and main.ts already reads whatever
+# process.env.PORT is present via the validated config service.
+#
+# Render's product/schema naming for secondary services (e.g. its Redis/
+# "Key Value" offering) has changed over time -- this Blueprint only
+# declares what's stable across Render's history (a Docker web service and
+# a managed Postgres database). Provision Redis, Keycloak, and S3-
+# compatible storage separately (see DEPLOYMENT.md) and paste their real
+# connection details into the dashboard's environment variable editor for
+# the values marked sync: false below.
+
+databases:
+  - name: orivex-postgres
+    databaseName: orivex
+    user: orivex
+    plan: starter
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: orivex-backend
+    runtime: docker
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health/readiness
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: OTEL_ENABLED
+        value: "false"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: orivex-postgres
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+      - key: KEYCLOAK_URL
+        sync: false
+      - key: KEYCLOAK_REALM
+        sync: false
+      - key: KEYCLOAK_CLIENT_ID
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_FORCE_PATH_STYLE
+        sync: false

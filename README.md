@@ -20,3 +20,7 @@ This repository now contains the initial monorepo scaffold for Sprint 0:
 ## Documentation Index
 
 See [docs/README.md](docs/README.md) for the full, authoritative documentation index. Keep that file as the single source of truth for doc paths — this section intentionally doesn't duplicate the list to avoid the two drifting apart.
+
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for local Docker, Docker Compose, and Render production deployment instructions.
