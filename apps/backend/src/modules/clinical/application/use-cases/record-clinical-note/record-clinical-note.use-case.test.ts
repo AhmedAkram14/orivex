@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { ForbiddenError, NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { Appointment } from '../../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../../consultation/domain/entities/consultation-session.entity.js';
+import { ConsultationType } from '../../../../consultation/domain/enums/consultation-type.enum.js';
+import type { AppointmentRepository } from '../../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../../consultation/domain/repositories/consultation-session.repository.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import type { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -35,6 +39,14 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
   async save(): Promise<void> {}
 }
 
+class FakeAppointmentRepository implements AppointmentRepository {
+  constructor(private readonly appointment: Appointment | null) {}
+  async findById(): Promise<Appointment | null> {
+    return this.appointment;
+  }
+  async save(): Promise<void> {}
+}
+
 class FakeDoctorProfileRepository implements DoctorProfileRepository {
   constructor(private readonly profile: DoctorProfile | null) {}
   async findById(): Promise<DoctorProfile | null> {
@@ -46,20 +58,42 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
   async save(): Promise<void> {}
 }
 
+function buildScenario() {
+  const appointment = Appointment.request({
+    patientId: '11111111-1111-4111-8111-111111111111',
+    doctorId: '22222222-2222-4222-8222-222222222222',
+    availabilityWindowId: '33333333-3333-4333-8333-333333333333',
+    consultationType: ConsultationType.Free,
+    scheduledAt: new Date(Date.now() + 60 * 60_000),
+  });
+  const session = ConsultationSession.open(appointment.getId());
+  return { appointment, session };
+}
+
+function buildUseCase(props: {
+  appointment: Appointment | null;
+  session: ConsultationSession | null;
+  doctor: DoctorProfile | null;
+  repo: FakeClinicalNoteRepository;
+}): RecordClinicalNoteUseCase {
+  return new RecordClinicalNoteUseCase(
+    props.repo,
+    new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(props.session)),
+    new GetAppointmentByIdUseCase(new FakeAppointmentRepository(props.appointment)),
+    new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(props.doctor)),
+  );
+}
+
 describe('RecordClinicalNoteUseCase', () => {
-  it('records a note for an existing session and doctor', async () => {
-    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+  it('records a note for the treating doctor of an existing session', async () => {
+    const { appointment, session } = buildScenario();
     const repo = new FakeClinicalNoteRepository();
-    const useCase = new RecordClinicalNoteUseCase(
-      repo,
-      new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(session)),
-      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository({} as DoctorProfile)),
-    );
+    const useCase = buildUseCase({ appointment, session, doctor: {} as DoctorProfile, repo });
 
     const note = await useCase.execute(
       new RecordClinicalNoteCommand({
         consultationSessionId: session.getId(),
-        authoringDoctorId: '22222222-2222-4222-8222-222222222222',
+        authoringDoctorId: appointment.getDoctorId(),
         content: 'SOAP note',
       }),
     );
@@ -69,19 +103,16 @@ describe('RecordClinicalNoteUseCase', () => {
   });
 
   it('throws NotFoundError when the session does not exist', async () => {
+    const { appointment } = buildScenario();
     const repo = new FakeClinicalNoteRepository();
-    const useCase = new RecordClinicalNoteUseCase(
-      repo,
-      new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(null)),
-      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository({} as DoctorProfile)),
-    );
+    const useCase = buildUseCase({ appointment, session: null, doctor: {} as DoctorProfile, repo });
 
     await assert.rejects(
       () =>
         useCase.execute(
           new RecordClinicalNoteCommand({
             consultationSessionId: 'missing-id',
-            authoringDoctorId: '22222222-2222-4222-8222-222222222222',
+            authoringDoctorId: appointment.getDoctorId(),
             content: 'SOAP note',
           }),
         ),
@@ -90,13 +121,9 @@ describe('RecordClinicalNoteUseCase', () => {
   });
 
   it('throws NotFoundError when the doctor does not exist', async () => {
-    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+    const { appointment, session } = buildScenario();
     const repo = new FakeClinicalNoteRepository();
-    const useCase = new RecordClinicalNoteUseCase(
-      repo,
-      new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(session)),
-      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(null)),
-    );
+    const useCase = buildUseCase({ appointment, session, doctor: null, repo });
 
     await assert.rejects(
       () =>
@@ -108,6 +135,24 @@ describe('RecordClinicalNoteUseCase', () => {
           }),
         ),
       NotFoundError,
+    );
+  });
+
+  it('throws ForbiddenError when authoringDoctorId is not the appointment\'s treating doctor', async () => {
+    const { appointment, session } = buildScenario();
+    const repo = new FakeClinicalNoteRepository();
+    const useCase = buildUseCase({ appointment, session, doctor: {} as DoctorProfile, repo });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new RecordClinicalNoteCommand({
+            consultationSessionId: session.getId(),
+            authoringDoctorId: '55555555-5555-4555-8555-555555555555',
+            content: 'SOAP note',
+          }),
+        ),
+      ForbiddenError,
     );
   });
 });

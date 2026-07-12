@@ -86,9 +86,16 @@ import { PrescriptionController } from './presentation/controllers/prescription.
       useFactory: (
         repository: ClinicalNoteRepository,
         getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
         getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
-      ) => new RecordClinicalNoteUseCase(repository, getConsultationSessionByIdUseCase, getDoctorProfileByIdUseCase),
-      inject: [CLINICAL_NOTE_REPOSITORY, GetConsultationSessionByIdUseCase, GetDoctorProfileByIdUseCase],
+      ) =>
+        new RecordClinicalNoteUseCase(
+          repository,
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
+        ),
+      inject: [CLINICAL_NOTE_REPOSITORY, GetConsultationSessionByIdUseCase, GetAppointmentByIdUseCase, GetDoctorProfileByIdUseCase],
     },
     {
       provide: GetHealthGraphSubgraphUseCase,

@@ -8,10 +8,12 @@ import request from 'supertest';
 import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions.filter.js';
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import { createValidationException } from '../../../../platform/validation/validation-exception-factory.js';
+import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../consultation/domain/entities/consultation-session.entity.js';
 import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
+import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -45,9 +47,14 @@ class InMemoryPatientProfileRepository implements PatientProfileRepository {
 }
 
 class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
-  constructor(private readonly profile: DoctorProfile) {}
+  private readonly byId = new Map<string, DoctorProfile>();
+  constructor(profiles: DoctorProfile[]) {
+    for (const profile of profiles) {
+      this.byId.set(profile.getId(), profile);
+    }
+  }
   async findById(id: string): Promise<DoctorProfile | null> {
-    return this.profile.getId() === id ? this.profile : null;
+    return this.byId.get(id) ?? null;
   }
   async findByAccountId(): Promise<DoctorProfile | null> {
     return null;
@@ -62,6 +69,14 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
   }
   async findByAppointmentId(): Promise<ConsultationSession | null> {
     return null;
+  }
+  async save(): Promise<void> {}
+}
+
+class InMemoryAppointmentRepository implements AppointmentRepository {
+  constructor(private readonly appointment: Appointment) {}
+  async findById(id: string): Promise<Appointment | null> {
+    return this.appointment.getId() === id ? this.appointment : null;
   }
   async save(): Promise<void> {}
 }
@@ -102,6 +117,7 @@ describe('Clinical controllers (integration)', () => {
   let app: INestApplication;
   let patient: PatientProfile;
   let doctor: DoctorProfile;
+  let otherDoctor: DoctorProfile;
   let session: ConsultationSession;
 
   before(async () => {
@@ -110,6 +126,11 @@ describe('Clinical controllers (integration)', () => {
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-1',
       specialty: 'Cardiology',
+    });
+    otherDoctor = DoctorProfile.register({
+      accountId: '66666666-6666-4666-8666-666666666666',
+      licenseNumber: 'LIC-2',
+      specialty: 'Dermatology',
     });
     const appointment = Appointment.request({
       patientId: patient.getId(),
@@ -134,7 +155,8 @@ describe('Clinical controllers (integration)', () => {
             new RecordClinicalNoteUseCase(
               new InMemoryClinicalNoteRepository(),
               new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)),
-              new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor)),
+              new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)),
+              new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository([doctor, otherDoctor])),
             ),
         },
         {
@@ -186,6 +208,15 @@ describe('Clinical controllers (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('POST /consultations/:id/notes rejects a doctor who is not the treating doctor with 403', async () => {
+    const response = await request(app.getHttpServer())
+      .post(`/consultations/${session.getId()}/notes`)
+      .send({ authoringDoctorId: otherDoctor.getId(), content: 'SOAP note content' })
+      .expect(403);
+
+    assert.equal(response.body.error.code, 'FORBIDDEN');
   });
 
   it('GET /patients/:id/health-graph returns the patient\'s nodes', async () => {
