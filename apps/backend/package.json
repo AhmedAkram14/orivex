@@ -10,7 +10,7 @@
     "start": "node dist/main.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.json && node --test dist/modules",
+    "test": "tsc -p tsconfig.json && node --test dist/modules dist/platform dist/shared dist/core",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init --skip-generate",
     "prisma:studio": "prisma studio"
