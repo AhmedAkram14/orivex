@@ -10,18 +10,20 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 
 | Variable | Required | Actually used at runtime? |
 |---|---|---|
-| `NODE_ENV` | yes (default `development`) | — |
-| `PORT` | yes (default `3000`) | Do **not** set manually on Render — it injects its own |
-| `LOG_LEVEL` | yes (default `info`) | — |
-| `CORS_ORIGINS` | yes | Yes — enforced on every request |
-| `OTEL_ENABLED` | yes (default `false`) | Yes |
-| `DATABASE_URL` | yes | Yes — every request |
-| `REDIS_URL` | yes | **No code path connects to Redis yet.** Required only to satisfy schema validation at boot. |
-| `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID` | yes | **Not called yet** — authentication is a documented, deferred future sprint. Required only to satisfy schema validation at boot. |
-| `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET`, `S3_FORCE_PATH_STYLE` | yes | Yes — AssetModule's upload-intent/confirm flow genuinely calls S3 |
+| `NODE_ENV` | optional (default `development`) | — |
+| `PORT` | optional (default `3000`) | Do **not** set manually on Render — it injects its own |
+| `LOG_LEVEL` | optional (default `info`) | — |
+| `CORS_ORIGINS` | **yes** | Yes — enforced on every request |
+| `OTEL_ENABLED` | optional (default `false`) | Yes, but even when enabled no tracing SDK is wired up yet — a no-op |
+| `DATABASE_URL` | **yes** | Yes — every request |
+| `REDIS_URL` | optional | **No code path connects to Redis yet.** Not validated at boot; omit entirely if unused. |
+| `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID` | optional | **Not called yet** — authentication is a documented, deferred future sprint. Not validated at boot; omit entirely if unused. |
+| `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | **yes** | Yes — AssetModule's upload-intent/confirm flow genuinely calls S3 |
+| `S3_REGION` | optional (default `us-east-1`) | Yes |
+| `S3_FORCE_PATH_STYLE` | optional (default `true`) | Yes |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Docker Compose only | Consumed only by `docker-compose.production.yml` to construct `DATABASE_URL` for the `postgres` service it starts; the app itself never reads these three directly |
 
-Since `KEYCLOAK_*`/`REDIS_URL` aren't called yet, any syntactically valid placeholder satisfies boot validation for a first deployment — but `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail.
+`REDIS_URL`/`KEYCLOAK_*` are optional in `apps/backend/src/core/configuration/env.schema.ts` specifically because nothing in the codebase instantiates a client from them yet — restore them to required the moment either integration is actually wired up. `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail.
 
 ## 1. Local Docker (single container, no orchestration)
 
@@ -40,10 +42,6 @@ docker run --rm -p 3000:3000 \
   -e CORS_ORIGINS=http://localhost:3000 \
   -e OTEL_ENABLED=false \
   -e DATABASE_URL=postgresql://orivex:orivex@host.docker.internal:5432/orivex \
-  -e REDIS_URL=redis://host.docker.internal:6379 \
-  -e KEYCLOAK_URL=http://host.docker.internal:8080 \
-  -e KEYCLOAK_REALM=master \
-  -e KEYCLOAK_CLIENT_ID=orivex \
   -e S3_ENDPOINT=http://host.docker.internal:9000 \
   -e S3_REGION=us-east-1 \
   -e S3_ACCESS_KEY_ID=orivex \
@@ -51,6 +49,7 @@ docker run --rm -p 3000:3000 \
   -e S3_BUCKET=orivex-media-assets \
   -e S3_FORCE_PATH_STYLE=true \
   orivex-backend:latest
+  # REDIS_URL / KEYCLOAK_* omitted -- optional, unused by any code path yet
 ```
 
 **Startup:** the image's `docker-entrypoint.sh` runs `prisma migrate deploy` automatically before `node dist/main.js` starts — no separate migration step needed.
@@ -91,19 +90,18 @@ docker compose -f infrastructure/docker/docker-compose.production.yml run --rm b
 
 ## 3. Production: Render
 
-`render.yaml` (repo root) is a Render Blueprint declaring exactly two resources: the `orivex-backend` Docker web service (built from `apps/backend/Dockerfile`, unchanged) and an `orivex-postgres` managed database.
+`render.yaml` (repo root) is a Render Blueprint declaring two resources, both on Render's **free** plan: the `orivex-backend` Docker web service (built from `apps/backend/Dockerfile`, unchanged) and an `orivex-postgres` database. `orivex-postgres` is provisioned but **deliberately unused** — the real database is **Neon Postgres** (external), wired manually via `DATABASE_URL`, not via Render's `fromDatabase`.
 
 ### One-time setup
 
 1. Push this repo to GitHub (Render deploys from a connected Git repo).
-2. In the Render dashboard: **New +** → **Blueprint** → select this repo. Render reads `render.yaml` and provisions `orivex-postgres` and `orivex-backend` together.
-3. `DATABASE_URL` is wired automatically (`fromDatabase` in `render.yaml` — Render injects the Postgres connection string directly).
-4. For every variable marked `sync: false` in `render.yaml`, open the `orivex-backend` service → **Environment** and set a real value:
+2. In the Render dashboard: **New +** → **Blueprint** → select this repo. Render reads `render.yaml` and provisions `orivex-postgres` (free, unused) and `orivex-backend` (free) together.
+3. For every variable marked `sync: false` in `render.yaml`, open the `orivex-backend` service → **Environment** and set a real value:
+   - `DATABASE_URL` — your real Neon connection string (from the Neon dashboard)
    - `CORS_ORIGINS` — your real frontend origin(s), comma-separated
-   - `REDIS_URL` — any reachable Redis connection string (not functionally used yet, but must be present and syntactically valid; e.g. a small Render Key Value instance or an external provider like Upstash)
-   - `KEYCLOAK_URL` / `KEYCLOAK_REALM` / `KEYCLOAK_CLIENT_ID` — real values once Keycloak is deployed, or a placeholder for now (not called yet, but must be present)
    - `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_BUCKET` / `S3_FORCE_PATH_STYLE` — **must be real and reachable** (AWS S3, DigitalOcean Spaces, or similar) since AssetModule's upload flow genuinely calls this
-5. Do **not** add a `PORT` variable — Render injects its own for Docker web services, and the app already reads whatever `process.env.PORT` is set.
+   - `REDIS_URL` / `KEYCLOAK_URL` / `KEYCLOAK_REALM` / `KEYCLOAK_CLIENT_ID` — optional; leave unset unless/until either integration is actually wired up
+4. Do **not** add a `PORT` variable — Render injects its own for Docker web services, and the app already reads whatever `process.env.PORT` is set.
 
 ### Deploy
 

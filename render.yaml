@@ -15,12 +15,16 @@
 # compatible storage separately (see DEPLOYMENT.md) and paste their real
 # connection details into the dashboard's environment variable editor for
 # the values marked sync: false below.
+#
+# orivex-postgres below is provisioned on Render's free plan but
+# deliberately unused: the actual database is Neon Postgres (external),
+# wired via DATABASE_URL's sync: false entry, not via fromDatabase.
 
 databases:
   - name: orivex-postgres
     databaseName: orivex
     user: orivex
-    plan: basic-256mb
+    plan: free
     postgresMajorVersion: "16"
 
 services:
@@ -29,7 +33,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/backend/Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free
     healthCheckPath: /health/readiness
     envVars:
       - key: NODE_ENV
@@ -41,9 +45,7 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: DATABASE_URL
-        fromDatabase:
-          name: orivex-postgres
-          property: connectionString
+        sync: false
       - key: REDIS_URL
         sync: false
       - key: KEYCLOAK_URL
