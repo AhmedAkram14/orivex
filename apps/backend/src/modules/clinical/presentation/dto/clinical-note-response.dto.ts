@@ -1,7 +1,9 @@
 import type { ClinicalNote } from '../../domain/entities/clinical-note.entity.js';
 
 // Matches docs/12-openapi.md's ClinicalNote schema -- aiMetadata is
-// deliberately omitted -- AIModule doesn't exist yet.
+// deliberately omitted -- no use case or entity in this module tracks a
+// link between a clinical note and an AI suggestion yet (see
+// RecordClinicalNoteRequestDto's derivedFromSuggestionId comment).
 export class ClinicalNoteResponseDto {
   id!: string;
   consultationSessionId!: string;

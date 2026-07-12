@@ -4,7 +4,9 @@ import type { PrescriptionStatus } from '../../domain/enums/prescription-status.
 import { PrescriptionLineItemDto } from './prescription-line-item.dto.js';
 
 // Matches docs/12-openapi.md's PrescriptionSummary schema exactly.
-// derivedFromSuggestionId is always null -- AIModule doesn't exist yet.
+// derivedFromSuggestionId is always null -- the Prescription entity doesn't
+// persist this link yet (see SignPrescriptionRequestDto's
+// derivedFromSuggestionId comment); not blocked on AIModule, which now exists.
 export class PrescriptionResponseDto {
   id!: string;
   consultationSessionId!: string;
