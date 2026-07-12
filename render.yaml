@@ -20,7 +20,7 @@ databases:
   - name: orivex-postgres
     databaseName: orivex
     user: orivex
-    plan: starter
+    plan: basic-256mb
     postgresMajorVersion: "16"
 
 services:
