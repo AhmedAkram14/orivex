@@ -7,6 +7,7 @@ import { Account } from '../../domain/entities/account.entity.js';
 import { AccountAlreadyExistsError } from '../../domain/exceptions/account-already-exists.error.js';
 import { AccountRole } from '../../domain/enums/account-role.enum.js';
 import { Language } from '../../domain/enums/language.enum.js';
+import { mapIdentityError } from '../../presentation/mappers/identity-exception.mapper.js';
 import { DisplayName } from '../../domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../domain/value-objects/email-address.value-object.js';
 
@@ -38,6 +39,35 @@ describe('PrismaAccountRepository', () => {
     });
 
     await assert.rejects(() => repository.save(account), AccountAlreadyExistsError);
+  });
+
+  it('maps a concurrent unique-constraint violation to 409, not 500', async () => {
+    const fakePrisma = {
+      account: {
+        upsert: async () => {
+          throw buildUniqueConstraintViolation();
+        },
+      },
+    } as never;
+    const repository = new PrismaAccountRepository(fakePrisma);
+    const account = Account.register({
+      email: EmailAddress.create('doctor3@example.com'),
+      keycloakId: 'keycloak-3',
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('Dr. Test'),
+      preferredLanguage: Language.English,
+    });
+
+    let caught: unknown;
+    try {
+      await repository.save(account);
+    } catch (error) {
+      caught = error;
+    }
+
+    const mapped = mapIdentityError(caught) as { httpStatus: number; code: string };
+    assert.equal(mapped.httpStatus, 409);
+    assert.equal(mapped.code, 'CONFLICT');
   });
 
   it('rethrows any other error unchanged', async () => {

@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 
 import { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
+import { mapDoctorError } from '../../presentation/mappers/doctor-exception.mapper.js';
 
 import { PrismaDoctorProfileRepository } from './prisma-doctor-profile.repository.js';
 
@@ -34,6 +35,35 @@ describe('PrismaDoctorProfileRepository', () => {
     });
 
     await assert.rejects(() => repository.save(profile), DoctorProfileAlreadyExistsError);
+  });
+
+  it('maps a concurrent unique-constraint violation to 409, not 500', async () => {
+    const noop = () => Promise.resolve();
+    const fakePrisma = {
+      doctorProfile: { upsert: noop },
+      portfolioPublication: { deleteMany: noop, createMany: noop },
+      portfolioAward: { deleteMany: noop, createMany: noop },
+      $transaction: async () => {
+        throw buildUniqueConstraintViolation();
+      },
+    } as never;
+    const repository = new PrismaDoctorProfileRepository(fakePrisma);
+    const profile = DoctorProfile.register({
+      accountId: '33333333-3333-4333-8333-333333333333',
+      licenseNumber: 'LIC-3',
+      specialty: 'Neurology',
+    });
+
+    let caught: unknown;
+    try {
+      await repository.save(profile);
+    } catch (error) {
+      caught = error;
+    }
+
+    const mapped = mapDoctorError(caught) as { httpStatus: number; code: string };
+    assert.equal(mapped.httpStatus, 409);
+    assert.equal(mapped.code, 'CONFLICT');
   });
 
   it('rethrows any other error unchanged', async () => {
