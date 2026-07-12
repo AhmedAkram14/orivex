@@ -162,9 +162,9 @@ describe('Trust controllers (integration)', () => {
     const response = await request(app.getHttpServer())
       .patch(`/verifications/${createdCaseId}`)
       .send({ status: 'rejected' })
-      .expect(422);
+      .expect(409);
 
-    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    assert.equal(response.body.error.code, 'CONFLICT');
   });
 
   it('PATCH /verifications/:id returns 404 for an unknown id', async () => {

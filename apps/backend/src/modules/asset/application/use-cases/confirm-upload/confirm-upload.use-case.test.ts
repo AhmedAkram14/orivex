@@ -5,7 +5,7 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { MediaAsset } from '../../../domain/entities/media-asset.entity.js';
 import { MediaAssetPurpose } from '../../../domain/enums/media-asset-purpose.enum.js';
 import { MediaAssetStatus } from '../../../domain/enums/media-asset-status.enum.js';
-import { AssetDomainError } from '../../../domain/exceptions/asset-domain.error.js';
+import { MediaAssetAlreadyConfirmedError } from '../../../domain/exceptions/media-asset-already-confirmed.error.js';
 import type { MediaAssetRepository } from '../../../domain/repositories/media-asset.repository.js';
 import type { ObjectStoragePort } from '../../ports/object-storage.port.js';
 
@@ -59,7 +59,7 @@ describe('ConfirmUploadUseCase', () => {
     );
   });
 
-  it('throws AssetDomainError when the asset is already confirmed', async () => {
+  it('throws MediaAssetAlreadyConfirmedError when the asset is already confirmed', async () => {
     const asset = buildPendingAsset();
     asset.confirm();
     const repo = new FakeMediaAssetRepository(asset);
@@ -67,7 +67,7 @@ describe('ConfirmUploadUseCase', () => {
 
     await assert.rejects(
       () => useCase.execute(new ConfirmUploadCommand({ mediaAssetId: asset.getId() })),
-      AssetDomainError,
+      MediaAssetAlreadyConfirmedError,
     );
     assert.equal(repo.saved.length, 0);
   });

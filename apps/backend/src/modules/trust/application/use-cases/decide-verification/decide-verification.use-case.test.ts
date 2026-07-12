@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
-import { TrustDomainError } from '../../../domain/exceptions/trust-domain.error.js';
+import { VerificationCaseAlreadyDecidedError } from '../../../domain/exceptions/verification-case-already-decided.error.js';
 import { VerificationCase } from '../../../domain/entities/verification-case.entity.js';
 import { VerificationStatus } from '../../../domain/enums/verification-status.enum.js';
 import type { VerificationCaseRepository } from '../../../domain/repositories/verification-case.repository.js';
@@ -78,7 +78,7 @@ describe('DecideVerificationUseCase', () => {
     );
   });
 
-  it('throws TrustDomainError when the case has already been decided', async () => {
+  it('throws VerificationCaseAlreadyDecidedError when the case has already been decided', async () => {
     const verificationCase = buildSubmittedCase();
     verificationCase.decide(VerificationStatus.Rejected, 'Invalid license');
     const repo = new FakeVerificationCaseRepository(verificationCase);
@@ -92,7 +92,7 @@ describe('DecideVerificationUseCase', () => {
             status: VerificationStatus.Approved,
           }),
         ),
-      TrustDomainError,
+      VerificationCaseAlreadyDecidedError,
     );
     assert.equal(repo.saved.length, 0);
   });

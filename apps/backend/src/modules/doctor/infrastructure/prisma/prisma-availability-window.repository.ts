@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { AvailabilityWindow } from '../../domain/entities/availability-window.entity.js';
-import { DoctorDomainError } from '../../domain/exceptions/doctor-domain.error.js';
+import { AvailabilityWindowConflictError } from '../../domain/exceptions/availability-window-conflict.error.js';
 import type { AvailabilityWindowRepository } from '../../domain/repositories/availability-window.repository.js';
 
 import { toDomainAvailabilityWindow } from './availability-window.mapper.js';
@@ -62,7 +62,7 @@ export class PrismaAvailabilityWindowRepository implements AvailabilityWindowRep
     });
 
     if (result.count === 0) {
-      throw new DoctorDomainError(
+      throw new AvailabilityWindowConflictError(
         `AvailabilityWindow "${window.getId()}" was modified concurrently; reload and retry.`,
       );
     }

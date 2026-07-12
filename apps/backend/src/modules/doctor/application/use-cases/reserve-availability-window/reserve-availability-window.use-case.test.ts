@@ -5,7 +5,7 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
 import { AvailabilityWindowStatus } from '../../../domain/enums/availability-window-status.enum.js';
 import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
-import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
+import { AvailabilityWindowConflictError } from '../../../domain/exceptions/availability-window-conflict.error.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
 
 import { ReserveAvailabilityWindowCommand } from './reserve-availability-window.command.js';
@@ -71,7 +71,7 @@ describe('ReserveAvailabilityWindowUseCase', () => {
 
     await assert.rejects(
       () => useCase.execute(new ReserveAvailabilityWindowCommand({ availabilityWindowId: window.getId() })),
-      DoctorDomainError,
+      AvailabilityWindowConflictError,
     );
   });
 });

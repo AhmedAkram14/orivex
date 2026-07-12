@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { AvailabilityChangedEvent } from '../events/availability-changed.event.js';
+import { AvailabilityWindowConflictError } from '../exceptions/availability-window-conflict.error.js';
 import { DoctorDomainError } from '../exceptions/doctor-domain.error.js';
 import { AvailabilityWindowStatus } from '../enums/availability-window-status.enum.js';
 import type { ConsultationType } from '../enums/consultation-type.enum.js';
@@ -100,10 +101,10 @@ export class AvailabilityWindow {
   // evaluated lazily here, never by a background sweep.
   hold(now: Date = new Date(), holdMinutes: number = DEFAULT_HOLD_MINUTES): void {
     if (this.status === AvailabilityWindowStatus.Booked) {
-      throw new DoctorDomainError(`AvailabilityWindow "${this.id}" is already booked.`);
+      throw new AvailabilityWindowConflictError(`AvailabilityWindow "${this.id}" is already booked.`);
     }
     if (this.status === AvailabilityWindowStatus.Held && !this.isHoldExpired(now)) {
-      throw new DoctorDomainError(`AvailabilityWindow "${this.id}" is already held.`);
+      throw new AvailabilityWindowConflictError(`AvailabilityWindow "${this.id}" is already held.`);
     }
 
     this.status = AvailabilityWindowStatus.Held;
@@ -116,7 +117,7 @@ export class AvailabilityWindow {
   // SchedulingModule entry: releaseSlot()).
   release(now: Date = new Date()): void {
     if (this.status !== AvailabilityWindowStatus.Held) {
-      throw new DoctorDomainError(`AvailabilityWindow "${this.id}" is not held.`);
+      throw new AvailabilityWindowConflictError(`AvailabilityWindow "${this.id}" is not held.`);
     }
 
     this.status = AvailabilityWindowStatus.Open;
@@ -130,10 +131,10 @@ export class AvailabilityWindow {
   // confirmed -- it must be re-held first.
   confirm(now: Date = new Date()): void {
     if (this.status !== AvailabilityWindowStatus.Held) {
-      throw new DoctorDomainError(`AvailabilityWindow "${this.id}" is not held.`);
+      throw new AvailabilityWindowConflictError(`AvailabilityWindow "${this.id}" is not held.`);
     }
     if (this.isHoldExpired(now)) {
-      throw new DoctorDomainError(`AvailabilityWindow "${this.id}"'s hold has expired.`);
+      throw new AvailabilityWindowConflictError(`AvailabilityWindow "${this.id}"'s hold has expired.`);
     }
 
     this.status = AvailabilityWindowStatus.Booked;

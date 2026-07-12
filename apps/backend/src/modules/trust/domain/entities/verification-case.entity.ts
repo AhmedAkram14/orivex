@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { DoctorVerifiedEvent } from '../events/doctor-verified.event.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
+import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
 import { VerificationStatus } from '../enums/verification-status.enum.js';
 
 export interface SubmitVerificationCaseProps {
@@ -94,7 +95,7 @@ export class VerificationCase {
   // docs/10-backend-architecture.md's TrustModule entry).
   decide(status: VerificationDecisionStatus, reason?: string): void {
     if (this.status === VerificationStatus.Approved || this.status === VerificationStatus.Rejected) {
-      throw new TrustDomainError(`VerificationCase "${this.id}" has already been decided and cannot be redecided.`);
+      throw new VerificationCaseAlreadyDecidedError(`VerificationCase "${this.id}" has already been decided and cannot be redecided.`);
     }
 
     this.status = status;

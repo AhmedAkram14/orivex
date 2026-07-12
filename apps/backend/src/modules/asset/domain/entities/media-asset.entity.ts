@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { MediaAssetPurpose } from '../enums/media-asset-purpose.enum.js';
 import { MediaAssetStatus } from '../enums/media-asset-status.enum.js';
 import { AssetDomainError } from '../exceptions/asset-domain.error.js';
+import { MediaAssetAlreadyConfirmedError } from '../exceptions/media-asset-already-confirmed.error.js';
 
 export interface CreateUploadIntentProps {
   purpose: MediaAssetPurpose;
@@ -81,7 +82,7 @@ export class MediaAsset {
   // there is no re-confirmation or un-rejecting path.
   confirm(): void {
     if (this.status !== MediaAssetStatus.Pending) {
-      throw new AssetDomainError(`MediaAsset "${this.id}" is not pending and cannot be confirmed.`);
+      throw new MediaAssetAlreadyConfirmedError(`MediaAsset "${this.id}" is not pending and cannot be confirmed.`);
     }
     this.status = MediaAssetStatus.Confirmed;
     this.updatedAt = new Date();
