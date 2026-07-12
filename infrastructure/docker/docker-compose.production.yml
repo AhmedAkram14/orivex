@@ -1,0 +1,75 @@
+# Production stack (Sprint 13 -- Production & Deployment). Deliberately
+# minimal: only the services this deployment actually orchestrates itself.
+# Keycloak, MinIO, Mailpit, and Adminer are dev-only conveniences (see
+# docker-compose.yml) -- in production, KEYCLOAK_URL/S3_* point to real,
+# separately-operated services (a managed IdP, a managed/real S3 bucket),
+# never containers started by this file.
+#
+# Run from the repo root:
+#   docker compose -f infrastructure/docker/docker-compose.production.yml --env-file .env up -d --build
+#
+# .env (git-ignored, never committed) must define every variable in
+# .env.example. DATABASE_URL and REDIS_URL are intentionally NOT read from
+# that file below -- they're pinned to this network's own service names
+# (postgres/redis), since a value copied from local dev (pointing at
+# localhost) would not resolve inside the backend container.
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: apps/backend/Dockerfile
+    image: orivex-backend:latest
+    container_name: orivex-backend
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: orivex-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orivex} -d ${POSTGRES_DB:-orivex}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - orivex-postgres-data:/var/lib/postgresql/data
+    # No published host port: only the backend service (on the same compose
+    # network) needs to reach Postgres in production.
+
+  redis:
+    image: redis:7-alpine
+    container_name: orivex-redis-prod
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # No published host port, same reasoning as postgres above.
+
+volumes:
+  orivex-postgres-data:
