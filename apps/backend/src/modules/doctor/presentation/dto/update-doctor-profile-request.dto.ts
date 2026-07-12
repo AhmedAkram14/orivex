@@ -1,4 +1,5 @@
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
 class PortfolioPublicationDto {
   @IsString()
@@ -47,9 +48,13 @@ export class UpdateDoctorProfileRequestDto {
 
   @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PortfolioPublicationDto)
   publications?: PortfolioPublicationDto[];
 
   @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PortfolioAwardDto)
   awards?: PortfolioAwardDto[];
 }

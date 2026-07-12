@@ -171,6 +171,20 @@ describe('DoctorProfileController (integration)', () => {
     assert.equal(response.body.error.code, 'VALIDATION_FAILED');
   });
 
+  it('POST /doctors rejects a publications entry missing its required title', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/doctors')
+      .send({
+        accountId: existingAccountId,
+        licenseNumber: 'LIC-5',
+        specialty: 'Cardiology',
+        publications: [{}],
+      })
+      .expect(400);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
   it('GET /doctors/:id returns 404 for a well-formed but unknown id', async () => {
     const response = await request(app.getHttpServer())
       .get('/doctors/33333333-3333-4333-8333-333333333333')

@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsInt,
@@ -7,6 +8,7 @@ import {
   IsString,
   IsUUID,
   Min,
+  ValidateNested,
 } from 'class-validator';
 
 class PortfolioPublicationDto {
@@ -62,9 +64,13 @@ export class RegisterDoctorProfileRequestDto {
 
   @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PortfolioPublicationDto)
   publications?: PortfolioPublicationDto[];
 
   @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PortfolioAwardDto)
   awards?: PortfolioAwardDto[];
 }
