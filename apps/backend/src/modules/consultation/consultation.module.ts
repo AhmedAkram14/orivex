@@ -57,6 +57,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
         getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         getAvailabilityWindowByIdUseCase: GetAvailabilityWindowByIdUseCase,
         reserveSlotUseCase: ReserveSlotUseCase,
+        releaseSlotUseCase: ReleaseSlotUseCase,
         confirmAppointmentUseCase: ConfirmAppointmentUseCase,
       ) =>
         new BookAppointmentUseCase(
@@ -66,6 +67,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
           getDoctorProfileByIdUseCase,
           getAvailabilityWindowByIdUseCase,
           reserveSlotUseCase,
+          releaseSlotUseCase,
           confirmAppointmentUseCase,
         ),
       inject: [
@@ -75,6 +77,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
         GetDoctorProfileByIdUseCase,
         GetAvailabilityWindowByIdUseCase,
         ReserveSlotUseCase,
+        ReleaseSlotUseCase,
         ConfirmAppointmentUseCase,
       ],
     },

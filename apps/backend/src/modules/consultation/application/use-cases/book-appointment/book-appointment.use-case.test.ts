@@ -5,6 +5,7 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { ReleaseAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import type { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -15,6 +16,7 @@ import { GetPatientProfileByIdUseCase } from '../../../../patient/application/us
 import type { PatientProfile } from '../../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../../patient/domain/repositories/patient-profile.repository.js';
 import { ConfirmSlotUseCase } from '../../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
+import { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import type { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
@@ -30,11 +32,16 @@ import { BookAppointmentUseCase } from './book-appointment.use-case.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
   public readonly saved: Appointment[] = [];
+  public failOnSaveCount = 0;
   private readonly byId = new Map<string, Appointment>();
   async findById(id: string): Promise<Appointment | null> {
     return this.byId.get(id) ?? null;
   }
   async save(appointment: Appointment): Promise<void> {
+    if (this.failOnSaveCount > 0) {
+      this.failOnSaveCount -= 1;
+      throw new Error('simulated persistence failure');
+    }
     this.saved.push(appointment);
     this.byId.set(appointment.getId(), appointment);
   }
@@ -115,6 +122,7 @@ function buildUseCase(props: {
     new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctor)),
     new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
     new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+    new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
     new ConfirmAppointmentUseCase(
       props.appointmentRepo,
       new FakeConsultationSessionRepository(),
@@ -213,4 +221,41 @@ describe('BookAppointmentUseCase', () => {
       ConsultationDomainError,
     );
   });
+
+  it('releases the reserved slot if persisting the appointment fails', async () => {
+    const window = buildWindow(DoctorConsultationType.Free);
+    const availabilityWindowRepo = new FakeAvailabilityWindowRepository(window);
+    const appointmentRepo = new FakeAppointmentRepository();
+    appointmentRepo.failOnSaveCount = 1;
+    const useCase = new BookAppointmentUseCase(
+      appointmentRepo,
+      new NoopDispatcher(),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository({} as PatientProfile)),
+      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository({} as DoctorProfile)),
+      new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
+      new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+      new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+      new ConfirmAppointmentUseCase(
+        appointmentRepo,
+        new FakeConsultationSessionRepository(),
+        new ConfirmSlotUseCase(new ConfirmAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+        new NoopDispatcher(),
+      ),
+    );
+
+    await assert.rejects(() =>
+      useCase.execute(
+        new BookAppointmentCommand({
+          patientId: '11111111-1111-4111-8111-111111111111',
+          doctorId: '22222222-2222-4222-8222-222222222222',
+          availabilityWindowId: window.getId(),
+          consultationType: ConsultationType.Free,
+        }),
+      ),
+    );
+
+    const releasedWindow = await availabilityWindowRepo.findById();
+    assert.equal(releasedWindow?.getStatus(), 'open');
+  });
 });
+

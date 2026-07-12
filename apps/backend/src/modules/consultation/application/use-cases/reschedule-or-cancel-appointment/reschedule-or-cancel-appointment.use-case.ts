@@ -79,15 +79,14 @@ export class RescheduleOrCancelAppointmentUseCase {
       throw new NotFoundError(`AvailabilityWindow "${newAvailabilityWindowId}" not found.`);
     }
 
-    await this.reserveSlotUseCase.execute(new ReserveSlotCommand({ availabilityWindowId: newAvailabilityWindowId }));
-
+    // Pure, in-memory precondition check performed before any external
+    // effect (reserving the new slot) -- if the appointment can't actually
+    // be rescheduled from its current status, nothing has happened yet and
+    // there is no reservation to compensate for.
     const wasRequested = appointment.getStatus() === AppointmentStatus.Requested;
     appointment.markRescheduled();
-    if (wasRequested) {
-      await this.releaseSlotUseCase.execute(
-        new ReleaseSlotCommand({ availabilityWindowId: appointment.getAvailabilityWindowId() }),
-      );
-    }
+
+    await this.reserveSlotUseCase.execute(new ReserveSlotCommand({ availabilityWindowId: newAvailabilityWindowId }));
 
     let newAppointment = Appointment.request({
       patientId: appointment.getPatientId(),
@@ -99,8 +98,23 @@ export class RescheduleOrCancelAppointmentUseCase {
       rescheduledFromId: appointment.getId(),
     });
 
-    await this.appointmentRepository.save(appointment);
-    await this.appointmentRepository.save(newAppointment);
+    try {
+      await this.appointmentRepository.save(appointment);
+      await this.appointmentRepository.save(newAppointment);
+    } catch (error) {
+      // Compensating action: the new slot was already reserved (Held)
+      // above; if persisting either appointment fails, release it back
+      // rather than leaving it Held with no Appointment referencing it.
+      await this.releaseSlotUseCase.execute(new ReleaseSlotCommand({ availabilityWindowId: newAvailabilityWindowId }));
+      throw error;
+    }
+
+    if (wasRequested) {
+      await this.releaseSlotUseCase.execute(
+        new ReleaseSlotCommand({ availabilityWindowId: appointment.getAvailabilityWindowId() }),
+      );
+    }
+
     await this.eventDispatcher.dispatch([...appointment.releaseDomainEvents(), ...newAppointment.releaseDomainEvents()]);
 
     if (newAppointment.getConsultationType() === ConsultationType.Free) {

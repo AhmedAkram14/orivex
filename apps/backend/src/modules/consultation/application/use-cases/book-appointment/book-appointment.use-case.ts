@@ -3,6 +3,8 @@ import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-
 import { GetAvailabilityWindowByIdUseCase } from '../../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
+import { ReleaseSlotCommand } from '../../../../scheduling/application/use-cases/release-slot/release-slot.command.js';
+import type { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotCommand } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.command.js';
 import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
@@ -33,6 +35,7 @@ export class BookAppointmentUseCase {
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getAvailabilityWindowByIdUseCase: GetAvailabilityWindowByIdUseCase,
     private readonly reserveSlotUseCase: ReserveSlotUseCase,
+    private readonly releaseSlotUseCase: ReleaseSlotUseCase,
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
   ) {}
 
@@ -73,7 +76,15 @@ export class BookAppointmentUseCase {
       reasonForVisit: command.reasonForVisit,
     });
 
-    await this.appointmentRepository.save(appointment);
+    try {
+      await this.appointmentRepository.save(appointment);
+    } catch (error) {
+      // Compensating action: the slot was already reserved (Held) above; if
+      // persisting the Appointment fails, release it back rather than
+      // leaving it Held with no Appointment ever referencing it.
+      await this.releaseSlotUseCase.execute(new ReleaseSlotCommand({ availabilityWindowId: command.availabilityWindowId }));
+      throw error;
+    }
     await this.eventDispatcher.dispatch(appointment.releaseDomainEvents());
 
     if (command.consultationType === ConsultationType.Free) {

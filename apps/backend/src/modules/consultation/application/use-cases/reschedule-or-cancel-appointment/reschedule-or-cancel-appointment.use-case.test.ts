@@ -27,6 +27,7 @@ import { RescheduleOrCancelAppointmentUseCase } from './reschedule-or-cancel-app
 class FakeAppointmentRepository implements AppointmentRepository {
   private readonly byId = new Map<string, Appointment>();
   public readonly saved: Appointment[] = [];
+  public failOnSaveCount = 0;
   seed(appointment: Appointment): void {
     this.byId.set(appointment.getId(), appointment);
   }
@@ -34,6 +35,10 @@ class FakeAppointmentRepository implements AppointmentRepository {
     return this.byId.get(id) ?? null;
   }
   async save(appointment: Appointment): Promise<void> {
+    if (this.failOnSaveCount > 0) {
+      this.failOnSaveCount -= 1;
+      throw new Error('simulated persistence failure');
+    }
     this.saved.push(appointment);
     this.byId.set(appointment.getId(), appointment);
   }
@@ -182,6 +187,40 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
         ),
       ConsultationDomainError,
     );
+  });
+
+  it('releases the newly-reserved window if persisting the reschedule fails', async () => {
+    const oldWindow = buildOpenWindow();
+    oldWindow.hold();
+    const newWindow = buildOpenWindow();
+    const windowRepo = new InMemoryAvailabilityWindowRepository();
+    windowRepo.seed(oldWindow);
+    windowRepo.seed(newWindow);
+
+    const appointment = Appointment.request({
+      patientId: '11111111-1111-4111-8111-111111111111',
+      doctorId: '22222222-2222-4222-8222-222222222222',
+      availabilityWindowId: oldWindow.getId(),
+      consultationType: ConsultationType.Free,
+      scheduledAt: oldWindow.getStartTime(),
+    });
+    const appointmentRepo = new FakeAppointmentRepository();
+    appointmentRepo.seed(appointment);
+    appointmentRepo.failOnSaveCount = 1;
+    const useCase = buildUseCase(windowRepo, appointmentRepo);
+
+    await assert.rejects(() =>
+      useCase.execute(
+        new RescheduleOrCancelAppointmentCommand({
+          appointmentId: appointment.getId(),
+          action: 'reschedule',
+          newAvailabilityWindowId: newWindow.getId(),
+        }),
+      ),
+    );
+
+    const releasedNewWindow = await windowRepo.findById(newWindow.getId());
+    assert.equal(releasedNewWindow?.getStatus(), 'open');
   });
 
   it('throws NotFoundError when the appointment does not exist', async () => {

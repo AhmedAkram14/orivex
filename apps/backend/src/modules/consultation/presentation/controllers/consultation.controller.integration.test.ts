@@ -173,6 +173,7 @@ describe('Consultation controllers (integration)', () => {
       new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor)),
       new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
       reserveSlotUseCase,
+      releaseSlotUseCase,
       confirmAppointmentUseCase,
     );
     const rescheduleOrCancelAppointmentUseCase = new RescheduleOrCancelAppointmentUseCase(
