@@ -11,6 +11,8 @@
     "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "backend:prisma:generate": "pnpm --filter @orivex/backend prisma:generate",
     "backend:prisma:migrate": "pnpm --filter @orivex/backend prisma:migrate",
+    "frontend:dev": "pnpm --filter @orivex/frontend dev",
+    "frontend:build": "pnpm --filter @orivex/frontend build",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

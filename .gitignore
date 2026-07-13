@@ -6,3 +6,9 @@ node_modules
 coverage
 dist
 .claude/settings.local.json
+
+# Next.js (apps/frontend)
+.next
+next-env.d.ts
+*.tsbuildinfo
+.vercel
