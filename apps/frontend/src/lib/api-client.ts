@@ -2,9 +2,13 @@ import { env } from './env';
 
 // Mirrors the backend's own response shapes exactly (apps/backend/src/
 // shared/http/response-envelope.ts and platform/filters/all-exceptions.
-// filter.ts) -- not a generic guess. Every 2xx response is { data, meta };
-// every error response is { error: { code, message, details?, requestId,
-// timestamp } }, per docs/12-openapi.md's ErrorResponse schema.
+// filter.ts) -- not a generic guess. Every error response is
+// { error: { code, message, details?, requestId, timestamp } }, per
+// docs/12-openapi.md's ErrorResponse schema. Most 2xx responses are
+// { data, meta } via the shared envelope() helper, but not all --
+// HealthController's /health/liveness and /health/readiness return their
+// body plain, with no envelope. apiFetch() supports both (see the
+// unwrapping logic below) rather than assuming every controller wraps.
 export interface ApiResponseMeta {
   requestId: string;
   timestamp: string;
@@ -75,5 +79,11 @@ export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiReq
     });
   }
 
-  return (json as { data: T }).data;
+  // Envelope-wrapped ({ data, meta }) if a top-level "data" property is
+  // present; otherwise the parsed JSON is the payload itself (e.g.
+  // HealthController's plain, unwrapped responses).
+  if (json !== null && typeof json === 'object' && 'data' in json) {
+    return (json as { data: T }).data;
+  }
+  return json as T;
 }
