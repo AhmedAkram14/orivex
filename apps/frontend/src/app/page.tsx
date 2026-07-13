@@ -1,5 +1,12 @@
 import { apiFetch } from '@/lib/api-client';
 
+// Without this, Next.js statically prerenders this page at build time
+// (confirmed: `next build` marked it ○ Static) -- the backend-reachable
+// check below would be frozen at whatever the build environment saw once,
+// never re-checked per request. Forces the actual live check this page
+// exists to demonstrate.
+export const dynamic = 'force-dynamic';
+
 interface LivenessResponse {
   status: 'ok';
   uptimeSeconds: number;
