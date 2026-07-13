@@ -1,0 +1,70 @@
+/*
+ * Dark values for the semantic tokens declared in colors.css's @theme block.
+ *
+ * This is the token LAYER only (roadmap Phase 1's Definition of Done). It does
+ * NOT implement a toggle, persistence, or a `useTheme()` hook — that mechanism
+ * is Phase 24 (Dark Mode) in docs/roadmaps/frontend-master-plan.md. Phase 24's
+ * only job will be to stamp `data-theme="dark"` / `data-theme="light"` onto
+ * <html>; every value it needs already exists here.
+ *
+ * Two selectors, deliberately not nested inside each other:
+ *   - `@media (prefers-color-scheme: dark)` — respects the OS/browser
+ *     preference before any explicit user choice exists (i.e. today, since
+ *     Phase 24 hasn't shipped a toggle yet).
+ *   - `:root[data-theme='dark']` — the explicit override Phase 24 will set.
+ * The media-query block excludes `[data-theme='light']` so that once Phase 24
+ * exists, an explicit light choice can still win over a dark OS preference.
+ * Both selectors have equal, higher-than-`:root`-alone specificity, so which
+ * one "wins" never depends on source order — see the code comment in
+ * colors.css for why that matters here.
+ */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-canvas: var(--gray-950);
+    --color-surface: var(--gray-900);
+    --color-surface-raised: var(--gray-800);
+    --color-overlay: rgb(0 0 0 / 0.7);
+
+    --color-text-primary: var(--gray-50);
+    --color-text-secondary: var(--gray-300);
+    --color-text-tertiary: var(--gray-400);
+    --color-text-disabled: var(--gray-600);
+    --color-text-inverse: var(--gray-900);
+
+    --color-border-default: var(--gray-800);
+    --color-border-strong: var(--gray-700);
+
+    --color-primary-subtle: var(--brand-900);
+    --color-secondary-subtle: var(--gray-800);
+    --color-success-subtle: var(--success-900);
+    --color-warning-subtle: var(--warning-900);
+    --color-danger-subtle: var(--danger-900);
+    --color-info-subtle: var(--info-900);
+    --color-neutral-subtle: var(--gray-800);
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-canvas: var(--gray-950);
+  --color-surface: var(--gray-900);
+  --color-surface-raised: var(--gray-800);
+  --color-overlay: rgb(0 0 0 / 0.7);
+
+  --color-text-primary: var(--gray-50);
+  --color-text-secondary: var(--gray-300);
+  --color-text-tertiary: var(--gray-400);
+  --color-text-disabled: var(--gray-600);
+  --color-text-inverse: var(--gray-900);
+
+  --color-border-default: var(--gray-800);
+  --color-border-strong: var(--gray-700);
+
+  --color-primary-subtle: var(--brand-900);
+  --color-secondary-subtle: var(--gray-800);
+  --color-success-subtle: var(--success-900);
+  --color-warning-subtle: var(--warning-900);
+  --color-danger-subtle: var(--danger-900);
+  --color-info-subtle: var(--info-900);
+  --color-neutral-subtle: var(--gray-800);
+}

@@ -1,1 +1,30 @@
 @import 'tailwindcss';
+@import '../design-system/tokens/colors.css';
+@import '../design-system/tokens/theme-dark.css';
+@import '../design-system/tokens/typography.css';
+@import '../design-system/tokens/scales.css';
+
+:root {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+  }
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-text-primary);
+}
+
+/* Script-aware font switching by `lang`, not by component prop — so any
+   Arabic content anywhere (once Phase 3 sets `lang="ar"` on the locale
+   route) picks up the Arabic stack automatically, with no per-component
+   locale logic needed ahead of that phase existing. */
+:lang(ar) {
+  font-family: var(--font-arabic);
+}

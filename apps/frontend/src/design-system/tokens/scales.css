@@ -1,0 +1,80 @@
+/*
+ * Non-color scale tokens: spacing, radius, shadow, opacity, motion, z-index,
+ * breakpoints.
+ *
+ * Spacing and breakpoints deliberately reuse Tailwind v4's own built-in
+ * scales (--spacing base unit, and the default sm/md/lg/xl/2xl breakpoint
+ * values of 640/768/1024/1280/1536px) rather than redefining a parallel
+ * scale that could silently drift from what `p-4`, `md:flex`, etc. actually
+ * produce. Radius, shadow, and font-weight are redeclared explicitly below
+ * so this file is the one place that documents the full scale.
+ *
+ * Opacity, motion, and z-index are exposed as plain CSS custom properties,
+ * not inside @theme — Tailwind v4 already ships its own generic opacity and
+ * z-index utilities (opacity-0..100, z-0/10/20/.../50/auto) for arbitrary use;
+ * these named tokens exist for the *semantic* levels this design system
+ * actually needs (e.g. --z-dialog, not "z-40"), consumed via Tailwind's
+ * arbitrary-value syntax, e.g. `z-[var(--z-dialog)]`.
+ */
+
+@theme {
+  --radius-none: 0px;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+}
+
+:root {
+  /* Opacity — semantic levels beyond Tailwind's default opacity-* scale */
+  --opacity-disabled: 0.5;
+  --opacity-hover: 0.08;
+  --opacity-pressed: 0.12;
+  --opacity-overlay: 0.5;
+
+  /* Motion durations — calm, low-motion by default (Phase 1's stated
+     product direction; consumed with prefers-reduced-motion handling by
+     every component, never a bare hardcoded duration in feature code). */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* Z-index — named layers, not raw numbers, so stacking order is a single
+     source of truth across dialogs/drawers/popovers/toasts. */
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-overlay: 1200;
+  --z-drawer: 1300;
+  --z-dialog: 1400;
+  --z-popover: 1500;
+  --z-tooltip: 1600;
+  --z-toast: 1700;
+
+  /* Breakpoints, mirrored from Tailwind's defaults, exposed for JS
+     consumers (e.g. a `useMediaQuery` hook) that can't read Tailwind's
+     internal theme config at runtime. */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}
