@@ -12,3 +12,6 @@ dist
 next-env.d.ts
 *.tsbuildinfo
 .vercel
+
+# Storybook (apps/frontend)
+storybook-static
