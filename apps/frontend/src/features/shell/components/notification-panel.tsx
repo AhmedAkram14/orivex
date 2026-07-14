@@ -34,7 +34,7 @@ function NotificationRow({ notification }: { notification: NotificationEntry }) 
           </p>
         </div>
         <p className="text-sm text-text-secondary">{notification.description}</p>
-        <p className="text-xs text-text-tertiary">{format.relativeTime(new Date(notification.createdAt))}</p>
+        <p className="text-xs text-text-tertiary">{format.relativeTime(new Date(notification.createdAt), new Date())}</p>
       </button>
     </li>
   );

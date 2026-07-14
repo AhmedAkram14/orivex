@@ -16,3 +16,8 @@ class ResizeObserverStub {
   disconnect() {}
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+
+// jsdom has no scrollIntoView — cmdk (the Command Palette's list) calls it
+// on the active item unconditionally, so any test rendering a Command
+// needs at least a no-op stub.
+Element.prototype.scrollIntoView ??= function scrollIntoView() {};

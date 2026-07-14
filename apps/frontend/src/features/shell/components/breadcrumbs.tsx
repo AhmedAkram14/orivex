@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Fragment } from 'react';
 import { NAVIGATION_CONFIG, type NavItemConfig } from '@/features/shell/config/navigation';
 import { Link, usePathname } from '@/shared/i18n/navigation';
 import {
@@ -46,7 +47,7 @@ export function AppBreadcrumbs() {
         {trail.map((crumb, index) => {
           const isLast = index === trail.length - 1;
           return (
-            <li key={crumb.labelKey} className="flex items-center gap-1.5">
+            <Fragment key={crumb.labelKey}>
               {index > 0 && <BreadcrumbSeparator />}
               <BreadcrumbItem>
                 {isLast || !crumb.href ? (
@@ -57,7 +58,7 @@ export function AppBreadcrumbs() {
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
-            </li>
+            </Fragment>
           );
         })}
       </BreadcrumbList>
