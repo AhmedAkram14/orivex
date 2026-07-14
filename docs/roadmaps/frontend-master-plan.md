@@ -219,6 +219,18 @@ The health-endpoint incident (a working request whose response shape didn't matc
 
 **Priority:** P0 · **Status:** 🚧 In Progress · **Depends on:** Phase 1 · **Backend dependency:** existing modules only (1.3)
 
+**Implementation checklist:**
+- ✅ **Implemented** — TanStack Query (`QueryClient` per app instance, conservative defaults, Devtools in dev)
+- ✅ **Implemented** — query-key convention (`shared/lib/api/query-keys.ts`)
+- ✅ **Implemented** — API layer (`apiFetch` in `shared/lib/api/client.ts`, relocated from Phase 0)
+- ✅ **Implemented** — single error-handling convention (`toUserMessage`/`reportQueryError`, wired as TanStack Query's global `onError`)
+- ✅ **Implemented** — imperative toast system (`shared/ui/use-toast.ts` + `toaster.tsx`)
+- ✅ **Implemented** — environment validation (Zod schema, `shared/lib/env.ts`, lazily evaluated)
+- ✅ **Implemented** — MSW request mocking, browser (opt-in) and Node (test) targets
+- 🚧 **Scaffolded** — auth-header injection point in `apiFetch` (`__setAuthHeaderProvider`): the function exists and is called on every request, but it is a hardcoded no-op today — no real token is ever attached, by design, until Phase 4 exists
+- 📋 **Remaining** — OpenAPI contract tests (named in this phase's own Definition of Done, not built — see below)
+- 📋 **Remaining** — a client-only global store for UI state, if a feature ever needs one beyond TanStack Query's server cache (none has, yet)
+
 **Shipped (this iteration):**
 - TanStack Query as the chosen server-state layer — one `QueryClient` per app instance (`shared/providers/query-provider.tsx`, created inside `useState`, never module-scoped), conservative defaults (`staleTime: 30s`, `retry: 1`) matching Phase 27's stale-data caution for clinical data, with React Query Devtools in development only
 - A query-key convention (`shared/lib/api/query-keys.ts`) — hierarchical `[domain, 'list'|'detail', ...]` tuples, so a feature's keys are consistent without each one inventing its own shape
@@ -247,7 +259,17 @@ The health-endpoint incident (a working request whose response shape didn't matc
 
 This phase is the single most foundational cross-cutting decision after the design system itself. Per `docs/13-engineering-bootstrap.md` Section 5 and the product's own UX requirements, RTL and localization must be built in from the *first* real page, not retrofitted — every component and page built after this phase inherits whichever assumption it bakes in. It is sequenced P0, immediately after the design system, for that reason.
 
-**Shipped (Phase 2 iteration):** the architecture decision below is now real, not just decided — `app/[locale]/` route segments, `next-intl` middleware (`src/middleware.ts`), locale-aware navigation helpers (`shared/i18n/navigation.ts`), server-side translation resolution in the (async) home page via `getTranslations`, `dir="rtl"|"ltr"` set on `<html>` per locale, and English/Arabic message files (`messages/en.json`, `messages/ar.json`) with two namespaces so far (`common`, `home`). Everything else in this phase's scope below (Translation Management namespace-splitting per feature, Medical Localization, Date & Time, Numbers & Currency, Regional Configuration, i18n-specific Accessibility, Search/SEO/Notifications/AI cross-references, Testing) remains 📋/🔒 as documented — only the architecture and the minimal UI-string path are real today.
+**Implementation checklist:**
+- ✅ **Implemented** — `next-intl` architecture: route-based locale segments (`app/[locale]/...`), middleware (`src/middleware.ts`), locale-aware navigation helpers (`shared/i18n/navigation.ts`), server-side translation resolution (`getTranslations` in the async home page)
+- ✅ **Implemented** — RTL/LTR mechanism: `dir="rtl"|"ltr"` set on `<html>` per locale (`shared/i18n/routing.ts`'s `isRtlLocale`)
+- ✅ **Implemented** — English and Arabic message files exist (`messages/en.json`, `messages/ar.json`), currently 2 namespaces (`common`, `home`)
+- 📋 **Remaining** — **Localization content**: only the two namespaces above are translated; every future feature's UI strings still need writing in both languages as that feature is built
+- 📋 **Remaining** — Translation Management's per-feature namespace splitting (only relevant once a second feature needs its own namespace)
+- 📋 **Remaining** — Date & Time (Hijri calendar, timezone handling beyond the browser default), Numbers & Currency formatting beyond `next-intl`'s defaults, Regional & Country Configuration (country profiles, phone/address formatting, locale-specific validation)
+- 📋 **Remaining** — i18n-specific Accessibility (RTL-correct keyboard nav/localized ARIA — nothing to verify against yet, no real interactive page exists), Testing (RTL visual regression, translation-coverage checks)
+- 🔒 **Blocked** — Medical Localization (ICD/drug/lab/radiology terminology) — no Reference Data module exists backend-side to translate
+- 🔒 **Blocked** — Search/Notifications/AI-specific localization — depend on Phases 18/14/12 respectively, all themselves blocked or not yet built
+- 🧊 **Deferred** — Hijri calendar (no confirmed product requirement yet)
 
 #### 3.4.1 Architecture Decision (binding, added to Section 1.1)
 
@@ -328,6 +350,14 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 
 **Scope (once unblocked):** login, registration, forgot/reset password, refresh-token handling, logout (single session and all-devices), session expiry UX.
 
+**Implementation checklist:**
+- 🚧 **Scaffolded** — session/user types (`shared/auth/types.ts`: `AuthenticatedUser`, `Role`, `AuthState`), modeled on a Keycloak token's eventual shape
+- 🚧 **Scaffolded** — `AuthProvider`/`useAuth()` (`shared/auth/auth-provider.tsx`) — always produces `{ status: 'unauthenticated', user: null }` today; this is a real, honest state, not a fake login
+- 📋 **Remaining** — login, registration, forgot/reset password, refresh-token handling, logout, session expiry UX — all of it
+- 🔒 **Blocked** — the entire real capability of this phase: no Keycloak integration exists backend-side
+
+Auth is **scaffolded, not implemented.** The types and provider above exist so Phase 4 is a matter of populating a shape, not inventing one under time pressure — they do not move this phase's status off 🔒 Blocked, and nothing in the product calls a real Keycloak endpoint today.
+
 **Client-side scaffolding shipped (Phase 2, still genuinely unwired):** `shared/auth/types.ts` (the `AuthenticatedUser`/`Role`/`AuthState` shapes, modeled on what a Keycloak token will actually carry) and `shared/auth/auth-provider.tsx` (an `AuthProvider`/`useAuth()` that today always produces `{ status: 'unauthenticated', user: null }` — not a fake login, a genuinely honest empty state). This exists so the real Keycloak integration is a matter of populating this shape and calling `shared/lib/api/client.ts`'s `__setAuthHeaderProvider`, not inventing the shape under time pressure later. It does not reduce this phase's scope or status — nothing here talks to Keycloak.
 
 **Key decisions & constraints:**
@@ -344,6 +374,14 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 **Priority:** P0 · **Status:** 🔒 Blocked · **Depends on:** Phase 4 · **Backend dependency:** no role-based access control is enforced server-side yet.
 
 **Scope:** role-aware routing and UI (Super Admin, Hospital Admin, Doctor, Receptionist, Nurse, Patient — per the product vision in `orivex-master-roadmap.md`), route guards, permission-gated components.
+
+**Implementation checklist:**
+- 🚧 **Scaffolded** — `<RequireAuth redirectTo="...">` (`shared/auth/require-auth.tsx`) — redirects when not authenticated; correct today only because everyone genuinely is unauthenticated
+- 🚧 **Scaffolded** — `<RequireRole roles={[...]}>` (`shared/auth/require-role.tsx`) — renders a fallback unless the current user (always `null` today) has a listed role
+- 📋 **Remaining** — role-aware routing/dashboards per role, permission-gated components tied to real permissions, everything else in this phase's scope
+- 🔒 **Blocked** — the entire real capability of this phase: no role-based access control is enforced server-side yet
+
+RBAC is **scaffolded, not implemented.** `RequireAuth`/`RequireRole` are real, working React components — but there is no real session and no real role to check them against yet, and both are explicitly documented in their own source as a UX convenience, never the security boundary.
 
 **Client-side scaffolding shipped (Phase 2, still genuinely unwired):** `shared/auth/require-auth.tsx` (`<RequireAuth redirectTo="...">` — redirects when `useAuth().status !== 'authenticated'`; honest today because everyone genuinely is unauthenticated) and `shared/auth/require-role.tsx` (`<RequireRole roles={[...]}>` — renders a fallback unless the current user has one of the listed roles). Both are explicitly documented in their own code as a UX convenience, not a security boundary, matching this section's own key decision below. Nothing protected by these exists yet — Phase 6 is what would actually place real content behind them.
 
@@ -552,7 +590,12 @@ Each backend aggregate this applies to must actually support the relevant states
 
 **Scope (once unblocked):** a `useFeatureFlag()`-style hook (explicitly named as a gap in `docs/13-engineering-bootstrap.md`'s own final readiness review) wiring real backend flag state into conditional rendering, covering the rollout mechanics a real feature-flag system needs beyond a plain on/off switch: **kill switches** (an instant, operator-triggered full disable, distinct from a gradual rollout — must not depend on a deploy to take effect), **percentage rollouts**, **tenant-based flags** (scoped to a specific hospital once Phase 19's multi-tenant model exists), **user-based flags** (scoped to a specific account, e.g. internal dogfooding), and **environment-based flags** (dev/staging/production). All of this is UI/consumption scope only — the flag-evaluation logic and storage live in the backend's `ConfigurationModule`; the frontend never invents its own flag state.
 
-**Shipped (Phase 2, minimal):** `shared/lib/feature-flags.ts` exports `useFeatureFlag(key, defaultValue)`, which today just returns `defaultValue` — no network call, no persistence, none of the rollout mechanics above. It exists only so a call site written now (`useFeatureFlag('new-thing', false)`) doesn't need to change shape once the real backend exists — the function body is what changes.
+**Implementation checklist:**
+- 🚧 **Scaffolded** — `useFeatureFlag(key, defaultValue)` (`shared/lib/feature-flags.ts`) — returns `defaultValue` only, no network call, no persistence
+- 📋 **Remaining** — kill switches, percentage rollouts, tenant-based flags, user-based flags, environment-based flags — all of the actual rollout mechanics
+- 🔒 **Blocked** — real backend-driven flag state: `ConfigurationModule` not confirmed implemented
+
+Feature flags are **scaffolded, not implemented.** The hook exists so a call site written today (`useFeatureFlag('new-thing', false)`) won't need to change shape later — only its function body will. It provides zero actual flagging capability right now.
 
 ---
 
@@ -594,6 +637,13 @@ Each backend aggregate this applies to must actually support the relevant states
 
 **Scope:** the actual light/dark toggle and persistence, built on Phase 1's token layer.
 
+**Implementation checklist:**
+- ✅ **Implemented** — `ThemeProvider`/`useTheme()` (`shared/providers/theme-provider.tsx`) — reads/writes `localStorage`, applies the `data-theme` attribute
+- ✅ **Implemented** — `ThemeScript` — blocking inline script in `<head>` that applies the stored preference before first paint (no flash of the wrong theme)
+- 📋 **Remaining** — a visible toggle *control* in the UI (a settings page, a header button) — nothing calls `setTheme()` from a real page yet, since no such page exists
+
+Theme Provider is **implemented**, not just scaffolded — it is fully functional and would work correctly the moment any page calls `setTheme()`. What's missing is purely the UI affordance to trigger it, not the underlying mechanism.
+
 **Priority-change note (per Section 0's rule — not a silent reorder):** the toggle mechanism itself shipped as part of Phase 2, ahead of this phase's original sequencing, because Phase 2's own scope ("Configure theme architecture") needed a `ThemeProvider` and it was cheap to build the whole mechanism rather than half of it. `shared/providers/theme-provider.tsx` provides `ThemeProvider`/`useTheme()`/`ThemeScript` (a blocking inline script in `<head>` that applies the stored preference before first paint, avoiding a flash of the wrong theme) and persists to `localStorage`. What's still missing, and still this phase's actual remaining scope: a visible toggle *control* in the UI (a settings page, a header button) — the mechanism exists, nothing calls `setTheme()` from a real page yet.
 
 ---
@@ -625,7 +675,13 @@ Each backend aggregate this applies to must actually support the relevant states
 
 **Priority:** P0, continuous · **Status:** 🚧 In Progress · **Depends on:** Phase 0
 
-**Shipped (Phase 2):** MSW is wired (see Phase 2's own shipped list) — a browser worker for opt-in manual mocking and a Node `setupServer` (`src/mocks/server.ts`) ready for any future test that needs to mock a network call. No test uses it yet (none of today's tests need real HTTP mocking); it exists as infrastructure a feature test can opt into.
+**Implementation checklist:**
+- ✅ **Implemented** — Vitest + React Testing Library, 22 tests passing across a representative component/logic set (Phase 1 + Phase 2)
+- ✅ **Implemented** — Storybook (see Phase 1), a story per component
+- ✅ **Implemented** — MSW (Mock Service Worker) — browser worker (opt-in) and Node `setupServer` (`src/mocks/server.ts`); no test uses it yet, it exists as infrastructure a feature test can opt into
+- 📋 **Remaining** — OpenAPI contract tests (Phase 2's own open item)
+- 📋 **Remaining** — Playwright (or equivalent) end-to-end tests for clinical-consequence paths — no such paths exist yet to test
+- 📋 **Remaining** — visual regression testing, bundle analyzer, component documentation beyond what Storybook already provides
 
 **Scope:** unit tests for pure logic, component tests for the design system, integration tests for the API layer (including the OpenAPI contract tests called out in Phase 2), and end-to-end tests for the critical clinical-consequence paths specifically (booking, consultation start, prescription signing) — mirroring the backend's own risk-based coverage philosophy (`docs/13-engineering-bootstrap.md`: higher bar for Clinical/Trust-adjacent code, standard bar elsewhere).
 
@@ -660,7 +716,11 @@ Each backend aggregate this applies to must actually support the relevant states
 
 **Scope:** relevant only for the public-facing surfaces (marketing/landing, public doctor search once it exists) — the authenticated portal itself has no SEO surface.
 
-**Shipped (Phase 2):** `shared/lib/seo.ts`'s `buildPageMetadata()` — assembles canonical URLs, hreflang (`alternates.languages`) across both locales, and Open Graph fields from a page's locale/path/title/description, so a future public page calls one function instead of hand-building a `Metadata` object and forgetting an alternate. Used today only by the locale root layout's placeholder metadata — no real public-facing page exists yet for this to matter in practice.
+**Implementation checklist:**
+- ✅ **Implemented** — `buildPageMetadata()` helper (`shared/lib/seo.ts`) — canonical URLs, hreflang (`alternates.languages`) across both locales, Open Graph fields, from a page's locale/path/title/description
+- 📋 **Remaining** — any real public-facing page for this helper to matter in practice — used today only by the locale root layout's placeholder metadata; sitemap, structured data, and localized Open Graph images are all untouched
+
+The SEO *helper* is implemented; SEO as a *capability* is not, since there is no public page yet for it to apply to.
 
 ---
 
@@ -676,7 +736,11 @@ Each backend aggregate this applies to must actually support the relevant states
 
 **Priority:** P1 · **Status:** 🚧 In Progress (stub only) · **Depends on:** Phase 6
 
-**Shipped (Phase 2):** `shared/lib/analytics.ts`'s `trackEvent()` — logs to the console in development, a genuine no-op in production. Exists so a feature can call `trackEvent({ name: '...' })` from day one and the call site never needs to change once a real vendor (Sentry-shaped or otherwise, per Section 1.2) is chosen — only this file's body does. Error tracking, session replay, Core Web Vitals reporting, and correlation-ID propagation (this phase's real scope) remain entirely unbuilt.
+**Implementation checklist:**
+- 🚧 **Scaffolded** — `trackEvent()` (`shared/lib/analytics.ts`) — logs to the console in development, a genuine no-op in production; no vendor, no real event pipeline
+- 📋 **Remaining** — error monitoring (Sentry-shaped provider, vendor undecided), session replay (PHI-masking-by-default required before this can ship), Core Web Vitals reporting, correlation-ID propagation from the backend's request-ID scheme, structured/PHI-scrubbed frontend logs — this phase's entire real scope
+
+Analytics is **scaffolded, not implemented.** `trackEvent()` gives every future feature a stable call site; it does not send data anywhere today.
 
 **Scope:** structured client-side error tracking with correlation-ID linkage to the backend's existing request-ID scheme (`shared/correlation/correlation-context.ts` on the backend already generates one per request — the frontend should propagate/display it, not invent a parallel ID scheme), Core Web Vitals reporting, PHI-scrubbing on any error payload before it leaves the client (mirrors the backend's own stated error-tracking requirement in `docs/13-engineering-bootstrap.md` Section 12).
 
@@ -735,3 +799,4 @@ Unlike Section 3's phases, these are process standards, not features — they ha
 | 2026-07-13 | Began Phase 1 implementation (status moved 📋 → 🚧 In Progress; not yet ✅, per the phase's own updated Definition of Done note). Shipped: design tokens (color/typography/spacing/radius/shadow/opacity/motion/z-index/breakpoints) wired into Tailwind v4's `@theme`; a light/dark token layer (Phase 24 still owns the actual toggle); typography, responsive, and icon primitives; the full base/overlay/navigation/state/layout/form component set on Radix UI + cva/clsx/tailwind-merge; the shared form system (React Hook Form + Zod + Radix Label); Storybook (switched from `@storybook/nextjs`'s webpack builder to the Vite-based `@storybook/experimental-nextjs-vite` after the former hit a structural, unfixable conflict with Next.js's internally-vendored webpack copy) with a story per component; and Vitest + React Testing Library with tests for a representative component subset. All of typecheck/lint/test/production-build/Storybook-build verified passing. Explicitly not yet done and tracked in the phase's own section: a charts system (no chart library chosen yet), date/time and file pickers, live table sort/filter, `packages/ui` extraction, and human/screenshot visual verification (no browser available this session). |
 | 2026-07-13 | Fixed a production regression from the previous entry: pinning Next.js to 15.1.8 to work around the Storybook/webpack conflict caused Vercel to reject deployments outright (`"Vulnerable version of Next.js detected"` — confirmed via the actual Vercel build log, not guessed). Restored Next.js to the latest, non-vulnerable 15.5.20. That, in turn, broke `@storybook/experimental-nextjs-vite` the same structural way as the webpack framework before it — its bundled `vite-plugin-storybook-nextjs` dependency reaches into a specific internal Next.js file path that isn't a public API and moved between Next 15.1.x and 15.5.x. Concluded both of Storybook 8.x's Next.js-specific integrations are incompatible with current Next.js and switched to the plain, Next-agnostic `@storybook/react-vite` framework instead (verified none of our components import `next/image`/`next/font`/`next/navigation`/`next/link`, so no Next-specific shims are needed). Removed the now-pointless root `pnpm.overrides` webpack pin added during the earlier, incorrect diagnosis. Re-verified typecheck/lint/test/`next build`/`build-storybook` all green on Next.js 15.5.20. |
 | 2026-07-13 | Began Phase 2 implementation (status moved 📋 → 🚧 In Progress; not yet ✅ — see Phase 2's own updated Definition of Done note). Restructured `app/` under `app/[locale]/` with `next-intl` middleware, English/Arabic message files, and `dir="rtl"|"ltr"` switching on `<html>` (Phase 3's architecture decision, now real, not just decided — Phase 0's retrofit-debt note is resolved). Shipped: TanStack Query (one `QueryClient` per app instance, conservative defaults, global error→toast wiring); an imperative toast system on top of Phase 1's Radix `Toast` primitive (`shared/ui/use-toast.ts`, callable outside React); `shared/lib/api/` (relocated `apiFetch` from Phase 0's `src/lib/`, a query-key factory convention, a single `toUserMessage`/`reportQueryError` error-handling convention, an auth-header injection point that's a documented no-op today); environment validation upgraded to a lazily-evaluated Zod schema; MSW wired for both browser (opt-in) and Node (test) mocking; Next.js App Router special files for error handling (`error.tsx`, `global-error.tsx`) and route-level loading (`loading.tsx`); a theme architecture (`ThemeProvider`/`useTheme`/`ThemeScript`, pulled forward from Phase 24 — see that phase's own priority-change note) with `localStorage` persistence and a no-flash inline script; an SEO metadata helper (`buildPageMetadata`, hreflang + canonical + Open Graph); an analytics stub (`trackEvent`, console-only, vendor undecided); a feature-flags stub (`useFeatureFlag`, local-default-only). Auth/RBAC architecture (`shared/auth/`: types, `AuthProvider`, `RequireAuth`, `RequireRole`) was built as explicitly-unwired scaffolding, per Phase 4/5's own binding "no fake auth" rule — every session it produces today is genuinely unauthenticated, consistent with those phases remaining 🔒 Blocked. All of typecheck/lint/22 Vitest tests/production-build/Storybook-build verified passing; the production build's `dynamic = 'force-dynamic'` behavior was empirically re-verified against a running `next start` instance (not just trusted from the build's status symbols) after the new `generateStaticParams`-driven `●` marker looked concerning at first glance. Explicitly not yet done and tracked in Phase 2's own section: OpenAPI contract tests (named in Phase 2's original Definition of Done, still the single most important open item), and this document's own listed items 16 (feature flags — stub only) and 19 (SEO — infrastructure only, no real public page consumes it yet). |
+| 2026-07-14 | Added an explicit per-item "Implementation checklist" (✅ Implemented / 🚧 Scaffolded / 📋 Remaining / 🔒 Blocked / 🧊 Deferred) to Phases 2, 3, 4, 5, 20, 24, 26, 28, and 30, alongside their existing prose — precise about what is genuinely working code versus honest-but-inert scaffolding versus not built at all, since the previous entry's prose summaries risked reading as more complete than they are. No status changed as a result of this pass (all were already accurate); this only makes the same facts checkable at a glance, per item, rather than requiring a full paragraph read. Confirmed no scope/priority/status was silently altered. |
