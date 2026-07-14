@@ -45,7 +45,7 @@ These are **not** open questions for this roadmap to revisit — they are accept
 | Concern | Decision | Integration status |
 |---|---|---|
 | Frontend framework | Next.js (App Router) | ✅ Scaffolded (Phase 0) |
-| Internationalization library & routing architecture | `next-intl`, route-based locales (`app/[locale]/...`), Server Components with server-side translation resolution | 🔒 Decided (Phase 3), **not yet implemented** — Phase 0's current `app/` tree predates this decision and has no `[locale]` segment; see Phase 0's "Explicitly Not Yet Done" for the retrofit this implies |
+| Internationalization library & routing architecture | `next-intl`, route-based locales (`app/[locale]/...`), Server Components with server-side translation resolution | ✅ Implemented (Phase 2) — `app/[locale]/`, middleware, and English/Arabic message files exist; Phase 0's retrofit debt is resolved. Only two namespaces (`common`, `home`) exist so far — per-feature namespace splitting happens as features are built, per Phase 3's Translation Management scope |
 | Identity provider | Keycloak | 🔒 Not yet enforced anywhere — backend has no authentication layer wired yet (see 1.2) |
 | AI provider | Azure OpenAI | 🔒 Backend's `AIModule` currently binds a `NotConfiguredAIProviderAdapter` — the *technology* is decided, the *credentials/integration* are not live yet |
 | Realtime / telemedicine transport | LiveKit | 📋 Not yet integrated on either side |
@@ -114,7 +114,7 @@ The backend enforces module boundaries via DDD/Clean/Hexagonal layering (`docs/1
 
 No design system, no component library, no global state management, no routing structure beyond a single proof-of-wiring page, no authentication, no real product page. Phase 0's only page (`/`) exists to prove the API client works end-to-end against the live backend and should be replaced, not extended, once Phase 1 lands.
 
-**Known retrofit debt:** Phase 0's `app/` tree (`layout.tsx`, `page.tsx`) was built before the i18n/routing architecture decision in Section 1.1 and Phase 3 existed. It has no `[locale]` route segment and no `next-intl` middleware. This is not a bug to silently patch — it is explicit, tracked debt that Phase 3 must resolve by restructuring `app/` under `app/[locale]/`, not by bolting translations onto the existing flat structure.
+**Retrofit debt resolved (Phase 2):** Phase 0's original `app/` tree (`layout.tsx`, `page.tsx`, no `[locale]` segment) has been restructured to `app/[locale]/` with `next-intl` middleware, per the plan this note originally called for. Kept here, not deleted, per Section 0's "do not delete history" rule — the record of the debt existing and how it was resolved is still useful.
 
 ### Lessons Encoded Into Later Phases
 
@@ -130,10 +130,10 @@ The health-endpoint incident (a working request whose response shape didn't matc
 |---|---|---|---|---|---|
 | 0 | Current Frontend Architecture | P0 | ✅ | — | none |
 | 1 | Design System & UX Foundations | P0 | 🚧 | Phase 0 | none |
-| 2 | Global State, API Layer & Forms | P0 | 📋 | Phase 1 | Existing modules (1.3) |
-| 3 | Internationalization (i18n) & Localization | P0 | 📋 | Phase 1 | Reference Data module doesn't exist yet — see Phase 3's Medical Localization sub-scope |
-| 4 | Authentication | P0 | 🔒 | Phase 2 | Keycloak not enforced yet |
-| 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet |
+| 2 | Global State, API Layer & Forms | P0 | 🚧 | Phase 1 | Existing modules (1.3) |
+| 3 | Internationalization (i18n) & Localization | P0 | 🚧 | Phase 1 | Reference Data module doesn't exist yet — see Phase 3's Medical Localization sub-scope |
+| 4 | Authentication | P0 | 🔒 | Phase 2 | Keycloak not enforced yet — client-side scaffolding exists (`shared/auth/`), genuinely unwired |
+| 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet — client-side scaffolding exists (`shared/auth/require-role.tsx`), genuinely unwired |
 | 6 | Application Shell & Dashboard | P1 | 📋 | Phase 5 | Identity, Doctor, Patient |
 | 7 | Doctor Portal | P1 | 📋 | Phase 6 | Doctor, Trust, Asset |
 | 8 | Patient Portal | P1 | 📋 | Phase 6 | Patient, Clinical (read) |
@@ -148,17 +148,17 @@ The health-endpoint incident (a working request whose response shape didn't matc
 | 17 | Analytics & Reports | P2 | 🔒 | Phase 6 | AnalyticsModule not confirmed built |
 | 18 | Search | P2 | 🔒 | Phase 6 | No search endpoints documented yet |
 | 19 | Admin Panel, Super Admin, Multi-Tenant/Multi-Hospital Operations, Hospital Resources, Audit Timeline & White Labeling | P2 | 🔒 | Phase 5 | Administration is thin; no multi-tenant model, no Hospital Resource module, no general-purpose Audit module |
-| 20 | Feature Flags | P3 | 🔒 | Phase 6 | ConfigurationModule not confirmed built |
+| 20 | Feature Flags | P3 | 🔒 | Phase 6 | ConfigurationModule not confirmed built — a `useFeatureFlag()` stub exists (`shared/lib/feature-flags.ts`) that only resolves to its local default, no backend wiring |
 | 21 | Real-time Platform (WebSockets/Presence) | P2 | 📋 | Phase 2 | none required for transport itself |
 | 22 | File Uploads & Media Viewer | P1 | 📋 | Phase 2 | AssetModule (built) |
 | 23 | Offline / PWA | P3 | 📋 | Phase 3 | none |
-| 24 | Dark Mode | P2 | 📋 | Phase 1 | none |
+| 24 | Dark Mode | P2 | 🚧 | Phase 1 | none — mechanism shipped early as part of Phase 2's app-shell foundation, see 3.25's note |
 | 25 | Accessibility Hardening (WCAG 2.2 AA) | P1 (continuous) | 📋 | Phase 1 | none |
-| 26 | Testing Strategy | P0 (continuous) | 📋 | Phase 0 | none |
+| 26 | Testing Strategy | P0 (continuous) | 🚧 | Phase 0 | none — MSW (mocking) configured as part of Phase 2 |
 | 27 | Performance Optimization | P2 (continuous) | 📋 | Phase 6 | none |
-| 28 | SEO | P3 | 📋 | Phase 6 | none |
+| 28 | SEO | P3 | 🚧 | Phase 6 | none — `buildPageMetadata()` helper exists (Phase 2), unused by any real public page yet |
 | 29 | Security Hardening | P0 (continuous) | 📋 | Phase 4 | Auth |
-| 30 | Monitoring & Observability | P1 | 📋 | Phase 6 | Backend's own correlation-ID/structured-logging pattern |
+| 30 | Monitoring & Observability | P1 | 🚧 | Phase 6 | Backend's own correlation-ID/structured-logging pattern — a console-only `trackEvent()` stub exists (Phase 2), no vendor chosen |
 | 31 | Deployment & CI/CD Maturity | P1 | 🚧 | Phase 0 | none |
 | 32 | Future Mobile App Preparation | P3 | 📋 | Phase 2, 22 | none |
 
@@ -217,23 +217,37 @@ The health-endpoint incident (a working request whose response shape didn't matc
 
 ### 3.3 Phase 2 — Global State, API Layer & Forms
 
-**Priority:** P0 · **Status:** 📋 Planned · **Depends on:** Phase 1 · **Backend dependency:** existing modules only (1.3)
+**Priority:** P0 · **Status:** 🚧 In Progress · **Depends on:** Phase 1 · **Backend dependency:** existing modules only (1.3)
 
-**Scope:** global state management strategy (scoped per feature, not one monolithic store — mirrors the backend's own module-boundary discipline and `docs/13-engineering-bootstrap.md`'s explicit rejection of a single global frontend store), the API layer's evolution beyond Phase 0's single `apiFetch` helper (per-module API clients generated or hand-written against `docs/12-openapi.md`, request/response contract tests so a shape mismatch like the Phase 0 incident fails CI instead of shipping), form primitives and validation (structural validation only — format/required-field checks — never business-critical rules, which stay server-side per `docs/13-engineering-bootstrap.md`'s Shared Kernel boundary), and a single error-handling convention (how an `ApiError` becomes a user-facing message, consistently, everywhere).
+**Shipped (this iteration):**
+- TanStack Query as the chosen server-state layer — one `QueryClient` per app instance (`shared/providers/query-provider.tsx`, created inside `useState`, never module-scoped), conservative defaults (`staleTime: 30s`, `retry: 1`) matching Phase 27's stale-data caution for clinical data, with React Query Devtools in development only
+- A query-key convention (`shared/lib/api/query-keys.ts`) — hierarchical `[domain, 'list'|'detail', ...]` tuples, so a feature's keys are consistent without each one inventing its own shape
+- `apiFetch` relocated from Phase 0's `src/lib/` into `shared/lib/api/client.ts` (the `shared/` convention Section 1.6 established), with an auth-header injection point (`__setAuthHeaderProvider`) that Phase 4's real `AuthProvider` will call — a no-op today, since faking a header would imply a security posture that doesn't exist
+- A single error-handling convention (`shared/lib/api/error.ts`): every `ApiError`/thrown error reaches the user as a toast via `reportQueryError`, wired as TanStack Query's global `onError` so individual features don't each re-plumb this; a feature can still add a more specific inline message on top
+- An imperative toast system (`shared/ui/use-toast.ts` + `shared/ui/toaster.tsx`) built on Phase 1's Radix `Toast` primitives — callable from outside React (needed by the query-error handler above, which runs in TanStack Query's cache callback, not a component)
+- Environment validation upgraded from Phase 0's hand-rolled check to a Zod schema (`shared/lib/env.ts`), still lazily evaluated (cached on first access, not at module-import time) so `next build`'s static analysis can't crash on a missing var the way an eager parse would
+- MSW (Mock Service Worker) wired for both a browser worker (`src/mocks/browser.ts`, opt-in via `NEXT_PUBLIC_ENABLE_API_MOCKS`, off by default) and a Node server (`src/mocks/server.ts`, for tests) — the API mocking strategy named in Phase 26's Developer Experience scope
+
+**Explicitly not yet done:**
+- **Contract tests against the live OpenAPI spec** — this was named in this phase's own Definition of Done and is not built. The Phase 0 incident this rule exists to prevent could still recur today. This is the single most important open item before this phase can be marked ✅.
+- Global state management strategy beyond TanStack Query's server-cache — no client-only global store (e.g. for UI-only cross-feature state) has been needed yet; add one only when a real feature needs it, per Section 1.6's "promoted only once a second feature actually needs it" rule.
+- Form primitives/validation itself shipped in Phase 1 (`shared/ui/form.tsx` + Zod); this phase only adds the surrounding query/error/mock infrastructure forms will run inside.
 
 **Key decisions & constraints:**
-- Contract tests against the live OpenAPI spec are part of *this* phase's Definition of Done, not deferred to "Phase 26 — Testing Strategy" — the incident that motivated this document happened because no such test existed.
-- Loading states (skeletons from Phase 1) must be wired to real request lifecycles here, not left as visual-only components.
+- Contract tests against the live OpenAPI spec are part of *this* phase's Definition of Done, not deferred to "Phase 26 — Testing Strategy" — the incident that motivated this document happened because no such test existed. **Still open — see above.**
+- Loading states (skeletons from Phase 1) must be wired to real request lifecycles here, not left as visual-only components — TanStack Query's `isPending`/`isFetching` states are the wiring point once a real feature query exists; nothing to wire yet since no feature has shipped a query.
 
-**Definition of done:** every subsequent phase can consume a typed, contract-verified API call and a shared form/validation/error pattern without inventing its own.
+**Definition of done:** every subsequent phase can consume a typed, contract-verified API call and a shared form/validation/error pattern without inventing its own. **Not yet met in full** — the API/error/toast/mocking layer is real and consumable; contract verification against the OpenAPI spec is the missing piece.
 
 ---
 
 ### 3.4 Phase 3 — Internationalization (i18n) & Localization
 
-**Priority:** P0 · **Status:** 📋 Planned · **Depends on:** Phase 1 · **Backend dependency:** none for UI-string localization; **🔒 partially blocked** for Medical Localization (see below) — no Reference Data module (ICD-11, Drug Catalog) exists yet to translate
+**Priority:** P0 · **Status:** 🚧 In Progress · **Depends on:** Phase 1 · **Backend dependency:** none for UI-string localization; **🔒 partially blocked** for Medical Localization (see below) — no Reference Data module (ICD-11, Drug Catalog) exists yet to translate
 
 This phase is the single most foundational cross-cutting decision after the design system itself. Per `docs/13-engineering-bootstrap.md` Section 5 and the product's own UX requirements, RTL and localization must be built in from the *first* real page, not retrofitted — every component and page built after this phase inherits whichever assumption it bakes in. It is sequenced P0, immediately after the design system, for that reason.
+
+**Shipped (Phase 2 iteration):** the architecture decision below is now real, not just decided — `app/[locale]/` route segments, `next-intl` middleware (`src/middleware.ts`), locale-aware navigation helpers (`shared/i18n/navigation.ts`), server-side translation resolution in the (async) home page via `getTranslations`, `dir="rtl"|"ltr"` set on `<html>` per locale, and English/Arabic message files (`messages/en.json`, `messages/ar.json`) with two namespaces so far (`common`, `home`). Everything else in this phase's scope below (Translation Management namespace-splitting per feature, Medical Localization, Date & Time, Numbers & Currency, Regional Configuration, i18n-specific Accessibility, Search/SEO/Notifications/AI cross-references, Testing) remains 📋/🔒 as documented — only the architecture and the minimal UI-string path are real today.
 
 #### 3.4.1 Architecture Decision (binding, added to Section 1.1)
 
@@ -314,8 +328,10 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 
 **Scope (once unblocked):** login, registration, forgot/reset password, refresh-token handling, logout (single session and all-devices), session expiry UX.
 
+**Client-side scaffolding shipped (Phase 2, still genuinely unwired):** `shared/auth/types.ts` (the `AuthenticatedUser`/`Role`/`AuthState` shapes, modeled on what a Keycloak token will actually carry) and `shared/auth/auth-provider.tsx` (an `AuthProvider`/`useAuth()` that today always produces `{ status: 'unauthenticated', user: null }` — not a fake login, a genuinely honest empty state). This exists so the real Keycloak integration is a matter of populating this shape and calling `shared/lib/api/client.ts`'s `__setAuthHeaderProvider`, not inventing the shape under time pressure later. It does not reduce this phase's scope or status — nothing here talks to Keycloak.
+
 **Key decisions & constraints:**
-- The frontend must not build a "temporary" fake-auth mode. `docs/13-engineering-bootstrap.md` Section 13 explicitly warns against this: a simplified fake-auth path that diverges from the real Keycloak integration shape is "a classic source of works-in-dev, breaks-in-staging auth bugs."
+- The frontend must not build a "temporary" fake-auth mode. `docs/13-engineering-bootstrap.md` Section 13 explicitly warns against this: a simplified fake-auth path that diverges from the real Keycloak integration shape is "a classic source of works-in-dev, breaks-in-staging auth bugs." The Phase 2 scaffolding above was built with this rule specifically in mind — it produces an honest unauthenticated state, never a fabricated authenticated one.
 - Until backend enforcement exists, every current API call is unauthenticated by construction — no frontend code should imply otherwise (no fabricated "logged in as Dr. X" state backed by nothing real).
 - When this phase unblocks, it unblocks Phase 5 immediately after — they are sequenced back-to-back deliberately.
 
@@ -329,7 +345,9 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 
 **Scope:** role-aware routing and UI (Super Admin, Hospital Admin, Doctor, Receptionist, Nurse, Patient — per the product vision in `orivex-master-roadmap.md`), route guards, permission-gated components.
 
-**Key decisions & constraints:** authorization decisions rendered in the UI (hiding a button) are a UX convenience, never the actual security boundary — the backend must independently enforce every permission this phase merely reflects. This phase cannot invent roles the backend doesn't recognize.
+**Client-side scaffolding shipped (Phase 2, still genuinely unwired):** `shared/auth/require-auth.tsx` (`<RequireAuth redirectTo="...">` — redirects when `useAuth().status !== 'authenticated'`; honest today because everyone genuinely is unauthenticated) and `shared/auth/require-role.tsx` (`<RequireRole roles={[...]}>` — renders a fallback unless the current user has one of the listed roles). Both are explicitly documented in their own code as a UX convenience, not a security boundary, matching this section's own key decision below. Nothing protected by these exists yet — Phase 6 is what would actually place real content behind them.
+
+**Key decisions & constraints:** authorization decisions rendered in the UI (hiding a button) are a UX convenience, never the actual security boundary — the backend must independently enforce every permission this phase merely reflects. This phase cannot invent roles the backend doesn't recognize — `shared/auth/types.ts`'s `Role` union is deliberately the full set the eventual Keycloak realm will issue, not a frontend-invented list.
 
 ---
 
@@ -534,6 +552,8 @@ Each backend aggregate this applies to must actually support the relevant states
 
 **Scope (once unblocked):** a `useFeatureFlag()`-style hook (explicitly named as a gap in `docs/13-engineering-bootstrap.md`'s own final readiness review) wiring real backend flag state into conditional rendering, covering the rollout mechanics a real feature-flag system needs beyond a plain on/off switch: **kill switches** (an instant, operator-triggered full disable, distinct from a gradual rollout — must not depend on a deploy to take effect), **percentage rollouts**, **tenant-based flags** (scoped to a specific hospital once Phase 19's multi-tenant model exists), **user-based flags** (scoped to a specific account, e.g. internal dogfooding), and **environment-based flags** (dev/staging/production). All of this is UI/consumption scope only — the flag-evaluation logic and storage live in the backend's `ConfigurationModule`; the frontend never invents its own flag state.
 
+**Shipped (Phase 2, minimal):** `shared/lib/feature-flags.ts` exports `useFeatureFlag(key, defaultValue)`, which today just returns `defaultValue` — no network call, no persistence, none of the rollout mechanics above. It exists only so a call site written now (`useFeatureFlag('new-thing', false)`) doesn't need to change shape once the real backend exists — the function body is what changes.
+
 ---
 
 ### 3.22 Phase 21 — Real-time Platform (WebSockets / Presence)
@@ -570,9 +590,11 @@ Each backend aggregate this applies to must actually support the relevant states
 
 ### 3.25 Phase 24 — Dark Mode
 
-**Priority:** P2 · **Status:** 📋 Planned · **Depends on:** Phase 1 · **Backend dependency:** none
+**Priority:** P2 · **Status:** 🚧 In Progress (pulled forward — see note) · **Depends on:** Phase 1 · **Backend dependency:** none
 
 **Scope:** the actual light/dark toggle and persistence, built on Phase 1's token layer.
+
+**Priority-change note (per Section 0's rule — not a silent reorder):** the toggle mechanism itself shipped as part of Phase 2, ahead of this phase's original sequencing, because Phase 2's own scope ("Configure theme architecture") needed a `ThemeProvider` and it was cheap to build the whole mechanism rather than half of it. `shared/providers/theme-provider.tsx` provides `ThemeProvider`/`useTheme()`/`ThemeScript` (a blocking inline script in `<head>` that applies the stored preference before first paint, avoiding a flash of the wrong theme) and persists to `localStorage`. What's still missing, and still this phase's actual remaining scope: a visible toggle *control* in the UI (a settings page, a header button) — the mechanism exists, nothing calls `setTheme()` from a real page yet.
 
 ---
 
@@ -601,7 +623,9 @@ Each backend aggregate this applies to must actually support the relevant states
 
 ### 3.27 Phase 26 — Testing Strategy
 
-**Priority:** P0, continuous · **Status:** 📋 Planned · **Depends on:** Phase 0
+**Priority:** P0, continuous · **Status:** 🚧 In Progress · **Depends on:** Phase 0
+
+**Shipped (Phase 2):** MSW is wired (see Phase 2's own shipped list) — a browser worker for opt-in manual mocking and a Node `setupServer` (`src/mocks/server.ts`) ready for any future test that needs to mock a network call. No test uses it yet (none of today's tests need real HTTP mocking); it exists as infrastructure a feature test can opt into.
 
 **Scope:** unit tests for pure logic, component tests for the design system, integration tests for the API layer (including the OpenAPI contract tests called out in Phase 2), and end-to-end tests for the critical clinical-consequence paths specifically (booking, consultation start, prescription signing) — mirroring the backend's own risk-based coverage philosophy (`docs/13-engineering-bootstrap.md`: higher bar for Clinical/Trust-adjacent code, standard bar elsewhere).
 
@@ -632,9 +656,11 @@ Each backend aggregate this applies to must actually support the relevant states
 
 ### 3.29 Phase 28 — SEO
 
-**Priority:** P3 · **Status:** 📋 Planned · **Depends on:** Phase 6
+**Priority:** P3 · **Status:** 🚧 In Progress (infrastructure only) · **Depends on:** Phase 6
 
 **Scope:** relevant only for the public-facing surfaces (marketing/landing, public doctor search once it exists) — the authenticated portal itself has no SEO surface.
+
+**Shipped (Phase 2):** `shared/lib/seo.ts`'s `buildPageMetadata()` — assembles canonical URLs, hreflang (`alternates.languages`) across both locales, and Open Graph fields from a page's locale/path/title/description, so a future public page calls one function instead of hand-building a `Metadata` object and forgetting an alternate. Used today only by the locale root layout's placeholder metadata — no real public-facing page exists yet for this to matter in practice.
 
 ---
 
@@ -648,7 +674,9 @@ Each backend aggregate this applies to must actually support the relevant states
 
 ### 3.31 Phase 30 — Monitoring & Observability
 
-**Priority:** P1 · **Status:** 📋 Planned · **Depends on:** Phase 6
+**Priority:** P1 · **Status:** 🚧 In Progress (stub only) · **Depends on:** Phase 6
+
+**Shipped (Phase 2):** `shared/lib/analytics.ts`'s `trackEvent()` — logs to the console in development, a genuine no-op in production. Exists so a feature can call `trackEvent({ name: '...' })` from day one and the call site never needs to change once a real vendor (Sentry-shaped or otherwise, per Section 1.2) is chosen — only this file's body does. Error tracking, session replay, Core Web Vitals reporting, and correlation-ID propagation (this phase's real scope) remain entirely unbuilt.
 
 **Scope:** structured client-side error tracking with correlation-ID linkage to the backend's existing request-ID scheme (`shared/correlation/correlation-context.ts` on the backend already generates one per request — the frontend should propagate/display it, not invent a parallel ID scheme), Core Web Vitals reporting, PHI-scrubbing on any error payload before it leaves the client (mirrors the backend's own stated error-tracking requirement in `docs/13-engineering-bootstrap.md` Section 12).
 
@@ -706,3 +734,4 @@ Unlike Section 3's phases, these are process standards, not features — they ha
 | 2026-07-13 | Enterprise-quality pass: added Section 1.6 (Frontend Internal Architecture Conventions) and Section 5 (Engineering Governance & Process Standards); flagged Consent Management, Hospital Resource Management, Queue Management, and a general-purpose Audit/Change-History module as missing backend capabilities in Section 1.4. Expanded Phase 1 with grid system, icon guidelines, illustration system, avatar system, a named charts system, and loading patterns. Expanded Phase 3 with Regional & Country Configuration (country profiles, locale-specific validation, phone/address formatting, timezone profiles). Expanded Phase 9 with Queue Management (waiting/doctor queue, token system, estimated wait time, queue dashboard), 🔒 blocked on a new Queue module. Expanded Phase 10 with Patient Journey Timeline (cross-module, distinct from the clinical-only Medical Timeline), Consent Management (🔒 blocked on a new Consent module), and the shared Clinical Workflow document lifecycle (Draft → Review → Approved → Signed → Locked → Archived), consumed by Phases 11 and 15. Expanded Phase 12 with an AI Governance sub-scope (confidence scores, explainability, prompt/model versioning, human approval, feedback loop, AI audit trail), verified consistent with ADR-002. Expanded Phase 14 with Internal Communication (Doctor↔Nurse/Reception/Admin, announcements), explicitly separated from telemedicine and general chat. Expanded Phase 18 with saved filters, recent searches, smart search, and AI-assisted search. Expanded Phase 19 with an Audit Timeline capability, Multi-Hospital Operations (branch/clinic/department management, cross-branch doctors, shared patients, referral between clinics), and Hospital Resources (rooms, beds, ORs, equipment, devices), 🔒 blocked on a new Hospital Resource Management module. Expanded Phase 20 with rollout mechanics (kill switches, percentage/tenant/user/environment-based flags). Expanded Phase 23 with offline queue/sync-queue/retry-strategy/conflict-resolution mechanics. Expanded Phase 25 with voice navigation, large text mode, dyslexia support, and keyboard shortcuts. Expanded Phase 26 with Developer Experience tooling (Storybook, MSW, Playwright, visual regression, bundle analyzer, component documentation). Expanded Phase 30 with named observability tooling (Sentry-shaped error tracking — vendor undecided, added to Section 1.2 — session replay with mandatory PHI masking, user journey tracking). Updated the master sequencing table's Phase 9/10/19 titles and backend-status notes accordingly. No existing scope, priority, or status was removed or reordered. |
 | 2026-07-13 | Began Phase 1 implementation (status moved 📋 → 🚧 In Progress; not yet ✅, per the phase's own updated Definition of Done note). Shipped: design tokens (color/typography/spacing/radius/shadow/opacity/motion/z-index/breakpoints) wired into Tailwind v4's `@theme`; a light/dark token layer (Phase 24 still owns the actual toggle); typography, responsive, and icon primitives; the full base/overlay/navigation/state/layout/form component set on Radix UI + cva/clsx/tailwind-merge; the shared form system (React Hook Form + Zod + Radix Label); Storybook (switched from `@storybook/nextjs`'s webpack builder to the Vite-based `@storybook/experimental-nextjs-vite` after the former hit a structural, unfixable conflict with Next.js's internally-vendored webpack copy) with a story per component; and Vitest + React Testing Library with tests for a representative component subset. All of typecheck/lint/test/production-build/Storybook-build verified passing. Explicitly not yet done and tracked in the phase's own section: a charts system (no chart library chosen yet), date/time and file pickers, live table sort/filter, `packages/ui` extraction, and human/screenshot visual verification (no browser available this session). |
 | 2026-07-13 | Fixed a production regression from the previous entry: pinning Next.js to 15.1.8 to work around the Storybook/webpack conflict caused Vercel to reject deployments outright (`"Vulnerable version of Next.js detected"` — confirmed via the actual Vercel build log, not guessed). Restored Next.js to the latest, non-vulnerable 15.5.20. That, in turn, broke `@storybook/experimental-nextjs-vite` the same structural way as the webpack framework before it — its bundled `vite-plugin-storybook-nextjs` dependency reaches into a specific internal Next.js file path that isn't a public API and moved between Next 15.1.x and 15.5.x. Concluded both of Storybook 8.x's Next.js-specific integrations are incompatible with current Next.js and switched to the plain, Next-agnostic `@storybook/react-vite` framework instead (verified none of our components import `next/image`/`next/font`/`next/navigation`/`next/link`, so no Next-specific shims are needed). Removed the now-pointless root `pnpm.overrides` webpack pin added during the earlier, incorrect diagnosis. Re-verified typecheck/lint/test/`next build`/`build-storybook` all green on Next.js 15.5.20. |
+| 2026-07-13 | Began Phase 2 implementation (status moved 📋 → 🚧 In Progress; not yet ✅ — see Phase 2's own updated Definition of Done note). Restructured `app/` under `app/[locale]/` with `next-intl` middleware, English/Arabic message files, and `dir="rtl"|"ltr"` switching on `<html>` (Phase 3's architecture decision, now real, not just decided — Phase 0's retrofit-debt note is resolved). Shipped: TanStack Query (one `QueryClient` per app instance, conservative defaults, global error→toast wiring); an imperative toast system on top of Phase 1's Radix `Toast` primitive (`shared/ui/use-toast.ts`, callable outside React); `shared/lib/api/` (relocated `apiFetch` from Phase 0's `src/lib/`, a query-key factory convention, a single `toUserMessage`/`reportQueryError` error-handling convention, an auth-header injection point that's a documented no-op today); environment validation upgraded to a lazily-evaluated Zod schema; MSW wired for both browser (opt-in) and Node (test) mocking; Next.js App Router special files for error handling (`error.tsx`, `global-error.tsx`) and route-level loading (`loading.tsx`); a theme architecture (`ThemeProvider`/`useTheme`/`ThemeScript`, pulled forward from Phase 24 — see that phase's own priority-change note) with `localStorage` persistence and a no-flash inline script; an SEO metadata helper (`buildPageMetadata`, hreflang + canonical + Open Graph); an analytics stub (`trackEvent`, console-only, vendor undecided); a feature-flags stub (`useFeatureFlag`, local-default-only). Auth/RBAC architecture (`shared/auth/`: types, `AuthProvider`, `RequireAuth`, `RequireRole`) was built as explicitly-unwired scaffolding, per Phase 4/5's own binding "no fake auth" rule — every session it produces today is genuinely unauthenticated, consistent with those phases remaining 🔒 Blocked. All of typecheck/lint/22 Vitest tests/production-build/Storybook-build verified passing; the production build's `dynamic = 'force-dynamic'` behavior was empirically re-verified against a running `next start` instance (not just trusted from the build's status symbols) after the new `generateStaticParams`-driven `●` marker looked concerning at first glance. Explicitly not yet done and tracked in Phase 2's own section: OpenAPI contract tests (named in Phase 2's original Definition of Done, still the single most important open item), and this document's own listed items 16 (feature flags — stub only) and 19 (SEO — infrastructure only, no real public page consumes it yet). |
