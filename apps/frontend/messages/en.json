@@ -202,9 +202,16 @@
     "dashboard": {
       "title": "Dashboard",
       "welcome": "Welcome back, {name}.",
+      "subtitleSuperAdmin": "Platform-wide overview and administration.",
+      "subtitleHospitalAdmin": "Manage hospital-wide operations and staff access.",
+      "subtitleDoctor": "Review your patients, appointments, and clinical tasks.",
+      "subtitleNurse": "Review assigned patients and clinical tasks.",
+      "subtitleReceptionist": "Manage today's appointments and front-desk tasks.",
+      "subtitlePatient": "Your appointments, prescriptions, and health records.",
+      "recentActivityTitle": "Recent activity",
       "emptyTitle": "Nothing to show yet",
       "emptyDescription": "Your dashboard will fill in as more of Orivex comes online. In the meantime, you can review your account security.",
-      "securityCenterAction": "Go to Security Center"
+      "securityCenterAction": "Security Center"
     }
   }
 }

@@ -202,9 +202,16 @@
     "dashboard": {
       "title": "لوحة التحكم",
       "welcome": "مرحبًا بعودتك، {name}.",
+      "subtitleSuperAdmin": "نظرة عامة وإدارة على مستوى المنصة بأكملها.",
+      "subtitleHospitalAdmin": "إدارة عمليات المستشفى ووصول الموظفين.",
+      "subtitleDoctor": "راجع مرضاك ومواعيدك ومهامك السريرية.",
+      "subtitleNurse": "راجع المرضى المكلَّفين والمهام السريرية.",
+      "subtitleReceptionist": "إدارة مواعيد اليوم ومهام الاستقبال.",
+      "subtitlePatient": "مواعيدك ووصفاتك الطبية وسجلاتك الصحية.",
+      "recentActivityTitle": "النشاط الأخير",
       "emptyTitle": "لا يوجد شيء لعرضه بعد",
       "emptyDescription": "ستمتلئ لوحة التحكم الخاصة بك مع إطلاق المزيد من أجزاء أوريفكس. في هذه الأثناء، يمكنك مراجعة أمان حسابك.",
-      "securityCenterAction": "الذهاب إلى مركز الأمان"
+      "securityCenterAction": "مركز الأمان"
     }
   }
 }
