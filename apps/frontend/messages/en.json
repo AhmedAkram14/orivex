@@ -99,6 +99,31 @@
       "reasonRegister": "Click the link in the email to verify your account.",
       "reasonForgotPassword": "Click the link in the email to reset your password.",
       "backToLogin": "Back to sign in"
+    },
+    "accountLocked": {
+      "title": "Account locked",
+      "description": "Your account has been locked for security reasons. Reset your password to regain access.",
+      "resetPasswordLink": "Reset password"
+    },
+    "sessionExpired": {
+      "title": "Session expired",
+      "description": "Your session has ended. Please sign in again to continue.",
+      "signInAgain": "Sign in again"
+    },
+    "unauthorized": {
+      "title": "Sign in required",
+      "description": "You need to sign in to access this page.",
+      "signIn": "Sign in"
+    },
+    "forbidden": {
+      "title": "Access restricted",
+      "description": "Your account doesn't have permission to view this page.",
+      "backHome": "Back to home"
+    },
+    "accessDenied": {
+      "title": "Access denied",
+      "description": "You don't have access to this resource.",
+      "backHome": "Back to home"
     }
   }
 }
