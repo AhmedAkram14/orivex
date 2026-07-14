@@ -346,19 +346,21 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 
 ### 3.5 Phase 4 — Authentication
 
-**Priority:** P0 · **Status:** 🔒 Blocked · **Depends on:** Phase 2 · **Backend dependency:** Keycloak integration does not exist on the backend yet — this is the single largest cross-cutting gap in the whole system, flagged repeatedly across the backend's own hardening reports.
+**Priority:** P0 · **Status:** 🚧 In Progress (implemented against a mocked backend contract) · **Depends on:** Phase 2 · **Backend dependency:** Keycloak integration does not exist on the backend yet — this is the single largest cross-cutting gap in the whole system, flagged repeatedly across the backend's own hardening reports.
+
+**Priority-change note (per Section 0's rule — not a silent reorder):** this phase was pulled forward from 🔒 Blocked to active implementation on explicit architect direction, built entirely against an MSW-mocked `/auth/*` contract (`src/mocks/handlers/auth.ts`) rather than waiting for real Keycloak availability. This is deliberately **not** the "temporary fake-auth mode" this section's own key decision warns against: the mock lives behind the same `authApi` interface (`features/auth/api/auth-api.ts`) a real Keycloak-backed implementation will fill in later, so swapping it is a change to that one file's function bodies, not to any page, hook, or component that consumes it. Every session produced today is a real, working session *against the mock* — genuinely functional UI, genuinely fake backend, and the document is explicit about which is which throughout this section.
 
 **Scope (once unblocked):** login, registration, forgot/reset password, refresh-token handling, logout (single session and all-devices), session expiry UX.
 
 **Implementation checklist:**
-- 🚧 **Scaffolded** — session/user types (`shared/auth/types.ts`: `AuthenticatedUser`, `Role`, `AuthState`), modeled on a Keycloak token's eventual shape
-- 🚧 **Scaffolded** — `AuthProvider`/`useAuth()` (`shared/auth/auth-provider.tsx`) — always produces `{ status: 'unauthenticated', user: null }` today; this is a real, honest state, not a fake login
-- 📋 **Remaining** — login, registration, forgot/reset password, refresh-token handling, logout, session expiry UX — all of it
-- 🔒 **Blocked** — the entire real capability of this phase: no Keycloak integration exists backend-side
+- ✅ **Implemented** — auth API contract types (`features/auth/api/types.ts`): `LoginRequest`/`LoginResponse`, `RegisterRequest`/`Response`, forgot/reset password, verify/resend-verification email, refresh/session responses, `DeviceSession`, `LoginHistoryEntry`, and the `AUTH_ERROR_CODES` the UI branches on
+- ✅ **Implemented** — `authApi` (`features/auth/api/auth-api.ts`) — the single module that calls `/auth/*`; every function is a thin typed wrapper over `apiFetch`, no logic of its own
+- ✅ **Implemented** — MSW mock backend (`src/mocks/handlers/auth.ts` + `src/mocks/auth-store.ts`) — a stateful, in-memory mock covering login (including invalid-credentials/locked/unverified/rate-limited outcomes), registration, forgot/reset password (with expired/invalid token simulation), email verification, session recovery, refresh, logout, logout-all, device sessions (list + revoke), login history
+- 🚧 **Scaffolded** — session/user types (`shared/auth/types.ts`), `AuthProvider`/`useAuth()` (`shared/auth/auth-provider.tsx`) — still the Phase 2 stub (always unauthenticated) as of this checklist item; wiring it to the real session query/mutations is this phase's next milestone
+- 📋 **Remaining** — login/register/forgot/reset/verify-email/check-email pages, session persistence, silent refresh, session recovery on load, expired-session handling, Device Sessions and Login History UI, Security Center
+- 🔒 **Blocked** — replacing the mock with real Keycloak calls: no Keycloak integration exists backend-side; this remains true regardless of how complete the mocked implementation becomes
 
-Auth is **scaffolded, not implemented.** The types and provider above exist so Phase 4 is a matter of populating a shape, not inventing one under time pressure — they do not move this phase's status off 🔒 Blocked, and nothing in the product calls a real Keycloak endpoint today.
-
-**Client-side scaffolding shipped (Phase 2, still genuinely unwired):** `shared/auth/types.ts` (the `AuthenticatedUser`/`Role`/`AuthState` shapes, modeled on what a Keycloak token will actually carry) and `shared/auth/auth-provider.tsx` (an `AuthProvider`/`useAuth()` that today always produces `{ status: 'unauthenticated', user: null }` — not a fake login, a genuinely honest empty state). This exists so the real Keycloak integration is a matter of populating this shape and calling `shared/lib/api/client.ts`'s `__setAuthHeaderProvider`, not inventing the shape under time pressure later. It does not reduce this phase's scope or status — nothing here talks to Keycloak.
+**MFA readiness:** `LoginResponse.mfaRequired` exists in the contract type so a future MFA step doesn't require a breaking response-shape change. No mock account sets it to `true` and no verification UI exists — the field is present, not branched on, per this phase's "prepare the architecture, don't fake the security" requirement.
 
 **Key decisions & constraints:**
 - The frontend must not build a "temporary" fake-auth mode. `docs/13-engineering-bootstrap.md` Section 13 explicitly warns against this: a simplified fake-auth path that diverges from the real Keycloak integration shape is "a classic source of works-in-dev, breaks-in-staging auth bugs." The Phase 2 scaffolding above was built with this rule specifically in mind — it produces an honest unauthenticated state, never a fabricated authenticated one.
