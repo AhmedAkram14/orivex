@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { authHandlers } from '@/mocks/handlers/auth';
+import { notificationHandlers } from '@/mocks/handlers/notifications';
 
 /**
  * Request handlers shared between the browser worker (manual dev/QA
@@ -16,4 +17,5 @@ export const handlers = [
     HttpResponse.json({ status: 'ok', uptimeSeconds: 0, timestamp: new Date().toISOString() }),
   ),
   ...authHandlers,
+  ...notificationHandlers,
 ];

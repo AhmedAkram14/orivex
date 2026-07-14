@@ -204,6 +204,15 @@
       "users": "Users",
       "security": "Security"
     },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Mark all as read",
+      "loadError": "Couldn't load your notifications.",
+      "emptyTitle": "You're all caught up",
+      "emptyDescription": "New notifications will appear here.",
+      "bellLabel": "Notifications",
+      "bellLabelWithCount": "Notifications ({count} unread)"
+    },
     "userMenu": {
       "securityCenter": "Security Center",
       "theme": {

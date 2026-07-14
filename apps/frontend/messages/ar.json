@@ -204,6 +204,15 @@
       "users": "المستخدمون",
       "security": "الأمان"
     },
+    "notifications": {
+      "title": "الإشعارات",
+      "markAllRead": "تعليم الكل كمقروء",
+      "loadError": "تعذّر تحميل إشعاراتك.",
+      "emptyTitle": "لا توجد إشعارات جديدة",
+      "emptyDescription": "ستظهر الإشعارات الجديدة هنا.",
+      "bellLabel": "الإشعارات",
+      "bellLabelWithCount": "الإشعارات ({count} غير مقروءة)"
+    },
     "userMenu": {
       "securityCenter": "مركز الأمان",
       "theme": {

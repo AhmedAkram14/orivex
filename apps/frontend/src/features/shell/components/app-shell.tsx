@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { CommandPalette } from '@/features/shell/components/command-palette';
 import { MobileNav } from '@/features/shell/components/mobile-nav';
+import { NotificationBell } from '@/features/shell/components/notification-bell';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
 import { UserMenu } from '@/features/shell/components/user-menu';
 import { Link } from '@/shared/i18n/navigation';
@@ -34,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="ms-auto flex items-center gap-2">
           <CommandPalette />
+          <NotificationBell />
           <UserMenu />
         </div>
       </Topbar>
