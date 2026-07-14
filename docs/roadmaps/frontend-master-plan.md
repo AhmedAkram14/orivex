@@ -132,8 +132,8 @@ The health-endpoint incident (a working request whose response shape didn't matc
 | 1 | Design System & UX Foundations | P0 | 🚧 | Phase 0 | none |
 | 2 | Global State, API Layer & Forms | P0 | 🚧 | Phase 1 | Existing modules (1.3) |
 | 3 | Internationalization (i18n) & Localization | P0 | 🚧 | Phase 1 | Reference Data module doesn't exist yet — see Phase 3's Medical Localization sub-scope |
-| 4 | Authentication | P0 | 🔒 | Phase 2 | Keycloak not enforced yet — client-side scaffolding exists (`shared/auth/`), genuinely unwired |
-| 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet — client-side scaffolding exists (`shared/auth/require-role.tsx`), genuinely unwired |
+| 4 | Authentication | P0 | 🚧 | Phase 2 | Keycloak not integrated yet — fully implemented against a mocked `/auth/*` contract (`authApi`), real Keycloak swap remains 🔒 blocked |
+| 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet — guard components and permission model implemented and tested (`shared/auth/role-guard.tsx`, `permission-guard.tsx`, `feature-guard.tsx`), role-aware routing/dashboards remain 🔒 blocked |
 | 6 | Application Shell & Dashboard | P1 | 📋 | Phase 5 | Identity, Doctor, Patient |
 | 7 | Doctor Portal | P1 | 📋 | Phase 6 | Doctor, Trust, Asset |
 | 8 | Patient Portal | P1 | 📋 | Phase 6 | Patient, Clinical (read) |
