@@ -9,5 +9,27 @@
     "title": "Orivex",
     "backendReachable": "Backend reachable — status: {status}, uptime: {uptime}s",
     "backendUnreachable": "Backend unreachable: {error}"
+  },
+  "auth": {
+    "validation": {
+      "emailRequired": "Email is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordRequired": "Password is required.",
+      "fullNameRequired": "Enter your full name.",
+      "passwordTooShort": "Password must be at least {min} characters.",
+      "passwordTooWeak": "Password must include an uppercase letter, a lowercase letter, and a number.",
+      "confirmPasswordRequired": "Confirm your password.",
+      "passwordsDoNotMatch": "Passwords do not match."
+    },
+    "passwordStrength": {
+      "label": "Password strength: {strength}",
+      "levels": {
+        "very-weak": "Very weak",
+        "weak": "Weak",
+        "fair": "Fair",
+        "strong": "Strong",
+        "very-strong": "Very strong"
+      }
+    }
   }
 }

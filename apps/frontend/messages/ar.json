@@ -9,5 +9,27 @@
     "title": "أوريفكس",
     "backendReachable": "الخادم متاح — الحالة: {status}، مدة التشغيل: {uptime} ثانية",
     "backendUnreachable": "تعذر الوصول إلى الخادم: {error}"
+  },
+  "auth": {
+    "validation": {
+      "emailRequired": "البريد الإلكتروني مطلوب.",
+      "emailInvalid": "أدخل بريدًا إلكترونيًا صالحًا.",
+      "passwordRequired": "كلمة المرور مطلوبة.",
+      "fullNameRequired": "أدخل اسمك الكامل.",
+      "passwordTooShort": "يجب ألا تقل كلمة المرور عن {min} حرفًا.",
+      "passwordTooWeak": "يجب أن تحتوي كلمة المرور على حرف كبير وحرف صغير ورقم.",
+      "confirmPasswordRequired": "أكّد كلمة المرور.",
+      "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين."
+    },
+    "passwordStrength": {
+      "label": "قوة كلمة المرور: {strength}",
+      "levels": {
+        "very-weak": "ضعيفة جدًا",
+        "weak": "ضعيفة",
+        "fair": "متوسطة",
+        "strong": "قوية",
+        "very-strong": "قوية جدًا"
+      }
+    }
   }
 }
