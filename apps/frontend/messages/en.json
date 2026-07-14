@@ -124,6 +124,52 @@
       "title": "Access denied",
       "description": "You don't have access to this resource.",
       "backHome": "Back to home"
+    },
+    "securityCenter": {
+      "title": "Security Center",
+      "subtitle": "Review your active sessions, recent sign-in activity, and revoke access you don't recognize.",
+      "deviceSessions": {
+        "title": "Device sessions",
+        "description": "Devices currently signed in to your account.",
+        "currentDeviceBadge": "This device",
+        "locationAndIp": "{location} · {ipAddress}",
+        "lastActive": "Last active {lastActiveAt}",
+        "revoke": "Revoke",
+        "revokeConfirmTitle": "Revoke this session?",
+        "revokeConfirmDescription": "\"{deviceName}\" will be signed out immediately.",
+        "revokeSuccess": "Session revoked.",
+        "revokeError": "Couldn't revoke this session. Please try again.",
+        "cancel": "Cancel",
+        "loadError": "Couldn't load your device sessions.",
+        "emptyTitle": "No other devices",
+        "emptyDescription": "You're only signed in on this device."
+      },
+      "loginHistory": {
+        "title": "Login history",
+        "description": "Recent sign-in attempts on your account.",
+        "columnTime": "Time",
+        "columnDevice": "Device",
+        "columnLocation": "Location",
+        "columnOutcome": "Outcome",
+        "outcome": {
+          "success": "Success",
+          "failed_password": "Wrong password",
+          "failed_locked": "Account locked"
+        },
+        "loadError": "Couldn't load your login history.",
+        "emptyTitle": "No login history yet",
+        "emptyDescription": "Sign-in attempts on your account will appear here."
+      },
+      "logoutAll": {
+        "title": "Sign out everywhere",
+        "description": "End every session on every device, including this one.",
+        "trigger": "Sign out of all devices",
+        "confirmTitle": "Sign out of all devices?",
+        "confirmDescription": "This will end every active session, including the one you're using right now. You'll need to sign in again.",
+        "confirm": "Sign out everywhere",
+        "cancel": "Cancel",
+        "error": "Couldn't sign out of all devices. Please try again."
+      }
     }
   }
 }

@@ -124,6 +124,52 @@
       "title": "تم رفض الوصول",
       "description": "ليس لديك حق الوصول إلى هذا المورد.",
       "backHome": "العودة إلى الرئيسية"
+    },
+    "securityCenter": {
+      "title": "مركز الأمان",
+      "subtitle": "راجع جلساتك النشطة ونشاط تسجيل الدخول الأخير، وألغِ الوصول الذي لا تتعرف عليه.",
+      "deviceSessions": {
+        "title": "جلسات الأجهزة",
+        "description": "الأجهزة المسجّلة دخولها حاليًا إلى حسابك.",
+        "currentDeviceBadge": "هذا الجهاز",
+        "locationAndIp": "{location} · {ipAddress}",
+        "lastActive": "آخر نشاط {lastActiveAt}",
+        "revoke": "إلغاء",
+        "revokeConfirmTitle": "هل تريد إلغاء هذه الجلسة؟",
+        "revokeConfirmDescription": "سيتم تسجيل خروج \"{deviceName}\" فورًا.",
+        "revokeSuccess": "تم إلغاء الجلسة.",
+        "revokeError": "تعذّر إلغاء هذه الجلسة. يرجى المحاولة مرة أخرى.",
+        "cancel": "إلغاء الأمر",
+        "loadError": "تعذّر تحميل جلسات أجهزتك.",
+        "emptyTitle": "لا توجد أجهزة أخرى",
+        "emptyDescription": "أنت مسجّل الدخول من هذا الجهاز فقط."
+      },
+      "loginHistory": {
+        "title": "سجل تسجيل الدخول",
+        "description": "محاولات تسجيل الدخول الأخيرة إلى حسابك.",
+        "columnTime": "الوقت",
+        "columnDevice": "الجهاز",
+        "columnLocation": "الموقع",
+        "columnOutcome": "النتيجة",
+        "outcome": {
+          "success": "نجاح",
+          "failed_password": "كلمة مرور خاطئة",
+          "failed_locked": "الحساب مقفل"
+        },
+        "loadError": "تعذّر تحميل سجل تسجيل الدخول.",
+        "emptyTitle": "لا يوجد سجل تسجيل دخول بعد",
+        "emptyDescription": "ستظهر هنا محاولات تسجيل الدخول إلى حسابك."
+      },
+      "logoutAll": {
+        "title": "تسجيل الخروج من كل مكان",
+        "description": "إنهاء جميع الجلسات على جميع الأجهزة، بما في ذلك هذا الجهاز.",
+        "trigger": "تسجيل الخروج من جميع الأجهزة",
+        "confirmTitle": "تسجيل الخروج من جميع الأجهزة؟",
+        "confirmDescription": "سيؤدي هذا إلى إنهاء جميع الجلسات النشطة، بما في ذلك الجلسة التي تستخدمها الآن. ستحتاج إلى تسجيل الدخول مرة أخرى.",
+        "confirm": "تسجيل الخروج من كل مكان",
+        "cancel": "إلغاء الأمر",
+        "error": "تعذّر تسجيل الخروج من جميع الأجهزة. يرجى المحاولة مرة أخرى."
+      }
     }
   }
 }
