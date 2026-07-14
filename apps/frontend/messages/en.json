@@ -1,0 +1,13 @@
+{
+  "common": {
+    "appName": "Orivex",
+    "loading": "Loading",
+    "error": "Something went wrong",
+    "retry": "Retry"
+  },
+  "home": {
+    "title": "Orivex",
+    "backendReachable": "Backend reachable — status: {status}, uptime: {uptime}s",
+    "backendUnreachable": "Backend unreachable: {error}"
+  }
+}

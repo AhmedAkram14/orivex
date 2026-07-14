@@ -1,4 +1,4 @@
-import { env } from './env';
+import { env } from '@/shared/lib/env';
 
 // Mirrors the backend's own response shapes exactly (apps/backend/src/
 // shared/http/response-envelope.ts and platform/filters/all-exceptions.
@@ -51,15 +51,26 @@ export interface ApiRequestOptions {
   signal?: AbortSignal;
 }
 
-// No auth header wiring yet -- the backend itself has no authentication
-// layer (a documented, deferred future sprint; every current endpoint is
-// unauthenticated). Add an Authorization header here the moment the
-// backend actually enforces one -- not before, since that would fabricate
-// a security posture that doesn't exist server-side yet.
+/**
+ * Auth header injection point. A no-op today: the backend has no
+ * authentication layer wired yet (Phase 4, 🔒 blocked on Keycloak
+ * integration), so every current request is genuinely unauthenticated —
+ * fabricating an Authorization header now would imply a security posture
+ * that doesn't exist server-side. `shared/auth`'s AuthProvider will replace
+ * this function (not this file) once real session tokens exist, so apiFetch
+ * itself never needs to change.
+ */
+let getAuthHeader: () => Record<string, string> = () => ({});
+
+/** Called once by shared/auth's AuthProvider when real auth exists — not exported for general use. */
+export function __setAuthHeaderProvider(provider: () => Record<string, string>): void {
+  getAuthHeader = provider;
+}
+
 export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiRequestOptions): Promise<T> {
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
   });

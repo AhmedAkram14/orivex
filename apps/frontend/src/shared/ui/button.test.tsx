@@ -33,6 +33,7 @@ describe('Button', () => {
   it('renders the passed child element when asChild is set, instead of a <button>', () => {
     render(
       <Button asChild>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- this is a Slot/asChild composition test, not a real internal navigation link */}
         <a href="/patients">Patients</a>
       </Button>,
     );

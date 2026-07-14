@@ -1,4 +1,5 @@
-import { apiFetch } from '@/lib/api-client';
+import { getTranslations } from 'next-intl/server';
+import { apiFetch } from '@/shared/lib/api/client';
 
 // Without this, Next.js statically prerenders this page at build time
 // (confirmed: `next build` marked it ○ Static) -- the backend-reachable
@@ -16,8 +17,9 @@ interface LivenessResponse {
 // Deliberately calls the one endpoint guaranteed to exist and require no
 // auth (apps/backend/src/platform/health/health.controller.ts) -- this
 // page exists to prove the API client is genuinely wired to the deployed
-// backend during this bootstrap sprint, not to be the real landing page.
+// backend, not to be the real landing page (Phase 6 builds that).
 export default async function HomePage() {
+  const t = await getTranslations('home');
   let liveness: LivenessResponse | null = null;
   let error: string | null = null;
 
@@ -29,13 +31,13 @@ export default async function HomePage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-2xl font-semibold">Orivex</h1>
+      <h1 className="text-2xl font-semibold">{t('title')}</h1>
       {liveness ? (
-        <p className="text-green-700">
-          Backend reachable — status: {liveness.status}, uptime: {liveness.uptimeSeconds}s
+        <p className="text-success">
+          {t('backendReachable', { status: liveness.status, uptime: liveness.uptimeSeconds })}
         </p>
       ) : (
-        <p className="text-red-700">Backend unreachable: {error}</p>
+        <p className="text-danger">{t('backendUnreachable', { error: error ?? '' })}</p>
       )}
     </main>
   );

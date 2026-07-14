@@ -1,0 +1,13 @@
+{
+  "common": {
+    "appName": "أوريفكس",
+    "loading": "جارٍ التحميل",
+    "error": "حدث خطأ ما",
+    "retry": "إعادة المحاولة"
+  },
+  "home": {
+    "title": "أوريفكس",
+    "backendReachable": "الخادم متاح — الحالة: {status}، مدة التشغيل: {uptime} ثانية",
+    "backendUnreachable": "تعذر الوصول إلى الخادم: {error}"
+  }
+}
