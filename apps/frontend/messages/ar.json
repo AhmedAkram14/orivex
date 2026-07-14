@@ -175,6 +175,21 @@
   "shell": {
     "footer": "© {year} أوريفكس",
     "openNavigation": "فتح قائمة التنقل",
+    "commandPalette": {
+      "triggerLabel": "بحث",
+      "shortcutHint": "⌘K",
+      "inputPlaceholder": "اكتب أمرًا أو ابحث...",
+      "noResults": "لا توجد نتائج.",
+      "recentHeading": "الأخيرة",
+      "navigationHeading": "التنقل",
+      "actionsHeading": "الإجراءات",
+      "commands": {
+        "themeLight": "التبديل إلى المظهر الفاتح",
+        "themeDark": "التبديل إلى المظهر الداكن",
+        "themeSystem": "مطابقة مظهر النظام",
+        "signOut": "تسجيل الخروج"
+      }
+    },
     "nav": {
       "landmarkLabel": "التنقل الرئيسي",
       "dashboard": "لوحة التحكم",

@@ -175,6 +175,21 @@
   "shell": {
     "footer": "© {year} Orivex",
     "openNavigation": "Open navigation",
+    "commandPalette": {
+      "triggerLabel": "Search",
+      "shortcutHint": "⌘K",
+      "inputPlaceholder": "Type a command or search...",
+      "noResults": "No results found.",
+      "recentHeading": "Recent",
+      "navigationHeading": "Navigation",
+      "actionsHeading": "Actions",
+      "commands": {
+        "themeLight": "Switch to light theme",
+        "themeDark": "Switch to dark theme",
+        "themeSystem": "Match system theme",
+        "signOut": "Sign out"
+      }
+    },
     "nav": {
       "landmarkLabel": "Main navigation",
       "dashboard": "Dashboard",

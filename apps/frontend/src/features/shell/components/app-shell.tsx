@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+import { CommandPalette } from '@/features/shell/components/command-palette';
 import { MobileNav } from '@/features/shell/components/mobile-nav';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
 import { UserMenu } from '@/features/shell/components/user-menu';
@@ -32,6 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {tCommon('appName')}
         </Link>
         <div className="ms-auto flex items-center gap-2">
+          <CommandPalette />
           <UserMenu />
         </div>
       </Topbar>
