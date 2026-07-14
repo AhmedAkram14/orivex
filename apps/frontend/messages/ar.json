@@ -30,6 +30,75 @@
         "strong": "قوية",
         "very-strong": "قوية جدًا"
       }
+    },
+    "login": {
+      "title": "تسجيل الدخول",
+      "subtitle": "مرحبًا بعودتك إلى أوريفكس.",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "كلمة المرور",
+      "forgotPasswordLink": "نسيت كلمة المرور؟",
+      "rememberMe": "تذكرني",
+      "submit": "تسجيل الدخول",
+      "tooManyAttempts": "محاولات تسجيل دخول كثيرة جدًا. يرجى المحاولة لاحقًا.",
+      "emailNotVerifiedTitle": "فعّل بريدك الإلكتروني",
+      "emailNotVerifiedDescription": "يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول.",
+      "resendVerification": "إعادة إرسال بريد التفعيل",
+      "resendVerificationSent": "تم إرسال بريد التفعيل.",
+      "noAccount": "ليس لديك حساب؟",
+      "registerLink": "أنشئ حسابًا"
+    },
+    "register": {
+      "title": "أنشئ حسابك",
+      "subtitle": "ابدأ استخدام أوريفكس.",
+      "fullNameLabel": "الاسم الكامل",
+      "fullNamePlaceholder": "أحمد حسن",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "كلمة المرور",
+      "confirmPasswordLabel": "تأكيد كلمة المرور",
+      "submit": "إنشاء الحساب",
+      "haveAccount": "لديك حساب بالفعل؟",
+      "loginLink": "تسجيل الدخول"
+    },
+    "forgotPassword": {
+      "title": "إعادة تعيين كلمة المرور",
+      "subtitle": "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين.",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "you@example.com",
+      "submit": "إرسال رابط إعادة التعيين",
+      "backToLogin": "العودة إلى تسجيل الدخول"
+    },
+    "resetPassword": {
+      "title": "اختر كلمة مرور جديدة",
+      "subtitle": "أدخل كلمة مرور جديدة لحسابك.",
+      "passwordLabel": "كلمة المرور الجديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور الجديدة",
+      "submit": "إعادة تعيين كلمة المرور",
+      "invalidLinkTitle": "هذا الرابط لم يعد صالحًا",
+      "invalidLinkDescription": "انتهت صلاحية رابط إعادة تعيين كلمة المرور هذا أو أنه غير صالح.",
+      "requestNewLink": "طلب رابط جديد",
+      "missingToken": "تتطلب هذه الصفحة رابط إعادة تعيين صالحًا من بريدك الإلكتروني."
+    },
+    "verifyEmail": {
+      "title": "تفعيل بريدك الإلكتروني",
+      "verifying": "جارٍ تفعيل بريدك الإلكتروني",
+      "successDescription": "تم تفعيل بريدك الإلكتروني. يمكنك الآن تسجيل الدخول.",
+      "continueToLogin": "المتابعة إلى تسجيل الدخول",
+      "invalidLinkTitle": "هذا الرابط لم يعد صالحًا",
+      "invalidLinkDescription": "انتهت صلاحية رابط التفعيل هذا أو أنه غير صالح.",
+      "genericErrorTitle": "فشل التفعيل",
+      "genericErrorDescription": "تعذر تفعيل بريدك الإلكتروني. يرجى المحاولة مرة أخرى.",
+      "backToLogin": "العودة إلى تسجيل الدخول",
+      "missingToken": "تتطلب هذه الصفحة رابط تفعيل صالحًا من بريدك الإلكتروني."
+    },
+    "checkEmail": {
+      "title": "تحقق من بريدك الإلكتروني",
+      "description": "لقد أرسلنا لك بريدًا إلكترونيًا يحتوي على مزيد من التعليمات.",
+      "descriptionWithEmail": "لقد أرسلنا بريدًا إلكترونيًا إلى {email} يحتوي على مزيد من التعليمات.",
+      "reasonRegister": "انقر على الرابط في البريد الإلكتروني لتفعيل حسابك.",
+      "reasonForgotPassword": "انقر على الرابط في البريد الإلكتروني لإعادة تعيين كلمة المرور.",
+      "backToLogin": "العودة إلى تسجيل الدخول"
     }
   }
 }

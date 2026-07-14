@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { isPasswordStrongEnough, MIN_PASSWORD_LENGTH } from '@/features/auth/lib/password-strength';
 
-export function createResetPasswordSchema(t: (key: string, values?: Record<string, unknown>) => string) {
+export function createResetPasswordSchema(t: (key: string, values?: Record<string, string | number | Date>) => string) {
   return z
     .object({
       password: z

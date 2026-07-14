@@ -30,6 +30,75 @@
         "strong": "Strong",
         "very-strong": "Very strong"
       }
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Welcome back to Orivex.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "forgotPasswordLink": "Forgot password?",
+      "rememberMe": "Remember me",
+      "submit": "Sign in",
+      "tooManyAttempts": "Too many login attempts. Please try again later.",
+      "emailNotVerifiedTitle": "Verify your email",
+      "emailNotVerifiedDescription": "Please verify your email address before signing in.",
+      "resendVerification": "Resend verification email",
+      "resendVerificationSent": "Verification email sent.",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Create one"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Get started with Orivex.",
+      "fullNameLabel": "Full name",
+      "fullNamePlaceholder": "Ahmed Hassan",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm password",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a reset link.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "backToLogin": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "subtitle": "Enter a new password for your account.",
+      "passwordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "submit": "Reset password",
+      "invalidLinkTitle": "This link is no longer valid",
+      "invalidLinkDescription": "This password reset link has expired or is invalid.",
+      "requestNewLink": "Request a new link",
+      "missingToken": "This page requires a valid reset link from your email."
+    },
+    "verifyEmail": {
+      "title": "Verify your email",
+      "verifying": "Verifying your email",
+      "successDescription": "Your email has been verified. You can now sign in.",
+      "continueToLogin": "Continue to sign in",
+      "invalidLinkTitle": "This link is no longer valid",
+      "invalidLinkDescription": "This verification link has expired or is invalid.",
+      "genericErrorTitle": "Verification failed",
+      "genericErrorDescription": "We couldn't verify your email. Please try again.",
+      "backToLogin": "Back to sign in",
+      "missingToken": "This page requires a valid verification link from your email."
+    },
+    "checkEmail": {
+      "title": "Check your email",
+      "description": "We've sent you an email with further instructions.",
+      "descriptionWithEmail": "We've sent an email to {email} with further instructions.",
+      "reasonRegister": "Click the link in the email to verify your account.",
+      "reasonForgotPassword": "Click the link in the email to reset your password.",
+      "backToLogin": "Back to sign in"
     }
   }
 }
