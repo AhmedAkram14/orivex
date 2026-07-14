@@ -42,12 +42,24 @@ let cached: ParsedEnv | undefined;
 // top-level throw here would fail `next build` itself, not just a real
 // request. Evaluated -- and cached -- on first actual access instead, the
 // same safety property Phase 0's original getter-based env.ts had.
+// Vercel's own system env var (`VERCEL_URL`, and any `NEXT_PUBLIC_VERCEL_URL`
+// mirroring it) is documented to be a bare hostname like
+// "orivex-eg.vercel.app" -- never prefixed with a protocol. Falling back to
+// it unmodified fails `.url()` validation below and used to take down every
+// page on Vercel (a healthy deployment, crashing purely on this fallback's
+// shape). Only `NEXT_PUBLIC_APP_URL` is expected to already be a full URL,
+// since that one is set manually.
+function toAbsoluteUrl(value: string | undefined): string | undefined {
+  if (!value) return value;
+  return /^https?:\/\//.test(value) ? value : `https://${value}`;
+}
+
 function readEnv(): ParsedEnv {
   if (cached) return cached;
 
   const parsed = envSchema.safeParse({
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_VERCEL_URL,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? toAbsoluteUrl(process.env.NEXT_PUBLIC_VERCEL_URL),
     NEXT_PUBLIC_ENABLE_API_MOCKS: process.env.NEXT_PUBLIC_ENABLE_API_MOCKS,
   });
 
