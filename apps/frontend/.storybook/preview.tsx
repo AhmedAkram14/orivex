@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react';
 import { NextIntlClientProvider } from 'next-intl';
 import React from 'react';
+import { SessionProvider } from '../src/features/auth/providers/session-provider';
 import { isRtlLocale, type AppLocale } from '../src/shared/i18n/routing';
 import { AppProviders } from '../src/shared/providers/app-providers';
 import enMessages from '../messages/en.json';
@@ -12,6 +13,15 @@ const messagesByLocale: Record<AppLocale, typeof enMessages> = {
   en: enMessages,
   ar: arMessages,
 };
+
+// Starts the same MSW browser worker the real app uses (opt-in via
+// NEXT_PUBLIC_ENABLE_API_MOCKS there; always-on here, since every story
+// that touches `authApi` needs a mock backend and Storybook has no real
+// one to fall back to). `bypass` for anything unhandled, rather than
+// erroring the whole story on an unmocked request.
+if (typeof window !== 'undefined') {
+  import('../src/mocks/browser').then(({ worker }) => worker.start({ onUnhandledRequest: 'bypass' }));
+}
 
 /**
  * Global toolbar controls for locale and theme, since Phase 1's
@@ -72,7 +82,9 @@ const preview: Preview = {
         <div dir={direction} lang={locale} data-theme={theme} className="bg-canvas p-6 text-text-primary">
           <NextIntlClientProvider locale={locale} messages={messagesByLocale[locale]}>
             <AppProviders>
-              <Story />
+              <SessionProvider>
+                <Story />
+              </SessionProvider>
             </AppProviders>
           </NextIntlClientProvider>
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { notFound } from 'next/navigation';
+import { SessionProvider } from '@/features/auth/providers/session-provider';
 import { AppProviders } from '@/shared/providers/app-providers';
 import { MockProvider } from '@/shared/providers/mock-provider';
 import { ThemeScript } from '@/shared/providers/theme-provider';
@@ -47,7 +48,9 @@ export default async function LocaleLayout({
       <body className="antialiased" suppressHydrationWarning>
         <NextIntlClientProvider>
           <MockProvider>
-            <AppProviders>{children}</AppProviders>
+            <AppProviders>
+              <SessionProvider>{children}</SessionProvider>
+            </AppProviders>
           </MockProvider>
         </NextIntlClientProvider>
       </body>

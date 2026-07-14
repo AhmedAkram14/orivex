@@ -1,7 +1,6 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AuthProvider } from '@/shared/auth/auth-provider';
 import { QueryProvider } from '@/shared/providers/query-provider';
 import { ThemeProvider } from '@/shared/providers/theme-provider';
 import { Toaster } from '@/shared/ui/toaster';
@@ -9,26 +8,24 @@ import { TooltipProvider } from '@/shared/ui/tooltip';
 import { ToastProvider } from '@/shared/ui/toast';
 
 /**
- * The full client-side provider stack, composed once here rather than
- * nested ad hoc in the root layout. Order matters: Theme and Query have no
- * dependency on each other or on Auth; Auth is innermost among these three
- * only because it's the one most likely to eventually depend on query
- * state (e.g. a "refresh session" query) once Phase 4 wires a real
- * backend. Tooltip/Toast wrap everything last since they're pure UI
- * concerns with no data dependency at all.
+ * The generic, feature-agnostic client-side provider stack — Theme,
+ * Query, Tooltip, Toast. Deliberately does NOT include `SessionProvider`
+ * (`features/auth/providers/`): shared/ must never depend on features/
+ * (Section 1.6), and SessionProvider calls `authApi`, a feature
+ * dependency. `app/[locale]/layout.tsx` (routing, which may depend on
+ * both shared/ and features/) is what composes `AppProviders` together
+ * with `SessionProvider`.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <QueryProvider>
-        <AuthProvider>
-          <TooltipProvider delayDuration={200}>
-            <ToastProvider>
-              {children}
-              <Toaster />
-            </ToastProvider>
-          </TooltipProvider>
-        </AuthProvider>
+        <TooltipProvider delayDuration={200}>
+          <ToastProvider>
+            {children}
+            <Toaster />
+          </ToastProvider>
+        </TooltipProvider>
       </QueryProvider>
     </ThemeProvider>
   );

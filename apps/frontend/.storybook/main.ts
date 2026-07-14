@@ -28,7 +28,11 @@ const config: StorybookConfig = {
     name: '@storybook/react-vite',
     options: {},
   },
-  staticDirs: [],
+  // Serves public/mockServiceWorker.js so the MSW browser worker started
+  // in preview.tsx can actually register — without this, every auth-aware
+  // story would 404 fetching the worker script and silently fall through
+  // to real (failing) network requests instead of the mock.
+  staticDirs: ['../public'],
   // The Next-specific framework auto-wired the `@/*` tsconfig path alias;
   // the plain framework doesn't, so it's added explicitly here, mirroring
   // vitest.config.ts's identical alias.
