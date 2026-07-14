@@ -171,5 +171,40 @@
         "error": "تعذّر تسجيل الخروج من جميع الأجهزة. يرجى المحاولة مرة أخرى."
       }
     }
+  },
+  "shell": {
+    "footer": "© {year} أوريفكس",
+    "openNavigation": "فتح قائمة التنقل",
+    "nav": {
+      "landmarkLabel": "التنقل الرئيسي",
+      "dashboard": "لوحة التحكم",
+      "groups": {
+        "clinical": "الرعاية السريرية",
+        "administration": "الإدارة"
+      },
+      "patients": "المرضى",
+      "appointments": "المواعيد",
+      "prescriptions": "الوصفات الطبية",
+      "billing": "الفواتير",
+      "users": "المستخدمون",
+      "security": "الأمان"
+    },
+    "userMenu": {
+      "securityCenter": "مركز الأمان",
+      "theme": {
+        "label": "المظهر",
+        "light": "فاتح",
+        "dark": "داكن",
+        "system": "حسب النظام"
+      },
+      "signOut": "تسجيل الخروج"
+    },
+    "dashboard": {
+      "title": "لوحة التحكم",
+      "welcome": "مرحبًا بعودتك، {name}.",
+      "emptyTitle": "لا يوجد شيء لعرضه بعد",
+      "emptyDescription": "ستمتلئ لوحة التحكم الخاصة بك مع إطلاق المزيد من أجزاء أوريفكس. في هذه الأثناء، يمكنك مراجعة أمان حسابك.",
+      "securityCenterAction": "الذهاب إلى مركز الأمان"
+    }
   }
 }

@@ -171,5 +171,40 @@
         "error": "Couldn't sign out of all devices. Please try again."
       }
     }
+  },
+  "shell": {
+    "footer": "© {year} Orivex",
+    "openNavigation": "Open navigation",
+    "nav": {
+      "landmarkLabel": "Main navigation",
+      "dashboard": "Dashboard",
+      "groups": {
+        "clinical": "Clinical",
+        "administration": "Administration"
+      },
+      "patients": "Patients",
+      "appointments": "Appointments",
+      "prescriptions": "Prescriptions",
+      "billing": "Billing",
+      "users": "Users",
+      "security": "Security"
+    },
+    "userMenu": {
+      "securityCenter": "Security Center",
+      "theme": {
+        "label": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "signOut": "Sign out"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "welcome": "Welcome back, {name}.",
+      "emptyTitle": "Nothing to show yet",
+      "emptyDescription": "Your dashboard will fill in as more of Orivex comes online. In the meantime, you can review your account security.",
+      "securityCenterAction": "Go to Security Center"
+    }
   }
 }

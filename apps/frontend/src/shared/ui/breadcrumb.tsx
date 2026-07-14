@@ -1,3 +1,4 @@
+import { Slot } from '@radix-ui/react-slot';
 import { ChevronRight } from 'lucide-react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { Icon } from '@/shared/icons/icon';
@@ -20,8 +21,14 @@ export function BreadcrumbItem({ className, ...props }: HTMLAttributes<HTMLLIEle
   return <li className={cn('flex items-center gap-1.5', className)} {...props} />;
 }
 
-export function BreadcrumbLink({ className, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  return <a className={cn('transition-colors hover:text-text-primary', className)} {...props} />;
+export interface BreadcrumbLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  /** Renders the child element (typically the locale-aware `Link` from `shared/i18n/navigation`) instead of a plain `<a>`, same composition pattern as `Button`'s `asChild`. */
+  asChild?: boolean;
+}
+
+export function BreadcrumbLink({ asChild = false, className, ...props }: BreadcrumbLinkProps) {
+  const Comp = asChild ? Slot : 'a';
+  return <Comp className={cn('transition-colors hover:text-text-primary', className)} {...props} />;
 }
 
 export function BreadcrumbPage({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {

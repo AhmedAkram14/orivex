@@ -3,9 +3,9 @@ import { LayoutDashboard, Stethoscope, Users } from 'lucide-react';
 import { Icon } from '@/shared/icons/icon';
 import { Content } from './content';
 import { Footer } from './footer';
-import { Header } from './header';
 import { MetricCard } from './metric-card';
 import { PageContainer } from './page-container';
+import { PageHeader } from './page-header';
 import { Section } from './section';
 import { Sidebar, SidebarSection, SidebarSectionLabel } from './sidebar';
 import { StatCard } from './stat-card';
@@ -34,7 +34,7 @@ export const AppShellSkeleton: StoryObj = {
         </Sidebar>
         <Content>
           <PageContainer size="full">
-            <Header title="Dashboard" description="Today's overview" />
+            <PageHeader title="Dashboard" description="Today's overview" />
             <Section title="Key metrics">
               <div className="grid grid-cols-3 gap-4">
                 <MetricCard label="Today's appointments" value="24" trend={12.4} />

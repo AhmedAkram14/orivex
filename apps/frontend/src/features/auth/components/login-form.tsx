@@ -41,7 +41,7 @@ export function LoginForm() {
     setUnverifiedEmail(null);
     try {
       await login.mutateAsync(values);
-      router.push('/');
+      router.push('/dashboard');
     } catch (error) {
       if (error instanceof ApiError && error.code === AUTH_ERROR_CODES.accountLocked) {
         router.push('/account-locked');

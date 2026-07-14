@@ -7,11 +7,11 @@ import { LoadingState } from '@/shared/ui/loading-state';
 
 /**
  * Guest Routes — login, register, forgot/reset password, verify/check
- * email. An already-authenticated visitor lands on `/` instead, matching
- * the same "UX convenience, not a security boundary" rule every other
- * guard in this codebase follows: nothing behind this redirect is
- * sensitive, it's purely about not showing a login form to someone
- * already logged in.
+ * email. An already-authenticated visitor lands on `/dashboard` instead
+ * (Phase 6's application shell), matching the same "UX convenience, not a
+ * security boundary" rule every other guard in this codebase follows:
+ * nothing behind this redirect is sensitive, it's purely about not
+ * showing a login form to someone already logged in.
  */
 export default function GuestLayout({ children }: { children: ReactNode }) {
   const { status } = useAuth();
@@ -19,7 +19,7 @@ export default function GuestLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace('/');
+      router.replace('/dashboard');
     }
   }, [status, router]);
 

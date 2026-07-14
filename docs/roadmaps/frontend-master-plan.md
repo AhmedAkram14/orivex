@@ -134,7 +134,7 @@ The health-endpoint incident (a working request whose response shape didn't matc
 | 3 | Internationalization (i18n) & Localization | P0 | 🚧 | Phase 1 | Reference Data module doesn't exist yet — see Phase 3's Medical Localization sub-scope |
 | 4 | Authentication | P0 | 🚧 | Phase 2 | Keycloak not integrated yet — fully implemented against a mocked `/auth/*` contract (`authApi`), real Keycloak swap remains 🔒 blocked |
 | 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet — guard components and permission model implemented and tested (`shared/auth/role-guard.tsx`, `permission-guard.tsx`, `feature-guard.tsx`), role-aware routing/dashboards remain 🔒 blocked |
-| 6 | Application Shell & Dashboard | P1 | 📋 | Phase 5 | Identity, Doctor, Patient |
+| 6 | Application Shell & Dashboard | P1 | 🚧 | Phase 5 | Identity, Doctor, Patient — shell/nav/search/notification architecture implemented against no business modules; real KPI data blocked until Patients/Doctors phases ship |
 | 7 | Doctor Portal | P1 | 📋 | Phase 6 | Doctor, Trust, Asset |
 | 8 | Patient Portal | P1 | 📋 | Phase 6 | Patient, Clinical (read) |
 | 9 | Appointment System & Calendar (incl. Queue Management) | P1 | 📋 | Phase 6 | Scheduling, Consultation (built); Queue Management sub-scope 🔒 blocked — no Queue module |
@@ -409,11 +409,27 @@ RBAC's **guard components and permission model are implemented** — real, worki
 
 ### 3.7 Phase 6 — Application Shell & Dashboard
 
-**Priority:** P1 · **Status:** 📋 Planned · **Depends on:** Phase 5 · **Backend dependency:** Identity, Doctor, Patient (all built)
+**Priority:** P1 · **Status:** 🚧 In Progress (shell architecture, no business data yet) · **Depends on:** Phase 5 · **Backend dependency:** Identity, Doctor, Patient (all built)
 
-**Scope:** the authenticated app shell (navigation, layout regions, role-aware landing dashboard), KPI/overview widgets (today's appointments, active patients/doctors — scoped to what's actually queryable today, not the full Analytics vision in Phase 17).
+**Priority-change note (per Section 0's rule):** pulled forward from 📋 Planned to active implementation on explicit architect direction, scoped deliberately to *shell architecture only* — no Patients/Doctors/Appointments/Consultations/Prescriptions/Payments/AI Assistant business module is built here, since none of those phases have shipped yet. This phase builds the navigation, layout, dashboard-widget, search, and notification *architecture* every business module will render inside once its own phase unblocks it — the same "prepare the architecture, don't fake the data" rule Phase 4 followed: `EmptyState`/`EmptyDashboard` where real data doesn't exist yet, never a fabricated metric.
 
-**Definition of done:** a logged-in user of any built role lands on a real, role-appropriate dashboard backed by real API calls.
+**Scope:** the authenticated app shell (navigation, layout regions, role-aware landing dashboard), KPI/overview widgets (today's appointments, active patients/doctors — scoped to what's actually queryable today, not the full Analytics vision in Phase 17), global search UI (Phase 18's placeholder architecture, not real business indexing), notification center UI (Phase 14's placeholder architecture, MSW-mocked, not real backend delivery).
+
+**Definition of done (once fully unblocked):** a logged-in user of any built role lands on a real, role-appropriate dashboard backed by real API calls. **Current milestone's definition of done:** a logged-in user lands on a real, working, role-aware application shell (navigation, breadcrumbs, user menu, command palette, notification center) with an honest empty dashboard — architecture complete, business data intentionally absent.
+
+**Implementation checklist:**
+- ✅ **Implemented** — Page framework (`shared/ui/layout/`): `Page`, `PageHeader`/`PageActions` (renamed from the prior `Header` for clarity alongside `PageActions`), `Section` (pre-existing), `DashboardGrid`, `WidgetContainer`, `WorkspaceHeader` (breadcrumbs + `PageHeader` composition) — every future business module is expected to build its pages from these rather than reinventing page-level spacing
+- ✅ **Implemented** — Root Dashboard Layout (`app/[locale]/(protected)/layout.tsx` now composes `AppShell` inside `RequireAuth`) — every protected route automatically gets the Topbar/Sidebar/Content/Footer chrome
+- ✅ **Implemented** — `AppShell` (`features/shell/components/app-shell.tsx`) composing the structural primitives (`Sidebar`/`Topbar`/`Content`/`Footer`, pre-existing from Phase 1/2 but never wired to real content until now) with session-aware pieces (`SidebarNav`, `UserMenu`, `MobileNav`)
+- ✅ **Implemented** — Collapsible/Responsive Sidebar + Mobile Navigation: desktop `Sidebar` (`hidden lg:flex`) vs. `MobileNav` (`lg:hidden`, a `Drawer` — direction-aware, flips side under RTL for free) rendering the same `SidebarNav` content, never two different nav implementations
+- ✅ **Implemented** — enterprise navigation architecture (`features/shell/config/navigation.ts` + `features/shell/lib/filter-navigation.ts` + `features/shell/components/sidebar-nav.tsx`): a single `NavItemConfig[]` data source, nested groups (`NavGroup`, collapsible disclosure widgets, not hardcoded submenus), active-route detection, role/permission-aware filtering (`filterNavigationByAccess`, a plain unit-testable function — see that file's own comment for why feature-flag filtering deliberately lives in a separate render-time `FeatureGuard` wrap instead), and feature-flag-gated entries for Patients/Appointments/Prescriptions/Billing/Admin Users (all default-off via `useFeatureFlag`, so they render nothing today rather than a dead link — see the config's own comment)
+- ✅ **Implemented** — Breadcrumb System (`features/shell/components/breadcrumbs.tsx`) — derived from the same nav config, not authored per page; renders nothing for a one-level route (no navigational value) or an unmapped route (no misleading partial trail)
+- ✅ **Implemented** — Page Title System — `WorkspaceHeader` (breadcrumbs + `PageHeader`), used by `/dashboard` today, the pattern every future business page reuses
+- ✅ **Implemented** — User Menu (`features/shell/components/user-menu.tsx`) — avatar + dropdown with account identity, Security Center shortcut, full light/dark/system theme control (`useTheme`, Phase 24's existing provider), and sign-out (`useLogout`, Phase 4's existing hook)
+- ✅ **Implemented** — `/dashboard` route (`app/[locale]/(protected)/dashboard/page.tsx`), the new authenticated landing page — `GuestLayout`'s post-login redirect and `LoginForm`'s post-login navigation both updated to point here instead of `/` (the public backend-liveness demo page, unchanged and still standalone)
+- 📋 **Remaining** — role-differentiated dashboard widget content (`StatCard`/`MetricCard`/`ActivityCard`/`ChartContainer`/`QuickActions`/`EmptyDashboard`, role layouts proper) — next milestone
+- 📋 **Remaining** — Command Palette / global search UI, Notification Center UI — subsequent milestones
+- 🔒 **Blocked** — real KPI/overview data, role-specific business content: no Patients/Doctors/Appointments module exists in the frontend yet (by this phase's own explicit scope), and Search/Notifications' real backend integration remains blocked per Phase 18/14's own status
 
 ---
 
