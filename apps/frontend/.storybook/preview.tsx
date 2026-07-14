@@ -1,7 +1,7 @@
 import type { Preview } from '@storybook/react';
 import React from 'react';
 
-import { UiProviders } from '../src/shared/providers/ui-providers';
+import { AppProviders } from '../src/shared/providers/app-providers';
 
 import '../src/app/globals.css';
 
@@ -58,9 +58,9 @@ const preview: Preview = {
       const theme = context.globals.theme ?? 'light';
       return (
         <div dir={direction} data-theme={theme} className="bg-canvas p-6 text-text-primary">
-          <UiProviders>
+          <AppProviders>
             <Story />
-          </UiProviders>
+          </AppProviders>
         </div>
       );
     },
