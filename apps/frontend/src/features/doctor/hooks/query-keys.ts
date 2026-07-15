@@ -4,3 +4,4 @@ export const doctorDashboardKeys = createQueryKeyFactory('doctor-dashboard');
 export const doctorUpcomingWorkKeys = createQueryKeyFactory('doctor-upcoming-work');
 export const doctorProfileKeys = createQueryKeyFactory('doctor-profile');
 export const doctorAvailabilityKeys = createQueryKeyFactory('doctor-availability');
+export const doctorQueueKeys = createQueryKeyFactory('doctor-queue');

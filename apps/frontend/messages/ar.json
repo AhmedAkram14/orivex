@@ -197,6 +197,7 @@
       "overview": "نظرة عامة",
       "doctorProfile": "الملف الشخصي",
       "doctorSchedule": "الجدول الزمني",
+      "doctorQueue": "قائمة انتظار المرضى",
       "groups": {
         "clinical": "الرعاية السريرية",
         "administration": "الإدارة"
@@ -303,6 +304,25 @@
       "nextWeek": "الأسبوع التالي",
       "noAvailability": "غير متاح",
       "loadError": "تعذّر تحميل أوقات توفرك."
+    },
+    "queue": {
+      "title": "قائمة انتظار المرضى",
+      "currentPatientTitle": "المريض الحالي",
+      "noCurrentPatientTitle": "لا يوجد أحد في استشارة",
+      "noCurrentPatientDescription": "سيظهر المريض الحالي هنا بمجرد بدء استشارة.",
+      "waitingQueueTitle": "قائمة الانتظار",
+      "emptyTitle": "لا يوجد أحد في الانتظار",
+      "emptyDescription": "سيظهر هنا المرضى الذين ينتظرون استشارة.",
+      "waitMinutes": "انتظار ~{minutes} دقيقة",
+      "loadError": "تعذّر تحميل قائمة انتظار المرضى.",
+      "filters": {
+        "all": "الكل"
+      },
+      "status": {
+        "waiting": "في الانتظار",
+        "in-consultation": "في استشارة",
+        "completed": "مكتملة"
+      }
     }
   }
 }

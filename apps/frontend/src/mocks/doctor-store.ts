@@ -3,6 +3,7 @@ import type {
   DoctorDashboardSummary,
   DoctorProfile,
   DoctorProfileUpdateRequest,
+  QueueEntry,
   UpcomingWorkItem,
 } from '@/features/doctor/api/types';
 
@@ -55,10 +56,15 @@ function seedAvailability(): AvailabilityBlockData[] {
   return days.map((day, index) => ({ id: `availability-${index}`, dayOfWeek: day, startHour: 9, endHour: 17 }));
 }
 
+function seedQueue(): QueueEntry[] {
+  return [];
+}
+
 let summary: DoctorDashboardSummary = seedSummary();
 let upcomingWork: UpcomingWorkItem[] = seedUpcomingWork();
 let profile: DoctorProfile = seedProfile();
 let availability: AvailabilityBlockData[] = seedAvailability();
+let queue: QueueEntry[] = seedQueue();
 
 export function getDashboardSummary(): DoctorDashboardSummary {
   return summary;
@@ -81,10 +87,15 @@ export function getWeeklyAvailability(): AvailabilityBlockData[] {
   return availability;
 }
 
+export function getQueue(): QueueEntry[] {
+  return queue;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetDoctorStore(): void {
   summary = seedSummary();
   upcomingWork = seedUpcomingWork();
   profile = seedProfile();
   availability = seedAvailability();
+  queue = seedQueue();
 }

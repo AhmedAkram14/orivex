@@ -197,6 +197,7 @@
       "overview": "Overview",
       "doctorProfile": "Profile",
       "doctorSchedule": "Schedule",
+      "doctorQueue": "Patient Queue",
       "groups": {
         "clinical": "Clinical",
         "administration": "Administration"
@@ -303,6 +304,25 @@
       "nextWeek": "Next week",
       "noAvailability": "Not available",
       "loadError": "Couldn't load your availability."
+    },
+    "queue": {
+      "title": "Patient Queue",
+      "currentPatientTitle": "Current patient",
+      "noCurrentPatientTitle": "No one in consultation",
+      "noCurrentPatientDescription": "The current patient will appear here once a consultation is in progress.",
+      "waitingQueueTitle": "Waiting queue",
+      "emptyTitle": "No one waiting",
+      "emptyDescription": "Patients waiting for a consultation will appear here.",
+      "waitMinutes": "~{minutes} min wait",
+      "loadError": "Couldn't load the patient queue.",
+      "filters": {
+        "all": "All"
+      },
+      "status": {
+        "waiting": "Waiting",
+        "in-consultation": "In consultation",
+        "completed": "Completed"
+      }
     }
   }
 }

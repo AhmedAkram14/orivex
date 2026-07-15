@@ -5,6 +5,7 @@ import type { DoctorProfileUpdateRequest } from '@/features/doctor/api/types';
 import {
   getDashboardSummary,
   getProfile,
+  getQueue,
   getUpcomingWork,
   getWeeklyAvailability,
   updateProfile,
@@ -25,4 +26,6 @@ export const doctorHandlers = [
   }),
 
   http.get(`${base()}${DOCTOR_PATHS.availability}`, () => HttpResponse.json({ data: getWeeklyAvailability() })),
+
+  http.get(`${base()}${DOCTOR_PATHS.queue}`, () => HttpResponse.json({ data: getQueue() })),
 ];

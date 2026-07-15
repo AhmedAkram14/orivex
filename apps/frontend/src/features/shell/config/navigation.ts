@@ -78,6 +78,13 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         href: '/doctor/schedule',
         roles: ['doctor'],
       },
+      {
+        id: 'doctor-workspace-queue',
+        labelKey: 'doctorQueue',
+        icon: Users,
+        href: '/doctor/queue',
+        roles: ['doctor'],
+      },
     ],
   },
   {

@@ -73,3 +73,17 @@ export interface AvailabilityBlockData {
 }
 
 export type WeeklyAvailabilityResponse = AvailabilityBlockData[];
+
+export type QueueEntryStatus = 'waiting' | 'in-consultation' | 'completed';
+
+export interface QueueEntry {
+  id: string;
+  /** A caller-facing label for the entry — anonymized (e.g. "Patient #3") until a real Patient module exists to identify entries by name; never a fabricated patient name. */
+  label: string;
+  status: QueueEntryStatus;
+  position: number;
+  /** Minutes, pre-computed server-side — this type never carries a raw timestamp for the UI to do wait-time math on. */
+  estimatedWaitMinutes?: number;
+}
+
+export type QueueResponse = QueueEntry[];

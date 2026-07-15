@@ -25,6 +25,7 @@ export function TodaysSummary() {
         label={t('patientsInQueue')}
         value={String(data?.patientsInQueue ?? 0)}
         loading={isLoading}
+        href="/doctor/queue"
       />
       <DoctorStatCard
         icon={CheckCircle2}
