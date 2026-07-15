@@ -25,6 +25,7 @@ model Account {
   credential        Credential?
   doctorProfile     DoctorProfile?
   patientProfile    PatientProfile?
+  securityEvents    SecurityEvent[]
 }
 
 enum CredentialStatus {
@@ -200,6 +201,49 @@ model VerificationDocument {
   createdAt          DateTime         @default(now())
 
   @@unique([verificationCaseId, mediaAssetId])
+}
+
+enum SecurityEventType {
+  LOGIN_SUCCEEDED
+  LOGIN_FAILED
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  EMAIL_VERIFIED
+  SESSION_REVOKED
+  REFRESH_TOKEN_REUSE_DETECTED
+}
+
+enum SecurityEventStatus {
+  DETECTED
+  REVIEWED
+  RESOLVED
+}
+
+// Sprint 15: TrustModule's SecurityEvent aggregate (docs/10-backend-
+// architecture.md's TrustModule entry: "Owned entities: ..., SecurityEvent").
+// Populated by AuthenticationModule (the actual producer of every event this
+// table describes) through TrustModule's exported RecordSecurityEventUseCase
+// — a legitimate module-to-module use-case call, never a direct write to
+// this table from outside TrustModule. Append-only audit trail.
+model SecurityEvent {
+  id         String              @id @default(uuid())
+  accountId  String
+  account    Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  eventType  SecurityEventType
+  status     SecurityEventStatus @default(DETECTED)
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json                @default("{}")
+  detectedAt DateTime            @default(now())
+  reviewedAt DateTime?
+  resolvedAt DateTime?
+
+  @@index([accountId])
+  @@index([eventType])
+  @@index([status])
 }
 
 enum EmergencyRelationship {

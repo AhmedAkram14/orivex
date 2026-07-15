@@ -32,9 +32,11 @@ export interface ReconstituteVerificationCaseProps {
 
 // Aggregate root of TrustModule (docs/10-backend-architecture.md's
 // TrustModule entry: "Owned entities: VerificationCase, ..."). ConsentRecord
-// and SecurityEvent are deliberately excluded — out of Sprint 4's scope per
-// IMPLEMENTATION_PLAN.md ("Doctor verification, VerificationCase, Review
-// workflow, Administration integration" only).
+// is deliberately excluded — out of scope per IMPLEMENTATION_PLAN.md
+// ("Doctor verification, VerificationCase, Review workflow, Administration
+// integration" only). SecurityEvent is TrustModule's other owned entity,
+// added Sprint 15 (see domain/entities/security-event.entity.ts) as its own
+// aggregate root, not part of this one.
 export class VerificationCase {
   private readonly domainEvents: DomainEvent[] = [];
 
