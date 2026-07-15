@@ -17,5 +17,10 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages: (await import(`../../../messages/${locale}.json`)).default,
+    // Orivex Egypt V1 has one operating timezone. Without this, every
+    // `useFormatter().dateTime()` call (welcome banners, schedule/queue
+    // timestamps) throws next-intl's ENVIRONMENT_FALLBACK warning and
+    // risks a server/client rendering mismatch.
+    timeZone: 'Africa/Cairo',
   };
 });

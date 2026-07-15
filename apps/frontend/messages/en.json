@@ -269,6 +269,7 @@
     "profile": {
       "title": "Profile",
       "editProfile": "Edit profile",
+      "specialization": "Specialization",
       "professionalInformation": "Professional information",
       "qualifications": "Qualifications",
       "experience": "Experience",

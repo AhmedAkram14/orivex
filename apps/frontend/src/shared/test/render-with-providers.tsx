@@ -16,7 +16,7 @@ export function renderWithProviders(ui: ReactElement) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale="en" messages={enMessages}>
+      <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
         {ui}
       </NextIntlClientProvider>
     </QueryClientProvider>,

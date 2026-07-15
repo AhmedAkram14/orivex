@@ -49,4 +49,17 @@ describe('AppBreadcrumbs', () => {
     expect(screen.getByText('Billing')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
+
+  it('picks the most specific sibling route rather than a shorter sibling whose href is a string-prefix of it', () => {
+    // /doctor (Overview) and /doctor/profile are siblings under the
+    // Doctor Workspace group, not parent/child -- "/doctor/profile"
+    // string-starts-with "/doctor/", which used to make the shorter
+    // sibling win by declaration order. It must not.
+    mockPathname = '/doctor/profile';
+    renderBreadcrumbs();
+
+    expect(screen.getByText('Doctor Workspace')).toBeInTheDocument();
+    expect(screen.getByText('Profile')).toBeInTheDocument();
+    expect(screen.queryByText('Overview')).not.toBeInTheDocument();
+  });
 });

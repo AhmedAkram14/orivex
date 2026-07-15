@@ -80,7 +80,7 @@ const preview: Preview = {
       const direction = isRtlLocale(locale) ? 'rtl' : 'ltr';
       return (
         <div dir={direction} lang={locale} data-theme={theme} className="bg-canvas p-6 text-text-primary">
-          <NextIntlClientProvider locale={locale} messages={messagesByLocale[locale]}>
+          <NextIntlClientProvider locale={locale} messages={messagesByLocale[locale]} timeZone="Africa/Cairo">
             <AppProviders>
               <SessionProvider>
                 <Story />
