@@ -4,6 +4,7 @@ import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dis
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 
 import { ACCOUNT_REPOSITORY } from './application/ports/tokens.js';
+import { GetAccountByEmailUseCase } from './application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
 import { GetAccountByIdUseCase } from './application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { RegisterAccountUseCase } from './application/use-cases/register-account/register-account.use-case.js';
 import { SuspendAccountUseCase } from './application/use-cases/suspend-account/suspend-account.use-case.js';
@@ -38,7 +39,12 @@ import { AccountController } from './presentation/controllers/account.controller
       useFactory: (accountRepository: AccountRepository) => new GetAccountByIdUseCase(accountRepository),
       inject: [ACCOUNT_REPOSITORY],
     },
+    {
+      provide: GetAccountByEmailUseCase,
+      useFactory: (accountRepository: AccountRepository) => new GetAccountByEmailUseCase(accountRepository),
+      inject: [ACCOUNT_REPOSITORY],
+    },
   ],
-  exports: [RegisterAccountUseCase, SuspendAccountUseCase, GetAccountByIdUseCase],
+  exports: [RegisterAccountUseCase, SuspendAccountUseCase, GetAccountByIdUseCase, GetAccountByEmailUseCase],
 })
 export class IdentityModule {}
