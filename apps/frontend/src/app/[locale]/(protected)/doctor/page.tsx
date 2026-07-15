@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { NextAvailabilityCard } from '@/features/doctor/components/next-availability-card';
 import { TodaysSummary } from '@/features/doctor/components/todays-summary';
 import { UpcomingWorkArea } from '@/features/doctor/components/upcoming-work-area';
 import { WelcomeHeader } from '@/features/doctor/components/welcome-header';
@@ -28,6 +29,7 @@ export default function DoctorDashboardPage() {
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
         <WelcomeHeader />
         <TodaysSummary />
+        <NextAvailabilityCard />
         <UpcomingWorkArea />
       </Page>
     </RequireRole>
