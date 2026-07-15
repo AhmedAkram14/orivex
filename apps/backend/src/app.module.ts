@@ -6,6 +6,7 @@ import { ConfigurationModule } from './core/configuration/configuration.module.j
 import { AdministrationModule } from './modules/administration/administration.module.js';
 import { AIModule } from './modules/ai/ai.module.js';
 import { AssetModule } from './modules/asset/asset.module.js';
+import { AuthenticationModule } from './modules/authentication/authentication.module.js';
 import { ClinicalModule } from './modules/clinical/clinical.module.js';
 import { ConsultationModule } from './modules/consultation/consultation.module.js';
 import { DoctorModule } from './modules/doctor/doctor.module.js';
@@ -31,9 +32,10 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     HealthModule,
     IdentityModule,
+    TrustModule,
+    AuthenticationModule,
     DoctorModule,
     AssetModule,
-    TrustModule,
     AdministrationModule,
     PatientModule,
     SchedulingModule,

@@ -13,9 +13,18 @@ export class ValidationError extends AppError {
   readonly httpStatus = 422;
 }
 
+// code is overridable (default 'FORBIDDEN') so AuthenticationModule's
+// exception mapper can surface a specific, frontend-recognized code (e.g.
+// 'EMAIL_NOT_VERIFIED') without a proliferation of near-identical 403
+// subclasses -- every other call site continues passing just a message.
 export class ForbiddenError extends AppError {
-  readonly code = 'FORBIDDEN';
+  readonly code: string;
   readonly httpStatus = 403;
+
+  constructor(message: string, code = 'FORBIDDEN') {
+    super(message);
+    this.code = code;
+  }
 }
 
 export class ConflictError extends AppError {
@@ -29,4 +38,18 @@ export class ConflictError extends AppError {
 export class PaymentRequiredError extends AppError {
   readonly code = 'PAYMENT_REQUIRED';
   readonly httpStatus = 402;
+}
+
+// Sprint 15: AuthenticationModule. code is overridable (default
+// 'UNAUTHORIZED') for the same reason as ForbiddenError above -- specific
+// codes (INVALID_CREDENTIALS, ACCOUNT_LOCKED, TOKEN_INVALID, TOKEN_EXPIRED)
+// the frontend branches on, without one subclass per code.
+export class UnauthorizedError extends AppError {
+  readonly code: string;
+  readonly httpStatus = 401;
+
+  constructor(message: string, code = 'UNAUTHORIZED') {
+    super(message);
+    this.code = code;
+  }
 }
