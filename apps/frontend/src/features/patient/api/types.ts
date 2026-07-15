@@ -92,3 +92,26 @@ export interface PatientProfileUpdateRequest {
   address: string;
   emergencyContacts: (Omit<EmergencyContact, 'id'> & { id?: string })[];
 }
+
+export type AppointmentStatus = 'upcoming' | 'completed' | 'cancelled';
+export type AppointmentType = 'in-person' | 'video';
+
+/**
+ * The full appointment record — milestone 3's own type, deliberately
+ * distinct from `UpcomingAppointmentPreview` (the dashboard's lighter
+ * preview shape): this one backs a paginated/filterable list, not a
+ * short "next few" widget.
+ */
+export interface Appointment {
+  id: string;
+  /** ISO timestamp — components format it for display, this type never carries pre-formatted text. */
+  scheduledAt: string;
+  doctorName: string;
+  specialization: string;
+  status: AppointmentStatus;
+  type: AppointmentType;
+  /** Present only for `type: 'in-person'`. */
+  location?: string;
+}
+
+export type AppointmentsResponse = Appointment[];

@@ -427,6 +427,37 @@
         "contactPhoneRequired": "Enter a phone number.",
         "contactsTooMany": "You can add up to {max} emergency contacts."
       }
+    },
+    "appointments": {
+      "title": "Appointments",
+      "loadError": "Couldn't load your appointments.",
+      "upcomingTab": "Upcoming",
+      "historyTab": "History",
+      "upcomingEmptyTitle": "No upcoming appointments",
+      "upcomingEmptyDescription": "Your upcoming appointments will appear here once scheduling is available.",
+      "historyEmptyTitle": "No appointment history yet",
+      "historyEmptyDescription": "Your past appointments will appear here.",
+      "filters": {
+        "all": "All",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "status": {
+        "upcoming": "Upcoming",
+        "in-progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      },
+      "type": {
+        "in-person": "In-person",
+        "video": "Video call"
+      },
+      "calendar": {
+        "title": "Calendar",
+        "today": "Today",
+        "previousWeek": "Previous week",
+        "nextWeek": "Next week"
+      }
     }
   }
 }

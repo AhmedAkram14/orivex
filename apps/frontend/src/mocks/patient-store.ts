@@ -1,5 +1,6 @@
 import type {
   ActivePrescriptionPreview,
+  Appointment,
   PatientDashboardSummary,
   PatientProfile,
   PatientProfileUpdateRequest,
@@ -53,10 +54,20 @@ function seedProfile(): PatientProfile {
   };
 }
 
+/**
+ * The full appointment list (milestone 3) — an honest empty array, same
+ * reasoning as `seedUpcomingAppointments`: no Scheduling module is wired
+ * into the frontend yet.
+ */
+function seedAppointments(): Appointment[] {
+  return [];
+}
+
 let summary: PatientDashboardSummary = seedSummary();
 let upcomingAppointments: UpcomingAppointmentPreview[] = seedUpcomingAppointments();
 let activePrescriptions: ActivePrescriptionPreview[] = seedActivePrescriptions();
 let profile: PatientProfile = seedProfile();
+let appointments: Appointment[] = seedAppointments();
 
 export function getDashboardSummary(): PatientDashboardSummary {
   return summary;
@@ -89,10 +100,15 @@ export function updateProfile(request: PatientProfileUpdateRequest): PatientProf
   return profile;
 }
 
+export function getAppointments(): Appointment[] {
+  return appointments;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPatientStore(): void {
   summary = seedSummary();
   upcomingAppointments = seedUpcomingAppointments();
   activePrescriptions = seedActivePrescriptions();
   profile = seedProfile();
+  appointments = seedAppointments();
 }

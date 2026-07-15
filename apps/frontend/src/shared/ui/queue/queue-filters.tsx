@@ -1,4 +1,4 @@
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { FilterTabs } from '@/shared/ui/filter-tabs';
 import type { QueueStatusValue } from '@/shared/ui/queue/queue-status';
 
 export type QueueFilterValue = 'all' | QueueStatusValue;
@@ -15,17 +15,7 @@ export interface QueueFiltersProps {
   className?: string;
 }
 
-/** Filters `WaitingQueue` by status (All / Waiting / In Consultation / Completed) — a thin `Tabs` composition, so filtering is a controlled value the page owns, not state hidden inside this component. */
-export function QueueFilters({ value, onChange, options, className }: QueueFiltersProps) {
-  return (
-    <Tabs value={value} onValueChange={(next) => onChange(next as QueueFilterValue)} className={className}>
-      <TabsList>
-        {options.map((option) => (
-          <TabsTrigger key={option.value} value={option.value}>
-            {option.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
-  );
+/** Filters `WaitingQueue` by status (All / Waiting / In Consultation / Completed) — a `QueueStatusValue`-typed wrapper over the generic `FilterTabs`, which owns the actual Tabs-composition markup. */
+export function QueueFilters(props: QueueFiltersProps) {
+  return <FilterTabs {...props} />;
 }

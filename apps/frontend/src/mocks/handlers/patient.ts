@@ -4,6 +4,7 @@ import { PATIENT_PATHS } from '@/features/patient/api/paths';
 import type { PatientProfileUpdateRequest } from '@/features/patient/api/types';
 import {
   getActivePrescriptions,
+  getAppointments,
   getDashboardSummary,
   getProfile,
   getUpcomingAppointments,
@@ -29,4 +30,6 @@ export const patientHandlers = [
     const body = (await request.json()) as PatientProfileUpdateRequest;
     return HttpResponse.json({ data: updateProfile(body) });
   }),
+
+  http.get(`${base()}${PATIENT_PATHS.appointments}`, () => HttpResponse.json({ data: getAppointments() })),
 ];

@@ -11,4 +11,5 @@ export const PATIENT_PATHS = {
   upcomingAppointments: '/patient/upcoming-appointments',
   activePrescriptions: '/patient/active-prescriptions',
   profile: '/patient/profile',
+  appointments: '/patient/appointments',
 } as const;

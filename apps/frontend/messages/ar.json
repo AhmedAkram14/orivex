@@ -427,6 +427,37 @@
         "contactPhoneRequired": "أدخل رقم الهاتف.",
         "contactsTooMany": "يمكنك إضافة حتى {max} جهات اتصال للطوارئ."
       }
+    },
+    "appointments": {
+      "title": "المواعيد",
+      "loadError": "تعذّر تحميل مواعيدك.",
+      "upcomingTab": "القادمة",
+      "historyTab": "السجل",
+      "upcomingEmptyTitle": "لا توجد مواعيد قادمة",
+      "upcomingEmptyDescription": "ستظهر مواعيدك القادمة هنا بمجرد توفر الجدولة.",
+      "historyEmptyTitle": "لا يوجد سجل مواعيد بعد",
+      "historyEmptyDescription": "ستظهر مواعيدك السابقة هنا.",
+      "filters": {
+        "all": "الكل",
+        "completed": "مكتملة",
+        "cancelled": "ملغاة"
+      },
+      "status": {
+        "upcoming": "قادم",
+        "in-progress": "جارٍ",
+        "completed": "مكتمل",
+        "cancelled": "ملغى"
+      },
+      "type": {
+        "in-person": "حضوري",
+        "video": "مكالمة فيديو"
+      },
+      "calendar": {
+        "title": "التقويم",
+        "today": "اليوم",
+        "previousWeek": "الأسبوع السابق",
+        "nextWeek": "الأسبوع التالي"
+      }
     }
   }
 }
