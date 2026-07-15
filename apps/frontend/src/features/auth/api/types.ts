@@ -1,13 +1,13 @@
 import type { AuthenticatedUser } from '@/shared/auth/types';
 
 /**
- * The authentication API contract this feature is built against. Backend
- * authentication does not exist yet (Phase 4, 🔒 blocked on Keycloak —
- * see docs/roadmaps/frontend-master-plan.md); every one of these shapes is
- * served today by src/mocks/handlers/auth.ts via MSW, not a real server.
- * When Keycloak integration lands, only auth-api.ts's function bodies
- * change — these types, and everything that imports them, do not, unless
- * the real contract genuinely differs from what's modeled here.
+ * The authentication API contract this feature is built against. A real
+ * backend now implements it (AuthenticationModule, Sprint 15 — first-party
+ * JWT/argon2, no external IdP; apps/backend/src/modules/authentication),
+ * matching these shapes field-for-field; src/mocks/handlers/auth.ts's MSW
+ * mocks continue to serve local dev/tests against this same contract.
+ * `resendVerification`/`logoutAll`/`deviceSessions`/`loginHistory` are not
+ * yet implemented server-side — still MSW-only, a documented follow-up.
  */
 
 export interface LoginRequest {

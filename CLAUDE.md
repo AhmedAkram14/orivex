@@ -56,7 +56,7 @@ Storage:
 S3 Compatible
 
 Identity:
-Keycloak
+First-party (AuthenticationModule — JWT + argon2, no external IdP; see docs/14-adrs.md ADR-005, Sprint 15)
 
 Search:
 PostgreSQL Full Text

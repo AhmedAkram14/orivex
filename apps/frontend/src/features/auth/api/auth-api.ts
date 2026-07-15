@@ -22,10 +22,10 @@ import type {
 /**
  * The only module that talks to `/auth/*`. Every function here is a thin,
  * typed wrapper over `apiFetch` — no business logic, no state, so that
- * swapping the mock backend for a real Keycloak-fronted one later is a
- * change to these function bodies (or a new implementation file this
- * module re-exports), never to a caller. Callers (features/auth/hooks/)
- * never import `apiFetch` directly for auth concerns.
+ * switching between the MSW mock backend and the real one (Authentication
+ * Module, Sprint 15) is purely an env-config concern, never a change to a
+ * caller. Callers (features/auth/hooks/) never import `apiFetch` directly
+ * for auth concerns.
  */
 export const authApi = {
   login: (request: LoginRequest) =>

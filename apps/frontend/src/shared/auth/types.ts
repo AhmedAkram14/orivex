@@ -1,10 +1,9 @@
 /**
- * Session/user shape this architecture is built against — modeled on what
- * a Keycloak-issued token will actually carry (roles claim, subject id),
- * per Section 1.1's binding technology decision. Nothing constructs a real
- * instance of these types yet; they exist so the eventual Keycloak
- * integration (Phase 4) is a matter of populating this shape, not
- * inventing it under time pressure.
+ * Session/user shape this architecture is built against. The real backend
+ * (AuthenticationModule, Sprint 15 — first-party, no external IdP) has
+ * exactly one role per account; `roles` stays an array for this type's own
+ * multi-role design (unrelated to any IdP), and the backend wraps its
+ * single role in a one-element array to satisfy it.
  */
 export type Role = 'super_admin' | 'hospital_admin' | 'doctor' | 'receptionist' | 'nurse' | 'patient';
 

@@ -9,7 +9,6 @@ classDiagram
     class Account {
         -AccountId id
         -EmailAddress email
-        -string keycloakId
         -AccountRole role
         -AccountStatus status
         -UserProfile userProfile
@@ -22,7 +21,6 @@ classDiagram
         +updateProfile(props) void
         +getId() AccountId
         +getEmail() EmailAddress
-        +getKeycloakId() string
         +getRole() AccountRole
         +getStatus() AccountStatus
         +getUserProfile() UserProfile
@@ -172,7 +170,6 @@ graph TB
 - `EmailAddress` must match a valid email shape; normalized (trimmed, lowercased) at construction — violation raises `InvalidEmailAddressError`.
 - `AccountId` must be a well-formed UUID — violation raises `IdentityDomainError` (no dedicated subclass exists for this one).
 - `DisplayName` is required, non-empty, and bounded to `MAX_DISPLAY_NAME_LENGTH` (100 characters, `domain/constants/identity.constants.ts`) — violations raise `InvalidDisplayNameError`.
-- `Account.keycloakId` is required at registration and immutable thereafter — enforced in `Account.register()`, violation raises `IdentityDomainError`. No Keycloak calls are made; this is an opaque external-identity reference only.
 - `Account.role` has no public setter — it is fixed at registration. Role elevation (e.g. after doctor verification) is a future event-driven reaction owned by a later sprint, not implemented here.
 - `Account.status` starts at `Active`. `suspend()` is idempotent (calling it while already `Suspended` is a no-op) and throws `AccountClosedError` if the account is `Closed` — `Closed` is a terminal state with no path back.
 - `UserProfile` cannot exist independently of an `Account` — it is only ever constructed via `Account.register()`, and only ever mutated via `Account.updateProfile()`, never directly.
@@ -200,11 +197,8 @@ Both extend the reusable `DomainEvent` abstract base (`eventName` + `occurredAt`
 
 6. Future Extension Points
 
-**Sessions**
-`Session` is documented as an `Account`-owned child entity but is entirely excluded from this sprint. When the Authentication sprint begins, it will most likely be added as a second child entity within the same `Account` aggregate (parallel to `UserProfile`), with its own lifecycle (`Created at login → expires/revoked`) — raising a `SessionStarted` event, per `docs/10-backend-architecture.md`'s documented event list. Whether `Session` ends up needing its own repository (given it has real, independent identity and a much higher write/expiry churn rate than `Account` itself) is an open question worth revisiting explicitly at that time rather than assuming today's "one repository per aggregate" rule applies unchanged.
-
-**Keycloak**
-`Account.keycloakId` already exists as an opaque string reference — the domain model was deliberately built to not need any changes when Keycloak integration lands. The future work is entirely in the infrastructure layer: an adapter that calls Keycloak for credential verification/token issuance and populates/validates `keycloakId`, per the architecture decision that "IdentityModule delegates actual credential verification/session issuance to Keycloak conceptually" (`docs/10-backend-architecture.md` §10). No domain entity, value object, or invariant here should need to change for that integration to land.
+**Sessions and Authentication (resolved, Sprint 15)**
+This section originally speculated that `Session` would land as a second child entity inside the `Account` aggregate, and that `Account.keycloakId` would grow a Keycloak-calling infrastructure adapter. Neither happened: the project decided against Keycloak entirely (`docs/14-adrs.md` ADR-005) and built a first-party `AuthenticationModule` instead, as its own bounded context — not a child of `Account`. `Credential`, `Session`, and `AuthToken` are `AuthenticationModule`'s own aggregate roots (each with their own repository, matching "one repository per aggregate root" after all — the open question this section originally raised resolved in favor of separate aggregates, not a shared one), linked to `Account` by id only. `Account.keycloakId` was removed from the entity entirely (see the class diagram above and Sprint 15's migration). See `docs/10-backend-architecture.md`'s `AuthenticationModule` entry for the real shape.
 
 **Roles**
 `AccountRole` is currently a fixed-at-registration enum with no elevation path implemented. `docs/10-backend-architecture.md`'s documented sequence ("`DoctorVerified` → ... → IdentityModule (subscriber) elevates role capabilities") implies a future domain method (e.g. `Account.elevateRole(newRole)`) reacting to an event published by TrustModule once doctor verification completes. That method does not exist yet — deliberately, since implementing it now would mean building a cross-module business workflow, which is out of this sprint's scope.

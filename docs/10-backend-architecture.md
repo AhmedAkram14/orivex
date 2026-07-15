@@ -8,29 +8,40 @@ PrincipleWhy it exists here specificallyModular MonolithLocked in at ADR-001 (Ph
 For each: Purpose / Responsibilities / Owned Entities / Owned Events / Dependencies / Public Interfaces / Private Responsibilities / Future Split Strategy.
 IdentityModule
 
-Purpose: Authentication and account lifecycle.
-Owned entities: Account, Session.
-Owned events (published): AccountCreated, AccountSuspended, SessionStarted.
+Purpose: Account/Profile/Role lifecycle — no longer authentication itself (see AuthenticationModule below; split at Sprint 15 when Keycloak was replaced with a first-party implementation).
+Owned entities: Account.
+Owned events (published): AccountCreated, AccountSuspended.
 Dependencies: None on other business modules (foundational).
-Public interface: createAccount(), authenticate(), getAccountRole(accountId).
-Private: Password hashing, session token issuance details.
+Public interface: RegisterAccountUseCase, SuspendAccountUseCase, GetAccountByIdUseCase, GetAccountByEmailUseCase.
+Private: none (Password hashing/session token issuance moved to AuthenticationModule with the Sprint 15 split).
 Future split: Low priority — could become a shared platform-auth service early if multiple products ever consume it, but not scale-driven.
 
-AuthModule (distinct from Identity — authorization, not authentication)
+AuthModule (distinct from AuthenticationModule below — authorization, not authentication; not yet implemented)
 
 Purpose: RBAC/permission evaluation.
 Owned entities: None (stateless policy evaluation over roles from Identity + trust status from Trust).
-Dependencies: IdentityModule (role), TrustModule (verification status for doctor-gated actions).
+Dependencies: IdentityModule (role), TrustModule (verification status for doctor-gated actions), AuthenticationModule (consumes its issued JWT claims — account id + role — as the identity input to policy checks; does not replace or duplicate them).
 Public interface: can(actor, action, resource) policy check, consumed by every other module's guards.
 Future split: Natural candidate to become an ABAC engine (Phase 4) without touching consuming modules' code, since they only ever call the same can() contract.
+
+AuthenticationModule (Sprint 15 — first-party, no external IdP; see docs/14-adrs.md)
+
+Purpose: Credential verification, tokens, sessions, email verification, login. Split out of IdentityModule when the project decided against Keycloak integration (docs/14-adrs.md's "First-Party Authentication" ADR) — Identity kept owning Account/Profile/Role, this module owns proving someone is that Account.
+Owned entities: Credential, Session, AuthToken (all linked to an Identity Account by id only, never by direct entity reference).
+Owned events (published): authentication.credential.created, authentication.login.succeeded, authentication.login.failed, authentication.account.locked, authentication.password.changed, authentication.password.reset-requested, authentication.session.created, authentication.session.revoked.
+Dependencies: IdentityModule (RegisterAccountUseCase, GetAccountByIdUseCase, GetAccountByEmailUseCase — module-to-module calls through published interfaces only), TrustModule (RecordSecurityEventUseCase, for audit logging).
+Public interface: the 10 REST endpoints under /auth/* (register, login, logout, refresh, forgot-password, reset-password, verify-email, change-password, me, session); JwtAuthGuard, RolesGuard, @CurrentUser(), @Roles() — exported so any other module can protect a route without depending on this module's internals (the seam AuthModule's future can() layer builds on top of).
+Private: argon2id password hashing (cost params env-configurable), opaque refresh-token generation/hashing/rotation with reuse detection, JWT signing (claims: account id + role only, never PHI, per docs/11-api-contracts.md), account lockout policy (5 failed attempts / 15min).
+Email/SMS delivery: adapter interface defined (EmailSenderPort), default adapter logs the intended send only — a real provider (e.g. SES) is a follow-up integration, not faked as delivered.
+Future split: Same platform-auth-service candidacy as Identity, likely extracted together if ever needed.
 
 TrustModule
 
 Purpose: Verification workflow, consent state, audit-visible trust data.
-Owned entities: VerificationCase, ConsentRecord, SecurityEvent.
+Owned entities: VerificationCase, ConsentRecord, SecurityEvent (SecurityEvent implemented Sprint 15, populated by AuthenticationModule's RecordSecurityEventUseCase calls — this entry's ownership was already documented before any code existed for it).
 Owned events: DoctorVerified, DoctorSuspended, ConsentGranted, ConsentRevoked, SecurityEventDetected.
 Dependencies: IdentityModule (accounts to verify), AdministrationModule (executes decisions, Trust holds resulting state — Phase 3's ownership split, now a module dependency).
-Public interface: getConsentState(patientId, doctorId, scope), isVerified(doctorId).
+Public interface: getConsentState(patientId, doctorId, scope), isVerified(doctorId), RecordSecurityEventUseCase (consumed by AuthenticationModule).
 Private: License-matching logic, re-verification scheduling internals.
 Future split: Low priority for extraction, but candidate for a dedicated Trust/Compliance team ownership boundary regardless of deployment topology.
 
@@ -264,15 +275,15 @@ JobTriggerPriorityRetry policyFailure handlingNotification delivery (Email/SMS/P
 
 10. Security Integration
 
-Keycloak (or equivalent IdP): IdentityModule delegates actual credential verification/session issuance to Keycloak conceptually — NestJS's IdentityModule becomes a thin integration layer rather than reimplementing auth primitives from scratch, consistent with "don't build what's a solved problem" (Phase 4's video-infrastructure reasoning, applied here to auth).
-RBAC: AuthModule's can() contract (Section 2/4), backed by role data from Identity + verification status from Trust.
+First-party authentication (Sprint 15, superseding the Keycloak assumption below): AuthenticationModule owns credential verification and token/session issuance directly — no external IdP. Password hashing is argon2id (cost params env-configurable, docs/14-adrs.md's ADR). Access tokens are short-lived JWTs (15min default, env-configurable) carrying only { accountId, role } — never PHI or business data, per Section 6 (API Contracts)'s explicit JWT design rule. Refresh tokens are opaque random values (never JWTs, so they stay server-revocable), delivered via an httpOnly cookie, rotated on every use, with reuse detection: presenting an already-rotated/revoked refresh token revokes every session for that credential and records a REFRESH_TOKEN_REUSE_DETECTED security event. Accounts lock after 5 failed login attempts for 15 minutes. Every security-relevant outcome (login success/failure, lockout, password change/reset, refresh reuse) is recorded via TrustModule's RecordSecurityEventUseCase.
+RBAC: AuthModule's can() contract (Section 2/4), backed by role data from Identity + verification status from Trust; role/account-id identity itself now comes from AuthenticationModule's issued JWT claims, verified by its exported JwtAuthGuard.
 Future ABAC: AuthModule's policy evaluation layer is designed to accept additional attribute predicates without changing its external can() contract — consuming modules never need to change when RBAC evolves into ABAC underneath (Phase 4's stated future path).
 Consent checks: enforced at ClinicalModule's query layer itself (Section 3's dependency rule) — never left to the API gateway or frontend to enforce, since that would be bypassable by direct API calls.
-Audit logging: the interceptor pattern (Section 7) — automatic, not manually invoked.
+Audit logging: the interceptor pattern (Section 7) for general request logging; auth-specific security events go through TrustModule's SecurityEvent table (Sprint 15) via AuthenticationModule's calls, not the generic interceptor.
 RLS (Row-Level Security) support: PostgreSQL RLS policies (Phase 8's schema-per-domain permissioning) provide a second, database-level enforcement layer beneath the application-level consent checks — defense in depth specifically for clinical and trust schemas, so a bug in application-layer consent logic doesn't become a full data exposure.
 Feature flags: ConfigurationModule, checked at the application-service layer before executing gated logic (e.g., a new AI capability rollout, Phase 6's rationale).
-Rate limiting: applied at the API gateway/global guard level, tuned per-endpoint sensitivity (Phase 4) — booking/search endpoints tolerate higher rates than authentication or prescription-signing endpoints.
-Session validation: IdentityModule's session check runs on every request via global guard; sensitive actions (prescription signing) additionally require a fresh re-authentication check regardless of session validity (Phase 4's Security Architecture, Section 8).
+Rate limiting: applied at the API gateway/global guard level, tuned per-endpoint sensitivity (Phase 4) — booking/search endpoints tolerate higher rates than authentication or prescription-signing endpoints. AuthenticationModule additionally tightens the global throttle on its own sensitive routes: login (5/min), register (3/min), forgot-password (3/min).
+Session validation: AuthenticationModule's JwtAuthGuard verifies the access token on every guarded request; sensitive actions (prescription signing) additionally require a fresh re-authentication check regardless of token validity (Phase 4's Security Architecture, Section 8).
 
 
 11. Module Communication

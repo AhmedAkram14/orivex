@@ -4,13 +4,13 @@ Sprint 0
 - Docker
 - PostgreSQL
 - Redis
-- Keycloak
 - Prisma
 
 Sprint 1
 
 - Identity (domain, application, infrastructure, REST API)
-- Authentication (deferred to a later sprint - Keycloak/JWT/sessions)
+- Authentication (deferred — see Sprint 15; landed as a first-party JWT/
+  argon2/session implementation, not Keycloak, per docs/14-adrs.md ADR-005)
 
 Sprint 2 — DoctorModule
 
@@ -80,3 +80,12 @@ Sprint 12 — AI Copilot
 - AI suggestions
 - Clinical context integration
 - Health Graph integration
+
+Sprint 15 — AuthenticationModule (no Keycloak)
+
+- Credential, Session, AuthToken (domain, application, infrastructure, REST API)
+- First-party JWT access tokens + rotated opaque refresh tokens (httpOnly
+  cookie, reuse detection), argon2id password hashing, account lockout
+- TrustModule's SecurityEvent implemented (was documented, never built)
+- Identity narrowed to Account/Profile/Role only (keycloakId dropped)
+- docs/14-adrs.md ADR-005/ADR-006

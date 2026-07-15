@@ -13,10 +13,10 @@ import { __setAuthHeaderProvider } from '@/shared/lib/api/client';
  * `AuthContext` — session persistence (via `useSessionQuery`'s silent
  * recovery on mount), Silent Refresh Architecture (`useSilentRefresh`),
  * and wiring the API client's auth-header injection point to the same
- * in-memory token storage. Built entirely against `authApi`, which is
- * itself backed by MSW mocks today (Phase 4, 🔒 blocked on real Keycloak)
- * — every session this provider produces is a real, working session
- * against the mock, not a fabricated one.
+ * in-memory token storage. Built entirely against `authApi`, which now has
+ * a real backend behind it (AuthenticationModule, Sprint 15 — first-party
+ * JWT/argon2, no external IdP) as well as the MSW mocks used in dev/tests
+ * — every session this provider produces is a real, working session either way.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const sessionQuery = useSessionQuery();

@@ -17,13 +17,15 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 | `OTEL_ENABLED` | optional (default `false`) | Yes, but even when enabled no tracing SDK is wired up yet — a no-op |
 | `DATABASE_URL` | **yes** | Yes — every request |
 | `REDIS_URL` | optional | **No code path connects to Redis yet.** Not validated at boot; omit entirely if unused. |
-| `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID` | optional | **Not called yet** — authentication is a documented, deferred future sprint. Not validated at boot; omit entirely if unused. |
+| `JWT_ACCESS_SECRET` | **yes** (min 32 chars) | Yes — AuthenticationModule signs/verifies every access token with it |
+| `JWT_ACCESS_TTL_SECONDS` | optional (default `900`) | Yes |
+| `ARGON2_MEMORY_COST_KIB`, `ARGON2_TIME_COST`, `ARGON2_PARALLELISM` | optional (OWASP-recommended defaults) | Yes, if set — tunes argon2id password-hashing cost |
 | `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | **yes** | Yes — AssetModule's upload-intent/confirm flow genuinely calls S3 |
 | `S3_REGION` | optional (default `us-east-1`) | Yes |
 | `S3_FORCE_PATH_STYLE` | optional (default `true`) | Yes |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Docker Compose only | Consumed only by `docker-compose.production.yml` to construct `DATABASE_URL` for the `postgres` service it starts; the app itself never reads these three directly |
 
-`REDIS_URL`/`KEYCLOAK_*` are optional in `apps/backend/src/core/configuration/env.schema.ts` specifically because nothing in the codebase instantiates a client from them yet — restore them to required the moment either integration is actually wired up. `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail.
+`REDIS_URL` is optional in `apps/backend/src/core/configuration/env.schema.ts` specifically because nothing in the codebase instantiates a client from it yet — restore it to required the moment that integration is actually wired up. `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail. Authentication is first-party (Sprint 15, docs/14-adrs.md ADR-005) — no external identity provider is used or required.
 
 ## 1. Local Docker (single container, no orchestration)
 
@@ -48,8 +50,9 @@ docker run --rm -p 3000:3000 \
   -e S3_SECRET_ACCESS_KEY=orivex-dev-secret \
   -e S3_BUCKET=orivex-media-assets \
   -e S3_FORCE_PATH_STYLE=true \
+  -e JWT_ACCESS_SECRET=replace-with-a-random-secret-at-least-32-characters-long \
   orivex-backend:latest
-  # REDIS_URL / KEYCLOAK_* omitted -- optional, unused by any code path yet
+  # REDIS_URL omitted -- optional, unused by any code path yet
 ```
 
 **Startup:** the image's `docker-entrypoint.sh` runs `prisma migrate deploy` automatically before `node dist/main.js` starts — no separate migration step needed.
@@ -81,7 +84,7 @@ curl http://localhost:${PORT:-3000}/health/readiness
 docker compose -f infrastructure/docker/docker-compose.production.yml down
 ```
 
-`docker-compose.production.yml` only orchestrates `backend` + `postgres` + `redis` (no Keycloak/MinIO/Mailpit — those are dev-only, see `docker-compose.yml`). It overrides `DATABASE_URL`/`REDIS_URL` to point at the compose network's own service names regardless of what's in `.env`.
+`docker-compose.production.yml` only orchestrates `backend` + `postgres` + `redis` (no MinIO/Mailpit — those are dev-only, see `docker-compose.yml`). It overrides `DATABASE_URL`/`REDIS_URL` to point at the compose network's own service names regardless of what's in `.env`.
 
 **Migrations:** automatic on container start. To check status without starting the app:
 ```bash
@@ -100,7 +103,8 @@ docker compose -f infrastructure/docker/docker-compose.production.yml run --rm b
    - `DATABASE_URL` — your real Neon connection string (from the Neon dashboard)
    - `CORS_ORIGINS` — your real frontend origin(s), comma-separated
    - `S3_ENDPOINT` / `S3_REGION` / `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` / `S3_BUCKET` / `S3_FORCE_PATH_STYLE` — **must be real and reachable** (AWS S3, DigitalOcean Spaces, or similar) since AssetModule's upload flow genuinely calls this
-   - `REDIS_URL` / `KEYCLOAK_URL` / `KEYCLOAK_REALM` / `KEYCLOAK_CLIENT_ID` — optional; leave unset unless/until either integration is actually wired up
+   - `JWT_ACCESS_SECRET` — `render.yaml` marks this `generateValue: true`, so Render generates a strong random secret automatically; no manual value needed
+   - `REDIS_URL` — optional; leave unset unless/until that integration is actually wired up
 4. Do **not** add a `PORT` variable — Render injects its own for Docker web services, and the app already reads whatever `process.env.PORT` is set.
 
 ### Deploy

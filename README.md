@@ -5,7 +5,7 @@
 This repository now contains the initial monorepo scaffold for Sprint 0:
 
 - pnpm workspace configuration
-- Docker Compose services for PostgreSQL, Redis, Keycloak, and Mailpit
+- Docker Compose services for PostgreSQL, Redis, and Mailpit
 - Prisma schema and backend package foundation
 - development environment defaults
 

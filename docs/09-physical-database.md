@@ -8,9 +8,11 @@ First implementation-oriented document in this series — I'll go concrete: real
 2. Tables (by Schema)
    I'll list every table with its core relational facts; full column-level detail follows in Section 3 for the highest-risk tables.
    identity
-   TablePurposePKFKsLifecycleaccountsAuthentication identityaccount_id (UUID)—Created → suspended/closed (soft)sessionsActive login sessionssession_idaccount_id → accountsCreated → expired/revoked (hard-deleted after expiry)
+   TablePurposePKFKsLifecycleaccountsAccount/Profile/Role identity (no longer credentials — see authentication below, split Sprint 15)account_id (UUID)—Created → suspended/closed (soft)
+   authentication (Sprint 15 — first-party, no external IdP; docs/14-adrs.md ADR-005)
+   TablePurposePKFKsLifecyclecredentialsPassword hash, lockout state, email-verified flag — one per accountcredential_idaccount_id → identity.accounts (unique)Created → updated indefinitelysessionsActive login sessions AND their current refresh token (rotated in place, not a growing history table)session_idcredential_id → credentialsCreated → expired/revoked (hard-deleted after expiry)auth_tokensSingle-use email-verification/password-reset tokens, hashed at restauth_token_idcredential_id → credentialsIssued → used/expired
    trust
-   TablePurposePKFKsLifecycleverification_casesDoctor credential reviewverification_case_iddoctor_id → doctor.doctor_profilesSubmitted → decided → periodic re-checkconsent_recordsVersioned patient consentconsent_record_idpatient_id, doctor_id (nullable), scope_category_id → referenceAppend-only, versionedsecurity_eventsAnomalous access/auth eventssecurity_event_idaccount_idDetected → reviewed → resolved
+   TablePurposePKFKsLifecycleverification_casesDoctor credential reviewverification_case_iddoctor_id → doctor.doctor_profilesSubmitted → decided → periodic re-checkconsent_recordsVersioned patient consentconsent_record_idpatient_id, doctor_id (nullable), scope_category_id → referenceAppend-only, versionedsecurity_eventsAnomalous access/auth events (implemented Sprint 15, populated by authentication.* via TrustModule's RecordSecurityEventUseCase)security_event_idaccount_id → identity.accountsDetected → reviewed → resolved
    patient
    TablePurposePKFKsLifecyclepatient_profilesAccount-level health contextpatient_idaccount_id → identity.accountsCreated → updated indefinitelyemergency_contactsEmergency contact infoemergency_contact_idpatient_idCRUDguardian_linksMinor↔guardian relationshipguardian_link_idminor_patient_id, guardian_patient_idCreated at minor registration → dissolved at majority
    doctor

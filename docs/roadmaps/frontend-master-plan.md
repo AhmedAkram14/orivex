@@ -46,7 +46,7 @@ These are **not** open questions for this roadmap to revisit — they are accept
 |---|---|---|
 | Frontend framework | Next.js (App Router) | ✅ Scaffolded (Phase 0) |
 | Internationalization library & routing architecture | `next-intl`, route-based locales (`app/[locale]/...`), Server Components with server-side translation resolution | ✅ Implemented (Phase 2) — `app/[locale]/`, middleware, and English/Arabic message files exist; Phase 0's retrofit debt is resolved. Only two namespaces (`common`, `home`) exist so far — per-feature namespace splitting happens as features are built, per Phase 3's Translation Management scope |
-| Identity provider | Keycloak | 🔒 Not yet enforced anywhere — backend has no authentication layer wired yet (see 1.2) |
+| Identity provider | First-party (AuthenticationModule, Sprint 15 — no external IdP; docs/14-adrs.md ADR-005) | ✅ Backend implemented and wired (see 1.2) — register/login/logout/refresh/forgot-password/reset-password/verify-email/change-password/me/session all live at `/auth/*` |
 | AI provider | Azure OpenAI | 🔒 Backend's `AIModule` currently binds a `NotConfiguredAIProviderAdapter` — the *technology* is decided, the *credentials/integration* are not live yet |
 | Realtime / telemedicine transport | LiveKit | 📋 Not yet integrated on either side |
 | Object storage | S3-compatible | ✅ Actually wired and used in production (`AssetModule`) |
@@ -132,7 +132,7 @@ The health-endpoint incident (a working request whose response shape didn't matc
 | 1 | Design System & UX Foundations | P0 | 🚧 | Phase 0 | none |
 | 2 | Global State, API Layer & Forms | P0 | 🚧 | Phase 1 | Existing modules (1.3) |
 | 3 | Internationalization (i18n) & Localization | P0 | 🚧 | Phase 1 | Reference Data module doesn't exist yet — see Phase 3's Medical Localization sub-scope |
-| 4 | Authentication | P0 | 🚧 | Phase 2 | Keycloak not integrated yet — fully implemented against a mocked `/auth/*` contract (`authApi`), real Keycloak swap remains 🔒 blocked |
+| 4 | Authentication | P0 | ✅ | Phase 2 | Real backend live (Sprint 15, first-party — no Keycloak, docs/14-adrs.md ADR-005): register/login/logout/refresh/forgot-password/reset-password/verify-email/change-password/me/session all implemented against `authApi`'s existing contract, no frontend type changes needed. `resendVerification`/`logoutAll`/`deviceSessions`/`loginHistory` remain MSW-only (not in the required endpoint set) |
 | 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet — guard components and permission model implemented and tested (`shared/auth/role-guard.tsx`, `permission-guard.tsx`, `feature-guard.tsx`), role-aware routing/dashboards remain 🔒 blocked |
 | 6 | Application Shell & Dashboard | P1 | 🚧 | Phase 5 | Identity, Doctor, Patient — shell/nav/search/notification architecture implemented against no business modules; real KPI data blocked until Patients/Doctors phases ship |
 | 7 | Doctor Portal | P1 | 🚧 | Phase 6 | Doctor, Trust, Asset — workspace architecture implemented against no business modules; real profile/schedule/queue data blocked until those backend modules are wired in |
@@ -346,9 +346,9 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 
 ### 3.5 Phase 4 — Authentication
 
-**Priority:** P0 · **Status:** 🚧 In Progress (implemented against a mocked backend contract) · **Depends on:** Phase 2 · **Backend dependency:** Keycloak integration does not exist on the backend yet — this is the single largest cross-cutting gap in the whole system, flagged repeatedly across the backend's own hardening reports.
+**Priority:** P0 · **Status:** ✅ Implemented, real backend live (Sprint 15) · **Depends on:** Phase 2 · **Backend dependency:** resolved — AuthenticationModule (first-party JWT/argon2, no Keycloak; docs/14-adrs.md ADR-005) now implements the full `/auth/*` contract this phase was built against, field-for-field.
 
-**Priority-change note (per Section 0's rule — not a silent reorder):** this phase was pulled forward from 🔒 Blocked to active implementation on explicit architect direction, built entirely against an MSW-mocked `/auth/*` contract (`src/mocks/handlers/auth.ts`) rather than waiting for real Keycloak availability. This is deliberately **not** the "temporary fake-auth mode" this section's own key decision warns against: the mock lives behind the same `authApi` interface (`features/auth/api/auth-api.ts`) a real Keycloak-backed implementation will fill in later, so swapping it is a change to that one file's function bodies, not to any page, hook, or component that consumes it. Every session produced today is a real, working session *against the mock* — genuinely functional UI, genuinely fake backend, and the document is explicit about which is which throughout this section.
+**Priority-change note (per Section 0's rule — not a silent reorder):** this phase was pulled forward from 🔒 Blocked to active implementation on explicit architect direction, built entirely against an MSW-mocked `/auth/*` contract (`src/mocks/handlers/auth.ts`) rather than waiting for backend availability. This was deliberately **not** the "temporary fake-auth mode" this section's own key decision warns against: the mock lived behind the same `authApi` interface (`features/auth/api/auth-api.ts`) the real backend now fills, so the backend landing (Sprint 15) was a change to that one file's function bodies only, not to any page, hook, or component that consumes it — exactly as designed. Every session produced was, and still is, a real, working session — genuinely functional UI throughout, first against a genuine mock, now against a genuine backend.
 
 **Scope (once unblocked):** login, registration, forgot/reset password, refresh-token handling, logout (single session and all-devices), session expiry UX.
 
@@ -372,17 +372,17 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 - ✅ **Implemented** — Vitest/RTL coverage for every form/page built in this phase: `login-form.test.tsx` (validation, invalid credentials, unverified-email resend), `register-form.test.tsx` (validation, email-taken, success), `forgot-password-form.test.tsx`, `reset-password-form.test.tsx` (expired/invalid token vs. valid token), `verify-email-status.test.tsx` (success, expired/invalid link, and a generic non-token failure), `status-page.test.tsx`, and the Security Center components (`device-sessions-list.test.tsx` including the revoke flow, `login-history-table.test.tsx`, `logout-all-devices-button.test.tsx`) — all against the real MSW mock backend, not stubbed-out hooks
 - ✅ **Implemented** — Storybook stories for the shared `StatusPage` (all five variants) and `AuthCard` shells (`status-page.stories.tsx`, `auth-card.stories.tsx`)
 - 📋 **Remaining** — none for this phase's originally scoped UI
-- 🔒 **Blocked** — replacing the mock with real Keycloak calls: no Keycloak integration exists backend-side; this remains true regardless of how complete the mocked implementation becomes
+- ✅ **Resolved (Sprint 15)** — real backend live for register/login/logout/refresh/forgot-password/reset-password/verify-email/change-password/me/session; `apiFetch` gained `credentials: 'include'` (the one required frontend change, since the httpOnly refresh cookie is cross-site between orivex-eg.vercel.app and orivex-backend.onrender.com). `resendVerification`/`logoutAll`/`deviceSessions`/`loginHistory` remain MSW-only — not in the required backend endpoint set, a documented follow-up.
 
 **MFA readiness:** `LoginResponse.mfaRequired` exists in the contract type so a future MFA step doesn't require a breaking response-shape change. No mock account sets it to `true` and no verification UI exists — the field is present, not branched on, per this phase's "prepare the architecture, don't fake the security" requirement.
 
 **Key decisions & constraints:**
-- The frontend must not build a "temporary" fake-auth mode. `docs/13-engineering-bootstrap.md` Section 13 explicitly warns against this: a simplified fake-auth path that diverges from the real Keycloak integration shape is "a classic source of works-in-dev, breaks-in-staging auth bugs." The Phase 2 scaffolding above was built with this rule specifically in mind — it produces an honest unauthenticated state, never a fabricated authenticated one.
-- Until backend enforcement exists, every current API call is unauthenticated by construction — no frontend code should imply otherwise (no fabricated "logged in as Dr. X" state backed by nothing real).
-- When this phase unblocks, it unblocks Phase 5 immediately after — they are sequenced back-to-back deliberately.
+- The frontend must not build a "temporary" fake-auth mode. `docs/13-engineering-bootstrap.md` Section 13 explicitly warns against this: a simplified fake-auth path that diverges from the real integration shape is "a classic source of works-in-dev, breaks-in-staging auth bugs." The Phase 2 scaffolding above was built with this rule specifically in mind — it produces an honest unauthenticated state, never a fabricated authenticated one. This paid off directly: the MSW mock and the real Sprint 15 backend share the exact same `authApi` contract, so no frontend code changed when the backend landed.
+- Backend enforcement now exists (Sprint 15) — every authenticated API call is real, verified against `AuthenticationModule`'s JwtAuthGuard, not merely UI-level.
+- Phase 5 (Authorization/RBAC) depended on this phase unblocking — it now can, since real role claims exist in the issued JWT.
 - **Test infrastructure fix (this milestone):** any test rendering a component that uses `shared/i18n/navigation` (i.e. `next-intl`'s `createNavigation`) needs `vitest.config.ts`'s `resolve.alias['next/navigation']` and `test.server.deps.inline: ['next-intl']` — without them, Vitest's resolver fails to follow next-intl's nested pnpm symlink for `next/navigation` on this checkout (the repository path's em dash breaks Node's loader specifically for that hop; `next build`/Storybook never hit it). Components using `next/navigation`'s hooks also need `vi.mock('next/navigation', ...)` in the test file itself, since `useRouter`/`usePathname` throw outside a real Next.js App Router tree — see any of `login-form.test.tsx`, `register-form.test.tsx`, etc. for the pattern.
 
-**Definition of done:** a real user can authenticate against a real Keycloak realm and the frontend holds a real, validated session — not before.
+**Definition of done:** a real user can authenticate against the real backend (AuthenticationModule) and the frontend holds a real, validated session — met as of Sprint 15.
 
 ---
 
@@ -403,7 +403,7 @@ This is why Phase 0's retrofit debt (noted above) matters: the current `app/` tr
 
 RBAC's **guard components and permission model are implemented** — real, working, tested code. What remains 🔒 Blocked is everything that depends on the backend actually enforcing what these guards merely reflect: nothing in this phase moves off Blocked until real server-side authorization exists.
 
-**Key decisions & constraints:** authorization decisions rendered in the UI (hiding a button) are a UX convenience, never the actual security boundary — the backend must independently enforce every permission this phase merely reflects. This phase cannot invent roles the backend doesn't recognize — `shared/auth/types.ts`'s `Role` union is deliberately the full set the eventual Keycloak realm will issue, not a frontend-invented list.
+**Key decisions & constraints:** authorization decisions rendered in the UI (hiding a button) are a UX convenience, never the actual security boundary — the backend must independently enforce every permission this phase merely reflects. This phase cannot invent roles the backend doesn't recognize — `shared/auth/types.ts`'s `Role` union is deliberately the full set this frontend's RBAC design covers, not a frontend-invented list. Sprint 15's AuthenticationModule exports a real `JwtAuthGuard`/`RolesGuard`/`@Roles()` any backend route can use — the still-missing piece for this phase is the broader `AuthModule` policy-evaluation layer (`can()`, docs/10-backend-architecture.md's distinct, not-yet-implemented module) that every business endpoint would consult.
 
 ---
 

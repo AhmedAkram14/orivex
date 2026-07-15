@@ -109,7 +109,7 @@ Contract consistency principle: wherever a Realtime message represents the same 
 
 11. Security
 
-JWT: short-lived access tokens (issued by Identity/Keycloak per Phase 9), carrying role and account ID claims only — never embedding PHI or business data in the token itself.
+JWT: short-lived access tokens (issued by AuthenticationModule, Sprint 15 — first-party, no Keycloak; docs/14-adrs.md ADR-005), carrying role and account ID claims only — never embedding PHI or business data in the token itself.
 Refresh Tokens: longer-lived, rotated on use, revocable server-side (supports the Phase 4 requirement that a compromised session can be forcibly terminated).
 Scopes: fine-grained OAuth-style scopes for future third-party API access (Phase 4's Future Integrations) — e.g., clinical:read, appointments:write — even though V1's own first-party clients use full role-based access, designing the scope model now avoids a breaking change when third-party API access (Phase 1.2's revenue stream) eventually launches.
 Permissions: enforced server-side per Phase 9's AuthModule.can() contract — the API layer never trusts a client's claim about what it's allowed to do.

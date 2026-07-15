@@ -15,9 +15,9 @@ export interface RoleGuardProps {
  * Role-gated rendering — same "UX convenience, not a security boundary"
  * rule as RequireAuth. This component cannot invent a role the backend
  * doesn't recognize (Phase 5's own constraint); `Role` in shared/auth/types
- * is the full set the eventual Keycloak realm will issue, not a
- * frontend-invented list. No page may hardcode a role check inline —
- * every role-based conditional goes through this component.
+ * is the full set this frontend's RBAC design covers, not an
+ * arbitrarily-invented per-page list. No page may hardcode a role check
+ * inline — every role-based conditional goes through this component.
  */
 export function RoleGuard({ children, roles, fallback = null }: RoleGuardProps) {
   const { user } = useAuth();

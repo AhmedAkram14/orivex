@@ -106,10 +106,15 @@ refreshed via /auth/refresh.
 RefreshTokenAuth:
 type: apiKey
 in: cookie
-name: refreshToken
+name: orivex_refresh_token
 description: |
-Long-lived, rotated-on-use refresh token, revocable server-side.
-Used only against /auth/refresh.
+Long-lived, rotated-on-use refresh token, revocable server-side
+(reuse detection: presenting an already-rotated token revokes every
+session for that credential). httpOnly, Secure+SameSite=None in
+production (cross-site frontend/backend), Lax in local dev. Read
+implicitly by /auth/refresh, /auth/logout, /auth/change-password —
+not modeled as a per-operation `security:` requirement since it's
+read directly from the cookie, not asserted as a bearer credential.
 OAuth2ThirdParty:
 type: oauth2
 description: |
@@ -249,6 +254,19 @@ schemas:
       properties:
         requestId: { type: string, format: uuid }
         timestamp: { type: string, format: date-time }
+
+    AuthenticatedUser:
+      type: object
+      description: Matches apps/frontend/src/shared/auth/types.ts's AuthenticatedUser shape exactly. roles is an array for frontend contract compatibility (it originally modeled a speculative multi-role Keycloak claim); the real backend has exactly one role per account, so this is always a single-element array.
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        roles:
+          type: array
+          items: { type: string, enum: [patient, doctor, admin] }
+          minItems: 1
+          maxItems: 1
 
     Pagination:
       type: object
@@ -689,13 +707,22 @@ paths:
 
 # ============================================================
 
+Note (Sprint 15): the six /auth/* paths below reflect AuthenticationModule's
+real, implemented contract (apps/backend/src/modules/authentication) — no
+longer the pre-implementation Keycloak-era speculation this section
+originally held (credential/password/role fields, accessToken/expiresIn-only
+responses). Field names/casing match apps/frontend/src/features/auth/api/
+types.ts exactly, since that frontend was built against this exact shape.
+Error codes (INVALID_CREDENTIALS, ACCOUNT_LOCKED, EMAIL_NOT_VERIFIED,
+TOKEN_INVALID, TOKEN_EXPIRED) appear as ErrorResponse.error.code, not as
+distinct HTTP statuses beyond the ones noted per endpoint.
+
 /auth/register:
 post:
 tags: [Authentication]
-operationId: registerAccount
-summary: Create a new account
-description: Creates a Patient or Doctor account. Idempotent via the Idempotency-Key header.
-parameters: - $ref: '#/components/parameters/IdempotencyKey'
+operationId: register
+summary: Create a new Patient account (self-service registration)
+description: Always creates a Patient-role account; Doctor/Admin accounts are provisioned through the administrative/verification flow, not self-service registration. Sends an email-verification token (logged server-side only — no real email provider is wired up yet, docs/14-adrs.md ADR-005).
 requestBody:
 required: true
 content:
@@ -703,28 +730,29 @@ application/json:
 schema:
 type: object
 properties:
-credential: { type: string, description: Email or phone number }
-password: { type: string, format: password }
-role: { type: string, enum: [patient, doctor] }
-required: [credential, password, role]
+fullName: { type: string }
+email: { type: string, format: email }
+password: { type: string, format: password, description: 'Minimum 10 characters, at least one uppercase, one lowercase, one digit.' }
+required: [fullName, email, password]
 responses:
 '201':
-description: Account created.
+description: Verification email sent.
 content:
 application/json:
 schema:
 type: object
 properties:
-data: { type: object, properties: { accountId: { type: string, format: uuid } } }
+data: { type: object, properties: { status: { type: string, enum: [verification_required] }, email: { type: string } } }
 meta: { $ref: '#/components/schemas/ResponseMeta' }
 '409': { $ref: '#/components/responses/Conflict' }
-'400': { $ref: '#/components/responses/BadRequest' }
+'422': { $ref: '#/components/responses/BadRequest' }
 
 /auth/login:
 post:
 tags: [Authentication]
 operationId: login
-summary: Authenticate and obtain access/refresh tokens
+summary: Authenticate and obtain an access token + refresh-token cookie
+description: Rate-limited to 5 requests/minute per docs/10-backend-architecture.md Section 10. Sets an httpOnly, rotated refresh-token cookie (SameSite=None+Secure in production, Lax in local dev) — never returns the refresh token in the response body.
 requestBody:
 required: true
 content:
@@ -732,9 +760,10 @@ application/json:
 schema:
 type: object
 properties:
-credential: { type: string }
+email: { type: string, format: email }
 password: { type: string, format: password }
-required: [credential, password]
+rememberMe: { type: boolean, description: 'Accepted for frontend contract compatibility; does not yet vary refresh-token lifetime.' }
+required: [email, password]
 responses:
 '200':
 description: Authenticated.
@@ -746,26 +775,171 @@ properties:
 data:
 type: object
 properties:
+user: { $ref: '#/components/schemas/AuthenticatedUser' }
 accessToken: { type: string }
-expiresIn: { type: integer }
-'401': { $ref: '#/components/responses/Unauthenticated' }
+accessTokenExpiresAt: { type: string, format: date-time }
+mfaRequired: { type: boolean, description: 'Always false — MFA is not implemented.' }
+'401': { description: 'INVALID_CREDENTIALS or ACCOUNT_LOCKED (see error.code).' }
+'403': { description: 'EMAIL_NOT_VERIFIED (see error.code).' }
+
+/auth/logout:
+post:
+tags: [Authentication]
+operationId: logout
+summary: Revoke the current session and clear the refresh-token cookie
+description: Idempotent — no cookie, an unknown token, or an already-revoked session all resolve 204, never an error.
+responses:
+'204': { description: Logged out (idempotent). }
 
 /auth/refresh:
 post:
 tags: [Authentication]
-operationId: refreshToken
-summary: Exchange a refresh token for a new access token
-security: - RefreshTokenAuth: []
+operationId: refreshSession
+summary: Rotate the refresh-token cookie and obtain a new access token
+description: Reads the refresh token from the httpOnly cookie only (no request body). Reuse of an already-rotated/revoked refresh token revokes every session for that credential and is recorded as a REFRESH_TOKEN_REUSE_DETECTED security event (docs/09-physical-database.md's security_events table).
 responses:
 '200':
-description: New access token issued.
+description: New access token + rotated refresh-token cookie issued.
 content:
 application/json:
 schema:
 type: object
 properties:
-data: { type: object, properties: { accessToken: { type: string }, expiresIn: { type: integer } } }
+data: { type: object, properties: { accessToken: { type: string }, accessTokenExpiresAt: { type: string, format: date-time } } }
+'401': { description: 'TOKEN_INVALID or TOKEN_EXPIRED (see error.code).' }
+
+/auth/forgot-password:
+post:
+tags: [Authentication]
+operationId: forgotPassword
+summary: Request a password-reset token
+description: Always resolves 200 regardless of whether the email matches an account — never reveals account existence. Rate-limited to 3 requests/minute.
+requestBody:
+required: true
+content:
+application/json:
+schema:
+type: object
+properties: { email: { type: string, format: email } }
+required: [email]
+responses:
+'200':
+description: Always sent (or silently no-op'd for an unknown email).
+content:
+application/json:
+schema:
+type: object
+properties:
+data: { type: object, properties: { status: { type: string, enum: [sent] } } }
+
+/auth/reset-password:
+post:
+tags: [Authentication]
+operationId: resetPassword
+summary: Reset the password using a token from forgot-password
+description: Single-use token. On success, revokes every existing session for the credential (a reset invalidates all prior sessions, not just the requesting one).
+requestBody:
+required: true
+content:
+application/json:
+schema:
+type: object
+properties: { token: { type: string }, password: { type: string, format: password } }
+required: [token, password]
+responses:
+'200':
+description: Password reset.
+content:
+application/json:
+schema:
+type: object
+properties:
+data: { type: object, properties: { status: { type: string, enum: [reset] } } }
+'401': { description: 'TOKEN_INVALID or TOKEN_EXPIRED (see error.code).' }
+
+/auth/verify-email:
+post:
+tags: [Authentication]
+operationId: verifyEmail
+summary: Verify an account's email using the token from registration
+requestBody:
+required: true
+content:
+application/json:
+schema:
+type: object
+properties: { token: { type: string } }
+required: [token]
+responses:
+'200':
+description: Email verified.
+content:
+application/json:
+schema:
+type: object
+properties:
+data: { type: object, properties: { status: { type: string, enum: [verified] } } }
+'401': { description: 'TOKEN_INVALID or TOKEN_EXPIRED (see error.code).' }
+
+/auth/change-password:
+post:
+tags: [Authentication]
+operationId: changePassword
+summary: Change the authenticated user's password
+security: - BearerAuth: []
+description: Requires the current password. Revokes every other session, keeping only the one making this request alive.
+requestBody:
+required: true
+content:
+application/json:
+schema:
+type: object
+properties: { currentPassword: { type: string, format: password }, newPassword: { type: string, format: password } }
+required: [currentPassword, newPassword]
+responses:
+'200':
+description: Password changed.
+content:
+application/json:
+schema:
+type: object
+properties:
+data: { type: object, properties: { status: { type: string, enum: [changed] } } }
 '401': { $ref: '#/components/responses/Unauthenticated' }
+
+/auth/me:
+get:
+tags: [Authentication]
+operationId: getCurrentUser
+summary: Get the currently authenticated user
+security: - BearerAuth: []
+responses:
+'200':
+description: Current user.
+content:
+application/json:
+schema:
+type: object
+properties:
+data: { type: object, properties: { user: { $ref: '#/components/schemas/AuthenticatedUser' } } }
+'401': { $ref: '#/components/responses/Unauthenticated' }
+
+/auth/session:
+get:
+tags: [Authentication]
+operationId: getSession
+summary: Silent session check (never 401)
+description: Thin alias backing the frontend's session-bootstrap flow — unlike /auth/me, an absent/expired token resolves 200 with data null, never a 401.
+responses:
+'200':
+description: Current session, or null if unauthenticated.
+content:
+application/json:
+schema:
+type: object
+properties:
+data:
+oneOf: - { type: object, properties: { user: { $ref: '#/components/schemas/AuthenticatedUser' } } } - { type: 'null' }
 
 # ============================================================
 
