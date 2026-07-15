@@ -17,7 +17,7 @@ export function QuickActionCard({ label, icon, href, description, className }: Q
     <Link
       href={href}
       className={cn(
-        'flex items-center gap-3 rounded-lg border border-border-default bg-surface p-4 text-start transition-colors',
+        'flex items-center gap-3 rounded-lg border border-border-default bg-surface p-4 text-start transition-colors duration-(--duration-fast)',
         'hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
         className,
       )}

@@ -37,7 +37,7 @@ export function TimeSlot({ time, status, label, onSelect, className }: TimeSlotP
         type="button"
         onClick={onSelect}
         className={cn(
-          'flex items-center gap-2 rounded-md border px-3 py-2 text-start text-sm transition-colors',
+          'flex items-center gap-2 rounded-md border px-3 py-2 text-start text-sm transition-colors duration-(--duration-fast)',
           'hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
           statusClass[status],
           className,

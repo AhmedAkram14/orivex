@@ -7,7 +7,7 @@ import { Link } from '@/shared/i18n/navigation';
 import { cn } from '@/shared/lib/cn';
 
 const itemClass = cn(
-  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors',
+  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none transition-colors duration-(--duration-fast)',
   'text-text-secondary hover:bg-secondary-subtle hover:text-text-primary',
   'focus-visible:ring-2 focus-visible:ring-focus-ring',
   'data-[active=true]:bg-primary-subtle data-[active=true]:font-medium data-[active=true]:text-primary',
@@ -58,7 +58,11 @@ export function NavGroup({ label, icon, children, defaultOpen = false, className
       >
         {icon && <Icon icon={icon} size="sm" className="shrink-0" />}
         <span className="flex-1 truncate text-start">{label}</span>
-        <Icon icon={ChevronDown} size="sm" className={cn('shrink-0 transition-transform', open && 'rotate-180')} />
+        <Icon
+          icon={ChevronDown}
+          size="sm"
+          className={cn('shrink-0 transition-transform duration-(--duration-fast)', open && 'rotate-180')}
+        />
       </button>
       {open && (
         <div id={contentId} className="ms-3 flex flex-col gap-1 border-s border-border-default ps-2 pt-1">

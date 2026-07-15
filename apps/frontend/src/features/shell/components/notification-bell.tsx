@@ -16,7 +16,7 @@ export function NotificationBell() {
   return (
     <Popover>
       <PopoverTrigger
-        className="relative rounded-md p-2 text-text-secondary transition-colors hover:bg-secondary-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        className="relative rounded-md p-2 text-text-secondary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         aria-label={unreadCount > 0 ? t('bellLabelWithCount', { count: unreadCount }) : t('bellLabel')}
       >
         <Icon icon={Bell} size="md" />

@@ -16,7 +16,7 @@ export interface DoctorStatCardProps {
 }
 
 const tileClass = cn(
-  'flex items-center gap-3 rounded-lg border border-border-default bg-surface p-4 transition-colors',
+  'flex items-center gap-3 rounded-lg border border-border-default bg-surface p-4 transition-colors duration-(--duration-fast)',
 );
 
 /**

@@ -16,11 +16,13 @@ export interface WeeklyCalendarDay {
 
 export interface WeeklyCalendarProps {
   days: WeeklyCalendarDay[];
+  /** Screen-reader-only text appended to today's date (e.g. "Today") — the visual highlight alone doesn't announce anything. */
+  todayAnnouncement?: string;
   className?: string;
 }
 
 /** A 7-column week grid — each day a header (day + date, clickable when `onSelect` is given) plus whatever summary content the caller supplies. Drilling into a day's full `DailyTimeline` is a separate, composed view; this component only lays the week out. */
-export function WeeklyCalendar({ days, className }: WeeklyCalendarProps) {
+export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCalendarProps) {
   return (
     <div className={cn('grid grid-cols-7 gap-2', className)}>
       {days.map((day) => {
@@ -34,6 +36,7 @@ export function WeeklyCalendar({ days, className }: WeeklyCalendarProps) {
               )}
             >
               {day.dateLabel}
+              {day.isToday && todayAnnouncement && <span className="sr-only"> ({todayAnnouncement})</span>}
             </span>
           </div>
         );

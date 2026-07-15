@@ -22,7 +22,7 @@ function NotificationRow({ notification }: { notification: NotificationEntry }) 
         disabled={notification.read || markAsRead.isPending}
         onClick={() => markAsRead.mutate(notification.id)}
         className={cn(
-          'flex w-full flex-col gap-1 rounded-md p-2 text-start transition-colors',
+          'flex w-full flex-col gap-1 rounded-md p-2 text-start transition-colors duration-(--duration-fast)',
           'hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
           'disabled:cursor-default disabled:hover:bg-transparent',
         )}

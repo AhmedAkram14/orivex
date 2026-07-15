@@ -15,7 +15,7 @@ export interface ScheduleCardProps {
 }
 
 const cardClass = cn(
-  'flex items-start gap-3 rounded-lg border border-border-default bg-surface p-4 transition-colors',
+  'flex items-start gap-3 rounded-lg border border-border-default bg-surface p-4 transition-colors duration-(--duration-fast)',
 );
 
 /** A compact schedule-fact summary card (e.g. "Next available slot — Today, 2:00 PM – 3:00 PM") — the building block for any dashboard/workspace surface that needs to headline a single schedule item, distinct from `TimelineCard` (one row in a list) and `AvailabilityBlock` (a calendar-grid cell). */

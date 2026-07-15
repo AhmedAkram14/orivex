@@ -112,7 +112,7 @@ export default function DoctorSchedulePage() {
             ))}
           </div>
         ) : (
-          <WeeklyCalendar days={calendarDays} />
+          <WeeklyCalendar days={calendarDays} todayAnnouncement={t('today')} />
         )}
 
         <div className="flex flex-col gap-3">
