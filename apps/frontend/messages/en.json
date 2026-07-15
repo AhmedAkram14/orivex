@@ -193,6 +193,7 @@
     "nav": {
       "landmarkLabel": "Main navigation",
       "dashboard": "Dashboard",
+      "doctorWorkspace": "Doctor Workspace",
       "groups": {
         "clinical": "Clinical",
         "administration": "Administration"
@@ -236,6 +237,26 @@
       "emptyTitle": "Nothing to show yet",
       "emptyDescription": "Your dashboard will fill in as more of Orivex comes online. In the meantime, you can review your account security.",
       "securityCenterAction": "Security Center"
+    }
+  },
+  "doctor": {
+    "dashboard": {
+      "title": "Doctor Workspace",
+      "welcome": "Welcome back, {name}.",
+      "consultationsToday": "Consultations today",
+      "patientsInQueue": "Patients in queue",
+      "completedToday": "Completed today",
+      "upcomingWorkTitle": "Upcoming work",
+      "upcomingWorkEmptyTitle": "Nothing scheduled yet",
+      "upcomingWorkEmptyDescription": "Your upcoming consultations will appear here once scheduling is available.",
+      "upcomingWork": {
+        "status": {
+          "upcoming": "Upcoming",
+          "in-progress": "In progress",
+          "completed": "Completed",
+          "cancelled": "Cancelled"
+        }
+      }
     }
   }
 }

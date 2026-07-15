@@ -135,7 +135,7 @@ The health-endpoint incident (a working request whose response shape didn't matc
 | 4 | Authentication | P0 | 🚧 | Phase 2 | Keycloak not integrated yet — fully implemented against a mocked `/auth/*` contract (`authApi`), real Keycloak swap remains 🔒 blocked |
 | 5 | Authorization (RBAC) | P0 | 🔒 | Phase 4 | No role model enforced server-side yet — guard components and permission model implemented and tested (`shared/auth/role-guard.tsx`, `permission-guard.tsx`, `feature-guard.tsx`), role-aware routing/dashboards remain 🔒 blocked |
 | 6 | Application Shell & Dashboard | P1 | 🚧 | Phase 5 | Identity, Doctor, Patient — shell/nav/search/notification architecture implemented against no business modules; real KPI data blocked until Patients/Doctors phases ship |
-| 7 | Doctor Portal | P1 | 📋 | Phase 6 | Doctor, Trust, Asset |
+| 7 | Doctor Portal | P1 | 🚧 | Phase 6 | Doctor, Trust, Asset — workspace architecture implemented against no business modules; real profile/schedule/queue data blocked until those backend modules are wired in |
 | 8 | Patient Portal | P1 | 📋 | Phase 6 | Patient, Clinical (read) |
 | 9 | Appointment System & Calendar (incl. Queue Management) | P1 | 📋 | Phase 6 | Scheduling, Consultation (built); Queue Management sub-scope 🔒 blocked — no Queue module |
 | 10 | Electronic Medical Records, Medical/Patient Journey Timeline & Clinical Workflow | P1 | 📋 | Phase 7, 8 | Clinical (Health Graph/Journey/Notes) built; Consent Management sub-scope 🔒 blocked — no Consent module |
@@ -439,9 +439,20 @@ RBAC's **guard components and permission model are implemented** — real, worki
 
 ### 3.8 Phase 7 — Doctor Portal
 
-**Priority:** P1 · **Status:** 📋 Planned · **Depends on:** Phase 6 · **Backend dependency:** `DoctorModule`, `TrustModule`, `AssetModule`
+**Priority:** P1 · **Status:** 🚧 In Progress (workspace architecture, no clinical business logic yet) · **Depends on:** Phase 6 · **Backend dependency:** `DoctorModule`, `TrustModule`, `AssetModule`
+
+**Priority-change note (per Section 0's rule):** pulled forward from 📋 Planned to active implementation on explicit architect direction, scoped deliberately to *Doctor Workspace architecture only* — no real Patients/Appointments/Consultations/Prescriptions business logic is built here. This phase builds the dashboard, profile, schedule, patient-queue, and consultation-workspace *architecture* those future modules will render inside, following the same "prepare the architecture, don't fake the data" rule Phases 4 and 6 already established.
 
 **Scope:** doctor profile management, availability/working-hours configuration (against `SchedulingModule`'s `AvailabilityWindow`), verification-document upload flow (`AssetModule`'s upload-intent/confirm lifecycle), patient search and history views (read-only, scoped by whatever the backend's consent/access rules actually allow — do not build a "view any patient" capability the backend doesn't grant).
+
+**Implementation checklist:**
+- ✅ **Implemented** — Doctor Workspace dashboard (`app/[locale]/(protected)/doctor/page.tsx`), role-gated to `doctor` via the new route-level `RequireRole` guard (`shared/auth/require-role.tsx` — the redirecting counterpart to `RoleGuard`, same "UX convenience, not a security boundary" rule)
+- ✅ **Implemented** — `features/doctor/` module (mirrors `features/notifications/`'s shape exactly): `api/{paths,types,doctor-api}.ts`, `hooks/{query-keys,use-doctor-dashboard-summary,use-doctor-upcoming-work}.ts`, backed by a real MSW mock domain (`mocks/doctor-store.ts` + `mocks/handlers/doctor.ts`) that honestly returns zero counts / an empty upcoming-work list, since no Appointment/Consultation module exists yet — never fabricated clinical data
+- ✅ **Implemented** — `WelcomeHeader` (avatar + name + today's date), `TodaysSummary` (real zero-state counts via `DoctorStatCard`), `UpcomingWorkArea` (real empty-state list via `TimelineCard`, loading/empty states built in)
+- ✅ **Implemented** — new reusable `shared/ui/layout/` primitives: `DoctorStatCard` (a `StatCard` variant with a loading skeleton and optional drill-through link — not a duplicate, `StatCard` stays the simplest static tile for callers needing neither), `TimelineCard` (a scheduled-time entry, distinct from `ActivityCard`'s past-event shape), `QuickActionCard` (extracted from `QuickActions`' previously-inline Link markup so the grid and any future standalone single-tile usage share one implementation)
+- ✅ **Implemented** — Doctor Workspace nav entry (`features/shell/config/navigation.ts`'s `doctor-workspace` item, role-gated `roles: ['doctor']`, surfaces in the sidebar/breadcrumbs like any other nav entry)
+- 📋 **Remaining** — Doctor Profile (view/edit architecture), Schedule Foundation (weekly calendar/daily timeline/availability blocks), Patient Queue architecture, Consultation Workspace layout, further reusable components (`PatientQueueCard`, `ScheduleCard`, `EmptyWorkspace`, `ConsultationContainer`) — subsequent milestones
+- 🔒 **Blocked** — real profile/availability data, real patient queue, real consultation content: `DoctorModule`/`TrustModule`/`AssetModule` integration and `SchedulingModule`'s `AvailabilityWindow` remain backend dependencies this phase's UI architecture doesn't require yet but will need before any of the above can show real data
 
 ---
 

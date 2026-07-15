@@ -193,6 +193,7 @@
     "nav": {
       "landmarkLabel": "التنقل الرئيسي",
       "dashboard": "لوحة التحكم",
+      "doctorWorkspace": "مساحة عمل الطبيب",
       "groups": {
         "clinical": "الرعاية السريرية",
         "administration": "الإدارة"
@@ -236,6 +237,26 @@
       "emptyTitle": "لا يوجد شيء لعرضه بعد",
       "emptyDescription": "ستمتلئ لوحة التحكم الخاصة بك مع إطلاق المزيد من أجزاء أوريفكس. في هذه الأثناء، يمكنك مراجعة أمان حسابك.",
       "securityCenterAction": "مركز الأمان"
+    }
+  },
+  "doctor": {
+    "dashboard": {
+      "title": "مساحة عمل الطبيب",
+      "welcome": "مرحبًا بعودتك، {name}.",
+      "consultationsToday": "الاستشارات اليوم",
+      "patientsInQueue": "المرضى في قائمة الانتظار",
+      "completedToday": "المكتملة اليوم",
+      "upcomingWorkTitle": "الأعمال القادمة",
+      "upcomingWorkEmptyTitle": "لا يوجد شيء مجدول بعد",
+      "upcomingWorkEmptyDescription": "ستظهر استشاراتك القادمة هنا بمجرد توفر جدولة المواعيد.",
+      "upcomingWork": {
+        "status": {
+          "upcoming": "قادمة",
+          "in-progress": "جارية",
+          "completed": "مكتملة",
+          "cancelled": "ملغاة"
+        }
+      }
     }
   }
 }

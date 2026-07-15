@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  HeartPulse,
   LayoutDashboard,
   Pill,
   Receipt,
@@ -49,9 +50,16 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
     href: '/dashboard',
   },
   {
+    id: 'doctor-workspace',
+    labelKey: 'doctorWorkspace',
+    icon: Stethoscope,
+    href: '/doctor',
+    roles: ['doctor'],
+  },
+  {
     id: 'clinical',
     labelKey: 'groups.clinical',
-    icon: Stethoscope,
+    icon: HeartPulse,
     children: [
       {
         id: 'patients',

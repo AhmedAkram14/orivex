@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { authHandlers } from '@/mocks/handlers/auth';
+import { doctorHandlers } from '@/mocks/handlers/doctor';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
 
 /**
@@ -18,4 +19,5 @@ export const handlers = [
   ),
   ...authHandlers,
   ...notificationHandlers,
+  ...doctorHandlers,
 ];
