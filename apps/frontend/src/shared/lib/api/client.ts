@@ -52,13 +52,10 @@ export interface ApiRequestOptions {
 }
 
 /**
- * Auth header injection point. A no-op today: the backend has no
- * authentication layer wired yet (Phase 4, 🔒 blocked on Keycloak
- * integration), so every current request is genuinely unauthenticated —
- * fabricating an Authorization header now would imply a security posture
- * that doesn't exist server-side. `shared/auth`'s AuthProvider will replace
- * this function (not this file) once real session tokens exist, so apiFetch
- * itself never needs to change.
+ * Auth header injection point, replaced by shared/auth's SessionProvider
+ * once a real access token exists (in-memory only — see shared/auth/
+ * token-storage.ts). A no-op by default so apiFetch itself never needs to
+ * change when auth state does.
  */
 let getAuthHeader: () => Record<string, string> = () => ({});
 
@@ -72,6 +69,14 @@ export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiReq
     method,
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
     body: body === undefined ? undefined : JSON.stringify(body),
+    // Required for the httpOnly refresh-token cookie (AuthenticationModule,
+    // apps/backend/src/modules/authentication) to be sent/received: the
+    // frontend (orivex-eg.vercel.app) and backend (orivex-backend.onrender.com)
+    // are different eTLD+1 domains, so this is a genuinely cross-site request
+    // — browsers never attach cookies to one without explicit opt-in, even
+    // same-origin defaults aren't enough. Backend CORS already pairs this
+    // with `credentials: true`.
+    credentials: 'include',
     signal,
   });
 
