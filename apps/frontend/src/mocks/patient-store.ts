@@ -5,6 +5,7 @@ import type {
   PatientDashboardSummary,
   PatientProfile,
   PatientProfileUpdateRequest,
+  Prescription,
   UpcomingAppointmentPreview,
 } from '@/features/patient/api/types';
 
@@ -75,12 +76,22 @@ function seedMedicalRecords(): MedicalRecordEntry[] {
   return [];
 }
 
+/**
+ * The full prescription list (milestone 5) — an honest empty array, same
+ * reasoning as `seedMedicalRecords`: no Clinical module is wired into the
+ * frontend yet.
+ */
+function seedPrescriptions(): Prescription[] {
+  return [];
+}
+
 let summary: PatientDashboardSummary = seedSummary();
 let upcomingAppointments: UpcomingAppointmentPreview[] = seedUpcomingAppointments();
 let activePrescriptions: ActivePrescriptionPreview[] = seedActivePrescriptions();
 let profile: PatientProfile = seedProfile();
 let appointments: Appointment[] = seedAppointments();
 let medicalRecords: MedicalRecordEntry[] = seedMedicalRecords();
+let prescriptions: Prescription[] = seedPrescriptions();
 
 export function getDashboardSummary(): PatientDashboardSummary {
   return summary;
@@ -121,6 +132,10 @@ export function getMedicalRecords(): MedicalRecordEntry[] {
   return medicalRecords;
 }
 
+export function getPrescriptions(): Prescription[] {
+  return prescriptions;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPatientStore(): void {
   summary = seedSummary();
@@ -129,4 +144,5 @@ export function resetPatientStore(): void {
   profile = seedProfile();
   appointments = seedAppointments();
   medicalRecords = seedMedicalRecords();
+  prescriptions = seedPrescriptions();
 }

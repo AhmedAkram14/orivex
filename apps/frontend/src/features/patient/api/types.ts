@@ -139,3 +139,33 @@ export interface MedicalRecordEntry {
 }
 
 export type MedicalRecordsResponse = MedicalRecordEntry[];
+
+export type PrescriptionStatus = 'active' | 'completed' | 'expired';
+export type RefillStatus = 'not-due' | 'due-soon' | 'due' | 'none-remaining';
+
+/**
+ * The full prescription record — milestone 5's own type, deliberately
+ * richer than `ActivePrescriptionPreview` (the dashboard's lighter
+ * preview shape): this one backs the full Active/Previous medication list,
+ * not a short "what's active right now" widget.
+ */
+export interface Prescription {
+  id: string;
+  medicationName: string;
+  /** Pre-formatted, localized dosage amount text (e.g. "500mg") — this type never carries raw numbers to format. */
+  dosageAmount: string;
+  /** Doses per day — the raw count `DosageVisualization` renders as dose indicators; kept separate from `frequencyLabel` since a visualization needs the count, not formatted text. */
+  dosesPerDay: number;
+  /** Pre-formatted, localized frequency text (e.g. "Twice daily"). */
+  frequencyLabel: string;
+  prescribedBy: string;
+  /** ISO date. */
+  prescribedAt: string;
+  status: PrescriptionStatus;
+  refillStatus: RefillStatus;
+  /** Undefined means unknown/not tracked — never a fabricated count. */
+  refillsRemaining?: number;
+  instructions?: string;
+}
+
+export type PrescriptionsResponse = Prescription[];

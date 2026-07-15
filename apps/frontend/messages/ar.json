@@ -485,6 +485,29 @@
       "imaging": "الأشعة",
       "imagingUnavailableTitle": "الأشعة غير متاحة بعد",
       "imagingUnavailableDescription": "ستظهر الدراسات والتقارير الإشعاعية هنا بمجرد توفر هذا الجزء من أوريفكس."
+    },
+    "prescriptions": {
+      "title": "الوصفات الطبية",
+      "loadError": "تعذّر تحميل وصفاتك الطبية.",
+      "activeTab": "نشطة",
+      "previousTab": "سابقة",
+      "activeEmptyTitle": "لا توجد وصفات نشطة",
+      "activeEmptyDescription": "ستظهر وصفاتك النشطة هنا بمجرد وصفها.",
+      "previousEmptyTitle": "لا توجد وصفات سابقة",
+      "previousEmptyDescription": "ستظهر هنا وصفاتك المكتملة والمنتهية الصلاحية.",
+      "prescribedBy": "وصفها {name}",
+      "refillsRemaining": "{count, plural, =0 {لا يوجد تجديد متبقٍ} one {تجديد واحد متبقٍ} two {تجديدان متبقيان} few {# تجديدات متبقية} many {# تجديدًا متبقيًا} other {# تجديد متبقٍ}}",
+      "status": {
+        "active": "نشطة",
+        "completed": "مكتملة",
+        "expired": "منتهية الصلاحية"
+      },
+      "refillStatus": {
+        "not-due": "غير مستحق بعد",
+        "due-soon": "التجديد مستحق قريبًا",
+        "due": "التجديد مستحق",
+        "none-remaining": "لا يوجد تجديد متبقٍ"
+      }
     }
   }
 }
