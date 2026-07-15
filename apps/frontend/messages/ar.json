@@ -458,6 +458,33 @@
         "previousWeek": "الأسبوع السابق",
         "nextWeek": "الأسبوع التالي"
       }
+    },
+    "records": {
+      "title": "السجلات الطبية",
+      "loadError": "تعذّر تحميل سجلاتك الطبية.",
+      "timelineTitle": "الجدول الزمني",
+      "timelineEmptyTitle": "لا توجد سجلات طبية بعد",
+      "timelineEmptyDescription": "ستظهر هنا الزيارات والتشخيصات والحساسية والأمراض المسجلة من فريق الرعاية الخاص بك.",
+      "download": "تنزيل",
+      "filters": {
+        "all": "الكل",
+        "visit": "الزيارات",
+        "diagnosis": "التشخيصات",
+        "allergy": "الحساسية",
+        "condition": "الأمراض"
+      },
+      "type": {
+        "visit": "زيارة",
+        "diagnosis": "تشخيص",
+        "allergy": "حساسية",
+        "condition": "مرض"
+      },
+      "labResults": "نتائج المختبر",
+      "labResultsUnavailableTitle": "نتائج المختبر غير متاحة بعد",
+      "labResultsUnavailableDescription": "ستظهر نتائج المختبر هنا بمجرد توفر هذا الجزء من أوريفكس.",
+      "imaging": "الأشعة",
+      "imagingUnavailableTitle": "الأشعة غير متاحة بعد",
+      "imagingUnavailableDescription": "ستظهر الدراسات والتقارير الإشعاعية هنا بمجرد توفر هذا الجزء من أوريفكس."
     }
   }
 }

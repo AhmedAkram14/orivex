@@ -5,3 +5,4 @@ export const patientUpcomingAppointmentsKeys = createQueryKeyFactory('patient-up
 export const patientActivePrescriptionsKeys = createQueryKeyFactory('patient-active-prescriptions');
 export const patientProfileKeys = createQueryKeyFactory('patient-profile');
 export const patientAppointmentsKeys = createQueryKeyFactory('patient-appointments');
+export const patientMedicalRecordsKeys = createQueryKeyFactory('patient-medical-records');

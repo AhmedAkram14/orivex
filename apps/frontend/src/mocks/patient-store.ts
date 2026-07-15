@@ -1,6 +1,7 @@
 import type {
   ActivePrescriptionPreview,
   Appointment,
+  MedicalRecordEntry,
   PatientDashboardSummary,
   PatientProfile,
   PatientProfileUpdateRequest,
@@ -63,11 +64,23 @@ function seedAppointments(): Appointment[] {
   return [];
 }
 
+/**
+ * The Medical Records timeline (milestone 4) — an honest empty array, same
+ * reasoning as `seedAppointments`: no Clinical module is wired into the
+ * frontend yet. `downloadUrl` never gets a fabricated value on any seeded
+ * entry (there is none to seed yet), keeping `RecordDownloadButton`
+ * architecture-ready but never rendered on fake data.
+ */
+function seedMedicalRecords(): MedicalRecordEntry[] {
+  return [];
+}
+
 let summary: PatientDashboardSummary = seedSummary();
 let upcomingAppointments: UpcomingAppointmentPreview[] = seedUpcomingAppointments();
 let activePrescriptions: ActivePrescriptionPreview[] = seedActivePrescriptions();
 let profile: PatientProfile = seedProfile();
 let appointments: Appointment[] = seedAppointments();
+let medicalRecords: MedicalRecordEntry[] = seedMedicalRecords();
 
 export function getDashboardSummary(): PatientDashboardSummary {
   return summary;
@@ -104,6 +117,10 @@ export function getAppointments(): Appointment[] {
   return appointments;
 }
 
+export function getMedicalRecords(): MedicalRecordEntry[] {
+  return medicalRecords;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPatientStore(): void {
   summary = seedSummary();
@@ -111,4 +128,5 @@ export function resetPatientStore(): void {
   activePrescriptions = seedActivePrescriptions();
   profile = seedProfile();
   appointments = seedAppointments();
+  medicalRecords = seedMedicalRecords();
 }

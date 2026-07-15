@@ -458,6 +458,33 @@
         "previousWeek": "Previous week",
         "nextWeek": "Next week"
       }
+    },
+    "records": {
+      "title": "Medical Records",
+      "loadError": "Couldn't load your medical records.",
+      "timelineTitle": "Timeline",
+      "timelineEmptyTitle": "No medical records yet",
+      "timelineEmptyDescription": "Visits, diagnoses, allergies, and conditions recorded by your care team will appear here.",
+      "download": "Download",
+      "filters": {
+        "all": "All",
+        "visit": "Visits",
+        "diagnosis": "Diagnoses",
+        "allergy": "Allergies",
+        "condition": "Conditions"
+      },
+      "type": {
+        "visit": "Visit",
+        "diagnosis": "Diagnosis",
+        "allergy": "Allergy",
+        "condition": "Condition"
+      },
+      "labResults": "Lab results",
+      "labResultsUnavailableTitle": "Lab results aren't available yet",
+      "labResultsUnavailableDescription": "Lab results will appear here once that part of Orivex is available.",
+      "imaging": "Imaging",
+      "imagingUnavailableTitle": "Imaging isn't available yet",
+      "imagingUnavailableDescription": "Imaging studies and reports will appear here once that part of Orivex is available."
     }
   }
 }

@@ -6,6 +6,7 @@ import {
   getActivePrescriptions,
   getAppointments,
   getDashboardSummary,
+  getMedicalRecords,
   getProfile,
   getUpcomingAppointments,
   updateProfile,
@@ -32,4 +33,6 @@ export const patientHandlers = [
   }),
 
   http.get(`${base()}${PATIENT_PATHS.appointments}`, () => HttpResponse.json({ data: getAppointments() })),
+
+  http.get(`${base()}${PATIENT_PATHS.medicalRecords}`, () => HttpResponse.json({ data: getMedicalRecords() })),
 ];

@@ -3,6 +3,7 @@ import { PATIENT_PATHS } from '@/features/patient/api/paths';
 import type {
   ActivePrescriptionsResponse,
   AppointmentsResponse,
+  MedicalRecordsResponse,
   PatientDashboardSummary,
   PatientProfile,
   PatientProfileUpdateRequest,
@@ -31,4 +32,6 @@ export const patientApi = {
     apiFetch<PatientProfile>({ method: 'PATCH', path: PATIENT_PATHS.profile, body: request }),
 
   getAppointments: () => apiFetch<AppointmentsResponse>({ path: PATIENT_PATHS.appointments }),
+
+  getMedicalRecords: () => apiFetch<MedicalRecordsResponse>({ path: PATIENT_PATHS.medicalRecords }),
 };

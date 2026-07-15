@@ -115,3 +115,27 @@ export interface Appointment {
 }
 
 export type AppointmentsResponse = Appointment[];
+
+export type MedicalRecordEntryType = 'visit' | 'diagnosis' | 'allergy' | 'condition';
+
+/**
+ * A single chronological medical-record entry — the Timeline architecture's
+ * data shape (milestone 4). Pulled forward from Phase 10's Health Graph/
+ * Journey Timeline scope onto this simpler, self-contained shape for now;
+ * a real `ClinicalModule` integration later is a data-source swap, not a
+ * UI rewrite, per this codebase's established pattern for every other
+ * not-yet-backed feature.
+ */
+export interface MedicalRecordEntry {
+  id: string;
+  type: MedicalRecordEntryType;
+  /** ISO date. */
+  date: string;
+  title: string;
+  description?: string;
+  doctorName?: string;
+  /** A real, already-resolved download URL (e.g. an `AssetModule` presigned link) — undefined when no document exists for this entry, never fabricated. */
+  downloadUrl?: string;
+}
+
+export type MedicalRecordsResponse = MedicalRecordEntry[];
