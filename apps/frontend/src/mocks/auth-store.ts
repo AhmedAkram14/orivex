@@ -32,6 +32,15 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
     locked: false,
   },
   {
+    id: 'user-patient-1',
+    email: 'patient@orivex.dev',
+    password: 'Password123!',
+    fullName: 'Amina Youssef',
+    roles: ['patient'],
+    emailVerified: true,
+    locked: false,
+  },
+  {
     id: 'user-locked-1',
     email: 'locked@orivex.dev',
     password: 'Password123!',

@@ -208,7 +208,13 @@
       "prescriptions": "الوصفات الطبية",
       "billing": "الفواتير",
       "users": "المستخدمون",
-      "security": "الأمان"
+      "security": "الأمان",
+      "patientWorkspace": "صحتي",
+      "patientProfile": "الملف الشخصي",
+      "patientAppointments": "المواعيد",
+      "patientRecords": "السجلات الطبية",
+      "patientPrescriptions": "الوصفات الطبية",
+      "patientHealth": "لوحة الصحة"
     },
     "notifications": {
       "title": "الإشعارات",
@@ -342,6 +348,39 @@
       "sectionEmptyDescription": "سيتوفر هذا القسم بمجرد إنشاء وحدة الاستشارة.",
       "patientPanelTitle": "معلومات المريض",
       "patientPanelDescription": "ستظهر تفاصيل المريض هنا بمجرد إنشاء وحدة المرضى."
+    }
+  },
+  "patient": {
+    "dashboard": {
+      "title": "صحتي",
+      "welcome": "مرحبًا بعودتك، {name}.",
+      "upcomingAppointments": {
+        "status": {
+          "upcoming": "قادم",
+          "in-progress": "جارٍ"
+        }
+      },
+      "activePrescriptions": {
+        "status": {
+          "active": "نشطة",
+          "refill-due": "إعادة صرف مستحقة"
+        }
+      },
+      "lastVisit": "آخر زيارة",
+      "noVisitsYet": "لا توجد زيارات بعد",
+      "upcomingAppointmentsTitle": "المواعيد القادمة",
+      "upcomingAppointmentsEmptyTitle": "لا توجد مواعيد مجدولة بعد",
+      "upcomingAppointmentsEmptyDescription": "ستظهر مواعيدك القادمة هنا بمجرد توفر الجدولة.",
+      "activePrescriptionsTitle": "الوصفات النشطة",
+      "activePrescriptionsEmptyTitle": "لا توجد وصفات نشطة",
+      "activePrescriptionsEmptyDescription": "ستظهر وصفاتك النشطة هنا بمجرد صرفها.",
+      "prescribedBy": "بواسطة {name}",
+      "quickActions": {
+        "viewProfile": "عرض الملف الشخصي",
+        "viewAppointments": "عرض المواعيد",
+        "viewRecords": "عرض السجلات",
+        "viewPrescriptions": "عرض الوصفات"
+      }
     }
   }
 }

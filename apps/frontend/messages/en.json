@@ -199,6 +199,12 @@
       "doctorSchedule": "Schedule",
       "doctorQueue": "Patient Queue",
       "doctorConsultation": "Consultation",
+      "patientWorkspace": "My Health",
+      "patientProfile": "Profile",
+      "patientAppointments": "Appointments",
+      "patientRecords": "Medical Records",
+      "patientPrescriptions": "Prescriptions",
+      "patientHealth": "Health Dashboard",
       "groups": {
         "clinical": "Clinical",
         "administration": "Administration"
@@ -342,6 +348,39 @@
       "sectionEmptyDescription": "This section will be available once the Consultation module is built.",
       "patientPanelTitle": "Patient information",
       "patientPanelDescription": "Patient details will appear here once the Patient module is built."
+    }
+  },
+  "patient": {
+    "dashboard": {
+      "title": "My Health",
+      "welcome": "Welcome back, {name}.",
+      "upcomingAppointments": {
+        "status": {
+          "upcoming": "Upcoming",
+          "in-progress": "In progress"
+        }
+      },
+      "activePrescriptions": {
+        "status": {
+          "active": "Active",
+          "refill-due": "Refill due"
+        }
+      },
+      "lastVisit": "Last visit",
+      "noVisitsYet": "No visits yet",
+      "upcomingAppointmentsTitle": "Upcoming appointments",
+      "upcomingAppointmentsEmptyTitle": "No appointments scheduled yet",
+      "upcomingAppointmentsEmptyDescription": "Your upcoming appointments will appear here once scheduling is available.",
+      "activePrescriptionsTitle": "Active prescriptions",
+      "activePrescriptionsEmptyTitle": "No active prescriptions",
+      "activePrescriptionsEmptyDescription": "Your active prescriptions will appear here once they are prescribed.",
+      "prescribedBy": "Prescribed by {name}",
+      "quickActions": {
+        "viewProfile": "View profile",
+        "viewAppointments": "View appointments",
+        "viewRecords": "View records",
+        "viewPrescriptions": "View prescriptions"
+      }
     }
   }
 }

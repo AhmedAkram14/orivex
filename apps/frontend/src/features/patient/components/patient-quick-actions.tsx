@@ -1,0 +1,21 @@
+'use client';
+
+import { CalendarDays, FileText, Pill, User } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { QuickActions } from '@/shared/ui/layout/quick-actions';
+
+/** The Patient Portal dashboard's shortcut grid — reuses the shared `QuickActions`/`QuickActionCard` primitives (Phase 6), pointed at this phase's own routes. Every entry links to a route this same phase builds (profile: milestone 2, appointments: milestone 3, records: milestone 4, prescriptions: milestone 5) — never a disabled placeholder. */
+export function PatientQuickActions() {
+  const t = useTranslations('patient.dashboard.quickActions');
+
+  return (
+    <QuickActions
+      actions={[
+        { id: 'profile', label: t('viewProfile'), icon: User, href: '/patient/profile' },
+        { id: 'appointments', label: t('viewAppointments'), icon: CalendarDays, href: '/patient/appointments' },
+        { id: 'records', label: t('viewRecords'), icon: FileText, href: '/patient/records' },
+        { id: 'prescriptions', label: t('viewPrescriptions'), icon: Pill, href: '/patient/prescriptions' },
+      ]}
+    />
+  );
+}

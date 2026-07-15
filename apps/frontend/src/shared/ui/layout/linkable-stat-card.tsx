@@ -4,7 +4,7 @@ import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
 
-export interface DoctorStatCardProps {
+export interface LinkableStatCardProps {
   icon: LucideIcon;
   label: string;
   value: string;
@@ -20,15 +20,18 @@ const tileClass = cn(
 );
 
 /**
- * A `StatCard` variant for the Doctor Workspace's "Today's Summary" row —
- * adds an optional loading skeleton (workspace counts are fetched, unlike
+ * A `StatCard` variant used by any workspace dashboard's summary row (Doctor
+ * Workspace's "Today's Summary", Patient Portal's "Health Summary") — adds
+ * an optional loading skeleton (workspace counts are fetched, unlike
  * `StatCard`'s always-ready value) and an optional drill-through link.
  * Not a duplicate of `StatCard`: this is what `StatCard` becomes once a
  * tile needs to reflect an in-flight query or link somewhere, which
  * `StatCard` deliberately stays without to remain the simplest possible
- * static tile for callers that don't need either.
+ * static tile for callers that don't need either. Domain-agnostic —
+ * originally built for Doctor Workspace, generalized when Patient Portal
+ * needed the identical shape rather than a duplicate `PatientStatCard`.
  */
-export function DoctorStatCard({ icon, label, value, href, loading = false, className }: DoctorStatCardProps) {
+export function LinkableStatCard({ icon, label, value, href, loading = false, className }: LinkableStatCardProps) {
   const content = (
     <>
       <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary">

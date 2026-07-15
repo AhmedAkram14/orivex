@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Users } from 'lucide-react';
-import { DoctorStatCard } from './doctor-stat-card';
+import { LinkableStatCard } from './linkable-stat-card';
 
-const meta: Meta<typeof DoctorStatCard> = {
-  title: 'UI/Layout/DoctorStatCard',
-  component: DoctorStatCard,
+const meta: Meta<typeof LinkableStatCard> = {
+  title: 'UI/Layout/LinkableStatCard',
+  component: LinkableStatCard,
 };
 export default meta;
 
-type Story = StoryObj<typeof DoctorStatCard>;
+type Story = StoryObj<typeof LinkableStatCard>;
 
 export const Default: Story = { args: { icon: Users, label: 'Patients in queue', value: '3' } };
 export const Linked: Story = { args: { icon: Users, label: 'Patients in queue', value: '3', href: '#' } };

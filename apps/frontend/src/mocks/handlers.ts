@@ -3,6 +3,7 @@ import { env } from '@/shared/lib/env';
 import { authHandlers } from '@/mocks/handlers/auth';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
+import { patientHandlers } from '@/mocks/handlers/patient';
 
 /**
  * Request handlers shared between the browser worker (manual dev/QA
@@ -20,4 +21,5 @@ export const handlers = [
   ...authHandlers,
   ...notificationHandlers,
   ...doctorHandlers,
+  ...patientHandlers,
 ];
