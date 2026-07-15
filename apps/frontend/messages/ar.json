@@ -381,6 +381,52 @@
         "viewRecords": "عرض السجلات",
         "viewPrescriptions": "عرض الوصفات"
       }
+    },
+    "profile": {
+      "title": "الملف الشخصي",
+      "editProfile": "تعديل الملف الشخصي",
+      "personalInformation": "المعلومات الشخصية",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "medicalInformation": "المعلومات الطبية",
+      "medicalInformationDescription": "يتم إدخالها بواسطة فريق الرعاية الخاص بك — لا يمكنك تعديل هذا القسم بنفسك.",
+      "bloodType": "فصيلة الدم",
+      "notOnRecord": "غير مسجلة",
+      "allergies": "الحساسية",
+      "noAllergiesOnRecord": "لا توجد حساسية مسجلة",
+      "chronicConditions": "الأمراض المزمنة",
+      "noConditionsOnRecord": "لا توجد أمراض مزمنة مسجلة",
+      "emergencyContacts": "جهات الاتصال في حالات الطوارئ",
+      "emergencyContactsEmptyTitle": "لا توجد جهات اتصال طوارئ بعد",
+      "emergencyContactsEmptyDescription": "أضف شخصًا يمكننا التواصل معه في حالة الطوارئ.",
+      "addContact": "إضافة جهة اتصال",
+      "removeContact": "إزالة جهة الاتصال",
+      "contactName": "الاسم",
+      "contactRelationship": "صلة القرابة",
+      "contactPhone": "هاتف جهة الاتصال",
+      "insurance": "التأمين",
+      "insuranceUnavailableTitle": "تفاصيل التأمين غير متاحة بعد",
+      "insuranceUnavailableDescription": "ستظهر معلومات التأمين والفوترة هنا بمجرد توفر هذا الجزء من أوريفكس.",
+      "settings": "الإعدادات",
+      "settingsComingSoonTitle": "المزيد من الإعدادات قريبًا",
+      "settingsComingSoonDescription": "ستظهر تفضيلات الإشعارات والخصوصية هنا في تحديث مستقبلي.",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "loadError": "تعذّر تحميل ملفك الشخصي.",
+      "gender": {
+        "female": "أنثى",
+        "male": "ذكر",
+        "other": "آخر",
+        "unspecified": "غير محدد"
+      },
+      "validation": {
+        "phoneRequired": "أدخل رقم الهاتف.",
+        "addressRequired": "أدخل عنوانك.",
+        "contactNameRequired": "أدخل الاسم.",
+        "contactRelationshipRequired": "أدخل صلة القرابة.",
+        "contactPhoneRequired": "أدخل رقم الهاتف.",
+        "contactsTooMany": "يمكنك إضافة حتى {max} جهات اتصال للطوارئ."
+      }
     }
   }
 }

@@ -40,3 +40,55 @@ export interface ActivePrescriptionPreview {
 }
 
 export type ActivePrescriptionsResponse = ActivePrescriptionPreview[];
+
+export type PatientGender = 'female' | 'male' | 'other' | 'unspecified';
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
+/**
+ * Clinical facts about the patient — deliberately read-only from the
+ * frontend's perspective (CLAUDE.md: "AI never writes directly to clinical
+ * records," extended here to "a patient never self-edits their own clinical
+ * record" either; these fields are clinician-entered via `ClinicalModule`,
+ * not yet wired into this frontend). `allergies`/`chronicConditions` are
+ * honest empty arrays when nothing is on record, never fabricated.
+ */
+export interface PatientMedicalInfo {
+  /** e.g. "O+" — undefined means not yet on record, never a guessed default. */
+  bloodType?: string;
+  allergies: string[];
+  chronicConditions: string[];
+}
+
+export interface PatientProfile {
+  id: string;
+  fullName: string;
+  /** ISO date. */
+  dateOfBirth: string;
+  gender: PatientGender;
+  email: string;
+  phone: string;
+  address: string;
+  medicalInfo: PatientMedicalInfo;
+  emergencyContacts: EmergencyContact[];
+}
+
+/**
+ * Only the fields a patient can actually edit about their own profile —
+ * identity fields (`fullName`, `dateOfBirth`, `gender`, `email`) and
+ * clinical fields (`medicalInfo`) are deliberately excluded, mirroring
+ * `DoctorProfileUpdateRequest`'s exclusion of identity/verification-backed
+ * fields. `emergencyContacts` omits `id` per entry for new contacts (the
+ * backend assigns it); existing contacts keep theirs so updates target the
+ * right row.
+ */
+export interface PatientProfileUpdateRequest {
+  phone: string;
+  address: string;
+  emergencyContacts: (Omit<EmergencyContact, 'id'> & { id?: string })[];
+}

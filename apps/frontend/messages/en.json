@@ -381,6 +381,52 @@
         "viewRecords": "View records",
         "viewPrescriptions": "View prescriptions"
       }
+    },
+    "profile": {
+      "title": "Profile",
+      "editProfile": "Edit profile",
+      "personalInformation": "Personal information",
+      "phone": "Phone",
+      "address": "Address",
+      "medicalInformation": "Medical information",
+      "medicalInformationDescription": "Entered by your care team — you cannot edit this section yourself.",
+      "bloodType": "Blood type",
+      "notOnRecord": "Not on record",
+      "allergies": "Allergies",
+      "noAllergiesOnRecord": "No allergies on record",
+      "chronicConditions": "Chronic conditions",
+      "noConditionsOnRecord": "No chronic conditions on record",
+      "emergencyContacts": "Emergency contacts",
+      "emergencyContactsEmptyTitle": "No emergency contacts yet",
+      "emergencyContactsEmptyDescription": "Add someone we can contact in case of an emergency.",
+      "addContact": "Add contact",
+      "removeContact": "Remove contact",
+      "contactName": "Name",
+      "contactRelationship": "Relationship",
+      "contactPhone": "Contact phone",
+      "insurance": "Insurance",
+      "insuranceUnavailableTitle": "Insurance details aren't available yet",
+      "insuranceUnavailableDescription": "Insurance and billing information will appear here once that part of Orivex is available.",
+      "settings": "Settings",
+      "settingsComingSoonTitle": "More settings coming soon",
+      "settingsComingSoonDescription": "Notification and privacy preferences will appear here in a future update.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "loadError": "Couldn't load your profile.",
+      "gender": {
+        "female": "Female",
+        "male": "Male",
+        "other": "Other",
+        "unspecified": "Unspecified"
+      },
+      "validation": {
+        "phoneRequired": "Enter a phone number.",
+        "addressRequired": "Enter your address.",
+        "contactNameRequired": "Enter a name.",
+        "contactRelationshipRequired": "Enter a relationship.",
+        "contactPhoneRequired": "Enter a phone number.",
+        "contactsTooMany": "You can add up to {max} emergency contacts."
+      }
     }
   }
 }
