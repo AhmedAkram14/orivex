@@ -29,6 +29,16 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('true')
     .transform((value) => value === 'true'),
+  // AuthenticationModule (docs/10-backend-architecture.md). Signs/verifies
+  // access tokens -- required (no safe default for a signing secret).
+  JWT_ACCESS_SECRET: z.string().min(32),
+  JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  // argon2id cost parameters (docs/14-adrs.md's "First-Party Authentication"
+  // ADR). Defaults follow OWASP's current recommendation; env-overridable so
+  // production can tune for its actual hardware without a code change.
+  ARGON2_MEMORY_COST_KIB: z.coerce.number().int().positive().default(19_456),
+  ARGON2_TIME_COST: z.coerce.number().int().positive().default(2),
+  ARGON2_PARALLELISM: z.coerce.number().int().positive().default(1),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
