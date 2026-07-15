@@ -28,7 +28,7 @@ export function RegisterForm() {
 
   async function onSubmit(values: RegisterFormValues) {
     try {
-      await register.mutateAsync(values);
+      await register.mutateAsync({ fullName: values.fullName, email: values.email, password: values.password });
       router.push(`/check-email?email=${encodeURIComponent(values.email)}&reason=register`);
     } catch {
       // Inline error rendered below from `register.error` -- no further action needed here.
