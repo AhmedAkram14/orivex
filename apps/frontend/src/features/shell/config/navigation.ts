@@ -6,6 +6,7 @@ import {
   Receipt,
   ShieldAlert,
   Stethoscope,
+  User,
   UserCog,
   Users,
   type LucideIcon,
@@ -53,8 +54,23 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
     id: 'doctor-workspace',
     labelKey: 'doctorWorkspace',
     icon: Stethoscope,
-    href: '/doctor',
     roles: ['doctor'],
+    children: [
+      {
+        id: 'doctor-workspace-dashboard',
+        labelKey: 'overview',
+        icon: Stethoscope,
+        href: '/doctor',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-profile',
+        labelKey: 'doctorProfile',
+        icon: User,
+        href: '/doctor/profile',
+        roles: ['doctor'],
+      },
+    ],
   },
   {
     id: 'clinical',

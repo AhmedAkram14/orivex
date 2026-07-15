@@ -194,6 +194,8 @@
       "landmarkLabel": "Main navigation",
       "dashboard": "Dashboard",
       "doctorWorkspace": "Doctor Workspace",
+      "overview": "Overview",
+      "doctorProfile": "Profile",
       "groups": {
         "clinical": "Clinical",
         "administration": "Administration"
@@ -256,6 +258,41 @@
           "completed": "Completed",
           "cancelled": "Cancelled"
         }
+      }
+    },
+    "profile": {
+      "title": "Profile",
+      "editProfile": "Edit profile",
+      "professionalInformation": "Professional information",
+      "qualifications": "Qualifications",
+      "experience": "Experience",
+      "yearsOfExperience": "{years} years of experience",
+      "availability": "Availability",
+      "languages": "Languages",
+      "contactInformation": "Contact information",
+      "save": "Save",
+      "cancel": "Cancel",
+      "loadError": "Couldn't load your profile.",
+      "days": {
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      },
+      "languageNames": {
+        "en": "English",
+        "ar": "Arabic"
+      },
+      "validation": {
+        "specializationRequired": "Enter your specialization.",
+        "bioRequired": "Enter a short professional bio.",
+        "bioTooLong": "Bio must be at most {max} characters.",
+        "experienceInvalid": "Enter a valid number of years.",
+        "languagesRequired": "Select at least one language.",
+        "phoneRequired": "Enter a contact phone number."
       }
     }
   }

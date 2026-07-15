@@ -194,6 +194,8 @@
       "landmarkLabel": "التنقل الرئيسي",
       "dashboard": "لوحة التحكم",
       "doctorWorkspace": "مساحة عمل الطبيب",
+      "overview": "نظرة عامة",
+      "doctorProfile": "الملف الشخصي",
       "groups": {
         "clinical": "الرعاية السريرية",
         "administration": "الإدارة"
@@ -256,6 +258,41 @@
           "completed": "مكتملة",
           "cancelled": "ملغاة"
         }
+      }
+    },
+    "profile": {
+      "title": "الملف الشخصي",
+      "editProfile": "تعديل الملف الشخصي",
+      "professionalInformation": "المعلومات المهنية",
+      "qualifications": "المؤهلات",
+      "experience": "الخبرة",
+      "yearsOfExperience": "{years} سنوات من الخبرة",
+      "availability": "التوفر",
+      "languages": "اللغات",
+      "contactInformation": "معلومات التواصل",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "loadError": "تعذّر تحميل ملفك الشخصي.",
+      "days": {
+        "monday": "الاثنين",
+        "tuesday": "الثلاثاء",
+        "wednesday": "الأربعاء",
+        "thursday": "الخميس",
+        "friday": "الجمعة",
+        "saturday": "السبت",
+        "sunday": "الأحد"
+      },
+      "languageNames": {
+        "en": "الإنجليزية",
+        "ar": "العربية"
+      },
+      "validation": {
+        "specializationRequired": "أدخل تخصصك.",
+        "bioRequired": "أدخل نبذة مهنية مختصرة.",
+        "bioTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
+        "experienceInvalid": "أدخل عددًا صحيحًا من السنوات.",
+        "languagesRequired": "اختر لغة واحدة على الأقل.",
+        "phoneRequired": "أدخل رقم هاتف للتواصل."
       }
     }
   }
