@@ -198,6 +198,7 @@
       "doctorProfile": "الملف الشخصي",
       "doctorSchedule": "الجدول الزمني",
       "doctorQueue": "قائمة انتظار المرضى",
+      "doctorConsultation": "الاستشارة",
       "groups": {
         "clinical": "الرعاية السريرية",
         "administration": "الإدارة"
@@ -323,6 +324,20 @@
         "in-consultation": "في استشارة",
         "completed": "مكتملة"
       }
+    },
+    "consultation": {
+      "title": "مساحة عمل الاستشارة",
+      "description": "التخطيط الذي ستُبنى عليه أدوات الاستشارة المستقبلية.",
+      "sectionsLabel": "أقسام الاستشارة",
+      "sections": {
+        "overview": "نظرة عامة",
+        "vitals": "العلامات الحيوية",
+        "notes": "الملاحظات",
+        "history": "السجل"
+      },
+      "sectionEmptyDescription": "سيتوفر هذا القسم بمجرد إنشاء وحدة الاستشارة.",
+      "patientPanelTitle": "معلومات المريض",
+      "patientPanelDescription": "ستظهر تفاصيل المريض هنا بمجرد إنشاء وحدة المرضى."
     }
   }
 }

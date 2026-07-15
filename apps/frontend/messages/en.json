@@ -198,6 +198,7 @@
       "doctorProfile": "Profile",
       "doctorSchedule": "Schedule",
       "doctorQueue": "Patient Queue",
+      "doctorConsultation": "Consultation",
       "groups": {
         "clinical": "Clinical",
         "administration": "Administration"
@@ -323,6 +324,20 @@
         "in-consultation": "In consultation",
         "completed": "Completed"
       }
+    },
+    "consultation": {
+      "title": "Consultation Workspace",
+      "description": "The layout future consultation tools will render inside.",
+      "sectionsLabel": "Consultation sections",
+      "sections": {
+        "overview": "Overview",
+        "vitals": "Vitals",
+        "notes": "Notes",
+        "history": "History"
+      },
+      "sectionEmptyDescription": "This section will be available once the Consultation module is built.",
+      "patientPanelTitle": "Patient information",
+      "patientPanelDescription": "Patient details will appear here once the Patient module is built."
     }
   }
 }

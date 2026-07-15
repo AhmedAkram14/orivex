@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   CalendarRange,
+  ClipboardPlus,
   HeartPulse,
   LayoutDashboard,
   Pill,
@@ -83,6 +84,13 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'doctorQueue',
         icon: Users,
         href: '/doctor/queue',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-consultation',
+        labelKey: 'doctorConsultation',
+        icon: ClipboardPlus,
+        href: '/doctor/consultation',
         roles: ['doctor'],
       },
     ],
