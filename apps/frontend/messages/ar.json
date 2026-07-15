@@ -196,6 +196,7 @@
       "doctorWorkspace": "مساحة عمل الطبيب",
       "overview": "نظرة عامة",
       "doctorProfile": "الملف الشخصي",
+      "doctorSchedule": "الجدول الزمني",
       "groups": {
         "clinical": "الرعاية السريرية",
         "administration": "الإدارة"
@@ -294,6 +295,14 @@
         "languagesRequired": "اختر لغة واحدة على الأقل.",
         "phoneRequired": "أدخل رقم هاتف للتواصل."
       }
+    },
+    "schedule": {
+      "title": "الجدول الزمني",
+      "today": "اليوم",
+      "previousWeek": "الأسبوع السابق",
+      "nextWeek": "الأسبوع التالي",
+      "noAvailability": "غير متاح",
+      "loadError": "تعذّر تحميل أوقات توفرك."
     }
   }
 }

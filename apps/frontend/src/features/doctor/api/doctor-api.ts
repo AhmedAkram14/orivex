@@ -5,6 +5,7 @@ import type {
   DoctorProfile,
   DoctorProfileUpdateRequest,
   UpcomingWorkResponse,
+  WeeklyAvailabilityResponse,
 } from '@/features/doctor/api/types';
 
 /**
@@ -24,4 +25,6 @@ export const doctorApi = {
 
   updateProfile: (request: DoctorProfileUpdateRequest) =>
     apiFetch<DoctorProfile>({ method: 'PATCH', path: DOCTOR_PATHS.profile, body: request }),
+
+  getWeeklyAvailability: () => apiFetch<WeeklyAvailabilityResponse>({ path: DOCTOR_PATHS.availability }),
 };

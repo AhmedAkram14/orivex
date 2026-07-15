@@ -196,6 +196,7 @@
       "doctorWorkspace": "Doctor Workspace",
       "overview": "Overview",
       "doctorProfile": "Profile",
+      "doctorSchedule": "Schedule",
       "groups": {
         "clinical": "Clinical",
         "administration": "Administration"
@@ -294,6 +295,14 @@
         "languagesRequired": "Select at least one language.",
         "phoneRequired": "Enter a contact phone number."
       }
+    },
+    "schedule": {
+      "title": "Schedule",
+      "today": "Today",
+      "previousWeek": "Previous week",
+      "nextWeek": "Next week",
+      "noAvailability": "Not available",
+      "loadError": "Couldn't load your availability."
     }
   }
 }

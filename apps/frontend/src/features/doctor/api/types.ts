@@ -54,3 +54,22 @@ export interface DoctorProfileUpdateRequest {
   languages: string[];
   phone: string;
 }
+
+/**
+ * A recurring weekly availability window — the Schedule Foundation's data
+ * shape, distinct from `DoctorAvailabilitySummary` (the profile page's
+ * plain-text summary of the same underlying reality). This is what
+ * `SchedulingModule`'s real `AvailabilityWindow` will eventually replace;
+ * the shape here is deliberately simple (one day, one start/end hour) so
+ * that replacement is a data-source change, not a UI rewrite.
+ */
+export interface AvailabilityBlockData {
+  id: string;
+  dayOfWeek: WeekDay;
+  /** 24-hour clock, e.g. 9 for 9:00 AM. */
+  startHour: number;
+  /** 24-hour clock, e.g. 17 for 5:00 PM. */
+  endHour: number;
+}
+
+export type WeeklyAvailabilityResponse = AvailabilityBlockData[];

@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  CalendarRange,
   HeartPulse,
   LayoutDashboard,
   Pill,
@@ -68,6 +69,13 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'doctorProfile',
         icon: User,
         href: '/doctor/profile',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-schedule',
+        labelKey: 'doctorSchedule',
+        icon: CalendarRange,
+        href: '/doctor/schedule',
         roles: ['doctor'],
       },
     ],

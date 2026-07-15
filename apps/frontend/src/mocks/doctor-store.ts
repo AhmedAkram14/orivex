@@ -1,4 +1,5 @@
 import type {
+  AvailabilityBlockData,
   DoctorDashboardSummary,
   DoctorProfile,
   DoctorProfileUpdateRequest,
@@ -48,9 +49,16 @@ function seedProfile(): DoctorProfile {
   };
 }
 
+/** Mirrors `seedProfile`'s `availability` summary (Sun–Thu, 9–5) as discrete per-day blocks — the Schedule Foundation's data shape, same underlying reality as the profile page's plain-text summary. */
+function seedAvailability(): AvailabilityBlockData[] {
+  const days: AvailabilityBlockData['dayOfWeek'][] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
+  return days.map((day, index) => ({ id: `availability-${index}`, dayOfWeek: day, startHour: 9, endHour: 17 }));
+}
+
 let summary: DoctorDashboardSummary = seedSummary();
 let upcomingWork: UpcomingWorkItem[] = seedUpcomingWork();
 let profile: DoctorProfile = seedProfile();
+let availability: AvailabilityBlockData[] = seedAvailability();
 
 export function getDashboardSummary(): DoctorDashboardSummary {
   return summary;
@@ -69,9 +77,14 @@ export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfil
   return profile;
 }
 
+export function getWeeklyAvailability(): AvailabilityBlockData[] {
+  return availability;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetDoctorStore(): void {
   summary = seedSummary();
   upcomingWork = seedUpcomingWork();
   profile = seedProfile();
+  availability = seedAvailability();
 }

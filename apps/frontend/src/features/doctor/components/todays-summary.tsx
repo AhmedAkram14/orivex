@@ -18,6 +18,7 @@ export function TodaysSummary() {
         label={t('consultationsToday')}
         value={String(data?.consultationsToday ?? 0)}
         loading={isLoading}
+        href="/doctor/schedule"
       />
       <DoctorStatCard
         icon={Users}
