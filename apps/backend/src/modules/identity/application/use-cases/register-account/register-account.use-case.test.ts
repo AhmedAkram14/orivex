@@ -63,7 +63,6 @@ describe('RegisterAccountUseCase', () => {
     const account = await useCase.execute(
       new RegisterAccountCommand({
         email: '  Doctor@Example.COM ',
-        keycloakId: 'kc-123',
         role: AccountRole.Doctor,
         displayName: 'Dr. Amina Hassan',
       }),
@@ -91,7 +90,6 @@ describe('RegisterAccountUseCase', () => {
         useCase.execute(
           new RegisterAccountCommand({
             email: 'taken@example.com',
-            keycloakId: 'kc-456',
             role: AccountRole.Patient,
             displayName: 'Someone',
           }),
@@ -109,7 +107,6 @@ describe('RegisterAccountUseCase', () => {
         useCase.execute(
           new RegisterAccountCommand({
             email: 'not-an-email',
-            keycloakId: 'kc-789',
             role: AccountRole.Patient,
             displayName: 'Someone',
           }),

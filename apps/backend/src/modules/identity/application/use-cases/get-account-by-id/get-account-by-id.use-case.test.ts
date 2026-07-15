@@ -29,7 +29,6 @@ describe('GetAccountByIdUseCase', () => {
   it('returns the account when it exists', async () => {
     const account = Account.register({
       email: EmailAddress.create('found@example.com'),
-      keycloakId: 'kc-found',
       role: AccountRole.Patient,
       displayName: DisplayName.create('Found User'),
     });

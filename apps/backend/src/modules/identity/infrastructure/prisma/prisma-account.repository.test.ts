@@ -32,7 +32,6 @@ describe('PrismaAccountRepository', () => {
     const repository = new PrismaAccountRepository(fakePrisma);
     const account = Account.register({
       email: EmailAddress.create('doctor@example.com'),
-      keycloakId: 'keycloak-1',
       role: AccountRole.Patient,
       displayName: DisplayName.create('Dr. Test'),
       preferredLanguage: Language.English,
@@ -52,7 +51,6 @@ describe('PrismaAccountRepository', () => {
     const repository = new PrismaAccountRepository(fakePrisma);
     const account = Account.register({
       email: EmailAddress.create('doctor3@example.com'),
-      keycloakId: 'keycloak-3',
       role: AccountRole.Patient,
       displayName: DisplayName.create('Dr. Test'),
       preferredLanguage: Language.English,
@@ -82,7 +80,6 @@ describe('PrismaAccountRepository', () => {
     const repository = new PrismaAccountRepository(fakePrisma);
     const account = Account.register({
       email: EmailAddress.create('doctor2@example.com'),
-      keycloakId: 'keycloak-2',
       role: AccountRole.Patient,
       displayName: DisplayName.create('Dr. Test'),
       preferredLanguage: Language.English,

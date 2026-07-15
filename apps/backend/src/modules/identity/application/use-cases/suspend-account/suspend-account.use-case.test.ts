@@ -47,7 +47,6 @@ class FakeDomainEventDispatcher implements DomainEventDispatcher {
 function buildActiveAccount(): Account {
   return Account.register({
     email: EmailAddress.create('active@example.com'),
-    keycloakId: 'kc-active',
     role: AccountRole.Patient,
     displayName: DisplayName.create('Active User'),
   });
@@ -94,7 +93,6 @@ describe('SuspendAccountUseCase', () => {
     const closedAccount = Account.reconstitute({
       id: activeAccount.getId(),
       email: activeAccount.getEmail(),
-      keycloakId: activeAccount.getKeycloakId(),
       role: activeAccount.getRole(),
       status: AccountStatus.Closed,
       userProfile: activeAccount.getUserProfile(),

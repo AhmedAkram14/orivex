@@ -8,10 +8,6 @@ export class RegisterAccountRequestDto {
   @IsEmail()
   email!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  keycloakId!: string;
-
   @IsEnum(AccountRole)
   role!: AccountRole;
 

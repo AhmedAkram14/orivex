@@ -105,7 +105,6 @@ describe('AccountController (integration)', () => {
       .post('/accounts')
       .send({
         email: 'doctor@example.com',
-        keycloakId: 'kc-123',
         role: 'doctor',
         displayName: 'Dr. Amina Hassan',
       })
@@ -114,7 +113,6 @@ describe('AccountController (integration)', () => {
     assert.equal(response.body.data.email, 'doctor@example.com');
     assert.equal(response.body.data.status, 'active');
     assert.equal(response.body.data.displayName, 'Dr. Amina Hassan');
-    assert.equal(response.body.data.keycloakId, undefined);
     assert.ok(response.body.meta.requestId);
     assert.ok(response.body.meta.timestamp);
   });
@@ -124,7 +122,6 @@ describe('AccountController (integration)', () => {
       .post('/accounts')
       .send({
         email: 'not-an-email',
-        keycloakId: 'kc-456',
         role: 'patient',
         displayName: 'Someone',
       })
@@ -139,7 +136,6 @@ describe('AccountController (integration)', () => {
       .post('/accounts')
       .send({
         email: 'dup@example.com',
-        keycloakId: 'kc-dup-1',
         role: 'patient',
         displayName: 'First',
       })
@@ -149,7 +145,6 @@ describe('AccountController (integration)', () => {
       .post('/accounts')
       .send({
         email: 'dup@example.com',
-        keycloakId: 'kc-dup-2',
         role: 'patient',
         displayName: 'Second',
       })
@@ -163,7 +158,6 @@ describe('AccountController (integration)', () => {
       .post('/accounts')
       .send({
         email: 'getme@example.com',
-        keycloakId: 'kc-getme',
         role: 'patient',
         displayName: 'Get Me',
       })
@@ -193,7 +187,6 @@ describe('AccountController (integration)', () => {
       .post('/accounts')
       .send({
         email: 'suspendme@example.com',
-        keycloakId: 'kc-suspendme',
         role: 'patient',
         displayName: 'Suspend Me',
       })

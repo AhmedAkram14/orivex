@@ -1,9 +1,8 @@
 # Production stack (Sprint 13 -- Production & Deployment). Deliberately
 # minimal: only the services this deployment actually orchestrates itself.
-# Keycloak, MinIO, Mailpit, and Adminer are dev-only conveniences (see
-# docker-compose.yml) -- in production, KEYCLOAK_URL/S3_* point to real,
-# separately-operated services (a managed IdP, a managed/real S3 bucket),
-# never containers started by this file.
+# MinIO, Mailpit, and Adminer are dev-only conveniences (see
+# docker-compose.yml) -- in production, S3_* points to a real, separately-
+# operated S3-compatible bucket, never a container started by this file.
 #
 # Run from the repo root:
 #   docker compose -f infrastructure/docker/docker-compose.production.yml --env-file .env up -d --build

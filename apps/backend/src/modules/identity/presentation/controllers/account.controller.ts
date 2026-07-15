@@ -36,7 +36,6 @@ export class AccountController {
       const account = await this.registerAccountUseCase.execute(
         new RegisterAccountCommand({
           email: body.email,
-          keycloakId: body.keycloakId,
           role: body.role,
           displayName: body.displayName,
           preferredLanguage: body.preferredLanguage,

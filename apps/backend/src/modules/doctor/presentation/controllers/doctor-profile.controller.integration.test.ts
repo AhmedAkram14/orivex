@@ -71,7 +71,6 @@ describe('DoctorProfileController (integration)', () => {
   before(async () => {
     const account = Account.register({
       email: EmailAddress.create('doctor@example.com'),
-      keycloakId: 'kc-doctor',
       role: AccountRole.Doctor,
       displayName: DisplayName.create('Dr. Test'),
     });

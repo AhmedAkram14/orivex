@@ -58,7 +58,6 @@ class NoopDispatcher {
 function buildAccount(): Account {
   return Account.register({
     email: EmailAddress.create('patient@example.com'),
-    keycloakId: 'kc-patient',
     role: AccountRole.Patient,
     displayName: DisplayName.create('Pat Test'),
   });

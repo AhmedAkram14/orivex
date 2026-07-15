@@ -42,7 +42,6 @@ export class RegisterAccountUseCase {
 
     const account = Account.register({
       email,
-      keycloakId: command.keycloakId,
       role: command.role,
       displayName: DisplayName.create(command.displayName),
       preferredLanguage: command.preferredLanguage,

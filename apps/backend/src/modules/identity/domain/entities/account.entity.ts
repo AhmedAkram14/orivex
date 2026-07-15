@@ -7,7 +7,6 @@ import { Language } from '../enums/language.enum.js';
 import { AccountCreatedEvent } from '../events/account-created.event.js';
 import { AccountSuspendedEvent } from '../events/account-suspended.event.js';
 import { AccountClosedError } from '../exceptions/account-closed.error.js';
-import { IdentityDomainError } from '../exceptions/identity-domain.error.js';
 import { AccountId } from '../value-objects/account-id.value-object.js';
 import type { DisplayName } from '../value-objects/display-name.value-object.js';
 import type { EmailAddress } from '../value-objects/email-address.value-object.js';
@@ -16,7 +15,6 @@ import { UserProfile } from './user-profile.entity.js';
 
 export interface RegisterAccountProps {
   email: EmailAddress;
-  keycloakId: string;
   role: AccountRole;
   displayName: DisplayName;
   preferredLanguage?: Language;
@@ -25,7 +23,6 @@ export interface RegisterAccountProps {
 export interface ReconstituteAccountProps {
   id: AccountId;
   email: EmailAddress;
-  keycloakId: string;
   role: AccountRole;
   status: AccountStatus;
   userProfile: UserProfile;
@@ -40,15 +37,15 @@ export interface UpdateProfileProps {
 }
 
 // Aggregate root of the Identity & Access bounded context (docs/10-backend-
-// architecture.md). Owns Account + UserProfile as one transactional unit;
-// Session is deliberately excluded this sprint (Authentication concern).
+// architecture.md). Owns Account + UserProfile as one transactional unit.
+// Credential verification, tokens, and sessions belong to AuthenticationModule
+// (a distinct bounded context), which links to an Account by id only.
 export class Account {
   private readonly domainEvents: DomainEvent[] = [];
 
   private constructor(
     private readonly id: AccountId,
     private readonly email: EmailAddress,
-    private readonly keycloakId: string,
     private role: AccountRole,
     private status: AccountStatus,
     private readonly userProfile: UserProfile,
@@ -58,15 +55,10 @@ export class Account {
 
   // Registers a brand-new Account. Raises AccountCreated.
   static register(props: RegisterAccountProps): Account {
-    if (!props.keycloakId || props.keycloakId.trim().length === 0) {
-      throw new IdentityDomainError('Account requires a keycloakId (external identity reference).');
-    }
-
     const now = new Date();
     const account = new Account(
       AccountId.create(randomUUID()),
       props.email,
-      props.keycloakId,
       props.role,
       AccountStatus.Active,
       UserProfile.create({
@@ -87,7 +79,6 @@ export class Account {
     return new Account(
       props.id,
       props.email,
-      props.keycloakId,
       props.role,
       props.status,
       props.userProfile,
@@ -132,10 +123,6 @@ export class Account {
 
   getEmail(): EmailAddress {
     return this.email;
-  }
-
-  getKeycloakId(): string {
-    return this.keycloakId;
   }
 
   getRole(): AccountRole {

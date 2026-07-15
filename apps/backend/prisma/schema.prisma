@@ -10,7 +10,6 @@ datasource db {
 
 model Account {
   id                String    @id @default(uuid())
-  keycloakId        String    @unique
   email             String    @unique
   role              String    @default("patient")
   // Added Sprint 1.1C, synchronizing the persistence model with the already
@@ -23,21 +22,80 @@ model Account {
   preferredLanguage String    @default("Arabic")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
-  sessions          Session[]
+  credential        Credential?
   doctorProfile     DoctorProfile?
   patientProfile    PatientProfile?
 }
 
-// Local mirror of a Keycloak-issued session, for audit/session-validation lookups only.
-// Credential verification and token issuance remain Keycloak's responsibility (docs/10-backend-architecture.md, Section 10).
+enum CredentialStatus {
+  ACTIVE
+  LOCKED
+}
+
+// AuthenticationModule's own aggregate root for credential verification —
+// deliberately separate from Account (Identity keeps owning Account/Profile/
+// Roles; Authentication owns how a person proves they are that Account).
+// One Credential per Account (docs/14-adrs.md: first-party auth, no Keycloak).
+model Credential {
+  id                  String           @id @default(uuid())
+  accountId           String           @unique
+  account             Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  passwordHash        String
+  status              CredentialStatus @default(ACTIVE)
+  failedLoginAttempts Int              @default(0)
+  lockedUntil         DateTime?
+  emailVerifiedAt     DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  sessions            Session[]
+  tokens              AuthToken[]
+}
+
+// One row = one logical login session AND its current refresh-token
+// credential (rotated in place on every /auth/refresh call, never a growing
+// history table). Replaces the earlier Keycloak-shaped Session model.
 model Session {
-  id                 String    @id @default(uuid())
-  accountId          String
-  account            Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  keycloakSessionId  String    @unique
-  expiresAt          DateTime
-  revokedAt          DateTime?
-  createdAt          DateTime  @default(now())
+  id               String    @id @default(uuid())
+  credentialId     String
+  credential       Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  @@index([credentialId])
+}
+
+enum TokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum TokenStatus {
+  ACTIVE
+  USED
+  REVOKED
+  EXPIRED
+}
+
+// Single-use, expiring, hashed-at-rest tokens for both email verification
+// and password reset — one table, disambiguated by purpose, rather than two
+// near-identical tables.
+model AuthToken {
+  id           String       @id @default(uuid())
+  credentialId String
+  credential   Credential   @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  tokenHash    String       @unique
+  purpose      TokenPurpose
+  status       TokenStatus  @default(ACTIVE)
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([credentialId, purpose])
 }
 
 // Sprint 2: DoctorModule's aggregate root (docs/10-backend-architecture.md's

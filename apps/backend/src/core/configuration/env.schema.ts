@@ -12,16 +12,12 @@ export const envSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   DATABASE_URL: z.string().url(),
-  // Optional: no code path in this codebase connects to Redis or Keycloak
-  // yet (no client is ever instantiated from these values) -- unlike S3
-  // below, which IS actually used by AssetModule's S3ObjectStorageAdapter.
-  // Requiring these at boot would fail production deployments that
-  // legitimately don't have these integrations provisioned yet. Restore to
-  // required the moment either integration is actually wired up.
+  // Optional: no code path in this codebase connects to Redis yet (no
+  // client is ever instantiated from this value) -- unlike S3 below, which
+  // IS actually used by AssetModule's S3ObjectStorageAdapter. Requiring
+  // this at boot would fail production deployments that legitimately don't
+  // have Redis provisioned yet. Restore to required once it's wired up.
   REDIS_URL: z.string().min(1).optional(),
-  KEYCLOAK_URL: z.string().url().optional(),
-  KEYCLOAK_REALM: z.string().min(1).optional(),
-  KEYCLOAK_CLIENT_ID: z.string().min(1).optional(),
   S3_ENDPOINT: z.string().url(),
   S3_REGION: z.string().min(1).default('us-east-1'),
   S3_ACCESS_KEY_ID: z.string().min(1),

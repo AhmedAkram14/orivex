@@ -3,8 +3,6 @@ import type { AccountRole } from '../../domain/enums/account-role.enum.js';
 import type { AccountStatus } from '../../domain/enums/account-status.enum.js';
 import type { Language } from '../../domain/enums/language.enum.js';
 
-// keycloakId is deliberately excluded — an internal external-identity
-// reference, never a client-facing field.
 export class AccountResponseDto {
   id!: string;
   email!: string;

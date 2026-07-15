@@ -12,7 +12,6 @@ import { EmailAddress } from '../../domain/value-objects/email-address.value-obj
 export interface PersistedAccount {
   id: string;
   email: string;
-  keycloakId: string;
   role: string;
   status: string;
   displayName: string;
@@ -26,7 +25,6 @@ export function toDomainAccount(row: PrismaAccountRow): Account {
   return Account.reconstitute({
     id: AccountId.create(row.id),
     email: EmailAddress.create(row.email),
-    keycloakId: row.keycloakId,
     role: row.role as AccountRole,
     status: row.status as AccountStatus,
     userProfile: UserProfile.create({
@@ -45,7 +43,6 @@ export function toPersistedAccount(account: Account): PersistedAccount {
   return {
     id: account.getId().toString(),
     email: account.getEmail().toString(),
-    keycloakId: account.getKeycloakId(),
     role: account.getRole(),
     status: account.getStatus(),
     displayName: profile.getDisplayName().toString(),

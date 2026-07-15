@@ -23,10 +23,9 @@ interface ReadinessResponse {
 // should trigger a readiness failure (taking the pod out of the load
 // balancer), never a liveness failure (which would restart a perfectly
 // healthy process for a problem restarting it can't fix). Readiness checks
-// Postgres only -- Redis and Keycloak are documented required env vars but
-// nothing in this codebase actually connects to either yet, so checking
-// them here would be a fake check against an unused dependency, not a real
-// readiness signal.
+// Postgres only -- Redis is a documented optional env var but nothing in
+// this codebase actually connects to it yet, so checking it here would be
+// a fake check against an unused dependency, not a real readiness signal.
 //
 // Excluded from the global rate limiter: liveness/readiness probes poll
 // this frequently, and shouldn't compete with real traffic for quota.
