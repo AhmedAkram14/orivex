@@ -169,3 +169,36 @@ export interface Prescription {
 }
 
 export type PrescriptionsResponse = Prescription[];
+
+export type VitalType = 'weight' | 'blood-pressure' | 'blood-sugar';
+
+/**
+ * A single recorded vital-sign reading. `value` (and `diastolicValue` for
+ * blood pressure) are raw numbers so `TrendChart` can plot them directly —
+ * `valueLabel` is the separately pre-formatted, localized display text (e.g.
+ * "72 kg", "120/80 mmHg", "95 mg/dL"), following this codebase's rule that
+ * components never format raw data themselves.
+ */
+export interface VitalReading {
+  id: string;
+  type: VitalType;
+  /** ISO timestamp. */
+  recordedAt: string;
+  valueLabel: string;
+  value: number;
+  /** Present only for `type: 'blood-pressure'` — `value` carries systolic, this carries diastolic. */
+  diastolicValue?: number;
+}
+
+/**
+ * One vital's full history — `readings` ordered oldest to newest (the shape
+ * `TrendChart` expects), `latest` undefined when nothing has been recorded
+ * yet (an honest empty state, never a fabricated reading).
+ */
+export interface HealthVitalSummary {
+  type: VitalType;
+  latest?: VitalReading;
+  readings: VitalReading[];
+}
+
+export type HealthDashboardResponse = HealthVitalSummary[];

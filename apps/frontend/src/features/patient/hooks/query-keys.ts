@@ -7,3 +7,4 @@ export const patientProfileKeys = createQueryKeyFactory('patient-profile');
 export const patientAppointmentsKeys = createQueryKeyFactory('patient-appointments');
 export const patientMedicalRecordsKeys = createQueryKeyFactory('patient-medical-records');
 export const patientPrescriptionsKeys = createQueryKeyFactory('patient-prescriptions');
+export const patientHealthDashboardKeys = createQueryKeyFactory('patient-health-dashboard');

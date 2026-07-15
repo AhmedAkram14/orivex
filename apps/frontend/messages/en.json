@@ -508,6 +508,30 @@
         "due": "Refill due",
         "none-remaining": "No refills remaining"
       }
+    },
+    "health": {
+      "title": "Health Dashboard",
+      "loadError": "Couldn't load your health dashboard.",
+      "vitals": {
+        "weight": {
+          "title": "Weight",
+          "trendLabel": "Weight trend over recent readings",
+          "emptyTitle": "No weight readings yet",
+          "emptyDescription": "Your weight readings will appear here once recorded by your care team."
+        },
+        "blood-pressure": {
+          "title": "Blood Pressure",
+          "trendLabel": "Blood pressure trend over recent readings",
+          "emptyTitle": "No blood pressure readings yet",
+          "emptyDescription": "Your blood pressure readings will appear here once recorded by your care team."
+        },
+        "blood-sugar": {
+          "title": "Blood Sugar",
+          "trendLabel": "Blood sugar trend over recent readings",
+          "emptyTitle": "No blood sugar readings yet",
+          "emptyDescription": "Your blood sugar readings will appear here once recorded by your care team."
+        }
+      }
     }
   }
 }

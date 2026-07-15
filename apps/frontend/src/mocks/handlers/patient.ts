@@ -6,6 +6,7 @@ import {
   getActivePrescriptions,
   getAppointments,
   getDashboardSummary,
+  getHealthDashboard,
   getMedicalRecords,
   getPrescriptions,
   getProfile,
@@ -38,4 +39,6 @@ export const patientHandlers = [
   http.get(`${base()}${PATIENT_PATHS.medicalRecords}`, () => HttpResponse.json({ data: getMedicalRecords() })),
 
   http.get(`${base()}${PATIENT_PATHS.prescriptions}`, () => HttpResponse.json({ data: getPrescriptions() })),
+
+  http.get(`${base()}${PATIENT_PATHS.healthDashboard}`, () => HttpResponse.json({ data: getHealthDashboard() })),
 ];

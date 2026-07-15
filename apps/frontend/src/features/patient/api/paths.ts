@@ -14,4 +14,5 @@ export const PATIENT_PATHS = {
   appointments: '/patient/appointments',
   medicalRecords: '/patient/medical-records',
   prescriptions: '/patient/prescriptions',
+  healthDashboard: '/patient/health-dashboard',
 } as const;

@@ -1,6 +1,7 @@
 import type {
   ActivePrescriptionPreview,
   Appointment,
+  HealthVitalSummary,
   MedicalRecordEntry,
   PatientDashboardSummary,
   PatientProfile,
@@ -85,6 +86,19 @@ function seedPrescriptions(): Prescription[] {
   return [];
 }
 
+/**
+ * The Health Dashboard's vitals (milestone 6) — an honest empty array per
+ * vital type, same reasoning as `seedPrescriptions`: no Clinical module is
+ * wired into the frontend yet, so `latest`/`readings` are never fabricated.
+ */
+function seedHealthDashboard(): HealthVitalSummary[] {
+  return [
+    { type: 'weight', latest: undefined, readings: [] },
+    { type: 'blood-pressure', latest: undefined, readings: [] },
+    { type: 'blood-sugar', latest: undefined, readings: [] },
+  ];
+}
+
 let summary: PatientDashboardSummary = seedSummary();
 let upcomingAppointments: UpcomingAppointmentPreview[] = seedUpcomingAppointments();
 let activePrescriptions: ActivePrescriptionPreview[] = seedActivePrescriptions();
@@ -92,6 +106,7 @@ let profile: PatientProfile = seedProfile();
 let appointments: Appointment[] = seedAppointments();
 let medicalRecords: MedicalRecordEntry[] = seedMedicalRecords();
 let prescriptions: Prescription[] = seedPrescriptions();
+let healthDashboard: HealthVitalSummary[] = seedHealthDashboard();
 
 export function getDashboardSummary(): PatientDashboardSummary {
   return summary;
@@ -136,6 +151,10 @@ export function getPrescriptions(): Prescription[] {
   return prescriptions;
 }
 
+export function getHealthDashboard(): HealthVitalSummary[] {
+  return healthDashboard;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPatientStore(): void {
   summary = seedSummary();
@@ -145,4 +164,5 @@ export function resetPatientStore(): void {
   appointments = seedAppointments();
   medicalRecords = seedMedicalRecords();
   prescriptions = seedPrescriptions();
+  healthDashboard = seedHealthDashboard();
 }
