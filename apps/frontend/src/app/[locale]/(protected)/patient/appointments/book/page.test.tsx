@@ -119,4 +119,15 @@ describe('BookAppointmentPage', () => {
     expect(screen.queryByRole('button', { name: /9:00 AM/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /9:40 AM/ })).not.toBeInTheDocument();
   });
+
+  it('offers the waiting list on a non-working day (Waiting-list architecture, Milestone 4)', async () => {
+    // Friday, July 17 2026 -- not a working day in the seeded schedule.
+    vi.setSystemTime(new Date(2026, 6, 17, 9, 0, 0, 0));
+    renderPage();
+
+    expect(await screen.findByText('No slots available on this date')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Join waiting list' }));
+
+    expect(await screen.findByText("You're on the waiting list")).toBeInTheDocument();
+  });
 });

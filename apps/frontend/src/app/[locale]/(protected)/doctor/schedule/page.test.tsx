@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -93,8 +93,38 @@ describe('DoctorSchedulePage', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
+  it('saves a working-hours change and reflects it in the read-only summary', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit working hours' }));
+    await userEvent.click(screen.getByRole('switch', { name: 'Monday working day' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    // Back in the read-only summary, Monday now shows as not working. The
+    // "Monday" label and its status text are sibling sections within the
+    // AvailabilityCard row, so the shared ancestor is two levels up.
+    const mondayLabel = await screen.findByText('Monday');
+    const mondayRow = mondayLabel.closest('div')?.parentElement;
+    expect(mondayRow).toHaveTextContent('Not available');
+  });
+
   it('renders the honest-empty time-off manager', async () => {
     renderPage();
+    expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();
+  });
+
+  it('adds and then removes a vacation date (Time Off architecture)', async () => {
+    renderPage();
+    await screen.findByText('No time off scheduled');
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-08-15' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(await screen.findByRole('button', { name: 'Remove time off' })).toBeInTheDocument();
+    expect(screen.queryByText('No time off scheduled')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove time off' }));
     expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();
   });
 
