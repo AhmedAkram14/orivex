@@ -7,6 +7,7 @@ import DoctorSchedulePage from './page';
 import { server } from '@/mocks/server';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
+import { TooltipProvider } from '@/shared/ui/tooltip';
 import enMessages from '../../../../../../messages/en.json';
 
 vi.mock('next/navigation', () => ({
@@ -33,9 +34,11 @@ function renderPage() {
   return render(
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
-        <AuthContext.Provider value={doctorState}>
-          <DoctorSchedulePage />
-        </AuthContext.Provider>
+        <TooltipProvider delayDuration={200}>
+          <AuthContext.Provider value={doctorState}>
+            <DoctorSchedulePage />
+          </AuthContext.Provider>
+        </TooltipProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>,
   );

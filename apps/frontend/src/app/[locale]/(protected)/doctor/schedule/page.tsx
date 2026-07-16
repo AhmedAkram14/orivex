@@ -18,9 +18,12 @@ import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { AvailabilityBlock } from '@/shared/ui/schedule/availability-block';
+import { AvailabilityCard } from '@/shared/ui/schedule/availability-card';
 import { CalendarHeader } from '@/shared/ui/schedule/calendar-header';
+import { CalendarSidebar } from '@/shared/ui/schedule/calendar-sidebar';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
-import { Legend } from '@/shared/ui/schedule/legend';
+import { EmptyCalendar } from '@/shared/ui/schedule/empty-calendar';
+import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
 import { MonthCalendar, type MonthCalendarDay } from '@/shared/ui/schedule/month-calendar';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
@@ -28,8 +31,6 @@ import { Page } from '@/shared/ui/layout/page';
 import { Section } from '@/shared/ui/layout/section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
-
-const WEEK_SKELETON_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
 /**
  * The Doctor Availability / Appointment Calendar page (Phase 9, Milestones
@@ -123,11 +124,9 @@ export default function DoctorSchedulePage() {
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
         {isLoading || !schedule ? (
-          <div className="grid grid-cols-7 gap-2">
-            {WEEK_SKELETON_KEYS.map((key) => (
-              <Skeleton key={key} className="h-24 w-full" />
-            ))}
-          </div>
+          <LoadingCalendar />
+        ) : !schedule.some((day) => day.isWorkingDay) ? (
+          <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
         ) : (
           <Tabs defaultValue="week">
             <TabsList>
@@ -181,22 +180,25 @@ export default function DoctorSchedulePage() {
             </TabsContent>
 
             <TabsContent value="day">
-              <div className="flex flex-col gap-3">
-                <p className="text-sm font-medium text-text-primary">
-                  {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
-                </p>
-                {daySlots.length > 0 ? (
-                  <>
-                    <Legend
-                      items={[
-                        { id: 'available', label: tSlotStatus('available'), colorClassName: 'bg-success' },
-                        { id: 'booked', label: tSlotStatus('booked'), colorClassName: 'bg-primary' },
-                      ]}
-                    />
+              <div className="flex flex-col gap-3 md:flex-row">
+                <div className="flex flex-1 flex-col gap-3">
+                  <p className="text-sm font-medium text-text-primary">
+                    {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </p>
+                  {daySlots.length > 0 ? (
                     <TimeGrid slots={daySlots} />
-                  </>
-                ) : (
-                  <p className="text-sm text-text-tertiary">{t('noAvailability')}</p>
+                  ) : (
+                    <p className="text-sm text-text-tertiary">{t('noAvailability')}</p>
+                  )}
+                </div>
+                {daySlots.length > 0 && (
+                  <CalendarSidebar
+                    className="md:w-56"
+                    legendItems={[
+                      { id: 'available', label: tSlotStatus('available'), colorClassName: 'bg-success' },
+                      { id: 'booked', label: tSlotStatus('booked'), colorClassName: 'bg-primary' },
+                    ]}
+                  />
                 )}
               </div>
             </TabsContent>
@@ -223,16 +225,18 @@ export default function DoctorSchedulePage() {
             (isEditingHours ? (
               <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
             ) : (
-              <ul className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 {schedule.map((day) => (
-                  <li key={day.dayOfWeek} className="flex items-center justify-between text-sm">
-                    <span className="text-text-primary">{format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}</span>
-                    <span className="text-text-secondary">
-                      {day.isWorkingDay ? `${day.hours.start} – ${day.hours.end}` : t('noAvailability')}
-                    </span>
-                  </li>
+                  <AvailabilityCard
+                    key={day.dayOfWeek}
+                    dayLabel={format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}
+                    isWorkingDay={day.isWorkingDay}
+                    hoursLabel={`${day.hours.start} – ${day.hours.end}`}
+                    breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
+                    notWorkingLabel={t('noAvailability')}
+                  />
                 ))}
-              </ul>
+              </div>
             ))}
         </Section>
 

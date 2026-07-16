@@ -1,16 +1,9 @@
 import type { ReactNode } from 'react';
-import { Badge } from '@/shared/ui/badge';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { StatusBadge, type ScheduleStatusTone } from '@/shared/ui/schedule/status-badge';
 import { cn } from '@/shared/lib/cn';
 
-export type AgendaItemStatus = 'available' | 'booked' | 'blocked' | 'past';
-
-const badgeVariantByStatus: Record<AgendaItemStatus, 'success' | 'primary' | 'neutral'> = {
-  available: 'success',
-  booked: 'primary',
-  blocked: 'neutral',
-  past: 'neutral',
-};
+export type AgendaItemStatus = Extract<ScheduleStatusTone, 'available' | 'booked' | 'blocked' | 'past'>;
 
 export interface AgendaItem {
   id: string;
@@ -56,7 +49,7 @@ export function AgendaList({ items, emptyTitle, emptyDescription, className }: A
             </div>
             <span className="text-sm text-text-secondary">{item.title}</span>
           </div>
-          <Badge variant={badgeVariantByStatus[item.status]}>{item.statusLabel}</Badge>
+          <StatusBadge tone={item.status} label={item.statusLabel} />
         </li>
       ))}
     </ul>

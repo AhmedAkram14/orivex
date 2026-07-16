@@ -331,7 +331,10 @@
         "booked": "وقت محجوز",
         "blocked": "وقت محظور",
         "past": "وقت منقضٍ"
-      }
+      },
+      "noAvailabilityConfiguredTitle": "لم يتم تحديد أي أوقات متاحة",
+      "noAvailabilityConfiguredDescription": "حدد ساعات عملك أدناه لبدء إظهار الأوقات المتاحة في هذا التقويم.",
+      "breaksCount": "{count, plural, zero {لا استراحات} one {استراحة واحدة} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}"
     },
     "queue": {
       "title": "قائمة انتظار المرضى",

@@ -331,7 +331,10 @@
         "booked": "Booked slot",
         "blocked": "Blocked slot",
         "past": "Past slot"
-      }
+      },
+      "noAvailabilityConfiguredTitle": "No availability configured",
+      "noAvailabilityConfiguredDescription": "Set your working hours below to start showing availability on this calendar.",
+      "breaksCount": "{count, plural, one {# break} other {# breaks}}"
     },
     "queue": {
       "title": "Patient Queue",

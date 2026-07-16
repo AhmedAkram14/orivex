@@ -1,14 +1,8 @@
 import type { ReactNode } from 'react';
-import { Badge } from '@/shared/ui/badge';
 import { Card, CardContent } from '@/shared/ui/card';
+import { StatusBadge, type ScheduleStatusTone } from '@/shared/ui/schedule/status-badge';
 
-export type BookingSummaryStatus = 'pending' | 'confirmed' | 'cancelled';
-
-const badgeVariantByStatus: Record<BookingSummaryStatus, 'neutral' | 'success' | 'danger'> = {
-  pending: 'neutral',
-  confirmed: 'success',
-  cancelled: 'danger',
-};
+export type BookingSummaryStatus = Extract<ScheduleStatusTone, 'pending' | 'confirmed' | 'cancelled'>;
 
 export interface BookingSummaryCardProps {
   /** Pre-formatted, localized date text (e.g. "Mon, Jul 20, 2026"). */
@@ -44,7 +38,7 @@ export function BookingSummaryCard({
       <CardContent className="flex flex-col gap-4 p-6">
         <div className="flex items-center justify-between gap-2">
           <p className="text-base font-semibold text-text-primary">{dateLabel}</p>
-          <Badge variant={badgeVariantByStatus[status]}>{statusLabel}</Badge>
+          <StatusBadge tone={status} label={statusLabel} />
         </div>
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex items-center justify-between">
