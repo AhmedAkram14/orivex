@@ -447,6 +447,7 @@
     },
     "appointments": {
       "title": "المواعيد",
+      "bookAppointment": "حجز موعد",
       "loadError": "تعذّر تحميل مواعيدك.",
       "upcomingTab": "القادمة",
       "historyTab": "السجل",
@@ -596,6 +597,29 @@
       "validation": {
         "dateRequired": "اختر تاريخًا."
       }
+    },
+    "booking": {
+      "today": "اليوم",
+      "previousDay": "اليوم السابق",
+      "nextDay": "اليوم التالي",
+      "review": "مراجعة",
+      "confirm": "تأكيد الحجز",
+      "back": "رجوع",
+      "confirmed": "مؤكد",
+      "reschedule": "إعادة الجدولة",
+      "cancel": "إلغاء",
+      "cancelDialogTitle": "إلغاء هذا الحجز؟",
+      "cancelDialogDescription": "سيؤدي هذا إلى إلغاء حجزك لهذا الموعد. يمكنك حجز موعد جديد في أي وقت.",
+      "cancelDialogKeep": "الاحتفاظ بالحجز",
+      "cancelDialogConfirm": "إلغاء الحجز",
+      "durationMinutes": "{minutes} دقيقة"
+    },
+    "waitlist": {
+      "emptyTitle": "لا توجد مواعيد متاحة في هذا التاريخ",
+      "emptyDescription": "انضم إلى قائمة الانتظار وسنُعلمك عند توفر موعد.",
+      "join": "الانضمام إلى قائمة الانتظار",
+      "joinedTitle": "أنت الآن في قائمة الانتظار",
+      "joinedDescription": "سنُعلمك إذا أصبح موعد متاحًا في هذا التاريخ."
     }
   }
 }

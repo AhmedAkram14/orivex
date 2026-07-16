@@ -1,4 +1,13 @@
-import type { RecurringWeeklySchedule, ScheduleException, SchedulingRules, WeekDay } from '@/features/scheduling/types';
+import type {
+  Booking,
+  CreateBookingRequest,
+  JoinWaitlistRequest,
+  RecurringWeeklySchedule,
+  ScheduleException,
+  SchedulingRules,
+  WaitlistEntry,
+  WeekDay,
+} from '@/features/scheduling/types';
 
 /**
  * In-memory mock "backend" state for `/scheduling/*` — mirrors
@@ -44,9 +53,21 @@ function seedDoctorExceptions(): ScheduleException[] {
   return [];
 }
 
+/** Booking Architecture (milestone 4) — an honest empty array: no patient has actually booked anything yet, never a fabricated appointment. */
+function seedBookings(): Booking[] {
+  return [];
+}
+
+/** Waiting-list architecture — an honest empty array, same reasoning as `seedBookings`. */
+function seedWaitlist(): WaitlistEntry[] {
+  return [];
+}
+
 let rules: SchedulingRules = seedRules();
 let doctorAvailability: RecurringWeeklySchedule = seedDoctorAvailability();
 let doctorExceptions: ScheduleException[] = seedDoctorExceptions();
+let bookings: Booking[] = seedBookings();
+let waitlist: WaitlistEntry[] = seedWaitlist();
 
 export function getSchedulingRules(): SchedulingRules {
   return rules;
@@ -75,9 +96,62 @@ export function removeDoctorException(id: string): void {
   doctorExceptions = doctorExceptions.filter((exception) => exception.id !== id);
 }
 
+function bookingsOverlap(a: CreateBookingRequest, b: Booking): boolean {
+  return a.slotStart < b.slotEnd && b.slotStart < a.slotEnd;
+}
+
+export function getBookings(): Booking[] {
+  return bookings.filter((booking) => booking.status === 'confirmed');
+}
+
+export type CreateBookingResult = { ok: true; booking: Booking } | { ok: false; reason: 'already-booked' };
+
+/** Real conflict detection against every other confirmed booking — the "this slot was just taken" case docs/roadmaps/frontend-master-plan.md's Phase 9 section calls out by name, not a generic error. */
+export function createBooking(request: CreateBookingRequest): CreateBookingResult {
+  const conflict = bookings.some((booking) => booking.status === 'confirmed' && bookingsOverlap(request, booking));
+  if (conflict) return { ok: false, reason: 'already-booked' };
+
+  const created: Booking = { id: `booking-${Date.now()}`, slotStart: request.slotStart, slotEnd: request.slotEnd, status: 'confirmed' };
+  bookings = [...bookings, created];
+  return { ok: true, booking: created };
+}
+
+export type RescheduleBookingResult = { ok: true; booking: Booking } | { ok: false; reason: 'not-found' | 'already-booked' };
+
+export function rescheduleBooking(id: string, request: CreateBookingRequest): RescheduleBookingResult {
+  const existing = bookings.find((booking) => booking.id === id);
+  if (!existing) return { ok: false, reason: 'not-found' };
+
+  const conflict = bookings.some(
+    (booking) => booking.id !== id && booking.status === 'confirmed' && bookingsOverlap(request, booking),
+  );
+  if (conflict) return { ok: false, reason: 'already-booked' };
+
+  bookings = bookings.map((booking) =>
+    booking.id === id ? { ...booking, slotStart: request.slotStart, slotEnd: request.slotEnd } : booking,
+  );
+  return { ok: true, booking: bookings.find((booking) => booking.id === id)! };
+}
+
+export function cancelBooking(id: string): void {
+  bookings = bookings.map((booking) => (booking.id === id ? { ...booking, status: 'cancelled' } : booking));
+}
+
+export function getWaitlist(): WaitlistEntry[] {
+  return waitlist;
+}
+
+export function joinWaitlist(request: JoinWaitlistRequest): WaitlistEntry {
+  const created: WaitlistEntry = { id: `waitlist-${Date.now()}`, date: request.date, createdAt: new Date().toISOString() };
+  waitlist = [...waitlist, created];
+  return created;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetSchedulingStore(): void {
   rules = seedRules();
   doctorAvailability = seedDoctorAvailability();
   doctorExceptions = seedDoctorExceptions();
+  bookings = seedBookings();
+  waitlist = seedWaitlist();
 }

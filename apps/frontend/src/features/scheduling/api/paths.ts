@@ -3,4 +3,6 @@ export const SCHEDULING_PATHS = {
   rules: '/scheduling/rules',
   doctorAvailability: '/scheduling/doctor-availability',
   doctorExceptions: '/scheduling/doctor-exceptions',
+  bookings: '/scheduling/bookings',
+  waitlist: '/scheduling/waitlist',
 } as const;

@@ -6,8 +6,10 @@ import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { AppointmentList } from '@/features/patient/components/appointments/appointment-list';
 import { AppointmentsCalendar } from '@/features/patient/components/appointments/appointments-calendar';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
+import { Link } from '@/shared/i18n/navigation';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
 import { FilterTabs } from '@/shared/ui/filter-tabs';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Page } from '@/shared/ui/layout/page';
@@ -37,7 +39,15 @@ export default function PatientAppointmentsPage() {
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
+        <WorkspaceHeader
+          breadcrumbs={<AppBreadcrumbs />}
+          title={t('title')}
+          actions={
+            <Button asChild>
+              <Link href="/patient/appointments/book">{t('bookAppointment')}</Link>
+            </Button>
+          }
+        />
 
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 

@@ -80,3 +80,41 @@ export type ConflictReason =
   | 'already-booked'
   | 'insufficient-notice'
   | 'beyond-booking-window';
+
+/**
+ * Booking Architecture (Milestone 4) — a real, mocked booking round trip
+ * (create/cancel/reschedule), scoped to "the current doctor" (no doctor id
+ * in the request/response shape, same convention as the rest of this
+ * module) since no doctor directory exists yet. Deliberately not the real
+ * `SchedulingModule`'s reservation-hold concept (docs/10-backend-
+ * architecture.md's `reserveSlot`/short-lived-hold flow) — that belongs to
+ * a real backend integration, not this phase's architecture-only scope.
+ */
+export type BookingStatus = 'confirmed' | 'cancelled';
+
+export interface Booking {
+  id: string;
+  /** ISO timestamp. */
+  slotStart: string;
+  /** ISO timestamp. */
+  slotEnd: string;
+  status: BookingStatus;
+}
+
+export interface CreateBookingRequest {
+  slotStart: string;
+  slotEnd: string;
+}
+
+/** Waiting-list architecture — a patient asking to be notified if a slot opens on a date with none available today. */
+export interface WaitlistEntry {
+  id: string;
+  /** ISO date (no time) — the date the patient wants, not a specific time (none were available to pick one). */
+  date: string;
+  /** ISO timestamp. */
+  createdAt: string;
+}
+
+export interface JoinWaitlistRequest {
+  date: string;
+}

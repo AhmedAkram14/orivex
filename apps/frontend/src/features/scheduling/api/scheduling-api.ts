@@ -1,6 +1,14 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { SCHEDULING_PATHS } from '@/features/scheduling/api/paths';
-import type { RecurringWeeklySchedule, ScheduleException, SchedulingRules } from '@/features/scheduling/types';
+import type {
+  Booking,
+  CreateBookingRequest,
+  JoinWaitlistRequest,
+  RecurringWeeklySchedule,
+  ScheduleException,
+  SchedulingRules,
+  WaitlistEntry,
+} from '@/features/scheduling/types';
 
 export interface AddScheduleExceptionRequest {
   date: string;
@@ -35,4 +43,19 @@ export const schedulingApi = {
 
   removeDoctorException: (id: string) =>
     apiFetch<void>({ method: 'DELETE', path: `${SCHEDULING_PATHS.doctorExceptions}/${id}` }),
+
+  getBookings: () => apiFetch<Booking[]>({ path: SCHEDULING_PATHS.bookings }),
+
+  createBooking: (request: CreateBookingRequest) =>
+    apiFetch<Booking>({ method: 'POST', path: SCHEDULING_PATHS.bookings, body: request }),
+
+  rescheduleBooking: (id: string, request: CreateBookingRequest) =>
+    apiFetch<Booking>({ method: 'PATCH', path: `${SCHEDULING_PATHS.bookings}/${id}`, body: request }),
+
+  cancelBooking: (id: string) => apiFetch<void>({ method: 'DELETE', path: `${SCHEDULING_PATHS.bookings}/${id}` }),
+
+  getWaitlist: () => apiFetch<WaitlistEntry[]>({ path: SCHEDULING_PATHS.waitlist }),
+
+  joinWaitlist: (request: JoinWaitlistRequest) =>
+    apiFetch<WaitlistEntry>({ method: 'POST', path: SCHEDULING_PATHS.waitlist, body: request }),
 };

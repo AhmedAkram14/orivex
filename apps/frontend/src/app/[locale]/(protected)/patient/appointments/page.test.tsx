@@ -49,6 +49,16 @@ describe('PatientAppointmentsPage', () => {
     expect(await screen.findByText('No upcoming appointments')).toBeInTheDocument();
   });
 
+  it('renders a link to the booking flow', async () => {
+    renderPage();
+    await screen.findByText('No upcoming appointments');
+
+    expect(screen.getByRole('link', { name: 'Book appointment' })).toHaveAttribute(
+      'href',
+      '/en/patient/appointments/book',
+    );
+  });
+
   it('switches to the History tab and shows its own empty state with filters', async () => {
     renderPage();
     await screen.findByText('No upcoming appointments');
