@@ -577,6 +577,10 @@
       "addBreak": "Add break",
       "removeBreak": "Remove break",
       "workingDayToggle": "{day} working day",
+      "startTimeLabel": "{day} start time",
+      "endTimeLabel": "{day} end time",
+      "breakStartLabel": "Break {number} start time",
+      "breakEndLabel": "Break {number} end time",
       "validation": {
         "invalidTime": "Enter a valid time (HH:mm).",
         "endAfterStart": "End time must be after the start time.",

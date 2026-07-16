@@ -577,6 +577,10 @@
       "addBreak": "إضافة استراحة",
       "removeBreak": "إزالة الاستراحة",
       "workingDayToggle": "يوم عمل {day}",
+      "startTimeLabel": "وقت بدء {day}",
+      "endTimeLabel": "وقت انتهاء {day}",
+      "breakStartLabel": "وقت بدء الاستراحة {number}",
+      "breakEndLabel": "وقت انتهاء الاستراحة {number}",
       "validation": {
         "invalidTime": "أدخل وقتًا صحيحًا (س:د).",
         "endAfterStart": "يجب أن يكون وقت الانتهاء بعد وقت البدء.",

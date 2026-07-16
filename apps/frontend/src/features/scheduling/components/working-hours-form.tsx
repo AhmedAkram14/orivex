@@ -35,7 +35,7 @@ function DayBreaks({ control, dayIndex }: { control: Control<WorkingHoursFormVal
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input type="time" aria-label={t('breakStartLabel', { number: breakIndex + 1 })} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -50,7 +50,7 @@ function DayBreaks({ control, dayIndex }: { control: Control<WorkingHoursFormVal
             render={({ field }) => (
               <FormItem className="flex-1">
                 <FormControl>
-                  <Input type="time" {...field} />
+                  <Input type="time" aria-label={t('breakEndLabel', { number: breakIndex + 1 })} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -113,7 +113,7 @@ function DayRow({
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormControl>
-                    <Input type="time" {...field} />
+                    <Input type="time" aria-label={t('startTimeLabel', { day: tDay(dayOfWeek) })} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -128,7 +128,7 @@ function DayRow({
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormControl>
-                    <Input type="time" {...field} />
+                    <Input type="time" aria-label={t('endTimeLabel', { day: tDay(dayOfWeek) })} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
