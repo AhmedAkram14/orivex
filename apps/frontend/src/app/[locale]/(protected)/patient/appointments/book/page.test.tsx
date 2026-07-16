@@ -107,4 +107,16 @@ describe('BookAppointmentPage', () => {
 
     expect(await screen.findAllByRole('button', { name: /AM|PM/ })).not.toHaveLength(0);
   });
+
+  it('excludes slots inside the minimum-notice window (Scheduling Rules, Milestone 6)', async () => {
+    // 8:45am -- the seeded 60-minute minimum notice pushes the deadline to
+    // 9:45am, so both the 9:00 and 9:40 slots fail it; 10:20 is the first
+    // real, bookable slot.
+    vi.setSystemTime(new Date(2026, 6, 13, 8, 45, 0, 0));
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: /10:20 AM/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /9:00 AM/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /9:40 AM/ })).not.toBeInTheDocument();
+  });
 });

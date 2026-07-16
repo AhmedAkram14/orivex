@@ -118,3 +118,18 @@ export interface WaitlistEntry {
 export interface JoinWaitlistRequest {
   date: string;
 }
+
+/**
+ * Holiday support (Milestone 6) — a global, doctor-agnostic non-working
+ * date (distinct from `ScheduleException`, which is one doctor's own
+ * vacation/unavailable date). `resolveDayForDate` blocks a holiday date
+ * regardless of the recurring template, unless the doctor explicitly adds
+ * an `extra-hours` exception on that same date — a deliberate override,
+ * not an accident.
+ */
+export interface Holiday {
+  id: string;
+  /** ISO date (no time). */
+  date: string;
+  name: string;
+}

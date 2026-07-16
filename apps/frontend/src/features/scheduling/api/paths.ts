@@ -5,4 +5,5 @@ export const SCHEDULING_PATHS = {
   doctorExceptions: '/scheduling/doctor-exceptions',
   bookings: '/scheduling/bookings',
   waitlist: '/scheduling/waitlist',
+  holidays: '/scheduling/holidays',
 } as const;

@@ -334,7 +334,8 @@
       },
       "noAvailabilityConfiguredTitle": "No availability configured",
       "noAvailabilityConfiguredDescription": "Set your working hours below to start showing availability on this calendar.",
-      "breaksCount": "{count, plural, one {# break} other {# breaks}}"
+      "breaksCount": "{count, plural, one {# break} other {# breaks}}",
+      "timezoneNote": "Times shown in {timezone}."
     },
     "queue": {
       "title": "Patient Queue",
@@ -615,7 +616,11 @@
       "cancelDialogDescription": "This will cancel your booking for this slot. You can book a new slot at any time.",
       "cancelDialogKeep": "Keep booking",
       "cancelDialogConfirm": "Cancel booking",
-      "durationMinutes": "{minutes} minutes"
+      "durationMinutes": "{minutes} minutes",
+      "conflictReason": {
+        "insufficient-notice": "This slot is too soon to book -- please choose a later time.",
+        "beyond-booking-window": "This slot is too far in the future to book yet."
+      }
     },
     "waitlist": {
       "emptyTitle": "No slots available on this date",

@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
@@ -8,9 +8,11 @@ import { WorkingHoursForm } from '@/features/scheduling/components/working-hours
 import { ScheduleExceptionsManager } from '@/features/scheduling/components/schedule-exceptions-manager';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
+import { useHolidays } from '@/features/scheduling/hooks/use-holidays';
 import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-rules';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
+import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { addMonths, getMonthGridDays, isSameMonth } from '@/shared/lib/date/month';
 import { RequireRole } from '@/shared/auth/require-role';
@@ -48,8 +50,10 @@ export default function DoctorSchedulePage() {
   const t = useTranslations('doctor.schedule');
   const tSlotStatus = useTranslations('scheduling.slotStatus');
   const format = useFormatter();
+  const locale = useLocale();
   const { data: schedule, isLoading, isError } = useDoctorAvailability();
   const { data: exceptions, isLoading: isLoadingExceptions } = useDoctorExceptions();
+  const { data: holidays } = useHolidays();
   const { data: rules } = useSchedulingRules();
 
   const today = useMemo(() => new Date(), []);
@@ -70,8 +74,12 @@ export default function DoctorSchedulePage() {
   const monthLabel = format.dateTime(monthDate, { month: 'long', year: 'numeric' });
 
   function resolvedDay(date: Date) {
-    return schedule ? resolveDayForDate(date, getWeekDayName(date), schedule, exceptions ?? []) : undefined;
+    return schedule
+      ? resolveDayForDate(date, getWeekDayName(date), schedule, exceptions ?? [], holidays ?? [])
+      : undefined;
   }
+
+  const timezoneLabel = getTimezoneOffsetLabel(DEFAULT_TIME_ZONE, locale, today);
 
   const weekCalendarDays: WeeklyCalendarDay[] = weekDays.map((date) => {
     const day = resolvedDay(date);
@@ -119,7 +127,11 @@ export default function DoctorSchedulePage() {
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
+        <WorkspaceHeader
+          breadcrumbs={<AppBreadcrumbs />}
+          title={t('title')}
+          description={t('timezoneNote', { timezone: timezoneLabel })}
+        />
 
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
@@ -205,7 +217,13 @@ export default function DoctorSchedulePage() {
 
             <TabsContent value="agenda">
               {rules && (
-                <ScheduleAgenda schedule={schedule} exceptions={exceptions ?? []} rules={rules} startDate={today} />
+                <ScheduleAgenda
+                  schedule={schedule}
+                  exceptions={exceptions ?? []}
+                  holidays={holidays ?? []}
+                  rules={rules}
+                  startDate={today}
+                />
               )}
             </TabsContent>
           </Tabs>

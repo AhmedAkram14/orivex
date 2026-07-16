@@ -3,6 +3,7 @@ import { SCHEDULING_PATHS } from '@/features/scheduling/api/paths';
 import type {
   Booking,
   CreateBookingRequest,
+  Holiday,
   JoinWaitlistRequest,
   RecurringWeeklySchedule,
   ScheduleException,
@@ -58,4 +59,6 @@ export const schedulingApi = {
 
   joinWaitlist: (request: JoinWaitlistRequest) =>
     apiFetch<WaitlistEntry>({ method: 'POST', path: SCHEDULING_PATHS.waitlist, body: request }),
+
+  getHolidays: () => apiFetch<Holiday[]>({ path: SCHEDULING_PATHS.holidays }),
 };

@@ -334,7 +334,8 @@
       },
       "noAvailabilityConfiguredTitle": "لم يتم تحديد أي أوقات متاحة",
       "noAvailabilityConfiguredDescription": "حدد ساعات عملك أدناه لبدء إظهار الأوقات المتاحة في هذا التقويم.",
-      "breaksCount": "{count, plural, zero {لا استراحات} one {استراحة واحدة} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}"
+      "breaksCount": "{count, plural, zero {لا استراحات} one {استراحة واحدة} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}",
+      "timezoneNote": "الأوقات المعروضة بتوقيت {timezone}."
     },
     "queue": {
       "title": "قائمة انتظار المرضى",
@@ -615,7 +616,11 @@
       "cancelDialogDescription": "سيؤدي هذا إلى إلغاء حجزك لهذا الموعد. يمكنك حجز موعد جديد في أي وقت.",
       "cancelDialogKeep": "الاحتفاظ بالحجز",
       "cancelDialogConfirm": "إلغاء الحجز",
-      "durationMinutes": "{minutes} دقيقة"
+      "durationMinutes": "{minutes} دقيقة",
+      "conflictReason": {
+        "insufficient-notice": "هذا الموعد قريب جدًا للحجز -- يرجى اختيار وقت لاحق.",
+        "beyond-booking-window": "هذا الموعد بعيد جدًا في المستقبل ولا يمكن حجزه بعد."
+      }
     },
     "waitlist": {
       "emptyTitle": "لا توجد مواعيد متاحة في هذا التاريخ",

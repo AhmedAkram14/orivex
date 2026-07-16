@@ -6,6 +6,7 @@ import { BookingFlow } from '@/features/scheduling/components/booking-flow';
 import { useBookings } from '@/features/scheduling/hooks/use-bookings';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
+import { useHolidays } from '@/features/scheduling/hooks/use-holidays';
 import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-rules';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
@@ -27,10 +28,11 @@ export default function BookAppointmentPage() {
   const t = useTranslations('patient.appointments');
   const { data: schedule, isLoading: isLoadingSchedule, isError: isScheduleError } = useDoctorAvailability();
   const { data: exceptions, isLoading: isLoadingExceptions } = useDoctorExceptions();
+  const { data: holidays, isLoading: isLoadingHolidays } = useHolidays();
   const { data: rules, isLoading: isLoadingRules } = useSchedulingRules();
   const { data: bookings, isLoading: isLoadingBookings } = useBookings();
 
-  const isLoading = isLoadingSchedule || isLoadingExceptions || isLoadingRules || isLoadingBookings;
+  const isLoading = isLoadingSchedule || isLoadingExceptions || isLoadingHolidays || isLoadingRules || isLoadingBookings;
 
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
@@ -45,7 +47,13 @@ export default function BookAppointmentPage() {
             <Skeleton className="h-40 w-full" />
           </div>
         ) : (
-          <BookingFlow schedule={schedule} exceptions={exceptions ?? []} rules={rules} bookings={bookings ?? []} />
+          <BookingFlow
+            schedule={schedule}
+            exceptions={exceptions ?? []}
+            holidays={holidays ?? []}
+            rules={rules}
+            bookings={bookings ?? []}
+          />
         )}
       </Page>
     </RequireRole>

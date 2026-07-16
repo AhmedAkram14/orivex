@@ -10,10 +10,21 @@ import { useCreateBooking } from '@/features/scheduling/hooks/use-create-booking
 import { bookingsKeys } from '@/features/scheduling/hooks/query-keys';
 import { useRescheduleBooking } from '@/features/scheduling/hooks/use-reschedule-booking';
 import { bookedRangesForDate } from '@/features/scheduling/utils/booked-ranges';
+import { detectConflict } from '@/features/scheduling/utils/conflicts';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
+import { fromMinutes } from '@/features/scheduling/utils/time';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
-import type { Booking, RecurringWeeklySchedule, ScheduleException, SchedulingRules, TimeSlotData } from '@/features/scheduling/types';
+import type {
+  Booking,
+  ConflictReason,
+  Holiday,
+  RecurringWeeklySchedule,
+  ScheduleException,
+  SchedulingRules,
+  TimeRange,
+  TimeSlotData,
+} from '@/features/scheduling/types';
 import { addDays, isSameDay } from '@/shared/lib/date/week';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
@@ -27,14 +38,26 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { BookingSummaryCard } from '@/shared/ui/schedule/booking-summary-card';
+import { ConflictIndicator } from '@/shared/ui/schedule/conflict-indicator';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 
 export interface BookingFlowProps {
   schedule: RecurringWeeklySchedule;
   exceptions: ScheduleException[];
+  holidays?: Holiday[];
   rules: SchedulingRules;
   bookings: Booking[];
+}
+
+/** "2026-07-20T09:00:00.000Z" → { start: "09:00", end: "09:30" } — `detectConflict` works in time-of-day, `TimeSlotData` carries real instants. */
+function toTimeRange(slot: TimeSlotData): TimeRange {
+  const start = new Date(slot.start);
+  const end = new Date(slot.end);
+  return {
+    start: fromMinutes(start.getHours() * 60 + start.getMinutes()),
+    end: fromMinutes(end.getHours() * 60 + end.getMinutes()),
+  };
 }
 
 type Step = 'select' | 'summary' | 'confirmed';
@@ -49,8 +72,9 @@ type Step = 'select' | 'summary' | 'confirmed';
  * the "this slot was just taken" conflict path docs/roadmaps/frontend-
  * master-plan.md's Phase 9 section calls out by name.
  */
-export function BookingFlow({ schedule, exceptions, rules, bookings }: BookingFlowProps) {
+export function BookingFlow({ schedule, exceptions, holidays = [], rules, bookings }: BookingFlowProps) {
   const t = useTranslations('scheduling.booking');
+  const tConflict = useTranslations('scheduling.booking.conflictReason');
   const format = useFormatter();
   const locale = useLocale();
   const queryClient = useQueryClient();
@@ -67,27 +91,39 @@ export function BookingFlow({ schedule, exceptions, rules, bookings }: BookingFl
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
-  const day = resolveDayForDate(selectedDate, getWeekDayName(selectedDate), schedule, exceptions);
+  const day = resolveDayForDate(selectedDate, getWeekDayName(selectedDate), schedule, exceptions, holidays);
   const bookedRanges = bookedRangesForDate(bookings, selectedDate);
   const daySlots = generateDaySlots(day, rules, selectedDate, today, bookedRanges);
-  const availableSlots = daySlots.filter((slot) => slot.status === 'available');
 
-  const gridSlots: TimeGridSlot[] = daySlots.map((slot) => ({
-    id: slot.id,
-    timeLabel: format.dateTime(new Date(slot.start), { hour: 'numeric', minute: 'numeric' }),
-    status: slot.status === 'past' ? 'blocked' : slot.status,
-    onSelect:
-      slot.status === 'available'
+  /** Scheduling Rules (Milestone 6) — `generateDaySlots` already excludes past/booked/outside-hours slots, but doesn't know about the minimum-notice/maximum-booking-window rules `detectConflict` enforces; a slot that's structurally "available" can still fail those, so this is the one place they get applied. */
+  function timingConflict(slot: TimeSlotData): ConflictReason | null {
+    const reason = detectConflict(toTimeRange(slot), day, rules, today, selectedDate);
+    return reason === 'insufficient-notice' || reason === 'beyond-booking-window' ? reason : null;
+  }
+
+  const availableSlots = daySlots.filter((slot) => slot.status === 'available' && !timingConflict(slot));
+
+  const gridSlots: TimeGridSlot[] = daySlots.map((slot) => {
+    const conflict = slot.status === 'available' ? timingConflict(slot) : null;
+    const isSelectable = slot.status === 'available' && !conflict;
+    return {
+      id: slot.id,
+      timeLabel: format.dateTime(new Date(slot.start), { hour: 'numeric', minute: 'numeric' }),
+      status: slot.status === 'past' || conflict ? 'blocked' : slot.status,
+      detail: conflict ? tConflict(conflict) : undefined,
+      onSelect: isSelectable
         ? () => {
             setSelectedSlot(slot);
             setStep('summary');
             setConflictMessage(null);
           }
         : undefined,
-  }));
+    };
+  });
 
   const durationLabel = t('durationMinutes', { minutes: rules.slotDurationMinutes });
   const timezoneLabel = getTimezoneOffsetLabel(DEFAULT_TIME_ZONE, locale, today);
+  const selectedSlotConflict = selectedSlot ? timingConflict(selectedSlot) : null;
 
   function summaryFor(slot: TimeSlotData) {
     return {
@@ -185,6 +221,7 @@ export function BookingFlow({ schedule, exceptions, rules, bookings }: BookingFl
             {createBooking.error.message}
           </Alert>
         )}
+        {selectedSlotConflict && <ConflictIndicator message={tConflict(selectedSlotConflict)} />}
         <BookingSummaryCard
           {...summary}
           durationLabel={durationLabel}
@@ -193,7 +230,11 @@ export function BookingFlow({ schedule, exceptions, rules, bookings }: BookingFl
           statusLabel={t('review')}
           actions={
             <>
-              <Button loading={createBooking.isPending || rescheduleBooking.isPending} onClick={handleConfirm}>
+              <Button
+                disabled={!!selectedSlotConflict}
+                loading={createBooking.isPending || rescheduleBooking.isPending}
+                onClick={handleConfirm}
+              >
                 {t('confirm')}
               </Button>
               <Button variant="outline" onClick={() => setStep('select')}>

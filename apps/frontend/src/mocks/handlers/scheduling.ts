@@ -10,6 +10,7 @@ import {
   getBookings,
   getDoctorAvailability,
   getDoctorExceptions,
+  getHolidays,
   getSchedulingRules,
   getWaitlist,
   joinWaitlist,
@@ -84,4 +85,6 @@ export const schedulingHandlers = [
     const body = (await request.json()) as JoinWaitlistRequest;
     return HttpResponse.json({ data: joinWaitlist(body) }, { status: 201 });
   }),
+
+  http.get(`${base()}${SCHEDULING_PATHS.holidays}`, () => HttpResponse.json({ data: getHolidays() })),
 ];

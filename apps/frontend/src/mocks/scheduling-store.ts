@@ -1,6 +1,7 @@
 import type {
   Booking,
   CreateBookingRequest,
+  Holiday,
   JoinWaitlistRequest,
   RecurringWeeklySchedule,
   ScheduleException,
@@ -63,11 +64,29 @@ function seedWaitlist(): WaitlistEntry[] {
   return [];
 }
 
+/**
+ * Holiday support (milestone 6) — real, fixed-date Egyptian national
+ * holidays (not lunar-calendar ones like Eid, whose exact date shifts
+ * yearly and isn't safe to assert without an authoritative calendar
+ * source). Administrative/reference data, same seeding reasoning as
+ * `seedRules()`.
+ */
+function seedHolidays(): Holiday[] {
+  return [
+    { id: 'holiday-1', date: '2026-01-07', name: 'Coptic Christmas Day' },
+    { id: 'holiday-2', date: '2026-01-25', name: 'Revolution Day' },
+    { id: 'holiday-3', date: '2026-04-25', name: 'Sinai Liberation Day' },
+    { id: 'holiday-4', date: '2026-05-01', name: 'Labour Day' },
+    { id: 'holiday-5', date: '2026-10-06', name: 'Armed Forces Day' },
+  ];
+}
+
 let rules: SchedulingRules = seedRules();
 let doctorAvailability: RecurringWeeklySchedule = seedDoctorAvailability();
 let doctorExceptions: ScheduleException[] = seedDoctorExceptions();
 let bookings: Booking[] = seedBookings();
 let waitlist: WaitlistEntry[] = seedWaitlist();
+let holidays: Holiday[] = seedHolidays();
 
 export function getSchedulingRules(): SchedulingRules {
   return rules;
@@ -147,6 +166,10 @@ export function joinWaitlist(request: JoinWaitlistRequest): WaitlistEntry {
   return created;
 }
 
+export function getHolidays(): Holiday[] {
+  return holidays;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetSchedulingStore(): void {
   rules = seedRules();
@@ -154,4 +177,5 @@ export function resetSchedulingStore(): void {
   doctorExceptions = seedDoctorExceptions();
   bookings = seedBookings();
   waitlist = seedWaitlist();
+  holidays = seedHolidays();
 }
