@@ -2,7 +2,7 @@
 
 import { Mail, Phone } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import type { PatientProfile } from '@/features/patient/api/types';
+import type { PatientMedicalInfo, PatientProfile } from '@/features/patient/api/types';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -15,6 +15,11 @@ function initialsFor(fullName: string): string {
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
   return (first + last).toUpperCase();
 }
+
+// No ClinicalModule exists yet, so the real backend never returns medical
+// data at all (see PatientProfile's own doc comment) — this constant is the
+// honest "not on record" state every patient sees, not a per-patient value.
+const EMPTY_MEDICAL_INFO: PatientMedicalInfo = { bloodType: undefined, allergies: [], chronicConditions: [] };
 
 export interface PatientProfileViewProps {
   profile: PatientProfile;
@@ -31,8 +36,8 @@ export interface PatientProfileViewProps {
  */
 export function PatientProfileView({ profile }: PatientProfileViewProps) {
   const t = useTranslations('patient.profile');
-  const tGender = useTranslations('patient.profile.gender');
   const format = useFormatter();
+  const medicalInfo = EMPTY_MEDICAL_INFO;
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,11 +47,11 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
         </Avatar>
         <div className="flex flex-col gap-1">
           <p className="text-lg font-semibold text-text-primary">{profile.fullName}</p>
-          <p className="text-sm text-text-secondary">
-            {format.dateTime(new Date(profile.dateOfBirth), { year: 'numeric', month: 'long', day: 'numeric' })}
-            {' · '}
-            {tGender(profile.gender)}
-          </p>
+          {profile.dateOfBirth && (
+            <p className="text-sm text-text-secondary">
+              {format.dateTime(new Date(profile.dateOfBirth), { year: 'numeric', month: 'long', day: 'numeric' })}
+            </p>
+          )}
         </div>
       </div>
 
@@ -58,9 +63,8 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
           </div>
           <div className="flex items-center gap-2 text-sm text-text-secondary">
             <Icon icon={Phone} size="sm" />
-            {profile.phone}
+            {profile.phoneNumber ?? t('notOnRecord')}
           </div>
-          <p className="text-sm text-text-secondary">{profile.address}</p>
         </div>
       </Section>
 
@@ -68,13 +72,13 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-xs text-text-tertiary">{t('bloodType')}</p>
-            <p className="text-sm text-text-secondary">{profile.medicalInfo.bloodType ?? t('notOnRecord')}</p>
+            <p className="text-sm text-text-secondary">{medicalInfo.bloodType ?? t('notOnRecord')}</p>
           </div>
           <div>
             <p className="text-xs text-text-tertiary">{t('allergies')}</p>
-            {profile.medicalInfo.allergies.length > 0 ? (
+            {medicalInfo.allergies.length > 0 ? (
               <div className="flex flex-wrap gap-2 pt-1">
-                {profile.medicalInfo.allergies.map((allergy) => (
+                {medicalInfo.allergies.map((allergy) => (
                   <Badge key={allergy} variant="warning">
                     {allergy}
                   </Badge>
@@ -86,9 +90,9 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
           </div>
           <div>
             <p className="text-xs text-text-tertiary">{t('chronicConditions')}</p>
-            {profile.medicalInfo.chronicConditions.length > 0 ? (
+            {medicalInfo.chronicConditions.length > 0 ? (
               <div className="flex flex-wrap gap-2 pt-1">
-                {profile.medicalInfo.chronicConditions.map((condition) => (
+                {medicalInfo.chronicConditions.map((condition) => (
                   <Badge key={condition} variant="neutral">
                     {condition}
                   </Badge>
@@ -108,7 +112,7 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
               <li key={contact.id} className="flex flex-col gap-0.5">
                 <p className="text-sm font-medium text-text-primary">{contact.name}</p>
                 <p className="text-sm text-text-secondary">
-                  {contact.relationship} · {contact.phone}
+                  {contact.relationship} · {contact.phoneNumber}
                 </p>
               </li>
             ))}

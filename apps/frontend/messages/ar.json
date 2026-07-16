@@ -408,7 +408,7 @@
       "editProfile": "تعديل الملف الشخصي",
       "personalInformation": "المعلومات الشخصية",
       "phone": "الهاتف",
-      "address": "العنوان",
+      "dateOfBirth": "تاريخ الميلاد",
       "medicalInformation": "المعلومات الطبية",
       "medicalInformationDescription": "يتم إدخالها بواسطة فريق الرعاية الخاص بك — لا يمكنك تعديل هذا القسم بنفسك.",
       "bloodType": "فصيلة الدم",
@@ -434,15 +434,7 @@
       "save": "حفظ",
       "cancel": "إلغاء",
       "loadError": "تعذّر تحميل ملفك الشخصي.",
-      "gender": {
-        "female": "أنثى",
-        "male": "ذكر",
-        "other": "آخر",
-        "unspecified": "غير محدد"
-      },
       "validation": {
-        "phoneRequired": "أدخل رقم الهاتف.",
-        "addressRequired": "أدخل عنوانك.",
         "contactNameRequired": "أدخل الاسم.",
         "contactRelationshipRequired": "أدخل صلة القرابة.",
         "contactPhoneRequired": "أدخل رقم الهاتف.",

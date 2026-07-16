@@ -28,10 +28,12 @@ export interface PatientProfileFormProps {
 
 /**
  * The Patient Profile's edit architecture — only the fields
- * `PatientProfileUpdateRequest` actually allows (phone, address, emergency
- * contacts). Identity fields (`fullName`, `dateOfBirth`, `gender`, `email`)
- * and clinical fields (`medicalInfo`) are deliberately not editable here —
- * mirrors `DoctorProfileForm`'s identity/verification-backed exclusion.
+ * `PatientProfileUpdateRequest` actually allows (`dateOfBirth`, emergency
+ * contacts), matching PatientProfileController's real PATCH endpoint
+ * exactly. `fullName`/`email`/`phoneNumber` are Account-owned (Identity has
+ * no update-profile endpoint yet) and clinical fields don't exist on the
+ * backend at all — both deliberately excluded, mirroring
+ * `DoctorProfileForm`'s identity/verification-backed exclusion.
  */
 export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfileFormProps) {
   const t = useTranslations('patient.profile');
@@ -41,8 +43,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
   const form = useForm<PatientProfileFormValues>({
     resolver: zodResolver(createPatientProfileSchema(tValidation)),
     defaultValues: {
-      phone: profile.phone,
-      address: profile.address,
+      dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : undefined,
       emergencyContacts: profile.emergencyContacts,
     },
   });
@@ -71,25 +72,12 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
           <div className="flex flex-col gap-4">
             <FormField
               control={form.control}
-              name="phone"
+              name="dateOfBirth"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('phone')}</FormLabel>
+                  <FormLabel>{t('dateOfBirth')}</FormLabel>
                   <FormControl>
-                    <Input type="tel" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('address')}</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
+                    <Input type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -106,7 +94,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => contacts.append({ name: '', relationship: '', phone: '' })}
+                onClick={() => contacts.append({ name: '', relationship: '', phoneNumber: '' })}
               >
                 <Icon icon={Plus} size="sm" className="me-2" />
                 {t('addContact')}
@@ -150,7 +138,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                       />
                       <FormField
                         control={form.control}
-                        name={`emergencyContacts.${index}.phone`}
+                        name={`emergencyContacts.${index}.phoneNumber`}
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('contactPhone')}</FormLabel>

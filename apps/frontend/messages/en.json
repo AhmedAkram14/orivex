@@ -408,7 +408,7 @@
       "editProfile": "Edit profile",
       "personalInformation": "Personal information",
       "phone": "Phone",
-      "address": "Address",
+      "dateOfBirth": "Date of birth",
       "medicalInformation": "Medical information",
       "medicalInformationDescription": "Entered by your care team — you cannot edit this section yourself.",
       "bloodType": "Blood type",
@@ -434,15 +434,7 @@
       "save": "Save",
       "cancel": "Cancel",
       "loadError": "Couldn't load your profile.",
-      "gender": {
-        "female": "Female",
-        "male": "Male",
-        "other": "Other",
-        "unspecified": "Unspecified"
-      },
       "validation": {
-        "phoneRequired": "Enter a phone number.",
-        "addressRequired": "Enter your address.",
         "contactNameRequired": "Enter a name.",
         "contactRelationshipRequired": "Enter a relationship.",
         "contactPhoneRequired": "Enter a phone number.",

@@ -10,7 +10,10 @@ export const PATIENT_PATHS = {
   dashboardSummary: '/patient/dashboard-summary',
   upcomingAppointments: '/patient/upcoming-appointments',
   activePrescriptions: '/patient/active-prescriptions',
-  profile: '/patient/profile',
+  // The real backend route (PatientModule's PatientProfileController) --
+  // not /patient/profile. Every other path in this object remains MSW-only
+  // (no backend implementation exists yet for those features).
+  profile: '/patients/me',
   appointments: '/patient/appointments',
   medicalRecords: '/patient/medical-records',
   prescriptions: '/patient/prescriptions',
