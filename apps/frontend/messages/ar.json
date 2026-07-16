@@ -320,9 +320,18 @@
       "weekTab": "أسبوع",
       "monthTab": "شهر",
       "dayTab": "يوم",
+      "agendaTab": "جدول الأعمال",
       "workingHoursTitle": "ساعات العمل",
       "editWorkingHours": "تعديل ساعات العمل",
-      "timeOffTitle": "الإجازات"
+      "timeOffTitle": "الإجازات",
+      "agendaEmptyTitle": "لا يوجد شيء مجدول",
+      "agendaEmptyDescription": "ستظهر هنا الأوقات المتاحة والمحجوزة للأسبوعين القادمين.",
+      "agendaSlotTitle": {
+        "available": "وقت متاح",
+        "booked": "وقت محجوز",
+        "blocked": "وقت محظور",
+        "past": "وقت منقضٍ"
+      }
     },
     "queue": {
       "title": "قائمة انتظار المرضى",
@@ -543,6 +552,12 @@
     }
   },
   "scheduling": {
+    "slotStatus": {
+      "available": "متاح",
+      "booked": "محجوز",
+      "blocked": "محظور",
+      "past": "منقضٍ"
+    },
     "weekDays": {
       "sunday": "الأحد",
       "monday": "الإثنين",

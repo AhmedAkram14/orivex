@@ -94,4 +94,15 @@ describe('DoctorSchedulePage', () => {
     renderPage();
     expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();
   });
+
+  it('switches to the Agenda view and renders real generated slots', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Agenda' }));
+
+    // The seeded schedule (Sun-Thu, 9-5) guarantees at least one working
+    // day within the next 14 days, so the agenda is never empty here.
+    expect(screen.queryByText('Nothing scheduled')).not.toBeInTheDocument();
+  });
 });

@@ -320,9 +320,18 @@
       "weekTab": "Week",
       "monthTab": "Month",
       "dayTab": "Day",
+      "agendaTab": "Agenda",
       "workingHoursTitle": "Working hours",
       "editWorkingHours": "Edit working hours",
-      "timeOffTitle": "Time off"
+      "timeOffTitle": "Time off",
+      "agendaEmptyTitle": "Nothing scheduled",
+      "agendaEmptyDescription": "Your available and booked slots for the next two weeks will appear here.",
+      "agendaSlotTitle": {
+        "available": "Available slot",
+        "booked": "Booked slot",
+        "blocked": "Blocked slot",
+        "past": "Past slot"
+      }
     },
     "queue": {
       "title": "Patient Queue",
@@ -543,6 +552,12 @@
     }
   },
   "scheduling": {
+    "slotStatus": {
+      "available": "Available",
+      "booked": "Booked",
+      "blocked": "Blocked",
+      "past": "Past"
+    },
     "weekDays": {
       "sunday": "Sunday",
       "monday": "Monday",

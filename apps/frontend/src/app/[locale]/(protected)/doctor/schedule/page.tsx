@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
 import { ScheduleExceptionsManager } from '@/features/scheduling/components/schedule-exceptions-manager';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
@@ -18,10 +19,10 @@ import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { AvailabilityBlock } from '@/shared/ui/schedule/availability-block';
 import { CalendarHeader } from '@/shared/ui/schedule/calendar-header';
-import { DailyTimeline, type DailyTimelineRow } from '@/shared/ui/schedule/daily-timeline';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
+import { Legend } from '@/shared/ui/schedule/legend';
 import { MonthCalendar, type MonthCalendarDay } from '@/shared/ui/schedule/month-calendar';
-import { TimeSlot, type TimeSlotStatus } from '@/shared/ui/schedule/time-slot';
+import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
 import { Page } from '@/shared/ui/layout/page';
 import { Section } from '@/shared/ui/layout/section';
@@ -29,19 +30,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 const WEEK_SKELETON_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-const slotStatusMap: Record<string, TimeSlotStatus> = { available: 'available', booked: 'booked', past: 'blocked', blocked: 'blocked' };
 
 /**
- * The Doctor Availability page (Phase 9, Milestone 2) — Week/Month/Day
- * calendar views over the doctor's real (mocked) recurring weekly
- * schedule, plus the editing architecture Phase 7's read-only Schedule
- * Foundation anticipated: `WorkingHoursForm` (working hours + breaks) and
- * `ScheduleExceptionsManager` (vacation/unavailable dates). Every view
- * resolves through `resolveDayForDate` so the recurring template and its
- * exceptions are never computed twice with different logic.
+ * The Doctor Availability / Appointment Calendar page (Phase 9, Milestones
+ * 2–3) — Week/Month/Day/Agenda calendar views over the doctor's real
+ * (mocked) recurring weekly schedule, plus the editing architecture Phase
+ * 7's read-only Schedule Foundation anticipated: `WorkingHoursForm`
+ * (working hours + breaks) and `ScheduleExceptionsManager`
+ * (vacation/unavailable dates). The Day view is a real `TimeGrid` of
+ * generated slots (with hover detail and a status `Legend`), the Agenda
+ * view flattens the same generated slots across the next two weeks — every
+ * view resolves through `resolveDayForDate`/`generateDaySlots` so no view
+ * ever disagrees with another about the same date.
  */
 export default function DoctorSchedulePage() {
   const t = useTranslations('doctor.schedule');
+  const tSlotStatus = useTranslations('scheduling.slotStatus');
   const format = useFormatter();
   const { data: schedule, isLoading, isError } = useDoctorAvailability();
   const { data: exceptions, isLoading: isLoadingExceptions } = useDoctorExceptions();
@@ -104,15 +108,11 @@ export default function DoctorSchedulePage() {
   const selectedDay = resolvedDay(selectedDate);
   const selectedDaySlots =
     selectedDay && rules ? generateDaySlots(selectedDay, rules, selectedDate, today) : [];
-  const dayTimelineRows: DailyTimelineRow[] = selectedDaySlots.map((slot) => ({
+  const daySlots: TimeGridSlot[] = selectedDaySlots.map((slot) => ({
     id: slot.id,
-    hourLabel: format.dateTime(new Date(slot.start), { hour: 'numeric', minute: 'numeric' }),
-    content: (
-      <TimeSlot
-        time={format.dateTime(new Date(slot.start), { hour: 'numeric', minute: 'numeric' })}
-        status={slotStatusMap[slot.status]}
-      />
-    ),
+    timeLabel: format.dateTime(new Date(slot.start), { hour: 'numeric', minute: 'numeric' }),
+    status: slot.status === 'past' ? 'blocked' : slot.status,
+    detail: slot.status === 'available' ? undefined : tSlotStatus(slot.status),
   }));
 
   return (
@@ -134,6 +134,7 @@ export default function DoctorSchedulePage() {
               <TabsTrigger value="week">{t('weekTab')}</TabsTrigger>
               <TabsTrigger value="month">{t('monthTab')}</TabsTrigger>
               <TabsTrigger value="day">{t('dayTab')}</TabsTrigger>
+              <TabsTrigger value="agenda">{t('agendaTab')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="week">
@@ -180,13 +181,29 @@ export default function DoctorSchedulePage() {
             </TabsContent>
 
             <TabsContent value="day">
-              <p className="pb-3 text-sm font-medium text-text-primary">
-                {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              {dayTimelineRows.length > 0 ? (
-                <DailyTimeline rows={dayTimelineRows} />
-              ) : (
-                <p className="text-sm text-text-tertiary">{t('noAvailability')}</p>
+              <div className="flex flex-col gap-3">
+                <p className="text-sm font-medium text-text-primary">
+                  {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+                {daySlots.length > 0 ? (
+                  <>
+                    <Legend
+                      items={[
+                        { id: 'available', label: tSlotStatus('available'), colorClassName: 'bg-success' },
+                        { id: 'booked', label: tSlotStatus('booked'), colorClassName: 'bg-primary' },
+                      ]}
+                    />
+                    <TimeGrid slots={daySlots} />
+                  </>
+                ) : (
+                  <p className="text-sm text-text-tertiary">{t('noAvailability')}</p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="agenda">
+              {rules && (
+                <ScheduleAgenda schedule={schedule} exceptions={exceptions ?? []} rules={rules} startDate={today} />
               )}
             </TabsContent>
           </Tabs>
