@@ -18,6 +18,14 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return row ? toDomainAppointment(row) : null;
   }
 
+  async findByPatientId(patientId: string): Promise<Appointment[]> {
+    const rows = await this.prisma.appointment.findMany({
+      where: { patientId },
+      orderBy: { scheduledAt: 'desc' },
+    });
+    return rows.map(toDomainAppointment);
+  }
+
   // Optimistic locking, mirroring AvailabilityWindow's repository: updates
   // are conditioned on the version the caller loaded; a 0-row result means
   // another writer already moved the row on.

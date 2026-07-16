@@ -14,7 +14,7 @@ export interface AppointmentListProps {
 /** Renders a list of `AppointmentCard`s from real `Appointment` data — the shared rendering both the Upcoming and History tabs use, so formatting/translation logic lives in exactly one place. */
 export function AppointmentList({ appointments, emptyTitle, emptyDescription }: AppointmentListProps) {
   const tStatus = useTranslations('patient.appointments.status');
-  const tType = useTranslations('patient.appointments.type');
+  const tConsultationType = useTranslations('patient.appointments.consultationType');
   const format = useFormatter();
 
   if (appointments.length === 0) {
@@ -37,9 +37,7 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription }: 
             counterpartyDetail={appointment.specialization}
             status={appointment.status}
             statusLabel={tStatus(appointment.status)}
-            type={appointment.type}
-            typeLabel={tType(appointment.type)}
-            location={appointment.location}
+            consultationTypeLabel={tConsultationType(appointment.consultationType)}
           />
         </li>
       ))}

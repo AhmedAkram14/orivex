@@ -37,6 +37,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findById(id: string): Promise<Appointment | null> {
     return this.appointment.getId() === id ? this.appointment : null;
   }
+  async findByPatientId(patientId: string): Promise<Appointment[]> {
+    return this.appointment.getPatientId() === patientId ? [this.appointment] : [];
+  }
   async save(): Promise<void> {}
 }
 

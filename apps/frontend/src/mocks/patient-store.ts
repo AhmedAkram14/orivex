@@ -55,9 +55,11 @@ function seedProfile(): PatientProfile {
 }
 
 /**
- * The full appointment list (milestone 3) — an honest empty array, same
- * reasoning as `seedUpcomingAppointments`: no Scheduling module is wired
- * into the frontend yet.
+ * The full appointment list — `GET /appointments/me` is a real backend
+ * endpoint (ConsultationModule's AppointmentController), so this mock now
+ * exists purely to keep the frontend test suite deterministic, matching
+ * `seedProfile()`'s reasoning. An honest empty array: the seeded test
+ * account has never booked a real appointment.
  */
 function seedAppointments(): Appointment[] {
   return [];

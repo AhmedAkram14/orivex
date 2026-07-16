@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
+import { Reflector } from '@nestjs/core';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -9,6 +10,10 @@ import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import { createValidationException } from '../../../../platform/validation/validation-exception-factory.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../../../shared/domain/tokens.js';
+import type { AccessTokenClaims, JwtSignerPort } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js';
+import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
@@ -19,6 +24,14 @@ import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.en
 import { ConsultationType as DoctorConsultationType } from '../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import { Account } from '../../../identity/domain/entities/account.entity.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import type { AccountRepository } from '../../../identity/domain/repositories/account.repository.js';
+import type { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
+import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
+import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
+import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
@@ -29,6 +42,7 @@ import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY } from '../../a
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from '../../application/use-cases/start-consultation/start-consultation.use-case.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
@@ -39,13 +53,15 @@ import type { ConsultationSessionRepository } from '../../domain/repositories/co
 import { AppointmentController } from './appointment.controller.js';
 import { ConsultationController } from './consultation.controller.js';
 
+const VALID_PATIENT_TOKEN = 'valid-patient-token';
+
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
   async findById(id: string): Promise<PatientProfile | null> {
     return this.profile.getId() === id ? this.profile : null;
   }
-  async findByAccountId(): Promise<PatientProfile | null> {
-    return null;
+  async findByAccountId(accountId: string): Promise<PatientProfile | null> {
+    return this.profile.getAccountId() === accountId ? this.profile : null;
   }
   async save(): Promise<void> {}
 }
@@ -59,6 +75,30 @@ class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
     return null;
   }
   async save(): Promise<void> {}
+}
+
+class InMemoryAccountRepository implements AccountRepository {
+  constructor(private readonly accounts: Account[]) {}
+  async findById(id: AccountId): Promise<Account | null> {
+    return this.accounts.find((account) => account.getId().equals(id)) ?? null;
+  }
+  async findByEmail(): Promise<Account | null> {
+    return null;
+  }
+  async save(): Promise<void> {}
+}
+
+class FakeJwtSigner implements JwtSignerPort {
+  constructor(private readonly accountId: string) {}
+  async sign(): Promise<never> {
+    throw new Error('not used in this test');
+  }
+  async verify(token: string): Promise<AccessTokenClaims> {
+    if (token !== VALID_PATIENT_TOKEN) {
+      throw new Error('invalid token');
+    }
+    return { accountId: this.accountId, role: AccountRole.Patient };
+  }
 }
 
 class InMemoryAvailabilityWindowRepository implements AvailabilityWindowRepository {
@@ -81,6 +121,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   private readonly byId = new Map<string, Appointment>();
   async findById(id: string): Promise<Appointment | null> {
     return this.byId.get(id) ?? null;
+  }
+  async findByPatientId(patientId: string): Promise<Appointment[]> {
+    return Array.from(this.byId.values()).filter((appointment) => appointment.getPatientId() === patientId);
   }
   async save(appointment: Appointment): Promise<void> {
     this.byId.set(appointment.getId(), appointment);
@@ -123,9 +166,20 @@ describe('Consultation controllers (integration)', () => {
   let bookedAppointmentId: string;
 
   before(async () => {
-    patient = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+    const patientAccount = Account.register({
+      email: EmailAddress.create('patient@example.com'),
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('Amina Youssef'),
+    });
+    const doctorAccount = Account.register({
+      email: EmailAddress.create('doctor@example.com'),
+      role: AccountRole.Doctor,
+      displayName: DisplayName.create('Dr. Karim Adel'),
+    });
+
+    patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
     doctor = DoctorProfile.register({
-      accountId: '22222222-2222-4222-8222-222222222222',
+      accountId: doctorAccount.getId().toString(),
       licenseNumber: 'LIC-1',
       specialty: 'Cardiology',
     });
@@ -191,10 +245,22 @@ describe('Consultation controllers (integration)', () => {
       new NoopDomainEventDispatcher(),
     );
 
+    const accountRepo = new InMemoryAccountRepository([patientAccount, doctorAccount]);
+    const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepo);
+    const getPatientProfileByAccountIdUseCase = new GetPatientProfileByAccountIdUseCase(
+      new InMemoryPatientProfileRepository(patient),
+    );
+    const getDoctorProfileByIdUseCase = new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor));
+    const listAppointmentsForPatientUseCase = new ListAppointmentsForPatientUseCase(appointmentRepo);
+
     const moduleRef = await Test.createTestingModule({
       controllers: [AppointmentController, ConsultationController],
       providers: [
         PinoLoggerService,
+        Reflector,
+        JwtAuthGuard,
+        RolesGuard,
+        { provide: JWT_SIGNER, useFactory: () => new FakeJwtSigner(patientAccount.getId().toString()) },
         { provide: APPOINTMENT_REPOSITORY, useValue: appointmentRepo },
         { provide: CONSULTATION_SESSION_REPOSITORY, useValue: sessionRepo },
         { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
@@ -202,6 +268,10 @@ describe('Consultation controllers (integration)', () => {
         { provide: RescheduleOrCancelAppointmentUseCase, useValue: rescheduleOrCancelAppointmentUseCase },
         { provide: StartConsultationUseCase, useValue: startConsultationUseCase },
         { provide: CloseConsultationUseCase, useValue: closeConsultationUseCase },
+        { provide: GetAccountByIdUseCase, useValue: getAccountByIdUseCase },
+        { provide: GetPatientProfileByAccountIdUseCase, useValue: getPatientProfileByAccountIdUseCase },
+        { provide: GetDoctorProfileByIdUseCase, useValue: getDoctorProfileByIdUseCase },
+        { provide: ListAppointmentsForPatientUseCase, useValue: listAppointmentsForPatientUseCase },
       ],
     }).compile();
 
@@ -329,5 +399,25 @@ describe('Consultation controllers (integration)', () => {
       .expect(200);
 
     assert.equal(response.body.data.status, 'cancelled');
+  });
+
+  it('GET /appointments/me rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/me').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/me returns the caller\'s own appointments with doctor name/specialty composed in', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/me')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .expect(200);
+
+    assert.ok(response.body.data.length >= 2);
+    for (const item of response.body.data) {
+      assert.equal(item.doctorName, 'Dr. Karim Adel');
+      assert.equal(item.specialization, 'Cardiology');
+      assert.ok(item.scheduledAt);
+      assert.ok(['requested', 'confirmed', 'rescheduled', 'cancelled', 'no_show', 'completed'].includes(item.status));
+    }
   });
 });

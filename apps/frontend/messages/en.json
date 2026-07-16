@@ -457,14 +457,16 @@
         "cancelled": "Cancelled"
       },
       "status": {
-        "upcoming": "Upcoming",
-        "in-progress": "In progress",
-        "completed": "Completed",
-        "cancelled": "Cancelled"
+        "requested": "Requested",
+        "confirmed": "Confirmed",
+        "rescheduled": "Rescheduled",
+        "cancelled": "Cancelled",
+        "no_show": "No-show",
+        "completed": "Completed"
       },
-      "type": {
-        "in-person": "In-person",
-        "video": "Video call"
+      "consultationType": {
+        "free": "Free consultation",
+        "paid": "Paid consultation"
       },
       "calendar": {
         "title": "Calendar",

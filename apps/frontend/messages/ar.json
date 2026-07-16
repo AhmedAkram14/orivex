@@ -457,14 +457,16 @@
         "cancelled": "ملغاة"
       },
       "status": {
-        "upcoming": "قادم",
-        "in-progress": "جارٍ",
-        "completed": "مكتمل",
-        "cancelled": "ملغى"
+        "requested": "مطلوب",
+        "confirmed": "مؤكد",
+        "rescheduled": "أُعيدت جدولته",
+        "cancelled": "ملغى",
+        "no_show": "لم يحضر",
+        "completed": "مكتمل"
       },
-      "type": {
-        "in-person": "حضوري",
-        "video": "مكالمة فيديو"
+      "consultationType": {
+        "free": "استشارة مجانية",
+        "paid": "استشارة مدفوعة"
       },
       "calendar": {
         "title": "التقويم",

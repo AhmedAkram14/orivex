@@ -9,28 +9,25 @@ export default meta;
 
 type Story = StoryObj<typeof AppointmentCard>;
 
-export const Upcoming: Story = {
+export const Confirmed: Story = {
   args: {
     scheduledAtLabel: 'Jul 20, 2026, 10:00 AM',
     counterpartyName: 'Dr. Sarah Ahmed',
     counterpartyDetail: 'Cardiology',
-    status: 'upcoming',
-    statusLabel: 'Upcoming',
-    type: 'in-person',
-    typeLabel: 'In-person',
-    location: 'Orivex Clinic, Cairo',
+    status: 'confirmed',
+    statusLabel: 'Confirmed',
+    consultationTypeLabel: 'Free consultation',
   },
 };
 
-export const Video: Story = {
+export const Requested: Story = {
   args: {
     scheduledAtLabel: 'Jul 22, 2026, 2:00 PM',
     counterpartyName: 'Dr. Sarah Ahmed',
     counterpartyDetail: 'Cardiology',
-    status: 'upcoming',
-    statusLabel: 'Upcoming',
-    type: 'video',
-    typeLabel: 'Video call',
+    status: 'requested',
+    statusLabel: 'Requested',
+    consultationTypeLabel: 'Paid consultation',
   },
 };
 
@@ -41,9 +38,7 @@ export const Completed: Story = {
     counterpartyDetail: 'Cardiology',
     status: 'completed',
     statusLabel: 'Completed',
-    type: 'in-person',
-    typeLabel: 'In-person',
-    location: 'Orivex Clinic, Cairo',
+    consultationTypeLabel: 'Free consultation',
   },
 };
 
@@ -54,7 +49,6 @@ export const Cancelled: Story = {
     counterpartyDetail: 'Cardiology',
     status: 'cancelled',
     statusLabel: 'Cancelled',
-    type: 'in-person',
-    typeLabel: 'In-person',
+    consultationTypeLabel: 'Free consultation',
   },
 };

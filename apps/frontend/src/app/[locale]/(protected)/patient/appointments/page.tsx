@@ -18,21 +18,28 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 type HistoryFilter = 'all' | 'completed' | 'cancelled';
 
+// Matches ConsultationModule's real AppointmentStatus enum: an appointment
+// is still "upcoming" while requested/confirmed/rescheduled, and moves to
+// history once it reaches a terminal state (completed/cancelled/no_show).
+const UPCOMING_STATUSES = ['requested', 'confirmed', 'rescheduled'];
+
 /**
  * The Patient Portal's Appointments page — a calendar foundation (real week
  * grid, marking days with appointments), then Upcoming/History tabs, each
- * rendering real (mocked) `Appointment` data via the reusable
- * `AppointmentList`/`AppointmentCard`. Honestly empty today since no
- * Scheduling module is wired into the frontend yet.
+ * rendering real `Appointment` data (GET /appointments/me) via the reusable
+ * `AppointmentList`/`AppointmentCard`.
  */
 export default function PatientAppointmentsPage() {
   const t = useTranslations('patient.appointments');
   const { data: appointments, isLoading, isError } = usePatientAppointments();
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
 
-  const upcoming = useMemo(() => (appointments ?? []).filter((a) => a.status === 'upcoming'), [appointments]);
+  const upcoming = useMemo(
+    () => (appointments ?? []).filter((a) => UPCOMING_STATUSES.includes(a.status)),
+    [appointments],
+  );
   const history = useMemo(() => {
-    const past = (appointments ?? []).filter((a) => a.status !== 'upcoming');
+    const past = (appointments ?? []).filter((a) => !UPCOMING_STATUSES.includes(a.status));
     return historyFilter === 'all' ? past : past.filter((a) => a.status === historyFilter);
   }, [appointments, historyFilter]);
 

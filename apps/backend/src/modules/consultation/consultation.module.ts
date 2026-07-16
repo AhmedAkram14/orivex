@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationModule } from '../authentication/authentication.module.js';
 import { GetAvailabilityWindowByIdUseCase } from '../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
 import { ConfirmSlotUseCase } from '../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
@@ -18,6 +20,7 @@ import { CloseConsultationUseCase } from './application/use-cases/close-consulta
 import { ConfirmAppointmentUseCase } from './application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from './application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from './application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { ListAppointmentsForPatientUseCase } from './application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from './application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from './application/use-cases/start-consultation/start-consultation.use-case.js';
 import type { AppointmentRepository } from './domain/repositories/appointment.repository.js';
@@ -27,13 +30,14 @@ import { PrismaConsultationSessionRepository } from './infrastructure/prisma/pri
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
 import { ConsultationController } from './presentation/controllers/consultation.controller.js';
 
-// Imports PatientModule, DoctorModule, and SchedulingModule to consume their
-// own exported use cases (module-to-module calls only through a published
-// interface, never another module's repository — docs/10-backend-
-// architecture.md Section 11). None of those modules import Consultation
-// back -- no circular imports, no forwardRef().
+// Imports PatientModule, DoctorModule, SchedulingModule, IdentityModule, and
+// AuthenticationModule to consume their own exported use cases/guards
+// (module-to-module calls only through a published interface, never another
+// module's repository — docs/10-backend-architecture.md Section 11). None of
+// those modules import Consultation back -- no circular imports, no
+// forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, SchedulingModule],
+  imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule],
   controllers: [AppointmentController, ConsultationController],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },
@@ -111,6 +115,11 @@ import { ConsultationController } from './presentation/controllers/consultation.
     {
       provide: GetAppointmentByIdUseCase,
       useFactory: (repository: AppointmentRepository) => new GetAppointmentByIdUseCase(repository),
+      inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
+      provide: ListAppointmentsForPatientUseCase,
+      useFactory: (repository: AppointmentRepository) => new ListAppointmentsForPatientUseCase(repository),
       inject: [APPOINTMENT_REPOSITORY],
     },
     {

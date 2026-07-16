@@ -1,17 +1,17 @@
-import { MapPin, Video } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge } from '@/shared/ui/badge';
-import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
 
-export type AppointmentCardStatus = 'upcoming' | 'in-progress' | 'completed' | 'cancelled';
-export type AppointmentCardType = 'in-person' | 'video';
+// Matches ConsultationModule's real AppointmentStatus enum exactly.
+export type AppointmentCardStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
 
 const badgeVariantByStatus: Record<AppointmentCardStatus, 'info' | 'warning' | 'success' | 'neutral'> = {
-  upcoming: 'info',
-  'in-progress': 'warning',
-  completed: 'success',
+  requested: 'info',
+  confirmed: 'info',
+  rescheduled: 'warning',
   cancelled: 'neutral',
+  no_show: 'neutral',
+  completed: 'success',
 };
 
 export interface AppointmentCardProps {
@@ -22,16 +22,15 @@ export interface AppointmentCardProps {
   counterpartyDetail?: string;
   status: AppointmentCardStatus;
   statusLabel: ReactNode;
-  type: AppointmentCardType;
-  typeLabel: ReactNode;
-  location?: string;
+  /** Pre-formatted, localized consultation-type text (e.g. "Free consultation") — matches ConsultationType (free/paid), not an in-person/video distinction that doesn't exist on the backend. */
+  consultationTypeLabel: ReactNode;
   actions?: ReactNode;
   className?: string;
 }
 
 /**
  * A single appointment entry — date/time, the other party's name + detail
- * (e.g. specialization), a status badge, and an in-person/video indicator.
+ * (e.g. specialization), a status badge, and the consultation type.
  * Reusable across any appointment list (Patient Portal's Upcoming/History
  * views today; a future Doctor or Admin appointment list could reuse it
  * unchanged, since nothing here assumes the viewer's role) — deliberately
@@ -44,9 +43,7 @@ export function AppointmentCard({
   counterpartyDetail,
   status,
   statusLabel,
-  type,
-  typeLabel,
-  location,
+  consultationTypeLabel,
   actions,
   className,
 }: AppointmentCardProps) {
@@ -66,11 +63,7 @@ export function AppointmentCard({
           {counterpartyName}
           {counterpartyDetail && <span className="text-text-tertiary"> · {counterpartyDetail}</span>}
         </p>
-        <div className="flex items-center gap-1.5 text-xs text-text-tertiary">
-          <Icon icon={type === 'video' ? Video : MapPin} size="sm" />
-          {typeLabel}
-          {location && type === 'in-person' && <span> · {location}</span>}
-        </div>
+        <p className="text-xs text-text-tertiary">{consultationTypeLabel}</p>
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>

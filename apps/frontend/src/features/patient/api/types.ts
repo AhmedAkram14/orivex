@@ -95,14 +95,17 @@ export interface PatientProfileUpdateRequest {
   emergencyContacts: (Omit<EmergencyContact, 'id'> & { id?: string })[];
 }
 
-export type AppointmentStatus = 'upcoming' | 'completed' | 'cancelled';
-export type AppointmentType = 'in-person' | 'video';
+/** Matches ConsultationModule's real `AppointmentStatus` enum exactly. */
+export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
+
+/** Matches ConsultationModule's real `ConsultationType` enum exactly — free vs. paid, not in-person vs. video. */
+export type ConsultationType = 'free' | 'paid';
 
 /**
- * The full appointment record — milestone 3's own type, deliberately
- * distinct from `UpcomingAppointmentPreview` (the dashboard's lighter
- * preview shape): this one backs a paginated/filterable list, not a
- * short "next few" widget.
+ * The full appointment record — backed by the real `GET /appointments/me`
+ * endpoint. Deliberately no `type`/`location` fields (in-person vs. video,
+ * physical address) — no backend concept of either exists yet, only
+ * `consultationType`.
  */
 export interface Appointment {
   id: string;
@@ -111,9 +114,8 @@ export interface Appointment {
   doctorName: string;
   specialization: string;
   status: AppointmentStatus;
-  type: AppointmentType;
-  /** Present only for `type: 'in-person'`. */
-  location?: string;
+  consultationType: ConsultationType;
+  reasonForVisit?: string;
 }
 
 export type AppointmentsResponse = Appointment[];
