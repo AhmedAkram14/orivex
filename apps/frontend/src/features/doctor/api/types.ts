@@ -24,7 +24,14 @@ export interface DoctorQualification {
   year?: number;
 }
 
-export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+// `WeekDay` now lives in `features/scheduling/types.ts` (Phase 9) — the
+// generic Scheduling & Appointment Infrastructure's own domain model.
+// Re-exported here so this module's existing callers (`DoctorAvailabilitySummary`,
+// `doctor/schedule/page.tsx`) don't need an import-path change, mirroring the
+// `shared/lib/date/week.ts` extraction's own backward-compatible re-export pattern.
+import type { WeekDay } from '@/features/scheduling/types';
+
+export type { WeekDay };
 
 export interface DoctorAvailabilitySummary {
   /** Days with at least one availability block — a summary for the profile page, not the detailed block/slot data `SchedulingModule`'s `AvailabilityWindow` will eventually back (Phase 7's Schedule Foundation milestone). */
@@ -55,24 +62,13 @@ export interface DoctorProfileUpdateRequest {
   phone: string;
 }
 
-/**
- * A recurring weekly availability window — the Schedule Foundation's data
- * shape, distinct from `DoctorAvailabilitySummary` (the profile page's
- * plain-text summary of the same underlying reality). This is what
- * `SchedulingModule`'s real `AvailabilityWindow` will eventually replace;
- * the shape here is deliberately simple (one day, one start/end hour) so
- * that replacement is a data-source change, not a UI rewrite.
- */
-export interface AvailabilityBlockData {
-  id: string;
-  dayOfWeek: WeekDay;
-  /** 24-hour clock, e.g. 9 for 9:00 AM. */
-  startHour: number;
-  /** 24-hour clock, e.g. 17 for 5:00 PM. */
-  endHour: number;
-}
-
-export type WeeklyAvailabilityResponse = AvailabilityBlockData[];
+// `AvailabilityBlockData`/`WeeklyAvailabilityResponse` (Phase 7's
+// deliberately simple, hour-granularity Schedule Foundation shape) are
+// retired here — Phase 9's `RecurringWeeklySchedule`/`WorkingHoursDay`
+// (`features/scheduling/types.ts`) is exactly the replacement their own
+// doc comment anticipated: minute-granularity, real breaks, real
+// exceptions. The Doctor Availability page (`doctor/schedule/page.tsx`)
+// now consumes that type directly instead of a doctor-owned shape.
 
 export type QueueEntryStatus = 'waiting' | 'in-consultation' | 'completed';
 

@@ -1,4 +1,6 @@
-import type { AvailabilityBlockData, WeekDay } from '@/features/doctor/api/types';
+import type { WeekDay } from '@/features/doctor/api/types';
+import type { RecurringWeeklySchedule, WorkingHoursDay } from '@/features/scheduling/types';
+import { toMinutes } from '@/features/scheduling/utils/time';
 import { addDays } from '@/shared/lib/date/week';
 
 // Generic week/date arithmetic (startOfWeek, getWeekDays, addWeeks,
@@ -18,23 +20,26 @@ export function getWeekDayName(date: Date): WeekDay {
 
 export interface NextAvailability {
   date: Date;
-  block: AvailabilityBlockData;
+  day: WorkingHoursDay;
 }
 
 /**
- * The next upcoming availability block from `now`, scanning at most 7
- * days forward (today included) — today's block only counts if it hasn't
- * already ended. Returns `null` when no block is found in that window
- * (an honest "nothing upcoming" rather than searching indefinitely).
+ * The next upcoming working day from `now`, scanning at most 7 days
+ * forward (today included) — today only counts if it's a working day and
+ * its hours haven't already ended. Returns `null` when nothing is found in
+ * that window (an honest "nothing upcoming" rather than searching
+ * indefinitely). Operates on Phase 9's `RecurringWeeklySchedule`
+ * (`features/scheduling/types.ts`) — the real replacement for Phase 7's
+ * `AvailabilityBlockData` this function used to consume.
  */
-export function getNextAvailability(blocks: AvailabilityBlockData[], now: Date): NextAvailability | null {
+export function getNextAvailability(schedule: RecurringWeeklySchedule, now: Date): NextAvailability | null {
   for (let offset = 0; offset < 7; offset += 1) {
     const date = addDays(now, offset);
     const weekday = getWeekDayName(date);
-    const block = blocks.find((entry) => entry.dayOfWeek === weekday);
-    if (!block) continue;
-    if (offset === 0 && now.getHours() >= block.endHour) continue;
-    return { date, block };
+    const day = schedule.find((entry) => entry.dayOfWeek === weekday);
+    if (!day || !day.isWorkingDay) continue;
+    if (offset === 0 && now.getHours() * 60 + now.getMinutes() >= toMinutes(day.hours.end)) continue;
+    return { date, day };
   }
   return null;
 }

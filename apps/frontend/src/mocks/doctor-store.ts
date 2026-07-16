@@ -1,5 +1,4 @@
 import type {
-  AvailabilityBlockData,
   DoctorDashboardSummary,
   DoctorProfile,
   DoctorProfileUpdateRequest,
@@ -50,11 +49,9 @@ function seedProfile(): DoctorProfile {
   };
 }
 
-/** Mirrors `seedProfile`'s `availability` summary (Sun–Thu, 9–5) as discrete per-day blocks — the Schedule Foundation's data shape, same underlying reality as the profile page's plain-text summary. */
-function seedAvailability(): AvailabilityBlockData[] {
-  const days: AvailabilityBlockData['dayOfWeek'][] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
-  return days.map((day, index) => ({ id: `availability-${index}`, dayOfWeek: day, startHour: 9, endHour: 17 }));
-}
+// Recurring weekly availability moved to `mocks/scheduling-store.ts`
+// (Phase 9's `RecurringWeeklySchedule`) — availability is now owned by the
+// Scheduling & Appointment Infrastructure, not Doctor.
 
 function seedQueue(): QueueEntry[] {
   return [];
@@ -63,7 +60,6 @@ function seedQueue(): QueueEntry[] {
 let summary: DoctorDashboardSummary = seedSummary();
 let upcomingWork: UpcomingWorkItem[] = seedUpcomingWork();
 let profile: DoctorProfile = seedProfile();
-let availability: AvailabilityBlockData[] = seedAvailability();
 let queue: QueueEntry[] = seedQueue();
 
 export function getDashboardSummary(): DoctorDashboardSummary {
@@ -83,10 +79,6 @@ export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfil
   return profile;
 }
 
-export function getWeeklyAvailability(): AvailabilityBlockData[] {
-  return availability;
-}
-
 export function getQueue(): QueueEntry[] {
   return queue;
 }
@@ -96,6 +88,5 @@ export function resetDoctorStore(): void {
   summary = seedSummary();
   upcomingWork = seedUpcomingWork();
   profile = seedProfile();
-  availability = seedAvailability();
   queue = seedQueue();
 }

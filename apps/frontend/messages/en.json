@@ -313,8 +313,16 @@
       "today": "Today",
       "previousWeek": "Previous week",
       "nextWeek": "Next week",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
       "noAvailability": "Not available",
-      "loadError": "Couldn't load your availability."
+      "loadError": "Couldn't load your availability.",
+      "weekTab": "Week",
+      "monthTab": "Month",
+      "dayTab": "Day",
+      "workingHoursTitle": "Working hours",
+      "editWorkingHours": "Edit working hours",
+      "timeOffTitle": "Time off"
     },
     "queue": {
       "title": "Patient Queue",
@@ -531,6 +539,47 @@
           "emptyTitle": "No blood sugar readings yet",
           "emptyDescription": "Your blood sugar readings will appear here once recorded by your care team."
         }
+      }
+    }
+  },
+  "scheduling": {
+    "weekDays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "availability": {
+      "save": "Save",
+      "addBreak": "Add break",
+      "removeBreak": "Remove break",
+      "workingDayToggle": "{day} working day",
+      "validation": {
+        "invalidTime": "Enter a valid time (HH:mm).",
+        "endAfterStart": "End time must be after the start time.",
+        "breakOutsideHours": "A break must fall within the working hours.",
+        "breaksOverlap": "Breaks cannot overlap each other.",
+        "tooManyBreaks": "You can add up to {max} breaks per day."
+      }
+    },
+    "timeOff": {
+      "date": "Date",
+      "typeLabel": "Type",
+      "reason": "Reason (optional)",
+      "add": "Add",
+      "remove": "Remove time off",
+      "emptyTitle": "No time off scheduled",
+      "emptyDescription": "Vacation days and unavailable dates you add will appear here.",
+      "type": {
+        "vacation": "Vacation",
+        "unavailable": "Unavailable",
+        "extra-hours": "Extra hours"
+      },
+      "validation": {
+        "dateRequired": "Select a date."
       }
     }
   }

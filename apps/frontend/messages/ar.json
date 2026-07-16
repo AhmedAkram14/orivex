@@ -313,8 +313,16 @@
       "today": "اليوم",
       "previousWeek": "الأسبوع السابق",
       "nextWeek": "الأسبوع التالي",
+      "previousMonth": "الشهر السابق",
+      "nextMonth": "الشهر التالي",
       "noAvailability": "غير متاح",
-      "loadError": "تعذّر تحميل أوقات توفرك."
+      "loadError": "تعذّر تحميل أوقات توفرك.",
+      "weekTab": "أسبوع",
+      "monthTab": "شهر",
+      "dayTab": "يوم",
+      "workingHoursTitle": "ساعات العمل",
+      "editWorkingHours": "تعديل ساعات العمل",
+      "timeOffTitle": "الإجازات"
     },
     "queue": {
       "title": "قائمة انتظار المرضى",
@@ -531,6 +539,47 @@
           "emptyTitle": "لا توجد قراءات سكر الدم بعد",
           "emptyDescription": "ستظهر قراءات سكر الدم هنا بمجرد تسجيلها من قبل فريق الرعاية الخاص بك."
         }
+      }
+    }
+  },
+  "scheduling": {
+    "weekDays": {
+      "sunday": "الأحد",
+      "monday": "الإثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت"
+    },
+    "availability": {
+      "save": "حفظ",
+      "addBreak": "إضافة استراحة",
+      "removeBreak": "إزالة الاستراحة",
+      "workingDayToggle": "يوم عمل {day}",
+      "validation": {
+        "invalidTime": "أدخل وقتًا صحيحًا (س:د).",
+        "endAfterStart": "يجب أن يكون وقت الانتهاء بعد وقت البدء.",
+        "breakOutsideHours": "يجب أن تقع الاستراحة ضمن ساعات العمل.",
+        "breaksOverlap": "لا يمكن أن تتداخل فترات الاستراحة.",
+        "tooManyBreaks": "يمكنك إضافة حتى {max} استراحات في اليوم."
+      }
+    },
+    "timeOff": {
+      "date": "التاريخ",
+      "typeLabel": "النوع",
+      "reason": "السبب (اختياري)",
+      "add": "إضافة",
+      "remove": "إزالة الإجازة",
+      "emptyTitle": "لا توجد إجازات مجدولة",
+      "emptyDescription": "ستظهر هنا أيام الإجازة والتواريخ غير المتاحة التي تضيفها.",
+      "type": {
+        "vacation": "إجازة",
+        "unavailable": "غير متاح",
+        "extra-hours": "ساعات إضافية"
+      },
+      "validation": {
+        "dateRequired": "اختر تاريخًا."
       }
     }
   }

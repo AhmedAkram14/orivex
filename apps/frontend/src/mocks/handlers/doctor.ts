@@ -2,14 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
 import type { DoctorProfileUpdateRequest } from '@/features/doctor/api/types';
-import {
-  getDashboardSummary,
-  getProfile,
-  getQueue,
-  getUpcomingWork,
-  getWeeklyAvailability,
-  updateProfile,
-} from '@/mocks/doctor-store';
+import { getDashboardSummary, getProfile, getQueue, getUpcomingWork, updateProfile } from '@/mocks/doctor-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -24,8 +17,6 @@ export const doctorHandlers = [
     const body = (await request.json()) as DoctorProfileUpdateRequest;
     return HttpResponse.json({ data: updateProfile(body) });
   }),
-
-  http.get(`${base()}${DOCTOR_PATHS.availability}`, () => HttpResponse.json({ data: getWeeklyAvailability() })),
 
   http.get(`${base()}${DOCTOR_PATHS.queue}`, () => HttpResponse.json({ data: getQueue() })),
 ];

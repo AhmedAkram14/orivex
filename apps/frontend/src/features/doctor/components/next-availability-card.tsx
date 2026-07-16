@@ -2,8 +2,9 @@
 
 import { CalendarClock } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useDoctorAvailability } from '@/features/doctor/hooks/use-doctor-availability';
 import { getNextAvailability, isSameDay } from '@/features/doctor/lib/week';
+import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
+import { combineDateAndTime } from '@/features/scheduling/utils/time';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { ScheduleCard } from '@/shared/ui/schedule/schedule-card';
@@ -27,8 +28,8 @@ export function NextAvailabilityCard() {
   const dateLabel = isSameDay(next.date, new Date())
     ? t('today')
     : format.dateTime(next.date, { weekday: 'long', month: 'short', day: 'numeric' });
-  const timeLabel = `${format.dateTime(new Date(0, 0, 0, next.block.startHour), { hour: 'numeric' })} – ${format.dateTime(
-    new Date(0, 0, 0, next.block.endHour),
+  const timeLabel = `${format.dateTime(combineDateAndTime(new Date(0, 0, 0), next.day.hours.start), { hour: 'numeric' })} – ${format.dateTime(
+    combineDateAndTime(new Date(0, 0, 0), next.day.hours.end),
     { hour: 'numeric' },
   )}`;
 

@@ -59,4 +59,39 @@ describe('DoctorSchedulePage', () => {
     // assertion is that this doesn't throw (date math stays in range).
     expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
   });
+
+  it('switches to the Month view and back to Week without crashing', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Month' }));
+    expect(screen.getByRole('button', { name: 'Previous month' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Week' }));
+    expect(screen.getByRole('button', { name: 'Previous week' })).toBeInTheDocument();
+  });
+
+  it('switches to the Day view without crashing', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Day' }));
+
+    // The Day panel has no week navigation of its own -- confirms the tab
+    // actually switched rather than silently staying on Week.
+    expect(screen.queryByRole('button', { name: 'Previous week' })).not.toBeInTheDocument();
+  });
+
+  it('shows the working-hours editor when Edit working hours is clicked', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit working hours' }));
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  it('renders the honest-empty time-off manager', async () => {
+    renderPage();
+    expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();
+  });
 });
