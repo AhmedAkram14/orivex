@@ -44,7 +44,12 @@ export function TrendChart({ values, label, className }: TrendChartProps) {
   return (
     <svg
       viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
-      className={cn('h-16 w-full', className)}
+      // The x-axis encodes "earlier → later," directional content per the
+      // `Icon` component's `flipRtl` policy — mirrored under `dir="rtl"` so
+      // the trend still reads oldest-to-newest in the reading direction,
+      // matching how the browser already auto-mirrors WeeklyCalendar's grid
+      // (an SVG's own coordinate system doesn't inherit `dir` for free).
+      className={cn('h-16 w-full rtl:-scale-x-100', className)}
       role="img"
       aria-label={label}
     >

@@ -23,20 +23,23 @@ export function MedicalRecordsTimeline({ entries }: MedicalRecordsTimelineProps)
   const sorted = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="flex flex-col">
+    <ol className="flex flex-col">
       {sorted.map((entry, index) => (
-        <RecordTimelineEntry
-          key={entry.id}
-          dateLabel={format.dateTime(new Date(entry.date), { year: 'numeric', month: 'short', day: 'numeric' })}
-          type={entry.type}
-          typeLabel={tType(entry.type)}
-          title={entry.title}
-          description={entry.description}
-          doctorName={entry.doctorName}
-          isLast={index === sorted.length - 1}
-          actions={entry.downloadUrl ? <RecordDownloadButton href={entry.downloadUrl} label={t('download')} /> : undefined}
-        />
+        <li key={entry.id}>
+          <RecordTimelineEntry
+            dateLabel={format.dateTime(new Date(entry.date), { year: 'numeric', month: 'short', day: 'numeric' })}
+            type={entry.type}
+            typeLabel={tType(entry.type)}
+            title={entry.title}
+            description={entry.description}
+            doctorName={entry.doctorName}
+            isLast={index === sorted.length - 1}
+            actions={
+              entry.downloadUrl ? <RecordDownloadButton href={entry.downloadUrl} label={t('download')} /> : undefined
+            }
+          />
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
