@@ -5,10 +5,10 @@ import type { ListNotificationsResponse } from '@/features/notifications/api/typ
 /**
  * The only module that talks to `/notifications/*` — mirrors `authApi`'s
  * shape (Phase 4): thin typed wrappers over `apiFetch`, no logic of their
- * own. Backed by an MSW mock today (`src/mocks/handlers/notifications.ts`);
- * real backend delivery is Phase 14's own scope (🔒 Blocked — no
- * Notification module exists yet), so swapping this later is a change to
- * these function bodies only.
+ * own. `/notifications` is a real backend endpoint (NotificationModule's
+ * NotificationController); `src/mocks/handlers/notifications.ts` still
+ * intercepts it in the frontend test suite for determinism, matching
+ * `mocks/handlers/auth.ts`'s established precedent for other real endpoints.
  */
 export const notificationsApi = {
   list: () => apiFetch<ListNotificationsResponse>({ path: NOTIFICATIONS_PATHS.list }),

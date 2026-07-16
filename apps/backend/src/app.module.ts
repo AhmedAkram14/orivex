@@ -11,6 +11,7 @@ import { ClinicalModule } from './modules/clinical/clinical.module.js';
 import { ConsultationModule } from './modules/consultation/consultation.module.js';
 import { DoctorModule } from './modules/doctor/doctor.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
+import { NotificationModule } from './modules/notification/notification.module.js';
 import { PatientModule } from './modules/patient/patient.module.js';
 import { PaymentModule } from './modules/payment/payment.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
@@ -43,6 +44,7 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     PaymentModule,
     ClinicalModule,
     AIModule,
+    NotificationModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

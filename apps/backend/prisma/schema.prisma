@@ -26,6 +26,7 @@ model Account {
   doctorProfile     DoctorProfile?
   patientProfile    PatientProfile?
   securityEvents    SecurityEvent[]
+  notifications     Notification[]
 }
 
 enum CredentialStatus {
@@ -700,4 +701,34 @@ model PendingAISuggestionAcknowledgment {
   createdAt             DateTime            @default(now())
 
   @@index([consultationSessionId])
+}
+
+enum NotificationSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  DANGER
+}
+
+// NotificationModule's own aggregate root -- docs/05-information-
+// architecture.md: "Notifications Domain: Owns delivery only... a pure
+// consumer/router... never originates meaning." docs/09-physical-database.md:
+// notifications is a genuine-hard-delete table (no soft-delete column) with
+// a short retention window and a CASCADE from Account ("low-stakes,
+// disposable data"). This sprint builds the delivery/query/mark-read surface
+// only -- no producer wiring across other modules yet (that's the documented
+// "consumes nearly every event in the system" future work); this table is
+// honestly empty until that lands.
+model Notification {
+  id          String               @id @default(uuid())
+  accountId   String
+  account     Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  severity    NotificationSeverity @default(INFO)
+  read        Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+
+  @@index([accountId])
+  @@index([createdAt])
 }

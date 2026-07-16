@@ -3,8 +3,11 @@ import type { NotificationEntry } from '@/features/notifications/api/types';
 /**
  * In-memory mock "backend" state for `/notifications/*` — mirrors
  * `auth-store.ts`'s pattern (module-level state + pure read/mutate
- * functions the handlers call into). No application code outside
- * `src/mocks/` may import this directly; go through `notificationsApi`.
+ * functions the handlers call into). `/notifications` is a real backend
+ * endpoint (NotificationModule); this mock now exists purely to keep the
+ * frontend test suite deterministic, matching `patient-store.ts`'s
+ * `seedProfile()` precedent. No application code outside `src/mocks/` may
+ * import this directly; go through `notificationsApi`.
  */
 function seedNotifications(): NotificationEntry[] {
   return [
