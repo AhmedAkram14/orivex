@@ -80,9 +80,11 @@ function seedMedicalRecords(): MedicalRecordEntry[] {
 }
 
 /**
- * The full prescription list (milestone 5) — an honest empty array, same
- * reasoning as `seedMedicalRecords`: no Clinical module is wired into the
- * frontend yet.
+ * The full prescription list -- `GET /patients/me/prescriptions` is now a
+ * real backend endpoint (ClinicalModule's PatientDashboardController), so
+ * this mock exists purely to keep the frontend test suite deterministic,
+ * matching `seedProfile()`'s precedent. An honest empty array: the seeded
+ * mock account has no real prescriptions on record.
  */
 function seedPrescriptions(): Prescription[] {
   return [];

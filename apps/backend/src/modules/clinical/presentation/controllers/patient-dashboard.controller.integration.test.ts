@@ -36,7 +36,9 @@ import type { PatientProfileRepository } from '../../../patient/domain/repositor
 import { PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
 import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { Prescription } from '../../domain/entities/prescription.entity.js';
+import { PrescriptionLineItem } from '../../domain/entities/prescription-line-item.entity.js';
 import { VitalReading } from '../../domain/entities/vital-reading.entity.js';
+import { PrescriptionStatus } from '../../domain/enums/prescription-status.enum.js';
 import { VitalType } from '../../domain/enums/vital-type.enum.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 import type { VitalReadingRepository } from '../../domain/repositories/vital-reading.repository.js';
@@ -154,6 +156,7 @@ describe('PatientDashboardController (integration)', () => {
   let confirmedAppointment: Appointment;
   let session: ConsultationSession;
   let signedPrescription: Prescription;
+  let expiredPrescription: Prescription;
   let noProfilePatientAccountId: string;
 
   before(async () => {
@@ -209,6 +212,29 @@ describe('PatientDashboardController (integration)', () => {
       ],
     });
 
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60_000);
+    expiredPrescription = Prescription.reconstitute({
+      id: '66666666-6666-4666-8666-666666666666',
+      consultationSessionId: session.getId(),
+      diagnosisNodeId: '44444444-4444-4444-8444-444444444444',
+      authoringDoctorId: doctor.getId(),
+      status: PrescriptionStatus.Signed,
+      signedAt: sixtyDaysAgo,
+      lineItems: [
+        PrescriptionLineItem.reconstitute({
+          id: '77777777-7777-4777-8777-777777777777',
+          drugCatalogId: '88888888-8888-4888-8888-888888888888',
+          drugName: 'Ibuprofen 200mg',
+          dosage: '200mg',
+          frequency: 'as needed',
+          durationDays: 7,
+          instructions: 'Take with food.',
+        }),
+      ],
+      createdAt: sixtyDaysAgo,
+      updatedAt: sixtyDaysAgo,
+    });
+
     const moduleRef = await Test.createTestingModule({
       controllers: [PatientDashboardController],
       providers: [
@@ -248,7 +274,7 @@ describe('PatientDashboardController (integration)', () => {
         },
         {
           provide: PRESCRIPTION_REPOSITORY,
-          useFactory: () => new InMemoryPrescriptionRepository([signedPrescription]),
+          useFactory: () => new InMemoryPrescriptionRepository([signedPrescription, expiredPrescription]),
         },
         {
           provide: ListVitalReadingsForPatientUseCase,
@@ -334,6 +360,45 @@ describe('PatientDashboardController (integration)', () => {
     assert.equal(response.body.data[0].dosageLabel, '5mg, once daily');
     assert.equal(response.body.data[0].prescribedBy, 'Dr. Karim Hassan');
     assert.equal(response.body.data[0].status, 'active');
+  });
+
+  it('GET /patients/me/prescriptions rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/patients/me/prescriptions').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /patients/me/prescriptions returns an empty list for an account with no patient profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/prescriptions')
+      .set('Authorization', `Bearer ${NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, []);
+  });
+
+  it('GET /patients/me/prescriptions returns both the active and expired prescriptions with correct status', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/prescriptions')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 2);
+
+    const active = response.body.data.find((item: { id: string }) => item.id === signedPrescription.getId());
+    assert.ok(active);
+    assert.equal(active.medicationName, 'Amlodipine 5mg');
+    assert.equal(active.dosageAmount, '5mg');
+    assert.equal(active.frequencyLabel, 'once daily');
+    assert.equal(active.prescribedBy, 'Dr. Karim Hassan');
+    assert.equal(active.status, 'active');
+
+    const expired = response.body.data.find((item: { id: string }) => item.id === expiredPrescription.getId());
+    assert.ok(expired);
+    assert.equal(expired.medicationName, 'Ibuprofen 200mg');
+    assert.equal(expired.dosageAmount, '200mg');
+    assert.equal(expired.frequencyLabel, 'as needed');
+    assert.equal(expired.status, 'expired');
+    assert.equal(expired.instructions, 'Take with food.');
   });
 
   it('GET /patients/me/health-dashboard rejects a request with no bearer token', async () => {

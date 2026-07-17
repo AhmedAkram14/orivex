@@ -503,17 +503,9 @@
       "previousEmptyTitle": "No previous prescriptions",
       "previousEmptyDescription": "Your completed and expired prescriptions will appear here.",
       "prescribedBy": "Prescribed by {name}",
-      "refillsRemaining": "{count, plural, =0 {No refills remaining} one {# refill remaining} other {# refills remaining}}",
       "status": {
         "active": "Active",
-        "completed": "Completed",
         "expired": "Expired"
-      },
-      "refillStatus": {
-        "not-due": "Not due",
-        "due-soon": "Refill due soon",
-        "due": "Refill due",
-        "none-remaining": "No refills remaining"
       }
     },
     "health": {

@@ -160,8 +160,17 @@ export interface MedicalRecordEntry {
 
 export type MedicalRecordsResponse = MedicalRecordEntry[];
 
-export type PrescriptionStatus = 'active' | 'completed' | 'expired';
-export type RefillStatus = 'not-due' | 'due-soon' | 'due' | 'none-remaining';
+/**
+ * A fixed 2-value literal, not a 3rd `'completed'` state -- nothing in the
+ * real Prescription domain ever marks a prescription "completed" as distinct
+ * from naturally expiring (signedAt + max durationDays across line items
+ * passing). There is also no "refill" concept anywhere in the real domain
+ * (no refill count, no pharmacy integration) -- `RefillStatus` and
+ * `refillStatus`/`refillsRemaining`/`dosesPerDay` (a raw doses-per-day count
+ * `frequency` is unstructured free text, never a guessable number) are
+ * deliberately absent from this type, never fabricated.
+ */
+export type PrescriptionStatus = 'active' | 'expired';
 
 /**
  * The full prescription record — milestone 5's own type, deliberately
@@ -174,17 +183,12 @@ export interface Prescription {
   medicationName: string;
   /** Pre-formatted, localized dosage amount text (e.g. "500mg") — this type never carries raw numbers to format. */
   dosageAmount: string;
-  /** Doses per day — the raw count `DosageVisualization` renders as dose indicators; kept separate from `frequencyLabel` since a visualization needs the count, not formatted text. */
-  dosesPerDay: number;
   /** Pre-formatted, localized frequency text (e.g. "Twice daily"). */
   frequencyLabel: string;
   prescribedBy: string;
   /** ISO date. */
   prescribedAt: string;
   status: PrescriptionStatus;
-  refillStatus: RefillStatus;
-  /** Undefined means unknown/not tracked — never a fabricated count. */
-  refillsRemaining?: number;
   instructions?: string;
 }
 

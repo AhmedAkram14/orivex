@@ -24,6 +24,7 @@ import type { PrescriptionRepository } from '../../domain/repositories/prescript
 import { ActivePrescriptionPreviewResponseDto } from '../dto/active-prescription-preview-response.dto.js';
 import { HealthVitalSummaryResponseDto } from '../dto/health-vital-summary-response.dto.js';
 import { PatientDashboardSummaryResponseDto } from '../dto/patient-dashboard-summary-response.dto.js';
+import { PatientPrescriptionResponseDto } from '../dto/patient-prescription-response.dto.js';
 import { UpcomingAppointmentPreviewResponseDto } from '../dto/upcoming-appointment-preview-response.dto.js';
 
 // Always exactly these 3 -- matches the frontend's HealthDashboardResponse
@@ -136,6 +137,23 @@ export class PatientDashboardController {
     return envelope(items.filter((item): item is ActivePrescriptionPreviewResponseDto => item !== null));
   }
 
+  @Get('me/prescriptions')
+  async getPrescriptions(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<PatientPrescriptionResponseDto[]>> {
+    const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!patientProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForPatientUseCase.execute({ patientId: patientProfile.getId() });
+    const allPrescriptions = await this.findAllPrescriptions(appointments);
+
+    const items = await Promise.all(allPrescriptions.map((view) => this.toPatientPrescriptionResponse(view)));
+
+    return envelope(items.filter((item): item is PatientPrescriptionResponseDto => item !== null));
+  }
+
   @Get('me/health-dashboard')
   async getHealthDashboard(
     @CurrentUser() user: AccessTokenClaims,
@@ -178,6 +196,16 @@ export class PatientDashboardController {
   // entity -- this is computed here, never read off a stored field.
   private async findActivePrescriptions(appointments: Appointment[]): Promise<ActivePrescriptionView[]> {
     const now = Date.now();
+    const all = await this.findAllPrescriptions(appointments);
+    return all.filter((view) => this.isCurrentlyActive(view.prescription, now));
+  }
+
+  // For each of the patient's appointments, resolves its ConsultationSession
+  // (if any) and that session's prescriptions -- every prescription found,
+  // active and expired alike. Used by both the dashboard's "active only"
+  // preview (which filters afterwards) and the full /me/prescriptions list
+  // (which keeps everything and computes a per-item status instead).
+  private async findAllPrescriptions(appointments: Appointment[]): Promise<ActivePrescriptionView[]> {
     const results: ActivePrescriptionView[] = [];
 
     for (const appointment of appointments) {
@@ -190,9 +218,6 @@ export class PatientDashboardController {
 
       const prescriptions = await this.prescriptionRepository.findByConsultationSessionId(session.getId());
       for (const prescription of prescriptions) {
-        if (!this.isCurrentlyActive(prescription, now)) {
-          continue;
-        }
         const [firstLineItem] = prescription.getLineItems();
         const medicationName = firstLineItem ? firstLineItem.getDrugName() ?? firstLineItem.getDrugCatalogId() : '';
         results.push({ prescription, medicationName });
@@ -260,6 +285,42 @@ export class PatientDashboardController {
       medicationName: view.medicationName,
       dosageLabel: `${firstLineItem.getDosage()}, ${firstLineItem.getFrequency()}`,
       prescribedBy: doctorAccount.getUserProfile().getDisplayName().toString(),
+    });
+  }
+
+  private async toPatientPrescriptionResponse(
+    view: ActivePrescriptionView,
+  ): Promise<PatientPrescriptionResponseDto | null> {
+    const [firstLineItem] = view.prescription.getLineItems();
+    if (!firstLineItem) {
+      return null;
+    }
+
+    const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
+      doctorProfileId: view.prescription.getAuthoringDoctorId(),
+    });
+    if (!doctorProfile) {
+      return null;
+    }
+    const doctorAccount: Account | null = await this.getAccountByIdUseCase.execute({
+      accountId: doctorProfile.getAccountId(),
+    });
+    if (!doctorAccount) {
+      return null;
+    }
+
+    const status = this.isCurrentlyActive(view.prescription, Date.now()) ? 'active' : 'expired';
+    const prescribedAt = (view.prescription.getSignedAt() ?? view.prescription.getCreatedAt()).toISOString();
+
+    return PatientPrescriptionResponseDto.create({
+      id: view.prescription.getId(),
+      medicationName: view.medicationName,
+      dosageAmount: firstLineItem.getDosage(),
+      frequencyLabel: firstLineItem.getFrequency(),
+      prescribedBy: doctorAccount.getUserProfile().getDisplayName().toString(),
+      prescribedAt,
+      status,
+      instructions: firstLineItem.getInstructions(),
     });
   }
 }

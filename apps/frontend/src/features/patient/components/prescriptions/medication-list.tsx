@@ -11,12 +11,9 @@ export interface MedicationListProps {
   emptyDescription: string;
 }
 
-const REFILL_BADGE_STATUSES: Prescription['refillStatus'][] = ['due-soon', 'due', 'none-remaining'];
-
 /** Renders a list of `MedicationCard`s from real `Prescription` data — the shared rendering both the Active and Previous tabs use, so formatting/translation logic lives in exactly one place. */
 export function MedicationList({ prescriptions, emptyTitle, emptyDescription }: MedicationListProps) {
   const tStatus = useTranslations('patient.prescriptions.status');
-  const tRefillStatus = useTranslations('patient.prescriptions.refillStatus');
   const t = useTranslations('patient.prescriptions');
   const format = useFormatter();
 
@@ -31,7 +28,6 @@ export function MedicationList({ prescriptions, emptyTitle, emptyDescription }: 
           <MedicationCard
             medicationName={prescription.medicationName}
             dosageAmount={prescription.dosageAmount}
-            dosesPerDay={prescription.dosesPerDay}
             frequencyLabel={prescription.frequencyLabel}
             prescribedBy={t('prescribedBy', { name: prescription.prescribedBy })}
             prescribedAtLabel={format.dateTime(new Date(prescription.prescribedAt), {
@@ -41,14 +37,6 @@ export function MedicationList({ prescriptions, emptyTitle, emptyDescription }: 
             })}
             status={prescription.status}
             statusLabel={tStatus(prescription.status)}
-            refillStatus={prescription.refillStatus}
-            refillStatusLabel={tRefillStatus(prescription.refillStatus)}
-            showRefillBadge={REFILL_BADGE_STATUSES.includes(prescription.refillStatus)}
-            refillsRemainingLabel={
-              prescription.refillsRemaining !== undefined
-                ? t('refillsRemaining', { count: prescription.refillsRemaining })
-                : undefined
-            }
             instructions={prescription.instructions}
           />
         </li>

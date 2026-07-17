@@ -9,14 +9,11 @@ describe('MedicationCard', () => {
       <MedicationCard
         medicationName="Metformin"
         dosageAmount="500mg"
-        dosesPerDay={2}
         frequencyLabel="Twice daily"
         prescribedBy="Dr. Sarah Ahmed"
         prescribedAtLabel="Jul 1, 2026"
         status="active"
         statusLabel="Active"
-        refillStatus="not-due"
-        refillStatusLabel="Not due"
       />,
     );
 
@@ -26,42 +23,36 @@ describe('MedicationCard', () => {
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
-  it('omits the refill badge unless explicitly shown', () => {
+  it('renders instructions when provided', () => {
     renderWithProviders(
       <MedicationCard
         medicationName="Metformin"
         dosageAmount="500mg"
-        dosesPerDay={2}
         frequencyLabel="Twice daily"
         prescribedBy="Dr. Sarah Ahmed"
         prescribedAtLabel="Jul 1, 2026"
         status="active"
         statusLabel="Active"
-        refillStatus="due"
-        refillStatusLabel="Refill due"
+        instructions="Take with food."
       />,
     );
 
-    expect(screen.queryByText('Refill due')).not.toBeInTheDocument();
+    expect(screen.getByText('Take with food.')).toBeInTheDocument();
   });
 
-  it('shows the refill badge when requested', () => {
+  it('omits instructions when not provided', () => {
     renderWithProviders(
       <MedicationCard
         medicationName="Lisinopril"
         dosageAmount="10mg"
-        dosesPerDay={1}
         frequencyLabel="Once daily"
         prescribedBy="Dr. Sarah Ahmed"
         prescribedAtLabel="Jun 15, 2026"
-        status="active"
-        statusLabel="Active"
-        refillStatus="due"
-        refillStatusLabel="Refill due"
-        showRefillBadge
+        status="expired"
+        statusLabel="Expired"
       />,
     );
 
-    expect(screen.getByText('Refill due')).toBeInTheDocument();
+    expect(screen.queryByText('Take with food.')).not.toBeInTheDocument();
   });
 });
