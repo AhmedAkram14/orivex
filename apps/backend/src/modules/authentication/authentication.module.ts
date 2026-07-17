@@ -1,8 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
 
-import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { GetAccountByEmailUseCase } from '../identity/application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
@@ -13,6 +10,7 @@ import { ListSecurityEventsForAccountUseCase } from '../trust/application/use-ca
 import { RecordSecurityEventUseCase } from '../trust/application/use-cases/record-security-event/record-security-event.use-case.js';
 import { TrustModule } from '../trust/trust.module.js';
 
+import { AuthenticationGuardsModule } from './authentication-guards.module.js';
 import {
   AUTH_TOKEN_REPOSITORY,
   CREDENTIAL_REPOSITORY,
@@ -45,13 +43,10 @@ import { VerifyEmailUseCase } from './application/use-cases/verify-email/verify-
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import { NodeTokenGenerator } from './infrastructure/crypto/node-token-generator.js';
 import { LoggingEmailSender } from './infrastructure/email/logging-email-sender.js';
-import { NestjsJwtSigner } from './infrastructure/jwt/nestjs-jwt-signer.js';
 import { PrismaAuthTokenRepository } from './infrastructure/prisma/prisma-auth-token.repository.js';
 import { PrismaCredentialRepository } from './infrastructure/prisma/prisma-credential.repository.js';
 import { PrismaSessionRepository } from './infrastructure/prisma/prisma-session.repository.js';
 import { AuthenticationController } from './presentation/controllers/authentication.controller.js';
-import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard.js';
-import { RolesGuard } from './presentation/guards/roles.guard.js';
 
 // Imports IdentityModule (RegisterAccountUseCase, GetAccountByIdUseCase,
 // GetAccountByEmailUseCase) and TrustModule (RecordSecurityEventUseCase) to
@@ -59,21 +54,15 @@ import { RolesGuard } from './presentation/guards/roles.guard.js';
 // through explicitly published interfaces (docs/10-backend-architecture.md
 // Section 3), never another module's repository.
 //
-// JwtAuthGuard/RolesGuard are exported (not just their tokens) so any future
-// module can protect a route the same way without depending on
-// Authentication's internals -- the seam the documented, future AuthModule
-// (Phase 9 RBAC policy evaluation) will eventually build on top of.
+// JWT_SIGNER/JwtAuthGuard/RolesGuard live in AuthenticationGuardsModule, not
+// here -- that module has zero business-logic dependencies, so it can never
+// be part of a module-import cycle. This module re-exports it (rather than
+// re-declaring JwtModule/JWT_SIGNER itself) so any future module can protect
+// a route the same way without depending on Authentication's own TrustModule
+// dependency -- the seam the documented, future AuthModule (Phase 9 RBAC
+// policy evaluation) will eventually build on top of.
 @Module({
-  imports: [
-    IdentityModule,
-    TrustModule,
-    JwtModule.registerAsync({
-      useFactory: (configService: ConfigService<EnvConfig, true>) => ({
-        secret: configService.get('JWT_ACCESS_SECRET', { infer: true }),
-      }),
-      inject: [ConfigService],
-    }),
-  ],
+  imports: [IdentityModule, TrustModule, AuthenticationGuardsModule],
   controllers: [AuthenticationController],
   providers: [
     { provide: CREDENTIAL_REPOSITORY, useClass: PrismaCredentialRepository },
@@ -81,10 +70,7 @@ import { RolesGuard } from './presentation/guards/roles.guard.js';
     { provide: AUTH_TOKEN_REPOSITORY, useClass: PrismaAuthTokenRepository },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: TOKEN_GENERATOR, useClass: NodeTokenGenerator },
-    { provide: JWT_SIGNER, useClass: NestjsJwtSigner },
     { provide: EMAIL_SENDER, useClass: LoggingEmailSender },
-    JwtAuthGuard,
-    RolesGuard,
     {
       provide: RegisterUseCase,
       useFactory: (
@@ -308,6 +294,6 @@ import { RolesGuard } from './presentation/guards/roles.guard.js';
       inject: [ListSecurityEventsForAccountUseCase],
     },
   ],
-  exports: [JwtAuthGuard, RolesGuard],
+  exports: [AuthenticationGuardsModule],
 })
 export class AuthenticationModule {}

@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
-import { AuthenticationModule } from '../authentication/authentication.module.js';
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 
@@ -31,10 +31,15 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
 // SchedulingModule exists, same one-way pattern as
 // AdministrationModule -> TrustModule.
 //
-// Imports AuthenticationModule for JwtAuthGuard/RolesGuard, needed by the
-// GET/PATCH /doctors/me routes (same pattern PatientModule uses).
+// Imports AuthenticationGuardsModule (not the full AuthenticationModule) for
+// JwtAuthGuard/RolesGuard, needed by the GET/PATCH /doctors/me routes.
+// Deliberately the lightweight guards-only module: TrustModule imports
+// DoctorModule (GetDoctorProfileByIdUseCase), and AuthenticationModule
+// imports TrustModule -- importing the full AuthenticationModule here would
+// cycle back to this module. AuthenticationGuardsModule has no such
+// dependency, so it can't.
 @Module({
-  imports: [IdentityModule, AuthenticationModule],
+  imports: [IdentityModule, AuthenticationGuardsModule],
   controllers: [DoctorProfileController],
   providers: [
     { provide: DOCTOR_PROFILE_REPOSITORY, useClass: PrismaDoctorProfileRepository },
