@@ -471,19 +471,15 @@
       "loadError": "تعذّر تحميل سجلاتك الطبية.",
       "timelineTitle": "الجدول الزمني",
       "timelineEmptyTitle": "لا توجد سجلات طبية بعد",
-      "timelineEmptyDescription": "ستظهر هنا الزيارات والتشخيصات والحساسية والأمراض المسجلة من فريق الرعاية الخاص بك.",
+      "timelineEmptyDescription": "ستظهر هنا الزيارات والأمراض المسجلة من فريق الرعاية الخاص بك.",
       "download": "تنزيل",
       "filters": {
         "all": "الكل",
         "visit": "الزيارات",
-        "diagnosis": "التشخيصات",
-        "allergy": "الحساسية",
         "condition": "الأمراض"
       },
       "type": {
         "visit": "زيارة",
-        "diagnosis": "تشخيص",
-        "allergy": "حساسية",
         "condition": "مرض"
       },
       "labResults": "نتائج المختبر",

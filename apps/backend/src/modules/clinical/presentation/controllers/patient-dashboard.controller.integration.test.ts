@@ -31,15 +31,25 @@ import type { AccountId } from '../../../identity/domain/value-objects/account-i
 import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
-import { PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { CLINICAL_NOTE_REPOSITORY, PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
+import { ClinicalNote } from '../../domain/entities/clinical-note.entity.js';
+import { HealthGraph } from '../../domain/entities/health-graph.entity.js';
+import type { HealthGraphNode } from '../../domain/entities/health-graph-node.entity.js';
 import { Prescription } from '../../domain/entities/prescription.entity.js';
 import { PrescriptionLineItem } from '../../domain/entities/prescription-line-item.entity.js';
 import { VitalReading } from '../../domain/entities/vital-reading.entity.js';
+import { CertaintyLevel } from '../../domain/enums/certainty-level.enum.js';
+import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
+import { NodeSource } from '../../domain/enums/node-source.enum.js';
 import { PrescriptionStatus } from '../../domain/enums/prescription-status.enum.js';
 import { VitalType } from '../../domain/enums/vital-type.enum.js';
+import type { ClinicalNoteRepository } from '../../domain/repositories/clinical-note.repository.js';
+import type { HealthGraphRepository } from '../../domain/repositories/health-graph.repository.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 import type { VitalReadingRepository } from '../../domain/repositories/vital-reading.repository.js';
 
@@ -135,6 +145,28 @@ class InMemoryVitalReadingRepository implements VitalReadingRepository {
   async save(): Promise<void> {}
 }
 
+class InMemoryClinicalNoteRepository implements ClinicalNoteRepository {
+  constructor(private readonly notes: ClinicalNote[]) {}
+  async findById(id: string): Promise<ClinicalNote | null> {
+    return this.notes.find((n) => n.getId() === id) ?? null;
+  }
+  async findByConsultationSessionId(consultationSessionId: string): Promise<ClinicalNote[]> {
+    return this.notes.filter((n) => n.getConsultationSessionId() === consultationSessionId);
+  }
+  async save(): Promise<void> {}
+}
+
+class InMemoryHealthGraphRepository implements HealthGraphRepository {
+  constructor(private readonly graph: HealthGraph | null) {}
+  async findById(): Promise<HealthGraph | null> {
+    return this.graph;
+  }
+  async findByPatientId(patientId: string): Promise<HealthGraph | null> {
+    return this.graph && this.graph.getPatientId() === patientId ? this.graph : null;
+  }
+  async save(): Promise<void> {}
+}
+
 class FakeJwtSigner implements JwtSignerPort {
   constructor(private readonly accountIdByToken: Record<string, string>) {}
   async sign(): Promise<never> {
@@ -158,6 +190,8 @@ describe('PatientDashboardController (integration)', () => {
   let signedPrescription: Prescription;
   let expiredPrescription: Prescription;
   let noProfilePatientAccountId: string;
+  let clinicalNote: ClinicalNote;
+  let conditionNode: HealthGraphNode;
 
   before(async () => {
     const patientAccount = Account.register({
@@ -235,6 +269,21 @@ describe('PatientDashboardController (integration)', () => {
       updatedAt: sixtyDaysAgo,
     });
 
+    clinicalNote = ClinicalNote.author({
+      consultationSessionId: session.getId(),
+      authoringDoctorId: doctor.getId(),
+      content: 'Patient reports improvement in symptoms.',
+    });
+
+    const healthGraph = HealthGraph.create(patient.getId());
+    conditionNode = healthGraph.addNode({
+      nodeType: HealthGraphNodeType.Condition,
+      freeTextDescription: 'Hypertension',
+      certaintyLevel: CertaintyLevel.Confirmed,
+      source: NodeSource.Clinical,
+      authoringDoctorId: doctor.getId(),
+    });
+
     const moduleRef = await Test.createTestingModule({
       controllers: [PatientDashboardController],
       providers: [
@@ -279,6 +328,18 @@ describe('PatientDashboardController (integration)', () => {
         {
           provide: ListVitalReadingsForPatientUseCase,
           useFactory: () => new ListVitalReadingsForPatientUseCase(new InMemoryVitalReadingRepository([weightReading])),
+        },
+        {
+          provide: CLINICAL_NOTE_REPOSITORY,
+          useFactory: () => new InMemoryClinicalNoteRepository([clinicalNote]),
+        },
+        {
+          provide: GetHealthGraphSubgraphUseCase,
+          useFactory: () =>
+            new GetHealthGraphSubgraphUseCase(
+              new InMemoryHealthGraphRepository(healthGraph),
+              new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
+            ),
         },
       ],
     }).compile();
@@ -433,5 +494,44 @@ describe('PatientDashboardController (integration)', () => {
     );
     assert.equal(bloodPressureSummary.readings.length, 0);
     assert.equal(bloodPressureSummary.latest, undefined);
+  });
+
+  it('GET /patients/me/medical-records rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/patients/me/medical-records').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /patients/me/medical-records returns an empty list for an account with no patient profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/medical-records')
+      .set('Authorization', `Bearer ${NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, []);
+  });
+
+  it('GET /patients/me/medical-records returns both the clinical note and the condition node, sorted most-recent-first', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/medical-records')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 2);
+
+    const visit = response.body.data.find((item: { id: string }) => item.id === clinicalNote.getId());
+    assert.ok(visit);
+    assert.equal(visit.type, 'visit');
+    assert.equal(visit.title, 'Clinical visit');
+    assert.equal(visit.description, 'Patient reports improvement in symptoms.');
+    assert.equal(visit.doctorName, 'Dr. Karim Hassan');
+
+    const condition = response.body.data.find((item: { id: string }) => item.id === conditionNode.getId());
+    assert.ok(condition);
+    assert.equal(condition.type, 'condition');
+    assert.equal(condition.title, 'Hypertension');
+    assert.equal(condition.doctorName, 'Dr. Karim Hassan');
+
+    const dates = response.body.data.map((item: { date: string }) => new Date(item.date).getTime());
+    assert.ok(dates[0] >= dates[1], 'entries should be sorted most-recent-first');
   });
 });

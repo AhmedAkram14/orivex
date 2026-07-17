@@ -16,13 +16,18 @@ import type { Appointment } from '../../../consultation/domain/entities/appointm
 import { AppointmentStatus } from '../../../consultation/domain/enums/appointment-status.enum.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../../consultation/application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
-import { PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { CLINICAL_NOTE_REPOSITORY, PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
+import type { HealthGraphNode } from '../../domain/entities/health-graph-node.entity.js';
+import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
 import { VitalType } from '../../domain/enums/vital-type.enum.js';
 import type { Prescription } from '../../domain/entities/prescription.entity.js';
+import type { ClinicalNoteRepository } from '../../domain/repositories/clinical-note.repository.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 import { ActivePrescriptionPreviewResponseDto } from '../dto/active-prescription-preview-response.dto.js';
 import { HealthVitalSummaryResponseDto } from '../dto/health-vital-summary-response.dto.js';
+import { MedicalRecordEntryResponseDto } from '../dto/medical-record-entry-response.dto.js';
 import { PatientDashboardSummaryResponseDto } from '../dto/patient-dashboard-summary-response.dto.js';
 import { PatientPrescriptionResponseDto } from '../dto/patient-prescription-response.dto.js';
 import { UpcomingAppointmentPreviewResponseDto } from '../dto/upcoming-appointment-preview-response.dto.js';
@@ -66,6 +71,8 @@ export class PatientDashboardController {
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
     @Inject(PRESCRIPTION_REPOSITORY) private readonly prescriptionRepository: PrescriptionRepository,
     private readonly listVitalReadingsForPatientUseCase: ListVitalReadingsForPatientUseCase,
+    @Inject(CLINICAL_NOTE_REPOSITORY) private readonly clinicalNoteRepository: ClinicalNoteRepository,
+    private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
   ) {}
 
   @Get('me/dashboard-summary')
@@ -174,6 +181,28 @@ export class PatientDashboardController {
     );
 
     return envelope(summaries);
+  }
+
+  @Get('me/medical-records')
+  async getMedicalRecords(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<MedicalRecordEntryResponseDto[]>> {
+    const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!patientProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForPatientUseCase.execute({ patientId: patientProfile.getId() });
+    const visitEntries = await this.findVisitEntries(appointments);
+
+    const nodes = await this.getHealthGraphSubgraphUseCase.execute({ patientId: patientProfile.getId() });
+    const conditionEntries = await this.findConditionEntries(nodes);
+
+    const entries = [...visitEntries, ...conditionEntries].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    return envelope(entries);
   }
 
   private computeLastVisitAt(appointments: Appointment[]): string | undefined {
@@ -322,5 +351,83 @@ export class PatientDashboardController {
       status,
       instructions: firstLineItem.getInstructions(),
     });
+  }
+
+  // For each of the patient's appointments, resolves its ConsultationSession
+  // (if any) and that session's clinical notes -- each note becomes a
+  // 'visit' timeline entry (one per authored note, matching the domain's
+  // "fully immutable, one per consultation session, or more if addenda
+  // exist" rule -- no note is ever merged or deduplicated).
+  private async findVisitEntries(appointments: Appointment[]): Promise<MedicalRecordEntryResponseDto[]> {
+    const entries: MedicalRecordEntryResponseDto[] = [];
+
+    for (const appointment of appointments) {
+      const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
+        appointmentId: appointment.getId(),
+      });
+      if (!session) {
+        continue;
+      }
+
+      const notes = await this.clinicalNoteRepository.findByConsultationSessionId(session.getId());
+      for (const note of notes) {
+        const doctorName = await this.resolveDoctorName(note.getAuthoringDoctorId());
+        entries.push(
+          MedicalRecordEntryResponseDto.create({
+            id: note.getId(),
+            type: 'visit',
+            date: note.getCreatedAt().toISOString(),
+            title: 'Clinical visit',
+            description: note.getContent(),
+            doctorName,
+            downloadUrl: undefined,
+          }),
+        );
+      }
+    }
+
+    return entries;
+  }
+
+  // Only `condition`-typed nodes fit the timeline's 'condition' category --
+  // symptom/medication/lab_result/radiology_result nodes are deliberately
+  // excluded rather than shoehorned into a category that doesn't describe
+  // them (no 3rd/4th category was asked for).
+  private async findConditionEntries(nodes: HealthGraphNode[]): Promise<MedicalRecordEntryResponseDto[]> {
+    const conditionNodes = nodes.filter((node) => node.getNodeType() === HealthGraphNodeType.Condition);
+
+    const entries: MedicalRecordEntryResponseDto[] = [];
+    for (const node of conditionNodes) {
+      const doctorName = await this.resolveDoctorName(node.getAuthoringDoctorId());
+      entries.push(
+        MedicalRecordEntryResponseDto.create({
+          id: node.getId(),
+          type: 'condition',
+          date: node.getCreatedAt().toISOString(),
+          title: node.getFreeTextDescription() ?? 'Condition noted',
+          description: undefined,
+          doctorName,
+          downloadUrl: undefined,
+        }),
+      );
+    }
+
+    return entries;
+  }
+
+  private async resolveDoctorName(authoringDoctorId: string | undefined): Promise<string | undefined> {
+    if (!authoringDoctorId) {
+      return undefined;
+    }
+    const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
+      doctorProfileId: authoringDoctorId,
+    });
+    if (!doctorProfile) {
+      return undefined;
+    }
+    const doctorAccount: Account | null = await this.getAccountByIdUseCase.execute({
+      accountId: doctorProfile.getAccountId(),
+    });
+    return doctorAccount?.getUserProfile().getDisplayName().toString();
   }
 }

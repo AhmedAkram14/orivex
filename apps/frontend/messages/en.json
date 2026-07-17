@@ -471,19 +471,15 @@
       "loadError": "Couldn't load your medical records.",
       "timelineTitle": "Timeline",
       "timelineEmptyTitle": "No medical records yet",
-      "timelineEmptyDescription": "Visits, diagnoses, allergies, and conditions recorded by your care team will appear here.",
+      "timelineEmptyDescription": "Visits and conditions recorded by your care team will appear here.",
       "download": "Download",
       "filters": {
         "all": "All",
         "visit": "Visits",
-        "diagnosis": "Diagnoses",
-        "allergy": "Allergies",
         "condition": "Conditions"
       },
       "type": {
         "visit": "Visit",
-        "diagnosis": "Diagnosis",
-        "allergy": "Allergy",
         "condition": "Condition"
       },
       "labResults": "Lab results",

@@ -23,6 +23,9 @@ class FakeClinicalNoteRepository implements ClinicalNoteRepository {
   async findById(): Promise<ClinicalNote | null> {
     return null;
   }
+  async findByConsultationSessionId(): Promise<ClinicalNote[]> {
+    return [];
+  }
   async save(note: ClinicalNote): Promise<void> {
     this.saved.push(note);
   }

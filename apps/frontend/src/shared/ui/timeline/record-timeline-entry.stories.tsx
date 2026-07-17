@@ -20,13 +20,13 @@ export const Visit: Story = {
   },
 };
 
-export const Allergy: Story = {
+export const Condition: Story = {
   args: {
     dateLabel: 'Mar 3, 2024',
-    type: 'allergy',
-    typeLabel: 'Allergy',
-    title: 'Penicillin',
-    description: 'Reported allergic reaction: rash.',
+    type: 'condition',
+    typeLabel: 'Condition',
+    title: 'Hypertension',
+    description: 'Confirmed diagnosis, under treatment.',
   },
 };
 

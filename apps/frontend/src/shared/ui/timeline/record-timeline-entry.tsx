@@ -1,22 +1,21 @@
-import { AlertTriangle, Heart, Stethoscope, UserRound, type LucideIcon } from 'lucide-react';
+import { Stethoscope, UserRound, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Badge } from '@/shared/ui/badge';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
 
-export type RecordTimelineEntryType = 'visit' | 'diagnosis' | 'allergy' | 'condition';
+// Matches the real `MedicalRecordEntryType` exactly -- no "diagnosis"/
+// "allergy" concept distinct from "condition" exists in the domain
+// (HealthGraphNodeType has no such members), never fabricated here.
+export type RecordTimelineEntryType = 'visit' | 'condition';
 
 const iconByType: Record<RecordTimelineEntryType, LucideIcon> = {
   visit: Stethoscope,
-  diagnosis: Heart,
-  allergy: AlertTriangle,
   condition: UserRound,
 };
 
 const badgeVariantByType: Record<RecordTimelineEntryType, 'info' | 'warning' | 'danger' | 'neutral'> = {
   visit: 'info',
-  diagnosis: 'warning',
-  allergy: 'danger',
   condition: 'neutral',
 };
 
@@ -37,8 +36,8 @@ export interface RecordTimelineEntryProps {
 }
 
 /**
- * A single chronological medical-record entry (visit/diagnosis/allergy/
- * condition) — the Patient Portal's Medical Records timeline architecture.
+ * A single chronological medical-record entry (visit/condition) — the
+ * Patient Portal's Medical Records timeline architecture.
  * Deliberately generic enough to back Phase 10's broader Patient Journey
  * Timeline later (a read-model composition over multiple modules, per
  * docs/roadmaps/frontend-master-plan.md) without a rewrite — this

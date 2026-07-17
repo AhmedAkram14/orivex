@@ -15,6 +15,11 @@ export class PrismaClinicalNoteRepository implements ClinicalNoteRepository {
     return row ? toDomainClinicalNote(row) : null;
   }
 
+  async findByConsultationSessionId(consultationSessionId: string): Promise<ClinicalNote[]> {
+    const rows = await this.prisma.clinicalNote.findMany({ where: { consultationSessionId } });
+    return rows.map((row) => toDomainClinicalNote(row));
+  }
+
   // ClinicalNote is fully immutable (docs/07-domain-data-model.md's "never
   // rewrite" rule) -- save() only ever creates; there is no domain method
   // that mutates an existing note.

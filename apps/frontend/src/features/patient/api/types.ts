@@ -136,15 +136,22 @@ export interface Appointment {
 
 export type AppointmentsResponse = Appointment[];
 
-export type MedicalRecordEntryType = 'visit' | 'diagnosis' | 'allergy' | 'condition';
+/**
+ * Matches what `GET /patients/me/medical-records` (ClinicalModule's
+ * PatientDashboardController) can actually compose: `'visit'` entries come
+ * from a `ClinicalNote`, `'condition'` entries from a `HealthGraphNode`
+ * whose `nodeType` is `condition`. The real domain's `HealthGraphNodeType`
+ * has no separate "diagnosis" concept distinct from `condition`, and no
+ * "allergy" concept anywhere — never fabricate a distinction the domain
+ * doesn't make.
+ */
+export type MedicalRecordEntryType = 'visit' | 'condition';
 
 /**
- * A single chronological medical-record entry — the Timeline architecture's
- * data shape (milestone 4). Pulled forward from Phase 10's Health Graph/
- * Journey Timeline scope onto this simpler, self-contained shape for now;
- * a real `ClinicalModule` integration later is a data-source swap, not a
- * UI rewrite, per this codebase's established pattern for every other
- * not-yet-backed feature.
+ * A single chronological medical-record entry — backed by the real
+ * `GET /patients/me/medical-records` endpoint (ClinicalModule's
+ * PatientDashboardController), composed from `ClinicalNote` and
+ * `HealthGraphNode` entities.
  */
 export interface MedicalRecordEntry {
   id: string;

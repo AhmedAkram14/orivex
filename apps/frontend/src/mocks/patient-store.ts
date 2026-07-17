@@ -69,11 +69,14 @@ function seedAppointments(): Appointment[] {
 }
 
 /**
- * The Medical Records timeline (milestone 4) — an honest empty array, same
- * reasoning as `seedAppointments`: no Clinical module is wired into the
- * frontend yet. `downloadUrl` never gets a fabricated value on any seeded
- * entry (there is none to seed yet), keeping `RecordDownloadButton`
- * architecture-ready but never rendered on fake data.
+ * The Medical Records timeline -- `GET /patients/me/medical-records` is now
+ * a real backend endpoint (ClinicalModule's PatientDashboardController),
+ * composed from `ClinicalNote`/`HealthGraphNode`; this mock exists purely to
+ * keep the frontend test suite deterministic, matching `seedProfile()`'s
+ * precedent. An honest empty array: the seeded mock account has no real
+ * clinical notes or condition nodes on record. `downloadUrl` never gets a
+ * fabricated value on any seeded entry (there is none to seed yet), keeping
+ * `RecordDownloadButton` architecture-ready but never rendered on fake data.
  */
 function seedMedicalRecords(): MedicalRecordEntry[] {
   return [];

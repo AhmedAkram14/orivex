@@ -19,9 +19,9 @@ type RecordFilter = 'all' | MedicalRecordEntryType;
 
 /**
  * The Patient Portal's Medical Records page — a chronological timeline
- * (visits/diagnoses/allergies/conditions), type filters, and honestly
- * not-yet-available Lab Results/Imaging placeholders. Backed by a real
- * (mocked) /patient/medical-records query.
+ * (visits/conditions), type filters, and honestly not-yet-available Lab
+ * Results/Imaging placeholders. Backed by the real
+ * GET /patients/me/medical-records endpoint.
  */
 export default function PatientMedicalRecordsPage() {
   const t = useTranslations('patient.records');
@@ -54,8 +54,6 @@ export default function PatientMedicalRecordsPage() {
                 options={[
                   { value: 'all', label: t('filters.all') },
                   { value: 'visit', label: t('filters.visit') },
-                  { value: 'diagnosis', label: t('filters.diagnosis') },
-                  { value: 'allergy', label: t('filters.allergy') },
                   { value: 'condition', label: t('filters.condition') },
                 ]}
               />
