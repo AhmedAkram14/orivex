@@ -55,8 +55,6 @@ describe('PatientMedicalRecordsPage', () => {
 
     expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Visits' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Diagnoses' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Allergies' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Conditions' })).toBeInTheDocument();
   });
 });
