@@ -1,7 +1,8 @@
 import { SecurityEventStatus as PrismaSecurityEventStatus, SecurityEventType as PrismaSecurityEventType } from '@prisma/client';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, SecurityEvent as PrismaSecurityEventRow } from '@prisma/client';
 
-import type { SecurityEvent } from '../../domain/entities/security-event.entity.js';
+import { SecurityEvent } from '../../domain/entities/security-event.entity.js';
+import { SecurityEventStatus } from '../../domain/enums/security-event-status.enum.js';
 import { SecurityEventType } from '../../domain/enums/security-event-type.enum.js';
 
 // Prisma's enum is UPPER_SNAKE (database convention); the domain enum is
@@ -20,6 +21,25 @@ const DOMAIN_TO_PRISMA_EVENT_TYPE: Record<SecurityEventType, PrismaSecurityEvent
   [SecurityEventType.RefreshTokenReuseDetected]: PrismaSecurityEventType.REFRESH_TOKEN_REUSE_DETECTED,
 };
 
+const PRISMA_TO_DOMAIN_EVENT_TYPE: Record<PrismaSecurityEventType, SecurityEventType> = {
+  [PrismaSecurityEventType.LOGIN_SUCCEEDED]: SecurityEventType.LoginSucceeded,
+  [PrismaSecurityEventType.LOGIN_FAILED]: SecurityEventType.LoginFailed,
+  [PrismaSecurityEventType.ACCOUNT_LOCKED]: SecurityEventType.AccountLocked,
+  [PrismaSecurityEventType.ACCOUNT_UNLOCKED]: SecurityEventType.AccountUnlocked,
+  [PrismaSecurityEventType.PASSWORD_CHANGED]: SecurityEventType.PasswordChanged,
+  [PrismaSecurityEventType.PASSWORD_RESET_REQUESTED]: SecurityEventType.PasswordResetRequested,
+  [PrismaSecurityEventType.PASSWORD_RESET_COMPLETED]: SecurityEventType.PasswordResetCompleted,
+  [PrismaSecurityEventType.EMAIL_VERIFIED]: SecurityEventType.EmailVerified,
+  [PrismaSecurityEventType.SESSION_REVOKED]: SecurityEventType.SessionRevoked,
+  [PrismaSecurityEventType.REFRESH_TOKEN_REUSE_DETECTED]: SecurityEventType.RefreshTokenReuseDetected,
+};
+
+const PRISMA_TO_DOMAIN_STATUS: Record<PrismaSecurityEventStatus, SecurityEventStatus> = {
+  [PrismaSecurityEventStatus.DETECTED]: SecurityEventStatus.Detected,
+  [PrismaSecurityEventStatus.REVIEWED]: SecurityEventStatus.Reviewed,
+  [PrismaSecurityEventStatus.RESOLVED]: SecurityEventStatus.Resolved,
+};
+
 export interface PersistedSecurityEvent {
   id: string;
   accountId: string;
@@ -32,8 +52,7 @@ export interface PersistedSecurityEvent {
 }
 
 // The one place that knows how the SecurityEvent aggregate maps to Prisma's
-// row shape. Write-only (no toDomainSecurityEvent) — nothing reads this
-// aggregate back yet (see security-event.entity.ts's reconstitute() note).
+// row shape, both directions.
 export function toPersistedSecurityEvent(event: SecurityEvent): PersistedSecurityEvent {
   return {
     id: event.getId(),
@@ -45,4 +64,20 @@ export function toPersistedSecurityEvent(event: SecurityEvent): PersistedSecurit
     metadata: event.getMetadata() as Prisma.InputJsonValue,
     detectedAt: event.getDetectedAt(),
   };
+}
+
+// Reverse mapping, added for the login-history read path (GET
+// /auth/login-history) -- the metadata JSON column round-trips through
+// Prisma as a plain object already, so no further translation is needed.
+export function toDomainSecurityEvent(row: PrismaSecurityEventRow): SecurityEvent {
+  return SecurityEvent.reconstitute({
+    id: row.id,
+    accountId: row.accountId,
+    eventType: PRISMA_TO_DOMAIN_EVENT_TYPE[row.eventType],
+    status: PRISMA_TO_DOMAIN_STATUS[row.status],
+    ipAddress: row.ipAddress ?? undefined,
+    userAgent: row.userAgent ?? undefined,
+    metadata: (row.metadata ?? {}) as Record<string, unknown>,
+    detectedAt: row.detectedAt,
+  });
 }

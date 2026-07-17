@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationModule } from '../authentication/authentication.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 
@@ -9,6 +10,7 @@ import { AVAILABILITY_WINDOW_REPOSITORY, DOCTOR_PROFILE_REPOSITORY } from './app
 import { ConfirmAvailabilityWindowUseCase } from './application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { DefineAvailabilityWindowUseCase } from './application/use-cases/define-availability-window/define-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from './application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
+import { GetDoctorProfileByAccountIdUseCase } from './application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from './application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { RegisterDoctorProfileUseCase } from './application/use-cases/register-doctor-profile/register-doctor-profile.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from './application/use-cases/release-availability-window/release-availability-window.use-case.js';
@@ -28,8 +30,11 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
 // SchedulingModule (Sprint 7) to consume -- DoctorModule remains unaware
 // SchedulingModule exists, same one-way pattern as
 // AdministrationModule -> TrustModule.
+//
+// Imports AuthenticationModule for JwtAuthGuard/RolesGuard, needed by the
+// GET/PATCH /doctors/me routes (same pattern PatientModule uses).
 @Module({
-  imports: [IdentityModule],
+  imports: [IdentityModule, AuthenticationModule],
   controllers: [DoctorProfileController],
   providers: [
     { provide: DOCTOR_PROFILE_REPOSITORY, useClass: PrismaDoctorProfileRepository },
@@ -52,6 +57,11 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
     {
       provide: GetDoctorProfileByIdUseCase,
       useFactory: (repository: DoctorProfileRepository) => new GetDoctorProfileByIdUseCase(repository),
+      inject: [DOCTOR_PROFILE_REPOSITORY],
+    },
+    {
+      provide: GetDoctorProfileByAccountIdUseCase,
+      useFactory: (repository: DoctorProfileRepository) => new GetDoctorProfileByAccountIdUseCase(repository),
       inject: [DOCTOR_PROFILE_REPOSITORY],
     },
     {
@@ -90,6 +100,7 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
   exports: [
     RegisterDoctorProfileUseCase,
     GetDoctorProfileByIdUseCase,
+    GetDoctorProfileByAccountIdUseCase,
     UpdateDoctorProfileUseCase,
     DefineAvailabilityWindowUseCase,
     ReserveAvailabilityWindowUseCase,

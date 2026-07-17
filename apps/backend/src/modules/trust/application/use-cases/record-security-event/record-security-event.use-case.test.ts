@@ -16,6 +16,9 @@ class FakeSecurityEventRepository implements SecurityEventRepository {
   async record(event: SecurityEvent): Promise<void> {
     this.recorded.push(event);
   }
+  async findByAccountId(accountId: string): Promise<SecurityEvent[]> {
+    return this.recorded.filter((event) => event.getAccountId() === accountId);
+  }
 }
 
 describe('RecordSecurityEventUseCase', () => {

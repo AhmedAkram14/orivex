@@ -7,9 +7,15 @@
  * list are different shapes, not the same data sliced client-side.
  */
 export const PATIENT_PATHS = {
-  dashboardSummary: '/patient/dashboard-summary',
-  upcomingAppointments: '/patient/upcoming-appointments',
-  activePrescriptions: '/patient/active-prescriptions',
+  // The real backend route (ClinicalModule's PatientDashboardController) --
+  // not /patient/dashboard-summary.
+  dashboardSummary: '/patients/me/dashboard-summary',
+  // The real backend route (ClinicalModule's PatientDashboardController) --
+  // not /patient/upcoming-appointments.
+  upcomingAppointments: '/patients/me/upcoming-appointments',
+  // The real backend route (ClinicalModule's PatientDashboardController) --
+  // not /patient/active-prescriptions.
+  activePrescriptions: '/patients/me/active-prescriptions',
   // The real backend route (PatientModule's PatientProfileController) --
   // not /patient/profile. Every other path in this object remains MSW-only
   // (no backend implementation exists yet for those features).

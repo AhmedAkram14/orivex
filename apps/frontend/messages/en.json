@@ -132,11 +132,11 @@
         "title": "Device sessions",
         "description": "Devices currently signed in to your account.",
         "currentDeviceBadge": "This device",
-        "locationAndIp": "{location} · {ipAddress}",
+        "unknownDevice": "Unknown device",
         "lastActive": "Last active {lastActiveAt}",
         "revoke": "Revoke",
         "revokeConfirmTitle": "Revoke this session?",
-        "revokeConfirmDescription": "\"{deviceName}\" will be signed out immediately.",
+        "revokeConfirmDescription": "\"{device}\" will be signed out immediately.",
         "revokeSuccess": "Session revoked.",
         "revokeError": "Couldn't revoke this session. Please try again.",
         "cancel": "Cancel",
@@ -148,13 +148,14 @@
         "title": "Login history",
         "description": "Recent sign-in attempts on your account.",
         "columnTime": "Time",
-        "columnDevice": "Device",
-        "columnLocation": "Location",
+        "columnUserAgent": "Device",
+        "columnIpAddress": "IP address",
         "columnOutcome": "Outcome",
+        "unknownDevice": "Unknown device",
         "outcome": {
           "success": "Success",
-          "failed_password": "Wrong password",
-          "failed_locked": "Account locked"
+          "failed": "Failed",
+          "locked": "Account locked"
         },
         "loadError": "Couldn't load your login history.",
         "emptyTitle": "No login history yet",
@@ -275,37 +276,29 @@
     "profile": {
       "title": "Profile",
       "editProfile": "Edit profile",
-      "specialization": "Specialization",
+      "specialty": "Specialty",
       "professionalInformation": "Professional information",
-      "qualifications": "Qualifications",
       "experience": "Experience",
       "yearsOfExperience": "{years} years of experience",
-      "availability": "Availability",
       "languages": "Languages",
+      "publications": "Publications",
+      "publicationsEmptyTitle": "No publications on record",
+      "awards": "Awards",
+      "awardsEmptyTitle": "No awards on record",
       "contactInformation": "Contact information",
+      "notOnRecord": "Not on record",
       "save": "Save",
       "cancel": "Cancel",
       "loadError": "Couldn't load your profile.",
-      "days": {
-        "monday": "Monday",
-        "tuesday": "Tuesday",
-        "wednesday": "Wednesday",
-        "thursday": "Thursday",
-        "friday": "Friday",
-        "saturday": "Saturday",
-        "sunday": "Sunday"
-      },
       "languageNames": {
         "en": "English",
         "ar": "Arabic"
       },
       "validation": {
-        "specializationRequired": "Enter your specialization.",
-        "bioRequired": "Enter a short professional bio.",
-        "bioTooLong": "Bio must be at most {max} characters.",
+        "specialtyRequired": "Enter your specialty.",
+        "biographyTooLong": "Biography must be at most {max} characters.",
         "experienceInvalid": "Enter a valid number of years.",
-        "languagesRequired": "Select at least one language.",
-        "phoneRequired": "Enter a contact phone number."
+        "languagesRequired": "Select at least one language."
       }
     },
     "schedule": {
@@ -377,14 +370,12 @@
       "welcome": "Welcome back, {name}.",
       "upcomingAppointments": {
         "status": {
-          "upcoming": "Upcoming",
-          "in-progress": "In progress"
+          "upcoming": "Upcoming"
         }
       },
       "activePrescriptions": {
         "status": {
-          "active": "Active",
-          "refill-due": "Refill due"
+          "active": "Active"
         }
       },
       "lastVisit": "Last visit",

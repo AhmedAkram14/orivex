@@ -81,6 +81,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findByPatientId(patientId: string): Promise<Appointment[]> {
     return this.appointment.getPatientId() === patientId ? [this.appointment] : [];
   }
+  async findByDoctorId(doctorId: string): Promise<Appointment[]> {
+    return this.appointment.getDoctorId() === doctorId ? [this.appointment] : [];
+  }
   async save(): Promise<void> {}
 }
 
@@ -99,6 +102,9 @@ class InMemoryPrescriptionRepository implements PrescriptionRepository {
   private readonly byId = new Map<string, Prescription>();
   async findById(id: string): Promise<Prescription | null> {
     return this.byId.get(id) ?? null;
+  }
+  async findByConsultationSessionId(consultationSessionId: string): Promise<Prescription[]> {
+    return [...this.byId.values()].filter((p) => p.getConsultationSessionId() === consultationSessionId);
   }
   async save(prescription: Prescription): Promise<void> {
     this.byId.set(prescription.getId(), prescription);

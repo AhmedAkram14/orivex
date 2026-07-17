@@ -4,6 +4,7 @@ import { after, before, describe, it } from 'node:test';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
+import cookieParser from 'cookie-parser';
 import request from 'supertest';
 
 import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions.filter.js';
@@ -19,8 +20,11 @@ import { EmailAddress as EmailAddressVO } from '../../../identity/domain/value-o
 import { GetAccountByEmailUseCase } from '../../../identity/application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { RegisterAccountUseCase } from '../../../identity/application/use-cases/register-account/register-account.use-case.js';
+import { SecurityEvent as SecurityEventEntity } from '../../../trust/domain/entities/security-event.entity.js';
 import type { SecurityEvent } from '../../../trust/domain/entities/security-event.entity.js';
+import { SecurityEventType } from '../../../trust/domain/enums/security-event-type.enum.js';
 import type { SecurityEventRepository } from '../../../trust/domain/repositories/security-event.repository.js';
+import { ListSecurityEventsForAccountUseCase } from '../../../trust/application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
 import { RecordSecurityEventUseCase } from '../../../trust/application/use-cases/record-security-event/record-security-event.use-case.js';
 import { AuthToken } from '../../domain/entities/auth-token.entity.js';
 import { Credential } from '../../domain/entities/credential.entity.js';
@@ -39,11 +43,15 @@ import { JWT_SIGNER } from '../../application/ports/tokens.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password/change-password.use-case.js';
 import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password/forgot-password.use-case.js';
 import { GetCurrentSessionUseCase } from '../../application/use-cases/get-current-session/get-current-session.use-case.js';
+import { ListDeviceSessionsUseCase } from '../../application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
+import { ListLoginHistoryForAccountUseCase } from '../../application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
 import { LoginUseCase } from '../../application/use-cases/login/login.use-case.js';
+import { LogoutAllSessionsUseCase } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
 import { LogoutUseCase } from '../../application/use-cases/logout/logout.use-case.js';
 import { RefreshSessionUseCase } from '../../application/use-cases/refresh-session/refresh-session.use-case.js';
 import { RegisterUseCase } from '../../application/use-cases/register/register.use-case.js';
 import { ResetPasswordUseCase } from '../../application/use-cases/reset-password/reset-password.use-case.js';
+import { RevokeDeviceSessionUseCase } from '../../application/use-cases/revoke-device-session/revoke-device-session.use-case.js';
 import { VerifyEmailUseCase } from '../../application/use-cases/verify-email/verify-email.use-case.js';
 
 import { AuthenticationController } from './authentication.controller.js';
@@ -136,6 +144,9 @@ class InMemorySecurityEventRepository implements SecurityEventRepository {
   async record(event: SecurityEvent): Promise<void> {
     this.recorded.push(event);
   }
+  async findByAccountId(accountId: string): Promise<SecurityEvent[]> {
+    return this.recorded.filter((event) => event.getAccountId() === accountId).sort((a, b) => b.getDetectedAt().getTime() - a.getDetectedAt().getTime());
+  }
 }
 
 class FakePasswordHasher implements PasswordHasherPort {
@@ -194,19 +205,22 @@ describe('AuthenticationController (integration)', () => {
   let app: INestApplication;
   let accountRepository: InMemoryAccountRepository;
   let credentialRepository: InMemoryCredentialRepository;
+  let sessionRepository: InMemorySessionRepository;
   let authTokenRepository: InMemoryAuthTokenRepository;
   let securityEventRepository: InMemorySecurityEventRepository;
   let emailSender: RecordingEmailSender;
+  let tokenGenerator: FakeTokenGenerator;
+  let jwtSigner: FakeJwtSigner;
 
   before(async () => {
     accountRepository = new InMemoryAccountRepository();
     credentialRepository = new InMemoryCredentialRepository();
-    const sessionRepository = new InMemorySessionRepository();
+    sessionRepository = new InMemorySessionRepository();
     authTokenRepository = new InMemoryAuthTokenRepository();
     securityEventRepository = new InMemorySecurityEventRepository();
     const passwordHasher = new FakePasswordHasher();
-    const tokenGenerator = new FakeTokenGenerator();
-    const jwtSigner = new FakeJwtSigner();
+    tokenGenerator = new FakeTokenGenerator();
+    jwtSigner = new FakeJwtSigner();
     emailSender = new RecordingEmailSender();
     const dispatcher = new NoopDomainEventDispatcher();
 
@@ -214,6 +228,7 @@ describe('AuthenticationController (integration)', () => {
     const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepository);
     const getAccountByEmailUseCase = new GetAccountByEmailUseCase(accountRepository);
     const recordSecurityEventUseCase = new RecordSecurityEventUseCase(securityEventRepository);
+    const listSecurityEventsForAccountUseCase = new ListSecurityEventsForAccountUseCase(securityEventRepository);
 
     const moduleRef = await Test.createTestingModule({
       controllers: [AuthenticationController],
@@ -304,10 +319,27 @@ describe('AuthenticationController (integration)', () => {
           provide: GetCurrentSessionUseCase,
           useValue: new GetCurrentSessionUseCase(getAccountByIdUseCase),
         },
+        {
+          provide: ListDeviceSessionsUseCase,
+          useValue: new ListDeviceSessionsUseCase(credentialRepository, sessionRepository, tokenGenerator),
+        },
+        {
+          provide: RevokeDeviceSessionUseCase,
+          useValue: new RevokeDeviceSessionUseCase(credentialRepository, sessionRepository, tokenGenerator),
+        },
+        {
+          provide: LogoutAllSessionsUseCase,
+          useValue: new LogoutAllSessionsUseCase(credentialRepository, sessionRepository),
+        },
+        {
+          provide: ListLoginHistoryForAccountUseCase,
+          useValue: new ListLoginHistoryForAccountUseCase(listSecurityEventsForAccountUseCase),
+        },
       ],
     }).compile();
 
     app = moduleRef.createNestApplication();
+    app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -412,5 +444,164 @@ describe('AuthenticationController (integration)', () => {
       .expect(401);
 
     assert.equal(response.body.error.code, 'TOKEN_INVALID');
+  });
+
+  // --- Device sessions / logout-all / login-history -------------------------
+
+  async function createVerifiedAccountWithCredential(email: string): Promise<{ accountId: string; credentialId: string }> {
+    const account = Account.register({
+      email: EmailAddressVO.create(email),
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('Session Test User'),
+    });
+    await accountRepository.save(account);
+    const credential = Credential.register({
+      accountId: account.getId().toString(),
+      passwordHash: PasswordHash.create('hashed:Str0ngPassword'),
+    });
+    credential.recordSuccessfulLogin();
+    await credentialRepository.save(credential);
+    return { accountId: account.getId().toString(), credentialId: credential.getId() };
+  }
+
+  async function bearerTokenFor(accountId: string): Promise<string> {
+    const signed = await jwtSigner.sign({ accountId, role: AccountRole.Patient });
+    return `Bearer ${signed.token}`;
+  }
+
+  it('GET /auth/sessions lists only the caller active sessions and flags the current one', async () => {
+    const { accountId, credentialId } = await createVerifiedAccountWithCredential('sessions-list@example.com');
+    const currentSession = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('current-raw-token')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    const otherSession = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('other-raw-token')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    await sessionRepository.save(currentSession);
+    await sessionRepository.save(otherSession);
+
+    const response = await request(app.getHttpServer())
+      .get('/auth/sessions')
+      .set('Authorization', await bearerTokenFor(accountId))
+      .set('Cookie', [`orivex_refresh_token=current-raw-token`])
+      .expect(200);
+
+    const sessions = response.body.data as Array<{ id: string; isCurrent: boolean }>;
+    assert.equal(sessions.length, 2);
+    const current = sessions.find((s) => s.id === currentSession.getId());
+    const other = sessions.find((s) => s.id === otherSession.getId());
+    assert.equal(current?.isCurrent, true);
+    assert.equal(other?.isCurrent, false);
+  });
+
+  it('GET /auth/sessions returns 401 without a bearer token', async () => {
+    await request(app.getHttpServer()).get('/auth/sessions').expect(401);
+  });
+
+  it('DELETE /auth/sessions/:id returns 404 for a session belonging to a different account', async () => {
+    const { accountId } = await createVerifiedAccountWithCredential('sessions-revoke-mine@example.com');
+    const { credentialId: otherCredentialId } = await createVerifiedAccountWithCredential('sessions-revoke-theirs@example.com');
+    const theirSession = Session.create({
+      credentialId: otherCredentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('their-raw-token')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    await sessionRepository.save(theirSession);
+
+    const response = await request(app.getHttpServer())
+      .delete(`/auth/sessions/${theirSession.getId()}`)
+      .set('Authorization', await bearerTokenFor(accountId))
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('DELETE /auth/sessions/:id rejects revoking the caller own current session with 422', async () => {
+    const { accountId, credentialId } = await createVerifiedAccountWithCredential('sessions-revoke-current@example.com');
+    const currentSession = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('self-raw-token')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    await sessionRepository.save(currentSession);
+
+    const response = await request(app.getHttpServer())
+      .delete(`/auth/sessions/${currentSession.getId()}`)
+      .set('Authorization', await bearerTokenFor(accountId))
+      .set('Cookie', [`orivex_refresh_token=self-raw-token`])
+      .expect(422);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
+  it('DELETE /auth/sessions/:id revokes another one of the caller own sessions', async () => {
+    const { accountId, credentialId } = await createVerifiedAccountWithCredential('sessions-revoke-other@example.com');
+    const otherSession = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('to-revoke-token')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    await sessionRepository.save(otherSession);
+
+    await request(app.getHttpServer())
+      .delete(`/auth/sessions/${otherSession.getId()}`)
+      .set('Authorization', await bearerTokenFor(accountId))
+      .expect(204);
+
+    const reloaded = await sessionRepository.findById(otherSession.getId());
+    assert.ok(reloaded?.getRevokedAt());
+  });
+
+  it('POST /auth/logout-all revokes every session and clears the refresh cookie', async () => {
+    const { accountId, credentialId } = await createVerifiedAccountWithCredential('logout-all@example.com');
+    const sessionA = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('logout-all-a')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    const sessionB = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create(tokenGenerator.hash('logout-all-b')),
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    await sessionRepository.save(sessionA);
+    await sessionRepository.save(sessionB);
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/logout-all')
+      .set('Authorization', await bearerTokenFor(accountId))
+      .expect(204);
+
+    assert.ok(String(response.headers['set-cookie']).includes('orivex_refresh_token=;'));
+    const reloadedA = await sessionRepository.findById(sessionA.getId());
+    const reloadedB = await sessionRepository.findById(sessionB.getId());
+    assert.ok(reloadedA?.getRevokedAt());
+    assert.ok(reloadedB?.getRevokedAt());
+  });
+
+  it('GET /auth/login-history returns only login-relevant events, most recent first', async () => {
+    const { accountId } = await createVerifiedAccountWithCredential('login-history@example.com');
+    const succeeded = SecurityEventEntity.record({ accountId, eventType: SecurityEventType.LoginSucceeded, ipAddress: '203.0.113.5' });
+    const failed = SecurityEventEntity.record({ accountId, eventType: SecurityEventType.LoginFailed });
+    const passwordChanged = SecurityEventEntity.record({ accountId, eventType: SecurityEventType.PasswordChanged });
+    await securityEventRepository.record(succeeded);
+    await securityEventRepository.record(failed);
+    await securityEventRepository.record(passwordChanged);
+
+    const response = await request(app.getHttpServer())
+      .get('/auth/login-history')
+      .set('Authorization', await bearerTokenFor(accountId))
+      .expect(200);
+
+    const entries = response.body.data as Array<{ id: string; outcome: string }>;
+    assert.equal(entries.length, 2);
+    const ids = entries.map((entry) => entry.id);
+    assert.ok(ids.includes(succeeded.getId()));
+    assert.ok(ids.includes(failed.getId()));
+    assert.ok(!ids.includes(passwordChanged.getId()));
   });
 });

@@ -17,6 +17,10 @@ import {
 const base = () => env.apiBaseUrl;
 
 export const patientHandlers = [
+  // dashboardSummary/upcomingAppointments/activePrescriptions are real
+  // endpoints (ClinicalModule's PatientDashboardController) -- these handlers
+  // exist purely to keep the frontend test suite deterministic, matching
+  // `profile`/`appointments` below.
   http.get(`${base()}${PATIENT_PATHS.dashboardSummary}`, () => HttpResponse.json({ data: getDashboardSummary() })),
 
   http.get(`${base()}${PATIENT_PATHS.upcomingAppointments}`, () =>

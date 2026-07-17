@@ -132,11 +132,11 @@
         "title": "جلسات الأجهزة",
         "description": "الأجهزة المسجّلة دخولها حاليًا إلى حسابك.",
         "currentDeviceBadge": "هذا الجهاز",
-        "locationAndIp": "{location} · {ipAddress}",
+        "unknownDevice": "جهاز غير معروف",
         "lastActive": "آخر نشاط {lastActiveAt}",
         "revoke": "إلغاء",
         "revokeConfirmTitle": "هل تريد إلغاء هذه الجلسة؟",
-        "revokeConfirmDescription": "سيتم تسجيل خروج \"{deviceName}\" فورًا.",
+        "revokeConfirmDescription": "سيتم تسجيل خروج \"{device}\" فورًا.",
         "revokeSuccess": "تم إلغاء الجلسة.",
         "revokeError": "تعذّر إلغاء هذه الجلسة. يرجى المحاولة مرة أخرى.",
         "cancel": "إلغاء الأمر",
@@ -148,13 +148,14 @@
         "title": "سجل تسجيل الدخول",
         "description": "محاولات تسجيل الدخول الأخيرة إلى حسابك.",
         "columnTime": "الوقت",
-        "columnDevice": "الجهاز",
-        "columnLocation": "الموقع",
+        "columnUserAgent": "الجهاز",
+        "columnIpAddress": "عنوان IP",
         "columnOutcome": "النتيجة",
+        "unknownDevice": "جهاز غير معروف",
         "outcome": {
           "success": "نجاح",
-          "failed_password": "كلمة مرور خاطئة",
-          "failed_locked": "الحساب مقفل"
+          "failed": "فشل",
+          "locked": "الحساب مقفل"
         },
         "loadError": "تعذّر تحميل سجل تسجيل الدخول.",
         "emptyTitle": "لا يوجد سجل تسجيل دخول بعد",
@@ -275,37 +276,29 @@
     "profile": {
       "title": "الملف الشخصي",
       "editProfile": "تعديل الملف الشخصي",
-      "specialization": "التخصص",
+      "specialty": "التخصص",
       "professionalInformation": "المعلومات المهنية",
-      "qualifications": "المؤهلات",
       "experience": "الخبرة",
       "yearsOfExperience": "{years} سنوات من الخبرة",
-      "availability": "التوفر",
       "languages": "اللغات",
+      "publications": "المنشورات",
+      "publicationsEmptyTitle": "لا توجد منشورات مسجلة",
+      "awards": "الجوائز",
+      "awardsEmptyTitle": "لا توجد جوائز مسجلة",
       "contactInformation": "معلومات التواصل",
+      "notOnRecord": "غير مسجل",
       "save": "حفظ",
       "cancel": "إلغاء",
       "loadError": "تعذّر تحميل ملفك الشخصي.",
-      "days": {
-        "monday": "الاثنين",
-        "tuesday": "الثلاثاء",
-        "wednesday": "الأربعاء",
-        "thursday": "الخميس",
-        "friday": "الجمعة",
-        "saturday": "السبت",
-        "sunday": "الأحد"
-      },
       "languageNames": {
         "en": "الإنجليزية",
         "ar": "العربية"
       },
       "validation": {
-        "specializationRequired": "أدخل تخصصك.",
-        "bioRequired": "أدخل نبذة مهنية مختصرة.",
-        "bioTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
+        "specialtyRequired": "أدخل تخصصك.",
+        "biographyTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
         "experienceInvalid": "أدخل عددًا صحيحًا من السنوات.",
-        "languagesRequired": "اختر لغة واحدة على الأقل.",
-        "phoneRequired": "أدخل رقم هاتف للتواصل."
+        "languagesRequired": "اختر لغة واحدة على الأقل."
       }
     },
     "schedule": {
@@ -377,14 +370,12 @@
       "welcome": "مرحبًا بعودتك، {name}.",
       "upcomingAppointments": {
         "status": {
-          "upcoming": "قادم",
-          "in-progress": "جارٍ"
+          "upcoming": "قادم"
         }
       },
       "activePrescriptions": {
         "status": {
-          "active": "نشطة",
-          "refill-due": "إعادة صرف مستحقة"
+          "active": "نشطة"
         }
       },
       "lastVisit": "آخر زيارة",

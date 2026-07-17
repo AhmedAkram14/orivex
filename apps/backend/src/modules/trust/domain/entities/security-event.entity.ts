@@ -12,11 +12,24 @@ export interface RecordSecurityEventProps {
   metadata?: Record<string, unknown>;
 }
 
+export interface ReconstituteSecurityEventProps {
+  id: string;
+  accountId: string;
+  eventType: SecurityEventType;
+  status: SecurityEventStatus;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata: Record<string, unknown>;
+  detectedAt: Date;
+}
+
 // Append-only audit trail (docs/10-backend-architecture.md's TrustModule
 // entry: "Owned entities: ..., SecurityEvent"). No decide()/resolve()
 // behavior exists yet — review/resolution workflow is out of this sprint's
-// scope, and no controller reads these back, so reconstitute() is
-// deliberately omitted (nothing rehydrates a SecurityEvent from storage).
+// scope. record() is the "create" factory; reconstitute() (added for the
+// login-history read path, GET /auth/login-history) is its "load from
+// storage" counterpart, mirroring every other aggregate in this codebase
+// (e.g. Notification.reconstitute()).
 export class SecurityEvent {
   private constructor(
     private readonly id: string,
@@ -43,6 +56,19 @@ export class SecurityEvent {
       props.userAgent,
       props.metadata ?? {},
       new Date(),
+    );
+  }
+
+  static reconstitute(props: ReconstituteSecurityEventProps): SecurityEvent {
+    return new SecurityEvent(
+      props.id,
+      props.accountId,
+      props.eventType,
+      props.status,
+      props.ipAddress,
+      props.userAgent,
+      props.metadata,
+      props.detectedAt,
     );
   }
 

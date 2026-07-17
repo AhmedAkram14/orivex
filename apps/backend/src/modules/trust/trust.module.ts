@@ -8,6 +8,7 @@ import { DoctorModule } from '../doctor/doctor.module.js';
 import { SECURITY_EVENT_REPOSITORY, VERIFICATION_CASE_REPOSITORY } from './application/ports/tokens.js';
 import { DecideVerificationUseCase } from './application/use-cases/decide-verification/decide-verification.use-case.js';
 import { ListPendingVerificationCasesUseCase } from './application/use-cases/list-pending-verification-cases/list-pending-verification-cases.use-case.js';
+import { ListSecurityEventsForAccountUseCase } from './application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
 import { RecordSecurityEventUseCase } from './application/use-cases/record-security-event/record-security-event.use-case.js';
 import { SubmitDoctorVerificationUseCase } from './application/use-cases/submit-doctor-verification/submit-doctor-verification.use-case.js';
 import type { SecurityEventRepository } from './domain/repositories/security-event.repository.js';
@@ -32,6 +33,11 @@ import { VerificationCaseController } from './presentation/controllers/verificat
     {
       provide: RecordSecurityEventUseCase,
       useFactory: (repository: SecurityEventRepository) => new RecordSecurityEventUseCase(repository),
+      inject: [SECURITY_EVENT_REPOSITORY],
+    },
+    {
+      provide: ListSecurityEventsForAccountUseCase,
+      useFactory: (repository: SecurityEventRepository) => new ListSecurityEventsForAccountUseCase(repository),
       inject: [SECURITY_EVENT_REPOSITORY],
     },
     {
@@ -60,6 +66,7 @@ import { VerificationCaseController } from './presentation/controllers/verificat
     DecideVerificationUseCase,
     ListPendingVerificationCasesUseCase,
     RecordSecurityEventUseCase,
+    ListSecurityEventsForAccountUseCase,
   ],
 })
 export class TrustModule {}

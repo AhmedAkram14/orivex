@@ -18,6 +18,14 @@ export class PrismaPrescriptionRepository implements PrescriptionRepository {
     return row ? toDomainPrescription(row) : null;
   }
 
+  async findByConsultationSessionId(consultationSessionId: string): Promise<Prescription[]> {
+    const rows = await this.prisma.prescription.findMany({
+      where: { consultationSessionId },
+      include: INCLUDE_LINE_ITEMS,
+    });
+    return rows.map((row) => toDomainPrescription(row));
+  }
+
   // Prescription has no mutation methods after signing (immutable once
   // signed, docs/09-physical-database.md) -- save() is only ever called
   // once per aggregate instance, at creation.

@@ -11,6 +11,9 @@ class FakePrescriptionRepository implements PrescriptionRepository {
   async findById(): Promise<Prescription | null> {
     return this.prescription;
   }
+  async findByConsultationSessionId(): Promise<Prescription[]> {
+    return this.prescription ? [this.prescription] : [];
+  }
   async save(): Promise<void> {}
 }
 

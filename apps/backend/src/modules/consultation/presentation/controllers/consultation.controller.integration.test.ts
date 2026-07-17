@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-au
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
+import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
@@ -42,10 +43,12 @@ import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY } from '../../a
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from '../../application/use-cases/start-consultation/start-consultation.use-case.js';
-import type { Appointment } from '../../domain/entities/appointment.entity.js';
+import { Appointment } from '../../domain/entities/appointment.entity.js';
+import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
 import type { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
@@ -54,6 +57,8 @@ import { AppointmentController } from './appointment.controller.js';
 import { ConsultationController } from './consultation.controller.js';
 
 const VALID_PATIENT_TOKEN = 'valid-patient-token';
+const VALID_DOCTOR_TOKEN = 'valid-doctor-token';
+const VALID_DOCTOR_NO_PROFILE_TOKEN = 'valid-doctor-no-profile-token';
 
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
@@ -71,8 +76,8 @@ class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
   async findById(id: string): Promise<DoctorProfile | null> {
     return this.profile.getId() === id ? this.profile : null;
   }
-  async findByAccountId(): Promise<DoctorProfile | null> {
-    return null;
+  async findByAccountId(accountId: string): Promise<DoctorProfile | null> {
+    return this.profile.getAccountId() === accountId ? this.profile : null;
   }
   async save(): Promise<void> {}
 }
@@ -89,15 +94,16 @@ class InMemoryAccountRepository implements AccountRepository {
 }
 
 class FakeJwtSigner implements JwtSignerPort {
-  constructor(private readonly accountId: string) {}
+  constructor(private readonly tokens: Map<string, AccessTokenClaims>) {}
   async sign(): Promise<never> {
     throw new Error('not used in this test');
   }
   async verify(token: string): Promise<AccessTokenClaims> {
-    if (token !== VALID_PATIENT_TOKEN) {
+    const claims = this.tokens.get(token);
+    if (!claims) {
       throw new Error('invalid token');
     }
-    return { accountId: this.accountId, role: AccountRole.Patient };
+    return claims;
   }
 }
 
@@ -124,6 +130,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   }
   async findByPatientId(patientId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((appointment) => appointment.getPatientId() === patientId);
+  }
+  async findByDoctorId(doctorId: string): Promise<Appointment[]> {
+    return Array.from(this.byId.values()).filter((appointment) => appointment.getDoctorId() === doctorId);
   }
   async save(appointment: Appointment): Promise<void> {
     this.byId.set(appointment.getId(), appointment);
@@ -176,6 +185,11 @@ describe('Consultation controllers (integration)', () => {
       role: AccountRole.Doctor,
       displayName: DisplayName.create('Dr. Karim Adel'),
     });
+    const doctorAccountNoProfile = Account.register({
+      email: EmailAddress.create('doctor-no-profile@example.com'),
+      role: AccountRole.Doctor,
+      displayName: DisplayName.create('Dr. No Profile'),
+    });
 
     patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
     doctor = DoctorProfile.register({
@@ -204,6 +218,20 @@ describe('Consultation controllers (integration)', () => {
 
     const appointmentRepo = new InMemoryAppointmentRepository();
     sessionRepo = new InMemoryConsultationSessionRepository();
+
+    // A Confirmed appointment scheduled "now" (guaranteed today), seeded
+    // directly rather than through the booking flow -- backs the doctor
+    // dashboard-summary/upcoming-work populated-case tests.
+    const todaysConfirmedAppointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: freeWindow.getId(),
+      consultationType: ConsultationType.Free,
+      scheduledAt: new Date(),
+      reasonForVisit: 'Follow-up on medication',
+    });
+    todaysConfirmedAppointment.confirm();
+    await appointmentRepo.save(todaysConfirmedAppointment);
 
     const reserveSlotUseCase = new ReserveSlotUseCase(
       new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDomainEventDispatcher()),
@@ -245,13 +273,18 @@ describe('Consultation controllers (integration)', () => {
       new NoopDomainEventDispatcher(),
     );
 
-    const accountRepo = new InMemoryAccountRepository([patientAccount, doctorAccount]);
+    const accountRepo = new InMemoryAccountRepository([patientAccount, doctorAccount, doctorAccountNoProfile]);
     const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepo);
     const getPatientProfileByAccountIdUseCase = new GetPatientProfileByAccountIdUseCase(
       new InMemoryPatientProfileRepository(patient),
     );
+    const getPatientProfileByIdUseCase = new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient));
     const getDoctorProfileByIdUseCase = new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor));
+    const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(
+      new InMemoryDoctorProfileRepository(doctor),
+    );
     const listAppointmentsForPatientUseCase = new ListAppointmentsForPatientUseCase(appointmentRepo);
+    const listAppointmentsForDoctorUseCase = new ListAppointmentsForDoctorUseCase(appointmentRepo);
 
     const moduleRef = await Test.createTestingModule({
       controllers: [AppointmentController, ConsultationController],
@@ -260,7 +293,20 @@ describe('Consultation controllers (integration)', () => {
         Reflector,
         JwtAuthGuard,
         RolesGuard,
-        { provide: JWT_SIGNER, useFactory: () => new FakeJwtSigner(patientAccount.getId().toString()) },
+        {
+          provide: JWT_SIGNER,
+          useFactory: () =>
+            new FakeJwtSigner(
+              new Map([
+                [VALID_PATIENT_TOKEN, { accountId: patientAccount.getId().toString(), role: AccountRole.Patient }],
+                [VALID_DOCTOR_TOKEN, { accountId: doctorAccount.getId().toString(), role: AccountRole.Doctor }],
+                [
+                  VALID_DOCTOR_NO_PROFILE_TOKEN,
+                  { accountId: doctorAccountNoProfile.getId().toString(), role: AccountRole.Doctor },
+                ],
+              ]),
+            ),
+        },
         { provide: APPOINTMENT_REPOSITORY, useValue: appointmentRepo },
         { provide: CONSULTATION_SESSION_REPOSITORY, useValue: sessionRepo },
         { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
@@ -270,8 +316,11 @@ describe('Consultation controllers (integration)', () => {
         { provide: CloseConsultationUseCase, useValue: closeConsultationUseCase },
         { provide: GetAccountByIdUseCase, useValue: getAccountByIdUseCase },
         { provide: GetPatientProfileByAccountIdUseCase, useValue: getPatientProfileByAccountIdUseCase },
+        { provide: GetPatientProfileByIdUseCase, useValue: getPatientProfileByIdUseCase },
         { provide: GetDoctorProfileByIdUseCase, useValue: getDoctorProfileByIdUseCase },
+        { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
         { provide: ListAppointmentsForPatientUseCase, useValue: listAppointmentsForPatientUseCase },
+        { provide: ListAppointmentsForDoctorUseCase, useValue: listAppointmentsForDoctorUseCase },
       ],
     }).compile();
 
@@ -419,5 +468,64 @@ describe('Consultation controllers (integration)', () => {
       assert.ok(item.scheduledAt);
       assert.ok(['requested', 'confirmed', 'rescheduled', 'cancelled', 'no_show', 'completed'].includes(item.status));
     }
+  });
+
+  it('GET /appointments/doctor/dashboard-summary rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/doctor/dashboard-summary').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/doctor/dashboard-summary returns an honest empty summary for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/dashboard-summary')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, { consultationsToday: 0, patientsInQueue: 0, completedToday: 0 });
+  });
+
+  it('GET /appointments/doctor/dashboard-summary counts today\'s Confirmed appointment for a registered doctor', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/dashboard-summary')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    // The suite's earlier tests already booked/completed/cancelled other
+    // appointments against this same doctor, all scheduled "today" -- so
+    // this asserts on the full accumulated state rather than assuming this
+    // is the doctor's only appointment: exactly one appointment is still
+    // Confirmed (our seeded `todaysConfirmedAppointment`) and exactly one
+    // reached Completed (the earlier consultation start/close test's booking).
+    assert.equal(response.body.data.consultationsToday, 1);
+    assert.equal(response.body.data.patientsInQueue, 1);
+    assert.equal(response.body.data.completedToday, 1);
+  });
+
+  it('GET /appointments/doctor/upcoming-work rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/doctor/upcoming-work').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/doctor/upcoming-work returns an honest empty list for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/upcoming-work')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, []);
+  });
+
+  it('GET /appointments/doctor/upcoming-work composes the patient name/reasonForVisit and maps status for a registered doctor', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/upcoming-work')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    assert.ok(response.body.data.length >= 1);
+    const entry = response.body.data.find((item: { description?: string }) => item.description === 'Follow-up on medication');
+    assert.ok(entry);
+    assert.equal(entry.title, 'Amina Youssef');
+    assert.equal(entry.status, 'upcoming');
+    assert.ok(entry.scheduledAt);
   });
 });

@@ -17,49 +17,83 @@ export interface UpcomingWorkItem {
 
 export type UpcomingWorkResponse = UpcomingWorkItem[];
 
-export interface DoctorQualification {
-  id: string;
-  /** e.g. "MD, Cairo University" — a single free-text credential line, not a structured degree/institution split (that's `TrustModule`'s verification-document scope, Phase 7's own remaining work). */
-  title: string;
-  year?: number;
-}
-
 // `WeekDay` now lives in `features/scheduling/types.ts` (Phase 9) — the
 // generic Scheduling & Appointment Infrastructure's own domain model.
-// Re-exported here so this module's existing callers (`DoctorAvailabilitySummary`,
+// Re-exported here so this module's existing callers (`doctor/lib/week.ts`,
 // `doctor/schedule/page.tsx`) don't need an import-path change, mirroring the
 // `shared/lib/date/week.ts` extraction's own backward-compatible re-export pattern.
+// Note: `DoctorAvailabilitySummary` (the profile-page availability block) was
+// removed below — DoctorModule's real `AvailabilityWindow` is its own
+// aggregate with its own future endpoint, not part of the profile response
+// at all (docs/10-backend-architecture.md's DoctorModule entry), so it never
+// belonged on this type.
 import type { WeekDay } from '@/features/scheduling/types';
 
 export type { WeekDay };
 
-export interface DoctorAvailabilitySummary {
-  /** Days with at least one availability block — a summary for the profile page, not the detailed block/slot data `SchedulingModule`'s `AvailabilityWindow` will eventually back (Phase 7's Schedule Foundation milestone). */
-  daysAvailable: WeekDay[];
-  /** Pre-formatted, localized hours text (e.g. "9:00 AM – 5:00 PM") — this type never carries raw times to format. */
-  hoursLabel: string;
+export interface DoctorPublication {
+  id: string;
+  title: string;
+  reference?: string;
+  /** ISO date. Undefined when not on record. */
+  publishedAt?: string;
 }
 
+export interface DoctorAward {
+  id: string;
+  title: string;
+  issuingBody?: string;
+  /** ISO date. Undefined when not on record. */
+  awardedAt?: string;
+}
+
+/**
+ * Matches DoctorModule's real `DoctorProfileResponseDto` exactly.
+ * `fullName`/`email`/`phoneNumber` are composed from the owning Account
+ * (Identity has no update-profile endpoint yet, so they're read-only here,
+ * same as `PatientProfile`'s own composed fields). `qualifications` and
+ * `availability` — this type's old, fabricated fields — are deliberately
+ * gone: the backend has no such concepts. `publications`/`awards` are real,
+ * distinct concepts DoctorModule actually stores (`PortfolioPublication`/
+ * `PortfolioAward`).
+ */
 export interface DoctorProfile {
   id: string;
+  accountId: string;
   fullName: string;
-  specialization: string;
-  bio: string;
-  qualifications: DoctorQualification[];
-  yearsOfExperience: number;
-  languages: string[];
   email: string;
-  phone: string;
-  availability: DoctorAvailabilitySummary;
+  phoneNumber?: string;
+  licenseNumber: string;
+  specialty: string;
+  biography?: string;
+  yearsOfExperience?: number;
+  languages: string[];
+  consultationFeeAmount?: number;
+  publications: DoctorPublication[];
+  awards: DoctorAward[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-/** Only the fields a doctor can actually edit about their own profile — identity fields (`fullName`, `email`) and verification-backed fields (`qualifications`, via `TrustModule`) are deliberately excluded from this phase's edit architecture. */
+/**
+ * Only the fields DoctorProfileController's real `PATCH /doctors/me`
+ * endpoint accepts — matches `UpdateDoctorProfileRequestDto` exactly, all
+ * optional (a partial update). Identity fields (`fullName`, `email`,
+ * `phoneNumber`) are Account-owned and excluded here, mirroring
+ * `PatientProfileUpdateRequest`'s own identity-field exclusion.
+ * `licenseNumber` is also excluded: the backend's update DTO never accepts
+ * it (only `RegisterDoctorProfileUseCase` sets it, once, at registration).
+ */
 export interface DoctorProfileUpdateRequest {
-  specialization: string;
-  bio: string;
-  yearsOfExperience: number;
-  languages: string[];
-  phone: string;
+  specialty?: string;
+  biography?: string;
+  yearsOfExperience?: number;
+  languages?: string[];
+  consultationFeeAmount?: number;
+  /** No `id`/`publishedAt` — the backend's update DTO only accepts `title`/`reference` per entry. */
+  publications?: { title: string; reference?: string }[];
+  /** No `id`/`awardedAt` — the backend's update DTO only accepts `title`/`issuingBody` per entry. */
+  awards?: { title: string; issuingBody?: string }[];
 }
 
 // `AvailabilityBlockData`/`WeeklyAvailabilityResponse` (Phase 7's

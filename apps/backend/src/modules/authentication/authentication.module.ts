@@ -9,6 +9,7 @@ import { GetAccountByEmailUseCase } from '../identity/application/use-cases/get-
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { RegisterAccountUseCase } from '../identity/application/use-cases/register-account/register-account.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
+import { ListSecurityEventsForAccountUseCase } from '../trust/application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
 import { RecordSecurityEventUseCase } from '../trust/application/use-cases/record-security-event/record-security-event.use-case.js';
 import { TrustModule } from '../trust/trust.module.js';
 
@@ -31,11 +32,15 @@ import type { TokenGeneratorPort } from './application/ports/token-generator.por
 import { ChangePasswordUseCase } from './application/use-cases/change-password/change-password.use-case.js';
 import { ForgotPasswordUseCase } from './application/use-cases/forgot-password/forgot-password.use-case.js';
 import { GetCurrentSessionUseCase } from './application/use-cases/get-current-session/get-current-session.use-case.js';
+import { ListDeviceSessionsUseCase } from './application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
+import { ListLoginHistoryForAccountUseCase } from './application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
 import { LoginUseCase } from './application/use-cases/login/login.use-case.js';
+import { LogoutAllSessionsUseCase } from './application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
 import { LogoutUseCase } from './application/use-cases/logout/logout.use-case.js';
 import { RefreshSessionUseCase } from './application/use-cases/refresh-session/refresh-session.use-case.js';
 import { RegisterUseCase } from './application/use-cases/register/register.use-case.js';
 import { ResetPasswordUseCase } from './application/use-cases/reset-password/reset-password.use-case.js';
+import { RevokeDeviceSessionUseCase } from './application/use-cases/revoke-device-session/revoke-device-session.use-case.js';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email/verify-email.use-case.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import { NodeTokenGenerator } from './infrastructure/crypto/node-token-generator.js';
@@ -277,6 +282,30 @@ import { RolesGuard } from './presentation/guards/roles.guard.js';
       provide: GetCurrentSessionUseCase,
       useFactory: (getAccountByIdUseCase: GetAccountByIdUseCase) => new GetCurrentSessionUseCase(getAccountByIdUseCase),
       inject: [GetAccountByIdUseCase],
+    },
+    {
+      provide: ListDeviceSessionsUseCase,
+      useFactory: (credentialRepository: CredentialRepository, sessionRepository: SessionRepository, tokenGenerator: TokenGeneratorPort) =>
+        new ListDeviceSessionsUseCase(credentialRepository, sessionRepository, tokenGenerator),
+      inject: [CREDENTIAL_REPOSITORY, SESSION_REPOSITORY, TOKEN_GENERATOR],
+    },
+    {
+      provide: RevokeDeviceSessionUseCase,
+      useFactory: (credentialRepository: CredentialRepository, sessionRepository: SessionRepository, tokenGenerator: TokenGeneratorPort) =>
+        new RevokeDeviceSessionUseCase(credentialRepository, sessionRepository, tokenGenerator),
+      inject: [CREDENTIAL_REPOSITORY, SESSION_REPOSITORY, TOKEN_GENERATOR],
+    },
+    {
+      provide: LogoutAllSessionsUseCase,
+      useFactory: (credentialRepository: CredentialRepository, sessionRepository: SessionRepository) =>
+        new LogoutAllSessionsUseCase(credentialRepository, sessionRepository),
+      inject: [CREDENTIAL_REPOSITORY, SESSION_REPOSITORY],
+    },
+    {
+      provide: ListLoginHistoryForAccountUseCase,
+      useFactory: (listSecurityEventsForAccountUseCase: ListSecurityEventsForAccountUseCase) =>
+        new ListLoginHistoryForAccountUseCase(listSecurityEventsForAccountUseCase),
+      inject: [ListSecurityEventsForAccountUseCase],
     },
   ],
   exports: [JwtAuthGuard, RolesGuard],

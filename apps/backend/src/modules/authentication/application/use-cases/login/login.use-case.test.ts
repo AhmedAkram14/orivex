@@ -85,6 +85,9 @@ class FakeSecurityEventRepository implements SecurityEventRepository {
     this.recorded.push(event);
     return Promise.resolve();
   }
+  findByAccountId(accountId: string): Promise<SecurityEvent[]> {
+    return Promise.resolve(this.recorded.filter((event) => event.getAccountId() === accountId));
+  }
 }
 
 class FakePasswordHasher implements PasswordHasherPort {

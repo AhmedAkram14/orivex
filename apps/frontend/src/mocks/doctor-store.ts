@@ -8,9 +8,13 @@ import type {
 
 /**
  * In-memory mock "backend" state for `/doctor/*` — mirrors
- * `notifications-store.ts`'s pattern. Deliberately an honest zero/empty
- * reality: no Appointment/Consultation module exists yet (this phase's
- * explicit scope), so the summary counts and upcoming-work list reflect
+ * `notifications-store.ts`'s pattern. `GET /appointments/doctor/dashboard-summary`
+ * and `GET /appointments/doctor/upcoming-work` are now real backend endpoints
+ * (ConsultationModule's AppointmentController), so these mocks now exist
+ * purely to keep the frontend test suite deterministic, matching
+ * `patient-store.ts`'s `seedAppointments()` precedent. An honest empty
+ * reality: the seeded test doctor account has never had a real appointment
+ * booked against it, so the summary counts and upcoming-work list reflect
  * "nothing scheduled yet," never invented clinical data.
  */
 function seedSummary(): DoctorDashboardSummary {
@@ -22,30 +26,36 @@ function seedUpcomingWork(): UpcomingWorkItem[] {
 }
 
 /**
- * The doctor profile is administrative/professional data (name,
- * specialization, qualifications, contact info) rather than clinical
- * patient data, so — unlike the summary/upcoming-work zero-states above —
- * a believable seed is appropriate here, matching `auth-store.ts`'s
- * `doctor@orivex.dev` / "Dr. Sarah Ahmed" mock account for continuity.
+ * The doctor profile is administrative/professional data (name, specialty,
+ * publications/awards, contact info) rather than clinical patient data, so —
+ * unlike the summary/upcoming-work zero-states above — a believable seed is
+ * appropriate here, matching `auth-store.ts`'s `doctor@orivex.dev` /
+ * "Dr. Sarah Ahmed" mock account for continuity. This mock now exists purely
+ * to keep the frontend test suite deterministic (`GET /doctors/me` is a real
+ * backend endpoint, `mocks/handlers/doctor.ts` intercepts it in tests the
+ * same way `mocks/handlers/patient.ts` mocks the also-real `/patients/me`
+ * endpoint) — matches the real `DoctorProfileResponseDto` shape exactly: no
+ * `qualifications`/`availability`, since neither exists on the backend.
  */
 function seedProfile(): DoctorProfile {
   return {
     id: 'doctor-profile-1',
+    accountId: 'doctor-account-1',
     fullName: 'Dr. Sarah Ahmed',
-    specialization: 'Cardiology',
-    bio: 'Cardiologist with a focus on preventive care and long-term patient relationships.',
-    qualifications: [
-      { id: 'qual-1', title: 'MD, Cairo University', year: 2010 },
-      { id: 'qual-2', title: 'Board Certified in Cardiology', year: 2014 },
-    ],
+    email: 'doctor@orivex.dev',
+    phoneNumber: '+20 100 000 0000',
+    licenseNumber: 'LIC-2010-4471',
+    specialty: 'Cardiology',
+    biography: 'Cardiologist with a focus on preventive care and long-term patient relationships.',
     yearsOfExperience: 12,
     languages: ['en', 'ar'],
-    email: 'doctor@orivex.dev',
-    phone: '+20 100 000 0000',
-    availability: {
-      daysAvailable: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'],
-      hoursLabel: '9:00 AM – 5:00 PM',
-    },
+    consultationFeeAmount: 450,
+    publications: [
+      { id: 'pub-1', title: 'Preventive Cardiology in Primary Care', reference: 'Egyptian Heart Journal, 2019' },
+    ],
+    awards: [{ id: 'award-1', title: 'Excellence in Patient Care', issuingBody: 'Cairo University Hospitals' }],
+    createdAt: '2020-01-15T00:00:00.000Z',
+    updatedAt: '2020-01-15T00:00:00.000Z',
   };
 }
 
@@ -75,7 +85,27 @@ export function getProfile(): DoctorProfile {
 }
 
 export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfile {
-  profile = { ...profile, ...request };
+  profile = {
+    ...profile,
+    specialty: request.specialty ?? profile.specialty,
+    biography: request.biography ?? profile.biography,
+    yearsOfExperience: request.yearsOfExperience ?? profile.yearsOfExperience,
+    languages: request.languages ?? profile.languages,
+    consultationFeeAmount: request.consultationFeeAmount ?? profile.consultationFeeAmount,
+    publications:
+      request.publications?.map((publication, index) => ({
+        id: `pub-${Date.now()}-${index}`,
+        title: publication.title,
+        reference: publication.reference,
+      })) ?? profile.publications,
+    awards:
+      request.awards?.map((award, index) => ({
+        id: `award-${Date.now()}-${index}`,
+        title: award.title,
+        issuingBody: award.issuingBody,
+      })) ?? profile.awards,
+    updatedAt: new Date().toISOString(),
+  };
   return profile;
 }
 

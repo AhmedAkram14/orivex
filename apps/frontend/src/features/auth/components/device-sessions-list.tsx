@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Laptop, Smartphone, Monitor } from 'lucide-react';
+import { Monitor } from 'lucide-react';
 import { useDeviceSessions } from '@/features/auth/hooks/use-device-sessions';
 import { useRevokeDeviceSession } from '@/features/auth/hooks/use-revoke-device-session';
 import type { DeviceSession } from '@/features/auth/api/types';
@@ -22,13 +22,6 @@ import {
   DialogClose,
 } from '@/shared/ui/dialog';
 import { toast } from '@/shared/ui/use-toast';
-
-function deviceIconFor(deviceName: string) {
-  const normalized = deviceName.toLowerCase();
-  if (normalized.includes('phone') || normalized.includes('mobile')) return Smartphone;
-  if (normalized.includes('laptop')) return Laptop;
-  return Monitor;
-}
 
 export function DeviceSessionsList() {
   const t = useTranslations('auth.securityCenter.deviceSessions');
@@ -62,17 +55,13 @@ export function DeviceSessionsList() {
             className="flex items-center justify-between gap-4 rounded-lg border border-border-default p-4"
           >
             <div className="flex items-center gap-3">
-              <Icon icon={deviceIconFor(session.deviceName)} size="lg" className="text-text-tertiary" />
+              <Icon icon={Monitor} size="lg" className="text-text-tertiary" />
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-text-primary">
-                    {session.deviceName} · {session.browser}
-                  </p>
+                  <p className="text-sm font-medium text-text-primary">{session.userAgent ?? t('unknownDevice')}</p>
                   {session.isCurrent && <Badge variant="success">{t('currentDeviceBadge')}</Badge>}
                 </div>
-                <p className="text-sm text-text-secondary">
-                  {t('locationAndIp', { location: session.location, ipAddress: session.ipAddress })}
-                </p>
+                {session.ipAddress && <p className="text-sm text-text-secondary">{session.ipAddress}</p>}
                 <p className="text-xs text-text-tertiary">
                   {t('lastActive', { lastActiveAt: new Date(session.lastActiveAt).toLocaleString() })}
                 </p>
@@ -92,7 +81,7 @@ export function DeviceSessionsList() {
           <DialogHeader>
             <DialogTitle>{t('revokeConfirmTitle')}</DialogTitle>
             <DialogDescription>
-              {pendingRevoke && t('revokeConfirmDescription', { deviceName: pendingRevoke.deviceName })}
+              {pendingRevoke && t('revokeConfirmDescription', { device: pendingRevoke.userAgent ?? t('unknownDevice') })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -44,8 +44,9 @@ describe('DeviceSessionsList', () => {
     renderAuthenticated();
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
-    expect(await screen.findByText('This device')).toBeInTheDocument();
-    expect(await screen.findByText(/iPhone 15/)).toBeInTheDocument();
+    expect(await screen.findByText('Chrome on Windows')).toBeInTheDocument();
+    expect(await screen.findByText(/Safari on iPhone 15/)).toBeInTheDocument();
+    expect(screen.getByText('This device')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Revoke' })).toHaveLength(1);
   });
 
@@ -53,13 +54,13 @@ describe('DeviceSessionsList', () => {
     renderAuthenticated();
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
-    await screen.findByText(/iPhone 15/);
+    await screen.findByText(/Safari on iPhone 15/);
     await userEvent.click(screen.getByRole('button', { name: 'Revoke' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/iPhone 15/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Safari on iPhone 15/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Revoke' }));
 
-    await waitFor(() => expect(screen.queryByText(/iPhone 15/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText(/Safari on iPhone 15/)).not.toBeInTheDocument());
   });
 });

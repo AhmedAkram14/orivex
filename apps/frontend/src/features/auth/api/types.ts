@@ -6,8 +6,10 @@ import type { AuthenticatedUser } from '@/shared/auth/types';
  * JWT/argon2, no external IdP; apps/backend/src/modules/authentication),
  * matching these shapes field-for-field; src/mocks/handlers/auth.ts's MSW
  * mocks continue to serve local dev/tests against this same contract.
- * `resendVerification`/`logoutAll`/`deviceSessions`/`loginHistory` are not
- * yet implemented server-side — still MSW-only, a documented follow-up.
+ * `resendVerification` is not yet implemented server-side — still MSW-only,
+ * a documented follow-up. `deviceSessions`/`loginHistory`/`logoutAll` ARE now
+ * implemented server-side (GET /auth/sessions, DELETE /auth/sessions/:id,
+ * POST /auth/logout-all, GET /auth/login-history).
  */
 
 export interface LoginRequest {
@@ -84,25 +86,34 @@ export interface RefreshSessionResponse {
 /** `null` means no active session — not an error, the normal "logged out" outcome of a silent-recovery check on app load. */
 export type SessionResponse = { user: AuthenticatedUser } | null;
 
+/**
+ * Matches the real backend's DeviceSessionResponseDto exactly
+ * (apps/backend/.../authentication/presentation/dto/device-session-response.dto.ts).
+ * Deliberately no deviceName/browser/os/location split: the Session
+ * aggregate only ever stores a raw userAgent string and an ipAddress, and
+ * there is no geo-IP/user-agent-parsing service in this codebase to
+ * honestly fabricate those fields from.
+ */
 export interface DeviceSession {
   id: string;
-  deviceName: string;
-  browser: string;
-  os: string;
-  ipAddress: string;
-  location: string;
+  userAgent?: string;
+  ipAddress?: string;
   lastActiveAt: string;
   isCurrent: boolean;
 }
 
-export type LoginHistoryOutcome = 'success' | 'failed_password' | 'failed_locked';
+export type LoginHistoryOutcome = 'success' | 'failed' | 'locked';
 
+/**
+ * Matches the real backend's LoginHistoryEntryResponseDto exactly. No
+ * fabricated location/device split, and no finer-grained outcome than
+ * SecurityEventType actually gives (LoginSucceeded/LoginFailed/AccountLocked).
+ */
 export interface LoginHistoryEntry {
   id: string;
   timestamp: string;
-  ipAddress: string;
-  location: string;
-  device: string;
+  ipAddress?: string;
+  userAgent?: string;
   outcome: LoginHistoryOutcome;
 }
 

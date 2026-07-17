@@ -68,6 +68,9 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findByPatientId(patientId: string): Promise<Appointment[]> {
     return this.appointment && this.appointment.getPatientId() === patientId ? [this.appointment] : [];
   }
+  async findByDoctorId(doctorId: string): Promise<Appointment[]> {
+    return this.appointment && this.appointment.getDoctorId() === doctorId ? [this.appointment] : [];
+  }
   async save(): Promise<void> {}
 }
 
@@ -86,6 +89,9 @@ class FakePrescriptionRepository implements PrescriptionRepository {
   public readonly saved: Prescription[] = [];
   async findById(): Promise<Prescription | null> {
     return null;
+  }
+  async findByConsultationSessionId(): Promise<Prescription[]> {
+    return [];
   }
   async save(prescription: Prescription): Promise<void> {
     this.saved.push(prescription);

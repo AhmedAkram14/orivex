@@ -9,12 +9,14 @@ import type {
 } from '@/features/doctor/api/types';
 
 /**
- * The only module that talks to `/doctor/*` — mirrors `notificationsApi`'s
- * shape (Phase 6): thin typed wrappers over `apiFetch`. Backed by an MSW
- * mock today (`src/mocks/handlers/doctor.ts`); this phase builds the
- * Doctor Workspace architecture only, not real Consultation/Appointment
- * business logic, so both endpoints reflect an honest "nothing scheduled
- * yet" reality rather than fabricated clinical data.
+ * The only module that talks to `/doctor/*` and `/appointments/doctor/*` —
+ * mirrors `notificationsApi`'s shape (Phase 6): thin typed wrappers over
+ * `apiFetch`. `getDashboardSummary`/`getUpcomingWork`/`getProfile` are all
+ * real backend endpoints now (ConsultationModule's AppointmentController /
+ * DoctorModule's DoctorProfileController); `src/mocks/handlers/doctor.ts`
+ * intercepts them only to keep the frontend test suite deterministic, same
+ * precedent as `patientApi`. `getQueue`/`updateProfile`'s queue concept
+ * remains MSW-only -- no live check-in/queue system exists on the backend yet.
  */
 export const doctorApi = {
   getDashboardSummary: () => apiFetch<DoctorDashboardSummary>({ path: DOCTOR_PATHS.dashboardSummary }),

@@ -11,8 +11,8 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 
 const badgeVariantByOutcome: Record<LoginHistoryOutcome, 'success' | 'danger' | 'warning'> = {
   success: 'success',
-  failed_password: 'danger',
-  failed_locked: 'warning',
+  failed: 'danger',
+  locked: 'warning',
 };
 
 export function LoginHistoryTable() {
@@ -42,8 +42,8 @@ export function LoginHistoryTable() {
       <TableHeader>
         <TableRow>
           <TableHead>{t('columnTime')}</TableHead>
-          <TableHead>{t('columnDevice')}</TableHead>
-          <TableHead>{t('columnLocation')}</TableHead>
+          <TableHead>{t('columnUserAgent')}</TableHead>
+          <TableHead>{t('columnIpAddress')}</TableHead>
           <TableHead>{t('columnOutcome')}</TableHead>
         </TableRow>
       </TableHeader>
@@ -51,10 +51,8 @@ export function LoginHistoryTable() {
         {entries.map((entry) => (
           <TableRow key={entry.id}>
             <TableCell>{new Date(entry.timestamp).toLocaleString()}</TableCell>
-            <TableCell>{entry.device}</TableCell>
-            <TableCell>
-              {entry.location} · {entry.ipAddress}
-            </TableCell>
+            <TableCell>{entry.userAgent ?? t('unknownDevice')}</TableCell>
+            <TableCell>{entry.ipAddress ?? '—'}</TableCell>
             <TableCell>
               <Badge variant={badgeVariantByOutcome[entry.outcome]}>{t(`outcome.${entry.outcome}`)}</Badge>
             </TableCell>

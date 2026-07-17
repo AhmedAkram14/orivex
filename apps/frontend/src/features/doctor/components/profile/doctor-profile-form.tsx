@@ -27,11 +27,12 @@ export interface DoctorProfileFormProps {
 
 /**
  * The Doctor Profile's edit architecture — only the fields
- * `DoctorProfileUpdateRequest` actually allows (specialization, bio,
- * years of experience, languages, phone). Identity (`fullName`, `email`)
- * and verification-backed fields (qualifications, via `TrustModule`)
- * are deliberately not editable here — Phase 7's own remaining scope,
- * not an oversight.
+ * `DoctorProfileUpdateRequest` actually allows (specialty, biography, years
+ * of experience, languages). Identity fields (`fullName`, `email`,
+ * `phoneNumber`) are Account-owned (Identity has no update-profile endpoint
+ * yet) and `licenseNumber`/`publications`/`awards` are excluded from this
+ * phase's edit architecture — mirrors `PatientProfileForm`'s own identity-
+ * field exclusion rationale exactly.
  */
 export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileFormProps) {
   const t = useTranslations('doctor.profile');
@@ -42,11 +43,10 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
   const form = useForm<DoctorProfileFormValues>({
     resolver: zodResolver(createDoctorProfileSchema(tValidation)),
     defaultValues: {
-      specialization: profile.specialization,
-      bio: profile.bio,
+      specialty: profile.specialty,
+      biography: profile.biography,
       yearsOfExperience: profile.yearsOfExperience,
       languages: profile.languages,
-      phone: profile.phone,
     },
   });
 
@@ -70,10 +70,10 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
 
         <FormField
           control={form.control}
-          name="specialization"
+          name="specialty"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('specialization')}</FormLabel>
+              <FormLabel>{t('specialty')}</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
@@ -84,12 +84,12 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
 
         <FormField
           control={form.control}
-          name="bio"
+          name="biography"
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('professionalInformation')}</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -103,21 +103,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
             <FormItem>
               <FormLabel>{t('experience')}</FormLabel>
               <FormControl>
-                <Input type="number" min={0} max={80} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('contactInformation')}</FormLabel>
-              <FormControl>
-                <Input type="tel" {...field} />
+                <Input type="number" min={0} max={80} {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

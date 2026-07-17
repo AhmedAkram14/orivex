@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
+  ParseUUIDPipe,
   Post,
   Req,
   Res,
@@ -15,6 +18,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { CookieOptions, Request, Response } from 'express';
 
 import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
+import { NotFoundError, ValidationError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { AccessTokenClaims, JwtSignerPort } from '../../application/ports/jwt-signer.port.js';
 import { JWT_SIGNER } from '../../application/ports/tokens.js';
@@ -23,8 +27,12 @@ import { ChangePasswordUseCase } from '../../application/use-cases/change-passwo
 import { ForgotPasswordCommand } from '../../application/use-cases/forgot-password/forgot-password.command.js';
 import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password/forgot-password.use-case.js';
 import { GetCurrentSessionUseCase } from '../../application/use-cases/get-current-session/get-current-session.use-case.js';
+import { ListDeviceSessionsUseCase } from '../../application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
+import { ListLoginHistoryForAccountUseCase } from '../../application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
 import { LoginCommand } from '../../application/use-cases/login/login.command.js';
 import { LoginUseCase } from '../../application/use-cases/login/login.use-case.js';
+import { LogoutAllSessionsCommand } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.command.js';
+import { LogoutAllSessionsUseCase } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
 import { LogoutCommand } from '../../application/use-cases/logout/logout.command.js';
 import { LogoutUseCase } from '../../application/use-cases/logout/logout.use-case.js';
 import { RefreshSessionCommand } from '../../application/use-cases/refresh-session/refresh-session.command.js';
@@ -33,6 +41,8 @@ import { RegisterCommand } from '../../application/use-cases/register/register.c
 import { RegisterUseCase } from '../../application/use-cases/register/register.use-case.js';
 import { ResetPasswordCommand } from '../../application/use-cases/reset-password/reset-password.command.js';
 import { ResetPasswordUseCase } from '../../application/use-cases/reset-password/reset-password.use-case.js';
+import { RevokeDeviceSessionCommand } from '../../application/use-cases/revoke-device-session/revoke-device-session.command.js';
+import { RevokeDeviceSessionUseCase } from '../../application/use-cases/revoke-device-session/revoke-device-session.use-case.js';
 import { VerifyEmailCommand } from '../../application/use-cases/verify-email/verify-email.command.js';
 import { VerifyEmailUseCase } from '../../application/use-cases/verify-email/verify-email.use-case.js';
 import { TokenInvalidError } from '../../domain/exceptions/token-invalid.error.js';
@@ -40,8 +50,10 @@ import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { AuthenticatedUserDto } from '../dto/authenticated-user.dto.js';
 import { ChangePasswordRequestDto } from '../dto/change-password-request.dto.js';
 import { ChangePasswordResponseDto } from '../dto/change-password-response.dto.js';
+import { DeviceSessionResponseDto } from '../dto/device-session-response.dto.js';
 import { ForgotPasswordRequestDto } from '../dto/forgot-password-request.dto.js';
 import { ForgotPasswordResponseDto } from '../dto/forgot-password-response.dto.js';
+import { LoginHistoryEntryResponseDto } from '../dto/login-history-entry-response.dto.js';
 import { LoginRequestDto } from '../dto/login-request.dto.js';
 import { LoginResponseDto } from '../dto/login-response.dto.js';
 import { MeResponseDto } from '../dto/me-response.dto.js';
@@ -75,6 +87,10 @@ export class AuthenticationController {
     private readonly verifyEmailUseCase: VerifyEmailUseCase,
     private readonly changePasswordUseCase: ChangePasswordUseCase,
     private readonly getCurrentSessionUseCase: GetCurrentSessionUseCase,
+    private readonly listDeviceSessionsUseCase: ListDeviceSessionsUseCase,
+    private readonly revokeDeviceSessionUseCase: RevokeDeviceSessionUseCase,
+    private readonly logoutAllSessionsUseCase: LogoutAllSessionsUseCase,
+    private readonly listLoginHistoryForAccountUseCase: ListLoginHistoryForAccountUseCase,
     @Inject(JWT_SIGNER) private readonly jwtSigner: JwtSignerPort,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
@@ -259,6 +275,71 @@ export class AuthenticationController {
     } catch {
       return envelope(null);
     }
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  async listSessions(
+    @CurrentUser() user: AccessTokenClaims,
+    @Req() request: RequestWithCookies,
+  ): Promise<ResponseEnvelope<DeviceSessionResponseDto[]>> {
+    const currentRefreshToken = this.readRefreshCookie(request);
+    const items = await this.listDeviceSessionsUseCase.execute({
+      accountId: user.accountId,
+      currentRefreshToken,
+    });
+    if (!items) {
+      // No credential for this account -- should not happen for a validly
+      // signed JWT, same reasoning as me()'s TokenInvalidError fallback.
+      throw mapAuthenticationError(new TokenInvalidError());
+    }
+    return envelope(items.map((item) => DeviceSessionResponseDto.fromDomain(item.session, item.isCurrent)));
+  }
+
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async revokeSession(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: RequestWithCookies,
+  ): Promise<void> {
+    const currentRefreshToken = this.readRefreshCookie(request);
+    const result = await this.revokeDeviceSessionUseCase.execute(
+      new RevokeDeviceSessionCommand({ accountId: user.accountId, sessionId: id, currentRefreshToken }),
+    );
+
+    if (result === 'not_found') {
+      throw new NotFoundError(`Session "${id}" not found.`);
+    }
+    if (result === 'cannot_revoke_current') {
+      throw new ValidationError('Cannot revoke your current session; use logout instead.');
+    }
+  }
+
+  @Post('logout-all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async logoutAll(
+    @CurrentUser() user: AccessTokenClaims,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    const result = await this.logoutAllSessionsUseCase.execute(new LogoutAllSessionsCommand({ accountId: user.accountId }));
+    if (result === 'not_found') {
+      throw mapAuthenticationError(new TokenInvalidError());
+    }
+    // The caller's own session was revoked too -- clear their refresh
+    // cookie, same helper logout() uses.
+    this.clearRefreshCookie(response);
+  }
+
+  @Get('login-history')
+  @UseGuards(JwtAuthGuard)
+  async loginHistory(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<LoginHistoryEntryResponseDto[]>> {
+    const events = await this.listLoginHistoryForAccountUseCase.execute({ accountId: user.accountId });
+    return envelope(events.map((event) => LoginHistoryEntryResponseDto.fromDomain(event)));
   }
 
   private extractBearerToken(request: Request): string | undefined {

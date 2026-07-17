@@ -12,10 +12,13 @@ import type {
 
 /**
  * In-memory mock "backend" state for `/patient/*` — mirrors
- * `doctor-store.ts`'s pattern. Deliberately an honest zero/empty reality: no
- * Scheduling/Clinical module is wired into the frontend yet (this phase's
- * explicit scope), so the summary counts and preview lists reflect "nothing
- * yet," never invented clinical data.
+ * `doctor-store.ts`'s pattern. `dashboardSummary`/`upcomingAppointments`/
+ * `activePrescriptions` are now real backend endpoints (ClinicalModule's
+ * PatientDashboardController), so these seeds exist purely to keep the
+ * frontend test suite deterministic (`mocks/handlers/patient.ts` intercepts
+ * them in tests the same way it already does for `seedProfile()`/
+ * `seedAppointments()`) -- an honest empty/zero reality since the seeded
+ * mock account has no real appointments or prescriptions on record.
  */
 function seedSummary(): PatientDashboardSummary {
   return { upcomingAppointmentsCount: 0, activePrescriptionsCount: 0 };

@@ -5,7 +5,15 @@ export interface PatientDashboardSummary {
   lastVisitAt?: string;
 }
 
-export type UpcomingAppointmentPreviewStatus = 'upcoming' | 'in-progress';
+/**
+ * A fixed literal, not the full backend `AppointmentStatus` enum -- this
+ * preview only ever returns non-terminal appointments (requested/confirmed/
+ * rescheduled), and there is no live "in-progress" detection wired for this
+ * lightweight dashboard preview yet (that would require checking each
+ * appointment's ConsultationSession state, out of scope here). Never
+ * fabricate an `'in-progress'` value the backend can't actually compute.
+ */
+export type UpcomingAppointmentPreviewStatus = 'upcoming';
 
 /**
  * The dashboard's "next few appointments" preview — deliberately lighter
@@ -24,7 +32,15 @@ export interface UpcomingAppointmentPreview {
 
 export type UpcomingAppointmentsResponse = UpcomingAppointmentPreview[];
 
-export type ActivePrescriptionPreviewStatus = 'active' | 'refill-due';
+/**
+ * A fixed literal, not the full backend `PrescriptionStatus` enum -- there
+ * is no "refill" concept anywhere in the real Prescription domain (no
+ * refill count, no pharmacy integration), so `'refill-due'` is never
+ * fabricated here. This preview only ever returns prescriptions the backend
+ * has already computed as currently active (signed and not yet past their
+ * line items' duration).
+ */
+export type ActivePrescriptionPreviewStatus = 'active';
 
 /**
  * The dashboard's "active medications" preview — lighter than milestone 5's

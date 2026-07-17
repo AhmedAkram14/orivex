@@ -3,11 +3,13 @@ import { Module } from '@nestjs/common';
 import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationModule } from '../authentication/authentication.module.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
 
@@ -43,16 +45,18 @@ import { PrismaPendingAISuggestionAcknowledgmentRepository } from './infrastruct
 import { PrismaPrescriptionRepository } from './infrastructure/prisma/prisma-prescription.repository.js';
 import { ClinicalNoteController } from './presentation/controllers/clinical-note.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
+import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
 import { PrescriptionController } from './presentation/controllers/prescription.controller.js';
 
-// Imports PatientModule, DoctorModule, and ConsultationModule to consume
-// their own exported use cases (module-to-module calls only through a
-// published interface, never another module's repository —
-// docs/10-backend-architecture.md Section 11). None of those modules
-// import Clinical back -- no circular imports, no forwardRef().
+// Imports PatientModule, DoctorModule, ConsultationModule, IdentityModule, and
+// AuthenticationModule to consume their own exported use cases/guards
+// (module-to-module calls only through a published interface, never another
+// module's repository — docs/10-backend-architecture.md Section 11). None of
+// those modules import Clinical back -- no circular imports, no
+// forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, ConsultationModule],
-  controllers: [ClinicalNoteController, HealthGraphController, PrescriptionController],
+  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule],
+  controllers: [ClinicalNoteController, HealthGraphController, PrescriptionController, PatientDashboardController],
   providers: [
     { provide: HEALTH_GRAPH_REPOSITORY, useClass: PrismaHealthGraphRepository },
     { provide: HEALTH_JOURNEY_REPOSITORY, useClass: PrismaHealthJourneyRepository },

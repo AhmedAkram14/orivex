@@ -1,3 +1,4 @@
+import type { Account } from '../../../identity/domain/entities/account.entity.js';
 import type { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
 
 interface PublicationView {
@@ -14,9 +15,17 @@ interface AwardView {
   awardedAt?: string;
 }
 
+// Composes DoctorModule's own DoctorProfile with IdentityModule's Account
+// (fullName/email/phoneNumber live on Account.userProfile, not duplicated
+// here — module-to-module composition at the presentation layer, not a
+// cross-module repository read, per docs/10-backend-architecture.md Section
+// 11), same pattern as PatientProfileResponseDto.
 export class DoctorProfileResponseDto {
   id!: string;
   accountId!: string;
+  fullName!: string;
+  email!: string;
+  phoneNumber?: string;
   licenseNumber!: string;
   specialty!: string;
   biography?: string;
@@ -28,11 +37,15 @@ export class DoctorProfileResponseDto {
   createdAt!: string;
   updatedAt!: string;
 
-  static fromDomain(profile: DoctorProfile): DoctorProfileResponseDto {
+  static fromDomain(profile: DoctorProfile, account: Account): DoctorProfileResponseDto {
+    const userProfile = account.getUserProfile();
     const dto = new DoctorProfileResponseDto();
 
     dto.id = profile.getId();
     dto.accountId = profile.getAccountId();
+    dto.fullName = userProfile.getDisplayName().toString();
+    dto.email = account.getEmail().toString();
+    dto.phoneNumber = userProfile.getPhoneNumber();
     dto.licenseNumber = profile.getLicenseNumber();
     dto.specialty = profile.getSpecialty();
     dto.biography = profile.getBiography();

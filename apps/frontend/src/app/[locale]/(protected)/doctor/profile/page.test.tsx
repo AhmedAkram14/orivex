@@ -47,8 +47,8 @@ describe('DoctorProfilePage', () => {
 
     expect(await screen.findByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('Professional information')).toBeInTheDocument();
-    expect(screen.getByText('Qualifications')).toBeInTheDocument();
-    expect(screen.getByText('Availability')).toBeInTheDocument();
+    expect(screen.getByText('Publications')).toBeInTheDocument();
+    expect(screen.getByText('Awards')).toBeInTheDocument();
     expect(screen.getByText('Contact information')).toBeInTheDocument();
   });
 

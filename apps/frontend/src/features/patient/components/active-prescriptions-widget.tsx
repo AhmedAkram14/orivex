@@ -10,7 +10,6 @@ import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
 const badgeVariantByStatus: Record<ActivePrescriptionPreview['status'], 'success' | 'warning'> = {
   active: 'success',
-  'refill-due': 'warning',
 };
 
 function StatusBadge({ status }: { status: ActivePrescriptionPreview['status'] }) {

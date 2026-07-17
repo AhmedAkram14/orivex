@@ -11,18 +11,25 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import type { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
+import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
+import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
 import { BookAppointmentCommand } from '../../application/use-cases/book-appointment/book-appointment.command.js';
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
+import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { RescheduleOrCancelAppointmentCommand } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.command.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { AppointmentListItemResponseDto } from '../dto/appointment-list-item-response.dto.js';
 import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { BookAppointmentRequestDto } from '../dto/book-appointment-request.dto.js';
 import { RescheduleOrCancelAppointmentRequestDto } from '../dto/reschedule-or-cancel-appointment-request.dto.js';
+import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
+import { DoctorUpcomingWorkItemResponseDto } from '../dto/doctor-upcoming-work-item-response.dto.js';
 import { mapConsultationError } from '../mappers/consultation-exception.mapper.js';
+import { toUpcomingWorkStatus } from '../mappers/upcoming-work-status.mapper.js';
 
 // Matches docs/12-openapi.md's POST /appointments and PATCH /appointments/{id}
 // exactly, plus this module's own additive GET /appointments/me (Vertical
@@ -40,6 +47,9 @@ export class AppointmentController {
     private readonly getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
+    private readonly listAppointmentsForDoctorUseCase: ListAppointmentsForDoctorUseCase,
+    private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+    private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
   ) {}
 
   @Post()
@@ -80,6 +90,75 @@ export class AppointmentController {
     return envelope(items.filter((item): item is AppointmentListItemResponseDto => item !== null));
   }
 
+  // Doctor-scoped dashboard counts (Doctor Workspace's "Today's Summary").
+  // `patientsInQueue` is deliberately a proxy -- "Confirmed today" -- since
+  // no live check-in/queue system exists yet; documented honestly rather
+  // than implying real-time queue tracking.
+  @Get('doctor/dashboard-summary')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorDashboardSummary(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<DoctorDashboardSummaryResponseDto>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      // No profile yet means no appointment could ever have been booked --
+      // an honest empty summary, not an error.
+      const empty = new DoctorDashboardSummaryResponseDto();
+      empty.consultationsToday = 0;
+      empty.patientsInQueue = 0;
+      empty.completedToday = 0;
+      return envelope(empty);
+    }
+
+    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
+    const todaysAppointments = appointments.filter((appointment) => isSameUtcDay(appointment.getScheduledAt(), new Date()));
+
+    const dto = new DoctorDashboardSummaryResponseDto();
+    dto.consultationsToday = todaysAppointments.filter((appointment) =>
+      [AppointmentStatus.Requested, AppointmentStatus.Confirmed, AppointmentStatus.Rescheduled].includes(
+        appointment.getStatus(),
+      ),
+    ).length;
+    // A reasonable proxy for "checked in and waiting" -- Confirmed today --
+    // there is no live queue/check-in system to report from.
+    dto.patientsInQueue = todaysAppointments.filter(
+      (appointment) => appointment.getStatus() === AppointmentStatus.Confirmed,
+    ).length;
+    dto.completedToday = todaysAppointments.filter(
+      (appointment) => appointment.getStatus() === AppointmentStatus.Completed,
+    ).length;
+
+    return envelope(dto);
+  }
+
+  // Doctor-scoped "what's coming up" list (Doctor Workspace's "Upcoming Work
+  // Area"). Excludes Completed/Cancelled/NoShow appointments -- a dashboard
+  // "upcoming work" view should show what's still ahead, not terminal noise.
+  @Get('doctor/upcoming-work')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorUpcomingWork(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<DoctorUpcomingWorkItemResponseDto[]>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
+    const upcoming = appointments.filter(
+      (appointment) =>
+        appointment.getStatus() !== AppointmentStatus.Completed &&
+        appointment.getStatus() !== AppointmentStatus.Cancelled &&
+        appointment.getStatus() !== AppointmentStatus.NoShow,
+    );
+
+    const items = await Promise.all(upcoming.map((appointment) => this.toUpcomingWorkItem(appointment)));
+
+    return envelope(items.filter((item): item is DoctorUpcomingWorkItemResponseDto => item !== null));
+  }
+
   @Patch(':id')
   async rescheduleOrCancel(
     @Param('id', ParseUUIDPipe) id: string,
@@ -114,4 +193,37 @@ export class AppointmentController {
     }
     return AppointmentListItemResponseDto.fromDomain(appointment, doctorProfile, doctorAccount);
   }
+
+  private async toUpcomingWorkItem(appointment: Appointment): Promise<DoctorUpcomingWorkItemResponseDto | null> {
+    const patientProfile = await this.getPatientProfileByIdUseCase.execute({
+      patientProfileId: appointment.getPatientId(),
+    });
+    if (!patientProfile) {
+      return null;
+    }
+    const patientAccount: Account | null = await this.getAccountByIdUseCase.execute({
+      accountId: patientProfile.getAccountId(),
+    });
+    if (!patientAccount) {
+      return null;
+    }
+
+    const dto = new DoctorUpcomingWorkItemResponseDto();
+    dto.id = appointment.getId();
+    dto.scheduledAt = appointment.getScheduledAt().toISOString();
+    dto.title = patientAccount.getUserProfile().getDisplayName().toString();
+    dto.description = appointment.getReasonForVisit() ?? undefined;
+    dto.status = toUpcomingWorkStatus(appointment.getStatus());
+    return dto;
+  }
+}
+
+// Same UTC calendar day -- keeps "today" comparison simple and timezone-
+// consistent, matching the task's explicit "keep it simple" guidance.
+function isSameUtcDay(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
 }
