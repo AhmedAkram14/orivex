@@ -442,6 +442,8 @@
       "upcomingEmptyDescription": "ستظهر مواعيدك القادمة هنا بمجرد توفر الجدولة.",
       "historyEmptyTitle": "لا يوجد سجل مواعيد بعد",
       "historyEmptyDescription": "ستظهر مواعيدك السابقة هنا.",
+      "bookingUnavailableTitle": "الحجز غير متاح بعد",
+      "bookingUnavailableDescription": "اختيار الطبيب للحجز معه سيتوفر قريبًا — ستتيح لك هذه الصفحة اختيار طبيب ومشاهدة مواعيده المتاحة فعليًا بمجرد جاهزية هذه الميزة.",
       "filters": {
         "all": "الكل",
         "completed": "مكتملة",

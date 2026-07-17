@@ -442,6 +442,8 @@
       "upcomingEmptyDescription": "Your upcoming appointments will appear here once scheduling is available.",
       "historyEmptyTitle": "No appointment history yet",
       "historyEmptyDescription": "Your past appointments will appear here.",
+      "bookingUnavailableTitle": "Booking isn't available yet",
+      "bookingUnavailableDescription": "Choosing a doctor to book with is coming soon — this page will let you pick a doctor and see their real availability once that's ready.",
       "filters": {
         "all": "All",
         "completed": "Completed",
