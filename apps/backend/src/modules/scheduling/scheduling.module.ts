@@ -99,6 +99,6 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
     },
     GetSchedulingRulesUseCase,
   ],
-  exports: [ReserveSlotUseCase, ReleaseSlotUseCase, ConfirmSlotUseCase],
+  exports: [ReserveSlotUseCase, ReleaseSlotUseCase, ConfirmSlotUseCase, GetSchedulingRulesUseCase],
 })
 export class SchedulingModule {}

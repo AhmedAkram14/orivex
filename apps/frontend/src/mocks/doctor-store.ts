@@ -63,6 +63,14 @@ function seedProfile(): DoctorProfile {
 // (Phase 9's `RecurringWeeklySchedule`) — availability is now owned by the
 // Scheduling & Appointment Infrastructure, not Doctor.
 
+/**
+ * `GET /appointments/doctor/queue` is a real backend endpoint
+ * (ConsultationModule's AppointmentController) composing today's
+ * Confirmed/Completed appointments with their real ConsultationSession
+ * state -- this mock now exists purely to keep the frontend test suite
+ * deterministic, matching `seedSummary()`'s precedent. An honest empty
+ * array: the seeded test doctor account has no appointments today.
+ */
 function seedQueue(): QueueEntry[] {
   return [];
 }

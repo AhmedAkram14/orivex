@@ -13,11 +13,13 @@ import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cas
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { GetSchedulingRulesUseCase } from '../../../scheduling/application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
 import { BookAppointmentCommand } from '../../application/use-cases/book-appointment/book-appointment.command.js';
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
+import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { RescheduleOrCancelAppointmentCommand } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.command.js';
@@ -28,7 +30,9 @@ import { BookAppointmentRequestDto } from '../dto/book-appointment-request.dto.j
 import { RescheduleOrCancelAppointmentRequestDto } from '../dto/reschedule-or-cancel-appointment-request.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
 import { DoctorUpcomingWorkItemResponseDto } from '../dto/doctor-upcoming-work-item-response.dto.js';
+import { QueueEntryResponseDto } from '../dto/queue-entry-response.dto.js';
 import { mapConsultationError } from '../mappers/consultation-exception.mapper.js';
+import { toQueueStatus } from '../mappers/queue-status.mapper.js';
 import { toUpcomingWorkStatus } from '../mappers/upcoming-work-status.mapper.js';
 
 // Matches docs/12-openapi.md's POST /appointments and PATCH /appointments/{id}
@@ -50,6 +54,8 @@ export class AppointmentController {
     private readonly listAppointmentsForDoctorUseCase: ListAppointmentsForDoctorUseCase,
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+    private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
+    private readonly getSchedulingRulesUseCase: GetSchedulingRulesUseCase,
   ) {}
 
   @Post()
@@ -159,6 +165,49 @@ export class AppointmentController {
     return envelope(items.filter((item): item is DoctorUpcomingWorkItemResponseDto => item !== null));
   }
 
+  // Doctor-scoped Patient Queue (Doctor Workspace's "Patient Queue" page).
+  // Today's appointments that have progressed past confirmation (only
+  // Confirmed/Completed appointments ever get a ConsultationSession --
+  // ConfirmAppointmentUseCase opens one in WaitingRoom the moment an
+  // appointment is confirmed), mapped from the session's real state.
+  @Get('doctor/queue')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorQueue(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<QueueEntryResponseDto[]>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
+    const todaysQueueable = appointments
+      .filter((appointment) => isSameUtcDay(appointment.getScheduledAt(), new Date()))
+      .filter(
+        (appointment) =>
+          appointment.getStatus() === AppointmentStatus.Confirmed ||
+          appointment.getStatus() === AppointmentStatus.Completed,
+      )
+      .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime());
+
+    const rules = await this.getSchedulingRulesUseCase.execute();
+    const views = await Promise.all(todaysQueueable.map((appointment) => this.toQueueView(appointment)));
+    const resolved = views.filter((view): view is QueueView => view !== null);
+
+    const items = resolved.map((view, index) => {
+      const dto = new QueueEntryResponseDto();
+      dto.id = view.sessionId;
+      dto.label = view.patientName;
+      dto.status = view.status;
+      dto.position = index + 1;
+      if (view.status === 'waiting') {
+        dto.estimatedWaitMinutes = index * rules.slotDurationMinutes;
+      }
+      return dto;
+    });
+
+    return envelope(items);
+  }
+
   @Patch(':id')
   async rescheduleOrCancel(
     @Param('id', ParseUUIDPipe) id: string,
@@ -216,6 +265,42 @@ export class AppointmentController {
     dto.status = toUpcomingWorkStatus(appointment.getStatus());
     return dto;
   }
+
+  private async toQueueView(appointment: Appointment): Promise<QueueView | null> {
+    const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
+      appointmentId: appointment.getId(),
+    });
+    if (!session) {
+      // Confirmed/Completed should always have one (opened at confirmation
+      // time) -- defensive, not an expected path.
+      return null;
+    }
+
+    const patientProfile = await this.getPatientProfileByIdUseCase.execute({
+      patientProfileId: appointment.getPatientId(),
+    });
+    if (!patientProfile) {
+      return null;
+    }
+    const patientAccount: Account | null = await this.getAccountByIdUseCase.execute({
+      accountId: patientProfile.getAccountId(),
+    });
+    if (!patientAccount) {
+      return null;
+    }
+
+    return {
+      sessionId: session.getId(),
+      patientName: patientAccount.getUserProfile().getDisplayName().toString(),
+      status: toQueueStatus(session.getState()),
+    };
+  }
+}
+
+interface QueueView {
+  sessionId: string;
+  patientName: string;
+  status: QueueEntryResponseDto['status'];
 }
 
 // Same UTC calendar day -- keeps "today" comparison simple and timezone-

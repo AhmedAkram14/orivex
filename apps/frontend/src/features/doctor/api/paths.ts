@@ -12,5 +12,7 @@ export const DOCTOR_PATHS = {
   // /doctor/profile. Mirrors `features/patient/api/paths.ts`'s exact comment
   // style for its own real `/patients/me` route.
   profile: '/doctors/me',
-  queue: '/doctor/queue',
+  // The real backend route (ConsultationModule's AppointmentController) --
+  // not /doctor/queue.
+  queue: '/appointments/doctor/queue',
 } as const;

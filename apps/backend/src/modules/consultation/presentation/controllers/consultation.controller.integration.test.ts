@@ -17,6 +17,7 @@ import { RolesGuard } from '../../../authentication/presentation/guards/roles.gu
 import { ConfirmAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { GetSchedulingRulesUseCase } from '../../../scheduling/application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
@@ -43,13 +44,14 @@ import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY } from '../../a
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from '../../application/use-cases/start-consultation/start-consultation.use-case.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
 import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
-import type { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
+import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
 
@@ -232,6 +234,10 @@ describe('Consultation controllers (integration)', () => {
     });
     todaysConfirmedAppointment.confirm();
     await appointmentRepo.save(todaysConfirmedAppointment);
+    // A real ConsultationSession, exactly as ConfirmAppointmentUseCase would
+    // have opened one -- backs the doctor/queue populated-case test.
+    const todaysSession = ConsultationSession.open(todaysConfirmedAppointment.getId());
+    await sessionRepo.save(todaysSession);
 
     const reserveSlotUseCase = new ReserveSlotUseCase(
       new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDomainEventDispatcher()),
@@ -321,6 +327,11 @@ describe('Consultation controllers (integration)', () => {
         { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
         { provide: ListAppointmentsForPatientUseCase, useValue: listAppointmentsForPatientUseCase },
         { provide: ListAppointmentsForDoctorUseCase, useValue: listAppointmentsForDoctorUseCase },
+        {
+          provide: GetConsultationSessionByAppointmentIdUseCase,
+          useValue: new GetConsultationSessionByAppointmentIdUseCase(sessionRepo),
+        },
+        { provide: GetSchedulingRulesUseCase, useValue: new GetSchedulingRulesUseCase() },
       ],
     }).compile();
 
@@ -527,5 +538,32 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(entry.title, 'Amina Youssef');
     assert.equal(entry.status, 'upcoming');
     assert.ok(entry.scheduledAt);
+  });
+
+  it('GET /appointments/doctor/queue rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/doctor/queue').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/doctor/queue returns an honest empty list for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/queue')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, []);
+  });
+
+  it('GET /appointments/doctor/queue composes the real patient name and a waiting status from the open session', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/queue')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    const entry = response.body.data.find((item: { label: string }) => item.label === 'Amina Youssef');
+    assert.ok(entry);
+    assert.equal(entry.status, 'waiting');
+    assert.ok(entry.position >= 1);
+    assert.ok(typeof entry.estimatedWaitMinutes === 'number');
   });
 });

@@ -108,7 +108,7 @@ export type QueueEntryStatus = 'waiting' | 'in-consultation' | 'completed';
 
 export interface QueueEntry {
   id: string;
-  /** A caller-facing label for the entry — anonymized (e.g. "Patient #3") until a real Patient module exists to identify entries by name; never a fabricated patient name. */
+  /** The real patient's display name — PatientModule is real now, so this is no longer the anonymized "Patient #3" placeholder; a doctor legitimately sees their own patients' names, same as `Appointment.doctorName`'s reverse case. */
   label: string;
   status: QueueEntryStatus;
   position: number;

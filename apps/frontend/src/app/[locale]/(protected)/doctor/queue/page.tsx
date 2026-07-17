@@ -17,10 +17,11 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 /**
  * The Doctor Workspace's Patient Queue — reusable queue architecture
- * (current patient slot, status filters, waiting list) backed by a real
- * (mocked) `/doctor/queue` endpoint. Honestly empty today, since no
- * Patient/Appointment module exists to produce real queue entries yet —
- * the architecture is real and working, the data is not fabricated.
+ * (current patient slot, status filters, waiting list) backed by the real
+ * `GET /appointments/doctor/queue` endpoint (ConsultationModule's
+ * AppointmentController), composing today's Confirmed/Completed
+ * appointments with their real ConsultationSession state
+ * (waiting_room/in_progress/closed).
  */
 export default function DoctorQueuePage() {
   const t = useTranslations('doctor.queue');
