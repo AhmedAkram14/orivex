@@ -12,12 +12,15 @@ import type {
 
 /**
  * In-memory mock "backend" state for `/scheduling/*` — mirrors
- * `doctor-store.ts`'s pattern. `SchedulingRules` is operational
- * configuration (slot duration, buffer, notice window), not clinical or
- * business-outcome data, so a believable seed is appropriate here — the
- * same reasoning `seedProfile()` (Patient Portal, Phase 8) applied to
- * administrative data, distinct from the honest-empty rule for clinical
- * data.
+ * `doctor-store.ts`'s pattern. `bookings`/`waitlist` remain MSW-only (the
+ * patient-facing booking flow is deliberately deferred, blocked on a real
+ * doctor-directory feature). `rules`/`doctorAvailability`/
+ * `doctorExceptions`/`holidays` are now real backend endpoints
+ * (SchedulingModule's own GET/PATCH doctor-availability, doctor-exceptions,
+ * holidays, rules), so these four seeds exist purely to keep the frontend
+ * test suite deterministic, matching `patient-store.ts`'s `seedProfile()`
+ * precedent. No application code outside `src/mocks/` may import this
+ * directly; go through `schedulingApi`.
  */
 function seedRules(): SchedulingRules {
   return {
@@ -29,11 +32,12 @@ function seedRules(): SchedulingRules {
 }
 
 /**
- * The doctor's recurring weekly availability — mirrors `doctor-store.ts`'s
- * former `seedAvailability()` reality (Sun–Thu, 9–5) at the new
- * minute-granularity shape, plus a real lunch break on each working day
- * (Phase 7's shape had no concept of breaks at all). Administrative/config
- * data, same reasoning as `seedRules()` — a believable seed is appropriate.
+ * The doctor's recurring weekly availability — a real backend endpoint
+ * (SchedulingModule's GET/PATCH `/scheduling/doctor-availability`); this
+ * seed exists purely to keep the frontend test suite deterministic, same
+ * reasoning as `seedRules()`. Mirrors `doctor-store.ts`'s former
+ * `seedAvailability()` reality (Sun–Thu, 9–5) at the real minute-granularity
+ * shape, plus a lunch break on each working day.
  */
 function seedDoctorAvailability(): RecurringWeeklySchedule {
   const allDays: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -49,7 +53,12 @@ function seedDoctorAvailability(): RecurringWeeklySchedule {
   });
 }
 
-/** Vacation days / ad hoc unavailable dates — an honest empty array: no time off has actually been requested yet, never a fabricated vacation. */
+/**
+ * Vacation days / ad hoc unavailable dates — GET/POST/DELETE
+ * `/scheduling/doctor-exceptions` are real backend endpoints
+ * (SchedulingModule); an honest empty array: no time off has actually been
+ * requested yet, never a fabricated vacation.
+ */
 function seedDoctorExceptions(): ScheduleException[] {
   return [];
 }
@@ -65,11 +74,11 @@ function seedWaitlist(): WaitlistEntry[] {
 }
 
 /**
- * Holiday support (milestone 6) — real, fixed-date Egyptian national
- * holidays (not lunar-calendar ones like Eid, whose exact date shifts
- * yearly and isn't safe to assert without an authoritative calendar
- * source). Administrative/reference data, same seeding reasoning as
- * `seedRules()`.
+ * Holiday support (milestone 6) — `GET /scheduling/holidays` is a real
+ * backend endpoint (SchedulingModule's own read-only Holiday table); real,
+ * fixed-date Egyptian national holidays (not lunar-calendar ones like Eid,
+ * whose exact date shifts yearly and isn't safe to assert without an
+ * authoritative calendar source), same seeding reasoning as `seedRules()`.
  */
 function seedHolidays(): Holiday[] {
   return [

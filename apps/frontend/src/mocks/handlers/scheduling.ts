@@ -29,6 +29,12 @@ function errorResponse(status: number, code: string, message: string) {
 }
 
 export const schedulingHandlers = [
+  // rules/doctorAvailability/doctorExceptions/holidays are real endpoints
+  // (SchedulingModule's own GET/PATCH doctor-availability, doctor-exceptions,
+  // holidays, rules) -- these handlers exist purely to keep the frontend
+  // test suite deterministic, matching `patient.ts`'s dashboard handlers.
+  // bookings/waitlist below remain MSW-only: the patient-facing booking flow
+  // is deliberately deferred, blocked on a real doctor-directory feature.
   http.get(`${base()}${SCHEDULING_PATHS.rules}`, () => HttpResponse.json({ data: getSchedulingRules() })),
 
   http.get(`${base()}${SCHEDULING_PATHS.doctorAvailability}`, () =>

@@ -124,6 +124,8 @@ model DoctorProfile {
   authoredHealthGraphNodes HealthGraphNode[]
   authoredClinicalNotes  ClinicalNote[]
   authoredPrescriptions  Prescription[]
+  workingHoursDays       WorkingHoursDay[]
+  scheduleExceptions     ScheduleException[]
 }
 
 model PortfolioPublication {
@@ -731,4 +733,70 @@ model Notification {
 
   @@index([accountId])
   @@index([createdAt])
+}
+
+enum WeekDay {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum ScheduleExceptionType {
+  VACATION
+  UNAVAILABLE
+  EXTRA_HOURS
+}
+
+// SchedulingModule's own aggregate: a doctor's recurring weekly working-hours
+// template -- always exactly 7 rows per doctor (one per WeekDay), enforced
+// by UpdateDoctorWorkingHoursUseCase's full replace-all-7 upsert, not by a
+// database constraint. `breaks` is Json (TimeRange[]) since it's a
+// variable-length list, not a fixed set of columns. CASCADE from
+// DoctorProfile: this data has no meaning without the doctor it belongs to.
+model WorkingHoursDay {
+  id            String        @id @default(uuid())
+  doctorId      String
+  doctorProfile DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek     WeekDay
+  isWorkingDay  Boolean       @default(false)
+  startTime     String
+  endTime       String
+  breaks        Json          @default("[]")
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([doctorId, dayOfWeek])
+  @@index([doctorId])
+}
+
+// One doctor's own one-off override (vacation/unavailable/extra-hours) of
+// their recurring weekly schedule for a specific date. startTime/endTime
+// only apply to EXTRA_HOURS exceptions (nullable for the other two types).
+model ScheduleException {
+  id            String                @id @default(uuid())
+  doctorId      String
+  doctorProfile DoctorProfile         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date          DateTime
+  type          ScheduleExceptionType
+  startTime     String?
+  endTime       String?
+  reason        String?
+  createdAt     DateTime              @default(now())
+
+  @@index([doctorId])
+}
+
+// A global, doctor-agnostic non-working date (docs/05-information-
+// architecture.md; distinct from ScheduleException, which is one doctor's
+// own vacation/unavailable date). Read-only in this phase -- no create use
+// case exists yet, same "real read, deferred write" pattern this session
+// already used for Notification; a future Admin feature will populate this
+// table.
+model Holiday {
+  id   String   @id @default(uuid())
+  date DateTime @unique
+  name String
 }
