@@ -89,9 +89,12 @@ function seedPrescriptions(): Prescription[] {
 }
 
 /**
- * The Health Dashboard's vitals (milestone 6) — an honest empty array per
- * vital type, same reasoning as `seedPrescriptions`: no Clinical module is
- * wired into the frontend yet, so `latest`/`readings` are never fabricated.
+ * The Health Dashboard's vitals — `GET /patients/me/health-dashboard` is a
+ * real backend endpoint (ClinicalModule's PatientDashboardController); this
+ * mock now exists purely to keep the frontend test suite deterministic,
+ * matching `seedProfile()`'s precedent. An honest empty array per vital
+ * type: the seeded test account has no real vital readings recorded (no
+ * producer/UI writes them yet), so `latest`/`readings` are never fabricated.
  */
 function seedHealthDashboard(): HealthVitalSummary[] {
   return [

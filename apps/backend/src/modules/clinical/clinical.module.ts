@@ -20,6 +20,7 @@ import {
   HEALTH_JOURNEY_REPOSITORY,
   PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY,
   PRESCRIPTION_REPOSITORY,
+  VITAL_READING_REPOSITORY,
 } from './application/ports/tokens.js';
 import {
   PendingAISuggestionAcknowledgmentHandler,
@@ -29,6 +30,7 @@ import {
 import { GetHealthGraphSubgraphUseCase } from './application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { GetPrescriptionByIdUseCase } from './application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { ListHealthJourneysUseCase } from './application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
+import { ListVitalReadingsForPatientUseCase } from './application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { RecordClinicalNoteUseCase } from './application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
 import { RecordDiagnosisUseCase } from './application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { SignPrescriptionUseCase } from './application/use-cases/sign-prescription/sign-prescription.use-case.js';
@@ -38,11 +40,13 @@ import type { HealthGraphRepository } from './domain/repositories/health-graph.r
 import type { HealthJourneyRepository } from './domain/repositories/health-journey.repository.js';
 import type { PendingAISuggestionAcknowledgmentRepository } from './domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from './domain/repositories/prescription.repository.js';
+import type { VitalReadingRepository } from './domain/repositories/vital-reading.repository.js';
 import { PrismaClinicalNoteRepository } from './infrastructure/prisma/prisma-clinical-note.repository.js';
 import { PrismaHealthGraphRepository } from './infrastructure/prisma/prisma-health-graph.repository.js';
 import { PrismaHealthJourneyRepository } from './infrastructure/prisma/prisma-health-journey.repository.js';
 import { PrismaPendingAISuggestionAcknowledgmentRepository } from './infrastructure/prisma/prisma-pending-ai-suggestion-acknowledgment.repository.js';
 import { PrismaPrescriptionRepository } from './infrastructure/prisma/prisma-prescription.repository.js';
+import { PrismaVitalReadingRepository } from './infrastructure/prisma/prisma-vital-reading.repository.js';
 import { ClinicalNoteController } from './presentation/controllers/clinical-note.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
 import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
@@ -62,6 +66,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     { provide: HEALTH_JOURNEY_REPOSITORY, useClass: PrismaHealthJourneyRepository },
     { provide: CLINICAL_NOTE_REPOSITORY, useClass: PrismaClinicalNoteRepository },
     { provide: PRESCRIPTION_REPOSITORY, useClass: PrismaPrescriptionRepository },
+    { provide: VITAL_READING_REPOSITORY, useClass: PrismaVitalReadingRepository },
     { provide: PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY, useClass: PrismaPendingAISuggestionAcknowledgmentRepository },
     {
       // Registers Clinical's own event subscriber against the shared
@@ -180,6 +185,11 @@ import { PrescriptionController } from './presentation/controllers/prescription.
       provide: GetPrescriptionByIdUseCase,
       useFactory: (repository: PrescriptionRepository) => new GetPrescriptionByIdUseCase(repository),
       inject: [PRESCRIPTION_REPOSITORY],
+    },
+    {
+      provide: ListVitalReadingsForPatientUseCase,
+      useFactory: (repository: VitalReadingRepository) => new ListVitalReadingsForPatientUseCase(repository),
+      inject: [VITAL_READING_REPOSITORY],
     },
   ],
   exports: [

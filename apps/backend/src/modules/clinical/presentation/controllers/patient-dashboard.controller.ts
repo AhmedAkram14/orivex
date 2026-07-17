@@ -17,11 +17,19 @@ import { AppointmentStatus } from '../../../consultation/domain/enums/appointmen
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../../consultation/application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
+import { VitalType } from '../../domain/enums/vital-type.enum.js';
 import type { Prescription } from '../../domain/entities/prescription.entity.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 import { ActivePrescriptionPreviewResponseDto } from '../dto/active-prescription-preview-response.dto.js';
+import { HealthVitalSummaryResponseDto } from '../dto/health-vital-summary-response.dto.js';
 import { PatientDashboardSummaryResponseDto } from '../dto/patient-dashboard-summary-response.dto.js';
 import { UpcomingAppointmentPreviewResponseDto } from '../dto/upcoming-appointment-preview-response.dto.js';
+
+// Always exactly these 3 -- matches the frontend's HealthDashboardResponse
+// contract, which expects one HealthVitalSummary per VitalType always, even
+// when a type has zero readings (an honest empty state, not an error).
+const ALL_VITAL_TYPES: readonly VitalType[] = [VitalType.Weight, VitalType.BloodPressure, VitalType.BloodSugar];
 
 // Appointments still awaiting or scheduled for a real consultation
 // (docs/12-openapi.md's AppointmentSummary.status) -- Cancelled/NoShow/
@@ -56,6 +64,7 @@ export class PatientDashboardController {
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
     @Inject(PRESCRIPTION_REPOSITORY) private readonly prescriptionRepository: PrescriptionRepository,
+    private readonly listVitalReadingsForPatientUseCase: ListVitalReadingsForPatientUseCase,
   ) {}
 
   @Get('me/dashboard-summary')
@@ -125,6 +134,28 @@ export class PatientDashboardController {
     );
 
     return envelope(items.filter((item): item is ActivePrescriptionPreviewResponseDto => item !== null));
+  }
+
+  @Get('me/health-dashboard')
+  async getHealthDashboard(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<HealthVitalSummaryResponseDto[]>> {
+    const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!patientProfile) {
+      // No profile yet means no vital could ever have been recorded -- an
+      // honest empty summary for all 3 types, not an error.
+      return envelope(ALL_VITAL_TYPES.map((type) => HealthVitalSummaryResponseDto.create({ type, readings: [] })));
+    }
+
+    const readings = await this.listVitalReadingsForPatientUseCase.execute({ patientId: patientProfile.getId() });
+    const summaries = ALL_VITAL_TYPES.map((type) =>
+      HealthVitalSummaryResponseDto.create({
+        type,
+        readings: readings.filter((reading) => reading.getType() === type),
+      }),
+    );
+
+    return envelope(summaries);
   }
 
   private computeLastVisitAt(appointments: Appointment[]): string | undefined {

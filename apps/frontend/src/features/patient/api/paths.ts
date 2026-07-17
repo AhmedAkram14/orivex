@@ -25,5 +25,7 @@ export const PATIENT_PATHS = {
   appointments: '/appointments/me',
   medicalRecords: '/patient/medical-records',
   prescriptions: '/patient/prescriptions',
-  healthDashboard: '/patient/health-dashboard',
+  // The real backend route (ClinicalModule's PatientDashboardController) --
+  // not /patient/health-dashboard.
+  healthDashboard: '/patients/me/health-dashboard',
 } as const;

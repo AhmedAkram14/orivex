@@ -276,6 +276,7 @@ model PatientProfile {
   appointments      Appointment[]
   paymentTransactions PaymentTransaction[]
   healthGraph       HealthGraph?
+  vitalReadings     VitalReading[]
 }
 
 model EmergencyContact {
@@ -799,4 +800,32 @@ model Holiday {
   id   String   @id @default(uuid())
   date DateTime @unique
   name String
+}
+
+enum VitalType {
+  WEIGHT
+  BLOOD_PRESSURE
+  BLOOD_SUGAR
+}
+
+// The Patient Portal Health Dashboard's own vitals surface (docs/05-
+// information-architecture.md's Health Dashboard concept). There is no
+// vitals concept anywhere else in the platform yet -- HealthGraphNode's
+// nodeType enum only covers condition/symptom/medication/lab_result/
+// radiology_result, and no create/record-vital producer exists on either
+// side yet, so this table starts empty. Read-only in this phase, same
+// "real read, deferred write" pattern already used for Notification/
+// Holiday.
+model VitalReading {
+  id             String         @id @default(uuid())
+  patientId      String
+  patientProfile PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type           VitalType
+  value          Float
+  diastolicValue Float?
+  recordedAt     DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+
+  @@index([patientId])
+  @@index([type])
 }

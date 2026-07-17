@@ -34,8 +34,12 @@ import { GetPatientProfileByAccountIdUseCase } from '../../../patient/applicatio
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { Prescription } from '../../domain/entities/prescription.entity.js';
+import { VitalReading } from '../../domain/entities/vital-reading.entity.js';
+import { VitalType } from '../../domain/enums/vital-type.enum.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
+import type { VitalReadingRepository } from '../../domain/repositories/vital-reading.repository.js';
 
 import { PatientDashboardController } from './patient-dashboard.controller.js';
 
@@ -121,6 +125,14 @@ class InMemoryPrescriptionRepository implements PrescriptionRepository {
   async save(): Promise<void> {}
 }
 
+class InMemoryVitalReadingRepository implements VitalReadingRepository {
+  constructor(private readonly readings: VitalReading[]) {}
+  async findByPatientId(patientId: string): Promise<VitalReading[]> {
+    return this.readings.filter((r) => r.getPatientId() === patientId);
+  }
+  async save(): Promise<void> {}
+}
+
 class FakeJwtSigner implements JwtSignerPort {
   constructor(private readonly accountIdByToken: Record<string, string>) {}
   async sign(): Promise<never> {
@@ -151,6 +163,7 @@ describe('PatientDashboardController (integration)', () => {
       displayName: DisplayName.create('Amina Youssef'),
     });
     const patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
+    const weightReading = VitalReading.create({ patientId: patient.getId(), type: VitalType.Weight, value: 72 });
 
     const noProfilePatientAccount = Account.register({
       email: EmailAddress.create('no-profile@example.com'),
@@ -237,6 +250,10 @@ describe('PatientDashboardController (integration)', () => {
           provide: PRESCRIPTION_REPOSITORY,
           useFactory: () => new InMemoryPrescriptionRepository([signedPrescription]),
         },
+        {
+          provide: ListVitalReadingsForPatientUseCase,
+          useFactory: () => new ListVitalReadingsForPatientUseCase(new InMemoryVitalReadingRepository([weightReading])),
+        },
       ],
     }).compile();
 
@@ -317,5 +334,39 @@ describe('PatientDashboardController (integration)', () => {
     assert.equal(response.body.data[0].dosageLabel, '5mg, once daily');
     assert.equal(response.body.data[0].prescribedBy, 'Dr. Karim Hassan');
     assert.equal(response.body.data[0].status, 'active');
+  });
+
+  it('GET /patients/me/health-dashboard rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/patients/me/health-dashboard').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /patients/me/health-dashboard returns all 3 vital types empty for an account with no patient profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/health-dashboard')
+      .set('Authorization', `Bearer ${NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 3);
+    assert.ok(response.body.data.every((summary: { readings: unknown[] }) => summary.readings.length === 0));
+  });
+
+  it('GET /patients/me/health-dashboard reflects the recorded weight reading and leaves the other 2 types honestly empty', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/health-dashboard')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 3);
+    const weightSummary = response.body.data.find((summary: { type: string }) => summary.type === 'weight');
+    assert.equal(weightSummary.readings.length, 1);
+    assert.equal(weightSummary.latest.value, 72);
+    assert.equal(weightSummary.latest.valueLabel, '72 kg');
+
+    const bloodPressureSummary = response.body.data.find(
+      (summary: { type: string }) => summary.type === 'blood-pressure',
+    );
+    assert.equal(bloodPressureSummary.readings.length, 0);
+    assert.equal(bloodPressureSummary.latest, undefined);
   });
 });
