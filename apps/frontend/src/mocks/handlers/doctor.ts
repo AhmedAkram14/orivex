@@ -7,6 +7,10 @@ import { getDashboardSummary, getProfile, getQueue, getUpcomingWork, updateProfi
 const base = () => env.apiBaseUrl;
 
 export const doctorHandlers = [
+  // Every route below is a real endpoint (DoctorModule's DoctorProfileController,
+  // ClinicalModule/ConsultationModule's dashboard-summary/upcoming-work/queue
+  // routes) -- these handlers exist purely to keep the frontend test suite
+  // deterministic, matching `patient.ts`/`scheduling.ts`.
   http.get(`${base()}${DOCTOR_PATHS.dashboardSummary}`, () => HttpResponse.json({ data: getDashboardSummary() })),
 
   http.get(`${base()}${DOCTOR_PATHS.upcomingWork}`, () => HttpResponse.json({ data: getUpcomingWork() })),

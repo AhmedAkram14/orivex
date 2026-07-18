@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { before, describe, it } from 'node:test';
 
+import { Reflector } from '@nestjs/core';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -9,6 +10,10 @@ import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import { createValidationException } from '../../../../platform/validation/validation-exception-factory.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../../../shared/domain/tokens.js';
+import type { AccessTokenClaims, JwtSignerPort } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js';
+import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
@@ -16,9 +21,12 @@ import { ConsultationSession } from '../../../consultation/domain/entities/consu
 import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
+import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
@@ -35,13 +43,18 @@ import type { PrescriptionRepository } from '../../domain/repositories/prescript
 
 import { PrescriptionController } from './prescription.controller.js';
 
+const DOCTOR_TOKEN = 'valid-doctor-token';
+const OTHER_DOCTOR_TOKEN = 'valid-other-doctor-token';
+const PATIENT_TOKEN = 'valid-patient-token';
+const OTHER_PATIENT_TOKEN = 'valid-other-patient-token';
+
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
   async findById(id: string): Promise<PatientProfile | null> {
     return this.profile.getId() === id ? this.profile : null;
   }
-  async findByAccountId(): Promise<PatientProfile | null> {
-    return null;
+  async findByAccountId(accountId: string): Promise<PatientProfile | null> {
+    return this.profile.getAccountId() === accountId ? this.profile : null;
   }
   async save(): Promise<void> {}
 }
@@ -56,10 +69,29 @@ class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
   async findById(id: string): Promise<DoctorProfile | null> {
     return this.byId.get(id) ?? null;
   }
-  async findByAccountId(): Promise<DoctorProfile | null> {
+  async findByAccountId(accountId: string): Promise<DoctorProfile | null> {
+    for (const profile of this.byId.values()) {
+      if (profile.getAccountId() === accountId) {
+        return profile;
+      }
+    }
     return null;
   }
   async save(): Promise<void> {}
+}
+
+class FakeJwtSigner implements JwtSignerPort {
+  constructor(private readonly tokens: Map<string, AccessTokenClaims>) {}
+  async sign(): Promise<never> {
+    throw new Error('not used in this test');
+  }
+  async verify(token: string): Promise<AccessTokenClaims> {
+    const claims = this.tokens.get(token);
+    if (!claims) {
+      throw new Error('invalid token');
+    }
+    return claims;
+  }
 }
 
 class InMemoryConsultationSessionRepository implements ConsultationSessionRepository {
@@ -137,6 +169,7 @@ describe('PrescriptionController (integration)', () => {
 
   before(async () => {
     const patient = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+    const otherPatient = PatientProfile.create({ accountId: '77777777-7777-4777-8777-777777777777' });
     doctor = DoctorProfile.register({
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-1',
@@ -158,28 +191,48 @@ describe('PrescriptionController (integration)', () => {
     const graph = HealthGraph.create(patient.getId());
     node = graph.addNode({ nodeType: HealthGraphNodeType.Condition, authoringDoctorId: doctor.getId() });
 
+    const doctorProfileRepo = new InMemoryDoctorProfileRepository([doctor, otherDoctor]);
+    const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
+
     const prescriptionRepo = new InMemoryPrescriptionRepository();
     const signPrescriptionUseCase = new SignPrescriptionUseCase(
       prescriptionRepo,
       new NoopDomainEventDispatcher(),
       new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)),
       new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)),
-      new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository([doctor, otherDoctor])),
+      new GetDoctorProfileByIdUseCase(doctorProfileRepo),
       new GetHealthGraphSubgraphUseCase(
         new InMemoryHealthGraphRepository(graph),
-        new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
+        new GetPatientProfileByIdUseCase(patientProfileRepo),
       ),
       new InMemoryPendingAISuggestionAcknowledgmentRepository(),
     );
     const getPrescriptionByIdUseCase = new GetPrescriptionByIdUseCase(prescriptionRepo);
 
+    const jwtSigner = new FakeJwtSigner(
+      new Map([
+        [DOCTOR_TOKEN, { accountId: doctor.getAccountId(), role: AccountRole.Doctor }],
+        [OTHER_DOCTOR_TOKEN, { accountId: otherDoctor.getAccountId(), role: AccountRole.Doctor }],
+        [PATIENT_TOKEN, { accountId: patient.getAccountId(), role: AccountRole.Patient }],
+        [OTHER_PATIENT_TOKEN, { accountId: otherPatient.getAccountId(), role: AccountRole.Patient }],
+      ]),
+    );
+
     const moduleRef = await Test.createTestingModule({
       controllers: [PrescriptionController],
       providers: [
         PinoLoggerService,
+        Reflector,
+        JwtAuthGuard,
+        RolesGuard,
+        { provide: JWT_SIGNER, useFactory: () => jwtSigner },
         { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
         { provide: SignPrescriptionUseCase, useValue: signPrescriptionUseCase },
         { provide: GetPrescriptionByIdUseCase, useValue: getPrescriptionByIdUseCase },
+        { provide: GetDoctorProfileByAccountIdUseCase, useFactory: () => new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo) },
+        { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
+        { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)) },
+        { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)) },
       ],
     }).compile();
 
@@ -196,11 +249,26 @@ describe('PrescriptionController (integration)', () => {
     await app.init();
   });
 
-  it('POST /prescriptions signs a prescription', async () => {
+  it('POST /prescriptions rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer())
       .post('/prescriptions')
       .send({
-        authoringDoctorId: doctor.getId(),
+        consultationSessionId: session.getId(),
+        diagnosisNodeId: node.getId(),
+        lineItems: [
+          { drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 },
+        ],
+      })
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('POST /prescriptions signs a prescription', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/prescriptions')
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+      .send({
         consultationSessionId: session.getId(),
         diagnosisNodeId: node.getId(),
         lineItems: [
@@ -224,8 +292,8 @@ describe('PrescriptionController (integration)', () => {
   it('POST /prescriptions rejects a doctor who is not the treating doctor with 403', async () => {
     const response = await request(app.getHttpServer())
       .post('/prescriptions')
+      .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
       .send({
-        authoringDoctorId: otherDoctor.getId(),
         consultationSessionId: session.getId(),
         diagnosisNodeId: node.getId(),
         lineItems: [
@@ -240,8 +308,8 @@ describe('PrescriptionController (integration)', () => {
   it('POST /prescriptions rejects an empty lineItems array with 400', async () => {
     const response = await request(app.getHttpServer())
       .post('/prescriptions')
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
       .send({
-        authoringDoctorId: doctor.getId(),
         consultationSessionId: session.getId(),
         diagnosisNodeId: node.getId(),
         lineItems: [],
@@ -254,8 +322,8 @@ describe('PrescriptionController (integration)', () => {
   it('POST /prescriptions returns 404 for an unknown diagnosisNodeId', async () => {
     const response = await request(app.getHttpServer())
       .post('/prescriptions')
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
       .send({
-        authoringDoctorId: doctor.getId(),
         consultationSessionId: session.getId(),
         diagnosisNodeId: '99999999-9999-4999-8999-999999999999',
         lineItems: [
@@ -267,8 +335,41 @@ describe('PrescriptionController (integration)', () => {
     assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
-  it('GET /prescriptions/:id returns the signed prescription', async () => {
-    const response = await request(app.getHttpServer()).get(`/prescriptions/${signedPrescriptionId}`).expect(200);
+  it('GET /prescriptions/:id rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get(`/prescriptions/${signedPrescriptionId}`).expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /prescriptions/:id rejects a doctor who did not author it', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/prescriptions/${signedPrescriptionId}`)
+      .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+      .expect(404);
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('GET /prescriptions/:id rejects a patient who was not treated', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/prescriptions/${signedPrescriptionId}`)
+      .set('Authorization', `Bearer ${OTHER_PATIENT_TOKEN}`)
+      .expect(404);
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('GET /prescriptions/:id returns the signed prescription for the authoring doctor', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/prescriptions/${signedPrescriptionId}`)
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.id, signedPrescriptionId);
+  });
+
+  it('GET /prescriptions/:id returns the signed prescription for the treated patient', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/prescriptions/${signedPrescriptionId}`)
+      .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+      .expect(200);
 
     assert.equal(response.body.data.id, signedPrescriptionId);
   });
@@ -276,6 +377,7 @@ describe('PrescriptionController (integration)', () => {
   it('GET /prescriptions/:id returns 404 for an unknown id', async () => {
     const response = await request(app.getHttpServer())
       .get('/prescriptions/99999999-9999-4999-8999-999999999999')
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');

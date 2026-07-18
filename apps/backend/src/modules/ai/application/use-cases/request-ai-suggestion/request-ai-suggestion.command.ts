@@ -8,8 +8,9 @@ export interface RequestAISuggestionCommandProps {
 
 // Commands are application messages, not structural types — immutable by
 // construction (matches the established Command style). requestingDoctorId
-// is an additive field -- Authentication isn't built yet (mirrors
-// SignPrescriptionCommand's authoringDoctorId precedent).
+// is resolved by the presentation layer from the caller's JWT before this
+// command is ever constructed; this use case separately re-validates it
+// against the consultation's actual treating doctor.
 export class RequestAISuggestionCommand {
   readonly consultationSessionId: string;
   readonly suggestionType: AISuggestionType;

@@ -39,6 +39,8 @@ import { RefreshSessionCommand } from '../../application/use-cases/refresh-sessi
 import { RefreshSessionUseCase } from '../../application/use-cases/refresh-session/refresh-session.use-case.js';
 import { RegisterCommand } from '../../application/use-cases/register/register.command.js';
 import { RegisterUseCase } from '../../application/use-cases/register/register.use-case.js';
+import { ResendVerificationCommand } from '../../application/use-cases/resend-verification/resend-verification.command.js';
+import { ResendVerificationUseCase } from '../../application/use-cases/resend-verification/resend-verification.use-case.js';
 import { ResetPasswordCommand } from '../../application/use-cases/reset-password/reset-password.command.js';
 import { ResetPasswordUseCase } from '../../application/use-cases/reset-password/reset-password.use-case.js';
 import { RevokeDeviceSessionCommand } from '../../application/use-cases/revoke-device-session/revoke-device-session.command.js';
@@ -60,6 +62,8 @@ import { MeResponseDto } from '../dto/me-response.dto.js';
 import { RefreshResponseDto } from '../dto/refresh-response.dto.js';
 import { RegisterRequestDto } from '../dto/register-request.dto.js';
 import { RegisterResponseDto } from '../dto/register-response.dto.js';
+import { ResendVerificationRequestDto } from '../dto/resend-verification-request.dto.js';
+import { ResendVerificationResponseDto } from '../dto/resend-verification-response.dto.js';
 import { ResetPasswordRequestDto } from '../dto/reset-password-request.dto.js';
 import { ResetPasswordResponseDto } from '../dto/reset-password-response.dto.js';
 import { VerifyEmailRequestDto } from '../dto/verify-email-request.dto.js';
@@ -91,6 +95,7 @@ export class AuthenticationController {
     private readonly revokeDeviceSessionUseCase: RevokeDeviceSessionUseCase,
     private readonly logoutAllSessionsUseCase: LogoutAllSessionsUseCase,
     private readonly listLoginHistoryForAccountUseCase: ListLoginHistoryForAccountUseCase,
+    private readonly resendVerificationUseCase: ResendVerificationUseCase,
     @Inject(JWT_SIGNER) private readonly jwtSigner: JwtSignerPort,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
@@ -211,6 +216,16 @@ export class AuthenticationController {
     } catch (error) {
       throw mapAuthenticationError(error);
     }
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  async resendVerification(
+    @Body() body: ResendVerificationRequestDto,
+  ): Promise<ResponseEnvelope<ResendVerificationResponseDto>> {
+    await this.resendVerificationUseCase.execute(new ResendVerificationCommand({ email: body.email }));
+    return envelope(new ResendVerificationResponseDto());
   }
 
   @Post('change-password')

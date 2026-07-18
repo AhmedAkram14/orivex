@@ -2,14 +2,17 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { ClinicalModule } from '../clinical/clinical.module.js';
 import { GetHealthGraphSubgraphUseCase } from '../clinical/application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { DoctorModule } from '../doctor/doctor.module.js';
 
 import type { AIProviderPort } from './application/ports/ai-provider.port.js';
 import { AI_PROVIDER, AI_SUGGESTION_REPOSITORY } from './application/ports/tokens.js';
+import { GetAISuggestionByIdUseCase } from './application/use-cases/get-ai-suggestion-by-id/get-ai-suggestion-by-id.use-case.js';
 import { RecordDoctorDecisionUseCase } from './application/use-cases/record-doctor-decision/record-doctor-decision.use-case.js';
 import { RequestAISuggestionUseCase } from './application/use-cases/request-ai-suggestion/request-ai-suggestion.use-case.js';
 import type { AISuggestionRepository } from './domain/repositories/ai-suggestion.repository.js';
@@ -42,10 +45,15 @@ import { AISuggestionController } from './presentation/controllers/ai-suggestion
 // backend-architecture.md's AIModule query) is also not exposed -- no
 // endpoint for it is documented in docs/12-openapi.md.
 @Module({
-  imports: [ClinicalModule, ConsultationModule],
+  imports: [ClinicalModule, ConsultationModule, DoctorModule, AuthenticationGuardsModule],
   controllers: [AISuggestionController],
   providers: [
     { provide: AI_SUGGESTION_REPOSITORY, useClass: PrismaAISuggestionRepository },
+    {
+      provide: GetAISuggestionByIdUseCase,
+      useFactory: (repository: AISuggestionRepository) => new GetAISuggestionByIdUseCase(repository),
+      inject: [AI_SUGGESTION_REPOSITORY],
+    },
     { provide: AI_PROVIDER, useClass: NotConfiguredAIProviderAdapter },
     {
       provide: RequestAISuggestionUseCase,

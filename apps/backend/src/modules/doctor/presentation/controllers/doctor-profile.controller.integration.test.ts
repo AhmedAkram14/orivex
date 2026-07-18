@@ -33,6 +33,8 @@ import { DoctorProfileController } from './doctor-profile.controller.js';
 
 const VALID_TOKEN = 'valid-doctor-token';
 const OTHER_VALID_TOKEN = 'valid-doctor-token-no-profile';
+const EXISTING_ACCOUNT_TOKEN = 'valid-doctor-token-existing-account';
+const UNKNOWN_ACCOUNT_TOKEN = 'valid-doctor-token-unknown-account';
 
 class InMemoryAccountRepository implements AccountRepository {
   constructor(private readonly accounts: Account[]) {}
@@ -133,6 +135,8 @@ describe('DoctorProfileController (integration)', () => {
       new Map([
         [VALID_TOKEN, meAccountId],
         [OTHER_VALID_TOKEN, noProfileAccountId],
+        [EXISTING_ACCOUNT_TOKEN, existingAccountId],
+        [UNKNOWN_ACCOUNT_TOKEN, '22222222-2222-4222-8222-222222222222'],
       ]),
     );
 
@@ -195,10 +199,20 @@ describe('DoctorProfileController (integration)', () => {
     await app.close();
   });
 
-  it('POST /doctors registers a profile for an existing account', async () => {
+  it('POST /doctors rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
-      .send({ accountId: existingAccountId, licenseNumber: 'LIC-1', specialty: 'Cardiology' })
+      .send({ licenseNumber: 'LIC-1', specialty: 'Cardiology' })
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('POST /doctors registers a profile for the authenticated caller\'s own account', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/doctors')
+      .set('Authorization', `Bearer ${EXISTING_ACCOUNT_TOKEN}`)
+      .send({ licenseNumber: 'LIC-1', specialty: 'Cardiology' })
       .expect(201);
 
     assert.equal(response.body.data.specialty, 'Cardiology');
@@ -211,7 +225,8 @@ describe('DoctorProfileController (integration)', () => {
   it('POST /doctors rejects a second profile for the same account with 409', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
-      .send({ accountId: existingAccountId, licenseNumber: 'LIC-2', specialty: 'Dermatology' })
+      .set('Authorization', `Bearer ${EXISTING_ACCOUNT_TOKEN}`)
+      .send({ licenseNumber: 'LIC-2', specialty: 'Dermatology' })
       .expect(409);
 
     assert.equal(response.body.error.code, 'CONFLICT');
@@ -220,8 +235,8 @@ describe('DoctorProfileController (integration)', () => {
   it('POST /doctors rejects an unknown account with 404', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
+      .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
       .send({
-        accountId: '22222222-2222-4222-8222-222222222222',
         licenseNumber: 'LIC-3',
         specialty: 'Oncology',
       })
@@ -233,7 +248,8 @@ describe('DoctorProfileController (integration)', () => {
   it('POST /doctors rejects an empty specialty with a structured validation error', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
-      .send({ accountId: existingAccountId, licenseNumber: 'LIC-4', specialty: '' })
+      .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
+      .send({ licenseNumber: 'LIC-4', specialty: '' })
       .expect(400);
 
     assert.equal(response.body.error.code, 'VALIDATION_FAILED');
@@ -242,8 +258,8 @@ describe('DoctorProfileController (integration)', () => {
   it('POST /doctors rejects a publications entry missing its required title', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
+      .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
       .send({
-        accountId: existingAccountId,
         licenseNumber: 'LIC-5',
         specialty: 'Cardiology',
         publications: [{}],
@@ -261,14 +277,36 @@ describe('DoctorProfileController (integration)', () => {
     assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
-  it('GET then PATCH /doctors/:id updates the registered profile', async () => {
+  it('GET /doctors/:id is public and requires no bearer token', async () => {
     const found = await request(app.getHttpServer())
       .get(`/doctors/${registeredProfileId}`)
       .expect(200);
     assert.equal(found.body.data.specialty, 'Cardiology');
+  });
 
+  it('PATCH /doctors/:id rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/doctors/${registeredProfileId}`)
+      .send({ specialty: 'General Practice' })
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('PATCH /doctors/:id rejects updating a profile owned by a different doctor', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/doctors/${registeredProfileId}`)
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ specialty: 'General Practice' })
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('PATCH /doctors/:id updates the registered profile for its owner', async () => {
     const updated = await request(app.getHttpServer())
       .patch(`/doctors/${registeredProfileId}`)
+      .set('Authorization', `Bearer ${EXISTING_ACCOUNT_TOKEN}`)
       .send({ specialty: 'General Practice' })
       .expect(200);
 

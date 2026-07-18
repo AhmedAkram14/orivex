@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
+import { Reflector } from '@nestjs/core';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -9,16 +10,39 @@ import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import { createValidationException } from '../../../../platform/validation/validation-exception-factory.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../../../shared/domain/tokens.js';
+import type { AccessTokenClaims, JwtSignerPort } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js';
+import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { ACCOUNT_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetAccountByIdUseCase } from '../../application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { RegisterAccountUseCase } from '../../application/use-cases/register-account/register-account.use-case.js';
 import { SuspendAccountUseCase } from '../../application/use-cases/suspend-account/suspend-account.use-case.js';
+import { AccountRole } from '../../domain/enums/account-role.enum.js';
 import type { Account } from '../../domain/entities/account.entity.js';
 import type { AccountRepository } from '../../domain/repositories/account.repository.js';
 import type { AccountId } from '../../domain/value-objects/account-id.value-object.js';
 import type { EmailAddress } from '../../domain/value-objects/email-address.value-object.js';
 
 import { AccountController } from './account.controller.js';
+
+const ADMIN_TOKEN = 'valid-admin-token';
+const PATIENT_TOKEN = 'valid-patient-token';
+
+class FakeJwtSigner implements JwtSignerPort {
+  async sign(): Promise<never> {
+    throw new Error('not used in this test');
+  }
+  async verify(token: string): Promise<AccessTokenClaims> {
+    if (token === ADMIN_TOKEN) {
+      return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.Admin };
+    }
+    if (token === PATIENT_TOKEN) {
+      return { accountId: '88888888-8888-4888-8888-888888888888', role: AccountRole.Patient };
+    }
+    throw new Error('invalid token');
+  }
+}
 
 // In-memory doubles standing in for the real Prisma repository/event
 // dispatcher — no Docker/Postgres available in this sandbox. This proves
@@ -61,6 +85,10 @@ describe('AccountController (integration)', () => {
       controllers: [AccountController],
       providers: [
         PinoLoggerService,
+        Reflector,
+        JwtAuthGuard,
+        RolesGuard,
+        { provide: JWT_SIGNER, useClass: FakeJwtSigner },
         { provide: ACCOUNT_REPOSITORY, useClass: InMemoryAccountRepository },
         { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
         {
@@ -100,9 +128,29 @@ describe('AccountController (integration)', () => {
     await app.close();
   });
 
+  it('POST /accounts rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/accounts')
+      .send({ email: 'doctor@example.com', role: 'doctor', displayName: 'Dr. Amina Hassan' })
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('POST /accounts rejects a non-admin caller with 403', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/accounts')
+      .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+      .send({ email: 'doctor@example.com', role: 'doctor', displayName: 'Dr. Amina Hassan' })
+      .expect(403);
+
+    assert.equal(response.body.error.code, 'FORBIDDEN');
+  });
+
   it('POST /accounts registers a new account and returns the envelope shape', async () => {
     const response = await request(app.getHttpServer())
       .post('/accounts')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send({
         email: 'doctor@example.com',
         role: 'doctor',
@@ -120,6 +168,7 @@ describe('AccountController (integration)', () => {
   it('POST /accounts rejects an invalid email with a structured validation error', async () => {
     const response = await request(app.getHttpServer())
       .post('/accounts')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send({
         email: 'not-an-email',
         role: 'patient',
@@ -134,6 +183,7 @@ describe('AccountController (integration)', () => {
   it('POST /accounts rejects a duplicate email with 409 Conflict', async () => {
     await request(app.getHttpServer())
       .post('/accounts')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send({
         email: 'dup@example.com',
         role: 'patient',
@@ -143,6 +193,7 @@ describe('AccountController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .post('/accounts')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send({
         email: 'dup@example.com',
         role: 'patient',
@@ -156,6 +207,7 @@ describe('AccountController (integration)', () => {
   it('GET /accounts/:id returns the account when it exists', async () => {
     const created = await request(app.getHttpServer())
       .post('/accounts')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send({
         email: 'getme@example.com',
         role: 'patient',
@@ -165,26 +217,40 @@ describe('AccountController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .get(`/accounts/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .expect(200);
 
     assert.equal(response.body.data.email, 'getme@example.com');
   });
 
+  it('GET /accounts/:id rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/accounts/11111111-1111-4111-8111-111111111111')
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
   it('GET /accounts/:id returns 404 for a well-formed but unknown id', async () => {
     const response = await request(app.getHttpServer())
       .get('/accounts/11111111-1111-4111-8111-111111111111')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
   it('GET /accounts/:id returns 400 for a malformed id', async () => {
-    await request(app.getHttpServer()).get('/accounts/not-a-uuid').expect(400);
+    await request(app.getHttpServer())
+      .get('/accounts/not-a-uuid')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+      .expect(400);
   });
 
   it('PATCH /accounts/:id/suspend suspends the account and returns updated state', async () => {
     const created = await request(app.getHttpServer())
       .post('/accounts')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send({
         email: 'suspendme@example.com',
         role: 'patient',
@@ -194,6 +260,7 @@ describe('AccountController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .patch(`/accounts/${created.body.data.id}/suspend`)
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .expect(200);
 
     assert.equal(response.body.data.status, 'suspended');
@@ -202,6 +269,7 @@ describe('AccountController (integration)', () => {
   it('PATCH /accounts/:id/suspend returns 404 for an unknown account', async () => {
     const response = await request(app.getHttpServer())
       .patch('/accounts/22222222-2222-4222-8222-222222222222/suspend')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');

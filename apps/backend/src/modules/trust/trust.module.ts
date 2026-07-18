@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
 
@@ -25,7 +26,7 @@ import { VerificationCaseController } from './presentation/controllers/verificat
 // existence enforced by the database FK on VerificationDocument, not a
 // cross-module query.
 @Module({
-  imports: [DoctorModule],
+  imports: [DoctorModule, AuthenticationGuardsModule],
   controllers: [DoctorVerificationController, VerificationCaseController],
   providers: [
     { provide: VERIFICATION_CASE_REPOSITORY, useClass: PrismaVerificationCaseRepository },

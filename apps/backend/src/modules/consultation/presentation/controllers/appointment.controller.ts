@@ -14,11 +14,13 @@ import { GetPatientProfileByAccountIdUseCase } from '../../../patient/applicatio
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetSchedulingRulesUseCase } from '../../../scheduling/application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
+import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
 import { BookAppointmentCommand } from '../../application/use-cases/book-appointment/book-appointment.command.js';
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
+import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
@@ -56,15 +58,25 @@ export class AppointmentController {
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
     private readonly getSchedulingRulesUseCase: GetSchedulingRulesUseCase,
+    private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
   ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async book(@Body() body: BookAppointmentRequestDto): Promise<ResponseEnvelope<AppointmentResponseDto>> {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Patient)
+  async book(
+    @CurrentUser() user: AccessTokenClaims,
+    @Body() body: BookAppointmentRequestDto,
+  ): Promise<ResponseEnvelope<AppointmentResponseDto>> {
     try {
+      const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+      if (!patientProfile) {
+        throw new NotFoundError('No patient profile exists for this account.');
+      }
       const appointment = await this.bookAppointmentUseCase.execute(
         new BookAppointmentCommand({
-          patientId: body.patientId,
+          patientId: patientProfile.getId(),
           doctorId: body.doctorId,
           availabilityWindowId: body.availabilityWindowId,
           consultationType: body.consultationType,
@@ -208,12 +220,22 @@ export class AppointmentController {
     return envelope(items);
   }
 
+  // Either the owning patient or the owning doctor may reschedule/cancel --
+  // no single @Roles() fits, so ownership is checked in-handler against
+  // whichever profile matches the caller's role (mirrors the "never leak
+  // existence to a non-owner" 404 pattern used across this codebase).
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   async rescheduleOrCancel(
+    @CurrentUser() user: AccessTokenClaims,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: RescheduleOrCancelAppointmentRequestDto,
   ): Promise<ResponseEnvelope<AppointmentResponseDto>> {
     try {
+      const existing = await this.getAppointmentByIdUseCase.execute({ appointmentId: id });
+      if (!existing || !(await this.isOwnedByCaller(existing, user))) {
+        throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
       const appointment = await this.rescheduleOrCancelAppointmentUseCase.execute(
         new RescheduleOrCancelAppointmentCommand({
           appointmentId: id,
@@ -225,6 +247,18 @@ export class AppointmentController {
     } catch (error) {
       throw mapConsultationError(error);
     }
+  }
+
+  private async isOwnedByCaller(appointment: Appointment, user: AccessTokenClaims): Promise<boolean> {
+    if (user.role === AccountRole.Patient) {
+      const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+      return patientProfile !== null && patientProfile.getId() === appointment.getPatientId();
+    }
+    if (user.role === AccountRole.Doctor) {
+      const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+      return doctorProfile !== null && doctorProfile.getId() === appointment.getDoctorId();
+    }
+    return false;
   }
 
   private async toListItem(appointment: Appointment): Promise<AppointmentListItemResponseDto | null> {

@@ -44,7 +44,9 @@ import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY } from '../../a
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
+import { GetConsultationSessionByIdUseCase } from '../../application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
@@ -61,6 +63,7 @@ import { ConsultationController } from './consultation.controller.js';
 const VALID_PATIENT_TOKEN = 'valid-patient-token';
 const VALID_DOCTOR_TOKEN = 'valid-doctor-token';
 const VALID_DOCTOR_NO_PROFILE_TOKEN = 'valid-doctor-no-profile-token';
+const VALID_PATIENT_NO_PROFILE_TOKEN = 'valid-patient-no-profile-token';
 
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
@@ -192,6 +195,11 @@ describe('Consultation controllers (integration)', () => {
       role: AccountRole.Doctor,
       displayName: DisplayName.create('Dr. No Profile'),
     });
+    const patientAccountNoProfile = Account.register({
+      email: EmailAddress.create('patient-no-profile@example.com'),
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('No Profile Patient'),
+    });
 
     patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
     doctor = DoctorProfile.register({
@@ -279,7 +287,12 @@ describe('Consultation controllers (integration)', () => {
       new NoopDomainEventDispatcher(),
     );
 
-    const accountRepo = new InMemoryAccountRepository([patientAccount, doctorAccount, doctorAccountNoProfile]);
+    const accountRepo = new InMemoryAccountRepository([
+      patientAccount,
+      doctorAccount,
+      doctorAccountNoProfile,
+      patientAccountNoProfile,
+    ]);
     const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepo);
     const getPatientProfileByAccountIdUseCase = new GetPatientProfileByAccountIdUseCase(
       new InMemoryPatientProfileRepository(patient),
@@ -310,6 +323,10 @@ describe('Consultation controllers (integration)', () => {
                   VALID_DOCTOR_NO_PROFILE_TOKEN,
                   { accountId: doctorAccountNoProfile.getId().toString(), role: AccountRole.Doctor },
                 ],
+                [
+                  VALID_PATIENT_NO_PROFILE_TOKEN,
+                  { accountId: patientAccountNoProfile.getId().toString(), role: AccountRole.Patient },
+                ],
               ]),
             ),
         },
@@ -332,6 +349,8 @@ describe('Consultation controllers (integration)', () => {
           useValue: new GetConsultationSessionByAppointmentIdUseCase(sessionRepo),
         },
         { provide: GetSchedulingRulesUseCase, useValue: new GetSchedulingRulesUseCase() },
+        { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(appointmentRepo) },
+        { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(sessionRepo) },
       ],
     }).compile();
 
@@ -352,11 +371,25 @@ describe('Consultation controllers (integration)', () => {
     await app.close();
   });
 
-  it('POST /appointments books and immediately confirms a free appointment', async () => {
+  it('POST /appointments rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer())
       .post('/appointments')
       .send({
-        patientId: patient.getId(),
+        doctorId: doctor.getId(),
+        availabilityWindowId: freeWindow.getId(),
+        consultationType: 'free',
+        reasonForVisit: 'Routine check-up',
+      })
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('POST /appointments books and immediately confirms a free appointment', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .send({
         doctorId: doctor.getId(),
         availabilityWindowId: freeWindow.getId(),
         consultationType: 'free',
@@ -368,11 +401,11 @@ describe('Consultation controllers (integration)', () => {
     bookedAppointmentId = response.body.data.id;
   });
 
-  it('POST /appointments rejects an unknown patient with 404', async () => {
+  it('POST /appointments rejects a caller with no patient profile with 404', async () => {
     const response = await request(app.getHttpServer())
       .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_PATIENT_NO_PROFILE_TOKEN}`)
       .send({
-        patientId: '99999999-9999-4999-8999-999999999999',
         doctorId: doctor.getId(),
         availabilityWindowId: secondFreeWindow.getId(),
         consultationType: 'free',
@@ -385,8 +418,8 @@ describe('Consultation controllers (integration)', () => {
   it('POST /appointments rejects a mismatched consultationType with 422', async () => {
     const response = await request(app.getHttpServer())
       .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .send({
-        patientId: patient.getId(),
         doctorId: doctor.getId(),
         availabilityWindowId: secondFreeWindow.getId(),
         consultationType: 'paid',
@@ -399,8 +432,8 @@ describe('Consultation controllers (integration)', () => {
   it('POST /appointments rejects rebooking an already-held/booked window with 409', async () => {
     const response = await request(app.getHttpServer())
       .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .send({
-        patientId: patient.getId(),
         doctorId: doctor.getId(),
         availabilityWindowId: freeWindow.getId(),
         consultationType: 'free',
@@ -410,16 +443,27 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(response.body.error.code, 'CONFLICT');
   });
 
+  it('POST /consultations/:id/start rejects a request with no bearer token', async () => {
+    const session = await sessionRepo.findByAppointmentId(bookedAppointmentId);
+    assert.ok(session);
+    const response = await request(app.getHttpServer()).post(`/consultations/${session.getId()}/start`).expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
   it('POST /consultations/:id/start and /close drive the session through its lifecycle', async () => {
     const session = await sessionRepo.findByAppointmentId(bookedAppointmentId);
     assert.ok(session);
     const sessionId = session.getId();
 
-    const startResponse = await request(app.getHttpServer()).post(`/consultations/${sessionId}/start`).expect(200);
+    const startResponse = await request(app.getHttpServer())
+      .post(`/consultations/${sessionId}/start`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
     assert.equal(startResponse.body.data.state, 'in_progress');
 
     const closeResponse = await request(app.getHttpServer())
       .post(`/consultations/${sessionId}/close`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
       .send({ completionReason: 'completed' })
       .expect(200);
     assert.equal(closeResponse.body.data.state, 'closed');
@@ -428,6 +472,26 @@ describe('Consultation controllers (integration)', () => {
   it('POST /consultations/:id/start returns 404 for an unknown id', async () => {
     const response = await request(app.getHttpServer())
       .post('/consultations/99999999-9999-4999-8999-999999999999/start')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('PATCH /appointments/:id rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${bookedAppointmentId}`)
+      .send({ action: 'cancel' })
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('PATCH /appointments/:id rejects a caller who does not own the appointment', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${bookedAppointmentId}`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .send({ action: 'cancel' })
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
@@ -436,6 +500,7 @@ describe('Consultation controllers (integration)', () => {
   it('PATCH /appointments/:id rejects cancelling an already-terminal (Completed) appointment', async () => {
     const response = await request(app.getHttpServer())
       .patch(`/appointments/${bookedAppointmentId}`)
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .send({ action: 'cancel' })
       .expect(422);
 
@@ -445,8 +510,8 @@ describe('Consultation controllers (integration)', () => {
   it('PATCH /appointments/:id cancels a Confirmed appointment on the second window', async () => {
     const booked = await request(app.getHttpServer())
       .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .send({
-        patientId: patient.getId(),
         doctorId: doctor.getId(),
         availabilityWindowId: secondFreeWindow.getId(),
         consultationType: 'free',
@@ -455,6 +520,7 @@ describe('Consultation controllers (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .patch(`/appointments/${booked.body.data.id}`)
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .send({ action: 'cancel' })
       .expect(200);
 

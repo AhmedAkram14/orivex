@@ -10,10 +10,9 @@ import type { RecordClinicalNoteCommand } from './record-clinical-note.command.j
 // Plain TypeScript class — no NestJS dependency; DI wiring lives in
 // clinical.module.ts only. Matches docs/12-openapi.md's
 // POST /consultations/{id}/notes (createClinicalNote, "treating doctor
-// only", documented 403) exactly. authoringDoctorId is an explicit request
-// field, not derived from a session/auth context -- Authentication isn't
-// built yet (mirrors DoctorModule's accountId / ConsultationModule's
-// patientId precedent).
+// only", documented 403) exactly. The controller resolves authoringDoctorId
+// from the caller's JWT before this use case ever runs; the check below is
+// this layer's own defense-in-depth, independent of the presentation layer.
 export class RecordClinicalNoteUseCase {
   constructor(
     private readonly clinicalNoteRepository: ClinicalNoteRepository,

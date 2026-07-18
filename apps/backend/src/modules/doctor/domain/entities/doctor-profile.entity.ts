@@ -44,12 +44,12 @@ export interface ReconstituteDoctorProfileProps {
   updatedAt: Date;
 }
 
-// Aggregate root of the (future) Doctor bounded context (docs/10-backend-
+// Aggregate root of the Doctor bounded context (docs/10-backend-
 // architecture.md's DoctorModule entry). Owns DoctorProfile + its Publication/
 // Award children as one transactional unit. AvailabilityWindow is
-// deliberately excluded — its own lifecycle/booking concerns depend on
-// SchedulingModule, not yet built. Verification status is never stored here
-// — TrustModule (future sprint) owns it exclusively.
+// deliberately excluded — its lifecycle/booking concerns belong to
+// SchedulingModule. Verification status is never stored here
+// — TrustModule owns it exclusively.
 export class DoctorProfile {
   private readonly domainEvents: DomainEvent[] = [];
 

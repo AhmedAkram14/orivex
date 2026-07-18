@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -16,15 +16,14 @@ import type { Appointment } from '../../../consultation/domain/entities/appointm
 import { AppointmentStatus } from '../../../consultation/domain/enums/appointment-status.enum.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../../consultation/application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
-import { CLINICAL_NOTE_REPOSITORY, PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
+import { ListClinicalNotesForConsultationSessionUseCase } from '../../application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
+import { ListPrescriptionsForConsultationSessionUseCase } from '../../application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import type { HealthGraphNode } from '../../domain/entities/health-graph-node.entity.js';
 import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
 import { VitalType } from '../../domain/enums/vital-type.enum.js';
 import type { Prescription } from '../../domain/entities/prescription.entity.js';
-import type { ClinicalNoteRepository } from '../../domain/repositories/clinical-note.repository.js';
-import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 import { ActivePrescriptionPreviewResponseDto } from '../dto/active-prescription-preview-response.dto.js';
 import { HealthVitalSummaryResponseDto } from '../dto/health-vital-summary-response.dto.js';
 import { MedicalRecordEntryResponseDto } from '../dto/medical-record-entry-response.dto.js';
@@ -69,9 +68,9 @@ export class PatientDashboardController {
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
-    @Inject(PRESCRIPTION_REPOSITORY) private readonly prescriptionRepository: PrescriptionRepository,
+    private readonly listPrescriptionsForConsultationSessionUseCase: ListPrescriptionsForConsultationSessionUseCase,
     private readonly listVitalReadingsForPatientUseCase: ListVitalReadingsForPatientUseCase,
-    @Inject(CLINICAL_NOTE_REPOSITORY) private readonly clinicalNoteRepository: ClinicalNoteRepository,
+    private readonly listClinicalNotesForConsultationSessionUseCase: ListClinicalNotesForConsultationSessionUseCase,
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
   ) {}
 
@@ -245,7 +244,9 @@ export class PatientDashboardController {
         continue;
       }
 
-      const prescriptions = await this.prescriptionRepository.findByConsultationSessionId(session.getId());
+      const prescriptions = await this.listPrescriptionsForConsultationSessionUseCase.execute({
+        consultationSessionId: session.getId(),
+      });
       for (const prescription of prescriptions) {
         const [firstLineItem] = prescription.getLineItems();
         const medicationName = firstLineItem ? firstLineItem.getDrugName() ?? firstLineItem.getDrugCatalogId() : '';
@@ -369,7 +370,9 @@ export class PatientDashboardController {
         continue;
       }
 
-      const notes = await this.clinicalNoteRepository.findByConsultationSessionId(session.getId());
+      const notes = await this.listClinicalNotesForConsultationSessionUseCase.execute({
+        consultationSessionId: session.getId(),
+      });
       for (const note of notes) {
         const doctorName = await this.resolveDoctorName(note.getAuthoringDoctorId());
         entries.push(

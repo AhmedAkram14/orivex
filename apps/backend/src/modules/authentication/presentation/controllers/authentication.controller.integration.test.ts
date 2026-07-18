@@ -42,6 +42,7 @@ import type { TokenGeneratorPort } from '../../application/ports/token-generator
 import { JWT_SIGNER } from '../../application/ports/tokens.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password/change-password.use-case.js';
 import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password/forgot-password.use-case.js';
+import { ResendVerificationUseCase } from '../../application/use-cases/resend-verification/resend-verification.use-case.js';
 import { GetCurrentSessionUseCase } from '../../application/use-cases/get-current-session/get-current-session.use-case.js';
 import { ListDeviceSessionsUseCase } from '../../application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
 import { ListLoginHistoryForAccountUseCase } from '../../application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
@@ -289,6 +290,16 @@ describe('AuthenticationController (integration)', () => {
           ),
         },
         {
+          provide: ResendVerificationUseCase,
+          useValue: new ResendVerificationUseCase(
+            getAccountByEmailUseCase,
+            credentialRepository,
+            authTokenRepository,
+            tokenGenerator,
+            emailSender,
+          ),
+        },
+        {
           provide: ResetPasswordUseCase,
           useValue: new ResetPasswordUseCase(
             authTokenRepository,
@@ -431,6 +442,15 @@ describe('AuthenticationController (integration)', () => {
   it('POST /auth/forgot-password always resolves 200, revealing nothing about account existence', async () => {
     const response = await request(app.getHttpServer())
       .post('/auth/forgot-password')
+      .send({ email: 'nobody-at-all@example.com' })
+      .expect(200);
+
+    assert.equal(response.body.data.status, 'sent');
+  });
+
+  it('POST /auth/resend-verification always resolves 200, revealing nothing about account existence', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/resend-verification')
       .send({ email: 'nobody-at-all@example.com' })
       .expect(200);
 

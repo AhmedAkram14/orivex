@@ -8,20 +8,33 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
+import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
+import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { GetAccountByIdUseCase } from '../../application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { RegisterAccountCommand } from '../../application/use-cases/register-account/register-account.command.js';
 import { RegisterAccountUseCase } from '../../application/use-cases/register-account/register-account.use-case.js';
 import { SuspendAccountCommand } from '../../application/use-cases/suspend-account/suspend-account.command.js';
 import { SuspendAccountUseCase } from '../../application/use-cases/suspend-account/suspend-account.use-case.js';
+import { AccountRole } from '../../domain/enums/account-role.enum.js';
 import { AccountResponseDto } from '../dto/account-response.dto.js';
 import { RegisterAccountRequestDto } from '../dto/register-account-request.dto.js';
 import { mapIdentityError } from '../mappers/identity-exception.mapper.js';
 
+// Admin-only account provisioning/lookup/suspension surface. Real
+// self-service registration and login go through AuthenticationModule's
+// /auth/register (which also creates the Credential this controller's
+// register() intentionally does not) -- this endpoint exists for
+// administrative account management, not public signup, so it is gated to
+// AccountRole.Admin rather than left public.
 @Controller('accounts')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(AccountRole.Admin)
 export class AccountController {
   constructor(
     private readonly registerAccountUseCase: RegisterAccountUseCase,

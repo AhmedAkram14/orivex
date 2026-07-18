@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Reflector } from '@nestjs/core';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -9,6 +10,10 @@ import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import { createValidationException } from '../../../../platform/validation/validation-exception-factory.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../../../shared/domain/tokens.js';
+import type { AccessTokenClaims, JwtSignerPort } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js';
+import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { ConfirmAppointmentUseCase } from '../../../consultation/application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
@@ -24,6 +29,10 @@ import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.en
 import { ConsultationType as DoctorConsultationType } from '../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
+import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
@@ -31,6 +40,34 @@ import type { PaymentTransaction } from '../../domain/entities/payment-transacti
 import type { PaymentTransactionRepository } from '../../domain/repositories/payment-transaction.repository.js';
 
 import { PaymentController } from './payment.controller.js';
+
+const PATIENT_TOKEN = 'valid-patient-token';
+const OTHER_PATIENT_TOKEN = 'valid-other-patient-token';
+
+class InMemoryPatientProfileRepository implements PatientProfileRepository {
+  constructor(private readonly profile: PatientProfile) {}
+  async findById(id: string): Promise<PatientProfile | null> {
+    return this.profile.getId() === id ? this.profile : null;
+  }
+  async findByAccountId(accountId: string): Promise<PatientProfile | null> {
+    return this.profile.getAccountId() === accountId ? this.profile : null;
+  }
+  async save(): Promise<void> {}
+}
+
+class FakeJwtSigner implements JwtSignerPort {
+  constructor(private readonly tokens: Map<string, AccessTokenClaims>) {}
+  async sign(): Promise<never> {
+    throw new Error('not used in this test');
+  }
+  async verify(token: string): Promise<AccessTokenClaims> {
+    const claims = this.tokens.get(token);
+    if (!claims) {
+      throw new Error('invalid token');
+    }
+    return claims;
+  }
+}
 
 class InMemoryAppointmentRepository implements AppointmentRepository {
   constructor(private readonly appointment: Appointment) {}
@@ -112,8 +149,16 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     consultationType: DoctorConsultationType.Paid,
   });
   window.hold();
+  const patient = PatientProfile.reconstitute({
+    id: '22222222-2222-4222-8222-222222222222',
+    accountId: '77777777-7777-4777-8777-777777777777',
+    emergencyContacts: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  const otherPatient = PatientProfile.create({ accountId: '88888888-8888-4888-8888-888888888888' });
   const appointment = Appointment.request({
-    patientId: '22222222-2222-4222-8222-222222222222',
+    patientId: patient.getId(),
     doctorId: '33333333-3333-4333-8333-333333333333',
     availabilityWindowId: window.getId(),
     consultationType: ConsultationType.Paid,
@@ -137,7 +182,15 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
   const appointmentRepo = new InMemoryAppointmentRepository(appointment);
   const sessionRepo = new InMemoryConsultationSessionRepository(session);
   const doctorProfileRepo = new InMemoryDoctorProfileRepository(doctor);
+  const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
+
+  const jwtSigner = new FakeJwtSigner(
+    new Map([
+      [PATIENT_TOKEN, { accountId: patient.getAccountId(), role: AccountRole.Patient }],
+      [OTHER_PATIENT_TOKEN, { accountId: otherPatient.getAccountId(), role: AccountRole.Patient }],
+    ]),
+  );
 
   const confirmAppointmentUseCase = new ConfirmAppointmentUseCase(
     appointmentRepo,
@@ -159,8 +212,15 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     controllers: [PaymentController],
     providers: [
       PinoLoggerService,
+      Reflector,
+      JwtAuthGuard,
+      RolesGuard,
+      { provide: JWT_SIGNER, useFactory: () => jwtSigner },
       { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
       { provide: InitiateChargeUseCase, useValue: initiateChargeUseCase },
+      { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
+      { provide: GetConsultationSessionByIdUseCase, useFactory: () => new GetConsultationSessionByIdUseCase(sessionRepo) },
+      { provide: GetAppointmentByIdUseCase, useFactory: () => new GetAppointmentByIdUseCase(appointmentRepo) },
     ],
   }).compile();
 
@@ -180,11 +240,41 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
 }
 
 describe('PaymentController (integration)', () => {
+  it('POST /payments rejects a request with no bearer token', async () => {
+    const { app, sessionId } = await buildApp(true);
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/payments')
+        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .expect(401);
+
+      assert.equal(response.body.error.code, 'UNAUTHORIZED');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /payments rejects a patient who was not treated in this consultation', async () => {
+    const { app, sessionId } = await buildApp(true);
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${OTHER_PATIENT_TOKEN}`)
+        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .expect(404);
+
+      assert.equal(response.body.error.code, 'NOT_FOUND');
+    } finally {
+      await app.close();
+    }
+  });
+
   it('POST /payments succeeds and returns a Succeeded transaction', async () => {
     const { app, sessionId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
         .expect(201);
 
@@ -200,6 +290,7 @@ describe('PaymentController (integration)', () => {
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
         .expect(402);
 
@@ -214,6 +305,7 @@ describe('PaymentController (integration)', () => {
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
           consultationSessionId: '99999999-9999-4999-8999-999999999999',
           amount: { amount: 500, currency: 'EGP' },
@@ -232,6 +324,7 @@ describe('PaymentController (integration)', () => {
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({ consultationSessionId: sessionId, amount: { amount: -5, currency: 'EGP' }, paymentMethod: 'card' })
         .expect(400);
 

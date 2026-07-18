@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { ConfirmAppointmentUseCase } from '../consultation/application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { PatientModule } from '../patient/patient.module.js';
 
 import type { PaymentGatewayPort } from './application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
@@ -39,7 +41,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
 // clear error naming exactly what's missing. Swap this binding for a real
 // adapter the moment a PSP is chosen -- nothing else changes.
 @Module({
-  imports: [ConsultationModule, DoctorModule],
+  imports: [ConsultationModule, DoctorModule, PatientModule, AuthenticationGuardsModule],
   controllers: [PaymentController],
   providers: [
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },

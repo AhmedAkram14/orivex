@@ -29,7 +29,9 @@ import {
 } from './application/event-handlers/pending-ai-suggestion-acknowledgment.handler.js';
 import { GetHealthGraphSubgraphUseCase } from './application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { GetPrescriptionByIdUseCase } from './application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
+import { ListClinicalNotesForConsultationSessionUseCase } from './application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
 import { ListHealthJourneysUseCase } from './application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
+import { ListPrescriptionsForConsultationSessionUseCase } from './application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from './application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { RecordClinicalNoteUseCase } from './application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
 import { RecordDiagnosisUseCase } from './application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
@@ -190,6 +192,16 @@ import { PrescriptionController } from './presentation/controllers/prescription.
       provide: ListVitalReadingsForPatientUseCase,
       useFactory: (repository: VitalReadingRepository) => new ListVitalReadingsForPatientUseCase(repository),
       inject: [VITAL_READING_REPOSITORY],
+    },
+    {
+      provide: ListPrescriptionsForConsultationSessionUseCase,
+      useFactory: (repository: PrescriptionRepository) => new ListPrescriptionsForConsultationSessionUseCase(repository),
+      inject: [PRESCRIPTION_REPOSITORY],
+    },
+    {
+      provide: ListClinicalNotesForConsultationSessionUseCase,
+      useFactory: (repository: ClinicalNoteRepository) => new ListClinicalNotesForConsultationSessionUseCase(repository),
+      inject: [CLINICAL_NOTE_REPOSITORY],
     },
   ],
   exports: [

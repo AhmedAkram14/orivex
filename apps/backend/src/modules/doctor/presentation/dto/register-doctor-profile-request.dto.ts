@@ -6,7 +6,6 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUUID,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -31,10 +30,10 @@ class PortfolioAwardDto {
   issuingBody?: string;
 }
 
+// accountId is intentionally not a client-supplied field -- the controller
+// derives it from the authenticated caller's JWT (CurrentUser), so a doctor
+// can only ever register a profile for their own account.
 export class RegisterDoctorProfileRequestDto {
-  @IsUUID()
-  accountId!: string;
-
   @IsString()
   @IsNotEmpty()
   licenseNumber!: string;

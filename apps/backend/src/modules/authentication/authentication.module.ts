@@ -29,6 +29,7 @@ import type { PasswordHasherPort } from './application/ports/password-hasher.por
 import type { TokenGeneratorPort } from './application/ports/token-generator.port.js';
 import { ChangePasswordUseCase } from './application/use-cases/change-password/change-password.use-case.js';
 import { ForgotPasswordUseCase } from './application/use-cases/forgot-password/forgot-password.use-case.js';
+import { ResendVerificationUseCase } from './application/use-cases/resend-verification/resend-verification.use-case.js';
 import { GetCurrentSessionUseCase } from './application/use-cases/get-current-session/get-current-session.use-case.js';
 import { ListDeviceSessionsUseCase } from './application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
 import { ListLoginHistoryForAccountUseCase } from './application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
@@ -196,6 +197,24 @@ import { AuthenticationController } from './presentation/controllers/authenticat
         EMAIL_SENDER,
         RecordSecurityEventUseCase,
       ],
+    },
+    {
+      provide: ResendVerificationUseCase,
+      useFactory: (
+        getAccountByEmailUseCase: GetAccountByEmailUseCase,
+        credentialRepository: CredentialRepository,
+        authTokenRepository: AuthTokenRepository,
+        tokenGenerator: TokenGeneratorPort,
+        emailSender: EmailSenderPort,
+      ) =>
+        new ResendVerificationUseCase(
+          getAccountByEmailUseCase,
+          credentialRepository,
+          authTokenRepository,
+          tokenGenerator,
+          emailSender,
+        ),
+      inject: [GetAccountByEmailUseCase, CREDENTIAL_REPOSITORY, AUTH_TOKEN_REPOSITORY, TOKEN_GENERATOR, EMAIL_SENDER],
     },
     {
       provide: ResetPasswordUseCase,

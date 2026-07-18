@@ -45,13 +45,16 @@ export class DoctorProfileController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
   async register(
+    @CurrentUser() user: AccessTokenClaims,
     @Body() body: RegisterDoctorProfileRequestDto,
   ): Promise<ResponseEnvelope<DoctorProfileResponseDto>> {
     try {
       const profile = await this.registerDoctorProfileUseCase.execute(
         new RegisterDoctorProfileCommand({
-          accountId: body.accountId,
+          accountId: user.accountId,
           licenseNumber: body.licenseNumber,
           specialty: body.specialty,
           biography: body.biography,
@@ -110,6 +113,10 @@ export class DoctorProfileController {
     }
   }
 
+  // Intentionally public: a doctor's professional profile (name, specialty,
+  // license, bio, experience) is public directory data, not PHI -- the same
+  // shape the future doctor-directory/search feature will surface to
+  // prospective patients. No guard needed.
   @Get(':id')
   async getById(
     @Param('id', ParseUUIDPipe) id: string,
@@ -127,11 +134,20 @@ export class DoctorProfileController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
   async update(
+    @CurrentUser() user: AccessTokenClaims,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateDoctorProfileRequestDto,
   ): Promise<ResponseEnvelope<DoctorProfileResponseDto>> {
     try {
+      const existing = await this.getDoctorProfileByIdUseCase.execute({ doctorProfileId: id });
+      // Same "never leak existence to a non-owner" pattern used by /doctors/me
+      // and every other own-resource mutation in this codebase.
+      if (!existing || existing.getAccountId() !== user.accountId) {
+        throw new NotFoundError(`Doctor profile "${id}" not found.`);
+      }
       const profile = await this.updateDoctorProfileUseCase.execute(
         new UpdateDoctorProfileCommand({
           doctorProfileId: id,

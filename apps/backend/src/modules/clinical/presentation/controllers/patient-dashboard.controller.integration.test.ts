@@ -34,7 +34,8 @@ import { GetPatientProfileByAccountIdUseCase } from '../../../patient/applicatio
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
-import { CLINICAL_NOTE_REPOSITORY, PRESCRIPTION_REPOSITORY } from '../../application/ports/tokens.js';
+import { ListClinicalNotesForConsultationSessionUseCase } from '../../application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
+import { ListPrescriptionsForConsultationSessionUseCase } from '../../application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { ClinicalNote } from '../../domain/entities/clinical-note.entity.js';
@@ -322,16 +323,19 @@ describe('PatientDashboardController (integration)', () => {
             new GetConsultationSessionByAppointmentIdUseCase(new InMemoryConsultationSessionRepository([session])),
         },
         {
-          provide: PRESCRIPTION_REPOSITORY,
-          useFactory: () => new InMemoryPrescriptionRepository([signedPrescription, expiredPrescription]),
+          provide: ListPrescriptionsForConsultationSessionUseCase,
+          useFactory: () =>
+            new ListPrescriptionsForConsultationSessionUseCase(
+              new InMemoryPrescriptionRepository([signedPrescription, expiredPrescription]),
+            ),
         },
         {
           provide: ListVitalReadingsForPatientUseCase,
           useFactory: () => new ListVitalReadingsForPatientUseCase(new InMemoryVitalReadingRepository([weightReading])),
         },
         {
-          provide: CLINICAL_NOTE_REPOSITORY,
-          useFactory: () => new InMemoryClinicalNoteRepository([clinicalNote]),
+          provide: ListClinicalNotesForConsultationSessionUseCase,
+          useFactory: () => new ListClinicalNotesForConsultationSessionUseCase(new InMemoryClinicalNoteRepository([clinicalNote])),
         },
         {
           provide: GetHealthGraphSubgraphUseCase,

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 
 import { ACCOUNT_REPOSITORY } from './application/ports/tokens.js';
 import { GetAccountByEmailUseCase } from './application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
@@ -19,6 +20,7 @@ import { AccountController } from './presentation/controllers/account.controller
 // ACCOUNT_REPOSITORY (this module) and DOMAIN_EVENT_DISPATCHER (shared,
 // bound once by the global EventsModule) by token.
 @Module({
+  imports: [AuthenticationGuardsModule],
   controllers: [AccountController],
   providers: [
     { provide: ACCOUNT_REPOSITORY, useClass: PrismaAccountRepository },

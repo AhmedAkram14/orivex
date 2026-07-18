@@ -6,6 +6,9 @@ import { getNotifications, markAllNotificationsAsRead, markNotificationAsRead } 
 const base = () => env.apiBaseUrl;
 
 export const notificationHandlers = [
+  // Every route below is a real endpoint (NotificationModule's
+  // NotificationController) -- these handlers exist purely to keep the
+  // frontend test suite deterministic, matching `patient.ts`/`scheduling.ts`.
   http.get(`${base()}${NOTIFICATIONS_PATHS.list}`, () => HttpResponse.json({ data: getNotifications() })),
 
   http.post(`${base()}/notifications/:id/read`, ({ params }) => {

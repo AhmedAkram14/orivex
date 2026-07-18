@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
+
 import type { ObjectStoragePort } from './application/ports/object-storage.port.js';
 import { MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE } from './application/ports/tokens.js';
 import { ConfirmUploadUseCase } from './application/use-cases/confirm-upload/confirm-upload.use-case.js';
@@ -13,6 +15,7 @@ import { MediaAssetController } from './presentation/controllers/media-asset.con
 // adapter" (docs/10-backend-architecture.md) — no imports of other feature
 // modules, unlike DoctorModule.
 @Module({
+  imports: [AuthenticationGuardsModule],
   controllers: [MediaAssetController],
   providers: [
     { provide: MEDIA_ASSET_REPOSITORY, useClass: PrismaMediaAssetRepository },

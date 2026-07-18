@@ -1,6 +1,16 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 
+import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
+import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
+import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
+import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
+import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { InitiateChargeCommand } from '../../application/use-cases/initiate-charge/initiate-charge.command.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { InitiateChargeRequestDto } from '../dto/initiate-charge-request.dto.js';
@@ -8,17 +18,30 @@ import { PaymentTransactionResponseDto } from '../dto/payment-transaction-respon
 import { mapPaymentError } from '../mappers/payment-exception.mapper.js';
 
 // Matches docs/12-openapi.md's POST /payments (initiateCharge) exactly.
-// No GET /payments/{id} is documented, so none is built.
+// No GET /payments/{id} is documented, so none is built. Gated to
+// AccountRole.Patient plus an ownership check that the caller is the
+// consultation's actual patient -- the use case itself already pins the
+// charge amount to the doctor's real fee, but never verified who was
+// paying.
 @Controller('payments')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(AccountRole.Patient)
 export class PaymentController {
-  constructor(private readonly initiateChargeUseCase: InitiateChargeUseCase) {}
+  constructor(
+    private readonly initiateChargeUseCase: InitiateChargeUseCase,
+    private readonly getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+    private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+    private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async initiateCharge(
+    @CurrentUser() user: AccessTokenClaims,
     @Body() body: InitiateChargeRequestDto,
   ): Promise<ResponseEnvelope<PaymentTransactionResponseDto>> {
     try {
+      await this.ensureOwnedByCaller(body.consultationSessionId, user);
       const transaction = await this.initiateChargeUseCase.execute(
         new InitiateChargeCommand({
           consultationSessionId: body.consultationSessionId,
@@ -30,6 +53,18 @@ export class PaymentController {
       return envelope(PaymentTransactionResponseDto.fromDomain(transaction));
     } catch (error) {
       throw mapPaymentError(error);
+    }
+  }
+
+  private async ensureOwnedByCaller(consultationSessionId: string, user: AccessTokenClaims): Promise<void> {
+    const session = await this.getConsultationSessionByIdUseCase.execute({ consultationSessionId });
+    if (!session) {
+      throw new NotFoundError(`ConsultationSession "${consultationSessionId}" not found.`);
+    }
+    const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: session.getAppointmentId() });
+    const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!appointment || !patientProfile || appointment.getPatientId() !== patientProfile.getId()) {
+      throw new NotFoundError(`ConsultationSession "${consultationSessionId}" not found.`);
     }
   }
 }
