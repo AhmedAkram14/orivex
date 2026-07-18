@@ -21,6 +21,7 @@ import type { DoctorProfileRepository } from '../../../../doctor/domain/reposito
 import { PaymentTransaction } from '../../../domain/entities/payment-transaction.entity.js';
 import { PaymentMethod } from '../../../domain/enums/payment-method.enum.js';
 import { PaymentStatus } from '../../../domain/enums/payment-status.enum.js';
+import { IdempotencyKeyConflictError } from '../../../domain/exceptions/idempotency-key-conflict.error.js';
 import { PaymentAuthorizationFailedError } from '../../../domain/exceptions/payment-authorization-failed.error.js';
 import { PaymentDomainError } from '../../../domain/exceptions/payment-domain.error.js';
 import type { PaymentTransactionRepository } from '../../../domain/repositories/payment-transaction.repository.js';
@@ -78,11 +79,17 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   public readonly saved: PaymentTransaction[] = [];
+  private readonly byIdempotencyKey = new Map<string, PaymentTransaction>();
+
   async findById(): Promise<PaymentTransaction | null> {
     return null;
   }
+  async findByIdempotencyKey(idempotencyKey: string): Promise<PaymentTransaction | null> {
+    return this.byIdempotencyKey.get(idempotencyKey) ?? null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.saved.push(transaction);
+    this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
   }
 }
 
@@ -182,6 +189,7 @@ describe('InitiateChargeUseCase', () => {
 
     const transaction = await useCase.execute(
       new InitiateChargeCommand({
+        idempotencyKey: 'idem-key-succeeds',
         consultationSessionId: session.getId(),
         amount: 500,
         currency: 'EGP',
@@ -208,6 +216,7 @@ describe('InitiateChargeUseCase', () => {
       () =>
         useCase.execute(
           new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-fails',
             consultationSessionId: session.getId(),
             amount: 500,
             currency: 'EGP',
@@ -234,6 +243,7 @@ describe('InitiateChargeUseCase', () => {
       () =>
         useCase.execute(
           new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-unknown-session',
             consultationSessionId: '99999999-9999-4999-8999-999999999999',
             amount: 500,
             currency: 'EGP',
@@ -260,6 +270,7 @@ describe('InitiateChargeUseCase', () => {
       () =>
         useCase.execute(
           new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-amount-mismatch',
             consultationSessionId: session.getId(),
             amount: 1,
             currency: 'EGP',
@@ -286,6 +297,7 @@ describe('InitiateChargeUseCase', () => {
       () =>
         useCase.execute(
           new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-no-fee',
             consultationSessionId: session.getId(),
             amount: 500,
             currency: 'EGP',
@@ -324,6 +336,7 @@ describe('InitiateChargeUseCase', () => {
       () =>
         useCase.execute(
           new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-free-consultation',
             consultationSessionId: freeSession.getId(),
             amount: 0,
             currency: 'EGP',
@@ -333,5 +346,89 @@ describe('InitiateChargeUseCase', () => {
       PaymentDomainError,
     );
     assert.equal(transactionRepo.saved.length, 0);
+  });
+
+  it('replays the original outcome instead of re-charging when the same idempotency key is reused with the same request', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    let authorizeCallCount = 0;
+    const countingGateway: PaymentGatewayPort = {
+      authorize: async () => {
+        authorizeCallCount += 1;
+        return { succeeded: true };
+      },
+    };
+    const useCase = buildUseCase({ appointment, session, gateway: countingGateway, transactionRepo });
+
+    const command = new InitiateChargeCommand({
+      idempotencyKey: 'idem-key-replay',
+      consultationSessionId: session.getId(),
+      amount: 500,
+      currency: 'EGP',
+      paymentMethod: PaymentMethod.Card,
+    });
+
+    const first = await useCase.execute(command);
+    const second = await useCase.execute(command);
+
+    assert.equal(authorizeCallCount, 1);
+    assert.equal(second.getId(), first.getId());
+    assert.equal(second.getStatus(), PaymentStatus.Succeeded);
+  });
+
+  it('replays a prior failure without recalling the gateway when the same idempotency key is reused', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    let authorizeCallCount = 0;
+    const countingFailingGateway: PaymentGatewayPort = {
+      authorize: async () => {
+        authorizeCallCount += 1;
+        return { succeeded: false };
+      },
+    };
+    const useCase = buildUseCase({ appointment, session, gateway: countingFailingGateway, transactionRepo });
+
+    const command = new InitiateChargeCommand({
+      idempotencyKey: 'idem-key-replay-failure',
+      consultationSessionId: session.getId(),
+      amount: 500,
+      currency: 'EGP',
+      paymentMethod: PaymentMethod.Card,
+    });
+
+    await assert.rejects(() => useCase.execute(command), PaymentAuthorizationFailedError);
+    await assert.rejects(() => useCase.execute(command), PaymentAuthorizationFailedError);
+
+    assert.equal(authorizeCallCount, 1);
+  });
+
+  it('throws IdempotencyKeyConflictError when the same key is reused with a different request', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const useCase = buildUseCase({ appointment, session, gateway: new FakeSucceedingGateway(), transactionRepo });
+
+    await useCase.execute(
+      new InitiateChargeCommand({
+        idempotencyKey: 'idem-key-conflict',
+        consultationSessionId: session.getId(),
+        amount: 500,
+        currency: 'EGP',
+        paymentMethod: PaymentMethod.Card,
+      }),
+    );
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-conflict',
+            consultationSessionId: session.getId(),
+            amount: 999,
+            currency: 'EGP',
+            paymentMethod: PaymentMethod.Card,
+          }),
+        ),
+      IdempotencyKeyConflictError,
+    );
   });
 });

@@ -450,6 +450,10 @@ enum PaymentMethod {
 // exactly. RESTRICT on every FK -- financial data, never cascade-deleted.
 model PaymentTransaction {
   id                    String               @id @default(uuid())
+  // Production Readiness Audit: client-supplied, globally-unique key that
+  // makes initiateCharge safely retryable -- a network-timeout retry of the
+  // same request replays the original outcome instead of double-charging.
+  idempotencyKey        String               @unique
   consultationSessionId String?
   consultationSession   ConsultationSession?  @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   patientId             String

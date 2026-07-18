@@ -10,6 +10,7 @@ import { PaymentTransaction } from './payment-transaction.entity.js';
 
 function initiateTransaction(): PaymentTransaction {
   return PaymentTransaction.initiate({
+    idempotencyKey: 'idem-key-1',
     consultationSessionId: '11111111-1111-4111-8111-111111111111',
     patientId: '22222222-2222-4222-8222-222222222222',
     doctorId: '33333333-3333-4333-8333-333333333333',

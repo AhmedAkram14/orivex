@@ -17,8 +17,14 @@ export class PrismaPaymentTransactionRepository implements PaymentTransactionRep
     return row ? toDomainPaymentTransaction(row) : null;
   }
 
+  async findByIdempotencyKey(idempotencyKey: string): Promise<PaymentTransaction | null> {
+    const row = await this.prisma.paymentTransaction.findUnique({ where: { idempotencyKey } });
+    return row ? toDomainPaymentTransaction(row) : null;
+  }
+
   async save(transaction: PaymentTransaction): Promise<void> {
     const data = {
+      idempotencyKey: transaction.getIdempotencyKey(),
       consultationSessionId: transaction.getConsultationSessionId() ?? null,
       patientId: transaction.getPatientId(),
       doctorId: transaction.getDoctorId(),

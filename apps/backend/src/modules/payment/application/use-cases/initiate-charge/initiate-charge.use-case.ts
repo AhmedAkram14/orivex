@@ -7,8 +7,10 @@ import type { GetConsultationSessionByIdUseCase } from '../../../../consultation
 import { ConsultationType } from '../../../../consultation/domain/enums/consultation-type.enum.js';
 import type { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { PaymentTransaction } from '../../../domain/entities/payment-transaction.entity.js';
+import { IdempotencyKeyConflictError } from '../../../domain/exceptions/idempotency-key-conflict.error.js';
 import { PaymentAuthorizationFailedError } from '../../../domain/exceptions/payment-authorization-failed.error.js';
 import { PaymentDomainError } from '../../../domain/exceptions/payment-domain.error.js';
+import { PaymentStatus } from '../../../domain/enums/payment-status.enum.js';
 import { Money } from '../../../domain/value-objects/money.value-object.js';
 import type { PaymentTransactionRepository } from '../../../domain/repositories/payment-transaction.repository.js';
 import type { PaymentGatewayPort } from '../../ports/payment-gateway.port.js';
@@ -49,6 +51,11 @@ export class InitiateChargeUseCase {
   ) {}
 
   async execute(command: InitiateChargeCommand): Promise<PaymentTransaction> {
+    const existing = await this.paymentTransactionRepository.findByIdempotencyKey(command.idempotencyKey);
+    if (existing) {
+      return this.replay(existing, command);
+    }
+
     const session = await this.getConsultationSessionByIdUseCase.execute({
       consultationSessionId: command.consultationSessionId,
     });
@@ -81,6 +88,7 @@ export class InitiateChargeUseCase {
 
     const amount = Money.create(command.amount, command.currency);
     const transaction = PaymentTransaction.initiate({
+      idempotencyKey: command.idempotencyKey,
       consultationSessionId: command.consultationSessionId,
       patientId: appointment.getPatientId(),
       doctorId: appointment.getDoctorId(),
@@ -108,5 +116,28 @@ export class InitiateChargeUseCase {
     await this.confirmAppointmentUseCase.execute(new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }));
 
     return transaction;
+  }
+
+  // A request reusing an idempotency key never re-runs the charge -- it
+  // either replays the original outcome (same params) or rejects a key
+  // reused with different params (a client bug, not a legitimate retry).
+  private replay(existing: PaymentTransaction, command: InitiateChargeCommand): PaymentTransaction {
+    const sameRequest =
+      existing.getConsultationSessionId() === command.consultationSessionId &&
+      existing.getAmount().getAmount() === command.amount &&
+      existing.getAmount().getCurrency() === command.currency &&
+      existing.getPaymentMethod() === command.paymentMethod;
+
+    if (!sameRequest) {
+      throw new IdempotencyKeyConflictError(
+        `Idempotency key "${command.idempotencyKey}" was already used for a different request.`,
+      );
+    }
+
+    if (existing.getStatus() === PaymentStatus.Failed) {
+      throw new PaymentAuthorizationFailedError('Payment authorization failed.');
+    }
+
+    return existing;
   }
 }

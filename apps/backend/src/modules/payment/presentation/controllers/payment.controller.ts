@@ -44,6 +44,7 @@ export class PaymentController {
       await this.ensureOwnedByCaller(body.consultationSessionId, user);
       const transaction = await this.initiateChargeUseCase.execute(
         new InitiateChargeCommand({
+          idempotencyKey: body.idempotencyKey,
           consultationSessionId: body.consultationSessionId,
           amount: body.amount.amount,
           currency: body.amount.currency,

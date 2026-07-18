@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   // AssetModule serves media via signed, time-limited S3 URLs
@@ -15,4 +16,13 @@ const nextConfig: NextConfig = {
 
 const withNextIntl = createNextIntlPlugin('./src/shared/i18n/request.ts');
 
-export default withNextIntl(nextConfig);
+// withSentryConfig only uploads source maps / wraps build output when a
+// Sentry auth token + org/project are configured (see docs/15-observability.md);
+// with none of those set it's a harmless passthrough, matching this file's
+// existing "optional integration" pattern.
+export default withSentryConfig(withNextIntl(nextConfig), {
+  silent: true,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  disableLogger: true,
+});

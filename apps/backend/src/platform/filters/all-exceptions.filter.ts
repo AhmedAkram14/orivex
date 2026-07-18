@@ -12,6 +12,7 @@ import type { Request, Response } from 'express';
 import { correlationContext } from '../../shared/correlation/correlation-context.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { PinoLoggerService } from '../logging/pino-logger.service.js';
+import { captureUnexpectedError } from '../observability/error-reporting.js';
 import { VALIDATION_FAILED_CODE } from '../validation/constants/validation-codes.js';
 import { VALIDATION_FAILED_MESSAGE } from '../validation/constants/validation-messages.js';
 import { ValidationFailedException } from '../validation/validation-exception.js';
@@ -41,6 +42,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof Error ? exception.stack : String(exception),
       { requestId, path: request.originalUrl },
     );
+
+    // Only genuinely unexpected (5xx) failures are reported to Sentry --
+    // every documented 4xx (validation, domain rules, not-found, forbidden)
+    // is expected API behavior, not an incident.
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      captureUnexpectedError(exception, { requestId, path: request.originalUrl });
+    }
 
     response.status(status).json({
       error: {

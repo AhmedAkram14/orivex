@@ -15,3 +15,8 @@ next-env.d.ts
 
 # Storybook (apps/frontend)
 storybook-static
+
+# Playwright (apps/frontend)
+/apps/frontend/test-results
+/apps/frontend/playwright-report
+/apps/frontend/playwright/.cache

@@ -9,6 +9,7 @@ import { toDomainPaymentStatus } from './payment-status.mapper.js';
 export function toDomainPaymentTransaction(row: PrismaPaymentTransactionRow): PaymentTransaction {
   return PaymentTransaction.reconstitute({
     id: row.id,
+    idempotencyKey: row.idempotencyKey,
     consultationSessionId: row.consultationSessionId ?? undefined,
     patientId: row.patientId,
     doctorId: row.doctorId,

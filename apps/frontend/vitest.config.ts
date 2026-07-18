@@ -23,7 +23,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
-    exclude: ['node_modules', '.next', '.storybook'],
+    // tests/e2e is Playwright's suite (playwright.config.ts), not Vitest's --
+    // it has its own test.describe()/test() from @playwright/test that
+    // Vitest must never try to collect.
+    exclude: ['node_modules', '.next', '.storybook', 'tests/e2e'],
     server: {
       // Forces next-intl's navigation module through Vite's own resolver
       // (which respects the alias above) instead of Node's native ESM

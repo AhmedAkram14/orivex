@@ -117,10 +117,19 @@ class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
 }
 
 class InMemoryPaymentTransactionRepository implements PaymentTransactionRepository {
-  async findById(): Promise<PaymentTransaction | null> {
-    return null;
+  private readonly byId = new Map<string, PaymentTransaction>();
+  private readonly byIdempotencyKey = new Map<string, PaymentTransaction>();
+
+  async findById(id: string): Promise<PaymentTransaction | null> {
+    return this.byId.get(id) ?? null;
   }
-  async save(): Promise<void> {}
+  async findByIdempotencyKey(idempotencyKey: string): Promise<PaymentTransaction | null> {
+    return this.byIdempotencyKey.get(idempotencyKey) ?? null;
+  }
+  async save(transaction: PaymentTransaction): Promise<void> {
+    this.byId.set(transaction.getId(), transaction);
+    this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
+  }
 }
 
 // Test-only fake gateway -- standard test-double practice, not a
@@ -245,10 +254,30 @@ describe('PaymentController (integration)', () => {
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
-        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .send({
+          idempotencyKey: 'idem-no-token',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'card',
+        })
         .expect(401);
 
       assert.equal(response.body.error.code, 'UNAUTHORIZED');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /payments rejects a request missing the idempotencyKey with 400', async () => {
+    const { app, sessionId } = await buildApp(true);
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .expect(400);
+
+      assert.equal(response.body.error.code, 'VALIDATION_FAILED');
     } finally {
       await app.close();
     }
@@ -260,7 +289,12 @@ describe('PaymentController (integration)', () => {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${OTHER_PATIENT_TOKEN}`)
-        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .send({
+          idempotencyKey: 'idem-wrong-patient',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'card',
+        })
         .expect(404);
 
       assert.equal(response.body.error.code, 'NOT_FOUND');
@@ -275,11 +309,76 @@ describe('PaymentController (integration)', () => {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
-        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .send({
+          idempotencyKey: 'idem-succeeds',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'card',
+        })
         .expect(201);
 
       assert.equal(response.body.data.status, 'succeeded');
       assert.equal(response.body.data.amount.currency, 'EGP');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /payments replays the original outcome instead of double-charging when the request is retried with the same idempotencyKey', async () => {
+    const { app, sessionId } = await buildApp(true);
+    try {
+      const body = {
+        idempotencyKey: 'idem-retry',
+        consultationSessionId: sessionId,
+        amount: { amount: 500, currency: 'EGP' },
+        paymentMethod: 'card',
+      };
+
+      const first = await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .send(body)
+        .expect(201);
+
+      const retry = await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .send(body)
+        .expect(201);
+
+      assert.equal(retry.body.data.id, first.body.data.id);
+      assert.equal(retry.body.data.status, 'succeeded');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('POST /payments returns 409 when the same idempotencyKey is reused with a different request', async () => {
+    const { app, sessionId } = await buildApp(true);
+    try {
+      await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .send({
+          idempotencyKey: 'idem-conflict',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'card',
+        })
+        .expect(201);
+
+      const response = await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .send({
+          idempotencyKey: 'idem-conflict',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'mobile_wallet',
+        })
+        .expect(409);
+
+      assert.equal(response.body.error.code, 'CONFLICT');
     } finally {
       await app.close();
     }
@@ -291,7 +390,12 @@ describe('PaymentController (integration)', () => {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
-        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .send({
+          idempotencyKey: 'idem-declined',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'card',
+        })
         .expect(402);
 
       assert.equal(response.body.error.code, 'PAYMENT_REQUIRED');
@@ -307,6 +411,7 @@ describe('PaymentController (integration)', () => {
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
+          idempotencyKey: 'idem-unknown-session',
           consultationSessionId: '99999999-9999-4999-8999-999999999999',
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
@@ -325,7 +430,12 @@ describe('PaymentController (integration)', () => {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
-        .send({ consultationSessionId: sessionId, amount: { amount: -5, currency: 'EGP' }, paymentMethod: 'card' })
+        .send({
+          idempotencyKey: 'idem-invalid-amount',
+          consultationSessionId: sessionId,
+          amount: { amount: -5, currency: 'EGP' },
+          paymentMethod: 'card',
+        })
         .expect(400);
 
       assert.equal(response.body.error.code, 'VALIDATION_FAILED');

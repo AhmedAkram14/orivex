@@ -9,6 +9,7 @@ import { PaymentStatus } from '../enums/payment-status.enum.js';
 import { Money } from '../value-objects/money.value-object.js';
 
 export interface InitiateTransactionProps {
+  idempotencyKey: string;
   consultationSessionId?: string;
   patientId: string;
   doctorId: string;
@@ -18,6 +19,7 @@ export interface InitiateTransactionProps {
 
 export interface ReconstituteTransactionProps {
   id: string;
+  idempotencyKey: string;
   consultationSessionId?: string;
   patientId: string;
   doctorId: string;
@@ -38,6 +40,7 @@ export class PaymentTransaction {
 
   private constructor(
     private readonly id: string,
+    private readonly idempotencyKey: string,
     private readonly consultationSessionId: string | undefined,
     private readonly patientId: string,
     private readonly doctorId: string,
@@ -52,6 +55,7 @@ export class PaymentTransaction {
     const now = new Date();
     return new PaymentTransaction(
       randomUUID(),
+      props.idempotencyKey,
       props.consultationSessionId,
       props.patientId,
       props.doctorId,
@@ -66,6 +70,7 @@ export class PaymentTransaction {
   static reconstitute(props: ReconstituteTransactionProps): PaymentTransaction {
     return new PaymentTransaction(
       props.id,
+      props.idempotencyKey,
       props.consultationSessionId,
       props.patientId,
       props.doctorId,
@@ -125,6 +130,10 @@ export class PaymentTransaction {
 
   getId(): string {
     return this.id;
+  }
+
+  getIdempotencyKey(): string {
+    return this.idempotencyKey;
   }
 
   getConsultationSessionId(): string | undefined {

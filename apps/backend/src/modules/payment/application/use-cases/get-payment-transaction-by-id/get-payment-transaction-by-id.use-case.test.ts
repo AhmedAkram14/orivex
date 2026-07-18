@@ -13,12 +13,16 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findById(): Promise<PaymentTransaction | null> {
     return this.transaction;
   }
+  async findByIdempotencyKey(): Promise<PaymentTransaction | null> {
+    return this.transaction;
+  }
   async save(): Promise<void> {}
 }
 
 describe('GetPaymentTransactionByIdUseCase', () => {
   it('returns the transaction when it exists', async () => {
     const transaction = PaymentTransaction.initiate({
+      idempotencyKey: 'idem-key-1',
       patientId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
       amount: Money.create(500, 'EGP'),

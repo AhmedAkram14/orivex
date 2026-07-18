@@ -11,6 +11,11 @@ export class PinoLoggerService implements LoggerService {
     this.logger = pino({
       level: process.env.LOG_LEVEL ?? 'info',
       timestamp: pino.stdTimeFunctions.isoTime,
+      // Every log line carries these so a log aggregator (e.g. the one
+      // Sentry/Grafana/whatever collector consumes structured logs from)
+      // can filter/group by service and deployed version without parsing
+      // the message text -- see docs/15-observability.md.
+      base: { service: 'orivex-backend', env: process.env.NODE_ENV ?? 'development' },
       transport:
         process.env.NODE_ENV === 'development'
           ? {

@@ -43,6 +43,10 @@ services:
         value: info
       - key: OTEL_ENABLED
         value: "false"
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
       - key: CORS_ORIGINS
         sync: false
       - key: DATABASE_URL

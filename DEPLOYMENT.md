@@ -14,7 +14,10 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 | `PORT` | optional (default `3000`) | Do **not** set manually on Render — it injects its own |
 | `LOG_LEVEL` | optional (default `info`) | — |
 | `CORS_ORIGINS` | **yes** | Yes — enforced on every request |
-| `OTEL_ENABLED` | optional (default `false`) | Yes, but even when enabled no tracing SDK is wired up yet — a no-op |
+| `OTEL_ENABLED` | optional (default `false`) | Yes — boots a real OpenTelemetry NodeSDK exporting to `OTEL_EXPORTER_OTLP_ENDPOINT` (see `docs/15-observability.md`) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | required if `OTEL_ENABLED=true` | Yes — where spans are exported to |
+| `SENTRY_DSN` | optional | Yes, if set — enables error reporting for 5xx failures (see `docs/15-observability.md`) |
+| `SENTRY_TRACES_SAMPLE_RATE` | optional (default `0.1`) | Yes, if `SENTRY_DSN` is set |
 | `DATABASE_URL` | **yes** | Yes — every request |
 | `REDIS_URL` | optional | **No code path connects to Redis yet.** Not validated at boot; omit entirely if unused. |
 | `JWT_ACCESS_SECRET` | **yes** (min 32 chars) | Yes — AuthenticationModule signs/verifies every access token with it |
@@ -125,6 +128,100 @@ Check the Render dashboard's **Logs** tab for the `[docker-entrypoint]` migratio
 ### A scaling note for later
 
 `prisma migrate deploy` runs in every container's entrypoint on every start. That's correct and safe for a single instance (this sprint's scope). If `orivex-backend` is ever scaled to multiple concurrent instances, migrations should be moved to a separate one-off Render Job run before the new instances start, to avoid every instance racing to apply the same migration simultaneously — a future operational change, not something this sprint's single-instance deployment needs.
+
+## Backup & Disaster Recovery
+
+Production Readiness Audit follow-up (Phase 1, item 3). Two independent
+data stores hold everything the platform cannot regenerate: **Neon
+Postgres** (all application/clinical data) and the **S3-compatible object
+store** (uploaded media — verification documents, etc.). Each has its own
+backup story below.
+
+### 1. Database (Neon Postgres)
+
+Neon's paid plans (and its free tier, with a shorter window) include
+**continuous, automatic point-in-time recovery (PITR)** — every committed
+write is retained via WAL, not just nightly snapshots. This is a platform
+feature, not something this codebase configures; it must be verified once
+per Neon project, not once per deploy:
+
+**Setup / verification checklist** (do this once when the production Neon
+project is created, and re-verify after any plan change):
+
+1. In the Neon console, open the project → **Settings** → **Backup/Restore**
+   (naming varies by Neon's current UI version).
+2. Confirm the **PITR retention window** for the current plan (commonly 7
+   days on paid plans, shorter on free — check the actual number, don't
+   assume). This is the maximum age of any point you can restore to.
+3. Record that retention window in this repo's incident-response runbook
+   (wherever your team keeps on-call docs) so whoever responds to an
+   incident at 3am doesn't have to go find it under pressure.
+4. If the retention window is shorter than your actual tolerance for data
+   loss (RPO — see below), upgrade the Neon plan. This is a business
+   decision, not a code change.
+
+**Restore procedure** (verify this actually works — an untested restore
+procedure is not a real one):
+
+1. In the Neon console, use **Restore** (or **Branching** → create a new
+   branch from a specific timestamp/LSN before the incident). Neon
+   restores by creating a new branch at the chosen point in time — it does
+   not destructively roll back the existing branch in place, so the
+   pre-incident data is never lost even if the restore target is wrong.
+2. Point a **staging** `DATABASE_URL` at the restored branch first and run
+   the application's own health checks (`/health/readiness`) plus a manual
+   spot-check of a few known records, before ever repointing production.
+3. Once verified, update the production `DATABASE_URL` (Render dashboard
+   env var, or the equivalent secrets store) to the restored branch's
+   connection string and redeploy.
+4. Run `prisma migrate status` (see the Docker Compose section above) to
+   confirm the restored branch's schema version matches what the current
+   deployed code expects — a restore to a point before a migration ran
+   would otherwise boot the app against a schema it doesn't expect.
+
+**Recovery targets** (fill in with your actual business requirements — the
+values below are placeholders for a small early-stage deployment, not a
+mandate):
+
+- **RPO (Recovery Point Objective — how much data loss is acceptable):**
+  Neon's continuous PITR means RPO is effectively "seconds," bounded only by
+  replication lag, for anything within the retention window.
+- **RTO (Recovery Time Objective — how long recovery may take):** dominated
+  by human response time (noticing the incident, deciding to restore,
+  running the steps above), not Neon's restore mechanism itself, which
+  completes in minutes. Budget accordingly in your on-call process.
+
+### 2. Object storage (S3-compatible media assets)
+
+`MediaAsset` rows (Prisma) are metadata pointers; the actual binary content
+lives in the S3-compatible bucket configured via `S3_*` env vars. Losing the
+bucket loses the files even if the database is intact (and vice versa —
+losing the DB loses the ability to find/authorize access to files that still
+exist in the bucket).
+
+- Enable **versioning** on the production bucket (AWS S3: bucket
+  properties → Versioning; DigitalOcean Spaces and other S3-compatible
+  providers expose the same setting) so an accidental overwrite/delete is
+  recoverable without a separate backup system.
+- If the provider supports cross-region replication, enable it for the
+  production bucket — this is provider/plan-specific and outside what this
+  repo can configure, but should be recorded in the same
+  incident-response runbook as the Neon PITR window once decided.
+
+### 3. What is explicitly out of scope here
+
+- This document describes the **procedure**; it does not itself perform a
+  restore drill against the real production project (that requires access
+  to the actual Neon/S3 accounts, which this codebase has no way to hold or
+  exercise). Whoever has that access should walk through the restore
+  procedure above against a real staging branch at least once before launch,
+  and note the date/outcome somewhere durable (this file's git history is a
+  reasonable place: update this section with "Last verified: <date>" once
+  done).
+- Automated backup-verification tooling (a scheduled job that restores to a
+  scratch branch and runs a smoke test on a schedule) is a Nice-to-have for
+  later, not a blocker for an early-stage launch with a small, recoverable
+  dataset.
 
 ## Known, pre-existing gaps unrelated to this sprint
 

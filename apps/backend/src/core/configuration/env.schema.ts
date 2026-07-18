@@ -11,6 +11,17 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // Where OTEL_ENABLED's spans are exported to (an OTLP/HTTP collector --
+  // e.g. Grafana Tempo, Honeycomb, a local otel-collector). Optional: if
+  // OTEL_ENABLED is true but this is unset, tracing logs a warning and
+  // stays disabled rather than failing to boot.
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  // Sentry error reporting. Optional -- if unset, Sentry.init() is never
+  // called and error capture is a no-op (matches the rest of this schema's
+  // "no safe default for a thing that isn't provisioned yet" pattern, e.g.
+  // REDIS_URL below).
+  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
   DATABASE_URL: z.string().url(),
   // Optional: no code path in this codebase connects to Redis yet (no
   // client is ever instantiated from this value) -- unlike S3 below, which
