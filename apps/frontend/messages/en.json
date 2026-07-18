@@ -264,6 +264,9 @@
       "upcomingWorkTitle": "Upcoming work",
       "upcomingWorkEmptyTitle": "Nothing scheduled yet",
       "upcomingWorkEmptyDescription": "Your upcoming consultations will appear here once scheduling is available.",
+      "summaryLoadError": "Couldn't load today's summary.",
+      "upcomingWorkLoadError": "Couldn't load your upcoming work.",
+      "availabilityLoadError": "Couldn't load your next available slot.",
       "upcomingWork": {
         "status": {
           "upcoming": "Upcoming",
@@ -386,6 +389,9 @@
       "activePrescriptionsTitle": "Active prescriptions",
       "activePrescriptionsEmptyTitle": "No active prescriptions",
       "activePrescriptionsEmptyDescription": "Your active prescriptions will appear here once they are prescribed.",
+      "summaryLoadError": "Couldn't load your health summary.",
+      "upcomingAppointmentsLoadError": "Couldn't load your upcoming appointments.",
+      "activePrescriptionsLoadError": "Couldn't load your active prescriptions.",
       "prescribedBy": "Prescribed by {name}",
       "quickActions": {
         "viewProfile": "View profile",

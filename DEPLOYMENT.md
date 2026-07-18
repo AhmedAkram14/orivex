@@ -18,6 +18,7 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | required if `OTEL_ENABLED=true` | Yes — where spans are exported to |
 | `SENTRY_DSN` | optional | Yes, if set — enables error reporting for 5xx failures (see `docs/15-observability.md`) |
 | `SENTRY_TRACES_SAMPLE_RATE` | optional (default `0.1`) | Yes, if `SENTRY_DSN` is set |
+| `OPENAPI_ENABLED` | optional (default `false`) | Only if you want `GET /docs` (Swagger UI) reachable in production — it's always on outside production regardless of this flag |
 | `DATABASE_URL` | **yes** | Yes — every request |
 | `REDIS_URL` | optional | **No code path connects to Redis yet.** Not validated at boot; omit entirely if unused. |
 | `JWT_ACCESS_SECRET` | **yes** (min 32 chars) | Yes — AuthenticationModule signs/verifies every access token with it |

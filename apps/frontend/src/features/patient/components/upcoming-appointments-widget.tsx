@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { usePatientUpcomingAppointments } from '@/features/patient/hooks/use-patient-upcoming-appointments';
 import type { UpcomingAppointmentPreview } from '@/features/patient/api/types';
+import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { TimelineCard } from '@/shared/ui/layout/timeline-card';
@@ -17,11 +18,13 @@ function StatusLabel({ status }: { status: UpcomingAppointmentPreview['status'] 
 export function UpcomingAppointmentsWidget() {
   const t = useTranslations('patient.dashboard');
   const format = useFormatter();
-  const { data: items, isLoading } = usePatientUpcomingAppointments();
+  const { data: items, isLoading, isError } = usePatientUpcomingAppointments();
 
   return (
     <WidgetContainer title={t('upcomingAppointmentsTitle')}>
-      {isLoading ? (
+      {isError ? (
+        <Alert variant="danger">{t('upcomingAppointmentsLoadError')}</Alert>
+      ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />

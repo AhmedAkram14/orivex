@@ -23,6 +23,7 @@ import { GetConsultationSessionByAppointmentIdUseCase } from './application/use-
 import { GetConsultationSessionByIdUseCase } from './application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from './application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from './application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
+import { ListAppointmentsForPatientPageUseCase } from './application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from './application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from './application/use-cases/start-consultation/start-consultation.use-case.js';
 import type { AppointmentRepository } from './domain/repositories/appointment.repository.js';
@@ -125,6 +126,11 @@ import { ConsultationController } from './presentation/controllers/consultation.
       inject: [APPOINTMENT_REPOSITORY],
     },
     {
+      provide: ListAppointmentsForPatientPageUseCase,
+      useFactory: (repository: AppointmentRepository) => new ListAppointmentsForPatientPageUseCase(repository),
+      inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
       provide: ListAppointmentsForDoctorUseCase,
       useFactory: (repository: AppointmentRepository) => new ListAppointmentsForDoctorUseCase(repository),
       inject: [APPOINTMENT_REPOSITORY],
@@ -161,6 +167,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
     ConfirmAppointmentUseCase,
     GetAppointmentByIdUseCase,
     ListAppointmentsForPatientUseCase,
+    ListAppointmentsForPatientPageUseCase,
     GetConsultationSessionByIdUseCase,
     GetConsultationSessionByAppointmentIdUseCase,
     StartConsultationUseCase,

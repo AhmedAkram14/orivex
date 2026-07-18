@@ -3,11 +3,13 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module.js';
 import type { EnvConfig } from './core/configuration/env.schema.js';
+import { buildOpenApiDocument } from './platform/openapi/openapi-document.js';
 import { bootstrapErrorReporting } from './platform/observability/error-reporting.js';
 import { bootstrapTracing } from './platform/observability/tracing.js';
 import { PinoLoggerService } from './platform/logging/pino-logger.service.js';
@@ -46,6 +48,11 @@ async function bootstrap(): Promise<void> {
       exceptionFactory: createValidationException,
     }),
   );
+  const openApiEnabled = configService.get('OPENAPI_ENABLED', { infer: true }) || configService.get('NODE_ENV', { infer: true }) !== 'production';
+  if (openApiEnabled) {
+    SwaggerModule.setup('docs', app, buildOpenApiDocument(app));
+  }
+
   app.enableShutdownHooks();
   // Flushes any buffered spans before the process actually exits --
   // separate from Nest's own onModuleDestroy hooks above, since the

@@ -3,11 +3,22 @@ import type { Appointment } from '../entities/appointment.entity.js';
 export interface AppointmentRepository {
   findById(id: string): Promise<Appointment | null>;
   // Ordered by scheduledAt descending (most recent/upcoming first) -- the
-  // only ordering a patient's own appointment list needs today.
+  // only ordering a patient's own appointment list needs today. Unbounded --
+  // GET /appointments/me uses findByPatientIdPage/countByPatientId below
+  // instead (Production Readiness Audit -- "introduce pagination where
+  // required"); other consumers (booking conflict checks, dashboards) still
+  // need every appointment regardless of page.
   findByPatientId(patientId: string): Promise<Appointment[]>;
+  findByPatientIdPage(patientId: string, skip: number, take: number): Promise<Appointment[]>;
+  countByPatientId(patientId: string): Promise<number>;
   // Ordered by scheduledAt ascending (soonest first) -- backs a doctor's
   // "what's coming up" view, the opposite ordering need from a patient's list.
   findByDoctorId(doctorId: string): Promise<Appointment[]>;
+  // Same ordering as findByDoctorId, scoped to a [start, end) window at the
+  // database level -- backs "today's appointments" (dashboard summary,
+  // queue) without fetching a doctor's entire appointment history to filter
+  // it in memory (Production Readiness Audit finding).
+  findByDoctorIdForDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]>;
   // Throws on a stale version (optimistic locking) -- callers must reload
   // and retry rather than treat this as a generic failure.
   save(appointment: Appointment): Promise<void>;

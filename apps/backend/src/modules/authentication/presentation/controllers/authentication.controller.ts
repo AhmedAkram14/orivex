@@ -159,6 +159,7 @@ export class AuthenticationController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async refresh(
     @Req() request: RequestWithCookies,
     @Res({ passthrough: true }) response: Response,
@@ -194,6 +195,7 @@ export class AuthenticationController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async resetPassword(
     @Body() body: ResetPasswordRequestDto,
   ): Promise<ResponseEnvelope<ResetPasswordResponseDto>> {
@@ -209,6 +211,7 @@ export class AuthenticationController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async verifyEmail(@Body() body: VerifyEmailRequestDto): Promise<ResponseEnvelope<VerifyEmailResponseDto>> {
     try {
       await this.verifyEmailUseCase.execute(new VerifyEmailCommand({ token: body.token }));
@@ -231,6 +234,7 @@ export class AuthenticationController {
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   async changePassword(
     @Body() body: ChangePasswordRequestDto,
     @CurrentUser() user: AccessTokenClaims,

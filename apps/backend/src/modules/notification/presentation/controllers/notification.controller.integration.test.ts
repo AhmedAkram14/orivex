@@ -37,6 +37,12 @@ class InMemoryNotificationRepository implements NotificationRepository {
   async findByAccountId(accountId: string): Promise<Notification[]> {
     return Array.from(this.byId.values()).filter((n) => n.getAccountId() === accountId);
   }
+  async findByAccountIdPage(accountId: string, skip: number, take: number): Promise<Notification[]> {
+    return (await this.findByAccountId(accountId)).slice(skip, skip + take);
+  }
+  async countByAccountId(accountId: string): Promise<number> {
+    return (await this.findByAccountId(accountId)).length;
+  }
   async save(notification: Notification): Promise<void> {
     this.byId.set(notification.getId(), notification);
   }
@@ -124,6 +130,21 @@ describe('NotificationController (integration)', () => {
 
     assert.equal(response.body.data.length, 2);
     assert.ok(response.body.data.every((n: { read: boolean }) => n.read === false));
+    assert.equal(response.body.meta.page, 1);
+    assert.equal(response.body.meta.limit, 50);
+    assert.equal(response.body.meta.total, 2);
+  });
+
+  it('GET /notifications?page=1&limit=1 returns a single page and the true total', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/notifications?page=1&limit=1')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 1);
+    assert.equal(response.body.meta.page, 1);
+    assert.equal(response.body.meta.limit, 1);
+    assert.equal(response.body.meta.total, 2);
   });
 
   it('POST /notifications/:id/read marks one notification as read', async () => {

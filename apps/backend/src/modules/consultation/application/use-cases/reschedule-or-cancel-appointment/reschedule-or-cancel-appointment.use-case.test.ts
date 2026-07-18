@@ -37,8 +37,17 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findByPatientId(patientId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((a) => a.getPatientId() === patientId);
   }
+  async findByPatientIdPage(patientId: string, skip: number, take: number): Promise<Appointment[]> {
+    return (await this.findByPatientId(patientId)).slice(skip, skip + take);
+  }
+  async countByPatientId(patientId: string): Promise<number> {
+    return (await this.findByPatientId(patientId)).length;
+  }
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((a) => a.getDoctorId() === doctorId);
+  }
+  async findByDoctorIdForDateRange(doctorId: string): Promise<Appointment[]> {
+    return this.findByDoctorId(doctorId);
   }
   async save(appointment: Appointment): Promise<void> {
     if (this.failOnSaveCount > 0) {

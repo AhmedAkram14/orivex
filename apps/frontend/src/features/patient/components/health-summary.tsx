@@ -3,6 +3,7 @@
 import { CalendarClock, History, Pill } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { usePatientDashboardSummary } from '@/features/patient/hooks/use-patient-dashboard-summary';
+import { Alert } from '@/shared/ui/alert';
 import { DashboardGrid } from '@/shared/ui/layout/page';
 import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
 
@@ -10,7 +11,11 @@ import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
 export function HealthSummary() {
   const t = useTranslations('patient.dashboard');
   const format = useFormatter();
-  const { data, isLoading } = usePatientDashboardSummary();
+  const { data, isLoading, isError } = usePatientDashboardSummary();
+
+  if (isError) {
+    return <Alert variant="danger">{t('summaryLoadError')}</Alert>;
+  }
 
   return (
     <DashboardGrid columns={3}>

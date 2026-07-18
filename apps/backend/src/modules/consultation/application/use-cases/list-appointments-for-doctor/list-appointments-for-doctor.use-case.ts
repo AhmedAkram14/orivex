@@ -9,6 +9,13 @@ export class ListAppointmentsForDoctorUseCase {
   constructor(private readonly appointmentRepository: AppointmentRepository) {}
 
   async execute(query: ListAppointmentsForDoctorQuery): Promise<Appointment[]> {
+    if (query.scheduledFrom && query.scheduledTo) {
+      return this.appointmentRepository.findByDoctorIdForDateRange(
+        query.doctorId,
+        query.scheduledFrom,
+        query.scheduledTo,
+      );
+    }
     return this.appointmentRepository.findByDoctorId(query.doctorId);
   }
 }

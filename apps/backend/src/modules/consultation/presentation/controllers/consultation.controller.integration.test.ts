@@ -49,6 +49,7 @@ import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/
 import { GetConsultationSessionByIdUseCase } from '../../application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
+import { ListAppointmentsForPatientPageUseCase } from '../../application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from '../../application/use-cases/start-consultation/start-consultation.use-case.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
@@ -136,8 +137,19 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findByPatientId(patientId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((appointment) => appointment.getPatientId() === patientId);
   }
+  async findByPatientIdPage(patientId: string, skip: number, take: number): Promise<Appointment[]> {
+    return (await this.findByPatientId(patientId)).slice(skip, skip + take);
+  }
+  async countByPatientId(patientId: string): Promise<number> {
+    return (await this.findByPatientId(patientId)).length;
+  }
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((appointment) => appointment.getDoctorId() === doctorId);
+  }
+  async findByDoctorIdForDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]> {
+    return (await this.findByDoctorId(doctorId)).filter(
+      (appointment) => appointment.getScheduledAt() >= start && appointment.getScheduledAt() < end,
+    );
   }
   async save(appointment: Appointment): Promise<void> {
     this.byId.set(appointment.getId(), appointment);
@@ -303,6 +315,7 @@ describe('Consultation controllers (integration)', () => {
       new InMemoryDoctorProfileRepository(doctor),
     );
     const listAppointmentsForPatientUseCase = new ListAppointmentsForPatientUseCase(appointmentRepo);
+    const listAppointmentsForPatientPageUseCase = new ListAppointmentsForPatientPageUseCase(appointmentRepo);
     const listAppointmentsForDoctorUseCase = new ListAppointmentsForDoctorUseCase(appointmentRepo);
 
     const moduleRef = await Test.createTestingModule({
@@ -343,6 +356,7 @@ describe('Consultation controllers (integration)', () => {
         { provide: GetDoctorProfileByIdUseCase, useValue: getDoctorProfileByIdUseCase },
         { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
         { provide: ListAppointmentsForPatientUseCase, useValue: listAppointmentsForPatientUseCase },
+        { provide: ListAppointmentsForPatientPageUseCase, useValue: listAppointmentsForPatientPageUseCase },
         { provide: ListAppointmentsForDoctorUseCase, useValue: listAppointmentsForDoctorUseCase },
         {
           provide: GetConsultationSessionByAppointmentIdUseCase,
@@ -545,6 +559,21 @@ describe('Consultation controllers (integration)', () => {
       assert.ok(item.scheduledAt);
       assert.ok(['requested', 'confirmed', 'rescheduled', 'cancelled', 'no_show', 'completed'].includes(item.status));
     }
+    assert.equal(response.body.meta.page, 1);
+    assert.equal(response.body.meta.limit, 50);
+    assert.ok(response.body.meta.total >= 2);
+  });
+
+  it('GET /appointments/me?page=1&limit=1 returns a single page and the true total', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/me?page=1&limit=1')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 1);
+    assert.equal(response.body.meta.page, 1);
+    assert.equal(response.body.meta.limit, 1);
+    assert.ok(response.body.meta.total >= 2);
   });
 
   it('GET /appointments/doctor/dashboard-summary rejects a request with no bearer token', async () => {

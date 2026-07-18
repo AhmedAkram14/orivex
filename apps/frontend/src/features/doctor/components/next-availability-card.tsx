@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { getNextAvailability, isSameDay } from '@/features/doctor/lib/week';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
+import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { ScheduleCard } from '@/shared/ui/schedule/schedule-card';
@@ -13,7 +14,11 @@ import { ScheduleCard } from '@/shared/ui/schedule/schedule-card';
 export function NextAvailabilityCard() {
   const t = useTranslations('doctor.dashboard');
   const format = useFormatter();
-  const { data: availability, isLoading } = useDoctorAvailability();
+  const { data: availability, isLoading, isError } = useDoctorAvailability();
+
+  if (isError) {
+    return <Alert variant="danger">{t('availabilityLoadError')}</Alert>;
+  }
 
   if (isLoading) {
     return <Skeleton className="h-20 w-full" />;

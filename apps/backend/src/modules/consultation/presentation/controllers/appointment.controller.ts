@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -15,6 +16,7 @@ import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-c
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetSchedulingRulesUseCase } from '../../../scheduling/application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
+import { PaginationQueryDto } from '../../../../shared/http/pagination-query.dto.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
@@ -22,7 +24,7 @@ import { BookAppointmentCommand } from '../../application/use-cases/book-appoint
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
-import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
+import { ListAppointmentsForPatientPageUseCase } from '../../application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { RescheduleOrCancelAppointmentCommand } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.command.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
@@ -49,7 +51,7 @@ export class AppointmentController {
   constructor(
     private readonly bookAppointmentUseCase: BookAppointmentUseCase,
     private readonly rescheduleOrCancelAppointmentUseCase: RescheduleOrCancelAppointmentUseCase,
-    private readonly listAppointmentsForPatientUseCase: ListAppointmentsForPatientUseCase,
+    private readonly listAppointmentsForPatientPageUseCase: ListAppointmentsForPatientPageUseCase,
     private readonly getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
@@ -65,6 +67,10 @@ export class AppointmentController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(AccountRole.Patient)
+  // Tighter than the global 100/min default -- prevents a single account
+  // from hammering slot-availability contention (booking retries) or
+  // spamming doctors with requests.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   async book(
     @CurrentUser() user: AccessTokenClaims,
     @Body() body: BookAppointmentRequestDto,
@@ -94,18 +100,29 @@ export class AppointmentController {
   @Roles(AccountRole.Patient)
   async listMyAppointments(
     @CurrentUser() user: AccessTokenClaims,
+    @Query() query: PaginationQueryDto,
   ): Promise<ResponseEnvelope<AppointmentListItemResponseDto[]>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
     const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
     if (!patientProfile) {
       // No profile yet means no appointment could ever have been booked --
       // an honest empty list, not an error.
-      return envelope([]);
+      return envelope([], { page, limit, total: 0 });
     }
 
-    const appointments = await this.listAppointmentsForPatientUseCase.execute({ patientId: patientProfile.getId() });
+    const { items: appointments, total } = await this.listAppointmentsForPatientPageUseCase.execute({
+      patientId: patientProfile.getId(),
+      page,
+      limit,
+    });
     const items = await Promise.all(appointments.map((appointment) => this.toListItem(appointment)));
 
-    return envelope(items.filter((item): item is AppointmentListItemResponseDto => item !== null));
+    return envelope(items.filter((item): item is AppointmentListItemResponseDto => item !== null), {
+      page,
+      limit,
+      total,
+    });
   }
 
   // Doctor-scoped dashboard counts (Doctor Workspace's "Today's Summary").
@@ -129,8 +146,12 @@ export class AppointmentController {
       return envelope(empty);
     }
 
-    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
-    const todaysAppointments = appointments.filter((appointment) => isSameUtcDay(appointment.getScheduledAt(), new Date()));
+    const { start, end } = utcDayRange(new Date());
+    const todaysAppointments = await this.listAppointmentsForDoctorUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      scheduledFrom: start,
+      scheduledTo: end,
+    });
 
     const dto = new DoctorDashboardSummaryResponseDto();
     dto.consultationsToday = todaysAppointments.filter((appointment) =>
@@ -191,9 +212,13 @@ export class AppointmentController {
       return envelope([]);
     }
 
-    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
-    const todaysQueueable = appointments
-      .filter((appointment) => isSameUtcDay(appointment.getScheduledAt(), new Date()))
+    const { start, end } = utcDayRange(new Date());
+    const todaysAppointments = await this.listAppointmentsForDoctorUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      scheduledFrom: start,
+      scheduledTo: end,
+    });
+    const todaysQueueable = todaysAppointments
       .filter(
         (appointment) =>
           appointment.getStatus() === AppointmentStatus.Confirmed ||
@@ -337,12 +362,13 @@ interface QueueView {
   status: QueueEntryResponseDto['status'];
 }
 
-// Same UTC calendar day -- keeps "today" comparison simple and timezone-
-// consistent, matching the task's explicit "keep it simple" guidance.
-function isSameUtcDay(a: Date, b: Date): boolean {
-  return (
-    a.getUTCFullYear() === b.getUTCFullYear() &&
-    a.getUTCMonth() === b.getUTCMonth() &&
-    a.getUTCDate() === b.getUTCDate()
-  );
+// [start, end) for the UTC calendar day containing `date` -- keeps "today"
+// simple and timezone-consistent (matches the original isSameUtcDay this
+// replaced), while letting the query filter at the database level instead
+// of fetching a doctor's entire appointment history to filter in memory
+// (Production Readiness Audit finding).
+function utcDayRange(date: Date): { start: Date; end: Date } {
+  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  return { start, end };
 }

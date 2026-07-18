@@ -26,9 +26,31 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return rows.map(toDomainAppointment);
   }
 
+  async findByPatientIdPage(patientId: string, skip: number, take: number): Promise<Appointment[]> {
+    const rows = await this.prisma.appointment.findMany({
+      where: { patientId },
+      orderBy: { scheduledAt: 'desc' },
+      skip,
+      take,
+    });
+    return rows.map(toDomainAppointment);
+  }
+
+  async countByPatientId(patientId: string): Promise<number> {
+    return this.prisma.appointment.count({ where: { patientId } });
+  }
+
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     const rows = await this.prisma.appointment.findMany({
       where: { doctorId },
+      orderBy: { scheduledAt: 'asc' },
+    });
+    return rows.map(toDomainAppointment);
+  }
+
+  async findByDoctorIdForDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]> {
+    const rows = await this.prisma.appointment.findMany({
+      where: { doctorId, scheduledAt: { gte: start, lt: end } },
       orderBy: { scheduledAt: 'asc' },
     });
     return rows.map(toDomainAppointment);

@@ -1,4 +1,5 @@
 import { Body, Controller, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Res, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 
 import { ForbiddenError, NotFoundError } from '../../../../shared/errors/app-error.js';
@@ -40,6 +41,10 @@ export class AISuggestionController {
   ) {}
 
   @Post()
+  // Tighter than the global 100/min default -- each call is a real,
+  // billed Azure OpenAI request; this bounds both cost exposure and the
+  // downstream provider's own rate limits per doctor.
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   async request(
     @CurrentUser() user: AccessTokenClaims,
     @Body() body: RequestAISuggestionRequestDto,

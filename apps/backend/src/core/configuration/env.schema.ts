@@ -50,6 +50,14 @@ export const envSchema = z.object({
   ARGON2_MEMORY_COST_KIB: z.coerce.number().int().positive().default(19_456),
   ARGON2_TIME_COST: z.coerce.number().int().positive().default(2),
   ARGON2_PARALLELISM: z.coerce.number().int().positive().default(1),
+  // Mounts the generated OpenAPI document at GET /docs (Production Readiness
+  // Audit -- "add OpenAPI generation"). Always on outside production; in
+  // production it stays off unless explicitly opted into, since the
+  // document lists every route/DTO shape and shouldn't be public by default.
+  OPENAPI_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -3,13 +3,18 @@
 import { CalendarCheck, CheckCircle2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-dashboard-summary';
+import { Alert } from '@/shared/ui/alert';
 import { DashboardGrid } from '@/shared/ui/layout/page';
 import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
 
 /** The Doctor Workspace's "Today's Summary" row — real counts from the mocked `/doctor/dashboard-summary` endpoint (honestly zero today, since no Consultation/Appointment module exists yet), never fabricated numbers. */
 export function TodaysSummary() {
   const t = useTranslations('doctor.dashboard');
-  const { data, isLoading } = useDoctorDashboardSummary();
+  const { data, isLoading, isError } = useDoctorDashboardSummary();
+
+  if (isError) {
+    return <Alert variant="danger">{t('summaryLoadError')}</Alert>;
+  }
 
   return (
     <DashboardGrid columns={3}>

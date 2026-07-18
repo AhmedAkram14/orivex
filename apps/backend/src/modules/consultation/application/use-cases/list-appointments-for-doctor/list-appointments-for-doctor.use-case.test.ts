@@ -15,19 +15,30 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findByPatientId(): Promise<Appointment[]> {
     return [];
   }
+  async findByPatientIdPage(patientId: string, skip: number, take: number): Promise<Appointment[]> {
+    return (await this.findByPatientId()).slice(skip, skip + take);
+  }
+  async countByPatientId(): Promise<number> {
+    return (await this.findByPatientId()).length;
+  }
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     return this.appointments.filter((a) => a.getDoctorId() === doctorId);
+  }
+  async findByDoctorIdForDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]> {
+    return this.appointments.filter(
+      (a) => a.getDoctorId() === doctorId && a.getScheduledAt() >= start && a.getScheduledAt() < end,
+    );
   }
   async save(): Promise<void> {}
 }
 
-function buildAppointment(doctorId: string): Appointment {
+function buildAppointment(doctorId: string, scheduledAt: Date = new Date(Date.now() + 60 * 60_000)): Appointment {
   return Appointment.request({
     patientId: '11111111-1111-4111-8111-111111111111',
     doctorId,
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
     consultationType: ConsultationType.Free,
-    scheduledAt: new Date(Date.now() + 60 * 60_000),
+    scheduledAt,
   });
 }
 
@@ -51,5 +62,21 @@ describe('ListAppointmentsForDoctorUseCase', () => {
     const result = await useCase.execute({ doctorId: '99999999-9999-4999-8999-999999999999' });
 
     assert.deepEqual(result, []);
+  });
+
+  it('scopes to a [scheduledFrom, scheduledTo) window when both are given', async () => {
+    const doctorId = '22222222-2222-4222-8222-222222222222';
+    const inWindow = buildAppointment(doctorId, new Date('2026-01-15T10:00:00Z'));
+    const outsideWindow = buildAppointment(doctorId, new Date('2026-01-16T10:00:00Z'));
+    const useCase = new ListAppointmentsForDoctorUseCase(new FakeAppointmentRepository([inWindow, outsideWindow]));
+
+    const result = await useCase.execute({
+      doctorId,
+      scheduledFrom: new Date('2026-01-15T00:00:00Z'),
+      scheduledTo: new Date('2026-01-16T00:00:00Z'),
+    });
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0]?.getId(), inWindow.getId());
   });
 });

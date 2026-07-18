@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { useDoctorUpcomingWork } from '@/features/doctor/hooks/use-doctor-upcoming-work';
 import type { UpcomingWorkItem } from '@/features/doctor/api/types';
+import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { TimelineCard } from '@/shared/ui/layout/timeline-card';
@@ -17,11 +18,13 @@ function StatusLabel({ status }: { status: UpcomingWorkItem['status'] }) {
 export function UpcomingWorkArea() {
   const t = useTranslations('doctor.dashboard');
   const format = useFormatter();
-  const { data: items, isLoading } = useDoctorUpcomingWork();
+  const { data: items, isLoading, isError } = useDoctorUpcomingWork();
 
   return (
     <WidgetContainer title={t('upcomingWorkTitle')}>
-      {isLoading ? (
+      {isError ? (
+        <Alert variant="danger">{t('upcomingWorkLoadError')}</Alert>
+      ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />

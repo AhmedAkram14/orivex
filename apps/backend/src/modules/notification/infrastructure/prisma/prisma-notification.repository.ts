@@ -23,6 +23,20 @@ export class PrismaNotificationRepository implements NotificationRepository {
     return rows.map(toDomainNotification);
   }
 
+  async findByAccountIdPage(accountId: string, skip: number, take: number): Promise<Notification[]> {
+    const rows = await this.prisma.notification.findMany({
+      where: { accountId },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+    return rows.map(toDomainNotification);
+  }
+
+  async countByAccountId(accountId: string): Promise<number> {
+    return this.prisma.notification.count({ where: { accountId } });
+  }
+
   async save(notification: Notification): Promise<void> {
     const data = toPersistedNotification(notification);
     await this.prisma.notification.upsert({

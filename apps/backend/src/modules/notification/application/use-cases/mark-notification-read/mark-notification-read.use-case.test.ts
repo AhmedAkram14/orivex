@@ -20,6 +20,12 @@ class FakeNotificationRepository implements NotificationRepository {
   async findByAccountId(): Promise<Notification[]> {
     return [];
   }
+  async findByAccountIdPage(): Promise<Notification[]> {
+    return [];
+  }
+  async countByAccountId(): Promise<number> {
+    return 0;
+  }
   async save(notification: Notification): Promise<void> {
     this.byId.set(notification.getId(), notification);
   }

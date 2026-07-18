@@ -1,0 +1,86 @@
+name: Frontend CI
+
+# Mirrors backend-ci.yml's shape (Production Readiness Audit -- "add
+# frontend CI workflow"). Hard gates only, no deploy step: this workflow
+# never publishes anything or touches any environment. E2E is a separate
+# job since it needs a browser install and a built app, not just node_modules.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/frontend/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    paths:
+      - "apps/frontend/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/frontend-ci.yml"
+
+jobs:
+  verify:
+    name: Install, lint, typecheck, test, build, storybook build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @orivex/frontend...
+
+      - name: Lint
+        run: pnpm --filter @orivex/frontend run lint
+
+      - name: Typecheck
+        run: pnpm --filter @orivex/frontend run typecheck
+
+      - name: Test
+        run: pnpm --filter @orivex/frontend run test
+
+      - name: Build
+        run: pnpm --filter @orivex/frontend run build
+
+      - name: Storybook build
+        run: pnpm --filter @orivex/frontend run build-storybook
+
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter @orivex/frontend...
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @orivex/frontend exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        # Runs against MSW-mocked API responses, not a live backend/DB --
+        # see playwright.config.ts's comments for why (this workflow has no
+        # Postgres/S3 provisioned, matching the local dev trade-off).
+        run: pnpm --filter @orivex/frontend run test:e2e
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/frontend/playwright-report/
+          retention-days: 7

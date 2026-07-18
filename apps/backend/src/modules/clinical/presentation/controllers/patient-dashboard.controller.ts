@@ -50,6 +50,13 @@ interface ActivePrescriptionView {
   medicationName: string;
 }
 
+// Resolved once per doctorProfileId per request and reused across every
+// appointment/prescription/note that references the same doctor -- a
+// patient's history routinely has the same treating doctor across many
+// appointments/notes, so without this cache each one would repeat the same
+// two lookups (Production Readiness Audit N+1 finding).
+type DoctorCache = Map<string, { profile: DoctorProfile; account: Account } | null>;
+
 // The Patient Portal dashboard's own additive read surface (Vertical Slice
 // Development directive), living in ClinicalModule because it already
 // imports PatientModule/DoctorModule/ConsultationModule plus owns
@@ -119,7 +126,10 @@ export class PatientDashboardController {
       .filter((appointment) => NON_TERMINAL_APPOINTMENT_STATUSES.has(appointment.getStatus()))
       .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime());
 
-    const items = await Promise.all(upcoming.map((appointment) => this.toUpcomingAppointmentPreview(appointment)));
+    const doctorCache: DoctorCache = new Map();
+    const items = await Promise.all(
+      upcoming.map((appointment) => this.toUpcomingAppointmentPreview(appointment, doctorCache)),
+    );
 
     return envelope(items.filter((item): item is UpcomingAppointmentPreviewResponseDto => item !== null));
   }
@@ -136,8 +146,9 @@ export class PatientDashboardController {
     const appointments = await this.listAppointmentsForPatientUseCase.execute({ patientId: patientProfile.getId() });
     const activePrescriptions = await this.findActivePrescriptions(appointments);
 
+    const doctorCache: DoctorCache = new Map();
     const items = await Promise.all(
-      activePrescriptions.map((view) => this.toActivePrescriptionPreview(view)),
+      activePrescriptions.map((view) => this.toActivePrescriptionPreview(view, doctorCache)),
     );
 
     return envelope(items.filter((item): item is ActivePrescriptionPreviewResponseDto => item !== null));
@@ -155,7 +166,10 @@ export class PatientDashboardController {
     const appointments = await this.listAppointmentsForPatientUseCase.execute({ patientId: patientProfile.getId() });
     const allPrescriptions = await this.findAllPrescriptions(appointments);
 
-    const items = await Promise.all(allPrescriptions.map((view) => this.toPatientPrescriptionResponse(view)));
+    const doctorCache: DoctorCache = new Map();
+    const items = await Promise.all(
+      allPrescriptions.map((view) => this.toPatientPrescriptionResponse(view, doctorCache)),
+    );
 
     return envelope(items.filter((item): item is PatientPrescriptionResponseDto => item !== null));
   }
@@ -192,10 +206,11 @@ export class PatientDashboardController {
     }
 
     const appointments = await this.listAppointmentsForPatientUseCase.execute({ patientId: patientProfile.getId() });
-    const visitEntries = await this.findVisitEntries(appointments);
+    const doctorCache: DoctorCache = new Map();
+    const visitEntries = await this.findVisitEntries(appointments, doctorCache);
 
     const nodes = await this.getHealthGraphSubgraphUseCase.execute({ patientId: patientProfile.getId() });
-    const conditionEntries = await this.findConditionEntries(nodes);
+    const conditionEntries = await this.findConditionEntries(nodes, doctorCache);
 
     const entries = [...visitEntries, ...conditionEntries].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -234,27 +249,27 @@ export class PatientDashboardController {
   // preview (which filters afterwards) and the full /me/prescriptions list
   // (which keeps everything and computes a per-item status instead).
   private async findAllPrescriptions(appointments: Appointment[]): Promise<ActivePrescriptionView[]> {
-    const results: ActivePrescriptionView[] = [];
+    const perAppointment = await Promise.all(
+      appointments.map(async (appointment) => {
+        const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
+          appointmentId: appointment.getId(),
+        });
+        if (!session) {
+          return [];
+        }
 
-    for (const appointment of appointments) {
-      const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
-        appointmentId: appointment.getId(),
-      });
-      if (!session) {
-        continue;
-      }
+        const prescriptions = await this.listPrescriptionsForConsultationSessionUseCase.execute({
+          consultationSessionId: session.getId(),
+        });
+        return prescriptions.map((prescription): ActivePrescriptionView => {
+          const [firstLineItem] = prescription.getLineItems();
+          const medicationName = firstLineItem ? firstLineItem.getDrugName() ?? firstLineItem.getDrugCatalogId() : '';
+          return { prescription, medicationName };
+        });
+      }),
+    );
 
-      const prescriptions = await this.listPrescriptionsForConsultationSessionUseCase.execute({
-        consultationSessionId: session.getId(),
-      });
-      for (const prescription of prescriptions) {
-        const [firstLineItem] = prescription.getLineItems();
-        const medicationName = firstLineItem ? firstLineItem.getDrugName() ?? firstLineItem.getDrugCatalogId() : '';
-        results.push({ prescription, medicationName });
-      }
-    }
-
-    return results;
+    return perAppointment.flat();
   }
 
   private isCurrentlyActive(prescription: Prescription, now: number): boolean {
@@ -273,40 +288,26 @@ export class PatientDashboardController {
 
   private async toUpcomingAppointmentPreview(
     appointment: Appointment,
+    doctorCache: DoctorCache,
   ): Promise<UpcomingAppointmentPreviewResponseDto | null> {
-    const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
-      doctorProfileId: appointment.getDoctorId(),
-    });
-    if (!doctorProfile) {
+    const resolved = await this.resolveDoctor(appointment.getDoctorId(), doctorCache);
+    if (!resolved) {
       return null;
     }
-    const doctorAccount: Account | null = await this.getAccountByIdUseCase.execute({
-      accountId: doctorProfile.getAccountId(),
-    });
-    if (!doctorAccount) {
-      return null;
-    }
-    return UpcomingAppointmentPreviewResponseDto.fromDomain(appointment, doctorProfile, doctorAccount);
+    return UpcomingAppointmentPreviewResponseDto.fromDomain(appointment, resolved.profile, resolved.account);
   }
 
   private async toActivePrescriptionPreview(
     view: ActivePrescriptionView,
+    doctorCache: DoctorCache,
   ): Promise<ActivePrescriptionPreviewResponseDto | null> {
     const [firstLineItem] = view.prescription.getLineItems();
     if (!firstLineItem) {
       return null;
     }
 
-    const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
-      doctorProfileId: view.prescription.getAuthoringDoctorId(),
-    });
-    if (!doctorProfile) {
-      return null;
-    }
-    const doctorAccount: Account | null = await this.getAccountByIdUseCase.execute({
-      accountId: doctorProfile.getAccountId(),
-    });
-    if (!doctorAccount) {
+    const resolved = await this.resolveDoctor(view.prescription.getAuthoringDoctorId(), doctorCache);
+    if (!resolved) {
       return null;
     }
 
@@ -314,28 +315,21 @@ export class PatientDashboardController {
       id: view.prescription.getId(),
       medicationName: view.medicationName,
       dosageLabel: `${firstLineItem.getDosage()}, ${firstLineItem.getFrequency()}`,
-      prescribedBy: doctorAccount.getUserProfile().getDisplayName().toString(),
+      prescribedBy: resolved.account.getUserProfile().getDisplayName().toString(),
     });
   }
 
   private async toPatientPrescriptionResponse(
     view: ActivePrescriptionView,
+    doctorCache: DoctorCache,
   ): Promise<PatientPrescriptionResponseDto | null> {
     const [firstLineItem] = view.prescription.getLineItems();
     if (!firstLineItem) {
       return null;
     }
 
-    const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
-      doctorProfileId: view.prescription.getAuthoringDoctorId(),
-    });
-    if (!doctorProfile) {
-      return null;
-    }
-    const doctorAccount: Account | null = await this.getAccountByIdUseCase.execute({
-      accountId: doctorProfile.getAccountId(),
-    });
-    if (!doctorAccount) {
+    const resolved = await this.resolveDoctor(view.prescription.getAuthoringDoctorId(), doctorCache);
+    if (!resolved) {
       return null;
     }
 
@@ -347,7 +341,7 @@ export class PatientDashboardController {
       medicationName: view.medicationName,
       dosageAmount: firstLineItem.getDosage(),
       frequencyLabel: firstLineItem.getFrequency(),
-      prescribedBy: doctorAccount.getUserProfile().getDisplayName().toString(),
+      prescribedBy: resolved.account.getUserProfile().getDisplayName().toString(),
       prescribedAt,
       status,
       instructions: firstLineItem.getInstructions(),
@@ -359,51 +353,56 @@ export class PatientDashboardController {
   // 'visit' timeline entry (one per authored note, matching the domain's
   // "fully immutable, one per consultation session, or more if addenda
   // exist" rule -- no note is ever merged or deduplicated).
-  private async findVisitEntries(appointments: Appointment[]): Promise<MedicalRecordEntryResponseDto[]> {
-    const entries: MedicalRecordEntryResponseDto[] = [];
+  private async findVisitEntries(
+    appointments: Appointment[],
+    doctorCache: DoctorCache,
+  ): Promise<MedicalRecordEntryResponseDto[]> {
+    const perAppointment = await Promise.all(
+      appointments.map(async (appointment) => {
+        const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
+          appointmentId: appointment.getId(),
+        });
+        if (!session) {
+          return [];
+        }
 
-    for (const appointment of appointments) {
-      const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
-        appointmentId: appointment.getId(),
-      });
-      if (!session) {
-        continue;
-      }
-
-      const notes = await this.listClinicalNotesForConsultationSessionUseCase.execute({
-        consultationSessionId: session.getId(),
-      });
-      for (const note of notes) {
-        const doctorName = await this.resolveDoctorName(note.getAuthoringDoctorId());
-        entries.push(
-          MedicalRecordEntryResponseDto.create({
-            id: note.getId(),
-            type: 'visit',
-            date: note.getCreatedAt().toISOString(),
-            title: 'Clinical visit',
-            description: note.getContent(),
-            doctorName,
-            downloadUrl: undefined,
+        const notes = await this.listClinicalNotesForConsultationSessionUseCase.execute({
+          consultationSessionId: session.getId(),
+        });
+        return Promise.all(
+          notes.map(async (note) => {
+            const doctorName = await this.resolveDoctorName(note.getAuthoringDoctorId(), doctorCache);
+            return MedicalRecordEntryResponseDto.create({
+              id: note.getId(),
+              type: 'visit',
+              date: note.getCreatedAt().toISOString(),
+              title: 'Clinical visit',
+              description: note.getContent(),
+              doctorName,
+              downloadUrl: undefined,
+            });
           }),
         );
-      }
-    }
+      }),
+    );
 
-    return entries;
+    return perAppointment.flat();
   }
 
   // Only `condition`-typed nodes fit the timeline's 'condition' category --
   // symptom/medication/lab_result/radiology_result nodes are deliberately
   // excluded rather than shoehorned into a category that doesn't describe
   // them (no 3rd/4th category was asked for).
-  private async findConditionEntries(nodes: HealthGraphNode[]): Promise<MedicalRecordEntryResponseDto[]> {
+  private async findConditionEntries(
+    nodes: HealthGraphNode[],
+    doctorCache: DoctorCache,
+  ): Promise<MedicalRecordEntryResponseDto[]> {
     const conditionNodes = nodes.filter((node) => node.getNodeType() === HealthGraphNodeType.Condition);
 
-    const entries: MedicalRecordEntryResponseDto[] = [];
-    for (const node of conditionNodes) {
-      const doctorName = await this.resolveDoctorName(node.getAuthoringDoctorId());
-      entries.push(
-        MedicalRecordEntryResponseDto.create({
+    return Promise.all(
+      conditionNodes.map(async (node) => {
+        const doctorName = await this.resolveDoctorName(node.getAuthoringDoctorId(), doctorCache);
+        return MedicalRecordEntryResponseDto.create({
           id: node.getId(),
           type: 'condition',
           date: node.getCreatedAt().toISOString(),
@@ -411,26 +410,44 @@ export class PatientDashboardController {
           description: undefined,
           doctorName,
           downloadUrl: undefined,
-        }),
-      );
-    }
-
-    return entries;
+        });
+      }),
+    );
   }
 
-  private async resolveDoctorName(authoringDoctorId: string | undefined): Promise<string | undefined> {
+  private async resolveDoctorName(
+    authoringDoctorId: string | undefined,
+    doctorCache: DoctorCache,
+  ): Promise<string | undefined> {
     if (!authoringDoctorId) {
       return undefined;
     }
-    const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
-      doctorProfileId: authoringDoctorId,
-    });
-    if (!doctorProfile) {
-      return undefined;
+    const resolved = await this.resolveDoctor(authoringDoctorId, doctorCache);
+    return resolved?.account.getUserProfile().getDisplayName().toString();
+  }
+
+  // The single place that actually calls GetDoctorProfileByIdUseCase +
+  // GetAccountByIdUseCase -- every other helper in this controller goes
+  // through this method so a doctor referenced multiple times in one
+  // request (a repeat treating doctor across several appointments/notes)
+  // is only ever fetched once.
+  private async resolveDoctor(
+    doctorProfileId: string,
+    doctorCache: DoctorCache,
+  ): Promise<{ profile: DoctorProfile; account: Account } | null> {
+    const cached = doctorCache.get(doctorProfileId);
+    if (cached !== undefined) {
+      return cached;
     }
-    const doctorAccount: Account | null = await this.getAccountByIdUseCase.execute({
-      accountId: doctorProfile.getAccountId(),
-    });
-    return doctorAccount?.getUserProfile().getDisplayName().toString();
+
+    const profile = await this.getDoctorProfileByIdUseCase.execute({ doctorProfileId });
+    if (!profile) {
+      doctorCache.set(doctorProfileId, null);
+      return null;
+    }
+    const account = await this.getAccountByIdUseCase.execute({ accountId: profile.getAccountId() });
+    const resolved = account ? { profile, account } : null;
+    doctorCache.set(doctorProfileId, resolved);
+    return resolved;
   }
 }

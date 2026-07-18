@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
@@ -36,6 +37,11 @@ export class PaymentController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  // Tighter than the global 100/min default -- a financial-charge endpoint
+  // has no legitimate reason to be called more than a handful of times a
+  // minute per account, and idempotency (initiate-charge.use-case.ts) already
+  // handles legitimate retries within that budget.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async initiateCharge(
     @CurrentUser() user: AccessTokenClaims,
     @Body() body: InitiateChargeRequestDto,

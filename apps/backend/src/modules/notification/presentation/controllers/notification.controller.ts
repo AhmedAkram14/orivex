@@ -1,9 +1,10 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
+import { PaginationQueryDto } from '../../../../shared/http/pagination-query.dto.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { ListNotificationsForAccountUseCase } from '../../application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadCommand } from '../../application/use-cases/mark-all-notifications-read/mark-all-notifications-read.command.js';
@@ -31,9 +32,21 @@ export class NotificationController {
   ) {}
 
   @Get()
-  async list(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<NotificationResponseDto[]>> {
-    const notifications = await this.listNotificationsForAccountUseCase.execute({ accountId: user.accountId });
-    return envelope(notifications.map((notification) => NotificationResponseDto.fromDomain(notification)));
+  async list(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query() query: PaginationQueryDto,
+  ): Promise<ResponseEnvelope<NotificationResponseDto[]>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const { items, total } = await this.listNotificationsForAccountUseCase.execute({
+      accountId: user.accountId,
+      page,
+      limit,
+    });
+    return envelope(
+      items.map((notification) => NotificationResponseDto.fromDomain(notification)),
+      { page, limit, total },
+    );
   }
 
   @Post(':id/read')

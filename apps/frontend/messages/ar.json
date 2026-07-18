@@ -264,6 +264,9 @@
       "upcomingWorkTitle": "الأعمال القادمة",
       "upcomingWorkEmptyTitle": "لا يوجد شيء مجدول بعد",
       "upcomingWorkEmptyDescription": "ستظهر استشاراتك القادمة هنا بمجرد توفر جدولة المواعيد.",
+      "summaryLoadError": "تعذّر تحميل ملخص اليوم.",
+      "upcomingWorkLoadError": "تعذّر تحميل أعمالك القادمة.",
+      "availabilityLoadError": "تعذّر تحميل موعدك المتاح التالي.",
       "upcomingWork": {
         "status": {
           "upcoming": "قادمة",
@@ -386,6 +389,9 @@
       "activePrescriptionsTitle": "الوصفات النشطة",
       "activePrescriptionsEmptyTitle": "لا توجد وصفات نشطة",
       "activePrescriptionsEmptyDescription": "ستظهر وصفاتك النشطة هنا بمجرد صرفها.",
+      "summaryLoadError": "تعذّر تحميل ملخص صحتك.",
+      "upcomingAppointmentsLoadError": "تعذّر تحميل مواعيدك القادمة.",
+      "activePrescriptionsLoadError": "تعذّر تحميل وصفاتك النشطة.",
       "prescribedBy": "بواسطة {name}",
       "quickActions": {
         "viewProfile": "عرض الملف الشخصي",

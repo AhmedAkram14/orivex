@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { usePatientActivePrescriptions } from '@/features/patient/hooks/use-patient-active-prescriptions';
 import type { ActivePrescriptionPreview } from '@/features/patient/api/types';
+import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -20,11 +21,13 @@ function StatusBadge({ status }: { status: ActivePrescriptionPreview['status'] }
 /** The Patient Portal's "Active Prescriptions" widget — a lightweight preview list (medication name, dosage, prescriber, status), distinct from milestone 5's full medication cards. Empty today since no Clinical module is wired into the frontend yet. */
 export function ActivePrescriptionsWidget() {
   const t = useTranslations('patient.dashboard');
-  const { data: items, isLoading } = usePatientActivePrescriptions();
+  const { data: items, isLoading, isError } = usePatientActivePrescriptions();
 
   return (
     <WidgetContainer title={t('activePrescriptionsTitle')}>
-      {isLoading ? (
+      {isError ? (
+        <Alert variant="danger">{t('activePrescriptionsLoadError')}</Alert>
+      ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
