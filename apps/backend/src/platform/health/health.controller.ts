@@ -1,6 +1,8 @@
-import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Inject, ServiceUnavailableException } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 
+import type { ObjectStoragePort } from '../../modules/asset/application/ports/object-storage.port.js';
+import { OBJECT_STORAGE } from '../../modules/asset/application/ports/tokens.js';
 import { PrismaService } from '../database/prisma.service.js';
 
 interface LivenessResponse {
@@ -14,6 +16,7 @@ interface ReadinessResponse {
   timestamp: string;
   checks: {
     database: 'ok';
+    objectStorage: 'ok';
   };
 }
 
@@ -23,16 +26,21 @@ interface ReadinessResponse {
 // should trigger a readiness failure (taking the pod out of the load
 // balancer), never a liveness failure (which would restart a perfectly
 // healthy process for a problem restarting it can't fix). Readiness checks
-// Postgres only -- Redis is a documented optional env var but nothing in
-// this codebase actually connects to it yet, so checking it here would be
-// a fake check against an unused dependency, not a real readiness signal.
+// Postgres and S3-compatible object storage -- both are dependencies the
+// app actually uses at request time. Redis is a documented optional env var
+// but nothing in this codebase actually connects to it yet, so checking it
+// here would be a fake check against an unused dependency, not a real
+// readiness signal.
 //
 // Excluded from the global rate limiter: liveness/readiness probes poll
 // this frequently, and shouldn't compete with real traffic for quota.
 @SkipThrottle()
 @Controller('health')
 export class HealthController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(OBJECT_STORAGE) private readonly objectStorage: ObjectStoragePort,
+  ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -60,10 +68,17 @@ export class HealthController {
       throw new ServiceUnavailableException(`Not ready: database unreachable (${reason}).`);
     }
 
+    try {
+      await this.objectStorage.checkConnectivity();
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Object storage unreachable.';
+      throw new ServiceUnavailableException(`Not ready: object storage unreachable (${reason}).`);
+    }
+
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      checks: { database: 'ok' },
+      checks: { database: 'ok', objectStorage: 'ok' },
     };
   }
 }

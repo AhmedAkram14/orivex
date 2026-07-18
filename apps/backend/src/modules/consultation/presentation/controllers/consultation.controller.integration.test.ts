@@ -59,6 +59,7 @@ import type { AppointmentRepository } from '../../domain/repositories/appointmen
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
 
 import { AppointmentController } from './appointment.controller.js';
+import { DoctorAppointmentsController } from './doctor-appointments.controller.js';
 import { ConsultationController } from './consultation.controller.js';
 
 const VALID_PATIENT_TOKEN = 'valid-patient-token';
@@ -319,7 +320,7 @@ describe('Consultation controllers (integration)', () => {
     const listAppointmentsForDoctorUseCase = new ListAppointmentsForDoctorUseCase(appointmentRepo);
 
     const moduleRef = await Test.createTestingModule({
-      controllers: [AppointmentController, ConsultationController],
+      controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController],
       providers: [
         PinoLoggerService,
         Reflector,

@@ -122,6 +122,20 @@ export class Prescription {
     return this.updatedAt;
   }
 
+  // No "active/expired" status field is stored on this entity -- it's
+  // derived purely from the entity's own state (signedAt + the longest
+  // line item's durationDays), so it belongs here rather than recomputed
+  // in a presentation-layer controller (Production Readiness Audit --
+  // "move business rules from presentation to application").
+  isCurrentlyActive(now: Date): boolean {
+    if (!this.signedAt || this.lineItems.length === 0) {
+      return false;
+    }
+    const maxDurationDays = Math.max(...this.lineItems.map((item) => item.getDurationDays()));
+    const expiresAt = this.signedAt.getTime() + maxDurationDays * 24 * 60 * 60 * 1000;
+    return expiresAt > now.getTime();
+  }
+
   releaseDomainEvents(): DomainEvent[] {
     const events = [...this.domainEvents];
     this.domainEvents.length = 0;

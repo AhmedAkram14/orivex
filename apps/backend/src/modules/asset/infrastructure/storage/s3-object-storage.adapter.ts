@@ -1,4 +1,4 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -41,5 +41,9 @@ export class S3ObjectStorageAdapter implements ObjectStoragePort {
   async createPresignedDownloadUrl(storageKey: string): Promise<string> {
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: storageKey });
     return getSignedUrl(this.client, command, { expiresIn: PRESIGNED_URL_EXPIRY_SECONDS });
+  }
+
+  async checkConnectivity(): Promise<void> {
+    await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
   }
 }

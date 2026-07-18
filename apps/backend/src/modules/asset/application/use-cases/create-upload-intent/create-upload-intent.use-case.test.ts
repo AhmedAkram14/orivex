@@ -27,6 +27,7 @@ class FakeObjectStorage implements ObjectStoragePort {
   async createPresignedDownloadUrl(storageKey: string): Promise<string> {
     return `https://storage.example.com/${storageKey}?download=true`;
   }
+  async checkConnectivity(): Promise<void> {}
 }
 
 describe('CreateUploadIntentUseCase', () => {

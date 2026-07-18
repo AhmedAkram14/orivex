@@ -56,6 +56,8 @@ import { RevokeDeviceSessionUseCase } from '../../application/use-cases/revoke-d
 import { VerifyEmailUseCase } from '../../application/use-cases/verify-email/verify-email.use-case.js';
 
 import { AuthenticationController } from './authentication.controller.js';
+import { DeviceSessionsController } from './device-sessions.controller.js';
+import { LoginHistoryController } from './login-history.controller.js';
 
 // --- In-memory doubles standing in for Prisma repositories/adapters --------
 
@@ -232,7 +234,7 @@ describe('AuthenticationController (integration)', () => {
     const listSecurityEventsForAccountUseCase = new ListSecurityEventsForAccountUseCase(securityEventRepository);
 
     const moduleRef = await Test.createTestingModule({
-      controllers: [AuthenticationController],
+      controllers: [AuthenticationController, DeviceSessionsController, LoginHistoryController],
       providers: [
         PinoLoggerService,
         { provide: JWT_SIGNER, useValue: jwtSigner },

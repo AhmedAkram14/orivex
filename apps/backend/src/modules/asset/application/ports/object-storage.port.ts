@@ -5,4 +5,8 @@
 export interface ObjectStoragePort {
   createPresignedUploadUrl(storageKey: string, contentType: string): Promise<string>;
   createPresignedDownloadUrl(storageKey: string): Promise<string>;
+  // Throws if the bucket is unreachable/misconfigured -- backs
+  // GET /health/readiness (Production Readiness Audit -- "add S3
+  // reachability to readiness"), not used by any business flow.
+  checkConnectivity(): Promise<void>;
 }

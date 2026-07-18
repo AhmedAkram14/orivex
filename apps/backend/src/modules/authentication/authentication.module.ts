@@ -48,6 +48,8 @@ import { PrismaAuthTokenRepository } from './infrastructure/prisma/prisma-auth-t
 import { PrismaCredentialRepository } from './infrastructure/prisma/prisma-credential.repository.js';
 import { PrismaSessionRepository } from './infrastructure/prisma/prisma-session.repository.js';
 import { AuthenticationController } from './presentation/controllers/authentication.controller.js';
+import { DeviceSessionsController } from './presentation/controllers/device-sessions.controller.js';
+import { LoginHistoryController } from './presentation/controllers/login-history.controller.js';
 
 // Imports IdentityModule (RegisterAccountUseCase, GetAccountByIdUseCase,
 // GetAccountByEmailUseCase) and TrustModule (RecordSecurityEventUseCase) to
@@ -64,7 +66,7 @@ import { AuthenticationController } from './presentation/controllers/authenticat
 // policy evaluation) will eventually build on top of.
 @Module({
   imports: [IdentityModule, TrustModule, AuthenticationGuardsModule],
-  controllers: [AuthenticationController],
+  controllers: [AuthenticationController, DeviceSessionsController, LoginHistoryController],
   providers: [
     { provide: CREDENTIAL_REPOSITORY, useClass: PrismaCredentialRepository },
     { provide: SESSION_REPOSITORY, useClass: PrismaSessionRepository },

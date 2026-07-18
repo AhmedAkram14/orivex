@@ -234,13 +234,12 @@ export class PatientDashboardController {
 
   // For each of the patient's appointments, resolves its ConsultationSession
   // (if any) and that session's prescriptions, then keeps only the ones
-  // still active (signedAt + max durationDays across line items is still in
-  // the future). No "active/expired" status field exists on the Prescription
-  // entity -- this is computed here, never read off a stored field.
+  // still active per Prescription.isCurrentlyActive() (a domain rule, not
+  // computed here -- see that method for why).
   private async findActivePrescriptions(appointments: Appointment[]): Promise<ActivePrescriptionView[]> {
-    const now = Date.now();
+    const now = new Date();
     const all = await this.findAllPrescriptions(appointments);
-    return all.filter((view) => this.isCurrentlyActive(view.prescription, now));
+    return all.filter((view) => view.prescription.isCurrentlyActive(now));
   }
 
   // For each of the patient's appointments, resolves its ConsultationSession
@@ -270,20 +269,6 @@ export class PatientDashboardController {
     );
 
     return perAppointment.flat();
-  }
-
-  private isCurrentlyActive(prescription: Prescription, now: number): boolean {
-    const signedAt = prescription.getSignedAt();
-    if (!signedAt) {
-      return false;
-    }
-    const lineItems = prescription.getLineItems();
-    if (lineItems.length === 0) {
-      return false;
-    }
-    const maxDurationDays = Math.max(...lineItems.map((item) => item.getDurationDays()));
-    const expiresAt = signedAt.getTime() + maxDurationDays * 24 * 60 * 60 * 1000;
-    return expiresAt > now;
   }
 
   private async toUpcomingAppointmentPreview(
@@ -333,7 +318,7 @@ export class PatientDashboardController {
       return null;
     }
 
-    const status = this.isCurrentlyActive(view.prescription, Date.now()) ? 'active' : 'expired';
+    const status = view.prescription.isCurrentlyActive(new Date()) ? 'active' : 'expired';
     const prescribedAt = (view.prescription.getSignedAt() ?? view.prescription.getCreatedAt()).toISOString();
 
     return PatientPrescriptionResponseDto.create({

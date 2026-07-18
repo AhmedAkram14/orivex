@@ -84,10 +84,10 @@ Future split: First extraction candidate (Phase 4's Section 3/13) — video/sess
 
 SchedulingModule
 
-A genuinely new addition worth naming here, not present in earlier phases as its own module: I'd recommend splitting Availability-slot-holding/reservation logic out of ConsultationModule into its own thin SchedulingModule, since the double-booking race condition (Phase 2 edge case 17, Phase 8's hot-table flag) deserves focused, isolated logic (reservation locks, timeout handling) rather than being buried inside the broader Consultation orchestration concern.
-Owned entities: none of its own — operates on DoctorModule's AvailabilityWindow with a transient reservation concept.
+A genuinely new addition worth naming here, not present in earlier phases as its own module: Availability-slot-holding/reservation logic was split out of ConsultationModule into its own thin SchedulingModule, since the double-booking race condition (Phase 2 edge case 17, Phase 8's hot-table flag) deserves focused, isolated logic (reservation locks, timeout handling) rather than being buried inside the broader Consultation orchestration concern.
+Owned entities (implementation note, Production Readiness Audit): ScheduleException and Holiday (working-hours overrides/vacation days and platform-wide non-working days), plus a WorkingHoursDay value object -- built once real doctor availability/rules/exceptions/holidays management shipped. It still operates on DoctorModule's AvailabilityWindow for the actual slot-hold/reservation concept described below; only the exception/holiday calendar data is genuinely its own.
 Dependencies: DoctorModule, ConsultationModule.
-Public interface: reserveSlot(), releaseSlot(), confirmSlot().
+Public interface: reserveSlot(), releaseSlot(), confirmSlot(), plus the exception/holiday CRUD backing GET/POST /scheduling/doctor-exceptions and /scheduling/holidays.
 
 KnowledgeModule
 

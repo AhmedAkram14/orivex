@@ -31,6 +31,7 @@ import type { ConsultationSessionRepository } from './domain/repositories/consul
 import { PrismaAppointmentRepository } from './infrastructure/prisma/prisma-appointment.repository.js';
 import { PrismaConsultationSessionRepository } from './infrastructure/prisma/prisma-consultation-session.repository.js';
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
+import { DoctorAppointmentsController } from './presentation/controllers/doctor-appointments.controller.js';
 import { ConsultationController } from './presentation/controllers/consultation.controller.js';
 
 // Imports PatientModule, DoctorModule, SchedulingModule, IdentityModule, and
@@ -41,7 +42,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
 // forwardRef().
 @Module({
   imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule],
-  controllers: [AppointmentController, ConsultationController],
+  controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },
     { provide: CONSULTATION_SESSION_REPOSITORY, useClass: PrismaConsultationSessionRepository },

@@ -33,6 +33,9 @@ import { MediaAssetController } from './presentation/controllers/media-asset.con
       inject: [MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE],
     },
   ],
-  exports: [CreateUploadIntentUseCase, ConfirmUploadUseCase],
+  // OBJECT_STORAGE is also exported for HealthModule's readiness probe --
+  // the only other consumer of this port outside AssetModule's own
+  // use cases (Production Readiness Audit -- "add S3 reachability").
+  exports: [CreateUploadIntentUseCase, ConfirmUploadUseCase, OBJECT_STORAGE],
 })
 export class AssetModule {}

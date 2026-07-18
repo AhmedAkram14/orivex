@@ -3,6 +3,35 @@ import pino, { type Logger } from 'pino';
 
 import { correlationContext } from '../../shared/correlation/correlation-context.js';
 
+// Every log call in this service nests caller-supplied data under `context`
+// (see log()/error()/warn()/debug()/verbose() below), so every sensitive
+// field is listed both at that fixed depth and via a one-level wildcard --
+// fast-redact (pino's redact engine) doesn't support arbitrary-depth
+// wildcards, so this can't be collapsed into a single glob (Production
+// Readiness Audit -- "improve logger redaction"; nothing in this codebase
+// intentionally logs credentials/tokens today, but a future caller passing
+// a raw request body/headers object as context must not leak one).
+export const LOG_REDACT_PATHS = [
+  'context.password',
+  'context.currentPassword',
+  'context.newPassword',
+  'context.token',
+  'context.accessToken',
+  'context.refreshToken',
+  'context.idempotencyKey',
+  'context.body.password',
+  'context.body.currentPassword',
+  'context.body.newPassword',
+  'context.body.token',
+  'context.headers.authorization',
+  'context.headers.cookie',
+  '*.password',
+  '*.currentPassword',
+  '*.newPassword',
+  '*.accessToken',
+  '*.refreshToken',
+];
+
 @Injectable()
 export class PinoLoggerService implements LoggerService {
   private readonly logger: Logger;
@@ -16,6 +45,7 @@ export class PinoLoggerService implements LoggerService {
       // can filter/group by service and deployed version without parsing
       // the message text -- see docs/15-observability.md.
       base: { service: 'orivex-backend', env: process.env.NODE_ENV ?? 'development' },
+      redact: { paths: LOG_REDACT_PATHS, censor: '[REDACTED]' },
       transport:
         process.env.NODE_ENV === 'development'
           ? {

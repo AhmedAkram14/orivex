@@ -30,6 +30,7 @@ class FakeObjectStorage implements ObjectStoragePort {
   async createPresignedDownloadUrl(storageKey: string): Promise<string> {
     return `https://storage.example.com/${storageKey}?download=true`;
   }
+  async checkConnectivity(): Promise<void> {}
 }
 
 const OWNER_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
