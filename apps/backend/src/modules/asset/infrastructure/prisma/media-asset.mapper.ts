@@ -7,6 +7,7 @@ import { MediaAssetStatus } from '../../domain/enums/media-asset-status.enum.js'
 export function toDomainMediaAsset(row: PrismaMediaAssetRow): MediaAsset {
   return MediaAsset.reconstitute({
     id: row.id,
+    ownerAccountId: row.ownerAccountId,
     purpose: row.purpose as MediaAssetPurpose,
     contentType: row.contentType,
     sizeEstimate: row.sizeEstimate ?? undefined,

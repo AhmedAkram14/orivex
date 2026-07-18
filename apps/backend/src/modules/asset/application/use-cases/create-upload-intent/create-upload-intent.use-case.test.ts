@@ -36,6 +36,7 @@ describe('CreateUploadIntentUseCase', () => {
 
     const result = await useCase.execute(
       new CreateUploadIntentCommand({
+        ownerAccountId: '11111111-1111-4111-8111-111111111111',
         purpose: MediaAssetPurpose.DoctorCertificate,
         contentType: 'image/png',
       }),
@@ -43,6 +44,7 @@ describe('CreateUploadIntentUseCase', () => {
 
     assert.equal(result.asset.getStatus(), MediaAssetStatus.Pending);
     assert.equal(result.asset.getPurpose(), MediaAssetPurpose.DoctorCertificate);
+    assert.equal(result.asset.getOwnerAccountId(), '11111111-1111-4111-8111-111111111111');
     assert.ok(result.signedUrl.includes('upload=true'));
     assert.equal(repo.saved.length, 1);
     assert.ok(result.asset.getStorageKey().startsWith('doctor_certificate/'));

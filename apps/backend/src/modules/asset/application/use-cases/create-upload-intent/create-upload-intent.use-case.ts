@@ -23,6 +23,7 @@ export class CreateUploadIntentUseCase {
 
   async execute(command: CreateUploadIntentCommand): Promise<CreateUploadIntentResult> {
     const asset = MediaAsset.createIntent({
+      ownerAccountId: command.ownerAccountId,
       purpose: command.purpose,
       contentType: command.contentType,
       sizeEstimate: command.sizeEstimate,

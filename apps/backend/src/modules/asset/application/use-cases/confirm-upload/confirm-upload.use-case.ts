@@ -22,7 +22,10 @@ export class ConfirmUploadUseCase {
 
   async execute(command: ConfirmUploadCommand): Promise<ConfirmUploadResult> {
     const asset = await this.mediaAssetRepository.findById(command.mediaAssetId);
-    if (!asset) {
+    // Same "never leak existence to a non-owner" 404 pattern used everywhere
+    // else in this codebase -- an asset owned by someone else looks
+    // identical to a nonexistent one.
+    if (!asset || asset.getOwnerAccountId() !== command.callerAccountId) {
       throw new NotFoundError(`MediaAsset "${command.mediaAssetId}" not found.`);
     }
 

@@ -27,6 +27,7 @@ model Account {
   patientProfile    PatientProfile?
   securityEvents    SecurityEvent[]
   notifications     Notification[]
+  mediaAssets       MediaAsset[]
 }
 
 enum CredentialStatus {
@@ -159,9 +160,18 @@ model MediaAsset {
   sizeEstimate           Int?
   storageKey             String                 @unique
   status                 String                 @default("pending")
+  // The account that requested this upload intent -- required so
+  // confirm-upload can enforce that only the owner may confirm/download
+  // their own asset (closes an IDOR: presigned download URLs must never be
+  // mintable by an arbitrary authenticated caller guessing another user's
+  // asset id).
+  ownerAccountId         String
+  owner                  Account                @relation(fields: [ownerAccountId], references: [id], onDelete: Restrict)
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
   verificationDocuments  VerificationDocument[]
+
+  @@index([ownerAccountId])
 }
 
 enum VerificationStatus {

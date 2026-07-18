@@ -22,6 +22,7 @@ import type { MediaAssetRepository } from '../../domain/repositories/media-asset
 import { MediaAssetController } from './media-asset.controller.js';
 
 const VALID_TOKEN = 'valid-token';
+const OTHER_VALID_TOKEN = 'other-valid-token';
 
 class FakeJwtSigner implements JwtSignerPort {
   async sign(): Promise<never> {
@@ -30,6 +31,9 @@ class FakeJwtSigner implements JwtSignerPort {
   async verify(token: string): Promise<AccessTokenClaims> {
     if (token === VALID_TOKEN) {
       return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.Patient };
+    }
+    if (token === OTHER_VALID_TOKEN) {
+      return { accountId: '88888888-8888-4888-8888-888888888888', role: AccountRole.Patient };
     }
     throw new Error('invalid token');
   }
@@ -150,6 +154,21 @@ describe('MediaAssetController (integration)', () => {
     const response = await request(app.getHttpServer())
       .post('/media-assets/11111111-1111-4111-8111-111111111111/confirm')
       .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('POST /media-assets/:id/confirm returns 404 for an asset owned by a different account', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ contentType: 'application/pdf', purpose: 'lab_report' })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .post(`/media-assets/${created.body.data.id}/confirm`)
+      .set('Authorization', `Bearer ${OTHER_VALID_TOKEN}`)
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');

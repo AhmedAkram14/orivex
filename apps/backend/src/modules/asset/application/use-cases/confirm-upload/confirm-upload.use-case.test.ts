@@ -32,8 +32,14 @@ class FakeObjectStorage implements ObjectStoragePort {
   }
 }
 
-function buildPendingAsset(): MediaAsset {
-  return MediaAsset.createIntent({ purpose: MediaAssetPurpose.LabReport, contentType: 'application/pdf' });
+const OWNER_ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
+
+function buildPendingAsset(ownerAccountId: string = OWNER_ACCOUNT_ID): MediaAsset {
+  return MediaAsset.createIntent({
+    ownerAccountId,
+    purpose: MediaAssetPurpose.LabReport,
+    contentType: 'application/pdf',
+  });
 }
 
 describe('ConfirmUploadUseCase', () => {
@@ -42,7 +48,9 @@ describe('ConfirmUploadUseCase', () => {
     const repo = new FakeMediaAssetRepository(asset);
     const useCase = new ConfirmUploadUseCase(repo, new FakeObjectStorage());
 
-    const result = await useCase.execute(new ConfirmUploadCommand({ mediaAssetId: asset.getId() }));
+    const result = await useCase.execute(
+      new ConfirmUploadCommand({ mediaAssetId: asset.getId(), callerAccountId: OWNER_ACCOUNT_ID }),
+    );
 
     assert.equal(result.asset.getStatus(), MediaAssetStatus.Confirmed);
     assert.ok(result.signedUrl.includes('download=true'));
@@ -54,7 +62,24 @@ describe('ConfirmUploadUseCase', () => {
     const useCase = new ConfirmUploadUseCase(repo, new FakeObjectStorage());
 
     await assert.rejects(
-      () => useCase.execute(new ConfirmUploadCommand({ mediaAssetId: 'missing-id' })),
+      () => useCase.execute(new ConfirmUploadCommand({ mediaAssetId: 'missing-id', callerAccountId: OWNER_ACCOUNT_ID })),
+      NotFoundError,
+    );
+  });
+
+  it('throws NotFoundError when a different account attempts to confirm someone else\'s asset', async () => {
+    const asset = buildPendingAsset();
+    const repo = new FakeMediaAssetRepository(asset);
+    const useCase = new ConfirmUploadUseCase(repo, new FakeObjectStorage());
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new ConfirmUploadCommand({
+            mediaAssetId: asset.getId(),
+            callerAccountId: '99999999-9999-4999-8999-999999999999',
+          }),
+        ),
       NotFoundError,
     );
   });
@@ -66,7 +91,7 @@ describe('ConfirmUploadUseCase', () => {
     const useCase = new ConfirmUploadUseCase(repo, new FakeObjectStorage());
 
     await assert.rejects(
-      () => useCase.execute(new ConfirmUploadCommand({ mediaAssetId: asset.getId() })),
+      () => useCase.execute(new ConfirmUploadCommand({ mediaAssetId: asset.getId(), callerAccountId: OWNER_ACCOUNT_ID })),
       MediaAssetAlreadyConfirmedError,
     );
     assert.equal(repo.saved.length, 0);

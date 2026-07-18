@@ -17,6 +17,7 @@ export class PrismaMediaAssetRepository implements MediaAssetRepository {
 
   async save(asset: MediaAsset): Promise<void> {
     const data = {
+      ownerAccountId: asset.getOwnerAccountId(),
       purpose: asset.getPurpose(),
       contentType: asset.getContentType(),
       sizeEstimate: asset.getSizeEstimate() ?? null,

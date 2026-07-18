@@ -6,6 +6,7 @@ import { AssetDomainError } from '../exceptions/asset-domain.error.js';
 import { MediaAssetAlreadyConfirmedError } from '../exceptions/media-asset-already-confirmed.error.js';
 
 export interface CreateUploadIntentProps {
+  ownerAccountId: string;
   purpose: MediaAssetPurpose;
   contentType: string;
   sizeEstimate?: number;
@@ -13,6 +14,7 @@ export interface CreateUploadIntentProps {
 
 export interface ReconstituteMediaAssetProps {
   id: string;
+  ownerAccountId: string;
   purpose: MediaAssetPurpose;
   contentType: string;
   sizeEstimate?: number;
@@ -29,6 +31,7 @@ export interface ReconstituteMediaAssetProps {
 export class MediaAsset {
   private constructor(
     private readonly id: string,
+    private readonly ownerAccountId: string,
     private readonly purpose: MediaAssetPurpose,
     private readonly contentType: string,
     private readonly sizeEstimate: number | undefined,
@@ -55,6 +58,7 @@ export class MediaAsset {
 
     return new MediaAsset(
       id,
+      props.ownerAccountId,
       props.purpose,
       props.contentType.trim(),
       props.sizeEstimate,
@@ -68,6 +72,7 @@ export class MediaAsset {
   static reconstitute(props: ReconstituteMediaAssetProps): MediaAsset {
     return new MediaAsset(
       props.id,
+      props.ownerAccountId,
       props.purpose,
       props.contentType,
       props.sizeEstimate,
@@ -90,6 +95,10 @@ export class MediaAsset {
 
   getId(): string {
     return this.id;
+  }
+
+  getOwnerAccountId(): string {
+    return this.ownerAccountId;
   }
 
   getPurpose(): MediaAssetPurpose {
