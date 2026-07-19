@@ -26,6 +26,7 @@ export interface ReconstituteTransactionProps {
   amount: Money;
   paymentMethod: PaymentMethod;
   status: PaymentStatus;
+  externalReference?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +48,7 @@ export class PaymentTransaction {
     private readonly amount: Money,
     private readonly paymentMethod: PaymentMethod,
     private status: PaymentStatus,
+    private externalReference: string | undefined,
     private readonly createdAt: Date,
     private updatedAt: Date,
   ) {}
@@ -62,6 +64,7 @@ export class PaymentTransaction {
       props.amount,
       props.paymentMethod,
       PaymentStatus.Initiated,
+      undefined,
       now,
       now,
     );
@@ -77,9 +80,19 @@ export class PaymentTransaction {
       props.amount,
       props.paymentMethod,
       props.status,
+      props.externalReference,
       props.createdAt,
       props.updatedAt,
     );
+  }
+
+  // Set once the gateway confirms the charge attempt (its own reference,
+  // e.g. a Stripe PaymentIntent id) -- lets a later refund or an inbound
+  // webhook event be matched back to this exact transaction. Callable
+  // any time before a terminal state; not itself a state transition.
+  attachExternalReference(reference: string): void {
+    this.externalReference = reference;
+    this.updatedAt = new Date();
   }
 
   // Called once PaymentGatewayPort reports a successful authorization.
@@ -114,6 +127,9 @@ export class PaymentTransaction {
   refund(): void {
     if (this.status !== PaymentStatus.Succeeded && this.status !== PaymentStatus.Settled) {
       throw new PaymentDomainError(`PaymentTransaction "${this.id}" cannot be refunded from its current status.`);
+    }
+    if (!this.externalReference) {
+      throw new PaymentDomainError(`PaymentTransaction "${this.id}" has no gateway reference and cannot be refunded.`);
     }
     this.status = PaymentStatus.Refunded;
     this.updatedAt = new Date();
@@ -158,6 +174,10 @@ export class PaymentTransaction {
 
   getStatus(): PaymentStatus {
     return this.status;
+  }
+
+  getExternalReference(): string | undefined {
+    return this.externalReference;
   }
 
   getCreatedAt(): Date {

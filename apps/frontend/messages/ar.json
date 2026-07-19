@@ -10,6 +10,17 @@
     "backendReachable": "الخادم متاح — الحالة: {status}، مدة التشغيل: {uptime} ثانية",
     "backendUnreachable": "تعذر الوصول إلى الخادم: {error}"
   },
+  "payment": {
+    "formLabel": "تفاصيل الدفع",
+    "amountDue": "المبلغ المستحق: {amount}",
+    "payNow": "ادفع الآن",
+    "cardError": "تعذّرت معالجة بطاقتك. يرجى التحقق من البيانات والمحاولة مرة أخرى.",
+    "chargeFailed": "تعذّر إتمام عملية الدفع. يرجى المحاولة مرة أخرى.",
+    "notConfigured": "خدمة الدفع غير متاحة بعد.",
+    "refund": "استرداد",
+    "refundSucceeded": "تم استرداد المبلغ.",
+    "refundFailed": "تعذّر إتمام عملية الاسترداد."
+  },
   "auth": {
     "validation": {
       "emailRequired": "البريد الإلكتروني مطلوب.",

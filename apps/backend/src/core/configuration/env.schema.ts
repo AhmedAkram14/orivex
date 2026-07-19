@@ -58,6 +58,14 @@ export const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
+  // Stripe (docs/14-adrs.md "Payment Gateway" ADR). Optional -- unset means
+  // PaymentModule keeps binding NotConfiguredPaymentGatewayAdapter (same
+  // fail-loud-not-fail-fake idiom as every other unconfigured provider in
+  // this schema). STRIPE_WEBHOOK_SECRET verifies the signature on inbound
+  // POST /payments/webhook events -- required together with the secret key
+  // once Stripe is actually the bound gateway.
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

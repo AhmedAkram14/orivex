@@ -16,6 +16,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByIdempotencyKey(): Promise<PaymentTransaction | null> {
     return this.transaction;
   }
+  async findByExternalReference(): Promise<PaymentTransaction | null> {
+    return this.transaction;
+  }
   async save(): Promise<void> {}
 }
 

@@ -16,6 +16,7 @@ export function toDomainPaymentTransaction(row: PrismaPaymentTransactionRow): Pa
     amount: Money.create(Number(row.amount), row.currency),
     paymentMethod: toDomainPaymentMethod(row.paymentMethod),
     status: toDomainPaymentStatus(row.status),
+    externalReference: row.externalReference ?? undefined,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });

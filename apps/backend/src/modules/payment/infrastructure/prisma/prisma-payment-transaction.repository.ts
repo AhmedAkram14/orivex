@@ -22,6 +22,11 @@ export class PrismaPaymentTransactionRepository implements PaymentTransactionRep
     return row ? toDomainPaymentTransaction(row) : null;
   }
 
+  async findByExternalReference(externalReference: string): Promise<PaymentTransaction | null> {
+    const row = await this.prisma.paymentTransaction.findUnique({ where: { externalReference } });
+    return row ? toDomainPaymentTransaction(row) : null;
+  }
+
   async save(transaction: PaymentTransaction): Promise<void> {
     const data = {
       idempotencyKey: transaction.getIdempotencyKey(),
@@ -32,6 +37,7 @@ export class PrismaPaymentTransactionRepository implements PaymentTransactionRep
       currency: transaction.getAmount().getCurrency(),
       paymentMethod: toPrismaPaymentMethod(transaction.getPaymentMethod()),
       status: toPrismaPaymentStatus(transaction.getStatus()),
+      externalReference: transaction.getExternalReference() ?? null,
     };
 
     await this.prisma.paymentTransaction.upsert({

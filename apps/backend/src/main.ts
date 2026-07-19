@@ -22,7 +22,11 @@ async function bootstrap(): Promise<void> {
   const tracing = bootstrapTracing();
   bootstrapErrorReporting();
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // rawBody: true keeps the untouched request Buffer available on
+  // req.rawBody alongside Nest's normal parsed req.body -- required by the
+  // Stripe webhook receiver (payment-webhook.controller.ts) to verify the
+  // signature, which is computed over the exact raw bytes Stripe sent.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   const logger = app.get(PinoLoggerService);
   app.useLogger(logger);

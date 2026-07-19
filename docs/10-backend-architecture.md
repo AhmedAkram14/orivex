@@ -113,6 +113,7 @@ Purpose: Transactions, payouts.
 Owned entities: PaymentTransaction, PayoutStatement.
 Owned events: PaymentCompleted, RefundIssued.
 Dependencies: ConsultationModule (what's being paid for), external PSP adapter (Section 7/11).
+Implementation note (ORIVEX Roadmap 2.0, Stage 1): the PSP adapter is Stripe (`StripePaymentGatewayAdapter`), bound only when `STRIPE_SECRET_KEY` is configured -- falls back to `NotConfiguredPaymentGatewayAdapter` otherwise, matching every other optional-provider idiom in this codebase. A dedicated, unguarded `PaymentWebhookController` verifies Stripe's own signature (never JwtAuthGuard) and reconciles `payment_intent.succeeded`/`payment_intent.payment_failed`/`charge.refunded` events back to the transaction via a stored `externalReference` (the Stripe PaymentIntent id). `issueRefund()` (`RefundPaymentUseCase`) is scoped to the treating doctor -- no admin role exists yet for payment-adjacent flows.
 Public interface: initiateCharge(), issueRefund().
 Future split: Natural eventual candidate given PCI-adjacent isolation value, not urgent for V1 (Phase 4's assessment stands).
 

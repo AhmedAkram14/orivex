@@ -96,6 +96,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByIdempotencyKey(idempotencyKey: string): Promise<PaymentTransaction | null> {
     return this.byIdempotencyKey.get(idempotencyKey) ?? null;
   }
+  async findByExternalReference(externalReference: string): Promise<PaymentTransaction | null> {
+    return this.saved.find((t) => t.getExternalReference() === externalReference) ?? null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.saved.push(transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
@@ -106,11 +109,17 @@ class FakeSucceedingGateway implements PaymentGatewayPort {
   async authorize(): Promise<{ succeeded: boolean }> {
     return { succeeded: true };
   }
+  async refund(): Promise<{ succeeded: boolean }> {
+    return { succeeded: true };
+  }
 }
 
 class FakeFailingGateway implements PaymentGatewayPort {
   async authorize(): Promise<{ succeeded: boolean }> {
     return { succeeded: false };
+  }
+  async refund(): Promise<{ succeeded: boolean }> {
+    return { succeeded: true };
   }
 }
 
@@ -203,6 +212,7 @@ describe('InitiateChargeUseCase', () => {
         amount: 500,
         currency: 'EGP',
         paymentMethod: PaymentMethod.Card,
+        paymentMethodToken: 'pm_test_card',
       }),
     );
 
@@ -230,6 +240,7 @@ describe('InitiateChargeUseCase', () => {
             amount: 500,
             currency: 'EGP',
             paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
           }),
         ),
       PaymentAuthorizationFailedError,
@@ -257,6 +268,7 @@ describe('InitiateChargeUseCase', () => {
             amount: 500,
             currency: 'EGP',
             paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
           }),
         ),
       NotFoundError,
@@ -284,6 +296,7 @@ describe('InitiateChargeUseCase', () => {
             amount: 1,
             currency: 'EGP',
             paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
           }),
         ),
       PaymentDomainError,
@@ -311,6 +324,7 @@ describe('InitiateChargeUseCase', () => {
             amount: 500,
             currency: 'EGP',
             paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
           }),
         ),
       PaymentDomainError,
@@ -350,6 +364,7 @@ describe('InitiateChargeUseCase', () => {
             amount: 0,
             currency: 'EGP',
             paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
           }),
         ),
       PaymentDomainError,
@@ -366,6 +381,7 @@ describe('InitiateChargeUseCase', () => {
         authorizeCallCount += 1;
         return { succeeded: true };
       },
+      refund: async () => ({ succeeded: true }),
     };
     const useCase = buildUseCase({ appointment, session, gateway: countingGateway, transactionRepo });
 
@@ -375,6 +391,7 @@ describe('InitiateChargeUseCase', () => {
       amount: 500,
       currency: 'EGP',
       paymentMethod: PaymentMethod.Card,
+      paymentMethodToken: 'pm_test_card',
     });
 
     const first = await useCase.execute(command);
@@ -394,6 +411,7 @@ describe('InitiateChargeUseCase', () => {
         authorizeCallCount += 1;
         return { succeeded: false };
       },
+      refund: async () => ({ succeeded: true }),
     };
     const useCase = buildUseCase({ appointment, session, gateway: countingFailingGateway, transactionRepo });
 
@@ -403,6 +421,7 @@ describe('InitiateChargeUseCase', () => {
       amount: 500,
       currency: 'EGP',
       paymentMethod: PaymentMethod.Card,
+      paymentMethodToken: 'pm_test_card',
     });
 
     await assert.rejects(() => useCase.execute(command), PaymentAuthorizationFailedError);
@@ -423,6 +442,7 @@ describe('InitiateChargeUseCase', () => {
         amount: 500,
         currency: 'EGP',
         paymentMethod: PaymentMethod.Card,
+        paymentMethodToken: 'pm_test_card',
       }),
     );
 
@@ -435,6 +455,7 @@ describe('InitiateChargeUseCase', () => {
             amount: 999,
             currency: 'EGP',
             paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
           }),
         ),
       IdempotencyKeyConflictError,

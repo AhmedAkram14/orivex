@@ -476,6 +476,11 @@ model PaymentTransaction {
   currency              String
   paymentMethod         PaymentMethod
   status                PaymentStatus        @default(INITIATED)
+  // Stripe PaymentIntent id (or equivalent for a future gateway) -- lets an
+  // inbound webhook event or a doctor/admin-initiated refund be matched
+  // back to this exact transaction. Null until the gateway confirms the
+  // charge attempt (ORIVEX Roadmap 2.0 Stage 1 -- Stripe integration).
+  externalReference     String?              @unique
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 

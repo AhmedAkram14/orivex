@@ -23,6 +23,7 @@ import { ConsultationType } from '../../../consultation/domain/enums/consultatio
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
+import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { AvailabilityWindow } from '../../../doctor/domain/entities/availability-window.entity.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -35,6 +36,8 @@ import { PatientProfile } from '../../../patient/domain/entities/patient-profile
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
+import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
+import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
 import type { PaymentTransaction } from '../../domain/entities/payment-transaction.entity.js';
 import type { PaymentTransactionRepository } from '../../domain/repositories/payment-transaction.repository.js';
@@ -135,6 +138,9 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByIdempotencyKey(idempotencyKey: string): Promise<PaymentTransaction | null> {
     return this.byIdempotencyKey.get(idempotencyKey) ?? null;
   }
+  async findByExternalReference(externalReference: string): Promise<PaymentTransaction | null> {
+    return Array.from(this.byId.values()).find((t) => t.getExternalReference() === externalReference) ?? null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.byId.set(transaction.getId(), transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
@@ -148,6 +154,9 @@ class FakeGateway implements PaymentGatewayPort {
   constructor(private readonly succeeds: boolean) {}
   async authorize(): Promise<{ succeeded: boolean }> {
     return { succeeded: this.succeeds };
+  }
+  async refund(): Promise<{ succeeded: boolean }> {
+    return { succeeded: true };
   }
 }
 
@@ -216,6 +225,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     new ConfirmSlotUseCase(new ConfirmAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDomainEventDispatcher())),
     new NoopDomainEventDispatcher(),
   );
+  const gateway = new FakeGateway(gatewaySucceeds);
   const initiateChargeUseCase = new InitiateChargeUseCase(
     paymentTransactionRepo,
     new NoopDomainEventDispatcher(),
@@ -223,8 +233,11 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     new GetAppointmentByIdUseCase(appointmentRepo),
     new GetDoctorProfileByIdUseCase(doctorProfileRepo),
     confirmAppointmentUseCase,
-    new FakeGateway(gatewaySucceeds),
+    gateway,
   );
+  const getPaymentTransactionByIdUseCase = new GetPaymentTransactionByIdUseCase(paymentTransactionRepo);
+  const refundPaymentUseCase = new RefundPaymentUseCase(paymentTransactionRepo, gateway, new NoopDomainEventDispatcher());
+  const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo);
 
   const moduleRef = await Test.createTestingModule({
     controllers: [PaymentController],
@@ -236,7 +249,10 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
       { provide: JWT_SIGNER, useFactory: () => jwtSigner },
       { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
       { provide: InitiateChargeUseCase, useValue: initiateChargeUseCase },
+      { provide: GetPaymentTransactionByIdUseCase, useValue: getPaymentTransactionByIdUseCase },
+      { provide: RefundPaymentUseCase, useValue: refundPaymentUseCase },
       { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
+      { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
       { provide: GetConsultationSessionByIdUseCase, useFactory: () => new GetConsultationSessionByIdUseCase(sessionRepo) },
       { provide: GetAppointmentByIdUseCase, useFactory: () => new GetAppointmentByIdUseCase(appointmentRepo) },
     ],
@@ -303,6 +319,7 @@ describe('PaymentController (integration)', () => {
           consultationSessionId: sessionId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
+          paymentMethodToken: 'pm_test_card',
         })
         .expect(404);
 
@@ -323,6 +340,7 @@ describe('PaymentController (integration)', () => {
           consultationSessionId: sessionId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
+          paymentMethodToken: 'pm_test_card',
         })
         .expect(201);
 
@@ -341,6 +359,7 @@ describe('PaymentController (integration)', () => {
         consultationSessionId: sessionId,
         amount: { amount: 500, currency: 'EGP' },
         paymentMethod: 'card',
+        paymentMethodToken: 'pm_test_card',
       };
 
       const first = await request(app.getHttpServer())
@@ -373,6 +392,7 @@ describe('PaymentController (integration)', () => {
           consultationSessionId: sessionId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
+          paymentMethodToken: 'pm_test_card',
         })
         .expect(201);
 
@@ -384,6 +404,7 @@ describe('PaymentController (integration)', () => {
           consultationSessionId: sessionId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'mobile_wallet',
+          paymentMethodToken: 'pm_test_card',
         })
         .expect(409);
 
@@ -404,6 +425,7 @@ describe('PaymentController (integration)', () => {
           consultationSessionId: sessionId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
+          paymentMethodToken: 'pm_test_card',
         })
         .expect(402);
 
@@ -424,6 +446,7 @@ describe('PaymentController (integration)', () => {
           consultationSessionId: '99999999-9999-4999-8999-999999999999',
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
+          paymentMethodToken: 'pm_test_card',
         })
         .expect(404);
 

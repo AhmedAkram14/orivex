@@ -25,4 +25,12 @@ export class InitiateChargeRequestDto {
 
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;
+
+  // A Stripe payment-method id collected client-side via Stripe Elements
+  // (e.g. "pm_1N..."), never a raw card number -- this backend is never in
+  // PCI scope for card data.
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  paymentMethodToken!: string;
 }

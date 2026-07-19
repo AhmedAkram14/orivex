@@ -10,6 +10,17 @@
     "backendReachable": "Backend reachable — status: {status}, uptime: {uptime}s",
     "backendUnreachable": "Backend unreachable: {error}"
   },
+  "payment": {
+    "formLabel": "Payment details",
+    "amountDue": "Amount due: {amount}",
+    "payNow": "Pay now",
+    "cardError": "Your card could not be processed. Please check the details and try again.",
+    "chargeFailed": "The payment could not be completed. Please try again.",
+    "notConfigured": "Payments are not available yet.",
+    "refund": "Refund",
+    "refundSucceeded": "Payment refunded.",
+    "refundFailed": "The refund could not be completed."
+  },
   "auth": {
     "validation": {
       "emailRequired": "Email is required.",

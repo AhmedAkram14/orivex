@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
@@ -15,9 +17,13 @@ import type { PaymentGatewayPort } from './application/ports/payment-gateway.por
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
+import { ReconcileStripeWebhookEventUseCase } from './application/use-cases/reconcile-stripe-webhook-event/reconcile-stripe-webhook-event.use-case.js';
+import { RefundPaymentUseCase } from './application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentTransactionRepository } from './domain/repositories/payment-transaction.repository.js';
 import { NotConfiguredPaymentGatewayAdapter } from './infrastructure/gateway/not-configured-payment-gateway.adapter.js';
+import { StripePaymentGatewayAdapter } from './infrastructure/gateway/stripe-payment-gateway.adapter.js';
 import { PrismaPaymentTransactionRepository } from './infrastructure/prisma/prisma-payment-transaction.repository.js';
+import { PaymentWebhookController } from './presentation/controllers/payment-webhook.controller.js';
 import { PaymentController } from './presentation/controllers/payment.controller.js';
 
 // Imports ConsultationModule and DoctorModule to consume their own
@@ -33,19 +39,27 @@ import { PaymentController } from './presentation/controllers/payment.controller
 // Neither module imports PaymentModule back -- no circular imports, no
 // forwardRef().
 //
-// PAYMENT_GATEWAY is bound to NotConfiguredPaymentGatewayAdapter -- no PSP
-// has been selected yet, but the module stays fully registered (architect
-// direction: "do not leave finished modules disconnected from AppModule").
-// Dependency inversion stays intact; the missing dependency is explicit;
-// the app boots cleanly; only an actual initiateCharge call fails, with a
-// clear error naming exactly what's missing. Swap this binding for a real
-// adapter the moment a PSP is chosen -- nothing else changes.
+// PAYMENT_GATEWAY binds StripePaymentGatewayAdapter when STRIPE_SECRET_KEY
+// is configured (ORIVEX Roadmap 2.0 implementation program, Stage 1),
+// falling back to NotConfiguredPaymentGatewayAdapter otherwise -- the
+// module stays fully registered either way (architect direction: "do not
+// leave finished modules disconnected from AppModule"). Dependency
+// inversion stays intact; the missing dependency is explicit when unset;
+// the app boots cleanly; only an actual initiateCharge/refund call fails
+// with a clear error naming exactly what's missing, on the fallback path.
 @Module({
   imports: [ConsultationModule, DoctorModule, PatientModule, AuthenticationGuardsModule],
-  controllers: [PaymentController],
+  controllers: [PaymentController, PaymentWebhookController],
   providers: [
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },
-    { provide: PAYMENT_GATEWAY, useClass: NotConfiguredPaymentGatewayAdapter },
+    {
+      provide: PAYMENT_GATEWAY,
+      useFactory: (configService: ConfigService<EnvConfig, true>): PaymentGatewayPort => {
+        const secretKey = configService.get('STRIPE_SECRET_KEY', { infer: true });
+        return secretKey ? new StripePaymentGatewayAdapter(secretKey) : new NotConfiguredPaymentGatewayAdapter();
+      },
+      inject: [ConfigService],
+    },
     {
       provide: GetPaymentTransactionByIdUseCase,
       useFactory: (repository: PaymentTransactionRepository) => new GetPaymentTransactionByIdUseCase(repository),
@@ -81,7 +95,22 @@ import { PaymentController } from './presentation/controllers/payment.controller
         PAYMENT_GATEWAY,
       ],
     },
+    {
+      provide: RefundPaymentUseCase,
+      useFactory: (
+        repository: PaymentTransactionRepository,
+        paymentGateway: PaymentGatewayPort,
+        eventDispatcher: DomainEventDispatcher,
+      ) => new RefundPaymentUseCase(repository, paymentGateway, eventDispatcher),
+      inject: [PAYMENT_TRANSACTION_REPOSITORY, PAYMENT_GATEWAY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      provide: ReconcileStripeWebhookEventUseCase,
+      useFactory: (repository: PaymentTransactionRepository, eventDispatcher: DomainEventDispatcher) =>
+        new ReconcileStripeWebhookEventUseCase(repository, eventDispatcher),
+      inject: [PAYMENT_TRANSACTION_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
   ],
-  exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase],
+  exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase, RefundPaymentUseCase],
 })
 export class PaymentModule {}

@@ -27,6 +27,8 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 | `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | **yes** | Yes — AssetModule's upload-intent/confirm flow genuinely calls S3 |
 | `S3_REGION` | optional (default `us-east-1`) | Yes |
 | `S3_FORCE_PATH_STYLE` | optional (default `true`) | Yes |
+| `STRIPE_SECRET_KEY` | optional | Yes, if set — PaymentModule binds `StripePaymentGatewayAdapter` instead of `NotConfiguredPaymentGatewayAdapter` (ORIVEX Roadmap 2.0 Stage 1) |
+| `STRIPE_WEBHOOK_SECRET` | required if `STRIPE_SECRET_KEY` is set | Yes — verifies `POST /payments/webhook`'s signature |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Docker Compose only | Consumed only by `docker-compose.production.yml` to construct `DATABASE_URL` for the `postgres` service it starts; the app itself never reads these three directly |
 
 `REDIS_URL` is optional in `apps/backend/src/core/configuration/env.schema.ts` specifically because nothing in the codebase instantiates a client from it yet — restore it to required the moment that integration is actually wired up. `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail. Authentication is first-party (Sprint 15, docs/14-adrs.md ADR-005) — no external identity provider is used or required.

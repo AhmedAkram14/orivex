@@ -59,9 +59,10 @@ describe('PaymentTransaction', () => {
     assert.throws(() => transaction.settle(), PaymentDomainError);
   });
 
-  it('refunds a Succeeded or Settled transaction and records RefundIssued', () => {
+  it('refunds a Succeeded or Settled transaction with a gateway reference and records RefundIssued', () => {
     const transaction = initiateTransaction();
     transaction.markSucceeded();
+    transaction.attachExternalReference('pi_test_123');
     transaction.releaseDomainEvents();
     transaction.refund();
 
@@ -72,6 +73,20 @@ describe('PaymentTransaction', () => {
   it('rejects refunding an Initiated or Failed transaction', () => {
     const transaction = initiateTransaction();
     assert.throws(() => transaction.refund(), PaymentDomainError);
+  });
+
+  it('rejects refunding a Succeeded transaction with no gateway reference attached', () => {
+    const transaction = initiateTransaction();
+    transaction.markSucceeded();
+    assert.throws(() => transaction.refund(), PaymentDomainError);
+  });
+
+  it('attachExternalReference records the gateway reference without changing status', () => {
+    const transaction = initiateTransaction();
+    transaction.attachExternalReference('pi_test_456');
+
+    assert.equal(transaction.getExternalReference(), 'pi_test_456');
+    assert.equal(transaction.getStatus(), PaymentStatus.Initiated);
   });
 
   it('disputes a Succeeded or Settled transaction', () => {

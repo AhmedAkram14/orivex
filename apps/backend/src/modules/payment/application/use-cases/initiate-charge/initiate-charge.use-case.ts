@@ -101,7 +101,12 @@ export class InitiateChargeUseCase {
       amount: amount.getAmount(),
       currency: amount.getCurrency(),
       paymentMethod: command.paymentMethod,
+      paymentMethodToken: command.paymentMethodToken,
     });
+
+    if (result.externalReference) {
+      transaction.attachExternalReference(result.externalReference);
+    }
 
     if (!result.succeeded) {
       transaction.markFailed();

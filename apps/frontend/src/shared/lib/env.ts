@@ -31,6 +31,12 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .optional()
     .default('false'),
+  // Stripe Elements needs this to mount a card field (ORIVEX Roadmap 2.0
+  // Stage 1 -- Payment Gateway). Optional: unset means the Pay Now flow
+  // renders a clear "payments are not configured yet" state instead of a
+  // broken card field, mirroring the backend's own not-configured-adapter
+  // idiom rather than crashing.
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
 });
 
 type ParsedEnv = z.infer<typeof envSchema>;
@@ -61,6 +67,7 @@ function readEnv(): ParsedEnv {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? toAbsoluteUrl(process.env.NEXT_PUBLIC_VERCEL_URL),
     NEXT_PUBLIC_ENABLE_API_MOCKS: process.env.NEXT_PUBLIC_ENABLE_API_MOCKS,
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   });
 
   if (!parsed.success) {
@@ -84,5 +91,8 @@ export const env = {
   },
   get enableApiMocks(): boolean {
     return readEnv().NEXT_PUBLIC_ENABLE_API_MOCKS === 'true';
+  },
+  get stripePublishableKey(): string | undefined {
+    return readEnv().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
   },
 };
