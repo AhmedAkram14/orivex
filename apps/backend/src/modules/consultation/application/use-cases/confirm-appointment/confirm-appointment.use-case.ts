@@ -18,10 +18,16 @@ export interface ConfirmAppointmentResult {
 // consultation.module.ts only.
 //
 // Shared confirmation step: BookAppointmentUseCase calls this directly for
-// free bookings (no payment step); PaymentModule (Sprint 9) will call this
-// same exported use case once a paid booking's charge succeeds. Confirms
-// the Appointment, confirms the held slot via SchedulingModule's exported
-// ConfirmSlotUseCase, and opens the ConsultationSession.
+// free bookings (no payment step); PaymentModule's InitiateChargeUseCase
+// calls this same exported use case once a paid booking's charge succeeds.
+// Confirms the Appointment, confirms the held slot via SchedulingModule's
+// exported ConfirmSlotUseCase, and opens the ConsultationSession --
+// idempotently: a Paid booking already has a session opened at booking
+// time (BookAppointmentUseCase, so the patient has something to reference
+// when paying), so this reuses it here rather than creating a second one;
+// a Free booking has no session yet at this point, so this is where one is
+// first created (ORIVEX Roadmap 2.0 Stage 1 -- fixed the pre-existing gap
+// where a Paid appointment could never produce a payable session at all).
 export class ConfirmAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
@@ -41,7 +47,8 @@ export class ConfirmAppointmentUseCase {
       new ConfirmSlotCommand({ availabilityWindowId: appointment.getAvailabilityWindowId() }),
     );
 
-    const session = ConsultationSession.open(appointment.getId());
+    const existingSession = await this.consultationSessionRepository.findByAppointmentId(appointment.getId());
+    const session = existingSession ?? ConsultationSession.open(appointment.getId());
 
     await this.appointmentRepository.save(appointment);
     await this.consultationSessionRepository.save(session);

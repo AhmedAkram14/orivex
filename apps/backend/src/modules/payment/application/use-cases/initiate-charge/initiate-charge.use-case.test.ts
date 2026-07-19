@@ -99,6 +99,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByExternalReference(externalReference: string): Promise<PaymentTransaction | null> {
     return this.saved.find((t) => t.getExternalReference() === externalReference) ?? null;
   }
+  async findByConsultationSessionId(consultationSessionId: string): Promise<PaymentTransaction | null> {
+    return this.saved.find((t) => t.getConsultationSessionId() === consultationSessionId) ?? null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.saved.push(transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
@@ -460,5 +463,83 @@ describe('InitiateChargeUseCase', () => {
         ),
       IdempotencyKeyConflictError,
     );
+  });
+
+  it('attaches the gateway externalReference to the persisted transaction on success', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const gateway: PaymentGatewayPort = {
+      authorize: async () => ({ succeeded: true, externalReference: 'pi_from_gateway_123' }),
+      refund: async () => ({ succeeded: true }),
+    };
+    const useCase = buildUseCase({ appointment, session, gateway, transactionRepo });
+
+    const transaction = await useCase.execute(
+      new InitiateChargeCommand({
+        idempotencyKey: 'idem-key-external-reference',
+        consultationSessionId: session.getId(),
+        amount: 500,
+        currency: 'EGP',
+        paymentMethod: PaymentMethod.Card,
+        paymentMethodToken: 'pm_test_card',
+      }),
+    );
+
+    assert.equal(transaction.getExternalReference(), 'pi_from_gateway_123');
+    // Persisted, not just held in memory -- the final save() call must
+    // have carried the reference the webhook receiver later reconciles by.
+    assert.equal(transactionRepo.saved.at(-1)?.getExternalReference(), 'pi_from_gateway_123');
+  });
+
+  it('still attaches the externalReference even when the gateway reports the charge as not-yet-succeeded (async/declined but reconcilable via webhook)', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const gateway: PaymentGatewayPort = {
+      authorize: async () => ({ succeeded: false, externalReference: 'pi_declined_but_referenced' }),
+      refund: async () => ({ succeeded: true }),
+    };
+    const useCase = buildUseCase({ appointment, session, gateway, transactionRepo });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new InitiateChargeCommand({
+            idempotencyKey: 'idem-key-external-reference-on-failure',
+            consultationSessionId: session.getId(),
+            amount: 500,
+            currency: 'EGP',
+            paymentMethod: PaymentMethod.Card,
+            paymentMethodToken: 'pm_test_card',
+          }),
+        ),
+      PaymentAuthorizationFailedError,
+    );
+
+    const failedTransaction = transactionRepo.saved.at(-1);
+    assert.equal(failedTransaction?.getStatus(), PaymentStatus.Failed);
+    assert.equal(failedTransaction?.getExternalReference(), 'pi_declined_but_referenced');
+  });
+
+  it('never calls attachExternalReference when the gateway result carries no externalReference', async () => {
+    const { appointment, session } = buildAppointmentAndSession();
+    const transactionRepo = new FakePaymentTransactionRepository();
+    const gateway: PaymentGatewayPort = {
+      authorize: async () => ({ succeeded: true }),
+      refund: async () => ({ succeeded: true }),
+    };
+    const useCase = buildUseCase({ appointment, session, gateway, transactionRepo });
+
+    const transaction = await useCase.execute(
+      new InitiateChargeCommand({
+        idempotencyKey: 'idem-key-no-external-reference',
+        consultationSessionId: session.getId(),
+        amount: 500,
+        currency: 'EGP',
+        paymentMethod: PaymentMethod.Card,
+        paymentMethodToken: 'pm_test_card',
+      }),
+    );
+
+    assert.equal(transaction.getExternalReference(), undefined);
   });
 });

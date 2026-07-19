@@ -21,6 +21,11 @@
     "refundSucceeded": "تم استرداد المبلغ.",
     "refundFailed": "تعذّر إتمام عملية الاسترداد."
   },
+  "telemedicine": {
+    "connecting": "جارٍ الاتصال بالمكالمة…",
+    "connectFailed": "تعذّر بدء مكالمة الفيديو. يرجى المحاولة مرة أخرى.",
+    "joinCall": "الانضمام إلى مكالمة الفيديو"
+  },
   "auth": {
     "validation": {
       "emailRequired": "البريد الإلكتروني مطلوب.",

@@ -1,31 +1,33 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { renderWithProviders } from '@/shared/test/render-with-providers';
-import { paymentApi } from '@/features/payment/api/payment-api';
-import type { PaymentTransaction } from '@/features/payment/api/types';
+import { server } from '@/mocks/server';
+import { resetPaymentStore, seedTransaction } from '@/mocks/payment-store';
 
 import { RefundButton } from './refund-button';
 
-vi.mock('@/features/payment/api/payment-api', () => ({
-  paymentApi: { refund: vi.fn() },
-}));
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => {
+  server.resetHandlers();
+  resetPaymentStore();
+});
+afterAll(() => server.close());
 
 describe('RefundButton', () => {
   it('refunds the payment and shows a success alert', async () => {
-    vi.mocked(paymentApi.refund).mockResolvedValue({
+    seedTransaction({
       id: 'payment-1',
       consultationSessionId: null,
       amount: { amount: 500, currency: 'EGP' },
-      status: 'refunded',
+      status: 'succeeded',
       createdAt: new Date().toISOString(),
-    } satisfies PaymentTransaction);
+    });
 
     renderWithProviders(<RefundButton paymentTransactionId="payment-1" />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Refund' }));
 
     await waitFor(() => expect(screen.getByText('Payment refunded.')).toBeInTheDocument());
-    expect(paymentApi.refund).toHaveBeenCalledWith('payment-1');
   });
 });

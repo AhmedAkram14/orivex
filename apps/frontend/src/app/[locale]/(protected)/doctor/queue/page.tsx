@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
+import { RefundQueueAction } from '@/features/payment/components/refund-queue-action';
+import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -70,6 +72,7 @@ export default function DoctorQueuePage() {
                     label={currentPatient.label}
                     status={currentPatient.status}
                     statusLabel={tStatus(currentPatient.status)}
+                    actions={<JoinCallAction consultationSessionId={currentPatient.id} />}
                   />
                 ) : undefined
               }
@@ -93,6 +96,7 @@ export default function DoctorQueuePage() {
                           ? t('waitMinutes', { minutes: entry.estimatedWaitMinutes })
                           : undefined
                       }
+                      actions={entry.status === 'completed' ? <RefundQueueAction consultationSessionId={entry.id} /> : undefined}
                     />
                   </li>
                 ))}

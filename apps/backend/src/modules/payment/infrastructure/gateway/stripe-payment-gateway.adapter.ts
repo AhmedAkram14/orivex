@@ -10,6 +10,13 @@ import type {
 } from '../../application/ports/payment-gateway.port.js';
 import { PaymentMethod } from '../../domain/enums/payment-method.enum.js';
 
+// The exact slice of the Stripe SDK this adapter actually calls -- narrowed
+// down from the full `Stripe` client so a hand-written fake can implement
+// it in tests (this codebase's established convention: no mocking
+// library, a real object implementing the real shape) without needing to
+// stub Stripe's entire surface.
+export type StripeClient = Pick<Stripe, 'paymentIntents' | 'refunds'>;
+
 // Real PSP adapter (ORIVEX Roadmap 2.0 implementation program, Stage 1).
 // Bound in payment.module.ts only when STRIPE_SECRET_KEY is set --
 // InitiateChargeUseCase's flow is synchronous (a single authorize() call
@@ -18,13 +25,14 @@ import { PaymentMethod } from '../../domain/enums/payment-method.enum.js';
 // asynchronous payment methods still resolve via the webhook receiver
 // (payment.controller.ts's POST /payments/webhook) updating the
 // transaction afterwards.
+//
+// Takes an already-constructed Stripe client rather than a raw secret key
+// -- keeps this adapter's own dependency injectable/testable (Ports &
+// Adapters: the adapter's own external dependency should be substitutable),
+// with payment.module.ts owning the one real `new Stripe(secretKey)` call.
 @Injectable()
 export class StripePaymentGatewayAdapter implements PaymentGatewayPort {
-  private readonly client: Stripe;
-
-  constructor(secretKey: string) {
-    this.client = new Stripe(secretKey);
-  }
+  constructor(private readonly client: StripeClient) {}
 
   async authorize(request: AuthorizePaymentRequest): Promise<AuthorizePaymentResult> {
     try {
@@ -61,13 +69,13 @@ export class StripePaymentGatewayAdapter implements PaymentGatewayPort {
 // Stripe amounts are always the smallest currency unit (cents for USD,
 // piastres for EGP) -- both currencies this codebase uses today are
 // 2-decimal, but this is written generically rather than hardcoding *100.
-function toMinorUnits(amount: number, currency: string): number {
+export function toMinorUnits(amount: number, currency: string): number {
   const zeroDecimalCurrencies = new Set(['JPY', 'KRW', 'VND']);
   const multiplier = zeroDecimalCurrencies.has(currency.toUpperCase()) ? 1 : 100;
   return Math.round(amount * multiplier);
 }
 
-function toStripePaymentMethodType(method: PaymentMethod): string {
+export function toStripePaymentMethodType(method: PaymentMethod): string {
   switch (method) {
     case PaymentMethod.Card:
       return 'card';

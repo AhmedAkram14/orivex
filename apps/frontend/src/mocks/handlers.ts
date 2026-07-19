@@ -4,7 +4,9 @@ import { authHandlers } from '@/mocks/handlers/auth';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
 import { patientHandlers } from '@/mocks/handlers/patient';
+import { paymentHandlers } from '@/mocks/handlers/payment';
 import { schedulingHandlers } from '@/mocks/handlers/scheduling';
+import { telemedicineHandlers } from '@/mocks/handlers/telemedicine';
 
 /**
  * Request handlers shared between the browser worker (manual dev/QA
@@ -23,5 +25,7 @@ export const handlers = [
   ...notificationHandlers,
   ...doctorHandlers,
   ...patientHandlers,
+  ...paymentHandlers,
   ...schedulingHandlers,
+  ...telemedicineHandlers,
 ];

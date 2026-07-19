@@ -20,6 +20,7 @@ import { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases
 import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import type { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
+import { ConsultationState } from '../../../domain/enums/consultation-state.enum.js';
 import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
@@ -63,13 +64,16 @@ class FakeAppointmentRepository implements AppointmentRepository {
 }
 
 class FakeConsultationSessionRepository implements ConsultationSessionRepository {
-  async findById(): Promise<ConsultationSession | null> {
-    return null;
+  public readonly saved: ConsultationSession[] = [];
+  async findById(id: string): Promise<ConsultationSession | null> {
+    return this.saved.find((session) => session.getId() === id) ?? null;
   }
-  async findByAppointmentId(): Promise<ConsultationSession | null> {
-    return null;
+  async findByAppointmentId(appointmentId: string): Promise<ConsultationSession | null> {
+    return this.saved.find((session) => session.getAppointmentId() === appointmentId) ?? null;
   }
-  async save(): Promise<void> {}
+  async save(session: ConsultationSession): Promise<void> {
+    this.saved.push(session);
+  }
 }
 
 class FakePatientProfileRepository implements PatientProfileRepository {
@@ -126,12 +130,20 @@ function buildUseCase(props: {
   window: AvailabilityWindow | null;
   patient?: PatientProfile | null;
   doctor?: DoctorProfile | null;
+  sessionRepo?: FakeConsultationSessionRepository;
 }): BookAppointmentUseCase {
   const availabilityWindowRepo = new FakeAvailabilityWindowRepository(props.window);
   const patient = props.patient === undefined ? ({} as PatientProfile) : props.patient;
   const doctor = props.doctor === undefined ? ({} as DoctorProfile) : props.doctor;
+  // Shared between BookAppointmentUseCase and its nested ConfirmAppointmentUseCase
+  // -- both must see the same session store, matching the real module wiring
+  // (both are bound to the same CONSULTATION_SESSION_REPOSITORY token), so a
+  // Paid booking's session (opened here) is the one ConfirmAppointmentUseCase
+  // later reuses rather than duplicating.
+  const sessionRepo = props.sessionRepo ?? new FakeConsultationSessionRepository();
   return new BookAppointmentUseCase(
     props.appointmentRepo,
+    sessionRepo,
     new NoopDispatcher(),
     new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
     new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctor)),
@@ -140,7 +152,7 @@ function buildUseCase(props: {
     new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
     new ConfirmAppointmentUseCase(
       props.appointmentRepo,
-      new FakeConsultationSessionRepository(),
+      sessionRepo,
       new ConfirmSlotUseCase(new ConfirmAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
       new NoopDispatcher(),
     ),
@@ -166,10 +178,11 @@ describe('BookAppointmentUseCase', () => {
     assert.equal(appointmentRepo.saved.length, 2); // Requested, then Confirmed
   });
 
-  it('books a paid appointment and leaves it Requested', async () => {
+  it('books a paid appointment, leaves it Requested, and opens a payable ConsultationSession', async () => {
     const window = buildWindow(DoctorConsultationType.Paid);
     const appointmentRepo = new FakeAppointmentRepository();
-    const useCase = buildUseCase({ appointmentRepo, window });
+    const sessionRepo = new FakeConsultationSessionRepository();
+    const useCase = buildUseCase({ appointmentRepo, window, sessionRepo });
 
     const appointment = await useCase.execute(
       new BookAppointmentCommand({
@@ -182,6 +195,13 @@ describe('BookAppointmentUseCase', () => {
 
     assert.equal(appointment.getStatus(), AppointmentStatus.Requested);
     assert.equal(appointmentRepo.saved.length, 1);
+    // ORIVEX Roadmap 2.0 Stage 1 -- a Paid appointment must have a real
+    // ConsultationSession to reference when initiating payment; without
+    // this, PaymentModule's initiateCharge could never succeed for a real
+    // booking (the pre-existing gap this session's fix closes).
+    const session = await sessionRepo.findByAppointmentId(appointment.getId());
+    assert.ok(session, 'expected a ConsultationSession to be opened for the paid appointment');
+    assert.equal(session?.getState(), ConsultationState.WaitingRoom);
   });
 
   it('throws NotFoundError when the patient does not exist', async () => {
@@ -244,6 +264,7 @@ describe('BookAppointmentUseCase', () => {
     appointmentRepo.failOnSaveCount = 1;
     const useCase = new BookAppointmentUseCase(
       appointmentRepo,
+      new FakeConsultationSessionRepository(),
       new NoopDispatcher(),
       new GetPatientProfileByIdUseCase(new FakePatientProfileRepository({} as PatientProfile)),
       new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository({} as DoctorProfile)),

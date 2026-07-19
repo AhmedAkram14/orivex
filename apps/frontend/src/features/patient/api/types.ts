@@ -132,6 +132,17 @@ export interface Appointment {
   status: AppointmentStatus;
   consultationType: ConsultationType;
   reasonForVisit?: string;
+  /**
+   * Real once a Paid appointment is booked (opened at booking time, not
+   * after payment — ORIVEX Roadmap 2.0 Stage 1) — the id PayNowForm charges
+   * against. Null for Free appointments and for a Paid appointment that
+   * hasn't been booked through the real flow.
+   */
+  consultationSessionId: string | null;
+  /** True exactly when this appointment is Paid and still Requested (payment hasn't succeeded yet). */
+  paymentRequired: boolean;
+  /** The doctor's real consultation fee — null unless paymentRequired is true. */
+  feeAmount: { amount: number; currency: string } | null;
 }
 
 export type AppointmentsResponse = Appointment[];

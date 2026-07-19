@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
@@ -14,7 +16,8 @@ import { ReleaseSlotUseCase } from '../scheduling/application/use-cases/release-
 import { ReserveSlotUseCase } from '../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { SchedulingModule } from '../scheduling/scheduling.module.js';
 
-import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY } from './application/ports/tokens.js';
+import type { RoomTokenGeneratorPort } from './application/ports/room-token-generator.port.js';
+import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY, ROOM_TOKEN_GENERATOR } from './application/ports/tokens.js';
 import { BookAppointmentUseCase } from './application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationUseCase } from './application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from './application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
@@ -24,15 +27,20 @@ import { GetConsultationSessionByIdUseCase } from './application/use-cases/get-c
 import { ListAppointmentsForDoctorUseCase } from './application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from './application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from './application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
+import { MintConsultationRoomTokenUseCase } from './application/use-cases/mint-consultation-room-token/mint-consultation-room-token.use-case.js';
+import { RecordSessionConnectionLogUseCase } from './application/use-cases/record-session-connection-log/record-session-connection-log.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from './application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from './application/use-cases/start-consultation/start-consultation.use-case.js';
 import type { AppointmentRepository } from './domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from './domain/repositories/consultation-session.repository.js';
 import { PrismaAppointmentRepository } from './infrastructure/prisma/prisma-appointment.repository.js';
 import { PrismaConsultationSessionRepository } from './infrastructure/prisma/prisma-consultation-session.repository.js';
+import { NotConfiguredRoomTokenAdapter } from './infrastructure/livekit/not-configured-room-token.adapter.js';
+import { LiveKitRoomTokenAdapter } from './infrastructure/livekit/livekit-room-token.adapter.js';
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
 import { DoctorAppointmentsController } from './presentation/controllers/doctor-appointments.controller.js';
 import { ConsultationController } from './presentation/controllers/consultation.controller.js';
+import { TelemedicineWebhookController } from './presentation/controllers/telemedicine-webhook.controller.js';
 
 // Imports PatientModule, DoctorModule, SchedulingModule, IdentityModule, and
 // AuthenticationModule to consume their own exported use cases/guards
@@ -42,7 +50,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
 // forwardRef().
 @Module({
   imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule],
-  controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController],
+  controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController, TelemedicineWebhookController],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },
     { provide: CONSULTATION_SESSION_REPOSITORY, useClass: PrismaConsultationSessionRepository },
@@ -60,6 +68,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
       provide: BookAppointmentUseCase,
       useFactory: (
         appointmentRepository: AppointmentRepository,
+        consultationSessionRepository: ConsultationSessionRepository,
         eventDispatcher: DomainEventDispatcher,
         getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
         getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
@@ -70,6 +79,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
       ) =>
         new BookAppointmentUseCase(
           appointmentRepository,
+          consultationSessionRepository,
           eventDispatcher,
           getPatientProfileByIdUseCase,
           getDoctorProfileByIdUseCase,
@@ -80,6 +90,7 @@ import { ConsultationController } from './presentation/controllers/consultation.
         ),
       inject: [
         APPOINTMENT_REPOSITORY,
+        CONSULTATION_SESSION_REPOSITORY,
         DOMAIN_EVENT_DISPATCHER,
         GetPatientProfileByIdUseCase,
         GetDoctorProfileByIdUseCase,
@@ -160,6 +171,29 @@ import { ConsultationController } from './presentation/controllers/consultation.
         eventDispatcher: DomainEventDispatcher,
       ) => new CloseConsultationUseCase(sessionRepository, appointmentRepository, eventDispatcher),
       inject: [CONSULTATION_SESSION_REPOSITORY, APPOINTMENT_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      provide: ROOM_TOKEN_GENERATOR,
+      useFactory: (configService: ConfigService<EnvConfig, true>): RoomTokenGeneratorPort => {
+        const apiKey = configService.get('LIVEKIT_API_KEY', { infer: true });
+        const apiSecret = configService.get('LIVEKIT_API_SECRET', { infer: true });
+        const url = configService.get('LIVEKIT_URL', { infer: true });
+        return apiKey && apiSecret && url
+          ? new LiveKitRoomTokenAdapter(apiKey, apiSecret, url)
+          : new NotConfiguredRoomTokenAdapter();
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: MintConsultationRoomTokenUseCase,
+      useFactory: (repository: ConsultationSessionRepository, roomTokenGenerator: RoomTokenGeneratorPort) =>
+        new MintConsultationRoomTokenUseCase(repository, roomTokenGenerator),
+      inject: [CONSULTATION_SESSION_REPOSITORY, ROOM_TOKEN_GENERATOR],
+    },
+    {
+      provide: RecordSessionConnectionLogUseCase,
+      useFactory: (repository: ConsultationSessionRepository) => new RecordSessionConnectionLogUseCase(repository),
+      inject: [CONSULTATION_SESSION_REPOSITORY],
     },
   ],
   exports: [

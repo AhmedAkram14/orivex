@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentApi } from '@/features/payment/api/payment-api';
 import { paymentKeys } from '@/features/payment/hooks/query-keys';
 import type { Money, PaymentMethod } from '@/features/payment/api/types';
+import { patientAppointmentsKeys } from '@/features/patient/hooks/query-keys';
 
 export interface InitiateChargeInput {
   amount: Money;
@@ -34,6 +35,10 @@ export function useInitiateCharge(consultationSessionId: string) {
       }),
     onSuccess: (transaction) => {
       queryClient.setQueryData(paymentKeys.detail(transaction.id), transaction);
+      // A successful charge confirms the appointment server-side
+      // (InitiateChargeUseCase -> ConfirmAppointmentUseCase) -- refetch so
+      // paymentRequired/status flip in the UI without a manual reload.
+      queryClient.invalidateQueries({ queryKey: patientAppointmentsKeys.all });
     },
   });
 }

@@ -8,9 +8,11 @@ import type { ReleaseSlotUseCase } from '../../../../scheduling/application/use-
 import { ReserveSlotCommand } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.command.js';
 import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
+import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
+import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
 import { ConfirmAppointmentCommand } from '../confirm-appointment/confirm-appointment.command.js';
 import type { ConfirmAppointmentUseCase } from '../confirm-appointment/confirm-appointment.use-case.js';
 
@@ -25,11 +27,18 @@ import type { BookAppointmentCommand } from './book-appointment.command.js';
 // consultationType regardless of client-supplied values (docs/12-openapi.md's
 // bookAppointment description) -> reserve the slot via SchedulingModule's
 // exported ReserveSlotUseCase -> Appointment.request() -> persist -> for a
-// free booking, confirm immediately (no payment step); a paid booking stays
-// Requested until PaymentModule (Sprint 9) confirms it.
+// free booking, confirm immediately (no payment step); a paid booking opens
+// its ConsultationSession right here (ORIVEX Roadmap 2.0 Stage 1 -- fixes a
+// pre-existing gap where a Paid appointment had no session to reference
+// until *after* a payment succeeded, i.e. never, since PaymentModule's
+// initiateCharge requires an existing session id) but stays Requested; the
+// appointment is only confirmed once PaymentModule's InitiateChargeUseCase
+// succeeds. ConfirmAppointmentUseCase reuses this same session rather than
+// opening a second one.
 export class BookAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
+    private readonly consultationSessionRepository: ConsultationSessionRepository,
     private readonly eventDispatcher: DomainEventDispatcher,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
@@ -92,6 +101,13 @@ export class BookAppointmentUseCase {
         new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }),
       );
       appointment = result.appointment;
+    } else {
+      // Paid: the appointment stays Requested (confirmed only once payment
+      // succeeds), but the patient needs a real ConsultationSession to
+      // reference when paying -- open it now, in WaitingRoom, unconfirmed.
+      const session = ConsultationSession.open(appointment.getId());
+      await this.consultationSessionRepository.save(session);
+      await this.eventDispatcher.dispatch(session.releaseDomainEvents());
     }
 
     return appointment;

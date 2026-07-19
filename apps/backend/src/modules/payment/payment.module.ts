@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
 
 import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
@@ -15,6 +16,7 @@ import { PatientModule } from '../patient/patient.module.js';
 
 import type { PaymentGatewayPort } from './application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
+import { GetPaymentTransactionByConsultationSessionIdUseCase } from './application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { ReconcileStripeWebhookEventUseCase } from './application/use-cases/reconcile-stripe-webhook-event/reconcile-stripe-webhook-event.use-case.js';
@@ -56,13 +58,19 @@ import { PaymentController } from './presentation/controllers/payment.controller
       provide: PAYMENT_GATEWAY,
       useFactory: (configService: ConfigService<EnvConfig, true>): PaymentGatewayPort => {
         const secretKey = configService.get('STRIPE_SECRET_KEY', { infer: true });
-        return secretKey ? new StripePaymentGatewayAdapter(secretKey) : new NotConfiguredPaymentGatewayAdapter();
+        return secretKey ? new StripePaymentGatewayAdapter(new Stripe(secretKey)) : new NotConfiguredPaymentGatewayAdapter();
       },
       inject: [ConfigService],
     },
     {
       provide: GetPaymentTransactionByIdUseCase,
       useFactory: (repository: PaymentTransactionRepository) => new GetPaymentTransactionByIdUseCase(repository),
+      inject: [PAYMENT_TRANSACTION_REPOSITORY],
+    },
+    {
+      provide: GetPaymentTransactionByConsultationSessionIdUseCase,
+      useFactory: (repository: PaymentTransactionRepository) =>
+        new GetPaymentTransactionByConsultationSessionIdUseCase(repository),
       inject: [PAYMENT_TRANSACTION_REPOSITORY],
     },
     {

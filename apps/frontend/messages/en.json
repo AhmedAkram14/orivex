@@ -21,6 +21,11 @@
     "refundSucceeded": "Payment refunded.",
     "refundFailed": "The refund could not be completed."
   },
+  "telemedicine": {
+    "connecting": "Connecting to the call…",
+    "connectFailed": "Could not start the video call. Please try again.",
+    "joinCall": "Join video call"
+  },
   "auth": {
     "validation": {
       "emailRequired": "Email is required.",

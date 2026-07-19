@@ -25,11 +25,17 @@ export interface ReconstituteConsultationSessionProps {
 
 // Aggregate root of ConsultationModule (docs/10-backend-architecture.md's
 // ConsultationModule entry: "Owned entities: ... ConsultationSession, ...").
-// Separate aggregate from Appointment -- created only once an Appointment
-// is confirmed (docs/09-physical-database.md's consultation_sessions
-// lifecycle "Waiting room -> closed"; docs/12-openapi.md's ConsultationSummary
-// enum has no pre-waiting-room state). EmergencyEscalation is a valid
-// ConsultationState value only -- no transition into it exists this sprint.
+// Separate aggregate from Appointment. Created once an Appointment is
+// confirmed for a Free booking (ConfirmAppointmentUseCase), or at booking
+// time itself for a Paid booking (BookAppointmentUseCase) -- a Paid
+// appointment stays Requested/unconfirmed until payment succeeds, but
+// still needs a real session to reference when initiating that payment
+// (ORIVEX Roadmap 2.0 Stage 1). Either way, exactly one session ever
+// exists per appointment (docs/09-physical-database.md's
+// consultation_sessions lifecycle "Waiting room -> closed";
+// docs/12-openapi.md's ConsultationSummary enum has no pre-waiting-room
+// state). EmergencyEscalation is a valid ConsultationState value only --
+// no transition into it exists this sprint.
 export class ConsultationSession {
   private readonly domainEvents: DomainEvent[] = [];
 

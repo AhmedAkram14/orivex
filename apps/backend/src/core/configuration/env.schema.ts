@@ -66,6 +66,16 @@ export const envSchema = z.object({
   // once Stripe is actually the bound gateway.
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // LiveKit (docs/14-adrs.md "Telemedicine" ADR, ORIVEX Roadmap 2.0 Stage 2).
+  // Optional -- unset means ConsultationModule keeps binding
+  // NotConfiguredRoomTokenAdapter (same fail-loud-not-fail-fake idiom as
+  // every other unconfigured provider in this schema). LIVEKIT_URL is the
+  // ws:// / wss:// endpoint the frontend's LiveKit client connects to
+  // directly -- distinct from LIVEKIT_API_KEY/SECRET, which only the
+  // backend uses to mint room-access tokens server-side.
+  LIVEKIT_URL: z.string().min(1).optional(),
+  LIVEKIT_API_KEY: z.string().min(1).optional(),
+  LIVEKIT_API_SECRET: z.string().min(1).optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

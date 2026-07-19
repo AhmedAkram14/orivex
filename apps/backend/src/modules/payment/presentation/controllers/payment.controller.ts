@@ -13,6 +13,7 @@ import { GetConsultationSessionByIdUseCase } from '../../../consultation/applica
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeCommand } from '../../application/use-cases/initiate-charge/initiate-charge.command.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
@@ -38,6 +39,7 @@ export class PaymentController {
   constructor(
     private readonly initiateChargeUseCase: InitiateChargeUseCase,
     private readonly getPaymentTransactionByIdUseCase: GetPaymentTransactionByIdUseCase,
+    private readonly getPaymentTransactionByConsultationSessionIdUseCase: GetPaymentTransactionByConsultationSessionIdUseCase,
     private readonly refundPaymentUseCase: RefundPaymentUseCase,
     private readonly getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
@@ -72,6 +74,31 @@ export class PaymentController {
     } catch (error) {
       throw mapPaymentError(error);
     }
+  }
+
+  // Doctor-only lookup letting the frontend discover a refundable
+  // transaction id from a consultation session it already has (e.g. the
+  // Doctor Queue's real sessionId), without exposing a raw
+  // list/search-by-patient endpoint. Registered before ':id' so Nest's
+  // route matching never treats "by-consultation-session" as an :id value.
+  @Get('by-consultation-session/:consultationSessionId')
+  @Roles(AccountRole.Doctor)
+  async getByConsultationSessionId(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('consultationSessionId', ParseUUIDPipe) consultationSessionId: string,
+  ): Promise<ResponseEnvelope<PaymentTransactionResponseDto | null>> {
+    const session = await this.getConsultationSessionByIdUseCase.execute({ consultationSessionId });
+    if (!session) {
+      throw new NotFoundError(`ConsultationSession "${consultationSessionId}" not found.`);
+    }
+    const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: session.getAppointmentId() });
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!appointment || !doctorProfile || appointment.getDoctorId() !== doctorProfile.getId()) {
+      throw new NotFoundError(`ConsultationSession "${consultationSessionId}" not found.`);
+    }
+
+    const transaction = await this.getPaymentTransactionByConsultationSessionIdUseCase.execute({ consultationSessionId });
+    return envelope(transaction ? PaymentTransactionResponseDto.fromDomain(transaction) : null);
   }
 
   @Get(':id')

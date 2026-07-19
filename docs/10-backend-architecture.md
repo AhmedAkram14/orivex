@@ -114,6 +114,37 @@ Owned entities: PaymentTransaction, PayoutStatement.
 Owned events: PaymentCompleted, RefundIssued.
 Dependencies: ConsultationModule (what's being paid for), external PSP adapter (Section 7/11).
 Implementation note (ORIVEX Roadmap 2.0, Stage 1): the PSP adapter is Stripe (`StripePaymentGatewayAdapter`), bound only when `STRIPE_SECRET_KEY` is configured -- falls back to `NotConfiguredPaymentGatewayAdapter` otherwise, matching every other optional-provider idiom in this codebase. A dedicated, unguarded `PaymentWebhookController` verifies Stripe's own signature (never JwtAuthGuard) and reconciles `payment_intent.succeeded`/`payment_intent.payment_failed`/`charge.refunded` events back to the transaction via a stored `externalReference` (the Stripe PaymentIntent id). `issueRefund()` (`RefundPaymentUseCase`) is scoped to the treating doctor -- no admin role exists yet for payment-adjacent flows.
+
+Stripe Test Mode verification status (Stage 1 completion audit): this sandboxed
+development environment has no `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`/
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` configured and no network access to
+Stripe's API -- a real Stripe Test Mode round trip has NOT been performed and
+this note makes no claim that it has. What IS verified, and how: the
+adapter's request/response shape and every branch of its error handling
+(`StripePaymentGatewayAdapter.test.ts`, hand-written `FakeStripeClient`
+implementing the exact `paymentIntents.create`/`refunds.create` surface the
+adapter calls); the webhook receiver's signature verification using Stripe's
+own SDK end-to-end (`Stripe.webhooks.generateTestHeaderString()` +
+`stripe.webhooks.constructEvent()`, both real Stripe SDK code, not a fake --
+`payment-webhook.controller.integration.test.ts`); and the full
+initiate-charge/refund/reconcile domain and controller logic against a fake
+gateway. None of this substitutes for a real Stripe Test Mode dashboard
+verification. Before this integration is declared production-ready, a
+human with real Stripe Test Mode credentials must still: (1) set
+`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (backend) and
+`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (frontend) to real Stripe test keys;
+(2) complete a real `PayNowForm` charge with a Stripe test card (e.g.
+`4242 4242 4242 4242`) end-to-end from the patient Appointments page and
+confirm the transaction appears as `succeeded` both in this app and in the
+Stripe Test Mode dashboard; (3) trigger a real webhook delivery via the
+Stripe CLI (`stripe listen --forward-to localhost:<port>/payments/webhook`)
+or the Dashboard's "resend" action and confirm `payment_intent.succeeded`
+reconciles correctly against a live signature (not this test suite's
+synthetic one); (4) issue a real refund via the doctor Queue's `RefundButton`
+and confirm both this app and the Stripe Dashboard show `refunded`; (5)
+exercise a genuine decline using one of Stripe's documented test-decline
+card numbers and confirm `PayNowForm` surfaces the failure without leaving
+the transaction in an inconsistent state.
 Public interface: initiateCharge(), issueRefund().
 Future split: Natural eventual candidate given PCI-adjacent isolation value, not urgent for V1 (Phase 4's assessment stands).
 

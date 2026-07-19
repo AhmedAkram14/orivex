@@ -7,11 +7,11 @@ import { AvailabilityWindow } from '../../../../doctor/domain/entities/availabil
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
+import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
 import { ConsultationState } from '../../../domain/enums/consultation-state.enum.js';
 import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
-import type { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
 
 import { ConfirmAppointmentCommand } from './confirm-appointment.command.js';
@@ -45,11 +45,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
 
 class FakeConsultationSessionRepository implements ConsultationSessionRepository {
   public readonly saved: ConsultationSession[] = [];
+  constructor(private readonly existingByAppointmentId?: ConsultationSession) {}
   async findById(): Promise<ConsultationSession | null> {
     return null;
   }
-  async findByAppointmentId(): Promise<ConsultationSession | null> {
-    return null;
+  async findByAppointmentId(appointmentId: string): Promise<ConsultationSession | null> {
+    return this.existingByAppointmentId?.getAppointmentId() === appointmentId ? this.existingByAppointmentId : null;
   }
   async save(session: ConsultationSession): Promise<void> {
     this.saved.push(session);
@@ -108,5 +109,28 @@ describe('ConfirmAppointmentUseCase', () => {
     assert.equal(result.session.getState(), ConsultationState.WaitingRoom);
     assert.equal(appointmentRepo.saved.length, 1);
     assert.equal(sessionRepo.saved.length, 1);
+  });
+
+  // ORIVEX Roadmap 2.0 Stage 1: a Paid appointment's ConsultationSession is
+  // opened at booking time (BookAppointmentUseCase), before this use case
+  // ever runs -- confirming it later (on a successful payment) must reuse
+  // that same session rather than opening a second one for the same
+  // appointment, which would violate the one-session-per-appointment
+  // invariant the Prisma schema enforces (a unique appointmentId column).
+  it('reuses an already-open ConsultationSession instead of opening a duplicate', async () => {
+    const { appointment, window } = buildRequestedAppointment();
+    const existingSession = ConsultationSession.open(appointment.getId());
+    const appointmentRepo = new FakeAppointmentRepository(appointment);
+    const sessionRepo = new FakeConsultationSessionRepository(existingSession);
+    const confirmSlotUseCase = new ConfirmSlotUseCase(
+      new ConfirmAvailabilityWindowUseCase(new FakeAvailabilityWindowRepository(window), new NoopDispatcher()),
+    );
+    const useCase = new ConfirmAppointmentUseCase(appointmentRepo, sessionRepo, confirmSlotUseCase, new NoopDispatcher());
+
+    const result = await useCase.execute(new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }));
+
+    assert.equal(result.appointment.getStatus(), AppointmentStatus.Confirmed);
+    assert.equal(result.session.getId(), existingSession.getId(), 'must reuse the existing session, not open a new one');
+    assert.equal(sessionRepo.saved.length, 1, 'the reused session is re-saved once, never duplicated');
   });
 });

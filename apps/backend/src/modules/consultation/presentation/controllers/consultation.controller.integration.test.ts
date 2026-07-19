@@ -50,6 +50,7 @@ import { GetConsultationSessionByIdUseCase } from '../../application/use-cases/g
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from '../../application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from '../../application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
+import { MintConsultationRoomTokenUseCase } from '../../application/use-cases/mint-consultation-room-token/mint-consultation-room-token.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from '../../application/use-cases/start-consultation/start-consultation.use-case.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
@@ -57,6 +58,7 @@ import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
 import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
+import type { GenerateRoomTokenRequest, GenerateRoomTokenResult, RoomTokenGeneratorPort } from '../../application/ports/room-token-generator.port.js';
 
 import { AppointmentController } from './appointment.controller.js';
 import { DoctorAppointmentsController } from './doctor-appointments.controller.js';
@@ -183,14 +185,28 @@ class NoopDomainEventDispatcher {
   subscribe(): void {}
 }
 
+// Test-only fake gateway -- standard test-double practice, not a
+// production adapter. ConsultationModule itself registers no provider for
+// ROOM_TOKEN_GENERATOR in this test module.
+class FakeRoomTokenGenerator implements RoomTokenGeneratorPort {
+  public lastRequest: GenerateRoomTokenRequest | undefined;
+  async generateToken(request: GenerateRoomTokenRequest): Promise<GenerateRoomTokenResult> {
+    this.lastRequest = request;
+    return { token: 'fake-jwt-token', url: 'wss://fake.livekit.cloud' };
+  }
+}
+
 describe('Consultation controllers (integration)', () => {
   let app: INestApplication;
   let patient: PatientProfile;
   let doctor: DoctorProfile;
   let freeWindow: AvailabilityWindow;
   let secondFreeWindow: AvailabilityWindow;
+  let paidWindow: AvailabilityWindow;
   let sessionRepo: InMemoryConsultationSessionRepository;
   let bookedAppointmentId: string;
+  let todaysConsultationSessionId: string;
+  let roomTokenGenerator: FakeRoomTokenGenerator;
 
   before(async () => {
     const patientAccount = Account.register({
@@ -219,6 +235,7 @@ describe('Consultation controllers (integration)', () => {
       accountId: doctorAccount.getId().toString(),
       licenseNumber: 'LIC-1',
       specialty: 'Cardiology',
+      consultationFeeAmount: 500,
     });
 
     const windowStart = new Date(Date.now() + 60 * 60_000);
@@ -234,10 +251,21 @@ describe('Consultation controllers (integration)', () => {
       endTime: new Date(windowStart.getTime() + 90 * 60_000),
       consultationType: DoctorConsultationType.Free,
     });
+    // Scheduled a full 3 days out, deliberately never "today" -- this
+    // suite's doctor-dashboard-summary/upcoming-work/queue tests assert
+    // exact counts of today's accumulated appointments, and this fixture
+    // must never be silently counted among them.
+    paidWindow = AvailabilityWindow.define({
+      doctorId: doctor.getId(),
+      startTime: new Date(windowStart.getTime() + 72 * 60 * 60_000),
+      endTime: new Date(windowStart.getTime() + 72 * 60 * 60_000 + 30 * 60_000),
+      consultationType: DoctorConsultationType.Paid,
+    });
 
     const availabilityWindowRepo = new InMemoryAvailabilityWindowRepository();
     availabilityWindowRepo.seed(freeWindow);
     availabilityWindowRepo.seed(secondFreeWindow);
+    availabilityWindowRepo.seed(paidWindow);
 
     const appointmentRepo = new InMemoryAppointmentRepository();
     sessionRepo = new InMemoryConsultationSessionRepository();
@@ -259,6 +287,7 @@ describe('Consultation controllers (integration)', () => {
     // have opened one -- backs the doctor/queue populated-case test.
     const todaysSession = ConsultationSession.open(todaysConfirmedAppointment.getId());
     await sessionRepo.save(todaysSession);
+    todaysConsultationSessionId = todaysSession.getId();
 
     const reserveSlotUseCase = new ReserveSlotUseCase(
       new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDomainEventDispatcher()),
@@ -277,6 +306,7 @@ describe('Consultation controllers (integration)', () => {
     );
     const bookAppointmentUseCase = new BookAppointmentUseCase(
       appointmentRepo,
+      sessionRepo,
       new NoopDomainEventDispatcher(),
       new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
       new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor)),
@@ -299,6 +329,8 @@ describe('Consultation controllers (integration)', () => {
       appointmentRepo,
       new NoopDomainEventDispatcher(),
     );
+    roomTokenGenerator = new FakeRoomTokenGenerator();
+    const mintConsultationRoomTokenUseCase = new MintConsultationRoomTokenUseCase(sessionRepo, roomTokenGenerator);
 
     const accountRepo = new InMemoryAccountRepository([
       patientAccount,
@@ -351,6 +383,7 @@ describe('Consultation controllers (integration)', () => {
         { provide: RescheduleOrCancelAppointmentUseCase, useValue: rescheduleOrCancelAppointmentUseCase },
         { provide: StartConsultationUseCase, useValue: startConsultationUseCase },
         { provide: CloseConsultationUseCase, useValue: closeConsultationUseCase },
+        { provide: MintConsultationRoomTokenUseCase, useValue: mintConsultationRoomTokenUseCase },
         { provide: GetAccountByIdUseCase, useValue: getAccountByIdUseCase },
         { provide: GetPatientProfileByAccountIdUseCase, useValue: getPatientProfileByAccountIdUseCase },
         { provide: GetPatientProfileByIdUseCase, useValue: getPatientProfileByIdUseCase },
@@ -577,6 +610,52 @@ describe('Consultation controllers (integration)', () => {
     assert.ok(response.body.meta.total >= 2);
   });
 
+  // ORIVEX Roadmap 2.0 Stage 1: GET /appointments/me must surface enough
+  // for the frontend to render a real "Pay now" action -- a real
+  // ConsultationSession id (opened at booking time for a Paid appointment,
+  // not after payment, per this stage's fix to BookAppointmentUseCase) plus
+  // the doctor's real fee, and only while the appointment is genuinely
+  // still awaiting payment.
+  it('GET /appointments/me marks a Paid, unconfirmed appointment as paymentRequired with a real session id and fee', async () => {
+    const booked = await request(app.getHttpServer())
+      .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .send({
+        doctorId: doctor.getId(),
+        availabilityWindowId: paidWindow.getId(),
+        consultationType: 'paid',
+        reasonForVisit: 'Specialist consultation',
+      })
+      .expect(201);
+
+    assert.equal(booked.body.data.status, 'requested');
+
+    const response = await request(app.getHttpServer())
+      .get('/appointments/me')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .expect(200);
+
+    const item = response.body.data.find((entry: { id: string }) => entry.id === booked.body.data.id);
+    assert.ok(item, 'expected the newly booked Paid appointment in the list');
+    assert.equal(item.paymentRequired, true);
+    assert.ok(item.consultationSessionId, 'expected a real ConsultationSession id to already exist');
+    assert.deepEqual(item.feeAmount, { amount: 500, currency: 'EGP' });
+  });
+
+  it("GET /appointments/me never marks a Confirmed/Free appointment as paymentRequired", async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/me')
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .expect(200);
+
+    const freeItems = response.body.data.filter((entry: { consultationType: string }) => entry.consultationType === 'free');
+    assert.ok(freeItems.length > 0);
+    for (const item of freeItems) {
+      assert.equal(item.paymentRequired, false);
+      assert.equal(item.feeAmount, null);
+    }
+  });
+
   it('GET /appointments/doctor/dashboard-summary rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer()).get('/appointments/doctor/dashboard-summary').expect(401);
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
@@ -661,5 +740,86 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(entry.status, 'waiting');
     assert.ok(entry.position >= 1);
     assert.ok(typeof entry.estimatedWaitMinutes === 'number');
+  });
+
+  describe('POST /consultations/:id/room-token', () => {
+    it('rejects a request with no bearer token', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .expect(401);
+
+      assert.equal(response.body.error.code, 'UNAUTHORIZED');
+    });
+
+    it('returns 400 (VALIDATION_FAILED) for a malformed id', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/consultations/not-a-uuid/room-token')
+        .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+        .expect(400);
+
+      assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    });
+
+    it('returns 404 for an unknown consultation session id', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/consultations/99999999-9999-4999-8999-999999999999/room-token')
+        .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+        .expect(404);
+
+      assert.equal(response.body.error.code, 'NOT_FOUND');
+    });
+
+    it('lets the treating doctor mint a room token', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+        .send({ displayName: 'Dr. Karim Adel' })
+        .expect(200);
+
+      assert.equal(response.body.data.token, 'fake-jwt-token');
+      assert.equal(response.body.data.url, 'wss://fake.livekit.cloud');
+    });
+
+    it('lets the treated patient mint a room token for the same session', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({})
+        .expect(200);
+
+      assert.ok(response.body.data.token);
+    });
+
+    it('falls back to a role-based display name when none is supplied', async () => {
+      await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({})
+        .expect(200);
+
+      assert.equal(roomTokenGenerator.lastRequest?.displayName, 'Patient');
+      assert.equal(roomTokenGenerator.lastRequest?.role, 'patient');
+      assert.equal(roomTokenGenerator.lastRequest?.roomName, `consultation-${todaysConsultationSessionId}`);
+    });
+
+    it('returns 404 (never leaking existence) for a doctor who did not treat this patient', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+        .send({})
+        .expect(404);
+
+      assert.equal(response.body.error.code, 'NOT_FOUND');
+    });
+
+    it('returns 404 (never leaking existence) for a patient who was not treated in this consultation', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_NO_PROFILE_TOKEN}`)
+        .send({})
+        .expect(404);
+
+      assert.equal(response.body.error.code, 'NOT_FOUND');
+    });
   });
 });

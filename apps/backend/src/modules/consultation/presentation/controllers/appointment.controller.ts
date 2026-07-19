@@ -20,6 +20,7 @@ import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { BookAppointmentCommand } from '../../application/use-cases/book-appointment/book-appointment.command.js';
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from '../../application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
 import { RescheduleOrCancelAppointmentCommand } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.command.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
@@ -52,6 +53,7 @@ export class AppointmentController {
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+    private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
   ) {}
 
   @Post()
@@ -170,6 +172,9 @@ export class AppointmentController {
     if (!doctorAccount) {
       return null;
     }
-    return AppointmentListItemResponseDto.fromDomain(appointment, doctorProfile, doctorAccount);
+    const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
+      appointmentId: appointment.getId(),
+    });
+    return AppointmentListItemResponseDto.fromDomain(appointment, doctorProfile, doctorAccount, session?.getId() ?? null);
   }
 }

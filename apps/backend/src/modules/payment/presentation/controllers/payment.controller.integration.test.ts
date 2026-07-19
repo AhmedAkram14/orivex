@@ -36,6 +36,7 @@ import { PatientProfile } from '../../../patient/domain/entities/patient-profile
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
+import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
@@ -46,6 +47,8 @@ import { PaymentController } from './payment.controller.js';
 
 const PATIENT_TOKEN = 'valid-patient-token';
 const OTHER_PATIENT_TOKEN = 'valid-other-patient-token';
+const DOCTOR_TOKEN = 'valid-doctor-token';
+const OTHER_DOCTOR_TOKEN = 'valid-other-doctor-token';
 
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
@@ -118,12 +121,15 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
 }
 
 class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
-  constructor(private readonly profile: DoctorProfile) {}
-  async findById(id: string): Promise<DoctorProfile | null> {
-    return this.profile.getId() === id ? this.profile : null;
+  private readonly profiles: DoctorProfile[];
+  constructor(...profiles: DoctorProfile[]) {
+    this.profiles = profiles;
   }
-  async findByAccountId(): Promise<DoctorProfile | null> {
-    return null;
+  async findById(id: string): Promise<DoctorProfile | null> {
+    return this.profiles.find((p) => p.getId() === id) ?? null;
+  }
+  async findByAccountId(accountId: string): Promise<DoctorProfile | null> {
+    return this.profiles.find((p) => p.getAccountId() === accountId) ?? null;
   }
   async save(): Promise<void> {}
 }
@@ -141,6 +147,9 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByExternalReference(externalReference: string): Promise<PaymentTransaction | null> {
     return Array.from(this.byId.values()).find((t) => t.getExternalReference() === externalReference) ?? null;
   }
+  async findByConsultationSessionId(consultationSessionId: string): Promise<PaymentTransaction | null> {
+    return Array.from(this.byId.values()).find((t) => t.getConsultationSessionId() === consultationSessionId) ?? null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.byId.set(transaction.getId(), transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
@@ -151,9 +160,11 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
 // production adapter. PaymentModule itself registers no provider for
 // PAYMENT_GATEWAY (architect direction).
 class FakeGateway implements PaymentGatewayPort {
+  private counter = 0;
   constructor(private readonly succeeds: boolean) {}
-  async authorize(): Promise<{ succeeded: boolean }> {
-    return { succeeded: this.succeeds };
+  async authorize(): Promise<{ succeeded: boolean; externalReference?: string }> {
+    this.counter += 1;
+    return this.succeeds ? { succeeded: true, externalReference: `pi_test_${this.counter}` } : { succeeded: false };
   }
   async refund(): Promise<{ succeeded: boolean }> {
     return { succeeded: true };
@@ -204,11 +215,23 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+  const otherDoctor = DoctorProfile.reconstitute({
+    id: '55555555-5555-4555-8555-555555555555',
+    accountId: '66666666-6666-4666-8666-666666666666',
+    licenseNumber: 'LIC-2',
+    specialty: 'Dermatology',
+    consultationFeeAmount: 300,
+    languages: [],
+    publications: [],
+    awards: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
   const availabilityWindowRepo = new InMemoryAvailabilityWindowRepository(window);
   const appointmentRepo = new InMemoryAppointmentRepository(appointment);
   const sessionRepo = new InMemoryConsultationSessionRepository(session);
-  const doctorProfileRepo = new InMemoryDoctorProfileRepository(doctor);
+  const doctorProfileRepo = new InMemoryDoctorProfileRepository(doctor, otherDoctor);
   const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
 
@@ -216,6 +239,8 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     new Map([
       [PATIENT_TOKEN, { accountId: patient.getAccountId(), role: AccountRole.Patient }],
       [OTHER_PATIENT_TOKEN, { accountId: otherPatient.getAccountId(), role: AccountRole.Patient }],
+      [DOCTOR_TOKEN, { accountId: doctor.getAccountId(), role: AccountRole.Doctor }],
+      [OTHER_DOCTOR_TOKEN, { accountId: otherDoctor.getAccountId(), role: AccountRole.Doctor }],
     ]),
   );
 
@@ -236,6 +261,9 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     gateway,
   );
   const getPaymentTransactionByIdUseCase = new GetPaymentTransactionByIdUseCase(paymentTransactionRepo);
+  const getPaymentTransactionByConsultationSessionIdUseCase = new GetPaymentTransactionByConsultationSessionIdUseCase(
+    paymentTransactionRepo,
+  );
   const refundPaymentUseCase = new RefundPaymentUseCase(paymentTransactionRepo, gateway, new NoopDomainEventDispatcher());
   const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo);
 
@@ -250,6 +278,10 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
       { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
       { provide: InitiateChargeUseCase, useValue: initiateChargeUseCase },
       { provide: GetPaymentTransactionByIdUseCase, useValue: getPaymentTransactionByIdUseCase },
+      {
+        provide: GetPaymentTransactionByConsultationSessionIdUseCase,
+        useValue: getPaymentTransactionByConsultationSessionIdUseCase,
+      },
       { provide: RefundPaymentUseCase, useValue: refundPaymentUseCase },
       { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
       { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
@@ -474,5 +506,428 @@ describe('PaymentController (integration)', () => {
     } finally {
       await app.close();
     }
+  });
+
+  describe('GET /payments/:id', () => {
+    it('rejects a request with no bearer token', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-get-no-token',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer()).get(`/payments/${charge.body.data.id}`).expect(401);
+        assert.equal(response.body.error.code, 'UNAUTHORIZED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 400 (VALIDATION_FAILED) for a malformed id', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/not-a-uuid')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(400);
+
+        assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 for an id that does not exist', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/99999999-9999-4999-8999-999999999999')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(404);
+
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('lets the owning patient fetch their own transaction', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-get-owner-patient',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .get(`/payments/${charge.body.data.id}`)
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.id, charge.body.data.id);
+        assert.equal(response.body.data.status, 'succeeded');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('lets the treating doctor fetch the same transaction', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-get-owner-doctor',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .get(`/payments/${charge.body.data.id}`)
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.id, charge.body.data.id);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 (never leaking existence) for a patient who does not own the transaction', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-get-non-owner-patient',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .get(`/payments/${charge.body.data.id}`)
+          .set('Authorization', `Bearer ${OTHER_PATIENT_TOKEN}`)
+          .expect(404);
+
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 (never leaking existence) for a doctor who did not treat this patient', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-get-non-owner-doctor',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .get(`/payments/${charge.body.data.id}`)
+          .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+          .expect(404);
+
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('POST /payments/:id/refund', () => {
+    it('rejects a request with no bearer token', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-refund-no-token',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer()).post(`/payments/${charge.body.data.id}/refund`).expect(401);
+        assert.equal(response.body.error.code, 'UNAUTHORIZED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('forbids a patient from calling the doctor-only refund route (403)', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-refund-forbidden-role',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .post(`/payments/${charge.body.data.id}/refund`)
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(403);
+
+        assert.equal(response.body.error.code, 'FORBIDDEN');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 400 (VALIDATION_FAILED) for a malformed id', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .post('/payments/not-a-uuid/refund')
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(400);
+
+        assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 for an id that does not exist', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .post('/payments/99999999-9999-4999-8999-999999999999/refund')
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(404);
+
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 (never leaking existence) when a doctor who did not treat this patient tries to refund', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-refund-non-owner-doctor',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .post(`/payments/${charge.body.data.id}/refund`)
+          .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+          .expect(404);
+
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('lets the treating doctor refund a succeeded transaction', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-refund-success',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .post(`/payments/${charge.body.data.id}/refund`)
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.status, 'refunded');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 422 (VALIDATION_FAILED) when refunding an already-refunded transaction', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-refund-twice',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        await request(app.getHttpServer())
+          .post(`/payments/${charge.body.data.id}/refund`)
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        const response = await request(app.getHttpServer())
+          .post(`/payments/${charge.body.data.id}/refund`)
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(422);
+
+        assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('GET /payments/by-consultation-session/:consultationSessionId', () => {
+    it('rejects a request with no bearer token', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get(`/payments/by-consultation-session/${sessionId}`)
+          .expect(401);
+        assert.equal(response.body.error.code, 'UNAUTHORIZED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('forbids a patient from calling the doctor-only route (403)', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get(`/payments/by-consultation-session/${sessionId}`)
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(403);
+        assert.equal(response.body.error.code, 'FORBIDDEN');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 400 (VALIDATION_FAILED) for a malformed session id', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/by-consultation-session/not-a-uuid')
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(400);
+        assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 for an unknown consultation session id', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/by-consultation-session/99999999-9999-4999-8999-999999999999')
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(404);
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 (never leaking existence) for a doctor who did not treat this patient', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get(`/payments/by-consultation-session/${sessionId}`)
+          .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+          .expect(404);
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns null data when the session has no payment transaction yet', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get(`/payments/by-consultation-session/${sessionId}`)
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+        assert.equal(response.body.data, null);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('lets the treating doctor discover the transaction for their session', async () => {
+      const { app, sessionId } = await buildApp(true);
+      try {
+        const charge = await request(app.getHttpServer())
+          .post('/payments')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .send({
+            idempotencyKey: 'idem-by-session-lookup',
+            consultationSessionId: sessionId,
+            amount: { amount: 500, currency: 'EGP' },
+            paymentMethod: 'card',
+            paymentMethodToken: 'pm_test_card',
+          })
+          .expect(201);
+
+        const response = await request(app.getHttpServer())
+          .get(`/payments/by-consultation-session/${sessionId}`)
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.id, charge.body.data.id);
+      } finally {
+        await app.close();
+      }
+    });
   });
 });

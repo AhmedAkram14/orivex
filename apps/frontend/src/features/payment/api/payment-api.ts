@@ -14,5 +14,9 @@ export const paymentApi = {
 
   getById: (id: string) => apiFetch<PaymentTransaction>({ path: PAYMENT_PATHS.getById(id) }),
 
+  /** Doctor-only — null when the session has no charge attempt yet (e.g. a Free consultation, or a Paid one still awaiting payment). */
+  getByConsultationSessionId: (consultationSessionId: string) =>
+    apiFetch<PaymentTransaction | null>({ path: PAYMENT_PATHS.getByConsultationSessionId(consultationSessionId) }),
+
   refund: (id: string) => apiFetch<PaymentTransaction>({ method: 'POST', path: PAYMENT_PATHS.refund(id) }),
 };
