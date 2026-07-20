@@ -4,7 +4,11 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { Account } from '../../domain/entities/account.entity.js';
 import { AccountAlreadyExistsError } from '../../domain/exceptions/account-already-exists.error.js';
-import type { AccountRepository } from '../../domain/repositories/account.repository.js';
+import type {
+  AccountRepository,
+  ListAccountsOptions,
+  ListAccountsResult,
+} from '../../domain/repositories/account.repository.js';
 import type { AccountId } from '../../domain/value-objects/account-id.value-object.js';
 import type { EmailAddress } from '../../domain/value-objects/email-address.value-object.js';
 
@@ -26,6 +30,21 @@ export class PrismaAccountRepository implements AccountRepository {
   async findByEmail(email: EmailAddress): Promise<Account | null> {
     const row = await this.prisma.account.findUnique({ where: { email: email.toString() } });
     return row ? toDomainAccount(row) : null;
+  }
+
+  async findAll(options: ListAccountsOptions): Promise<ListAccountsResult> {
+    const where = options.role ? { role: options.role } : {};
+    const [rows, total] = await Promise.all([
+      this.prisma.account.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: options.limit,
+        skip: options.offset,
+      }),
+      this.prisma.account.count({ where }),
+    ]);
+
+    return { accounts: rows.map(toDomainAccount), total };
   }
 
   // RegisterAccountUseCase's own check-then-act uniqueness guard is a

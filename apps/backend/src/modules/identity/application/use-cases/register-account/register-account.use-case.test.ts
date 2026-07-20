@@ -31,6 +31,10 @@ class FakeAccountRepository implements AccountRepository {
     return Promise.resolve(null);
   }
 
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
+  }
+
   save(account: Account): Promise<void> {
     this.saved.push(account);
     return Promise.resolve();

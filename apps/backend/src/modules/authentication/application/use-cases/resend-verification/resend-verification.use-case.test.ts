@@ -28,6 +28,10 @@ class FakeAccountRepository implements AccountRepository {
   async findByEmail(email: EmailAddress): Promise<Account | null> {
     return this.account && this.account.getEmail().toString() === email.toString() ? this.account : null;
   }
+
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
+  }
   async save(): Promise<void> {}
 }
 

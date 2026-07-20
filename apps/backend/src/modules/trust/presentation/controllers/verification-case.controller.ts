@@ -13,10 +13,11 @@ import { mapTrustError } from '../mappers/trust-exception.mapper.js';
 
 // Matches docs/12-openapi.md's PATCH /verifications/{id} exactly.
 // Approving/rejecting a doctor's license verification is an administrative
-// action, gated to AccountRole.Admin.
+// action, gated to AccountRole.SuperAdmin (renamed from AccountRole.Admin in
+// ORIVEX Roadmap 2.0 Stage 4 — see account-role.enum.ts's own comment).
 @Controller('verifications')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(AccountRole.Admin)
+@Roles(AccountRole.SuperAdmin)
 export class VerificationCaseController {
   constructor(private readonly decideVerificationUseCase: DecideVerificationUseCase) {}
 

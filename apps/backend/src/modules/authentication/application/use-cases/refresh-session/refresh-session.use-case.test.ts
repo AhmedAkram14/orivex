@@ -33,6 +33,10 @@ class FakeAccountRepository implements AccountRepository {
   findByEmail(): Promise<Account | null> {
     return Promise.resolve(this.account);
   }
+
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
+  }
   save(): Promise<void> {
     return Promise.resolve();
   }

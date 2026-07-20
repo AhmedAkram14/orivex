@@ -56,7 +56,7 @@ class FakeJwtSigner implements JwtSignerPort {
       return { accountId: '55555555-5555-4555-8555-555555555555', role: AccountRole.Doctor };
     }
     if (token === ADMIN_TOKEN) {
-      return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.Admin };
+      return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.SuperAdmin };
     }
     throw new Error('invalid token');
   }

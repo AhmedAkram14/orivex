@@ -35,7 +35,7 @@ class FakeJwtSigner implements JwtSignerPort {
   }
   async verify(token: string): Promise<AccessTokenClaims> {
     if (token === ADMIN_TOKEN) {
-      return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.Admin };
+      return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.SuperAdmin };
     }
     if (token === PATIENT_TOKEN) {
       return { accountId: '88888888-8888-4888-8888-888888888888', role: AccountRole.Patient };
@@ -62,6 +62,10 @@ class InMemoryAccountRepository implements AccountRepository {
       }
     }
     return null;
+  }
+
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
   }
 
   async save(account: Account): Promise<void> {

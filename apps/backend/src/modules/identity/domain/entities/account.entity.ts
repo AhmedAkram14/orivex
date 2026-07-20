@@ -5,6 +5,7 @@ import { AccountRole } from '../enums/account-role.enum.js';
 import { AccountStatus } from '../enums/account-status.enum.js';
 import { Language } from '../enums/language.enum.js';
 import { AccountCreatedEvent } from '../events/account-created.event.js';
+import { AccountRoleChangedEvent } from '../events/account-role-changed.event.js';
 import { AccountSuspendedEvent } from '../events/account-suspended.event.js';
 import { AccountClosedError } from '../exceptions/account-closed.error.js';
 import { AccountId } from '../value-objects/account-id.value-object.js';
@@ -100,6 +101,24 @@ export class Account {
     this.status = AccountStatus.Suspended;
     this.updatedAt = new Date();
     this.record(new AccountSuspendedEvent(this.id.toString()));
+  }
+
+  // ORIVEX Roadmap 2.0 Stage 4: changes this account's role. Raises
+  // AccountRoleChanged (a no-op, no-event short-circuit when the new role
+  // equals the current one -- consistent with suspend()'s own idempotent
+  // shape). A closed account is terminal, same restriction suspend() enforces.
+  changeRole(newRole: AccountRole): void {
+    if (this.role === newRole) {
+      return;
+    }
+    if (this.status === AccountStatus.Closed) {
+      throw new AccountClosedError(this.id.toString());
+    }
+
+    const previousRole = this.role;
+    this.role = newRole;
+    this.updatedAt = new Date();
+    this.record(new AccountRoleChangedEvent(this.id.toString(), previousRole, newRole));
   }
 
   // Updates UserProfile fields through the aggregate root — UserProfile is

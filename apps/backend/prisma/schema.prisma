@@ -114,6 +114,12 @@ model DoctorProfile {
   yearsOfExperience      Int?
   languages              String[]
   consultationFeeAmount  Decimal?
+  // ORIVEX Roadmap 2.0 Stage 4: optional grouping/org-chart link only, not
+  // multi-tenant scoping (true tenant isolation is explicitly deferred, see
+  // Stage 4's roadmap completion note) -- a doctor may exist with no
+  // hospital affiliation at all.
+  hospitalId             String?
+  hospital               Hospital?             @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
   publications           PortfolioPublication[]
@@ -127,6 +133,36 @@ model DoctorProfile {
   authoredPrescriptions  Prescription[]
   workingHoursDays       WorkingHoursDay[]
   scheduleExceptions     ScheduleException[]
+
+  @@index([hospitalId])
+}
+
+// ORIVEX Roadmap 2.0 Stage 4: AdministrationModule's own aggregate root -- a
+// plain grouping/org-chart entity, not a multi-tenant boundary (no other
+// table is tenant-scoped by hospitalId; true SaaS-grade tenant isolation is
+// explicitly deferred, see Stage 4's roadmap completion note). Deleting a
+// Hospital cascades to its Departments but only detaches (SetNull) any
+// DoctorProfile pointed at it -- a doctor's own record must never be
+// destroyed as a side effect of an org-chart edit.
+model Hospital {
+  id          String       @id @default(uuid())
+  name        String
+  address     String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  departments Department[]
+  doctors     DoctorProfile[]
+}
+
+model Department {
+  id         String   @id @default(uuid())
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  name       String
+  createdAt  DateTime @default(now())
+
+  @@unique([hospitalId, name])
+  @@index([hospitalId])
 }
 
 model PortfolioPublication {

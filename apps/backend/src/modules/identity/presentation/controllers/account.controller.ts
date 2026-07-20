@@ -31,10 +31,12 @@ import { mapIdentityError } from '../mappers/identity-exception.mapper.js';
 // /auth/register (which also creates the Credential this controller's
 // register() intentionally does not) -- this endpoint exists for
 // administrative account management, not public signup, so it is gated to
-// AccountRole.Admin rather than left public.
+// AccountRole.SuperAdmin (renamed from AccountRole.Admin in ORIVEX Roadmap
+// 2.0 Stage 4 — see account-role.enum.ts's own comment) rather than left
+// public.
 @Controller('accounts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(AccountRole.Admin)
+@Roles(AccountRole.SuperAdmin)
 export class AccountController {
   constructor(
     private readonly registerAccountUseCase: RegisterAccountUseCase,

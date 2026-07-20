@@ -7,8 +7,10 @@ import { AuthenticationGuardsModule } from '../authentication/authentication-gua
 import { ACCOUNT_REPOSITORY } from './application/ports/tokens.js';
 import { GetAccountByEmailUseCase } from './application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
 import { GetAccountByIdUseCase } from './application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import { ListAccountsUseCase } from './application/use-cases/list-accounts/list-accounts.use-case.js';
 import { RegisterAccountUseCase } from './application/use-cases/register-account/register-account.use-case.js';
 import { SuspendAccountUseCase } from './application/use-cases/suspend-account/suspend-account.use-case.js';
+import { UpdateAccountRoleUseCase } from './application/use-cases/update-account-role/update-account-role.use-case.js';
 import type { AccountRepository } from './domain/repositories/account.repository.js';
 import { PrismaAccountRepository } from './infrastructure/prisma/prisma-account.repository.js';
 import { AccountController } from './presentation/controllers/account.controller.js';
@@ -46,7 +48,25 @@ import { AccountController } from './presentation/controllers/account.controller
       useFactory: (accountRepository: AccountRepository) => new GetAccountByEmailUseCase(accountRepository),
       inject: [ACCOUNT_REPOSITORY],
     },
+    {
+      provide: ListAccountsUseCase,
+      useFactory: (accountRepository: AccountRepository) => new ListAccountsUseCase(accountRepository),
+      inject: [ACCOUNT_REPOSITORY],
+    },
+    {
+      provide: UpdateAccountRoleUseCase,
+      useFactory: (accountRepository: AccountRepository, eventDispatcher: DomainEventDispatcher) =>
+        new UpdateAccountRoleUseCase(accountRepository, eventDispatcher),
+      inject: [ACCOUNT_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
   ],
-  exports: [RegisterAccountUseCase, SuspendAccountUseCase, GetAccountByIdUseCase, GetAccountByEmailUseCase],
+  exports: [
+    RegisterAccountUseCase,
+    SuspendAccountUseCase,
+    GetAccountByIdUseCase,
+    GetAccountByEmailUseCase,
+    ListAccountsUseCase,
+    UpdateAccountRoleUseCase,
+  ],
 })
 export class IdentityModule {}

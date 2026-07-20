@@ -1,23 +1,66 @@
 import { Module } from '@nestjs/common';
 
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
+import { IdentityModule } from '../identity/identity.module.js';
+import { ListAccountsUseCase } from '../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 import { DecideVerificationUseCase } from '../trust/application/use-cases/decide-verification/decide-verification.use-case.js';
 import { ListPendingVerificationCasesUseCase } from '../trust/application/use-cases/list-pending-verification-cases/list-pending-verification-cases.use-case.js';
 import { TrustModule } from '../trust/trust.module.js';
 
+import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from './application/ports/tokens.js';
+import { CreateDepartmentUseCase } from './application/use-cases/create-department/create-department.use-case.js';
+import { CreateHospitalUseCase } from './application/use-cases/create-hospital/create-hospital.use-case.js';
+import { GetPlatformKpisUseCase } from './application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
 import { GetVerificationReviewQueueUseCase } from './application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
+import { ListDepartmentsUseCase } from './application/use-cases/list-departments/list-departments.use-case.js';
+import { ListHospitalsUseCase } from './application/use-cases/list-hospitals/list-hospitals.use-case.js';
 import { ReviewVerificationCaseUseCase } from './application/use-cases/review-verification-case/review-verification-case.use-case.js';
+import type { DepartmentRepository } from './domain/repositories/department.repository.js';
+import type { HospitalRepository } from './domain/repositories/hospital.repository.js';
+import { PrismaDepartmentRepository } from './infrastructure/prisma/prisma-department.repository.js';
+import { PrismaHospitalRepository } from './infrastructure/prisma/prisma-hospital.repository.js';
+import { AdministrationController } from './presentation/controllers/administration.controller.js';
 
-// Internal orchestration module only -- no controllers, no owned domain
-// entities, no ModerationCase (docs/12-openapi.md documents no
-// Administration-tagged endpoints yet; per architect direction, this stays
-// an internal application layer until a formal Administration API is
-// documented). Depends one-way on TrustModule, which remains completely
-// unaware this module exists -- no circular imports, no forwardRef(), no
-// repository sharing. TrustModule continues to exclusively own
-// VerificationCase, DecideVerificationUseCase, and SubmitDoctorVerificationUseCase.
+// ORIVEX Roadmap 2.0 Stage 4: grows from "internal orchestration only, no
+// owned domain entities" (its pre-Stage-4 state) into a real module with its
+// own aggregate roots (Hospital/Department) and its first controller. Still
+// depends one-way on IdentityModule/TrustModule, calling only their
+// exported use cases -- never their repositories directly, same rule as
+// before Stage 4.
 @Module({
-  imports: [TrustModule],
+  imports: [IdentityModule, TrustModule, AuthenticationGuardsModule],
+  controllers: [AdministrationController],
   providers: [
+    { provide: HOSPITAL_REPOSITORY, useClass: PrismaHospitalRepository },
+    { provide: DEPARTMENT_REPOSITORY, useClass: PrismaDepartmentRepository },
+    {
+      provide: ListHospitalsUseCase,
+      useFactory: (hospitalRepository: HospitalRepository) => new ListHospitalsUseCase(hospitalRepository),
+      inject: [HOSPITAL_REPOSITORY],
+    },
+    {
+      provide: CreateHospitalUseCase,
+      useFactory: (hospitalRepository: HospitalRepository) => new CreateHospitalUseCase(hospitalRepository),
+      inject: [HOSPITAL_REPOSITORY],
+    },
+    {
+      provide: ListDepartmentsUseCase,
+      useFactory: (hospitalRepository: HospitalRepository, departmentRepository: DepartmentRepository) =>
+        new ListDepartmentsUseCase(hospitalRepository, departmentRepository),
+      inject: [HOSPITAL_REPOSITORY, DEPARTMENT_REPOSITORY],
+    },
+    {
+      provide: CreateDepartmentUseCase,
+      useFactory: (hospitalRepository: HospitalRepository, departmentRepository: DepartmentRepository) =>
+        new CreateDepartmentUseCase(hospitalRepository, departmentRepository),
+      inject: [HOSPITAL_REPOSITORY, DEPARTMENT_REPOSITORY],
+    },
+    {
+      provide: GetPlatformKpisUseCase,
+      useFactory: (listAccountsUseCase: ListAccountsUseCase, hospitalRepository: HospitalRepository) =>
+        new GetPlatformKpisUseCase(listAccountsUseCase, hospitalRepository),
+      inject: [ListAccountsUseCase, HOSPITAL_REPOSITORY],
+    },
     {
       provide: GetVerificationReviewQueueUseCase,
       useFactory: (listPendingVerificationCasesUseCase: ListPendingVerificationCasesUseCase) =>
@@ -31,6 +74,14 @@ import { ReviewVerificationCaseUseCase } from './application/use-cases/review-ve
       inject: [DecideVerificationUseCase],
     },
   ],
-  exports: [GetVerificationReviewQueueUseCase, ReviewVerificationCaseUseCase],
+  exports: [
+    GetVerificationReviewQueueUseCase,
+    ReviewVerificationCaseUseCase,
+    ListHospitalsUseCase,
+    CreateHospitalUseCase,
+    ListDepartmentsUseCase,
+    CreateDepartmentUseCase,
+    GetPlatformKpisUseCase,
+  ],
 })
 export class AdministrationModule {}

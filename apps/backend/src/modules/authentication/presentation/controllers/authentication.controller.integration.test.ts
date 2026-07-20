@@ -75,6 +75,10 @@ class InMemoryAccountRepository implements AccountRepository {
     }
     return null;
   }
+
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
+  }
   async save(account: Account): Promise<void> {
     this.byId.set(account.getId().toString(), account);
   }
