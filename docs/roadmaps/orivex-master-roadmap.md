@@ -42,7 +42,7 @@ Aggregate Scores (updated 2026-07-20 post Stage 4: Admin Dashboard RBAC Foundati
 - End-to-End Integration Score: ~83% (11 new real HTTP routes added -- `/admin/kpis`, `/admin/accounts` (GET/PATCH role), `/admin/hospitals` (GET/POST), `/admin/hospitals/:id/departments` (GET/POST), `/admin/verification-queue` (GET/PATCH), `/admin/accounts/:id/security-events`, `/admin/feature-flags` -- all reachable from real frontend routes under `/admin/*`; the verification-queue routes in particular close a pre-existing "backend-only dead end" this same audit flagged before Stage 4)
 - Production Readiness Score: ~65% (unchanged -- this stage added no new operational-hardening dimension; RBAC/admin-surface work is a Phase 2/3/19 feature-completeness change, not a production-hardening one)
 
-Manual verification note (frontend `next build`): backend build/lint/635 tests and frontend lint/typecheck/268 tests are all green and were run to completion in this sandbox. The frontend *production* build (`next build`) could not be completed in this sandbox -- three attempts (default heap, `--max-old-space-size=6144`, `--max-old-space-size=3072`) each hit `FATAL ERROR: ... JavaScript heap out of memory`, and even `next dev` crashed the same way after successfully compiling the first route (`/[locale]/login`, 4482 modules, 31s). `Get-CimInstance Win32_OperatingSystem` showed only ~2GB of 8GB total system RAM free throughout, consistent with Docker Desktop's WSL2 VM (~500MB) plus several open IDE/browser processes already claiming the rest -- an environment resource constraint, not a code defect (lint/typecheck/every test passed cleanly against the same code). This is a real, outstanding verification gap: a human with more headroom (or CI) must run `pnpm --filter @orivex/frontend build` (and ideally the Storybook build, not attempted here for the same reason) before Stage 4 can be called fully build-verified.
+Manual verification note (frontend `next build`): backend build/lint/635 tests and frontend lint/typecheck/268 tests are all green. The frontend *production* build initially could not complete in this sandbox (three attempts at default/6144MB/3072MB heap all hit `JavaScript heap out of memory`, with only ~2GB of 8GB system RAM free throughout, mostly held by Docker Desktop's WSL2 VM and IDE/browser processes). Stopping Docker Desktop entirely (not just its containers) freed enough RAM (~1.7GB → ~2.7GB free) for `pnpm --filter @orivex/frontend build` to **succeed cleanly** on 2026-07-20: compiled in 2.0min, all 65 static pages generated (both `en`/`ar` locales) including all 5 new `/admin/*` routes, zero errors, zero Stage-4-related warnings (the only console output was 3 pre-existing Sentry SDK deprecation notices, present in `next.config.ts` before this stage and unrelated to it). Docker Desktop was restarted immediately after. The Storybook build was not attempted (not requested) and remains untested in this sandbox.
 
 Comparison to the previous audit
 ---------------------------------
@@ -419,9 +419,12 @@ What was built, evidence-based:
   Full backend suite 635/635 green; backend lint/build/boot-test all
   green (boot-tested locally with every new `/admin/*` route confirmed
   mapped). Full frontend suite 268/268 green; frontend lint/typecheck
-  green. Frontend production build (`next build`) blocked by this
-  sandbox's memory constraints -- see the Aggregate Scores section above
-  for the full, honest account of that gap.
+  green. Frontend production build (`next build`) succeeded on
+  2026-07-20 (see the Aggregate Scores section above for the full
+  account, including the memory-freeing step that was required to run
+  it in this sandbox) -- 65 static pages generated, all 5 new `/admin/*`
+  routes present in both locales, zero errors, zero Stage-4-related
+  warnings.
 
 Explicitly NOT done this stage (honest, not glossed over):
 - Roles/Permissions *management UI* (viewing/editing the permission set
@@ -447,26 +450,22 @@ Explicitly NOT done this stage (honest, not glossed over):
 - The audit log (`GET /admin/accounts/:id/security-events`) is scoped to
   one account per request, not a global, filterable, paginated
   cross-account feed -- see its own note above.
-- **The frontend production build was not completed in this sandbox**
-  (three attempts, all `JavaScript heap out of memory`, `next dev` hit
-  the identical failure after compiling its first route) -- a real,
-  outstanding verification gap caused by this environment's available
-  RAM (~2GB free of 8GB total throughout every attempt), not a defect in
-  the Stage 4 code itself (lint/typecheck/every one of 268 tests passed
-  cleanly against the same code, and `next dev` did successfully compile
-  and would presumably have served `/[locale]/login` had it not run out
-  of memory compiling the next route). A human (or CI, which typically
-  has more headroom) must run `pnpm --filter @orivex/frontend build`
-  before this stage can be called fully build-verified.
+- The frontend production build initially failed in this sandbox purely
+  on available RAM (not a code defect); stopping Docker Desktop entirely
+  freed enough memory for `pnpm --filter @orivex/frontend build` to
+  succeed cleanly on a second attempt, the same day. See the Aggregate
+  Scores section above for the full account. The Storybook build was
+  not attempted (not requested) and remains untested in this sandbox.
 
 Decision: Stage 4 (Admin Dashboard RBAC Foundation) is verified against
-every criterion checkable in this sandbox with one explicit exception --
-backend build/lint/635 tests and frontend lint/typecheck/268 tests are
-all green, every new route was boot-tested and confirmed reachable, and
-every scoping decision (KPI count, audit-log scope, HospitalAdmin's
-current lack of capability) is disclosed above rather than silently
-narrowed. The frontend production build is the one criterion this
-sandbox could not complete -- documented as outstanding, not claimed.
+every criterion checkable in this sandbox -- backend build/lint/635
+tests, frontend lint/typecheck/268 tests, and the frontend production
+build are all green; every new route was boot-tested and confirmed
+reachable in the built output; every scoping decision (KPI count,
+audit-log scope, HospitalAdmin's current lack of capability) is
+disclosed above rather than silently narrowed.
+
+✅ READY FOR MANUAL VERIFICATION
 ===============================================================
 
 Phase 1 — Foundation ✅ (Completed)
