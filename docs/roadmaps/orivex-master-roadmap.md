@@ -35,9 +35,9 @@ Methodology
   caching/queues actually wired, formal security audit/OWASP report,
   load/performance testing) that have concrete repository evidence.
 
-Aggregate Scores (updated 2026-07-20 post Stage 4: Admin Dashboard RBAC Foundation)
+Aggregate Scores (updated 2026-07-20 post Stage 4: Admin Dashboard RBAC Foundation; revised same day to add Doctor Onboarding as an explicit Phase 4 deliverable)
 ------------------------------------------------------------------------
-- Overall Roadmap Completion: ~36% (Phase 2 moved 80%→90%, Phase 3 moved 5%→45%, Phase 19 moved 0%→15% this stage; mean of the 23 per-phase scores, unweighted: 830/23 ≈ 36.1%; was ~33% before Stage 4)
+- Overall Roadmap Completion: ~35% (Phase 2 moved 80%→90%, Phase 3 moved 5%→45%, Phase 19 moved 0%→15% from Stage 4 itself; Phase 4 then moved 90%→70% the same day once Doctor Onboarding was scoped in as a required deliverable of that phase rather than left untracked; mean of the 23 per-phase scores, unweighted: 810/23 ≈ 35.2%; was ~33% before Stage 4, ~36% immediately after Stage 4 before this Phase 4 rescoping)
 - Weighted Engineering Completion: ~87% (AdministrationModule grew from an internal, controller-less orchestration layer into a real module with its own aggregates/repositories/controller/tests, moving its own maturity up; IdentityModule also gained real listing/role-management use cases; the other 11 modules unchanged)
 - End-to-End Integration Score: ~83% (11 new real HTTP routes added -- `/admin/kpis`, `/admin/accounts` (GET/PATCH role), `/admin/hospitals` (GET/POST), `/admin/hospitals/:id/departments` (GET/POST), `/admin/verification-queue` (GET/PATCH), `/admin/accounts/:id/security-events`, `/admin/feature-flags` -- all reachable from real frontend routes under `/admin/*`; the verification-queue routes in particular close a pre-existing "backend-only dead end" this same audit flagged before Stage 4)
 - Production Readiness Score: ~65% (unchanged -- this stage added no new operational-hardening dimension; RBAC/admin-surface work is a Phase 2/3/19 feature-completeness change, not a production-hardening one)
@@ -124,7 +124,7 @@ Per-Phase Completion (evidence-based)
 Phase 1 — Foundation: 100% (unchanged; pnpm-workspace.yaml, NestJS, Next.js, Prisma, backend Dockerfile+docker-entrypoint.sh, render.yaml, health.controller.ts, .github/workflows/*, env.schema.ts all present)
 Phase 2 — Authentication & Identity: 90% (login/register/forgot/reset/refresh/JWT/email-verification/password-policy/session-mgmt/logout-all/rate-limiting/account-lock/audit-logs all real and tested; RBAC now models all 6 named roles (Stage 4, 2026-07-20: `AccountRole` grew from 3 values to `Patient`/`Doctor`/`Nurse`/`Receptionist`/`HospitalAdmin`/`SuperAdmin`, with a real `UpdateAccountRoleUseCase`/`PATCH /admin/accounts/:id/role` to change a role, not just name it); Permissions remains the frontend's own provisional `permissions.ts` map, not yet backend-enforced per-permission (only per-role))
 Phase 3 — Admin Dashboard: 45% (Stage 4, completed 2026-07-20: Overview/KPIs (active doctor/patient counts, hospital count — real, reachable at `/admin`), Users (real paginated list + role-change, reachable at `/admin/users`), Hospitals (real CRUD, reachable at `/admin/hospitals`) all real and tested; Departments exist as a nested resource under Hospitals, not a standalone screen; Roles/Permissions management UI, Clinics, Revenue/Today's-Appointments KPIs, and Analytics/Charts/Growth/Activity-Feed remain absent — see Stage 4 Completion Note below for the exact scope and its own disclosed limitations)
-Phase 4 — Doctor Portal: 90% (Profile/Availability/Working Hours/Vacation Days, Patient search/history/documents, Consultations incl. SOAP-equivalent clinical notes and diagnosis, Prescriptions create/edit/history all real and reachable via `/doctor/*` routes)
+Phase 4 — Doctor Portal: 70% (Profile/Availability/Working Hours/Vacation Days, Patient search/history/documents, Consultations incl. SOAP-equivalent clinical notes and diagnosis, Prescriptions create/edit/history all real and reachable via `/doctor/*` routes -- but Doctor Onboarding is now an explicit, required deliverable of this phase (added 2026-07-20, not a separate stage) and is currently 0% on the frontend: `POST /doctors` (profile creation), profile editing's own onboarding entry point, license/document upload, `POST /doctors/:id/verifications` (verification submission), verification-status tracking, and pending/approved/rejected UX all have no frontend route today. Both backend endpoints already exist and are real (`DoctorProfileController`, `DoctorVerificationController`) -- this is a frontend gap only, and the phase is not considered complete until it closes. Recomputed with Doctor Onboarding counted as its own required 7-item group alongside the 4 pre-existing groups: ~17 of ~24 total leaf items real ≈ 70%, down from the pre-Stage-4 90% that didn't count onboarding as in-scope for this phase at all)
 Phase 5 — Patient Portal: 85% (Profile/Appointments/Medical History/Prescriptions/Notifications/Documents real; Payments now real this stage; Lab Results/Radiology/Insurance remain honest placeholders only)
 Phase 6 — Appointment System: 70% (Booking/Availability Calendar/Time Slots/Rescheduling/Cancellation/Automatic Confirmation real; Appointment Reminders now real this stage (Stage 3 -- a 24h-ahead BullMQ-scheduled email + in-app notification, see Stage 3 Completion Note below); Recurring Appointments, Waiting List persistence beyond a basic join-waitlist endpoint, and Calendar Sync (Google/Outlook) remain not evidenced)
 Phase 7 — Telemedicine: 45% (Stage 2, completed 2026-07-19: real, tested, reachable room-token minting + signature-verified webhook + LiveKit's own pre-built call UI wired into both the Doctor Queue and patient Appointments page -- covers Video Consultation/Virtual Waiting Room/Join/Leave/Reconnect/Screen Sharing/Chat/Mic+Camera Control/Network Quality/Connection Indicator via LiveKit's own components; Consultation Timer/Meeting History/Doctor+Patient Notes/AI Summary/Recording not built; no live LiveKit server verification performed, see Stage 2 Completion Note above)
@@ -534,6 +534,36 @@ Reports
 Growth
 Activity Feed
 Phase 4 — Doctor Portal
+
+Doctor Onboarding (added 2026-07-20 -- an explicit, required deliverable
+of this phase, not a separate roadmap stage. Reuses the existing backend
+endpoints and Stage 4 Verification Queue admin surface -- no parallel
+verification/review functionality. Doctor Portal is not considered
+complete until every item below is real and reachable.)
+
+Apply as Doctor flow (entry point for a registered account with no
+DoctorProfile yet -- the real gap a 2026-07-20 investigation found
+behind a set of 404s on `/doctors/me`/`/scheduling/doctor-availability`/
+`/scheduling/doctor-exceptions`)
+Doctor profile creation (`POST /doctors` -- DoctorProfileController,
+already real on the backend; no frontend caller exists yet)
+Doctor profile editing (`PATCH /doctors/me`, already real and already
+used by the existing Doctor Profile screen for post-onboarding edits --
+the gap is only the initial creation step above)
+License/document upload (reuses AssetModule's existing
+create-upload-intent/confirm-upload `MediaAsset` pattern, the same one
+TrustModule's `VerificationDocument` already references by id)
+Verification submission (`POST /doctors/:id/verifications` --
+DoctorVerificationController, already real on the backend, gated to the
+submitting doctor's own profile; no frontend caller exists yet)
+Verification status tracking (a doctor-facing read of their own
+VerificationCase status -- `VerificationStatus` already has all 7
+values modeled: Submitted/UnderReview/Approved/Rejected/
+MoreInfoNeeded/ReVerificationDue/Suspended)
+Pending/Approved/Rejected UX (real empty/waiting/success/rejection
+states for the doctor's own view of the above, and reuses the Stage 4
+Verification Queue's own review/decide flow on the admin side -- no
+second review UI)
 
 Doctor Profile
 
