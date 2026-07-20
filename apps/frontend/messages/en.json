@@ -231,7 +231,11 @@
       "prescriptions": "Prescriptions",
       "billing": "Billing",
       "users": "Users",
-      "security": "Security"
+      "security": "Security",
+      "adminWorkspace": "Admin Workspace",
+      "adminHospitals": "Hospitals",
+      "adminVerificationQueue": "Verification Queue",
+      "adminFeatureFlags": "Feature Flags"
     },
     "notifications": {
       "title": "Notifications",
@@ -629,6 +633,97 @@
       "join": "Join waiting list",
       "joinedTitle": "You're on the waiting list",
       "joinedDescription": "We'll let you know if a slot opens up on this date."
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "Overview",
+      "description": "Platform-wide KPIs and administration.",
+      "activeDoctorCount": "Active doctors",
+      "activePatientCount": "Active patients",
+      "hospitalCount": "Hospitals",
+      "kpisLoadError": "Could not load platform KPIs."
+    },
+    "users": {
+      "title": "Users",
+      "description": "Manage every account and its role.",
+      "columnName": "Name",
+      "columnEmail": "Email",
+      "columnStatus": "Status",
+      "columnRole": "Role",
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "closed": "Closed"
+      },
+      "role": {
+        "patient": "Patient",
+        "doctor": "Doctor",
+        "nurse": "Nurse",
+        "receptionist": "Receptionist",
+        "hospital_admin": "Hospital Admin",
+        "super_admin": "Super Admin"
+      },
+      "loadError": "Could not load accounts.",
+      "roleUpdateError": "Could not update this account’s role.",
+      "emptyTitle": "No accounts yet",
+      "emptyDescription": "Accounts will appear here once people register."
+    },
+    "hospitals": {
+      "title": "Hospitals",
+      "description": "Manage hospitals and their departments.",
+      "createTitle": "Add a hospital",
+      "nameLabel": "Name",
+      "addressLabel": "Address",
+      "create": "Add hospital",
+      "createError": "Could not create this hospital.",
+      "loadError": "Could not load hospitals.",
+      "emptyTitle": "No hospitals yet",
+      "emptyDescription": "Add your first hospital above.",
+      "viewDepartments": "View departments",
+      "departmentsLoadError": "Could not load departments.",
+      "noDepartments": "No departments yet.",
+      "departmentNameLabel": "Department name",
+      "addDepartment": "Add department",
+      "departmentCreateError": "Could not create this department."
+    },
+    "verificationQueue": {
+      "title": "Verification Queue",
+      "description": "Review pending doctor license verifications.",
+      "columnDoctor": "Doctor",
+      "columnStatus": "Status",
+      "columnSubmitted": "Submitted",
+      "columnActions": "Actions",
+      "status": {
+        "submitted": "Submitted",
+        "under_review": "Under review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "more_info_needed": "More info needed",
+        "re_verification_due": "Re-verification due",
+        "suspended": "Suspended"
+      },
+      "approve": "Approve",
+      "reject": "Reject",
+      "loadError": "Could not load the verification queue.",
+      "reviewError": "Could not record this decision.",
+      "emptyTitle": "Nothing pending",
+      "emptyDescription": "Every verification case has been reviewed."
+    },
+    "featureFlags": {
+      "title": "Feature Flags",
+      "description": "Read-only visibility into provider configuration.",
+      "loadError": "Could not load feature flags.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "labels": {
+        "observabilityEnabled": "Observability (tracing)",
+        "openApiEnabled": "OpenAPI docs",
+        "paymentGatewayConfigured": "Payment gateway (Stripe)",
+        "telemedicineConfigured": "Telemedicine (LiveKit)",
+        "emailProviderConfigured": "Email provider (SendGrid)",
+        "notificationQueueConfigured": "Notification queue (Redis)"
+      }
     }
   }
 }

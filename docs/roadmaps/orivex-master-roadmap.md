@@ -35,12 +35,14 @@ Methodology
   caching/queues actually wired, formal security audit/OWASP report,
   load/performance testing) that have concrete repository evidence.
 
-Aggregate Scores (updated 2026-07-19 post Stage 3: Real Notifications)
+Aggregate Scores (updated 2026-07-20 post Stage 4: Admin Dashboard RBAC Foundation)
 ------------------------------------------------------------------------
-- Overall Roadmap Completion: ~33% (Phase 6 moved 65%→70%, Phase 14 moved 15%→55% this stage; mean of the 23 per-phase scores, unweighted: 770/23 ≈ 33.5%; was ~32% before Stage 3)
-- Weighted Engineering Completion: ~86% (NotificationModule's own depth increased materially this stage -- real queue/email/worker infrastructure where none existed -- nudging the 13-module average up slightly; the other 12 modules unchanged)
-- End-to-End Integration Score: ~82% (unchanged -- Stage 3 added no new HTTP route; the reminder pipeline is entirely event/queue-driven, with no new controller endpoint to add to either side of this ratio)
-- Production Readiness Score: ~65% (10 of the 15 disclosed hardening dimensions now have concrete evidence -- "Redis-backed caching/queues actually wired" moves from absent to real-when-configured this stage; was ~55% before Stage 3)
+- Overall Roadmap Completion: ~36% (Phase 2 moved 80%→90%, Phase 3 moved 5%→45%, Phase 19 moved 0%→15% this stage; mean of the 23 per-phase scores, unweighted: 830/23 ≈ 36.1%; was ~33% before Stage 4)
+- Weighted Engineering Completion: ~87% (AdministrationModule grew from an internal, controller-less orchestration layer into a real module with its own aggregates/repositories/controller/tests, moving its own maturity up; IdentityModule also gained real listing/role-management use cases; the other 11 modules unchanged)
+- End-to-End Integration Score: ~83% (11 new real HTTP routes added -- `/admin/kpis`, `/admin/accounts` (GET/PATCH role), `/admin/hospitals` (GET/POST), `/admin/hospitals/:id/departments` (GET/POST), `/admin/verification-queue` (GET/PATCH), `/admin/accounts/:id/security-events`, `/admin/feature-flags` -- all reachable from real frontend routes under `/admin/*`; the verification-queue routes in particular close a pre-existing "backend-only dead end" this same audit flagged before Stage 4)
+- Production Readiness Score: ~65% (unchanged -- this stage added no new operational-hardening dimension; RBAC/admin-surface work is a Phase 2/3/19 feature-completeness change, not a production-hardening one)
+
+Manual verification note (frontend `next build`): backend build/lint/635 tests and frontend lint/typecheck/268 tests are all green and were run to completion in this sandbox. The frontend *production* build (`next build`) could not be completed in this sandbox -- three attempts (default heap, `--max-old-space-size=6144`, `--max-old-space-size=3072`) each hit `FATAL ERROR: ... JavaScript heap out of memory`, and even `next dev` crashed the same way after successfully compiling the first route (`/[locale]/login`, 4482 modules, 31s). `Get-CimInstance Win32_OperatingSystem` showed only ~2GB of 8GB total system RAM free throughout, consistent with Docker Desktop's WSL2 VM (~500MB) plus several open IDE/browser processes already claiming the rest -- an environment resource constraint, not a code defect (lint/typecheck/every test passed cleanly against the same code). This is a real, outstanding verification gap: a human with more headroom (or CI) must run `pnpm --filter @orivex/frontend build` (and ideally the Storybook build, not attempted here for the same reason) before Stage 4 can be called fully build-verified.
 
 Comparison to the previous audit
 ---------------------------------
@@ -120,8 +122,8 @@ None found. Full backend (557/557) and frontend (258/258) test suites pass; back
 Per-Phase Completion (evidence-based)
 --------------------------------------
 Phase 1 — Foundation: 100% (unchanged; pnpm-workspace.yaml, NestJS, Next.js, Prisma, backend Dockerfile+docker-entrypoint.sh, render.yaml, health.controller.ts, .github/workflows/*, env.schema.ts all present)
-Phase 2 — Authentication & Identity: 80% (login/register/forgot/reset/refresh/JWT/email-verification/password-policy/session-mgmt/logout-all/rate-limiting/account-lock/audit-logs all real and tested; RBAC has only 3 of the 6 named roles)
-Phase 3 — Admin Dashboard: 5% (only a verification-review-queue exists server-side, itself not reachable from any frontend route; no Overview/KPIs/Users/Roles/Permissions/Hospitals/Departments/Clinics/Analytics/Charts/Growth/Activity-Feed anywhere)
+Phase 2 — Authentication & Identity: 90% (login/register/forgot/reset/refresh/JWT/email-verification/password-policy/session-mgmt/logout-all/rate-limiting/account-lock/audit-logs all real and tested; RBAC now models all 6 named roles (Stage 4, 2026-07-20: `AccountRole` grew from 3 values to `Patient`/`Doctor`/`Nurse`/`Receptionist`/`HospitalAdmin`/`SuperAdmin`, with a real `UpdateAccountRoleUseCase`/`PATCH /admin/accounts/:id/role` to change a role, not just name it); Permissions remains the frontend's own provisional `permissions.ts` map, not yet backend-enforced per-permission (only per-role))
+Phase 3 — Admin Dashboard: 45% (Stage 4, completed 2026-07-20: Overview/KPIs (active doctor/patient counts, hospital count — real, reachable at `/admin`), Users (real paginated list + role-change, reachable at `/admin/users`), Hospitals (real CRUD, reachable at `/admin/hospitals`) all real and tested; Departments exist as a nested resource under Hospitals, not a standalone screen; Roles/Permissions management UI, Clinics, Revenue/Today's-Appointments KPIs, and Analytics/Charts/Growth/Activity-Feed remain absent — see Stage 4 Completion Note below for the exact scope and its own disclosed limitations)
 Phase 4 — Doctor Portal: 90% (Profile/Availability/Working Hours/Vacation Days, Patient search/history/documents, Consultations incl. SOAP-equivalent clinical notes and diagnosis, Prescriptions create/edit/history all real and reachable via `/doctor/*` routes)
 Phase 5 — Patient Portal: 85% (Profile/Appointments/Medical History/Prescriptions/Notifications/Documents real; Payments now real this stage; Lab Results/Radiology/Insurance remain honest placeholders only)
 Phase 6 — Appointment System: 70% (Booking/Availability Calendar/Time Slots/Rescheduling/Cancellation/Automatic Confirmation real; Appointment Reminders now real this stage (Stage 3 -- a 24h-ahead BullMQ-scheduled email + in-app notification, see Stage 3 Completion Note below); Recurring Appointments, Waiting List persistence beyond a basic join-waitlist endpoint, and Calendar Sync (Google/Outlook) remain not evidenced)
@@ -137,7 +139,7 @@ Phase 15 — Files & Media: 55% (Upload/Images/PDF/S3 Storage real via `MediaAss
 Phase 16 — Real-time: 0% (no WebSocket/socket.io dependency anywhere)
 Phase 17 — Search: 0% (no module)
 Phase 18 — Reporting: 0% (no module)
-Phase 19 — Super Admin: 0% (no Hospital/tenant model, no `/admin` route)
+Phase 19 — Super Admin: 15% (Stage 4, completed 2026-07-20: a real `Hospital`/`Department` model exists and a real `/admin` route tree is reachable; Feature Flags has a genuine read-only visibility screen (`/admin/feature-flags`) over already-real env-driven configuration; Audit has a real per-account security-event lookup (`/admin/accounts/:id/security-events`), not yet a global cross-account feed -- see Stage 4 Completion Note's limitations; Multi Hospital/Tenant Management/Subscription Plans/Billing/Impersonation remain 0%, explicitly deferred per this program's own "true multi-tenant SaaS is a future architecture discussion" decision)
 Phase 20 — Mobile Ready: 0% (no manifest/service worker/PWA plugin)
 Phase 21 — Integrations: 10% (Stripe real; Google Calendar/Outlook/Zoom/LiveKit/Twilio/Firebase/Cloudinary/OpenAI/Claude/Paymob/WhatsApp Cloud API/SendGrid all absent)
 Phase 22 — DevOps: 55% (GitHub Actions CI, backend Dockerfile, health checks, structured logging with redaction, OpenTelemetry scaffolding (disabled without an OTLP endpoint) all real; Docker Compose, Nginx, a wired Redis cache/queue, Prometheus, Grafana, and blue/green deployment config are absent)
@@ -311,6 +313,160 @@ criterion checkable in this sandbox -- reachable data flow, tested logic,
 no regression, no dead code, graceful degradation without Redis/SendGrid
 configured. The live-infrastructure round-trip is documented as
 outstanding rather than claimed, same category as Stage 1/2's own gaps.
+===============================================================
+
+===============================================================
+STAGE 4 COMPLETION NOTE — 2026-07-20 (Admin Dashboard RBAC Foundation)
+===============================================================
+
+What was built, evidence-based:
+- `AccountRole` grown from 3 values (`Patient`/`Doctor`/`Admin`) to the
+  roadmap's full 6 (`Patient`/`Doctor`/`Nurse`/`Receptionist`/
+  `HospitalAdmin`/`SuperAdmin`). `Admin` was renamed to `SuperAdmin`
+  (a real architectural fork, resolved with the user before writing any
+  code) rather than kept alongside a new value -- a one-time data
+  migration (`prisma/migrations/20260720054249_.../migration.sql`)
+  updates any existing `Account.role = 'admin'` row to `'super_admin'`,
+  and both pre-existing `@Roles(AccountRole.Admin)` call sites
+  (`VerificationCaseController`, `AccountController`) were updated to
+  `SuperAdmin`, preserving exactly the same access behavior for whoever
+  already held that role.
+- `Account.changeRole()` -- a real new domain method (idempotent, blocked
+  on a closed account, raises `AccountRoleChangedEvent`), backing a real
+  `UpdateAccountRoleUseCase` and `PATCH /admin/accounts/:id/role`.
+  `AccountRepository` gained `findAll()` (paginated, optional role
+  filter) backing a real `ListAccountsUseCase` and `GET /admin/accounts`.
+  Both use cases live in `IdentityModule` (Identity owns the `Account`
+  aggregate) and are consumed by `AdministrationModule` through
+  `IdentityModule`'s export, the same one-way-dependency shape
+  `GetVerificationReviewQueueUseCase` already established for
+  `TrustModule` before this stage.
+- `Hospital`/`Department` -- two new, genuinely new Prisma models and
+  domain entities, owned by `AdministrationModule` itself (which grows
+  here from "internal orchestration only, no owned domain entities" --
+  its own pre-Stage-4 comment -- into a real module with real
+  aggregates). Plain grouping/org-chart data, not a multi-tenant
+  boundary: no other table is tenant-scoped by `hospitalId`, and
+  `DoctorProfile.hospitalId` is a nullable, optional FK (`onDelete:
+  SetNull`) -- a doctor may exist with no hospital affiliation at all.
+  Backed by real `GET/POST /admin/hospitals` and
+  `GET/POST /admin/hospitals/:id/departments`.
+- `GetPlatformKpisUseCase` -- real active-doctor-count/active-patient-
+  count/hospital-count aggregation, backing `GET /admin/kpis`.
+  Deliberately scoped to identity-owned counts only: "today's
+  appointment count" and "revenue-to-date" (both named in this stage's
+  original plan) are deferred to Stage 9 (Reporting & Analytics), which
+  is where the roadmap already allocates real aggregation queries over
+  `Appointment`/`PaymentTransaction` -- adding ad-hoc count/sum methods
+  to those two repositories' ports here would have rippled through 25+
+  hand-written test fakes across `ConsultationModule`/`PaymentModule`
+  for a dashboard tile, a disproportionate blast radius for this stage.
+  Better done once, deliberately, alongside Stage 9's own reporting work.
+- `GetVerificationReviewQueueUseCase`/`ReviewVerificationCaseUseCase` --
+  both existed before this stage (a prior audit specifically flagged
+  them as "a backend-only dead end... zero frontend usage") but had no
+  controller at all. Now real, tested routes:
+  `GET/PATCH /admin/verification-queue`. The pre-existing
+  `PATCH /verifications/:id` route is untouched, for backward
+  compatibility.
+- `GET /admin/accounts/:id/security-events` -- a real per-account audit-
+  log lookup, reusing `TrustModule`'s existing
+  `ListSecurityEventsForAccountUseCase` (previously only exported for
+  `AuthenticationController`'s own "my login history" endpoint; this
+  stage is its first cross-account admin consumer). Deliberately scoped
+  to one account at a time, not a global cross-account feed -- a true
+  unscoped audit trail would need a new `findAll()` on
+  `SecurityEventRepository`, rippling through 11 hand-written fakes, for
+  a feature no route currently needs at platform scale.
+- `GET /admin/feature-flags` -- a real, read-only visibility screen over
+  already-real env-var-driven configuration (`OTEL_ENABLED`,
+  `OPENAPI_ENABLED`, and whether Stripe/LiveKit/SendGrid/Redis are
+  configured) -- no new flags introduced, mirrors `HealthController`'s
+  own `ConfigService`-reading style exactly.
+- Frontend: a full `features/admin` slice (`api/`, `hooks/`,
+  `components/`) and five real, reachable routes under `/admin/*`
+  (`/admin` Overview, `/admin/users`, `/admin/hospitals`,
+  `/admin/verification-queue`, `/admin/feature-flags`), all gated by the
+  existing `RequireRole` guard to `super_admin`. A new "Admin Workspace"
+  nav group was added to `NAVIGATION_CONFIG` (mirroring the Doctor/
+  Patient Workspace groups' own role-gated shape); the pre-existing
+  `nav.adminUsers` feature flag -- which already pointed `/admin/users`
+  at this exact route before this stage existed to build it -- was
+  flipped from its `false` default to `true`. Every route is backed by
+  real TanStack Query hooks calling the real endpoints above (no
+  fabricated data); MSW handlers (`mocks/handlers/admin.ts`,
+  `mocks/admin-store.ts`) were added purely to keep the frontend test
+  suite deterministic, matching every other real-endpoint precedent
+  (`scheduling.ts`, `notifications.ts`).
+- i18n: full `admin.*` message namespace and new `shell.nav` keys added
+  to both `en.json` and `ar.json` -- no hardcoded UI strings.
+- Tests: 9 new backend unit tests (`ListHospitalsUseCase`,
+  `CreateHospitalUseCase` x2, `ListDepartmentsUseCase` x2,
+  `CreateDepartmentUseCase` x3, `GetPlatformKpisUseCase`) plus 4 for
+  `UpdateAccountRoleUseCase` and 3 for `ListAccountsUseCase`, plus a
+  12-case `AdministrationController` integration test (auth/role guards,
+  every CRUD route, 404s, the verification queue, security-events,
+  feature-flags). Every one of the 20 pre-existing hand-written
+  `AccountRepository` fakes across the backend test suite was updated
+  with a `findAll()` stub so the port's new required method didn't break
+  any existing test -- the single highest-blast-radius change this stage
+  made, exactly as the original plan's own "highest blast radius" note
+  anticipated. 3 new frontend hook tests (`useUpdateAccountRole`,
+  `useCreateHospital`, `useReviewVerificationCase`) plus a fix to
+  `sidebar-nav.test.tsx`'s own now-outdated assumption (it asserted the
+  Administration nav group stayed hidden for a super_admin "since its
+  flags default off" -- no longer true now that `nav.adminUsers` is real).
+  Full backend suite 635/635 green; backend lint/build/boot-test all
+  green (boot-tested locally with every new `/admin/*` route confirmed
+  mapped). Full frontend suite 268/268 green; frontend lint/typecheck
+  green. Frontend production build (`next build`) blocked by this
+  sandbox's memory constraints -- see the Aggregate Scores section above
+  for the full, honest account of that gap.
+
+Explicitly NOT done this stage (honest, not glossed over):
+- Roles/Permissions *management UI* (viewing/editing the permission set
+  itself, not just changing an account's single role) does not exist --
+  `shared/auth/permissions.ts`'s role→permission map remains a frontend-
+  only, hardcoded provisional table, same as before this stage.
+- Clinics (a level below Department in the roadmap's own org-chart) has
+  no model at all -- only Hospital and Department exist.
+- Revenue and Today's-Appointments KPIs are not implemented (see
+  `GetPlatformKpisUseCase`'s own comment above) -- Overview shows exactly
+  3 tiles, not the 5 the original plan named.
+- Analytics/Charts/Growth/Activity-Feed (the rest of Phase 3's
+  "Analytics" bucket) has no code -- out of this stage's scope entirely.
+- `HospitalAdmin` is a real enum value with zero additional access
+  granted by it yet -- every new `/admin/*` route in this stage gates to
+  `SuperAdmin` only, never `HospitalAdmin`, since no route is actually
+  scoped to "my hospital's accounts/departments" (that requires deciding
+  how a `HospitalAdmin` account gets associated with a specific
+  `Hospital` in the first place, a real design question left for
+  whichever future stage gives `HospitalAdmin` its first real
+  capability). Building `HospitalAdmin`-scoped routes now would have
+  created a false impression of working scoped access.
+- The audit log (`GET /admin/accounts/:id/security-events`) is scoped to
+  one account per request, not a global, filterable, paginated
+  cross-account feed -- see its own note above.
+- **The frontend production build was not completed in this sandbox**
+  (three attempts, all `JavaScript heap out of memory`, `next dev` hit
+  the identical failure after compiling its first route) -- a real,
+  outstanding verification gap caused by this environment's available
+  RAM (~2GB free of 8GB total throughout every attempt), not a defect in
+  the Stage 4 code itself (lint/typecheck/every one of 268 tests passed
+  cleanly against the same code, and `next dev` did successfully compile
+  and would presumably have served `/[locale]/login` had it not run out
+  of memory compiling the next route). A human (or CI, which typically
+  has more headroom) must run `pnpm --filter @orivex/frontend build`
+  before this stage can be called fully build-verified.
+
+Decision: Stage 4 (Admin Dashboard RBAC Foundation) is verified against
+every criterion checkable in this sandbox with one explicit exception --
+backend build/lint/635 tests and frontend lint/typecheck/268 tests are
+all green, every new route was boot-tested and confirmed reachable, and
+every scoping decision (KPI count, audit-log scope, HospitalAdmin's
+current lack of capability) is disclosed above rather than silently
+narrowed. The frontend production build is the one criterion this
+sandbox could not complete -- documented as outstanding, not claimed.
 ===============================================================
 
 Phase 1 — Foundation ✅ (Completed)

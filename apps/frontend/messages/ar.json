@@ -231,7 +231,11 @@
       "patientAppointments": "المواعيد",
       "patientRecords": "السجلات الطبية",
       "patientPrescriptions": "الوصفات الطبية",
-      "patientHealth": "لوحة الصحة"
+      "patientHealth": "لوحة الصحة",
+      "adminWorkspace": "لوحة الإدارة",
+      "adminHospitals": "المستشفيات",
+      "adminVerificationQueue": "طابور التحقق",
+      "adminFeatureFlags": "مزايا النظام"
     },
     "notifications": {
       "title": "الإشعارات",
@@ -629,6 +633,97 @@
       "join": "الانضمام إلى قائمة الانتظار",
       "joinedTitle": "أنت الآن في قائمة الانتظار",
       "joinedDescription": "سنُعلمك إذا أصبح موعد متاحًا في هذا التاريخ."
+    }
+  },
+  "admin": {
+    "overview": {
+      "title": "نظرة عامة",
+      "description": "مؤشرات الأداء والإدارة على مستوى المنصة.",
+      "activeDoctorCount": "الأطباء النشطون",
+      "activePatientCount": "المرضى النشطون",
+      "hospitalCount": "المستشفيات",
+      "kpisLoadError": "تعذر تحميل مؤشرات الأداء."
+    },
+    "users": {
+      "title": "المستخدمون",
+      "description": "إدارة جميع الحسابات وأدوارها.",
+      "columnName": "الاسم",
+      "columnEmail": "البريد الإلكتروني",
+      "columnStatus": "الحالة",
+      "columnRole": "الدور",
+      "status": {
+        "active": "نشط",
+        "suspended": "موقوف",
+        "closed": "مغلق"
+      },
+      "role": {
+        "patient": "مريض",
+        "doctor": "طبيب",
+        "nurse": "ممرض",
+        "receptionist": "موظف استقبال",
+        "hospital_admin": "مدير مستشفى",
+        "super_admin": "مدير عام"
+      },
+      "loadError": "تعذر تحميل الحسابات.",
+      "roleUpdateError": "تعذر تحديث دور هذا الحساب.",
+      "emptyTitle": "لا توجد حسابات بعد",
+      "emptyDescription": "ستظهر الحسابات هنا بمجرد تسجيل الأشخاص."
+    },
+    "hospitals": {
+      "title": "المستشفيات",
+      "description": "إدارة المستشفيات وأقسامها.",
+      "createTitle": "إضافة مستشفى",
+      "nameLabel": "الاسم",
+      "addressLabel": "العنوان",
+      "create": "إضافة مستشفى",
+      "createError": "تعذر إنشاء هذا المستشفى.",
+      "loadError": "تعذر تحميل المستشفيات.",
+      "emptyTitle": "لا توجد مستشفيات بعد",
+      "emptyDescription": "أضف مستشفاك الأول أعلاه.",
+      "viewDepartments": "عرض الأقسام",
+      "departmentsLoadError": "تعذر تحميل الأقسام.",
+      "noDepartments": "لا توجد أقسام بعد.",
+      "departmentNameLabel": "اسم القسم",
+      "addDepartment": "إضافة قسم",
+      "departmentCreateError": "تعذر إنشاء هذا القسم."
+    },
+    "verificationQueue": {
+      "title": "طابور التحقق",
+      "description": "مراجعة طلبات توثيق تراخيص الأطباء المعلقة.",
+      "columnDoctor": "الطبيب",
+      "columnStatus": "الحالة",
+      "columnSubmitted": "تاريخ التقديم",
+      "columnActions": "الإجراءات",
+      "status": {
+        "submitted": "تم التقديم",
+        "under_review": "قيد المراجعة",
+        "approved": "موافق عليه",
+        "rejected": "مرفوض",
+        "more_info_needed": "مطلوب معلومات إضافية",
+        "re_verification_due": "يتطلب إعادة توثيق",
+        "suspended": "موقوف"
+      },
+      "approve": "موافقة",
+      "reject": "رفض",
+      "loadError": "تعذر تحميل طابور التحقق.",
+      "reviewError": "تعذر تسجيل هذا القرار.",
+      "emptyTitle": "لا يوجد شيء معلق",
+      "emptyDescription": "تمت مراجعة جميع حالات التحقق."
+    },
+    "featureFlags": {
+      "title": "مزايا النظام",
+      "description": "عرض للقراءة فقط لإعدادات مزودي الخدمة.",
+      "loadError": "تعذر تحميل مزايا النظام.",
+      "enabled": "مفعّل",
+      "disabled": "معطّل",
+      "labels": {
+        "observabilityEnabled": "المراقبة (التتبع)",
+        "openApiEnabled": "وثائق OpenAPI",
+        "paymentGatewayConfigured": "بوابة الدفع (Stripe)",
+        "telemedicineConfigured": "الاستشارة عن بعد (LiveKit)",
+        "emailProviderConfigured": "مزود البريد الإلكتروني (SendGrid)",
+        "notificationQueueConfigured": "طابور الإشعارات (Redis)"
+      }
     }
   }
 }

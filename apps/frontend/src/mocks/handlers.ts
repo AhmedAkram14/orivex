@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
+import { adminHandlers } from '@/mocks/handlers/admin';
 import { authHandlers } from '@/mocks/handlers/auth';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
@@ -21,6 +22,7 @@ export const handlers = [
   http.get(`${env.apiBaseUrl}/health/liveness`, () =>
     HttpResponse.json({ status: 'ok', uptimeSeconds: 0, timestamp: new Date().toISOString() }),
   ),
+  ...adminHandlers,
   ...authHandlers,
   ...notificationHandlers,
   ...doctorHandlers,

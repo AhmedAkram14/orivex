@@ -17,7 +17,8 @@ export function useNavigationFeatureFlags(): (flag: string) => boolean {
   const appointments = useFeatureFlag('nav.appointments', false);
   const prescriptions = useFeatureFlag('nav.prescriptions', false);
   const billing = useFeatureFlag('nav.billing', false);
-  const adminUsers = useFeatureFlag('nav.adminUsers', false);
+  // Real as of ORIVEX Roadmap 2.0 Stage 4 -- /admin/users now exists.
+  const adminUsers = useFeatureFlag('nav.adminUsers', true);
 
   const lookup: Record<string, boolean> = {
     'nav.patients': patients,

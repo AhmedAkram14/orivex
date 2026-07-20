@@ -45,10 +45,24 @@ describe('SidebarNav', () => {
     expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
   });
 
-  it('hides the feature-flag-gated Clinical/Administration groups for every role, since their flags default off', () => {
+  it('hides the still-feature-flag-gated Clinical group for every role, since its flags default off', () => {
     renderSidebar(superAdminState);
     expect(screen.queryByRole('button', { name: 'Clinical' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Administration' })).not.toBeInTheDocument();
+  });
+
+  it('shows the Administration group for a super_admin now that nav.adminUsers (Stage 4) defaults on', () => {
+    renderSidebar(superAdminState);
+    expect(screen.getByRole('button', { name: 'Administration' })).toBeInTheDocument();
+  });
+
+  it('shows the new Admin Workspace group for a super_admin', () => {
+    renderSidebar(superAdminState);
+    expect(screen.getByRole('button', { name: 'Admin Workspace' })).toBeInTheDocument();
+  });
+
+  it('hides the Admin Workspace group for a patient', () => {
+    renderSidebar(patientState);
+    expect(screen.queryByRole('button', { name: 'Admin Workspace' })).not.toBeInTheDocument();
   });
 
   it('marks the item matching the current route as active', () => {
