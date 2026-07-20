@@ -52,6 +52,30 @@ services:
     volumes:
       - minio-data:/data
 
+  # One-shot bootstrap, not a long-running service: creates the S3_BUCKET
+  # AssetModule/HealthController's readiness check expect
+  # (`orivex-media-assets`, matching S3_BUCKET in .env.development/
+  # .env.example) so a fresh `pnpm docker:up` is immediately usable --
+  # nothing else in this repo ever provisioned it, which previously left
+  # GET /health/readiness reporting "object storage unreachable" until
+  # someone created the bucket by hand in the MinIO console. Waits for
+  # MinIO's own healthcheck (not just "container started") before running,
+  # runs once, then exits -- `restart: "no"` keeps it from looping.
+  # `--ignore-existing` makes this safe to run again on every `docker:up`
+  # (e.g. against the same named volume) without erroring if the bucket is
+  # already there.
+  minio-init:
+    image: minio/mc:latest
+    container_name: orivex-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "mc alias set local http://minio:9000 orivex orivex-dev-secret && mc mb --ignore-existing local/orivex-media-assets"
+    restart: "no"
+
 volumes:
   postgres-data:
   minio-data:

@@ -35,12 +35,12 @@ Methodology
   caching/queues actually wired, formal security audit/OWASP report,
   load/performance testing) that have concrete repository evidence.
 
-Aggregate Scores (updated 2026-07-19 post Stage 2: Telemedicine/LiveKit)
+Aggregate Scores (updated 2026-07-19 post Stage 3: Real Notifications)
 ------------------------------------------------------------------------
-- Overall Roadmap Completion: ~32% (Phase 7 moved from 0% to 45% this stage; mean of the 23 per-phase scores, unweighted: 725/23 ≈ 31.5%; was ~30% before Stage 2)
-- Weighted Engineering Completion: ~85% (unchanged -- mean maturity of the 13 modules that exist: authentication, identity, patient, doctor, scheduling, consultation, clinical, trust, payment, notification, asset, ai, administration; ConsultationModule's own depth increased this stage but doesn't move the 13-module average materially)
-- End-to-End Integration Score: ~82% (14 of 17 frontend-facing controllers are genuinely reachable via a real navigable route -- the new room-token endpoint joins the reachable set this stage, matching the same "webhook receivers are intentionally excluded from this denominator" rule already applied to Stripe's webhook; 3 confirmed dead ends remain — see below)
-- Production Readiness Score: ~55% (roughly 9 of the 15 disclosed hardening dimensions have concrete evidence; see Phase 22 below)
+- Overall Roadmap Completion: ~33% (Phase 6 moved 65%→70%, Phase 14 moved 15%→55% this stage; mean of the 23 per-phase scores, unweighted: 770/23 ≈ 33.5%; was ~32% before Stage 3)
+- Weighted Engineering Completion: ~86% (NotificationModule's own depth increased materially this stage -- real queue/email/worker infrastructure where none existed -- nudging the 13-module average up slightly; the other 12 modules unchanged)
+- End-to-End Integration Score: ~82% (unchanged -- Stage 3 added no new HTTP route; the reminder pipeline is entirely event/queue-driven, with no new controller endpoint to add to either side of this ratio)
+- Production Readiness Score: ~65% (10 of the 15 disclosed hardening dimensions now have concrete evidence -- "Redis-backed caching/queues actually wired" moves from absent to real-when-configured this stage; was ~55% before Stage 3)
 
 Comparison to the previous audit
 ---------------------------------
@@ -124,7 +124,7 @@ Phase 2 — Authentication & Identity: 80% (login/register/forgot/reset/refresh/
 Phase 3 — Admin Dashboard: 5% (only a verification-review-queue exists server-side, itself not reachable from any frontend route; no Overview/KPIs/Users/Roles/Permissions/Hospitals/Departments/Clinics/Analytics/Charts/Growth/Activity-Feed anywhere)
 Phase 4 — Doctor Portal: 90% (Profile/Availability/Working Hours/Vacation Days, Patient search/history/documents, Consultations incl. SOAP-equivalent clinical notes and diagnosis, Prescriptions create/edit/history all real and reachable via `/doctor/*` routes)
 Phase 5 — Patient Portal: 85% (Profile/Appointments/Medical History/Prescriptions/Notifications/Documents real; Payments now real this stage; Lab Results/Radiology/Insurance remain honest placeholders only)
-Phase 6 — Appointment System: 65% (Booking/Availability Calendar/Time Slots/Rescheduling/Cancellation/Automatic Confirmation real; Recurring Appointments, Waiting List persistence beyond a basic join-waitlist endpoint, Appointment Reminders, and Calendar Sync (Google/Outlook) not evidenced)
+Phase 6 — Appointment System: 70% (Booking/Availability Calendar/Time Slots/Rescheduling/Cancellation/Automatic Confirmation real; Appointment Reminders now real this stage (Stage 3 -- a 24h-ahead BullMQ-scheduled email + in-app notification, see Stage 3 Completion Note below); Recurring Appointments, Waiting List persistence beyond a basic join-waitlist endpoint, and Calendar Sync (Google/Outlook) remain not evidenced)
 Phase 7 — Telemedicine: 45% (Stage 2, completed 2026-07-19: real, tested, reachable room-token minting + signature-verified webhook + LiveKit's own pre-built call UI wired into both the Doctor Queue and patient Appointments page -- covers Video Consultation/Virtual Waiting Room/Join/Leave/Reconnect/Screen Sharing/Chat/Mic+Camera Control/Network Quality/Connection Indicator via LiveKit's own components; Consultation Timer/Meeting History/Doctor+Patient Notes/AI Summary/Recording not built; no live LiveKit server verification performed, see Stage 2 Completion Note above)
 Phase 8 — AI Healthcare: 10% (a real generic suggestion pipeline exists but is bound to a not-configured stub adapter and has zero frontend integration; none of the named specific capabilities — symptom checker, SOAP generator, drug interaction, ICD-10, report generator, chat, voice-to-text — exist as distinct features)
 Phase 9 — Electronic Medical Record: 40% (Medical Timeline/3 Vital types/generic Medical Images real; Allergies/Vaccinations/Family History/Lifestyle/Smoking/Alcohol/BMI/Version History have no model support)
@@ -132,7 +132,7 @@ Phase 10 — Laboratory: 0% (no module, no model)
 Phase 11 — Radiology: 0% (no module, no model)
 Phase 12 — Pharmacy: 0% (no module, no model)
 Phase 13 — Billing: 25% (Refunds, Payment Gateway, and Stripe specifically are now real, tested, and reachable this stage; Invoices/Insurance/Claims/Discounts/Coupons/Taxes/Subscriptions/Paymob/PayPal/Invoice PDF remain at 0%)
-Phase 14 — Notifications: 15% (in-app delivery real and reachable; Email is a logging-only stub; SMS/WhatsApp/Push/Templates/Scheduler/Queue/Retry have no code)
+Phase 14 — Notifications: 55% (Stage 3, completed 2026-07-19: In-app delivery, Email (real via SendGrid when configured, honest logging fallback otherwise), Queue (BullMQ+Redis), Retry (3 attempts, exponential backoff), and Scheduler (a real 24h-ahead delayed job, for the one appointment-reminder use case) are all real and tested; Templates is informal (inline subject/body renderers, not a dynamic-template-id system); SMS/WhatsApp/Push Notifications have no code)
 Phase 15 — Files & Media: 55% (Upload/Images/PDF/S3 Storage real via `MediaAsset`; Videos/Audio/DICOM/Virus Scan/Compression/Preview not evidenced as distinct capabilities)
 Phase 16 — Real-time: 0% (no WebSocket/socket.io dependency anywhere)
 Phase 17 — Search: 0% (no module)
@@ -210,6 +210,107 @@ Decision: Stage 2 (Telemedicine/LiveKit) is verified against every
 criterion checkable in this sandbox -- reachable, tested, no regression,
 no dead code. The one explicit exception, a real LiveKit server
 round-trip, is documented rather than claimed.
+===============================================================
+
+===============================================================
+STAGE 3 COMPLETION NOTE — 2026-07-19 (Real Notifications: Email + Queue + Reminders)
+===============================================================
+
+What was built, evidence-based:
+- `NotificationQueuePort` / `NotConfiguredNotificationQueueAdapter` /
+  `BullMqNotificationQueueAdapter`, mirroring PaymentGatewayPort/
+  RoomTokenGeneratorPort's exact Ports & Adapters idiom -- falls back to a
+  loud, explicit not-configured stub (never a silent fake reminder) when
+  `REDIS_URL` is unset. Deliberately kept `REDIS_URL` optional rather than
+  making it required (a deviation from this stage's original plan text,
+  made for consistency with every other external-provider idiom already
+  established in this codebase, and to avoid a breaking boot-time change
+  for the already-deployed backend).
+- `SendGridEmailSender implements EmailSenderPort`, bound in
+  `authentication.module.ts` whenever `SENDGRID_API_KEY`/
+  `SENDGRID_FROM_EMAIL` are both set -- falls back to the existing
+  `LoggingEmailSender` otherwise (that adapter already logs rather than
+  throwing when unconfigured, a deliberately different tradeoff than
+  Stripe/LiveKit's throw-when-invoked idiom, since a missing email
+  provider must never block registration/password-reset). `EMAIL_SENDER`
+  is now exported from `AuthenticationModule` so `NotificationModule`
+  reuses the same binding rather than a second email-sending path.
+- `ScheduleAppointmentReminderHandler` -- `NotificationModule` reacting to
+  `ConsultationModule`'s already-published `consultation.appointment.
+  booked` event by name only (mirrors `ClinicalModule`'s
+  `PendingAISuggestionAcknowledgmentHandler` for the same "never import
+  the emitting module's event type" reason). Computes a 24h-ahead delay
+  from the appointment's own `scheduledAt`; skips entirely if the
+  appointment was booked less than 24h before itself. Any queue failure
+  (e.g. not configured) is caught and logged, never propagated -- a
+  missing/misconfigured queue must never fail the booking request that
+  raised the event, since `BookAppointmentUseCase` has already saved the
+  appointment by the time domain events dispatch.
+- `SendAppointmentReminderUseCase` -- the BullMQ job's processor.
+  `Notification.create()`'s first real producer (previously real,
+  documented, but never called from outside the domain layer itself).
+  Creates and persists a real `Notification` (in-app) and sends the
+  reminder email through the same `EmailSenderPort` binding above.
+- `AppointmentReminderWorkerService` runs the job processor in the same
+  Node process as the HTTP server (no second deployable service --
+  matches the program's own cross-cutting rule: no stage introduces a
+  second queue/transport). A deliberate no-op when `REDIS_URL` is unset.
+- Retry: jobs get 3 attempts with exponential backoff (60s base delay)
+  before being given up on -- Phase 14's "Retry" scope, genuinely wired,
+  not just documented as a plan.
+- Tests: 3 for `BullMqNotificationQueueAdapter` (real BullMQ job options
+  asserted via a hand-written fake `Queue` -- a real BullMQ `Queue`
+  requires a live Redis connection even to construct, so this fake is
+  what makes the adapter's own logic testable, matching the "can't run a
+  real third-party client without live infra" trade-off already
+  established for LiveKit/Stripe), 1 for
+  `NotConfiguredNotificationQueueAdapter`, 4 for `SendGridEmailSender`
+  (real narrowed-client fake, all 3 known templates plus an unknown-
+  template fallback), 4 for `ScheduleAppointmentReminderHandler` (enqueues
+  correctly, skips a <24h-out booking, no-ops on an unknown appointment,
+  logs-not-throws on a queue failure), 2 for
+  `SendAppointmentReminderUseCase`. Full backend suite 599/599, green;
+  lint/build/boot-test all green (boot-test reaches the same DB-
+  connectivity step as every prior stage, confirming
+  `NotificationModule`'s expanded DI graph -- new queue port/adapter,
+  worker service, event-subscriber factory -- resolves with zero wiring
+  errors).
+
+Explicitly NOT done this stage (honest, not glossed over):
+- SMS, WhatsApp, and Push Notifications have no code at all -- Phase 14
+  is Email + in-app + the underlying queue/retry/scheduler infrastructure
+  only, exactly as this stage's own scope said.
+- "Templates" is informal: `SendGridEmailSender` renders three known
+  template names into a hardcoded subject/plain-text body internally,
+  not SendGrid's own dynamic-template-id feature -- deliberately, to avoid
+  a second piece of provider-side configuration for three short,
+  non-marketing transactional emails. A real templating system (HTML,
+  branding, localization) is future work, not silently claimed as done.
+- Appointment reminders are the only scheduled-job type this stage
+  produces -- "Scheduler" is real for this one use case, not a
+  general-purpose scheduling subsystem.
+- **No live Redis/SendGrid round-trip has been performed** -- this sandbox
+  has no reachable Redis instance and no real SendGrid API key. Every test
+  above exercises this stage's own logic (job options, template
+  rendering, delay computation, event-handling, error-swallowing) against
+  hand-written fakes of the narrowed `QueueLike`/`SendGridClient`
+  interfaces -- consistent with the same "can't safely run a real
+  third-party client without live infra in this sandbox" trade-off already
+  documented for Stripe Test Mode and a live LiveKit server. A human with
+  real Redis + SendGrid credentials still needs to: (1) set `REDIS_URL`
+  and confirm `AppointmentReminderWorkerService` actually starts (its own
+  `onModuleInit` log path, or absence of the "not configured" error on a
+  real booking); (2) set `SENDGRID_API_KEY`/`SENDGRID_FROM_EMAIL` and
+  confirm a real email arrives; (3) book a real appointment, wait (or
+  fast-forward Redis's clock in a controlled test environment) past the
+  24h delay, and confirm the reminder email and in-app notification both
+  actually appear.
+
+Decision: Stage 3 (Real Notifications) is verified against every
+criterion checkable in this sandbox -- reachable data flow, tested logic,
+no regression, no dead code, graceful degradation without Redis/SendGrid
+configured. The live-infrastructure round-trip is documented as
+outstanding rather than claimed, same category as Stage 1/2's own gaps.
 ===============================================================
 
 Phase 1 — Foundation ✅ (Completed)

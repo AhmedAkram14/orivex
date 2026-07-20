@@ -2,6 +2,12 @@ node_modules
 .pnpm-store
 .env.local
 .env.*.local
+# Prisma CLI (migrate/studio/generate) only auto-loads a file named exactly
+# `.env` from the schema's own directory -- it does not read the repo-root
+# `.env.local` NestJS's ConfigModule uses. This local-only copy exists
+# purely so `prisma migrate`/`prisma studio` work without manually
+# exporting DATABASE_URL first; never commit real credentials here.
+/apps/backend/prisma/.env
 .DS_Store
 coverage
 dist

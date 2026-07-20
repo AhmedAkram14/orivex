@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import sgMail from '@sendgrid/mail';
 
+import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { GetAccountByEmailUseCase } from '../identity/application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
@@ -9,6 +12,7 @@ import { IdentityModule } from '../identity/identity.module.js';
 import { ListSecurityEventsForAccountUseCase } from '../trust/application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
 import { RecordSecurityEventUseCase } from '../trust/application/use-cases/record-security-event/record-security-event.use-case.js';
 import { TrustModule } from '../trust/trust.module.js';
+import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
 
 import { AuthenticationGuardsModule } from './authentication-guards.module.js';
 import {
@@ -44,6 +48,7 @@ import { VerifyEmailUseCase } from './application/use-cases/verify-email/verify-
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import { NodeTokenGenerator } from './infrastructure/crypto/node-token-generator.js';
 import { LoggingEmailSender } from './infrastructure/email/logging-email-sender.js';
+import { SendGridEmailSender } from './infrastructure/email/sendgrid-email-sender.js';
 import { PrismaAuthTokenRepository } from './infrastructure/prisma/prisma-auth-token.repository.js';
 import { PrismaCredentialRepository } from './infrastructure/prisma/prisma-credential.repository.js';
 import { PrismaSessionRepository } from './infrastructure/prisma/prisma-session.repository.js';
@@ -73,7 +78,19 @@ import { LoginHistoryController } from './presentation/controllers/login-history
     { provide: AUTH_TOKEN_REPOSITORY, useClass: PrismaAuthTokenRepository },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: TOKEN_GENERATOR, useClass: NodeTokenGenerator },
-    { provide: EMAIL_SENDER, useClass: LoggingEmailSender },
+    {
+      provide: EMAIL_SENDER,
+      useFactory: (configService: ConfigService<EnvConfig, true>, logger: PinoLoggerService): EmailSenderPort => {
+        const apiKey = configService.get('SENDGRID_API_KEY', { infer: true });
+        const fromEmail = configService.get('SENDGRID_FROM_EMAIL', { infer: true });
+        if (apiKey && fromEmail) {
+          sgMail.setApiKey(apiKey);
+          return new SendGridEmailSender(sgMail, fromEmail);
+        }
+        return new LoggingEmailSender(logger, configService);
+      },
+      inject: [ConfigService, PinoLoggerService],
+    },
     {
       provide: RegisterUseCase,
       useFactory: (
@@ -315,6 +332,10 @@ import { LoginHistoryController } from './presentation/controllers/login-history
       inject: [ListSecurityEventsForAccountUseCase],
     },
   ],
-  exports: [AuthenticationGuardsModule],
+  // EMAIL_SENDER is exported for reuse beyond this module's own use cases --
+  // NotificationModule's appointment-reminder pipeline (ORIVEX Roadmap 2.0
+  // Stage 3) sends through the same EmailSenderPort binding rather than a
+  // second email-sending path.
+  exports: [AuthenticationGuardsModule, EMAIL_SENDER],
 })
 export class AuthenticationModule {}

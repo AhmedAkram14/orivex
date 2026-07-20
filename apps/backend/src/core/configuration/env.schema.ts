@@ -23,11 +23,14 @@ export const envSchema = z.object({
   SENTRY_DSN: z.string().url().optional(),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
   DATABASE_URL: z.string().url(),
-  // Optional: no code path in this codebase connects to Redis yet (no
-  // client is ever instantiated from this value) -- unlike S3 below, which
-  // IS actually used by AssetModule's S3ObjectStorageAdapter. Requiring
-  // this at boot would fail production deployments that legitimately don't
-  // have Redis provisioned yet. Restore to required once it's wired up.
+  // ORIVEX Roadmap 2.0 Stage 3 -- Notifications Queue. Optional, same
+  // fail-loud-not-fail-fake idiom as every other unconfigured provider in
+  // this schema: unset means NotificationModule keeps binding
+  // NotConfiguredNotificationQueueAdapter (appointment-reminder scheduling
+  // becomes a loud no-op, logged and swallowed so a missing queue can
+  // never break the booking flow itself -- see ScheduleAppointmentReminder
+  // Handler). Requiring this at boot would fail deployments that
+  // legitimately don't have Redis provisioned yet.
   REDIS_URL: z.string().min(1).optional(),
   S3_ENDPOINT: z.string().url(),
   S3_REGION: z.string().min(1).default('us-east-1'),
@@ -76,6 +79,16 @@ export const envSchema = z.object({
   LIVEKIT_URL: z.string().min(1).optional(),
   LIVEKIT_API_KEY: z.string().min(1).optional(),
   LIVEKIT_API_SECRET: z.string().min(1).optional(),
+  // SendGrid (ORIVEX Roadmap 2.0 Stage 3 -- Notifications). Optional --
+  // unset means AuthenticationModule keeps binding LoggingEmailSender
+  // exactly as it always has (this one logs instead of throwing when
+  // unconfigured, since a missing email provider should never block
+  // registration/password-reset -- the token is still usable, just not
+  // emailed).
+  SENDGRID_API_KEY: z.string().min(1).optional(),
+  // The verified sender address SendGrid requires on every outbound email
+  // -- required together with the API key once SendGrid is actually bound.
+  SENDGRID_FROM_EMAIL: z.string().email().optional(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
