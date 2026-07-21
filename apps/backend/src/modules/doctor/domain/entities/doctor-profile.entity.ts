@@ -15,6 +15,10 @@ export interface RegisterDoctorProfileProps {
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number;
+  // Doctor Onboarding (Phase 4 continuation): optional hospital affiliation,
+  // reusing the column Stage 4 already added to the Hospital org-chart --
+  // no tenant scoping implied, see Hospital entity's own comment.
+  hospitalId?: string;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
 }
@@ -25,6 +29,7 @@ export interface UpdateDoctorProfileProps {
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number | null;
+  hospitalId?: string | null;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
 }
@@ -38,6 +43,7 @@ export interface ReconstituteDoctorProfileProps {
   yearsOfExperience?: number;
   languages: string[];
   consultationFeeAmount?: number;
+  hospitalId?: string;
   publications: PortfolioPublication[];
   awards: PortfolioAward[];
   createdAt: Date;
@@ -62,6 +68,7 @@ export class DoctorProfile {
     private yearsOfExperience: number | undefined,
     private languages: string[],
     private consultationFeeAmount: number | undefined,
+    private hospitalId: string | undefined,
     private publications: PortfolioPublication[],
     private awards: PortfolioAward[],
     private readonly createdAt: Date,
@@ -84,6 +91,7 @@ export class DoctorProfile {
       props.yearsOfExperience,
       props.languages ?? [],
       props.consultationFeeAmount,
+      props.hospitalId,
       (props.publications ?? []).map((p) => PortfolioPublication.create(p)),
       (props.awards ?? []).map((a) => PortfolioAward.create(a)),
       now,
@@ -104,6 +112,7 @@ export class DoctorProfile {
       props.yearsOfExperience,
       props.languages,
       props.consultationFeeAmount,
+      props.hospitalId,
       props.publications,
       props.awards,
       props.createdAt,
@@ -129,6 +138,9 @@ export class DoctorProfile {
     if (props.consultationFeeAmount !== undefined) {
       DoctorProfile.validateConsultationFee(props.consultationFeeAmount ?? undefined);
       this.consultationFeeAmount = props.consultationFeeAmount ?? undefined;
+    }
+    if (props.hospitalId !== undefined) {
+      this.hospitalId = props.hospitalId ?? undefined;
     }
     if (props.publications !== undefined) {
       this.publications = props.publications.map((p) => PortfolioPublication.create(p));
@@ -195,6 +207,10 @@ export class DoctorProfile {
 
   getConsultationFeeAmount(): number | undefined {
     return this.consultationFeeAmount;
+  }
+
+  getHospitalId(): string | undefined {
+    return this.hospitalId;
   }
 
   getPublications(): PortfolioPublication[] {

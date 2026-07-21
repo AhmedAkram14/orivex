@@ -10,6 +10,8 @@ export interface UpdateDoctorProfileCommandProps {
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number | null;
+  // Doctor Onboarding (Phase 4 continuation): optional hospital affiliation.
+  hospitalId?: string | null;
   publications?: PortfolioPublicationInput[];
   awards?: PortfolioAwardInput[];
 }
@@ -21,6 +23,7 @@ export class UpdateDoctorProfileCommand {
   readonly yearsOfExperience?: number;
   readonly languages?: string[];
   readonly consultationFeeAmount?: number | null;
+  readonly hospitalId?: string | null;
   readonly publications?: PortfolioPublicationInput[];
   readonly awards?: PortfolioAwardInput[];
 
@@ -31,6 +34,7 @@ export class UpdateDoctorProfileCommand {
     this.yearsOfExperience = props.yearsOfExperience;
     this.languages = props.languages;
     this.consultationFeeAmount = props.consultationFeeAmount;
+    this.hospitalId = props.hospitalId;
     this.publications = props.publications;
     this.awards = props.awards;
   }

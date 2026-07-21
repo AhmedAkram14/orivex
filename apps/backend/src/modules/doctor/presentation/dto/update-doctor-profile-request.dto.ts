@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
 
 class PortfolioPublicationDto {
   @IsString()
@@ -45,6 +45,12 @@ export class UpdateDoctorProfileRequestDto {
   @IsNumber()
   @Min(0)
   consultationFeeAmount?: number;
+
+  // Doctor Onboarding (Phase 4 continuation): optional hospital affiliation
+  // -- existence is enforced by the database FK, not a second lookup here.
+  @IsOptional()
+  @IsUUID('4')
+  hospitalId?: string;
 
   @IsOptional()
   @IsArray()

@@ -35,6 +35,11 @@ const VALID_TOKEN = 'valid-doctor-token';
 const OTHER_VALID_TOKEN = 'valid-doctor-token-no-profile';
 const EXISTING_ACCOUNT_TOKEN = 'valid-doctor-token-existing-account';
 const UNKNOWN_ACCOUNT_TOKEN = 'valid-doctor-token-unknown-account';
+// Doctor Onboarding (Phase 4 continuation): a still-Patient applicant must
+// be able to register/view/edit their own profile before any verification
+// is ever decided -- see DoctorProfileController's own comment on this
+// guard widening.
+const PATIENT_APPLICANT_TOKEN = 'valid-patient-applicant-token';
 
 class InMemoryAccountRepository implements AccountRepository {
   constructor(private readonly accounts: Account[]) {}
@@ -52,7 +57,10 @@ class InMemoryAccountRepository implements AccountRepository {
 }
 
 class FakeJwtSigner implements JwtSignerPort {
-  constructor(private readonly accountIdByToken: Map<string, string>) {}
+  constructor(
+    private readonly accountIdByToken: Map<string, string>,
+    private readonly roleOverrideByToken: Map<string, AccountRole> = new Map(),
+  ) {}
   async sign(): Promise<never> {
     throw new Error('not used in this test');
   }
@@ -61,7 +69,7 @@ class FakeJwtSigner implements JwtSignerPort {
     if (!accountId) {
       throw new Error('invalid token');
     }
-    return { accountId, role: AccountRole.Doctor };
+    return { accountId, role: this.roleOverrideByToken.get(token) ?? AccountRole.Doctor };
   }
 }
 
@@ -98,6 +106,7 @@ describe('DoctorProfileController (integration)', () => {
   let registeredProfileId: string;
   let meAccountId: string;
   let noProfileAccountId: string;
+  let patientApplicantAccountId: string;
 
   before(async () => {
     const account = Account.register({
@@ -121,7 +130,14 @@ describe('DoctorProfileController (integration)', () => {
     });
     noProfileAccountId = accountWithoutProfile.getId().toString();
 
-    const accountRepository = new InMemoryAccountRepository([account, meAccount, accountWithoutProfile]);
+    const patientApplicant = Account.register({
+      email: EmailAddress.create('sara.applicant@example.com'),
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('Sara Applicant'),
+    });
+    patientApplicantAccountId = patientApplicant.getId().toString();
+
+    const accountRepository = new InMemoryAccountRepository([account, meAccount, accountWithoutProfile, patientApplicant]);
     const doctorProfileRepository = new InMemoryDoctorProfileRepository();
 
     const meProfile = DoctorProfile.register({
@@ -141,7 +157,9 @@ describe('DoctorProfileController (integration)', () => {
         [OTHER_VALID_TOKEN, noProfileAccountId],
         [EXISTING_ACCOUNT_TOKEN, existingAccountId],
         [UNKNOWN_ACCOUNT_TOKEN, '22222222-2222-4222-8222-222222222222'],
+        [PATIENT_APPLICANT_TOKEN, patientApplicantAccountId],
       ]),
+      new Map([[PATIENT_APPLICANT_TOKEN, AccountRole.Patient]]),
     );
 
     const moduleRef = await Test.createTestingModule({
@@ -365,5 +383,39 @@ describe('DoctorProfileController (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  // Doctor Onboarding (Phase 4 continuation): a still-Patient applicant --
+  // every account starts and stays Patient through Draft/Pending/Rejected,
+  // only an approved verification ever promotes to Doctor -- must be able
+  // to complete the entire profile self-service surface on its own.
+  it('POST /doctors registers a profile for a still-Patient applicant (Doctor Onboarding)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/doctors')
+      .set('Authorization', `Bearer ${PATIENT_APPLICANT_TOKEN}`)
+      .send({ licenseNumber: 'LIC-ONBOARD-1', specialty: 'Family Medicine' })
+      .expect(201);
+
+    assert.equal(response.body.data.specialty, 'Family Medicine');
+    assert.equal(response.body.data.accountId, patientApplicantAccountId);
+  });
+
+  it('GET /doctors/me returns the profile for a still-Patient applicant', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/doctors/me')
+      .set('Authorization', `Bearer ${PATIENT_APPLICANT_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.licenseNumber, 'LIC-ONBOARD-1');
+  });
+
+  it('PATCH /doctors/me updates the profile for a still-Patient applicant', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/doctors/me')
+      .set('Authorization', `Bearer ${PATIENT_APPLICANT_TOKEN}`)
+      .send({ biography: 'Completed medical school in 2015.' })
+      .expect(200);
+
+    assert.equal(response.body.data.biography, 'Completed medical school in 2015.');
   });
 });

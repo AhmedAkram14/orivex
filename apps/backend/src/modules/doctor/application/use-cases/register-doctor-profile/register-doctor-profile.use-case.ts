@@ -39,6 +39,7 @@ export class RegisterDoctorProfileUseCase {
       yearsOfExperience: command.yearsOfExperience,
       languages: command.languages,
       consultationFeeAmount: command.consultationFeeAmount,
+      hospitalId: command.hospitalId,
       publications: command.publications,
       awards: command.awards,
     });

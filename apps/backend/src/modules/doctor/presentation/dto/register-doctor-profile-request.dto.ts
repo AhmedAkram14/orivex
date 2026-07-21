@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -60,6 +61,12 @@ export class RegisterDoctorProfileRequestDto {
   @IsNumber()
   @Min(0)
   consultationFeeAmount?: number;
+
+  // Doctor Onboarding (Phase 4 continuation): optional hospital affiliation
+  // -- existence is enforced by the database FK, not a second lookup here.
+  @IsOptional()
+  @IsUUID('4')
+  hospitalId?: string;
 
   @IsOptional()
   @IsArray()

@@ -21,6 +21,7 @@ import type { DoctorProfileRepository } from '../../../doctor/domain/repositorie
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { VERIFICATION_CASE_REPOSITORY } from '../../application/ports/tokens.js';
 import { DecideVerificationUseCase } from '../../application/use-cases/decide-verification/decide-verification.use-case.js';
+import { ListVerificationCasesForDoctorUseCase } from '../../application/use-cases/list-verification-cases-for-doctor/list-verification-cases-for-doctor.use-case.js';
 import { SubmitDoctorVerificationUseCase } from '../../application/use-cases/submit-doctor-verification/submit-doctor-verification.use-case.js';
 import type { VerificationCase } from '../../domain/entities/verification-case.entity.js';
 import type { VerificationCaseRepository } from '../../domain/repositories/verification-case.repository.js';
@@ -31,6 +32,10 @@ import { VerificationCaseController } from './verification-case.controller.js';
 const DOCTOR_TOKEN = 'valid-doctor-token';
 const OTHER_DOCTOR_TOKEN = 'valid-other-doctor-token';
 const ADMIN_TOKEN = 'valid-admin-token';
+// Doctor Onboarding (Phase 4 continuation): same account as DOCTOR_TOKEN,
+// but still Patient-role -- proves the widened guard, not a duplicate
+// identity.
+const PATIENT_APPLICANT_TOKEN = 'valid-patient-applicant-token';
 
 class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
   constructor(private readonly profile: DoctorProfile) {}
@@ -52,6 +57,9 @@ class FakeJwtSigner implements JwtSignerPort {
     if (token === DOCTOR_TOKEN) {
       return { accountId: this.doctorAccountId, role: AccountRole.Doctor };
     }
+    if (token === PATIENT_APPLICANT_TOKEN) {
+      return { accountId: this.doctorAccountId, role: AccountRole.Patient };
+    }
     if (token === OTHER_DOCTOR_TOKEN) {
       return { accountId: '55555555-5555-4555-8555-555555555555', role: AccountRole.Doctor };
     }
@@ -69,6 +77,12 @@ class InMemoryVerificationCaseRepository implements VerificationCaseRepository {
   }
   async findPendingReview(): Promise<VerificationCase[]> {
     return [...this.byId.values()];
+  }
+
+  async findAllByDoctorId(doctorId: string): Promise<VerificationCase[]> {
+    return [...this.byId.values()]
+      .filter((verificationCase) => verificationCase.getDoctorId() === doctorId)
+      .sort((a, b) => b.getSubmittedAt().getTime() - a.getSubmittedAt().getTime());
   }
   async save(verificationCase: VerificationCase): Promise<void> {
     this.byId.set(verificationCase.getId(), verificationCase);
@@ -129,6 +143,11 @@ describe('Trust controllers (integration)', () => {
           useFactory: (repo: VerificationCaseRepository, dispatcher: NoopDomainEventDispatcher) =>
             new DecideVerificationUseCase(repo, dispatcher),
           inject: [VERIFICATION_CASE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+        },
+        {
+          provide: ListVerificationCasesForDoctorUseCase,
+          useFactory: (repo: VerificationCaseRepository) => new ListVerificationCasesForDoctorUseCase(repo),
+          inject: [VERIFICATION_CASE_REPOSITORY],
         },
       ],
     }).compile();
@@ -243,5 +262,61 @@ describe('Trust controllers (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('GET /doctors/:id/verifications rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/doctors/${doctorProfile.getId()}/verifications`)
+      .expect(401);
+
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /doctors/:id/verifications rejects listing another doctor\'s profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/doctors/${doctorProfile.getId()}/verifications`)
+      .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+      .expect(403);
+
+    assert.equal(response.body.error.code, 'FORBIDDEN');
+  });
+
+  it('GET /doctors/:id/verifications lists the caller\'s own verification history, most recent first', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/doctors/${doctorProfile.getId()}/verifications`)
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+      .expect(200);
+
+    assert.ok(Array.isArray(response.body.data));
+    assert.equal(response.body.data.length, 1);
+    assert.equal(response.body.data[0].id, createdCaseId);
+    assert.equal(response.body.data[0].status, 'approved');
+  });
+
+  // Doctor Onboarding (Phase 4 continuation): the entire self-service
+  // profile/verification surface must work for a still-Patient applicant,
+  // not just an already-Doctor account -- every account starts and stays
+  // Patient through Draft/Pending/Rejected.
+  it('POST /doctors/:id/verifications accepts submission from a still-Patient applicant', async () => {
+    const response = await request(app.getHttpServer())
+      .post(`/doctors/${doctorProfile.getId()}/verifications`)
+      .set('Authorization', `Bearer ${PATIENT_APPLICANT_TOKEN}`)
+      .send({
+        licenseNumber: 'LIC-1',
+        specialtyCode: 'cardiology',
+        documentAssetIds: ['22222222-2222-4222-8222-222222222222'],
+      })
+      .expect(201);
+
+    assert.equal(response.body.data.status, 'submitted');
+  });
+
+  it('GET /doctors/:id/verifications is reachable by a still-Patient applicant', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/doctors/${doctorProfile.getId()}/verifications`)
+      .set('Authorization', `Bearer ${PATIENT_APPLICANT_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 2);
   });
 });

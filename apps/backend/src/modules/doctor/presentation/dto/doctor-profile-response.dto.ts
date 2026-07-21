@@ -32,6 +32,7 @@ export class DoctorProfileResponseDto {
   yearsOfExperience?: number;
   languages!: string[];
   consultationFeeAmount?: number;
+  hospitalId?: string;
   publications!: PublicationView[];
   awards!: AwardView[];
   createdAt!: string;
@@ -52,6 +53,7 @@ export class DoctorProfileResponseDto {
     dto.yearsOfExperience = profile.getYearsOfExperience();
     dto.languages = profile.getLanguages();
     dto.consultationFeeAmount = profile.getConsultationFeeAmount();
+    dto.hospitalId = profile.getHospitalId();
     dto.publications = profile.getPublications().map((p) => ({
       id: p.getId(),
       title: p.getTitle(),

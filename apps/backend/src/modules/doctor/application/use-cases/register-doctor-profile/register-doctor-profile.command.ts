@@ -18,6 +18,8 @@ export interface RegisterDoctorProfileCommandProps {
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number;
+  // Doctor Onboarding (Phase 4 continuation): optional hospital affiliation.
+  hospitalId?: string;
   publications?: PortfolioPublicationInput[];
   awards?: PortfolioAwardInput[];
 }
@@ -32,6 +34,7 @@ export class RegisterDoctorProfileCommand {
   readonly yearsOfExperience?: number;
   readonly languages?: string[];
   readonly consultationFeeAmount?: number;
+  readonly hospitalId?: string;
   readonly publications?: PortfolioPublicationInput[];
   readonly awards?: PortfolioAwardInput[];
 
@@ -43,6 +46,7 @@ export class RegisterDoctorProfileCommand {
     this.yearsOfExperience = props.yearsOfExperience;
     this.languages = props.languages;
     this.consultationFeeAmount = props.consultationFeeAmount;
+    this.hospitalId = props.hospitalId;
     this.publications = props.publications;
     this.awards = props.awards;
   }

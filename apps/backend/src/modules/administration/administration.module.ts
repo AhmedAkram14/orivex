@@ -20,6 +20,7 @@ import type { HospitalRepository } from './domain/repositories/hospital.reposito
 import { PrismaDepartmentRepository } from './infrastructure/prisma/prisma-department.repository.js';
 import { PrismaHospitalRepository } from './infrastructure/prisma/prisma-hospital.repository.js';
 import { AdministrationController } from './presentation/controllers/administration.controller.js';
+import { HospitalDirectoryController } from './presentation/controllers/hospital-directory.controller.js';
 
 // ORIVEX Roadmap 2.0 Stage 4: grows from "internal orchestration only, no
 // owned domain entities" (its pre-Stage-4 state) into a real module with its
@@ -29,7 +30,7 @@ import { AdministrationController } from './presentation/controllers/administrat
 // before Stage 4.
 @Module({
   imports: [IdentityModule, TrustModule, AuthenticationGuardsModule],
-  controllers: [AdministrationController],
+  controllers: [AdministrationController, HospitalDirectoryController],
   providers: [
     { provide: HOSPITAL_REPOSITORY, useClass: PrismaHospitalRepository },
     { provide: DEPARTMENT_REPOSITORY, useClass: PrismaDepartmentRepository },

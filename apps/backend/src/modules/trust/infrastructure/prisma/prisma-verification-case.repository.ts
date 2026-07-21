@@ -37,6 +37,15 @@ export class PrismaVerificationCaseRepository implements VerificationCaseReposit
     return rows.map(toDomainVerificationCase);
   }
 
+  async findAllByDoctorId(doctorId: string): Promise<VerificationCase[]> {
+    const rows = await this.prisma.verificationCase.findMany({
+      where: { doctorId },
+      include: INCLUDE_DOCUMENTS,
+      orderBy: { submittedAt: 'desc' },
+    });
+    return rows.map(toDomainVerificationCase);
+  }
+
   // Document assets are attached only at creation — no use case in this
   // sprint's scope ever changes a case's documents after submission, so the
   // update branch only ever touches the decision fields.

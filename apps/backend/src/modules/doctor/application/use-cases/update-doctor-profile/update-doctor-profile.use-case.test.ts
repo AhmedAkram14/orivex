@@ -52,6 +52,44 @@ describe('UpdateDoctorProfileUseCase', () => {
     assert.equal(repo.saved.length, 1);
   });
 
+  it('sets hospitalId (Doctor Onboarding)', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({
+        doctorProfileId: profile.getId(),
+        hospitalId: '77777777-7777-4777-8777-777777777777',
+      }),
+    );
+
+    assert.equal(updated.getHospitalId(), '77777777-7777-4777-8777-777777777777');
+  });
+
+  it('clears hospitalId when explicitly set to null', async () => {
+    const profile = DoctorProfile.reconstitute({
+      id: '11111111-1111-4111-8111-111111111111',
+      accountId: '22222222-2222-4222-8222-222222222222',
+      licenseNumber: 'LIC-1',
+      specialty: 'Dermatology',
+      languages: [],
+      hospitalId: '77777777-7777-4777-8777-777777777777',
+      publications: [],
+      awards: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), hospitalId: null }),
+    );
+
+    assert.equal(updated.getHospitalId(), undefined);
+  });
+
   it('throws NotFoundError when the profile does not exist', async () => {
     const repo = new FakeDoctorProfileRepository(null);
     const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());

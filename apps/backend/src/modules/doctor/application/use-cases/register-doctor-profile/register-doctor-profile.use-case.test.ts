@@ -93,6 +93,31 @@ describe('RegisterDoctorProfileUseCase', () => {
     assert.equal(doctorRepo.saved.length, 1);
   });
 
+  it('registers with an optional hospitalId (Doctor Onboarding)', async () => {
+    const profile = await useCase.execute(
+      new RegisterDoctorProfileCommand({
+        accountId: account.getId().toString(),
+        licenseNumber: 'LIC-123',
+        specialty: 'Cardiology',
+        hospitalId: '77777777-7777-4777-8777-777777777777',
+      }),
+    );
+
+    assert.equal(profile.getHospitalId(), '77777777-7777-4777-8777-777777777777');
+  });
+
+  it('registers with no hospitalId when omitted', async () => {
+    const profile = await useCase.execute(
+      new RegisterDoctorProfileCommand({
+        accountId: account.getId().toString(),
+        licenseNumber: 'LIC-123',
+        specialty: 'Cardiology',
+      }),
+    );
+
+    assert.equal(profile.getHospitalId(), undefined);
+  });
+
   it('throws NotFoundError when the account does not exist', async () => {
     const useCaseWithMissingAccount = new RegisterDoctorProfileUseCase(
       doctorRepo,

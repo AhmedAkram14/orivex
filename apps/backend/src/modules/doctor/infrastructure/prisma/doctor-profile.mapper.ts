@@ -23,6 +23,7 @@ export function toDomainDoctorProfile(row: PersistedDoctorProfileRow): DoctorPro
     yearsOfExperience: row.yearsOfExperience ?? undefined,
     languages: row.languages,
     consultationFeeAmount: row.consultationFeeAmount ? Number(row.consultationFeeAmount) : undefined,
+    hospitalId: row.hospitalId ?? undefined,
     publications: row.publications.map((p) =>
       PortfolioPublication.reconstitute({
         id: p.id,

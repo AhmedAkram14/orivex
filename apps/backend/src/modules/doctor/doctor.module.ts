@@ -1,13 +1,20 @@
 import { Module } from '@nestjs/common';
 
+import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import { UpdateAccountRoleUseCase } from '../identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 
 import { AVAILABILITY_WINDOW_REPOSITORY, DOCTOR_PROFILE_REPOSITORY } from './application/ports/tokens.js';
 import { ConfirmAvailabilityWindowUseCase } from './application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
+import {
+  PromoteDoctorRoleOnVerificationHandler,
+  type DoctorVerifiedEventPayload,
+} from './application/event-handlers/promote-doctor-role-on-verification.handler.js';
 import { DefineAvailabilityWindowUseCase } from './application/use-cases/define-availability-window/define-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from './application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from './application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
@@ -100,6 +107,34 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
       provide: GetAvailabilityWindowByIdUseCase,
       useFactory: (repository: AvailabilityWindowRepository) => new GetAvailabilityWindowByIdUseCase(repository),
       inject: [AVAILABILITY_WINDOW_REPOSITORY],
+    },
+    {
+      // Registers Doctor Onboarding's own event subscriber against the
+      // shared DomainEventDispatcher port (mirrors NotificationModule's
+      // ScheduleAppointmentReminderHandler pattern exactly): reacts to
+      // TrustModule's already-published 'doctor.verified' event by name
+      // only, no import of TrustModule's event type or of TrustModule
+      // itself. Nest instantiates every provider in a module's providers
+      // array once at bootstrap, so this factory's subscribe() side effect
+      // runs exactly once, before any request is served.
+      provide: PromoteDoctorRoleOnVerificationHandler,
+      useFactory: (
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        updateAccountRoleUseCase: UpdateAccountRoleUseCase,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new PromoteDoctorRoleOnVerificationHandler(
+          getDoctorProfileByIdUseCase,
+          updateAccountRoleUseCase,
+          logger,
+        );
+        dispatcher.subscribe('doctor.verified', (event: DomainEvent) =>
+          handler.handle(event as unknown as DoctorVerifiedEventPayload),
+        );
+        return handler;
+      },
+      inject: [GetDoctorProfileByIdUseCase, UpdateAccountRoleUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
   exports: [

@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 
 import { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
+import { HospitalNotFoundError } from '../../domain/exceptions/hospital-not-found.error.js';
 import { mapDoctorError } from '../../presentation/mappers/doctor-exception.mapper.js';
 
 import { PrismaDoctorProfileRepository } from './prisma-doctor-profile.repository.js';
@@ -12,6 +13,13 @@ import { PrismaDoctorProfileRepository } from './prisma-doctor-profile.repositor
 function buildUniqueConstraintViolation(): Prisma.PrismaClientKnownRequestError {
   return new Prisma.PrismaClientKnownRequestError('Unique constraint failed on the fields: (`accountId`)', {
     code: 'P2002',
+    clientVersion: '5.22.0',
+  });
+}
+
+function buildForeignKeyConstraintViolation(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed on the field: `hospitalId`', {
+    code: 'P2003',
     clientVersion: '5.22.0',
   });
 }
@@ -64,6 +72,27 @@ describe('PrismaDoctorProfileRepository', () => {
     const mapped = mapDoctorError(caught) as { httpStatus: number; code: string };
     assert.equal(mapped.httpStatus, 409);
     assert.equal(mapped.code, 'CONFLICT');
+  });
+
+  it('translates a P2003 foreign-key violation on hospitalId into HospitalNotFoundError', async () => {
+    const noop = () => Promise.resolve();
+    const fakePrisma = {
+      doctorProfile: { upsert: noop },
+      portfolioPublication: { deleteMany: noop, createMany: noop },
+      portfolioAward: { deleteMany: noop, createMany: noop },
+      $transaction: async () => {
+        throw buildForeignKeyConstraintViolation();
+      },
+    } as never;
+    const repository = new PrismaDoctorProfileRepository(fakePrisma);
+    const profile = DoctorProfile.register({
+      accountId: '44444444-4444-4444-8444-444444444444',
+      licenseNumber: 'LIC-4',
+      specialty: 'Cardiology',
+      hospitalId: '99999999-9999-4999-8999-999999999999',
+    });
+
+    await assert.rejects(() => repository.save(profile), HospitalNotFoundError);
   });
 
   it('rethrows any other error unchanged', async () => {

@@ -28,7 +28,18 @@ import { mapDoctorError } from '../mappers/doctor-exception.mapper.js';
 // endpoints are future work once their dependency modules exist.
 //
 // GET/PATCH /doctors/me are the caller's own "my profile" surface (mirrors
-// PatientProfileController's /patients/me), guarded to the Doctor role only.
+// PatientProfileController's /patients/me). Guarded to Patient OR Doctor
+// (Doctor Onboarding, Phase 4 continuation): every account starts as
+// Patient and stays Patient through the entire Draft/Pending/Rejected
+// onboarding lifecycle -- only an *approved* verification promotes the
+// account to Doctor (see DoctorModule's PromoteDoctorRoleOnVerification
+// Handler, subscribed to TrustModule's 'doctor.verified' event). Widening
+// this guard is what lets a still-Patient applicant call POST /doctors,
+// GET/PATCH /doctors/me, and POST /doctors/:id/verifications at all --
+// every other Doctor-only route in the codebase (schedule, queue,
+// consultations, prescriptions, etc.) is intentionally untouched, so a
+// Pending/Rejected applicant still cannot reach any real Doctor Portal
+// feature; only the profile/verification self-service surface is shared.
 // Unlike Patient, a missing profile is NOT lazily created here: registering
 // a DoctorProfile requires a real licenseNumber + specialty (RegisterDoctor
 // ProfileUseCase), and there is no honest default to fabricate for either —
@@ -46,7 +57,7 @@ export class DoctorProfileController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(AccountRole.Doctor)
+  @Roles(AccountRole.Patient, AccountRole.Doctor)
   async register(
     @CurrentUser() user: AccessTokenClaims,
     @Body() body: RegisterDoctorProfileRequestDto,
@@ -61,6 +72,7 @@ export class DoctorProfileController {
           yearsOfExperience: body.yearsOfExperience,
           languages: body.languages,
           consultationFeeAmount: body.consultationFeeAmount,
+          hospitalId: body.hospitalId,
           publications: body.publications,
           awards: body.awards,
         }),
@@ -74,7 +86,7 @@ export class DoctorProfileController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(AccountRole.Doctor)
+  @Roles(AccountRole.Patient, AccountRole.Doctor)
   async getMyProfile(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<DoctorProfileResponseDto>> {
     try {
       const profile = await this.myProfileOrThrow(user.accountId);
@@ -87,7 +99,7 @@ export class DoctorProfileController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(AccountRole.Doctor)
+  @Roles(AccountRole.Patient, AccountRole.Doctor)
   async updateMyProfile(
     @CurrentUser() user: AccessTokenClaims,
     @Body() body: UpdateDoctorProfileRequestDto,
@@ -102,6 +114,7 @@ export class DoctorProfileController {
           yearsOfExperience: body.yearsOfExperience,
           languages: body.languages,
           consultationFeeAmount: body.consultationFeeAmount,
+          hospitalId: body.hospitalId,
           publications: body.publications,
           awards: body.awards,
         }),
@@ -156,6 +169,7 @@ export class DoctorProfileController {
           yearsOfExperience: body.yearsOfExperience,
           languages: body.languages,
           consultationFeeAmount: body.consultationFeeAmount,
+          hospitalId: body.hospitalId,
           publications: body.publications,
           awards: body.awards,
         }),
