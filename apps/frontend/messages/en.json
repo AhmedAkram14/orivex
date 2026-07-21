@@ -235,7 +235,8 @@
       "adminWorkspace": "Admin Workspace",
       "adminHospitals": "Hospitals",
       "adminVerificationQueue": "Verification Queue",
-      "adminFeatureFlags": "Feature Flags"
+      "adminFeatureFlags": "Feature Flags",
+      "becomeADoctor": "Become a Doctor"
     },
     "notifications": {
       "title": "Notifications",
@@ -385,6 +386,70 @@
       "sectionEmptyDescription": "This section will be available once the Consultation module is built.",
       "patientPanelTitle": "Patient information",
       "patientPanelDescription": "Patient details will appear here once the Patient module is built."
+    },
+    "onboarding": {
+      "title": "Become a Doctor",
+      "description": "Complete your profile, upload your documents, and submit for verification.",
+      "loadError": "Could not load your application.",
+      "steps": {
+        "profile": "Profile",
+        "documents": "Documents",
+        "review": "Review & Submit"
+      },
+      "profileStep": {
+        "licenseNumber": "License number",
+        "specialty": "Specialty",
+        "biography": "Biography",
+        "experience": "Years of experience",
+        "consultationFee": "Consultation fee",
+        "hospital": "Hospital",
+        "hospitalPlaceholder": "Select a hospital (optional)",
+        "languages": "Languages",
+        "createAndContinue": "Create profile and continue",
+        "saveAndContinue": "Save and continue",
+        "validation": {
+          "licenseNumberRequired": "License number is required.",
+          "specialtyRequired": "Specialty is required.",
+          "biographyTooLong": "Biography must be {max} characters or fewer.",
+          "experienceInvalid": "Enter a valid number of years (0-80).",
+          "feeInvalid": "Enter a valid fee amount.",
+          "languagesRequired": "Select at least one language."
+        }
+      },
+      "documentsStep": {
+        "description": "Upload your medical license and any supporting certificates (PDF, JPG, or PNG).",
+        "uploadButton": "Upload a document",
+        "uploadError": "Could not upload this file. Please try again.",
+        "remove": "Remove",
+        "back": "Back",
+        "continue": "Continue"
+      },
+      "reviewStep": {
+        "description": "Review your details before submitting for verification.",
+        "licenseNumber": "License number",
+        "specialty": "Specialty",
+        "documents": "Documents",
+        "documentsCount": "{count, plural, one {# document} other {# documents}}",
+        "back": "Back",
+        "submit": "Submit for verification"
+      },
+      "status": {
+        "badge": {
+          "submitted": "Submitted",
+          "under_review": "Under review",
+          "more_info_needed": "More info needed",
+          "re_verification_due": "Re-verification due",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "suspended": "Suspended"
+        },
+        "pendingDescription": "Your application is being reviewed. You will gain access to the Doctor Portal automatically once approved.",
+        "approvedDescription": "Your application has been approved. You now have full access to the Doctor Portal.",
+        "goToDoctorPortal": "Go to Doctor Portal",
+        "rejectedDescription": "You can edit your profile and documents, then resubmit for review.",
+        "editAndResubmit": "Edit and resubmit",
+        "suspendedDescription": "Your verification has been suspended. Please contact support for details."
+      }
     }
   },
   "patient": {
@@ -417,7 +482,8 @@
         "viewProfile": "View profile",
         "viewAppointments": "View appointments",
         "viewRecords": "View records",
-        "viewPrescriptions": "View prescriptions"
+        "viewPrescriptions": "View prescriptions",
+        "becomeADoctor": "Become a Doctor"
       }
     },
     "profile": {

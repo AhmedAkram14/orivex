@@ -3,7 +3,10 @@ import type {
   DoctorProfile,
   DoctorProfileUpdateRequest,
   QueueEntry,
+  RegisterDoctorProfileRequest,
+  SubmitVerificationRequest,
   UpcomingWorkItem,
+  VerificationCase,
 } from '@/features/doctor/api/types';
 
 /**
@@ -79,6 +82,11 @@ let summary: DoctorDashboardSummary = seedSummary();
 let upcomingWork: UpcomingWorkItem[] = seedUpcomingWork();
 let profile: DoctorProfile = seedProfile();
 let queue: QueueEntry[] = seedQueue();
+// Doctor Onboarding (Phase 4 continuation): keyed by doctorProfileId, most
+// recently submitted first -- an honest empty array by default (the seeded
+// `doctor@orivex.dev` account is a fully-provisioned demo doctor, not an
+// onboarding applicant).
+let verificationsByDoctorId: Record<string, VerificationCase[]> = {};
 
 export function getDashboardSummary(): DoctorDashboardSummary {
   return summary;
@@ -92,6 +100,28 @@ export function getProfile(): DoctorProfile {
   return profile;
 }
 
+export function registerProfile(request: RegisterDoctorProfileRequest): DoctorProfile {
+  profile = {
+    id: 'doctor-profile-1',
+    accountId: 'doctor-account-1',
+    fullName: 'Dr. Sarah Ahmed',
+    email: 'doctor@orivex.dev',
+    phoneNumber: '+20 100 000 0000',
+    licenseNumber: request.licenseNumber,
+    specialty: request.specialty,
+    biography: request.biography,
+    yearsOfExperience: request.yearsOfExperience,
+    languages: request.languages ?? [],
+    consultationFeeAmount: request.consultationFeeAmount,
+    hospitalId: request.hospitalId,
+    publications: [],
+    awards: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  return profile;
+}
+
 export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfile {
   profile = {
     ...profile,
@@ -100,6 +130,7 @@ export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfil
     yearsOfExperience: request.yearsOfExperience ?? profile.yearsOfExperience,
     languages: request.languages ?? profile.languages,
     consultationFeeAmount: request.consultationFeeAmount ?? profile.consultationFeeAmount,
+    hospitalId: request.hospitalId ?? profile.hospitalId,
     publications:
       request.publications?.map((publication, index) => ({
         id: `pub-${Date.now()}-${index}`,
@@ -121,10 +152,28 @@ export function getQueue(): QueueEntry[] {
   return queue;
 }
 
+export function listVerifications(doctorId: string): VerificationCase[] {
+  return verificationsByDoctorId[doctorId] ?? [];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match doctorApi.submitVerification's real shape
+export function submitVerification(doctorId: string, request: SubmitVerificationRequest): VerificationCase {
+  const created: VerificationCase = {
+    id: `verification-${Date.now()}`,
+    doctorId,
+    status: 'submitted',
+    submittedAt: new Date().toISOString(),
+    decidedAt: null,
+  };
+  verificationsByDoctorId[doctorId] = [created, ...(verificationsByDoctorId[doctorId] ?? [])];
+  return created;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetDoctorStore(): void {
   summary = seedSummary();
   upcomingWork = seedUpcomingWork();
   profile = seedProfile();
   queue = seedQueue();
+  verificationsByDoctorId = {};
 }

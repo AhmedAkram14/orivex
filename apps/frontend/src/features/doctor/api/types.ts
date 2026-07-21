@@ -69,10 +69,27 @@ export interface DoctorProfile {
   yearsOfExperience?: number;
   languages: string[];
   consultationFeeAmount?: number;
+  /** Doctor Onboarding (Phase 4 continuation) -- optional hospital affiliation. */
+  hospitalId?: string;
   publications: DoctorPublication[];
   awards: DoctorAward[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Doctor Onboarding (Phase 4 continuation): matches DoctorProfileController's
+ * real `POST /doctors` request body exactly (`RegisterDoctorProfileRequestDto`).
+ * Unlike the update request, licenseNumber is required and set exactly once.
+ */
+export interface RegisterDoctorProfileRequest {
+  licenseNumber: string;
+  specialty: string;
+  biography?: string;
+  yearsOfExperience?: number;
+  languages?: string[];
+  consultationFeeAmount?: number;
+  hospitalId?: string;
 }
 
 /**
@@ -90,10 +107,47 @@ export interface DoctorProfileUpdateRequest {
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number;
+  /** Doctor Onboarding (Phase 4 continuation) -- optional hospital affiliation. */
+  hospitalId?: string;
   /** No `id`/`publishedAt` — the backend's update DTO only accepts `title`/`reference` per entry. */
   publications?: { title: string; reference?: string }[];
   /** No `id`/`awardedAt` — the backend's update DTO only accepts `title`/`issuingBody` per entry. */
   awards?: { title: string; issuingBody?: string }[];
+}
+
+/** Doctor Onboarding (Phase 4 continuation): matches AdministrationModule's real HospitalResponseDto exactly (as returned by the public /hospitals directory). */
+export interface HospitalOption {
+  id: string;
+  name: string;
+  address?: string;
+}
+
+/** Matches TrustModule's real 7-value VerificationStatus enum exactly. */
+export type VerificationCaseStatus =
+  | 'submitted'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
+  | 'more_info_needed'
+  | 're_verification_due'
+  | 'suspended';
+
+/** Matches TrustModule's real VerificationCaseResponseDto exactly. */
+export interface VerificationCase {
+  id: string;
+  doctorId: string;
+  status: VerificationCaseStatus;
+  /** Set when status is 'rejected' or 'more_info_needed'. */
+  reason?: string;
+  submittedAt: string;
+  decidedAt: string | null;
+}
+
+/** Matches DoctorVerificationController's real SubmitDoctorVerificationRequestDto exactly. */
+export interface SubmitVerificationRequest {
+  licenseNumber: string;
+  specialtyCode: string;
+  documentAssetIds: string[];
 }
 
 // `AvailabilityBlockData`/`WeeklyAvailabilityResponse` (Phase 7's

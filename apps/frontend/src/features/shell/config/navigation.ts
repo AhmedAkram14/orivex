@@ -147,6 +147,17 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         href: '/patient/health',
         roles: ['patient'],
       },
+      {
+        // Doctor Onboarding (Phase 4 continuation) -- reachable by a
+        // Patient only: every account starts and stays Patient through
+        // the entire Draft/Pending/Rejected onboarding lifecycle, so an
+        // already-Doctor account has no reason to see this entry.
+        id: 'patient-workspace-become-a-doctor',
+        labelKey: 'becomeADoctor',
+        icon: Stethoscope,
+        href: '/doctor/onboarding',
+        roles: ['patient'],
+      },
     ],
   },
   {

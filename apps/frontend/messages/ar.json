@@ -235,7 +235,8 @@
       "adminWorkspace": "لوحة الإدارة",
       "adminHospitals": "المستشفيات",
       "adminVerificationQueue": "طابور التحقق",
-      "adminFeatureFlags": "مزايا النظام"
+      "adminFeatureFlags": "مزايا النظام",
+      "becomeADoctor": "كن طبيبًا"
     },
     "notifications": {
       "title": "الإشعارات",
@@ -385,6 +386,70 @@
       "sectionEmptyDescription": "سيتوفر هذا القسم بمجرد إنشاء وحدة الاستشارة.",
       "patientPanelTitle": "معلومات المريض",
       "patientPanelDescription": "ستظهر تفاصيل المريض هنا بمجرد إنشاء وحدة المرضى."
+    },
+    "onboarding": {
+      "title": "كن طبيبًا",
+      "description": "أكمل ملفك الشخصي، وارفع مستنداتك، وقدّم طلبك للتوثيق.",
+      "loadError": "تعذر تحميل طلبك.",
+      "steps": {
+        "profile": "الملف الشخصي",
+        "documents": "المستندات",
+        "review": "المراجعة والتقديم"
+      },
+      "profileStep": {
+        "licenseNumber": "رقم الترخيص",
+        "specialty": "التخصص",
+        "biography": "نبذة تعريفية",
+        "experience": "سنوات الخبرة",
+        "consultationFee": "رسوم الاستشارة",
+        "hospital": "المستشفى",
+        "hospitalPlaceholder": "اختر مستشفى (اختياري)",
+        "languages": "اللغات",
+        "createAndContinue": "إنشاء الملف الشخصي والمتابعة",
+        "saveAndContinue": "حفظ ومتابعة",
+        "validation": {
+          "licenseNumberRequired": "رقم الترخيص مطلوب.",
+          "specialtyRequired": "التخصص مطلوب.",
+          "biographyTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
+          "experienceInvalid": "أدخل عددًا صحيحًا من السنوات (0-80).",
+          "feeInvalid": "أدخل قيمة رسوم صحيحة.",
+          "languagesRequired": "اختر لغة واحدة على الأقل."
+        }
+      },
+      "documentsStep": {
+        "description": "ارفع ترخيصك الطبي وأي شهادات داعمة (PDF أو JPG أو PNG).",
+        "uploadButton": "رفع مستند",
+        "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى.",
+        "remove": "إزالة",
+        "back": "رجوع",
+        "continue": "متابعة"
+      },
+      "reviewStep": {
+        "description": "راجع بياناتك قبل التقديم للتوثيق.",
+        "licenseNumber": "رقم الترخيص",
+        "specialty": "التخصص",
+        "documents": "المستندات",
+        "documentsCount": "{count, plural, one {# مستند} other {# مستندات}}",
+        "back": "رجوع",
+        "submit": "تقديم للتوثيق"
+      },
+      "status": {
+        "badge": {
+          "submitted": "تم التقديم",
+          "under_review": "قيد المراجعة",
+          "more_info_needed": "مطلوب معلومات إضافية",
+          "re_verification_due": "يتطلب إعادة توثيق",
+          "approved": "موافق عليه",
+          "rejected": "مرفوض",
+          "suspended": "موقوف"
+        },
+        "pendingDescription": "طلبك قيد المراجعة. ستحصل على الوصول إلى لوحة الطبيب تلقائيًا بمجرد الموافقة.",
+        "approvedDescription": "تمت الموافقة على طلبك. أصبح لديك الآن وصول كامل إلى لوحة الطبيب.",
+        "goToDoctorPortal": "الذهاب إلى لوحة الطبيب",
+        "rejectedDescription": "يمكنك تعديل ملفك الشخصي ومستنداتك، ثم إعادة التقديم للمراجعة.",
+        "editAndResubmit": "تعديل وإعادة التقديم",
+        "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل."
+      }
     }
   },
   "patient": {
@@ -417,7 +482,8 @@
         "viewProfile": "عرض الملف الشخصي",
         "viewAppointments": "عرض المواعيد",
         "viewRecords": "عرض السجلات",
-        "viewPrescriptions": "عرض الوصفات"
+        "viewPrescriptions": "عرض الوصفات",
+        "becomeADoctor": "كن طبيبًا"
       }
     },
     "profile": {

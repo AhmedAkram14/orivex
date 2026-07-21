@@ -3,6 +3,7 @@ import { env } from '@/shared/lib/env';
 import { adminHandlers } from '@/mocks/handlers/admin';
 import { authHandlers } from '@/mocks/handlers/auth';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
+import { mediaAssetHandlers } from '@/mocks/handlers/media-assets';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
 import { patientHandlers } from '@/mocks/handlers/patient';
 import { paymentHandlers } from '@/mocks/handlers/payment';
@@ -26,6 +27,7 @@ export const handlers = [
   ...authHandlers,
   ...notificationHandlers,
   ...doctorHandlers,
+  ...mediaAssetHandlers,
   ...patientHandlers,
   ...paymentHandlers,
   ...schedulingHandlers,

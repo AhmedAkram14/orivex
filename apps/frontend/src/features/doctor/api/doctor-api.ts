@@ -4,8 +4,12 @@ import type {
   DoctorDashboardSummary,
   DoctorProfile,
   DoctorProfileUpdateRequest,
+  HospitalOption,
   QueueResponse,
+  RegisterDoctorProfileRequest,
+  SubmitVerificationRequest,
   UpcomingWorkResponse,
+  VerificationCase,
 } from '@/features/doctor/api/types';
 
 /**
@@ -29,4 +33,19 @@ export const doctorApi = {
     apiFetch<DoctorProfile>({ method: 'PATCH', path: DOCTOR_PATHS.profile, body: request }),
 
   getQueue: () => apiFetch<QueueResponse>({ path: DOCTOR_PATHS.queue }),
+
+  // Doctor Onboarding (Phase 4 continuation) -- real backend endpoints,
+  // reused as-is (DoctorProfileController's POST /doctors,
+  // DoctorVerificationController's /doctors/:id/verifications,
+  // AdministrationModule's public /hospitals directory).
+  registerProfile: (request: RegisterDoctorProfileRequest) =>
+    apiFetch<DoctorProfile>({ method: 'POST', path: DOCTOR_PATHS.register, body: request }),
+
+  listHospitals: () => apiFetch<HospitalOption[]>({ path: DOCTOR_PATHS.hospitals }),
+
+  submitVerification: (doctorId: string, request: SubmitVerificationRequest) =>
+    apiFetch<VerificationCase>({ method: 'POST', path: DOCTOR_PATHS.verifications(doctorId), body: request }),
+
+  listVerifications: (doctorId: string) =>
+    apiFetch<VerificationCase[]>({ path: DOCTOR_PATHS.verifications(doctorId) }),
 };

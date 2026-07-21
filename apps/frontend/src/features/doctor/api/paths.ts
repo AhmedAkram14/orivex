@@ -15,4 +15,13 @@ export const DOCTOR_PATHS = {
   // The real backend route (ConsultationModule's AppointmentController) --
   // not /doctor/queue.
   queue: '/appointments/doctor/queue',
+  // Doctor Onboarding (Phase 4 continuation) -- the same DoctorProfileController
+  // real backend routes, reused as-is: POST /doctors (register), and the
+  // caller's own verification history under /doctors/:id/verifications.
+  register: '/doctors',
+  verifications: (doctorId: string) => `/doctors/${doctorId}/verifications`,
+  // AdministrationModule's real public hospital directory (not the
+  // SuperAdmin-only /admin/hospitals) -- any authenticated account can
+  // browse it to pick an affiliation.
+  hospitals: '/hospitals',
 } as const;
