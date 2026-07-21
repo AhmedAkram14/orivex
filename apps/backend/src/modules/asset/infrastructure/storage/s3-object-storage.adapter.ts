@@ -26,6 +26,12 @@ export class S3ObjectStorageAdapter implements ObjectStoragePort {
         accessKeyId: configService.get('S3_ACCESS_KEY_ID', { infer: true }),
         secretAccessKey: configService.get('S3_SECRET_ACCESS_KEY', { infer: true }),
       },
+      // Newer SDK versions default to signing a checksum into presigned
+      // URLs (WHEN_SUPPORTED). The frontend's document-upload flow does a
+      // raw browser `fetch(signedUrl, { method: 'PUT', body: file })` with
+      // no matching checksum header, so the signed checksum param and the
+      // actual request diverge -- S3 rejects with 403 SignatureDoesNotMatch.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     });
   }
 
