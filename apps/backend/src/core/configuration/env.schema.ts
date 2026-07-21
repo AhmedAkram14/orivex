@@ -5,6 +5,16 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   CORS_ORIGINS: z.string().min(1),
+  // The frontend's own canonical origin (e.g. https://orivex-eg.vercel.app,
+  // http://localhost:3000 in dev) -- used only to build real clickable
+  // links in outbound email (verify-email/reset-password), since both
+  // pages are link-only (they read `token` from the URL query string,
+  // no manual code-entry field exists anywhere). Optional: if unset,
+  // EmailSenderPort adapters fall back to sending the bare token as
+  // plain text (the previous behavior) instead of failing to boot --
+  // same graceful-degradation idiom as every other optional provider in
+  // this schema.
+  FRONTEND_URL: z.string().url().optional(),
   // NOT z.coerce.boolean(): Boolean("false") is true in JS, so coerce.boolean()
   // would treat the literal string "false" from a .env file as enabled.
   OTEL_ENABLED: z

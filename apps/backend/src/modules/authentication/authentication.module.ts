@@ -83,9 +83,10 @@ import { LoginHistoryController } from './presentation/controllers/login-history
       useFactory: (configService: ConfigService<EnvConfig, true>, logger: PinoLoggerService): EmailSenderPort => {
         const apiKey = configService.get('SENDGRID_API_KEY', { infer: true });
         const fromEmail = configService.get('SENDGRID_FROM_EMAIL', { infer: true });
+        const frontendUrl = configService.get('FRONTEND_URL', { infer: true });
         if (apiKey && fromEmail) {
           sgMail.setApiKey(apiKey);
-          return new SendGridEmailSender(sgMail, fromEmail);
+          return new SendGridEmailSender(sgMail, fromEmail, frontendUrl);
         }
         return new LoggingEmailSender(logger, configService);
       },

@@ -51,6 +51,12 @@ services:
         value: "false"
       - key: CORS_ORIGINS
         sync: false
+      # The frontend's own canonical origin (e.g. https://orivex-eg.vercel.app)
+      # -- used to build real clickable links in outbound email
+      # (verify-email/reset-password are both link-only pages). Optional:
+      # unset falls back to sending the bare token as plain text.
+      - key: FRONTEND_URL
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL

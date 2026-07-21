@@ -28,7 +28,24 @@ export class LoggingEmailSender implements EmailSenderPort {
 
   async send(to: string, template: string, data: Record<string, unknown>): Promise<void> {
     const isProduction = this.configService.get('NODE_ENV', { infer: true }) === 'production';
-    const loggedData = isProduction ? '[redacted]' : data;
+    const frontendUrl = this.configService.get('FRONTEND_URL', { infer: true });
+
+    // Doubles as a manual-testing convenience: for the two link-only
+    // pages (`/verify-email`, `/reset-password` -- neither has a manual
+    // code-entry field), log the actual clickable link when
+    // FRONTEND_URL is known, not just the bare token.
+    let loggedData: unknown = data;
+    if (!isProduction && frontendUrl && typeof data.token === 'string') {
+      if (template === 'email-verification') {
+        loggedData = { ...data, link: `${frontendUrl}/verify-email?token=${data.token}` };
+      } else if (template === 'password-reset') {
+        loggedData = { ...data, link: `${frontendUrl}/reset-password?token=${data.token}` };
+      }
+    }
+    if (isProduction) {
+      loggedData = '[redacted]';
+    }
+
     this.logger.log(`Email (stub, not actually delivered): ${template} -> ${to}`, { template, to, data: loggedData });
   }
 }

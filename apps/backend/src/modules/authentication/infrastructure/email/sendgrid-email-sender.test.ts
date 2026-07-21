@@ -27,6 +27,26 @@ describe('SendGridEmailSender', () => {
     assert.match(String(message.text), /verify-token-123/);
   });
 
+  it('sends a clickable verify-email link instead of a bare token when frontendUrl is known', async () => {
+    const client = new FakeSendGridClient();
+    const sender = new SendGridEmailSender(client, 'noreply@orivex.dev', 'https://orivex-eg.vercel.app');
+
+    await sender.send('patient@example.com', 'email-verification', { token: 'verify-token-123' });
+
+    const message = client.lastMessage as MailDataRequired;
+    assert.match(String(message.text), /https:\/\/orivex-eg\.vercel\.app\/verify-email\?token=verify-token-123/);
+  });
+
+  it('sends a clickable reset-password link instead of a bare token when frontendUrl is known', async () => {
+    const client = new FakeSendGridClient();
+    const sender = new SendGridEmailSender(client, 'noreply@orivex.dev', 'https://orivex-eg.vercel.app');
+
+    await sender.send('patient@example.com', 'password-reset', { token: 'reset-token-456' });
+
+    const message = client.lastMessage as MailDataRequired;
+    assert.match(String(message.text), /https:\/\/orivex-eg\.vercel\.app\/reset-password\?token=reset-token-456/);
+  });
+
   it('sends a password-reset message with the token embedded in the body', async () => {
     const client = new FakeSendGridClient();
     const sender = new SendGridEmailSender(client, 'noreply@orivex.dev');
