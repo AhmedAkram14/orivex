@@ -57,6 +57,12 @@ services:
       # unset falls back to sending the bare token as plain text.
       - key: FRONTEND_URL
         sync: false
+      # A reversible bypass of LoginUseCase's email-verification gate.
+      # Defaults to "false" (enforced) when unset -- only ever set this
+      # to "true" temporarily while real email delivery is being set up,
+      # never leave it "true" anywhere real patient data exists.
+      - key: SKIP_EMAIL_VERIFICATION
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL

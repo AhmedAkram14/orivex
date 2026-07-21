@@ -133,6 +133,7 @@ import { LoginHistoryController } from './presentation/controllers/login-history
         jwtSigner: JwtSignerPort,
         recordSecurityEventUseCase: RecordSecurityEventUseCase,
         eventDispatcher: DomainEventDispatcher,
+        configService: ConfigService<EnvConfig, true>,
       ) =>
         new LoginUseCase(
           getAccountByEmailUseCase,
@@ -143,6 +144,7 @@ import { LoginHistoryController } from './presentation/controllers/login-history
           jwtSigner,
           recordSecurityEventUseCase,
           eventDispatcher,
+          configService.get('SKIP_EMAIL_VERIFICATION', { infer: true }),
         ),
       inject: [
         GetAccountByEmailUseCase,
@@ -153,6 +155,7 @@ import { LoginHistoryController } from './presentation/controllers/login-history
         JWT_SIGNER,
         RecordSecurityEventUseCase,
         DOMAIN_EVENT_DISPATCHER,
+        ConfigService,
       ],
     },
     {

@@ -37,6 +37,11 @@ export class LoginUseCase {
     private readonly jwtSigner: JwtSignerPort,
     private readonly recordSecurityEventUseCase: RecordSecurityEventUseCase,
     private readonly eventDispatcher: DomainEventDispatcher,
+    // A reversible, env-var-gated bypass (SKIP_EMAIL_VERIFICATION,
+    // defaults false/enforced) -- see env.schema.ts's own comment for
+    // why this exists and why it must never stay "true" anywhere real
+    // patient data exists.
+    private readonly skipEmailVerification: boolean = false,
   ) {}
 
   async execute(command: LoginCommand): Promise<LoginResult> {
@@ -78,7 +83,7 @@ export class LoginUseCase {
       throw new InvalidCredentialsError();
     }
 
-    if (!credential.isEmailVerified()) {
+    if (!this.skipEmailVerification && !credential.isEmailVerified()) {
       throw new EmailNotVerifiedError();
     }
 

@@ -239,4 +239,25 @@ describe('LoginUseCase', () => {
       EmailNotVerifiedError,
     );
   });
+
+  it('allows login for an unverified email when skipEmailVerification is true (SKIP_EMAIL_VERIFICATION bypass)', async () => {
+    credentialRepository = new FakeCredentialRepository(
+      Credential.register({ accountId: account.getId().toString(), passwordHash: PasswordHash.create(STORED_HASH) }),
+    );
+    useCase = new LoginUseCase(
+      new GetAccountByEmailUseCase(new FakeAccountRepository(account)),
+      credentialRepository,
+      sessionRepository,
+      new FakePasswordHasher(),
+      new FakeTokenGenerator(),
+      new FakeJwtSigner(),
+      new RecordSecurityEventUseCase(securityEventRepository),
+      dispatcher,
+      true,
+    );
+
+    const result = await useCase.execute(new LoginCommand({ email: 'ada@example.com', password: CORRECT_PASSWORD }));
+
+    assert.ok(result.accessToken);
+  });
 });

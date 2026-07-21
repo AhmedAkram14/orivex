@@ -15,6 +15,18 @@ export const envSchema = z.object({
   // same graceful-degradation idiom as every other optional provider in
   // this schema.
   FRONTEND_URL: z.string().url().optional(),
+  // A reversible bypass of LoginUseCase's email-verification gate --
+  // added specifically to unblock manual testing while real email
+  // delivery (SendGrid/sender verification) is still being set up.
+  // Defaults to enforced (false). This is a genuine security control on
+  // a healthcare platform: never leave this set to "true" anywhere real
+  // patient data exists -- flip it back to "false"/unset the moment
+  // email delivery is confirmed working, don't leave it as a permanent
+  // convenience.
+  SKIP_EMAIL_VERIFICATION: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   // NOT z.coerce.boolean(): Boolean("false") is true in JS, so coerce.boolean()
   // would treat the literal string "false" from a .env file as enabled.
   OTEL_ENABLED: z
