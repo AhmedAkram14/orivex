@@ -35,12 +35,12 @@ Methodology
   caching/queues actually wired, formal security audit/OWASP report,
   load/performance testing) that have concrete repository evidence.
 
-Aggregate Scores (updated 2026-07-20 post Stage 4: Admin Dashboard RBAC Foundation; revised same day to add Doctor Onboarding as an explicit Phase 4 deliverable)
+Aggregate Scores (updated 2026-07-21 post Doctor Onboarding: Phase 4 continuation)
 ------------------------------------------------------------------------
-- Overall Roadmap Completion: ~35% (Phase 2 moved 80%→90%, Phase 3 moved 5%→45%, Phase 19 moved 0%→15% from Stage 4 itself; Phase 4 then moved 90%→70% the same day once Doctor Onboarding was scoped in as a required deliverable of that phase rather than left untracked; mean of the 23 per-phase scores, unweighted: 810/23 ≈ 35.2%; was ~33% before Stage 4, ~36% immediately after Stage 4 before this Phase 4 rescoping)
-- Weighted Engineering Completion: ~87% (AdministrationModule grew from an internal, controller-less orchestration layer into a real module with its own aggregates/repositories/controller/tests, moving its own maturity up; IdentityModule also gained real listing/role-management use cases; the other 11 modules unchanged)
-- End-to-End Integration Score: ~83% (11 new real HTTP routes added -- `/admin/kpis`, `/admin/accounts` (GET/PATCH role), `/admin/hospitals` (GET/POST), `/admin/hospitals/:id/departments` (GET/POST), `/admin/verification-queue` (GET/PATCH), `/admin/accounts/:id/security-events`, `/admin/feature-flags` -- all reachable from real frontend routes under `/admin/*`; the verification-queue routes in particular close a pre-existing "backend-only dead end" this same audit flagged before Stage 4)
-- Production Readiness Score: ~65% (unchanged -- this stage added no new operational-hardening dimension; RBAC/admin-surface work is a Phase 2/3/19 feature-completeness change, not a production-hardening one)
+- Overall Roadmap Completion: ~36% (Phase 4 moved 70%→100% with Doctor Onboarding now fully real; mean of the 23 per-phase scores, unweighted: 840/23 ≈ 36.5%; was ~35% immediately before this addition)
+- Weighted Engineering Completion: ~87% (DoctorModule gained a real cross-module event subscriber (`PromoteDoctorRoleOnVerificationHandler`) and its dormant `hospitalId` column is now genuinely wired end-to-end; TrustModule gained a new query use case and a `reason` field on an existing DTO; AdministrationModule gained one new public-directory route reusing an existing use case -- all small, additive maturity gains on already-real modules, not a new module)
+- End-to-End Integration Score: ~84% (3 new real HTTP routes added -- `GET /doctors/:id/verifications`, `GET /hospitals` -- plus two existing routes (`POST /doctors`, `POST /doctors/:id/verifications`) widened to accept Patient callers, not just Doctor; all reachable from the new `/doctor/onboarding` frontend route)
+- Production Readiness Score: ~65% (unchanged -- this addition is a feature-completeness change, not a production-hardening one)
 
 Manual verification note (frontend `next build`): backend build/lint/635 tests and frontend lint/typecheck/268 tests are all green. The frontend *production* build initially could not complete in this sandbox (three attempts at default/6144MB/3072MB heap all hit `JavaScript heap out of memory`, with only ~2GB of 8GB system RAM free throughout, mostly held by Docker Desktop's WSL2 VM and IDE/browser processes). Stopping Docker Desktop entirely (not just its containers) freed enough RAM (~1.7GB → ~2.7GB free) for `pnpm --filter @orivex/frontend build` to **succeed cleanly** on 2026-07-20: compiled in 2.0min, all 65 static pages generated (both `en`/`ar` locales) including all 5 new `/admin/*` routes, zero errors, zero Stage-4-related warnings (the only console output was 3 pre-existing Sentry SDK deprecation notices, present in `next.config.ts` before this stage and unrelated to it). Docker Desktop was restarted immediately after. The Storybook build was not attempted (not requested) and remains untested in this sandbox.
 
@@ -124,7 +124,7 @@ Per-Phase Completion (evidence-based)
 Phase 1 — Foundation: 100% (unchanged; pnpm-workspace.yaml, NestJS, Next.js, Prisma, backend Dockerfile+docker-entrypoint.sh, render.yaml, health.controller.ts, .github/workflows/*, env.schema.ts all present)
 Phase 2 — Authentication & Identity: 90% (login/register/forgot/reset/refresh/JWT/email-verification/password-policy/session-mgmt/logout-all/rate-limiting/account-lock/audit-logs all real and tested; RBAC now models all 6 named roles (Stage 4, 2026-07-20: `AccountRole` grew from 3 values to `Patient`/`Doctor`/`Nurse`/`Receptionist`/`HospitalAdmin`/`SuperAdmin`, with a real `UpdateAccountRoleUseCase`/`PATCH /admin/accounts/:id/role` to change a role, not just name it); Permissions remains the frontend's own provisional `permissions.ts` map, not yet backend-enforced per-permission (only per-role))
 Phase 3 — Admin Dashboard: 45% (Stage 4, completed 2026-07-20: Overview/KPIs (active doctor/patient counts, hospital count — real, reachable at `/admin`), Users (real paginated list + role-change, reachable at `/admin/users`), Hospitals (real CRUD, reachable at `/admin/hospitals`) all real and tested; Departments exist as a nested resource under Hospitals, not a standalone screen; Roles/Permissions management UI, Clinics, Revenue/Today's-Appointments KPIs, and Analytics/Charts/Growth/Activity-Feed remain absent — see Stage 4 Completion Note below for the exact scope and its own disclosed limitations)
-Phase 4 — Doctor Portal: 70% (Profile/Availability/Working Hours/Vacation Days, Patient search/history/documents, Consultations incl. SOAP-equivalent clinical notes and diagnosis, Prescriptions create/edit/history all real and reachable via `/doctor/*` routes -- but Doctor Onboarding is now an explicit, required deliverable of this phase (added 2026-07-20, not a separate stage) and is currently 0% on the frontend: `POST /doctors` (profile creation), profile editing's own onboarding entry point, license/document upload, `POST /doctors/:id/verifications` (verification submission), verification-status tracking, and pending/approved/rejected UX all have no frontend route today. Both backend endpoints already exist and are real (`DoctorProfileController`, `DoctorVerificationController`) -- this is a frontend gap only, and the phase is not considered complete until it closes. Recomputed with Doctor Onboarding counted as its own required 7-item group alongside the 4 pre-existing groups: ~17 of ~24 total leaf items real ≈ 70%, down from the pre-Stage-4 90% that didn't count onboarding as in-scope for this phase at all)
+Phase 4 — Doctor Portal: 100% (2026-07-21: Doctor Onboarding -- the deliverable this phase was held at 70% for -- is now fully real and reachable: "Become a Doctor" entry points on the Patient dashboard and nav; a real multi-step wizard at `/doctor/onboarding` (patient-only) driving `POST /doctors`, document upload via AssetModule's real upload-intent/PUT/confirm flow, and `POST /doctors/:id/verifications`, all reused as-is; a real Pending/Approved/Rejected/Suspended status view, including the rejection reason (`VerificationCaseResponseDto` gained a `reason` field for this) and an edit-and-resubmit path that reuses the same submit endpoint; automatic Patient->Doctor role promotion on admin approval via a new `PromoteDoctorRoleOnVerificationHandler` subscribing to TrustModule's existing `doctor.verified` event -- no manual database edit, ever. Profile/Availability/Working Hours/Vacation Days, Patient search/history/documents, Consultations, Prescriptions all remain real and reachable via `/doctor/*` routes as before. Department selection during onboarding is the one disclosed, deliberate omission -- no `DoctorProfile.departmentId` column exists and none was added, since nothing in this addition required it; Hospital selection is real, backed by the existing Stage 4 column, now genuinely wired end-to-end for the first time)
 Phase 5 — Patient Portal: 85% (Profile/Appointments/Medical History/Prescriptions/Notifications/Documents real; Payments now real this stage; Lab Results/Radiology/Insurance remain honest placeholders only)
 Phase 6 — Appointment System: 70% (Booking/Availability Calendar/Time Slots/Rescheduling/Cancellation/Automatic Confirmation real; Appointment Reminders now real this stage (Stage 3 -- a 24h-ahead BullMQ-scheduled email + in-app notification, see Stage 3 Completion Note below); Recurring Appointments, Waiting List persistence beyond a basic join-waitlist endpoint, and Calendar Sync (Google/Outlook) remain not evidenced)
 Phase 7 — Telemedicine: 45% (Stage 2, completed 2026-07-19: real, tested, reachable room-token minting + signature-verified webhook + LiveKit's own pre-built call UI wired into both the Doctor Queue and patient Appointments page -- covers Video Consultation/Virtual Waiting Room/Join/Leave/Reconnect/Screen Sharing/Chat/Mic+Camera Control/Network Quality/Connection Indicator via LiveKit's own components; Consultation Timer/Meeting History/Doctor+Patient Notes/AI Summary/Recording not built; no live LiveKit server verification performed, see Stage 2 Completion Note above)
@@ -464,6 +464,108 @@ build are all green; every new route was boot-tested and confirmed
 reachable in the built output; every scoping decision (KPI count,
 audit-log scope, HospitalAdmin's current lack of capability) is
 disclosed above rather than silently narrowed.
+
+✅ READY FOR MANUAL VERIFICATION
+===============================================================
+
+===============================================================
+DOCTOR ONBOARDING COMPLETION NOTE — 2026-07-21 (Phase 4 continuation, not a new stage)
+===============================================================
+
+What was built, evidence-based:
+- Every account continues to register as Patient (unchanged). A Patient
+  now sees a real "Become a Doctor" entry point in two places: a
+  Patient-workspace nav item and a quick-action tile on the Patient
+  dashboard, both routing to `/doctor/onboarding`.
+- `/doctor/onboarding` (gated `roles: ['patient']`) is a real multi-step
+  wizard whose step -- and whether the wizard shows at all -- is derived
+  entirely from real backend data, never a client-only fake "Draft"
+  record: no `DoctorProfile` yet -> Profile step; profile exists but
+  nothing submitted -> resumes at Documents (never forces the applicant
+  back through a step they already finished); a decided
+  `VerificationCase` exists -> the wizard is replaced by a status view.
+- `DoctorProfileController`'s `POST /doctors`, `GET/PATCH /doctors/me`,
+  and `DoctorVerificationController`'s `POST /doctors/:id/verifications`
+  all widened from `@Roles(Doctor)` to `@Roles(Patient, Doctor)` -- the
+  one real backend change this required, since every applicant is a
+  Patient until approved. Every other Doctor-gated route in the codebase
+  (schedule, queue, consultations, prescriptions, AI suggestions,
+  payments -- 9 controllers in total) is untouched, so a Pending/Rejected
+  applicant still cannot reach any real Doctor Portal feature.
+- Document upload reuses AssetModule's existing upload-intent -> PUT ->
+  confirm contract exactly (`purpose: doctor_certificate`, an enum value
+  that already existed) via a new `shared/media` client -- the first
+  frontend consumer of that backend contract at all.
+- Submission reuses `POST /doctors/:id/verifications` as-is; resubmission
+  after a rejection calls the exact same endpoint again (a new
+  `VerificationCase` row, matching how the backend already modeled
+  re-submission before this work started).
+- The applicant's own status view is real, not a placeholder: Pending
+  (Submitted/UnderReview/MoreInfoNeeded/ReVerificationDue), Approved
+  (with a link into the Doctor Portal), Rejected (with the actual
+  rejection reason and an "Edit and resubmit" action), Suspended.
+  `VerificationCaseResponseDto` gained a `reason` field for this --
+  the entity already stored it, the DTO simply hadn't exposed it yet.
+- Approval is fully automatic: a new `PromoteDoctorRoleOnVerification
+  Handler` in `DoctorModule` subscribes to `TrustModule`'s already-real
+  `doctor.verified` event (by name only -- mirrors
+  `ScheduleAppointmentReminderHandler`'s established cross-module
+  event-subscription convention exactly) and calls `IdentityModule`'s
+  `UpdateAccountRoleUseCase` (built in Stage 4) to promote Patient ->
+  Doctor. No manual database edit, at any point in the flow.
+- `GET /doctors/:id/verifications` (new, ownership-checked like the
+  existing POST) gives the applicant their own status/history;
+  `GET /hospitals` (new, any authenticated account) reuses
+  `AdministrationModule`'s existing `ListHospitalsUseCase` so the
+  profile step's hospital picker has real data, not a SuperAdmin-only
+  endpoint repurposed.
+- `DoctorProfile.hospitalId` -- a column Stage 4 added but never
+  connected to anything -- is now genuinely wired through the register/
+  update use cases, DTOs, mapper, and repository, including a real
+  P2003 -> `HospitalNotFoundError` (404) translation.
+- Tests: 9 new/updated backend unit tests (hospitalId passthrough x2,
+  P2003 mapping, `ListVerificationCasesForDoctorUseCase`,
+  `PromoteDoctorRoleOnVerificationHandler` x3), plus integration
+  coverage for the widened guards (a still-Patient applicant can
+  register/view/edit/submit/list), the new `GET .../verifications`
+  route's ownership check, and `GET /hospitals`. 9 new frontend tests:
+  5 for `OnboardingFlow` covering Draft/Pending/Rejected-with-reason-
+  and-resubmit/Approved, plus 3 hook tests and a media-upload hook test
+  (intent -> PUT -> confirm, and the PUT-failure path). Full backend
+  suite 654/654 green; full frontend suite 277/277 green; backend and
+  frontend lint/typecheck/build all green; frontend production build
+  succeeded (65 static pages, `/doctor/onboarding` present in both
+  locales, no new warnings).
+
+Explicitly NOT done (honest, not glossed over):
+- Department selection during onboarding does not exist -- no
+  `DoctorProfile.departmentId` column exists, and none was added; only
+  Hospital selection is real. Disclosed as a deliberate, narrow scope
+  choice, not an oversight.
+- `specialtyCode` (a distinct field `SubmitDoctorVerificationRequestDto`
+  already required before this work) is populated with the profile's
+  own free-text specialty verbatim -- no specialty reference-data
+  catalog exists anywhere in this codebase (`ReferenceDataModule` is
+  future roadmap work), so there is no coded value to submit instead.
+- No draft persistence for in-progress document selection across a
+  page reload -- confirmed-and-uploaded `MediaAsset`s are real and
+  durable, but the wizard's local "which ones I've attached so far"
+  list is component state, lost on reload before final submission.
+- No notification/email is sent on rejection or approval -- the
+  applicant learns their status only by revisiting `/doctor/onboarding`
+  (Stage 3's real notification pipeline was not wired into this flow).
+- A true global, cross-account audit trail of onboarding
+  submissions/decisions was not built -- Stage 4's existing per-account
+  security-event lookup and the existing Verification Queue together
+  cover this at the level Stage 4 already established, nothing beyond it.
+
+Decision: Doctor Onboarding (Phase 4 continuation) is verified against
+every criterion checkable in this sandbox -- backend build/lint/654
+tests, frontend lint/typecheck/277 tests, and the frontend production
+build are all green; the full onboarding/approval/rejection-and-
+resubmission/unauthorized-access flows are exercised by real tests
+against real (not fabricated) state transitions; every scoping decision
+above is disclosed rather than silently narrowed.
 
 ✅ READY FOR MANUAL VERIFICATION
 ===============================================================
