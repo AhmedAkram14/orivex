@@ -619,7 +619,10 @@
         "contactPhoneRequired": "أدخل رقم الهاتف.",
         "contactsTooMany": "يمكنك إضافة حتى {max} جهات اتصال للطوارئ.",
         "allergiesTooLong": "يجب ألا تتجاوز الحساسية {max} حرفًا.",
-        "chronicDiseasesTooLong": "يجب ألا تتجاوز الأمراض المزمنة {max} حرفًا."
+        "chronicDiseasesTooLong": "يجب ألا تتجاوز الأمراض المزمنة {max} حرفًا.",
+        "bloodTypeRequired": "اختر فصيلة الدم.",
+        "allergiesRequired": "أدخل الحساسية، أو اكتب \"لا يوجد\" إن لم تكن هناك حساسية.",
+        "chronicDiseasesRequired": "أدخل الأمراض المزمنة، أو اكتب \"لا يوجد\" إن لم تكن هناك أمراض مزمنة."
       }
     },
     "appointments": {
@@ -863,7 +866,16 @@
     "doctorCardTitle": "الممارسة كطبيب",
     "doctorCardDescription": "أنشئ ملفك المهني وابدأ باستقبال المرضى بمجرد التحقق من هويتك.",
     "doctorCardAction": "التقديم كطبيب",
-    "choosePatientError": "حدث خطأ أثناء إعداد حسابك. يرجى المحاولة مرة أخرى."
+    "choosePatientError": "حدث خطأ أثناء إعداد حسابك. يرجى المحاولة مرة أخرى.",
+    "intake": {
+      "title": "أكمل ملفك الشخصي",
+      "description": "قبل أن تصل إلى لوحتك، نحتاج بعض المعلومات الأساسية والطبية عنك.",
+      "steps": {
+        "personal": "المعلومات الشخصية",
+        "medical": "المعلومات الطبية"
+      },
+      "loadError": "حدث خطأ أثناء تحميل ملفك الشخصي. حاول مرة أخرى."
+    }
   },
   "admin": {
     "overview": {

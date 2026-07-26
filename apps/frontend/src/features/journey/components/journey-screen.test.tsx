@@ -50,7 +50,7 @@ describe('JourneyScreen', () => {
     expect(screen.getByRole('heading', { name: 'Practice as a Doctor' })).toBeInTheDocument();
   });
 
-  it('creates the patient profile and navigates to /patient when "Continue as a patient" is chosen', async () => {
+  it('creates the patient profile and navigates to /patient/intake when "Continue as a patient" is chosen', async () => {
     let createCalled = false;
     server.use(
       http.get(`${base()}/patients/me`, () => {
@@ -66,7 +66,7 @@ describe('JourneyScreen', () => {
 
     expect(await screen.findByRole('button', { name: 'Continue as a patient' })).toBeEnabled();
     expect(createCalled).toBe(true);
-    expect(push).toHaveBeenCalledWith('/en/patient');
+    expect(push).toHaveBeenCalledWith('/en/patient/intake');
   });
 
   it('navigates straight to /doctor/onboarding when "Apply as a doctor" is chosen, without touching the patient endpoint', async () => {

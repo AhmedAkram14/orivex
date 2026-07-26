@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { doctorApi } from '@/features/doctor/api/doctor-api';
 import { patientApi } from '@/features/patient/api/patient-api';
+import { isPatientProfileComplete } from '@/features/patient/lib/profile-completeness';
 import { ApiError } from '@/shared/lib/api/client';
 
 export interface JourneyStatus {
@@ -10,6 +11,15 @@ export interface JourneyStatus {
   hasPatientProfile: boolean;
   /** True only when the account has neither profile row at all (§3 of the Onboarding Redesign proposal) -- the "Choose Your Journey" gating rule. */
   needsJourneyChoice: boolean;
+  /**
+   * Product follow-up (2026-07-26): true once a Patient has chosen "book
+   * appointments" (so a bare `PatientProfile` row exists) but hasn't yet
+   * filled in the required Personal Info + Medical Information fields --
+   * supersedes the original proposal's "optional, fill in any time" §3
+   * decision per explicit product direction. `/dashboard` and `/patient`
+   * both redirect to `/patient/intake` while this is true.
+   */
+  needsPatientIntake: boolean;
 }
 
 // GET /doctors/me cleanly 404s when no DoctorProfile exists (no side
@@ -47,7 +57,18 @@ export function useJourneyStatus(options: { enabled?: boolean } = {}) {
         patientApi.checkProfileExists(),
       ]);
       const hasPatientProfile = existsResponse.exists;
-      return { hasDoctorProfile, hasPatientProfile, needsJourneyChoice: !hasDoctorProfile && !hasPatientProfile };
+
+      // Safe to call now (never before hasPatientProfile is confirmed true)
+      // -- GET /patients/me lazily creates a bare row on first read, which
+      // would prematurely suppress the Choose-Your-Journey screen above.
+      const isComplete = hasPatientProfile ? isPatientProfileComplete(await patientApi.getProfile()) : false;
+
+      return {
+        hasDoctorProfile,
+        hasPatientProfile,
+        needsJourneyChoice: !hasDoctorProfile && !hasPatientProfile,
+        needsPatientIntake: !hasDoctorProfile && hasPatientProfile && !isComplete,
+      };
     },
   });
 }

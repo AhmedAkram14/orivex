@@ -38,15 +38,18 @@ export default function DashboardPage() {
   const subtitle = role ? t(DASHBOARD_SUBTITLE_KEY[role]) : undefined;
   const isPatientRole = Boolean(user?.roles.includes('patient'));
   const journeyStatus = useJourneyStatus({ enabled: isPatientRole });
-  const { needsJourneyChoice } = journeyStatus.data ?? {};
+  const { needsJourneyChoice, needsPatientIntake } = journeyStatus.data ?? {};
 
   useEffect(() => {
-    if (isPatientRole && needsJourneyChoice) {
+    if (!isPatientRole) return;
+    if (needsJourneyChoice) {
       router.replace('/journey');
+    } else if (needsPatientIntake) {
+      router.replace('/patient/intake');
     }
-  }, [isPatientRole, needsJourneyChoice, router]);
+  }, [isPatientRole, needsJourneyChoice, needsPatientIntake, router]);
 
-  if (isPatientRole && (journeyStatus.isPending || needsJourneyChoice)) {
+  if (isPatientRole && (journeyStatus.isPending || needsJourneyChoice || needsPatientIntake)) {
     return <LoadingState />;
   }
 

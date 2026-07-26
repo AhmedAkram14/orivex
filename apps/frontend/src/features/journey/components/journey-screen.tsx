@@ -27,11 +27,13 @@ function readIntent(value: string | null): JourneyIntent | undefined {
  * change between click and signup.
  *
  * Choosing "book appointments" creates a bare PatientProfile immediately
- * (useChoosePatientJourney's explicit GET /patients/me call) and lands on
- * the real Patient Dashboard (`/patient`) -- no onboarding wizard in
- * between. Choosing "practice as a Doctor" routes straight into the
- * existing Doctor Onboarding wizard (`/doctor/onboarding`), which creates
- * the DoctorProfile itself; nothing needs to happen here first.
+ * (useChoosePatientJourney's explicit GET /patients/me call), then routes
+ * into the mandatory Personal Info + Medical Information intake
+ * (`/patient/intake`, product follow-up 2026-07-26 -- supersedes this
+ * file's original "no onboarding wizard in between" design). Choosing
+ * "practice as a Doctor" routes straight into the existing Doctor
+ * Onboarding wizard (`/doctor/onboarding`), which creates the DoctorProfile
+ * itself; nothing needs to happen here first.
  */
 export function JourneyScreen() {
   const t = useTranslations('journey');
@@ -42,7 +44,7 @@ export function JourneyScreen() {
 
   async function handleChoosePatient() {
     await choosePatientJourney.mutateAsync();
-    router.push('/patient');
+    router.push('/patient/intake');
   }
 
   function handleChooseDoctor() {

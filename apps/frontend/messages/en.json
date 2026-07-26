@@ -619,7 +619,10 @@
         "contactPhoneRequired": "Enter a phone number.",
         "contactsTooMany": "You can add up to {max} emergency contacts.",
         "allergiesTooLong": "Allergies must be {max} characters or fewer.",
-        "chronicDiseasesTooLong": "Chronic conditions must be {max} characters or fewer."
+        "chronicDiseasesTooLong": "Chronic conditions must be {max} characters or fewer.",
+        "bloodTypeRequired": "Select a blood type.",
+        "allergiesRequired": "Enter allergies, or type \"None\" if there are none.",
+        "chronicDiseasesRequired": "Enter chronic conditions, or type \"None\" if there are none."
       }
     },
     "appointments": {
@@ -863,7 +866,16 @@
     "doctorCardTitle": "Practice as a Doctor",
     "doctorCardDescription": "Set up your professional profile and start seeing patients once verified.",
     "doctorCardAction": "Apply as a doctor",
-    "choosePatientError": "Something went wrong setting up your account. Please try again."
+    "choosePatientError": "Something went wrong setting up your account. Please try again.",
+    "intake": {
+      "title": "Complete your profile",
+      "description": "Before you reach your dashboard, we need some basic and medical information about you.",
+      "steps": {
+        "personal": "Personal Info",
+        "medical": "Medical Information"
+      },
+      "loadError": "Something went wrong loading your profile. Please try again."
+    }
   },
   "admin": {
     "overview": {
