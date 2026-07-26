@@ -42,6 +42,10 @@ import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
 import type { PaymentTransaction } from '../../domain/entities/payment-transaction.entity.js';
 import type { PaymentTransactionRepository } from '../../domain/repositories/payment-transaction.repository.js';
+import { CheckIdentityVerificationStatusUseCase } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import type { IdentityVerificationStatusResult } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import { VerificationStatus } from '../../../trust/domain/enums/verification-status.enum.js';
+import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 
 import { PaymentController } from './payment.controller.js';
 
@@ -49,6 +53,18 @@ const PATIENT_TOKEN = 'valid-patient-token';
 const OTHER_PATIENT_TOKEN = 'valid-other-patient-token';
 const DOCTOR_TOKEN = 'valid-doctor-token';
 const OTHER_DOCTOR_TOKEN = 'valid-other-doctor-token';
+const UNVERIFIED_PATIENT_TOKEN = 'valid-unverified-patient-token';
+
+// Onboarding Redesign (2026-07-21 proposal, Stage O.4) test double --
+// RequiresIdentityVerificationGuard's real dependency, faked here so the
+// guard's own real class runs in this suite's TestingModule.
+class FakeCheckIdentityVerificationStatusUseCase {
+  constructor(private readonly verifiedAccountIds: Set<string>) {}
+  async execute(query: { subjectAccountId: string }): Promise<IdentityVerificationStatusResult> {
+    const isVerified = this.verifiedAccountIds.has(query.subjectAccountId);
+    return { status: isVerified ? VerificationStatus.Approved : 'not_submitted', isVerified };
+  }
+}
 
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
@@ -115,6 +131,9 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
     return this.window;
   }
   async findOverlapping(): Promise<AvailabilityWindow[]> {
+    return [];
+  }
+  async findByDoctorAndRange(): Promise<AvailabilityWindow[]> {
     return [];
   }
   async save(): Promise<void> {}
@@ -235,12 +254,14 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
   const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
 
+  const unverifiedPatientAccountId = '11111111-1111-4111-1111-111111111111';
   const jwtSigner = new FakeJwtSigner(
     new Map([
       [PATIENT_TOKEN, { accountId: patient.getAccountId(), role: AccountRole.Patient }],
       [OTHER_PATIENT_TOKEN, { accountId: otherPatient.getAccountId(), role: AccountRole.Patient }],
       [DOCTOR_TOKEN, { accountId: doctor.getAccountId(), role: AccountRole.Doctor }],
       [OTHER_DOCTOR_TOKEN, { accountId: otherDoctor.getAccountId(), role: AccountRole.Doctor }],
+      [UNVERIFIED_PATIENT_TOKEN, { accountId: unverifiedPatientAccountId, role: AccountRole.Patient }],
     ]),
   );
 
@@ -287,6 +308,13 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
       { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
       { provide: GetConsultationSessionByIdUseCase, useFactory: () => new GetConsultationSessionByIdUseCase(sessionRepo) },
       { provide: GetAppointmentByIdUseCase, useFactory: () => new GetAppointmentByIdUseCase(appointmentRepo) },
+      RequiresIdentityVerificationGuard,
+      {
+        provide: CheckIdentityVerificationStatusUseCase,
+        useValue: new FakeCheckIdentityVerificationStatusUseCase(
+          new Set([patient.getAccountId(), otherPatient.getAccountId(), doctor.getAccountId(), otherDoctor.getAccountId()]),
+        ),
+      },
     ],
   }).compile();
 
@@ -335,6 +363,30 @@ describe('PaymentController (integration)', () => {
         .expect(400);
 
       assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    } finally {
+      await app.close();
+    }
+  });
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4): the security
+  // boundary itself -- a direct API call is blocked with 403 before the
+  // handler's own session-ownership check ever runs.
+  it('returns 403 IDENTITY_VERIFICATION_REQUIRED for an unverified patient', async () => {
+    const { app, sessionId } = await buildApp(true);
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/payments')
+        .set('Authorization', `Bearer ${UNVERIFIED_PATIENT_TOKEN}`)
+        .send({
+          idempotencyKey: 'idem-unverified',
+          consultationSessionId: sessionId,
+          amount: { amount: 500, currency: 'EGP' },
+          paymentMethod: 'card',
+          paymentMethodToken: 'pm_test_card',
+        })
+        .expect(403);
+
+      assert.equal(response.body.error.code, 'IDENTITY_VERIFICATION_REQUIRED');
     } finally {
       await app.close();
     }

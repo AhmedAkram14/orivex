@@ -6,6 +6,8 @@ import { Roles } from '../../../authentication/presentation/decorators/roles.dec
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { RequiresIdentityVerification } from '../../../trust/presentation/decorators/requires-identity-verification.decorator.js';
+import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
@@ -58,8 +60,9 @@ export class AppointmentController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, RequiresIdentityVerificationGuard)
   @Roles(AccountRole.Patient)
+  @RequiresIdentityVerification()
   // Tighter than the global 100/min default -- prevents a single account
   // from hammering slot-availability contention (booking retries) or
   // spamming doctors with requests.

@@ -7,6 +7,8 @@ import { Roles } from '../../../authentication/presentation/decorators/roles.dec
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { RequiresIdentityVerification } from '../../../trust/presentation/decorators/requires-identity-verification.decorator.js';
+import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
@@ -90,7 +92,9 @@ export class ConsultationController {
   // every other ownership check in this codebase.
   @Post(':id/room-token')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RequiresIdentityVerificationGuard)
   @Roles(AccountRole.Doctor, AccountRole.Patient)
+  @RequiresIdentityVerification()
   async mintRoomToken(
     @CurrentUser() user: AccessTokenClaims,
     @Param('id', ParseUUIDPipe) id: string,

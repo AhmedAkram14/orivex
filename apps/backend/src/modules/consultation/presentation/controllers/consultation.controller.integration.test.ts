@@ -53,6 +53,10 @@ import { ListAppointmentsForPatientPageUseCase } from '../../application/use-cas
 import { MintConsultationRoomTokenUseCase } from '../../application/use-cases/mint-consultation-room-token/mint-consultation-room-token.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from '../../application/use-cases/start-consultation/start-consultation.use-case.js';
+import { CheckIdentityVerificationStatusUseCase } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import type { IdentityVerificationStatusResult } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import { VerificationStatus } from '../../../trust/domain/enums/verification-status.enum.js';
+import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
 import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
 import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
@@ -68,6 +72,20 @@ const VALID_PATIENT_TOKEN = 'valid-patient-token';
 const VALID_DOCTOR_TOKEN = 'valid-doctor-token';
 const VALID_DOCTOR_NO_PROFILE_TOKEN = 'valid-doctor-no-profile-token';
 const VALID_PATIENT_NO_PROFILE_TOKEN = 'valid-patient-no-profile-token';
+const VALID_UNVERIFIED_PATIENT_TOKEN = 'valid-unverified-patient-token';
+
+// Onboarding Redesign (2026-07-21 proposal, Stage O.4) test double --
+// RequiresIdentityVerificationGuard's real dependency, faked here so the
+// guard's own real class can run in this suite's TestingModule exactly as it
+// would in production, deciding isVerified per-accountId rather than
+// stubbing the guard itself out.
+class FakeCheckIdentityVerificationStatusUseCase {
+  constructor(private readonly verifiedAccountIds: Set<string>) {}
+  async execute(query: { subjectAccountId: string }): Promise<IdentityVerificationStatusResult> {
+    const isVerified = this.verifiedAccountIds.has(query.subjectAccountId);
+    return { status: isVerified ? VerificationStatus.Approved : 'not_submitted', isVerified };
+  }
+}
 
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
   constructor(private readonly profile: PatientProfile) {}
@@ -129,6 +147,9 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
     return this.byId.get(id) ?? null;
   }
   async findOverlapping(): Promise<AvailabilityWindow[]> {
+    return [];
+  }
+  async findByDoctorAndRange(): Promise<AvailabilityWindow[]> {
     return [];
   }
   async save(window: AvailabilityWindow): Promise<void> {
@@ -232,6 +253,11 @@ describe('Consultation controllers (integration)', () => {
       email: EmailAddress.create('patient-no-profile@example.com'),
       role: AccountRole.Patient,
       displayName: DisplayName.create('No Profile Patient'),
+    });
+    const unverifiedPatientAccount = Account.register({
+      email: EmailAddress.create('unverified-patient@example.com'),
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('Unverified Patient'),
     });
 
     patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
@@ -341,6 +367,7 @@ describe('Consultation controllers (integration)', () => {
       doctorAccount,
       doctorAccountNoProfile,
       patientAccountNoProfile,
+      unverifiedPatientAccount,
     ]);
     const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepo);
     const getPatientProfileByAccountIdUseCase = new GetPatientProfileByAccountIdUseCase(
@@ -377,8 +404,24 @@ describe('Consultation controllers (integration)', () => {
                   VALID_PATIENT_NO_PROFILE_TOKEN,
                   { accountId: patientAccountNoProfile.getId().toString(), role: AccountRole.Patient },
                 ],
+                [
+                  VALID_UNVERIFIED_PATIENT_TOKEN,
+                  { accountId: unverifiedPatientAccount.getId().toString(), role: AccountRole.Patient },
+                ],
               ]),
             ),
+        },
+        RequiresIdentityVerificationGuard,
+        {
+          provide: CheckIdentityVerificationStatusUseCase,
+          useValue: new FakeCheckIdentityVerificationStatusUseCase(
+            new Set([
+              patientAccount.getId().toString(),
+              doctorAccount.getId().toString(),
+              doctorAccountNoProfile.getId().toString(),
+              patientAccountNoProfile.getId().toString(),
+            ]),
+          ),
         },
         { provide: APPOINTMENT_REPOSITORY, useValue: appointmentRepo },
         { provide: CONSULTATION_SESSION_REPOSITORY, useValue: sessionRepo },
@@ -493,6 +536,27 @@ describe('Consultation controllers (integration)', () => {
       .expect(409);
 
     assert.equal(response.body.error.code, 'CONFLICT');
+  });
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4): the security
+  // boundary itself -- proves this is a real, direct-API-call-level gate,
+  // not merely a frontend concern. VALID_UNVERIFIED_PATIENT_TOKEN has no
+  // patient profile seeded at all, yet still gets 403 (not 404), confirming
+  // the guard runs and blocks before the handler's own profile/ownership
+  // logic is ever reached.
+  it('POST /appointments returns 403 IDENTITY_VERIFICATION_REQUIRED for an unverified patient', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/appointments')
+      .set('Authorization', `Bearer ${VALID_UNVERIFIED_PATIENT_TOKEN}`)
+      .send({
+        doctorId: doctor.getId(),
+        availabilityWindowId: freeWindow.getId(),
+        consultationType: 'free',
+        reasonForVisit: 'Routine check-up',
+      })
+      .expect(403);
+
+    assert.equal(response.body.error.code, 'IDENTITY_VERIFICATION_REQUIRED');
   });
 
   it('POST /consultations/:id/start rejects a request with no bearer token', async () => {
@@ -824,6 +888,30 @@ describe('Consultation controllers (integration)', () => {
         .expect(404);
 
       assert.equal(response.body.error.code, 'NOT_FOUND');
+    });
+
+    // Onboarding Redesign (2026-07-21 proposal, Stage O.4): only a Patient
+    // caller is subject to the gate -- a Doctor minting a token for the same
+    // shared route is never blocked, even though this same account set has
+    // "unverified" callers.
+    it('returns 403 IDENTITY_VERIFICATION_REQUIRED for an unverified patient', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_UNVERIFIED_PATIENT_TOKEN}`)
+        .send({})
+        .expect(403);
+
+      assert.equal(response.body.error.code, 'IDENTITY_VERIFICATION_REQUIRED');
+    });
+
+    it('never gates a doctor caller, regardless of identity-verification status', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/room-token`)
+        .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+        .send({ displayName: 'Dr. Karim Adel' })
+        .expect(200);
+
+      assert.ok(response.body.data.token);
     });
   });
 });

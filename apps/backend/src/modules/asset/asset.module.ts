@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
+import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 
 import type { ObjectStoragePort } from './application/ports/object-storage.port.js';
 import { MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE } from './application/ports/tokens.js';
@@ -13,9 +14,13 @@ import { MediaAssetController } from './presentation/controllers/media-asset.con
 
 // AssetModule "depends on nothing business-specific, only the storage
 // adapter" (docs/10-backend-architecture.md) — no imports of other feature
-// modules, unlike DoctorModule.
+// modules, unlike DoctorModule. TrustGuardsModule is the one exception
+// (Onboarding Redesign, 2026-07-21 proposal, Stage O.4): a read-only
+// identity-verification-status check for clinical uploads, same
+// guard-module-only shape as AuthenticationGuardsModule, not a real
+// feature-module dependency.
 @Module({
-  imports: [AuthenticationGuardsModule],
+  imports: [AuthenticationGuardsModule, TrustGuardsModule],
   controllers: [MediaAssetController],
   providers: [
     { provide: MEDIA_ASSET_REPOSITORY, useClass: PrismaMediaAssetRepository },

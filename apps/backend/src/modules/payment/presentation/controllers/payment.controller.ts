@@ -8,6 +8,8 @@ import { Roles } from '../../../authentication/presentation/decorators/roles.dec
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { RequiresIdentityVerification } from '../../../trust/presentation/decorators/requires-identity-verification.decorator.js';
+import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
@@ -49,6 +51,8 @@ export class PaymentController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RequiresIdentityVerificationGuard)
+  @RequiresIdentityVerification()
   // Tighter than the global 100/min default -- a financial-charge endpoint
   // has no legitimate reason to be called more than a handful of times a
   // minute per account, and idempotency (initiate-charge.use-case.ts) already

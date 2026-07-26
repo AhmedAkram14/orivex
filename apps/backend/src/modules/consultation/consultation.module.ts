@@ -15,6 +15,7 @@ import { ConfirmSlotUseCase } from '../scheduling/application/use-cases/confirm-
 import { ReleaseSlotUseCase } from '../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { SchedulingModule } from '../scheduling/scheduling.module.js';
+import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 
 import type { RoomTokenGeneratorPort } from './application/ports/room-token-generator.port.js';
 import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY, ROOM_TOKEN_GENERATOR } from './application/ports/tokens.js';
@@ -49,7 +50,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
 // those modules import Consultation back -- no circular imports, no
 // forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule],
+  imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule, TrustGuardsModule],
   controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController, TelemedicineWebhookController],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },

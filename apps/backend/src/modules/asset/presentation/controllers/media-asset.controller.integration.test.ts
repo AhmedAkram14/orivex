@@ -18,11 +18,17 @@ import { ConfirmUploadUseCase } from '../../application/use-cases/confirm-upload
 import { CreateUploadIntentUseCase } from '../../application/use-cases/create-upload-intent/create-upload-intent.use-case.js';
 import type { MediaAsset } from '../../domain/entities/media-asset.entity.js';
 import type { MediaAssetRepository } from '../../domain/repositories/media-asset.repository.js';
+import { CheckIdentityVerificationStatusUseCase } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import type { IdentityVerificationStatusResult } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import { VerificationStatus } from '../../../trust/domain/enums/verification-status.enum.js';
 
 import { MediaAssetController } from './media-asset.controller.js';
 
 const VALID_TOKEN = 'valid-token';
 const OTHER_VALID_TOKEN = 'other-valid-token';
+const UNVERIFIED_PATIENT_TOKEN = 'unverified-patient-token';
+const VERIFIED_ACCOUNT_ID = '99999999-9999-4999-8999-999999999999';
+const UNVERIFIED_ACCOUNT_ID = '77777777-7777-4777-8777-777777777777';
 
 class FakeJwtSigner implements JwtSignerPort {
   async sign(): Promise<never> {
@@ -30,12 +36,25 @@ class FakeJwtSigner implements JwtSignerPort {
   }
   async verify(token: string): Promise<AccessTokenClaims> {
     if (token === VALID_TOKEN) {
-      return { accountId: '99999999-9999-4999-8999-999999999999', role: AccountRole.Patient };
+      return { accountId: VERIFIED_ACCOUNT_ID, role: AccountRole.Patient };
     }
     if (token === OTHER_VALID_TOKEN) {
       return { accountId: '88888888-8888-4888-8888-888888888888', role: AccountRole.Patient };
     }
+    if (token === UNVERIFIED_PATIENT_TOKEN) {
+      return { accountId: UNVERIFIED_ACCOUNT_ID, role: AccountRole.Patient };
+    }
     throw new Error('invalid token');
+  }
+}
+
+// Onboarding Redesign (2026-07-21 proposal, Stage O.4) test double --
+// CreateUploadIntentUseCase's own real dependency for the inline
+// clinical-purpose gate, faked so the controller's real logic runs.
+class FakeCheckIdentityVerificationStatusUseCase {
+  async execute(query: { subjectAccountId: string }): Promise<IdentityVerificationStatusResult> {
+    const isVerified = query.subjectAccountId === VERIFIED_ACCOUNT_ID;
+    return { status: isVerified ? VerificationStatus.Approved : 'not_submitted', isVerified };
   }
 }
 
@@ -84,6 +103,7 @@ describe('MediaAssetController (integration)', () => {
             new ConfirmUploadUseCase(repo, storage),
           inject: [MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE],
         },
+        { provide: CheckIdentityVerificationStatusUseCase, useClass: FakeCheckIdentityVerificationStatusUseCase },
       ],
     }).compile();
 
@@ -158,6 +178,40 @@ describe('MediaAssetController (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4): only a Patient's
+  // clinical-document uploads (clinical_attachment/lab_report) require
+  // identity verification -- never identity-verification documents
+  // themselves, and never a non-clinical purpose like profile_image.
+  it('POST /media-assets/upload-intent returns 403 IDENTITY_VERIFICATION_REQUIRED for an unverified patient uploading a clinical_attachment', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${UNVERIFIED_PATIENT_TOKEN}`)
+      .send({ contentType: 'application/pdf', purpose: 'clinical_attachment' })
+      .expect(403);
+
+    assert.equal(response.body.error.code, 'IDENTITY_VERIFICATION_REQUIRED');
+  });
+
+  it('POST /media-assets/upload-intent never gates a non-clinical purpose for an unverified patient', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${UNVERIFIED_PATIENT_TOKEN}`)
+      .send({ contentType: 'image/png', purpose: 'profile_image' })
+      .expect(201);
+
+    assert.equal(response.body.data.purpose, 'profile_image');
+  });
+
+  it('POST /media-assets/upload-intent never gates an unverified patient\'s own identity-verification documents (national_id_front)', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${UNVERIFIED_PATIENT_TOKEN}`)
+      .send({ contentType: 'image/png', purpose: 'national_id_front' })
+      .expect(201);
+
+    assert.equal(response.body.data.purpose, 'national_id_front');
   });
 
   it('POST /media-assets/:id/confirm returns 404 for an asset owned by a different account', async () => {

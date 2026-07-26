@@ -1,13 +1,18 @@
 import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 
+import { ForbiddenError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { CheckIdentityVerificationStatusUseCase } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
+import { VerificationSubjectType } from '../../../trust/domain/enums/verification-subject-type.enum.js';
 import { ConfirmUploadCommand } from '../../application/use-cases/confirm-upload/confirm-upload.command.js';
 import { ConfirmUploadUseCase } from '../../application/use-cases/confirm-upload/confirm-upload.use-case.js';
 import { CreateUploadIntentCommand } from '../../application/use-cases/create-upload-intent/create-upload-intent.command.js';
 import { CreateUploadIntentUseCase } from '../../application/use-cases/create-upload-intent/create-upload-intent.use-case.js';
+import { CLINICAL_MEDIA_ASSET_PURPOSES } from '../../domain/enums/media-asset-purpose.enum.js';
 import { CreateUploadIntentRequestDto } from '../dto/create-upload-intent-request.dto.js';
 import { MediaAssetResponseDto } from '../dto/media-asset-response.dto.js';
 import { mapAssetError } from '../mappers/asset-exception.mapper.js';
@@ -29,6 +34,7 @@ export class MediaAssetController {
   constructor(
     private readonly createUploadIntentUseCase: CreateUploadIntentUseCase,
     private readonly confirmUploadUseCase: ConfirmUploadUseCase,
+    private readonly checkIdentityVerificationStatusUseCase: CheckIdentityVerificationStatusUseCase,
   ) {}
 
   @Post('upload-intent')
@@ -38,6 +44,22 @@ export class MediaAssetController {
     @Body() body: CreateUploadIntentRequestDto,
   ): Promise<ResponseEnvelope<MediaAssetResponseDto>> {
     try {
+      // Onboarding Redesign (2026-07-21 proposal, Stage O.4): gated only for
+      // a Patient uploading a clinical document (medical records) -- never
+      // for identity-verification documents themselves (NationalId*/
+      // SelfieWithId exist so an as-yet-unverified patient can submit them)
+      // or a Doctor's own uploads. Doesn't fit the generic
+      // @RequiresIdentityVerification() guard shape since the decision
+      // depends on the request body's own `purpose`, not just the route.
+      if (user.role === AccountRole.Patient && CLINICAL_MEDIA_ASSET_PURPOSES.includes(body.purpose)) {
+        const { isVerified } = await this.checkIdentityVerificationStatusUseCase.execute({
+          subjectType: VerificationSubjectType.Patient,
+          subjectAccountId: user.accountId,
+        });
+        if (!isVerified) {
+          throw new ForbiddenError('Identity verification is required for this action.', 'IDENTITY_VERIFICATION_REQUIRED');
+        }
+      }
       const { asset, signedUrl } = await this.createUploadIntentUseCase.execute(
         new CreateUploadIntentCommand({
           ownerAccountId: user.accountId,
