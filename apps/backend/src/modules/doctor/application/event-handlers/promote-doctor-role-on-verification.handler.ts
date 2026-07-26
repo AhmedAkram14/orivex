@@ -2,10 +2,9 @@ import type { PinoLoggerService } from '../../../../platform/logging/pino-logger
 import { UpdateAccountRoleCommand } from '../../../identity/application/use-cases/update-account-role/update-account-role.command.js';
 import type { UpdateAccountRoleUseCase } from '../../../identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
-import type { GetDoctorProfileByIdUseCase } from '../use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 
 export interface DoctorVerifiedEventPayload {
-  doctorId: string;
+  subjectAccountId: string;
   verificationCaseId: string;
 }
 
@@ -20,26 +19,21 @@ export interface DoctorVerifiedEventPayload {
 // comments explain why those routes accept Patient callers) -- only an
 // *approved* verification ever grants real Doctor Portal access, and it
 // does so automatically, with no manual database edit.
+//
+// Onboarding Redesign (2026-07-21 proposal, Stage O.2): simplified -- the
+// event now carries subjectAccountId directly (VerificationCase's own
+// generalized identifier), so this handler no longer needs to look up a
+// DoctorProfile at all just to translate an id into an account.
 export class PromoteDoctorRoleOnVerificationHandler {
   constructor(
-    private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly updateAccountRoleUseCase: UpdateAccountRoleUseCase,
     private readonly logger: PinoLoggerService,
   ) {}
 
   async handle(event: DoctorVerifiedEventPayload): Promise<void> {
     try {
-      const profile = await this.getDoctorProfileByIdUseCase.execute({ doctorProfileId: event.doctorId });
-      if (!profile) {
-        this.logger.error('DoctorVerifiedEvent referenced an unknown doctor profile', undefined, {
-          doctorId: event.doctorId,
-          verificationCaseId: event.verificationCaseId,
-        });
-        return;
-      }
-
       await this.updateAccountRoleUseCase.execute(
-        new UpdateAccountRoleCommand({ accountId: profile.getAccountId(), newRole: AccountRole.Doctor }),
+        new UpdateAccountRoleCommand({ accountId: event.subjectAccountId, newRole: AccountRole.Doctor }),
       );
     } catch (error) {
       // An approval decision has already been saved by the time domain
@@ -51,7 +45,7 @@ export class PromoteDoctorRoleOnVerificationHandler {
       this.logger.error(
         'Failed to promote account role after doctor verification approval',
         error instanceof Error ? error.stack : String(error),
-        { doctorId: event.doctorId, verificationCaseId: event.verificationCaseId },
+        { subjectAccountId: event.subjectAccountId, verificationCaseId: event.verificationCaseId },
       );
     }
   }

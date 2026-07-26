@@ -1,15 +1,16 @@
 import { randomUUID } from 'node:crypto';
 
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
-import { DoctorVerifiedEvent } from '../events/doctor-verified.event.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
 import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
+import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
 import { VerificationStatus } from '../enums/verification-status.enum.js';
+import type { VerificationSubjectType } from '../enums/verification-subject-type.enum.js';
+import type { VerificationSubjectDetails } from '../value-objects/verification-subject-details.js';
 
 export interface SubmitVerificationCaseProps {
-  doctorId: string;
-  licenseNumber: string;
-  specialtyCode: string;
+  subjectAccountId: string;
+  subjectDetails: VerificationSubjectDetails;
   documentAssetIds: string[];
 }
 
@@ -20,9 +21,8 @@ export type VerificationDecisionStatus =
 
 export interface ReconstituteVerificationCaseProps {
   id: string;
-  doctorId: string;
-  licenseNumber: string;
-  specialtyCode: string;
+  subjectAccountId: string;
+  subjectDetails: VerificationSubjectDetails;
   documentAssetIds: string[];
   status: VerificationStatus;
   reason?: string;
@@ -32,19 +32,27 @@ export interface ReconstituteVerificationCaseProps {
 
 // Aggregate root of TrustModule (docs/10-backend-architecture.md's
 // TrustModule entry: "Owned entities: VerificationCase, ..."). ConsentRecord
-// is deliberately excluded — out of scope per IMPLEMENTATION_PLAN.md
-// ("Doctor verification, VerificationCase, Review workflow, Administration
-// integration" only). SecurityEvent is TrustModule's other owned entity,
-// added Sprint 15 (see domain/entities/security-event.entity.ts) as its own
-// aggregate root, not part of this one.
+// is deliberately excluded — out of scope per IMPLEMENTATION_PLAN.md.
+// SecurityEvent is TrustModule's other owned entity, its own aggregate root,
+// not part of this one.
+//
+// Onboarding Redesign (2026-07-21 proposal, Stage O.2): generalized from
+// Doctor-only to any verification subject. Owns only subjectAccountId,
+// subjectType, review lifecycle (status/reason/timestamps), documents, and
+// a subject-specific VerificationSubjectDetails value object -- no doctorId,
+// no license/specialty fields directly. Subject-specific behavior (what
+// event Approval raises, if any) is dispatched polymorphically through
+// subjectDetails, never via a subjectType branch inside this class: adding a
+// third verification subject means adding a new VerificationSubjectDetails
+// implementation and a new static factory here, nothing else in this file
+// changes (Open/Closed).
 export class VerificationCase {
   private readonly domainEvents: DomainEvent[] = [];
 
   private constructor(
     private readonly id: string,
-    private readonly doctorId: string,
-    private readonly licenseNumber: string,
-    private readonly specialtyCode: string,
+    private readonly subjectAccountId: string,
+    private readonly subjectDetails: VerificationSubjectDetails,
     private readonly documentAssetIds: string[],
     private status: VerificationStatus,
     private reason: string | undefined,
@@ -53,21 +61,14 @@ export class VerificationCase {
   ) {}
 
   static submit(props: SubmitVerificationCaseProps): VerificationCase {
-    if (!props.licenseNumber || props.licenseNumber.trim().length === 0) {
-      throw new TrustDomainError('licenseNumber must not be empty.');
-    }
-    if (!props.specialtyCode || props.specialtyCode.trim().length === 0) {
-      throw new TrustDomainError('specialtyCode must not be empty.');
-    }
     if (!props.documentAssetIds || props.documentAssetIds.length === 0) {
       throw new TrustDomainError('At least one documentAssetId is required.');
     }
 
     return new VerificationCase(
       randomUUID(),
-      props.doctorId,
-      props.licenseNumber.trim(),
-      props.specialtyCode.trim(),
+      props.subjectAccountId,
+      props.subjectDetails,
       props.documentAssetIds,
       VerificationStatus.Submitted,
       undefined,
@@ -79,9 +80,8 @@ export class VerificationCase {
   static reconstitute(props: ReconstituteVerificationCaseProps): VerificationCase {
     return new VerificationCase(
       props.id,
-      props.doctorId,
-      props.licenseNumber,
-      props.specialtyCode,
+      props.subjectAccountId,
+      props.subjectDetails,
       props.documentAssetIds,
       props.status,
       props.reason,
@@ -92,9 +92,8 @@ export class VerificationCase {
 
   // Approve, reject, or request more info (docs/12-openapi.md's
   // decideVerification). Only a case not yet finally decided can be acted on
-  // — Approved/Rejected are terminal for this sprint's scope (re-verification
-  // scheduling internals are explicitly future work, per
-  // docs/10-backend-architecture.md's TrustModule entry).
+  // — Approved/Rejected are terminal for the initial review (suspend() below
+  // is a distinct, later transition, reachable only from Approved).
   decide(status: VerificationDecisionStatus, reason?: string): void {
     if (this.status === VerificationStatus.Approved || this.status === VerificationStatus.Rejected) {
       throw new VerificationCaseAlreadyDecidedError(`VerificationCase "${this.id}" has already been decided and cannot be redecided.`);
@@ -108,24 +107,41 @@ export class VerificationCase {
     }
 
     if (status === VerificationStatus.Approved) {
-      this.record(new DoctorVerifiedEvent(this.doctorId, this.id));
+      const event = this.subjectDetails.getApprovalEvent(this.subjectAccountId, this.id);
+      if (event) {
+        this.record(event);
+      }
     }
+  }
+
+  // Revokes previously-granted standing (license lapse, a compliance
+  // finding) without losing the audit trail of ever having been Approved --
+  // only reachable from Approved, a distinct transition from decide()'s own
+  // initial-review terminal states.
+  suspend(reason: string): void {
+    if (this.status !== VerificationStatus.Approved) {
+      throw new VerificationCaseNotApprovedError(
+        `VerificationCase "${this.id}" must be Approved before it can be suspended.`,
+      );
+    }
+    this.status = VerificationStatus.Suspended;
+    this.reason = reason;
   }
 
   getId(): string {
     return this.id;
   }
 
-  getDoctorId(): string {
-    return this.doctorId;
+  getSubjectAccountId(): string {
+    return this.subjectAccountId;
   }
 
-  getLicenseNumber(): string {
-    return this.licenseNumber;
+  getSubjectType(): VerificationSubjectType {
+    return this.subjectDetails.getSubjectType();
   }
 
-  getSpecialtyCode(): string {
-    return this.specialtyCode;
+  getSubjectDetails(): VerificationSubjectDetails {
+    return this.subjectDetails;
   }
 
   getDocumentAssetIds(): string[] {

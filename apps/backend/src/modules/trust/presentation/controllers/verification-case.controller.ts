@@ -7,7 +7,10 @@ import { RolesGuard } from '../../../authentication/presentation/guards/roles.gu
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { DecideVerificationCommand } from '../../application/use-cases/decide-verification/decide-verification.command.js';
 import { DecideVerificationUseCase } from '../../application/use-cases/decide-verification/decide-verification.use-case.js';
+import { SuspendVerificationCaseCommand } from '../../application/use-cases/suspend-verification-case/suspend-verification-case.command.js';
+import { SuspendVerificationCaseUseCase } from '../../application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
 import { DecideVerificationRequestDto } from '../dto/decide-verification-request.dto.js';
+import { SuspendVerificationRequestDto } from '../dto/suspend-verification-request.dto.js';
 import { VerificationCaseResponseDto } from '../dto/verification-case-response.dto.js';
 import { mapTrustError } from '../mappers/trust-exception.mapper.js';
 
@@ -19,7 +22,10 @@ import { mapTrustError } from '../mappers/trust-exception.mapper.js';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(AccountRole.SuperAdmin)
 export class VerificationCaseController {
-  constructor(private readonly decideVerificationUseCase: DecideVerificationUseCase) {}
+  constructor(
+    private readonly decideVerificationUseCase: DecideVerificationUseCase,
+    private readonly suspendVerificationCaseUseCase: SuspendVerificationCaseUseCase,
+  ) {}
 
   @Patch(':id')
   async decide(
@@ -33,6 +39,24 @@ export class VerificationCaseController {
           status: body.status,
           reason: body.reason,
         }),
+      );
+      return envelope(VerificationCaseResponseDto.fromDomain(verificationCase));
+    } catch (error) {
+      throw mapTrustError(error);
+    }
+  }
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.2): revokes
+  // previously-granted standing without losing the audit trail of ever
+  // having been Approved -- a distinct transition from decide() above.
+  @Patch(':id/suspend')
+  async suspend(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SuspendVerificationRequestDto,
+  ): Promise<ResponseEnvelope<VerificationCaseResponseDto>> {
+    try {
+      const verificationCase = await this.suspendVerificationCaseUseCase.execute(
+        new SuspendVerificationCaseCommand({ verificationCaseId: id, reason: body.reason }),
       );
       return envelope(VerificationCaseResponseDto.fromDomain(verificationCase));
     } catch (error) {

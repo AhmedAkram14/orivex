@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
-import { AuthenticationModule } from '../authentication/authentication.module.js';
+import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 
@@ -23,10 +23,14 @@ import { PatientProfileController } from './presentation/controllers/patient-pro
 // Imports IdentityModule to consume its exported GetAccountByIdUseCase
 // (module-to-module calls only through a published interface, never another
 // module's repository — docs/10-backend-architecture.md Section 11).
-// Imports AuthenticationModule for JwtAuthGuard/RolesGuard, same pattern
-// every other route-protecting module uses.
+// Imports AuthenticationGuardsModule (not the full AuthenticationModule) for
+// JwtAuthGuard/RolesGuard -- mirrors DoctorModule's own reasoning exactly:
+// TrustModule now imports PatientModule (SubmitPatientVerificationUseCase,
+// Onboarding Redesign Stage O.2), and AuthenticationModule imports
+// TrustModule, so importing the full AuthenticationModule here would cycle:
+// AuthenticationModule -> TrustModule -> PatientModule -> AuthenticationModule.
 @Module({
-  imports: [IdentityModule, AuthenticationModule],
+  imports: [IdentityModule, AuthenticationGuardsModule],
   controllers: [PatientProfileController],
   providers: [
     { provide: PATIENT_PROFILE_REPOSITORY, useClass: PrismaPatientProfileRepository },

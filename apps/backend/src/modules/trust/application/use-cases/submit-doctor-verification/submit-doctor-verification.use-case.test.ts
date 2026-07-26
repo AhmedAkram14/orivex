@@ -32,7 +32,7 @@ class FakeVerificationCaseRepository implements VerificationCaseRepository {
     return [];
   }
 
-  findAllByDoctorId(): Promise<VerificationCase[]> {
+  findAllBySubject(): Promise<VerificationCase[]> {
     return Promise.resolve([]);
   }
   async save(verificationCase: VerificationCase): Promise<void> {
@@ -67,6 +67,7 @@ describe('SubmitDoctorVerificationUseCase', () => {
     const result = await useCase.execute(
       new SubmitDoctorVerificationCommand({
         doctorId: doctor.getId(),
+        subjectAccountId: doctor.getAccountId(),
         licenseNumber: 'LIC-1',
         specialtyCode: 'cardiology',
         documentAssetIds: ['22222222-2222-4222-8222-222222222222'],
@@ -74,7 +75,7 @@ describe('SubmitDoctorVerificationUseCase', () => {
     );
 
     assert.equal(result.getStatus(), VerificationStatus.Submitted);
-    assert.equal(result.getDoctorId(), doctor.getId());
+    assert.equal(result.getSubjectAccountId(), doctor.getAccountId());
     assert.equal(repo.saved.length, 1);
   });
 
@@ -91,6 +92,7 @@ describe('SubmitDoctorVerificationUseCase', () => {
         useCase.execute(
           new SubmitDoctorVerificationCommand({
             doctorId: '33333333-3333-4333-8333-333333333333',
+            subjectAccountId: '44444444-4444-4444-8444-444444444444',
             licenseNumber: 'LIC-1',
             specialtyCode: 'cardiology',
             documentAssetIds: ['22222222-2222-4222-8222-222222222222'],

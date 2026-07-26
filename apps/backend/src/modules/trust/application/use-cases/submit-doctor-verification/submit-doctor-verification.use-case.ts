@@ -3,6 +3,7 @@ import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { VerificationCase } from '../../../domain/entities/verification-case.entity.js';
 import type { VerificationCaseRepository } from '../../../domain/repositories/verification-case.repository.js';
+import { DoctorProfessionalDetails } from '../../../domain/value-objects/doctor-professional-details.js';
 
 import type { SubmitDoctorVerificationCommand } from './submit-doctor-verification.command.js';
 
@@ -16,6 +17,11 @@ import type { SubmitDoctorVerificationCommand } from './submit-doctor-verificati
 // referenced by id only (docs/11-api-contracts.md's "reference by ID via
 // AssetModule" pattern) and are enforced to actually exist by the database
 // foreign key on VerificationDocument, not a cross-module existence query.
+//
+// Onboarding Redesign (2026-07-21 proposal, Stage O.2): the DoctorProfile
+// lookup now serves existence-checking only -- subjectAccountId comes from
+// the command (the caller's own account, already confirmed by the
+// controller's ownership check), not from this profile's accountId.
 export class SubmitDoctorVerificationUseCase {
   constructor(
     private readonly verificationCaseRepository: VerificationCaseRepository,
@@ -30,9 +36,8 @@ export class SubmitDoctorVerificationUseCase {
     }
 
     const verificationCase = VerificationCase.submit({
-      doctorId: command.doctorId,
-      licenseNumber: command.licenseNumber,
-      specialtyCode: command.specialtyCode,
+      subjectAccountId: command.subjectAccountId,
+      subjectDetails: DoctorProfessionalDetails.create(command.licenseNumber, command.specialtyCode),
       documentAssetIds: command.documentAssetIds,
     });
 

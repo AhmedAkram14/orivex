@@ -6,6 +6,7 @@ import { VerificationCase } from '../../../../trust/domain/entities/verification
 import { VerificationStatus } from '../../../../trust/domain/enums/verification-status.enum.js';
 import { TrustDomainError } from '../../../../trust/domain/exceptions/trust-domain.error.js';
 import type { VerificationCaseRepository } from '../../../../trust/domain/repositories/verification-case.repository.js';
+import { DoctorProfessionalDetails } from '../../../../trust/domain/value-objects/doctor-professional-details.js';
 
 import { ReviewVerificationCaseCommand } from './review-verification-case.command.js';
 import { ReviewVerificationCaseUseCase } from './review-verification-case.use-case.js';
@@ -20,7 +21,7 @@ class FakeVerificationCaseRepository implements VerificationCaseRepository {
     return [];
   }
 
-  findAllByDoctorId(): Promise<VerificationCase[]> {
+  findAllBySubject(): Promise<VerificationCase[]> {
     return Promise.resolve([]);
   }
   async save(verificationCase: VerificationCase): Promise<void> {
@@ -36,9 +37,8 @@ class NoopDispatcher {
 
 function buildSubmittedCase(): VerificationCase {
   return VerificationCase.submit({
-    doctorId: '11111111-1111-4111-8111-111111111111',
-    licenseNumber: 'LIC-1',
-    specialtyCode: 'cardiology',
+    subjectAccountId: '11111111-1111-4111-8111-111111111111',
+    subjectDetails: DoctorProfessionalDetails.create('LIC-1', 'cardiology'),
     documentAssetIds: ['22222222-2222-4222-8222-222222222222'],
   });
 }

@@ -9,7 +9,8 @@ import { RolesGuard } from '../../../authentication/presentation/guards/roles.gu
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
-import { ListVerificationCasesForDoctorUseCase } from '../../application/use-cases/list-verification-cases-for-doctor/list-verification-cases-for-doctor.use-case.js';
+import { VerificationSubjectType } from '../../domain/enums/verification-subject-type.enum.js';
+import { ListVerificationCasesForSubjectUseCase } from '../../application/use-cases/list-verification-cases-for-subject/list-verification-cases-for-subject.use-case.js';
 import { SubmitDoctorVerificationCommand } from '../../application/use-cases/submit-doctor-verification/submit-doctor-verification.command.js';
 import { SubmitDoctorVerificationUseCase } from '../../application/use-cases/submit-doctor-verification/submit-doctor-verification.use-case.js';
 import { SubmitDoctorVerificationRequestDto } from '../dto/submit-doctor-verification-request.dto.js';
@@ -29,7 +30,7 @@ import { mapTrustError } from '../mappers/trust-exception.mapper.js';
 export class DoctorVerificationController {
   constructor(
     private readonly submitDoctorVerificationUseCase: SubmitDoctorVerificationUseCase,
-    private readonly listVerificationCasesForDoctorUseCase: ListVerificationCasesForDoctorUseCase,
+    private readonly listVerificationCasesForSubjectUseCase: ListVerificationCasesForSubjectUseCase,
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
   ) {}
 
@@ -45,6 +46,7 @@ export class DoctorVerificationController {
       const verificationCase = await this.submitDoctorVerificationUseCase.execute(
         new SubmitDoctorVerificationCommand({
           doctorId: id,
+          subjectAccountId: user.accountId,
           licenseNumber: body.licenseNumber,
           specialtyCode: body.specialtyCode,
           documentAssetIds: body.documentAssetIds,
@@ -63,7 +65,10 @@ export class DoctorVerificationController {
   ): Promise<ResponseEnvelope<VerificationCaseResponseDto[]>> {
     try {
       await this.ensureOwnProfile(user, id);
-      const cases = await this.listVerificationCasesForDoctorUseCase.execute({ doctorId: id });
+      const cases = await this.listVerificationCasesForSubjectUseCase.execute({
+        subjectType: VerificationSubjectType.Doctor,
+        subjectAccountId: user.accountId,
+      });
       return envelope(cases.map((verificationCase) => VerificationCaseResponseDto.fromDomain(verificationCase)));
     } catch (error) {
       throw mapTrustError(error);

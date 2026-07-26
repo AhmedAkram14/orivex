@@ -4,13 +4,16 @@ import { AuthenticationGuardsModule } from '../authentication/authentication-gua
 import { IdentityModule } from '../identity/identity.module.js';
 import { ListAccountsUseCase } from '../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 import { DecideVerificationUseCase } from '../trust/application/use-cases/decide-verification/decide-verification.use-case.js';
+import { GetVerificationCaseByIdUseCase } from '../trust/application/use-cases/get-verification-case-by-id/get-verification-case-by-id.use-case.js';
 import { ListPendingVerificationCasesUseCase } from '../trust/application/use-cases/list-pending-verification-cases/list-pending-verification-cases.use-case.js';
+import { ListVerificationCasesForSubjectUseCase } from '../trust/application/use-cases/list-verification-cases-for-subject/list-verification-cases-for-subject.use-case.js';
 import { TrustModule } from '../trust/trust.module.js';
 
 import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from './application/ports/tokens.js';
 import { CreateDepartmentUseCase } from './application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalUseCase } from './application/use-cases/create-hospital/create-hospital.use-case.js';
 import { GetPlatformKpisUseCase } from './application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
+import { GetVerificationHistoryUseCase } from './application/use-cases/get-verification-history/get-verification-history.use-case.js';
 import { GetVerificationReviewQueueUseCase } from './application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsUseCase } from './application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from './application/use-cases/list-hospitals/list-hospitals.use-case.js';
@@ -74,10 +77,19 @@ import { HospitalDirectoryController } from './presentation/controllers/hospital
         new ReviewVerificationCaseUseCase(decideVerificationUseCase),
       inject: [DecideVerificationUseCase],
     },
+    {
+      provide: GetVerificationHistoryUseCase,
+      useFactory: (
+        getVerificationCaseByIdUseCase: GetVerificationCaseByIdUseCase,
+        listVerificationCasesForSubjectUseCase: ListVerificationCasesForSubjectUseCase,
+      ) => new GetVerificationHistoryUseCase(getVerificationCaseByIdUseCase, listVerificationCasesForSubjectUseCase),
+      inject: [GetVerificationCaseByIdUseCase, ListVerificationCasesForSubjectUseCase],
+    },
   ],
   exports: [
     GetVerificationReviewQueueUseCase,
     ReviewVerificationCaseUseCase,
+    GetVerificationHistoryUseCase,
     ListHospitalsUseCase,
     CreateHospitalUseCase,
     ListDepartmentsUseCase,
