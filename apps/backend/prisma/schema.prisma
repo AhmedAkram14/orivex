@@ -20,6 +20,20 @@ model Account {
   displayName       String
   phoneNumber       String?
   preferredLanguage String    @default("Arabic")
+  // Onboarding Redesign (2026-07-21 proposal, §0a): cross-role personal
+  // identity fields, extending the existing UserProfile child entity rather
+  // than introducing a separate PersonalProfile table -- Identity remains the
+  // single owner of "who this person is," shared verbatim by both Patient and
+  // Doctor onboarding. Deliberately NOT a fullName field: displayName already
+  // serves that purpose.
+  dateOfBirth       DateTime?
+  // Plain string, not a Prisma enum type -- matches role/status/
+  // preferredLanguage's own existing convention above (domain-layer enum,
+  // string-typed column; see identity/domain/enums/gender.enum.ts).
+  gender            String?
+  nationalityId     String?
+  nationality       Country?  @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
+  address           String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   credential        Credential?
@@ -28,6 +42,10 @@ model Account {
   securityEvents    SecurityEvent[]
   notifications     Notification[]
   mediaAssets       MediaAsset[]
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.2): VerificationCase
+  // references the subject's Account directly and uniformly, regardless of
+  // subject type -- not DoctorProfile.id as it did before.
+  verificationCases VerificationCase[]
 }
 
 enum CredentialStatus {
@@ -120,11 +138,28 @@ model DoctorProfile {
   // hospital affiliation at all.
   hospitalId             String?
   hospital               Hospital?             @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): specialtyId is
+  // additive alongside the still-live free-text `specialty` column during
+  // the transition (§10) -- `specialty` is dropped in Stage O.9 once every
+  // profile has a backfilled specialtyId. departmentId requires hospitalId
+  // (enforced in the domain entity, not the database) -- a doctor may exist
+  // with neither, with only a hospital, or with both a hospital and a
+  // department, but never a department alone.
+  specialtyId            String?
+  medicalSpecialty       MedicalSpecialty?     @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  professionalRank       String?
+  licenseExpiryDate      DateTime?
+  departmentId           String?
+  department             Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
   publications           PortfolioPublication[]
   awards                 PortfolioAward[]
-  verificationCases      VerificationCase[]
+  // VerificationCase no longer relates to DoctorProfile directly (Onboarding
+  // Redesign, 2026-07-21 proposal, Stage O.2) -- it references Account via
+  // subjectAccountId uniformly for every subject type. A repository join
+  // through DoctorProfile.accountId is how "cases for this doctor profile"
+  // queries are served when needed, not a stored relation here.
   availabilityWindows    AvailabilityWindow[]
   appointments           Appointment[]
   paymentTransactions    PaymentTransaction[]
@@ -135,6 +170,8 @@ model DoctorProfile {
   scheduleExceptions     ScheduleException[]
 
   @@index([hospitalId])
+  @@index([specialtyId])
+  @@index([departmentId])
 }
 
 // ORIVEX Roadmap 2.0 Stage 4: AdministrationModule's own aggregate root -- a
@@ -155,14 +192,66 @@ model Hospital {
 }
 
 model Department {
-  id         String   @id @default(uuid())
+  id         String          @id @default(uuid())
   hospitalId String
-  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+  hospital   Hospital        @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
   name       String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime        @default(now())
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): first real
+  // consumer of Department -- previously an orphaned org-chart node with no
+  // relation back to DoctorProfile at all.
+  doctors    DoctorProfile[]
 
   @@unique([hospitalId, name])
   @@index([hospitalId])
+}
+
+// Onboarding Redesign (2026-07-21 proposal, §4/§6): finishes the `reference`
+// schema docs/09-physical-database.md already designed but never built.
+// Plain, runtime-extensible lookup data (SuperAdmin-managed) -- not owned by
+// any single bounded context, referenced by Doctor (specialty) and Patient
+// (insurance provider, nationality) alike.
+// doctorProfiles back-relation intentionally not added yet -- DoctorProfile
+// gains its specialtyId FK in Stage O.3, not this stage (§10/§14 sequencing:
+// reference tables ship standalone first, with zero coupling to Doctor/
+// Patient profiles, before anything references them).
+model MedicalSpecialty {
+  id             String          @id @default(uuid())
+  name           String          @unique
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): first real
+  // consumer -- Stage O.1 deliberately shipped this table with zero
+  // coupling to DoctorProfile first.
+  doctorProfiles DoctorProfile[]
+}
+
+model Country {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  iso2Code  String    @unique
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  // Doubles as the nationality list -- a nationality is a country reference,
+  // no separate table (proposal §4).
+  accountsByNationality Account[]
+}
+
+// patientProfiles back-relation intentionally not added yet -- same
+// sequencing reason as MedicalSpecialty above; PatientProfile gains its
+// insuranceProviderId FK in Stage O.3.
+model InsuranceProvider {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): first real
+  // consumer -- Stage O.1 deliberately shipped this table with zero
+  // coupling to PatientProfile first.
+  patientProfiles PatientProfile[]
 }
 
 model PortfolioPublication {
@@ -228,21 +317,34 @@ enum VerificationStatus {
 // TrustModule entry). Documents are modeled as an explicit relation to
 // existing MediaAsset rows (docs/11-api-contracts.md's "reference by ID via
 // AssetModule" pattern), never as a raw ID array.
+// Onboarding Redesign (2026-07-21 proposal, Stage O.2): generalized from
+// Doctor-only to any verification subject. subjectAccountId is the uniform
+// reference every subject type shares; licenseNumber/specialtyCode are
+// nullable and populated only for subjectType=DOCTOR (mirrors the domain
+// entity's own DoctorProfessionalDetails value object -- no doctorId column
+// or DoctorProfile relation anymore, see DoctorProfile's own comment on why).
 model VerificationCase {
-  id            String                 @id @default(uuid())
-  doctorId      String
-  doctorProfile DoctorProfile          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  licenseNumber String
-  specialtyCode String
-  status        VerificationStatus     @default(SUBMITTED)
-  reason        String?
-  submittedAt   DateTime               @default(now())
-  decidedAt     DateTime?
-  documents     VerificationDocument[]
+  id               String                   @id @default(uuid())
+  subjectAccountId String
+  subjectAccount   Account                  @relation(fields: [subjectAccountId], references: [id], onDelete: Restrict)
+  subjectType      VerificationSubjectType
+  licenseNumber    String?
+  specialtyCode    String?
+  status           VerificationStatus       @default(SUBMITTED)
+  reason           String?
+  submittedAt      DateTime                 @default(now())
+  decidedAt        DateTime?
+  documents        VerificationDocument[]
 
-  @@index([doctorId])
+  @@index([subjectAccountId])
+  @@index([subjectType])
   @@index([status])
   @@index([submittedAt])
+}
+
+enum VerificationSubjectType {
+  DOCTOR
+  PATIENT
 }
 
 model VerificationDocument {
@@ -320,7 +422,8 @@ model PatientProfile {
   id                String             @id @default(uuid())
   accountId         String             @unique
   account           Account            @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  dateOfBirth       DateTime?
+  // dateOfBirth moved to Account/UserProfile (Onboarding Redesign,
+  // 2026-07-21 proposal §0a) -- Identity owns cross-role personal info.
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   emergencyContacts EmergencyContact[]
@@ -328,6 +431,18 @@ model PatientProfile {
   paymentTransactions PaymentTransaction[]
   healthGraph       HealthGraph?
   vitalReadings     VitalReading[]
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): Patient's own
+  // medical-profile fields -- deliberately unstructured free text for
+  // allergies/chronicDiseases (no ICD-11/SNOMED CT, no reference tables,
+  // for this phase; normalizing into discrete, coded entries is a future
+  // phase, per the approved proposal).
+  bloodType         String?
+  allergies         String?
+  chronicDiseases   String?
+  insuranceProviderId String?
+  insuranceProvider   InsuranceProvider? @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
+
+  @@index([insuranceProviderId])
 }
 
 model EmergencyContact {

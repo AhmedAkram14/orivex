@@ -14,6 +14,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import { PatientModule } from './modules/patient/patient.module.js';
 import { PaymentModule } from './modules/payment/payment.module.js';
+import { ReferenceModule } from './modules/reference/reference.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
 import { TrustModule } from './modules/trust/trust.module.js';
 import { PrismaModule } from './platform/database/prisma.module.js';
@@ -38,6 +39,7 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     DoctorModule,
     AssetModule,
     AdministrationModule,
+    ReferenceModule,
     PatientModule,
     SchedulingModule,
     ConsultationModule,

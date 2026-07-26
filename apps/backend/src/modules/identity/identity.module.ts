@@ -11,9 +11,11 @@ import { ListAccountsUseCase } from './application/use-cases/list-accounts/list-
 import { RegisterAccountUseCase } from './application/use-cases/register-account/register-account.use-case.js';
 import { SuspendAccountUseCase } from './application/use-cases/suspend-account/suspend-account.use-case.js';
 import { UpdateAccountRoleUseCase } from './application/use-cases/update-account-role/update-account-role.use-case.js';
+import { UpdatePersonalProfileUseCase } from './application/use-cases/update-personal-profile/update-personal-profile.use-case.js';
 import type { AccountRepository } from './domain/repositories/account.repository.js';
 import { PrismaAccountRepository } from './infrastructure/prisma/prisma-account.repository.js';
 import { AccountController } from './presentation/controllers/account.controller.js';
+import { MyAccountController } from './presentation/controllers/my-account.controller.js';
 
 // The use cases themselves (application/use-cases/**) are plain TypeScript
 // classes with zero NestJS dependency — no @Injectable(), no @Inject(). All
@@ -23,7 +25,12 @@ import { AccountController } from './presentation/controllers/account.controller
 // bound once by the global EventsModule) by token.
 @Module({
   imports: [AuthenticationGuardsModule],
-  controllers: [AccountController],
+  // MyAccountController ("accounts/me") MUST be registered before
+  // AccountController ("accounts/:id") -- Nest/Express matches routes in
+  // registration order, and AccountController's :id param would otherwise
+  // swallow the literal "me" segment before it ever reached the right
+  // controller (and enforce SuperAdmin-only in the process).
+  controllers: [MyAccountController, AccountController],
   providers: [
     { provide: ACCOUNT_REPOSITORY, useClass: PrismaAccountRepository },
     {
@@ -59,6 +66,11 @@ import { AccountController } from './presentation/controllers/account.controller
         new UpdateAccountRoleUseCase(accountRepository, eventDispatcher),
       inject: [ACCOUNT_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
+    {
+      provide: UpdatePersonalProfileUseCase,
+      useFactory: (accountRepository: AccountRepository) => new UpdatePersonalProfileUseCase(accountRepository),
+      inject: [ACCOUNT_REPOSITORY],
+    },
   ],
   exports: [
     RegisterAccountUseCase,
@@ -67,6 +79,7 @@ import { AccountController } from './presentation/controllers/account.controller
     GetAccountByEmailUseCase,
     ListAccountsUseCase,
     UpdateAccountRoleUseCase,
+    UpdatePersonalProfileUseCase,
   ],
 })
 export class IdentityModule {}

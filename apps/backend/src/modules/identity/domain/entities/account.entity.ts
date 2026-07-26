@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { AccountRole } from '../enums/account-role.enum.js';
 import { AccountStatus } from '../enums/account-status.enum.js';
+import type { Gender } from '../enums/gender.enum.js';
 import { Language } from '../enums/language.enum.js';
 import { AccountCreatedEvent } from '../events/account-created.event.js';
 import { AccountRoleChangedEvent } from '../events/account-role-changed.event.js';
@@ -35,6 +36,18 @@ export interface UpdateProfileProps {
   displayName?: DisplayName;
   phoneNumber?: string;
   preferredLanguage?: Language;
+}
+
+// Onboarding Redesign (2026-07-21 proposal, §0a): the shared "Personal Info"
+// step both Patient and Doctor onboarding submit through. Deliberately a
+// separate method/props shape from UpdateProfileProps above (which predates
+// this and covers display-facing account settings) -- keeps the two
+// concerns' call sites explicit rather than one growing catch-all.
+export interface UpdatePersonalProfileProps {
+  dateOfBirth?: Date | null;
+  gender?: Gender | null;
+  nationalityId?: string | null;
+  address?: string | null;
 }
 
 // Aggregate root of the Identity & Access bounded context (docs/10-backend-
@@ -132,6 +145,26 @@ export class Account {
     }
     if (props.preferredLanguage) {
       this.userProfile.updatePreferredLanguage(props.preferredLanguage);
+    }
+    this.updatedAt = new Date();
+  }
+
+  // Onboarding Redesign (2026-07-21 proposal, §0a): updates UserProfile's
+  // shared personal-identity fields through the aggregate root, same
+  // "never mutate UserProfile directly from outside Account" rule
+  // updateProfile() already establishes.
+  updatePersonalProfile(props: UpdatePersonalProfileProps): void {
+    if (props.dateOfBirth !== undefined) {
+      this.userProfile.updateDateOfBirth(props.dateOfBirth ?? undefined);
+    }
+    if (props.gender !== undefined) {
+      this.userProfile.updateGender(props.gender ?? undefined);
+    }
+    if (props.nationalityId !== undefined) {
+      this.userProfile.updateNationalityId(props.nationalityId ?? undefined);
+    }
+    if (props.address !== undefined) {
+      this.userProfile.updateAddress(props.address ?? undefined);
     }
     this.updatedAt = new Date();
   }
