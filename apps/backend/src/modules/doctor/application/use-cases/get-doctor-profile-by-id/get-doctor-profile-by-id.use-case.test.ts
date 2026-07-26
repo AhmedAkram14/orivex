@@ -24,7 +24,7 @@ describe('GetDoctorProfileByIdUseCase', () => {
     const profile = DoctorProfile.register({
       accountId: '11111111-1111-4111-8111-111111111111',
       licenseNumber: 'LIC-1',
-      specialty: 'Neurology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
     const useCase = new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(profile));
 

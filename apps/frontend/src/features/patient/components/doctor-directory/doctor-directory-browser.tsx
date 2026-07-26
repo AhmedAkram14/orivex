@@ -4,6 +4,7 @@ import { Search, Stethoscope } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useDoctorsList } from '@/features/doctor/hooks/use-doctors-list';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { Alert } from '@/shared/ui/alert';
 import { Card, CardContent } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -39,6 +40,8 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
     specialty: search.trim() || undefined,
     specialtyId: initialSpecialtyId,
   });
+  const { data: specialties } = useSpecialtiesList();
+  const specialtyNameById = new Map((specialties ?? []).map((specialty) => [specialty.id, specialty.name]));
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -76,7 +79,9 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
                 <Card className="h-full transition-shadow hover:shadow-md">
                   <CardContent className="flex flex-col gap-2 pt-6">
                     <p className="text-sm font-medium text-text-primary">{doctor.displayName}</p>
-                    <p className="text-sm text-text-secondary">{doctor.specialty}</p>
+                    <p className="text-sm text-text-secondary">
+                      {specialtyNameById.get(doctor.specialtyId) ?? t('unknownSpecialty')}
+                    </p>
                     {doctor.yearsOfExperience !== undefined && (
                       <p className="text-xs text-text-tertiary">
                         {t('yearsOfExperience', { years: doctor.yearsOfExperience })}

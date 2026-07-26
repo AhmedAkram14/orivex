@@ -34,7 +34,6 @@ export class RegisterDoctorProfileUseCase {
     const profile = DoctorProfile.register({
       accountId: command.accountId,
       licenseNumber: command.licenseNumber,
-      specialty: command.specialty,
       biography: command.biography,
       yearsOfExperience: command.yearsOfExperience,
       languages: command.languages,

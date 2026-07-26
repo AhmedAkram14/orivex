@@ -9,12 +9,14 @@ import {
   createDoctorProfileSchema,
   type DoctorProfileFormValues,
 } from '@/features/doctor/schemas/profile.schema';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
 
 const SUPPORTED_LANGUAGES = ['en', 'ar'] as const;
@@ -27,23 +29,27 @@ export interface DoctorProfileFormProps {
 
 /**
  * The Doctor Profile's edit architecture — only the fields
- * `DoctorProfileUpdateRequest` actually allows (specialty, biography, years
- * of experience, languages). Identity fields (`fullName`, `email`,
+ * `DoctorProfileUpdateRequest` actually allows (specialtyId, biography,
+ * years of experience, languages). Identity fields (`fullName`, `email`,
  * `phoneNumber`) are Account-owned (Identity has no update-profile endpoint
  * yet) and `licenseNumber`/`publications`/`awards` are excluded from this
  * phase's edit architecture — mirrors `PatientProfileForm`'s own identity-
- * field exclusion rationale exactly.
+ * field exclusion rationale exactly. Onboarding Redesign Stage O.9: this is
+ * now a reference-data dropdown (mirrors the Doctor Onboarding wizard's own
+ * Professional Info step), not a free-text input -- DoctorProfile no longer
+ * carries its own free-text specialty at all.
  */
 export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileFormProps) {
   const t = useTranslations('doctor.profile');
   const tValidation = useTranslations('doctor.profile.validation');
   const tLanguages = useTranslations('doctor.profile.languageNames');
   const updateProfile = useUpdateDoctorProfile();
+  const { data: specialties, isLoading: specialtiesLoading } = useSpecialtiesList();
 
   const form = useForm<DoctorProfileFormValues>({
     resolver: zodResolver(createDoctorProfileSchema(tValidation)),
     defaultValues: {
-      specialty: profile.specialty,
+      specialtyId: profile.specialtyId,
       biography: profile.biography,
       yearsOfExperience: profile.yearsOfExperience,
       languages: profile.languages,
@@ -70,13 +76,24 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
 
         <FormField
           control={form.control}
-          name="specialty"
+          name="specialtyId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('specialty')}</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
+              <Select value={field.value} onValueChange={field.onChange} disabled={specialtiesLoading}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('specialtyPlaceholder')} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {(specialties ?? []).map((specialty) => (
+                    <SelectItem key={specialty.id} value={specialty.id}>
+                      {specialty.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}

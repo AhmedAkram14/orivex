@@ -66,9 +66,8 @@ export interface DoctorProfile {
   email: string;
   phoneNumber?: string;
   licenseNumber: string;
-  specialty: string;
-  /** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6): the reference-data specialty selection -- `specialty` above stays as the free-text snapshot backend entities still carry, `specialtyId` is the live FK. */
-  specialtyId?: string;
+  /** Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of a doctor's specialty -- the transitional free-text `specialty` field is gone; resolve a display name via `@/features/reference`'s specialties list. */
+  specialtyId: string;
   biography?: string;
   yearsOfExperience?: number;
   languages: string[];
@@ -97,8 +96,7 @@ export type ProfessionalRank = 'resident' | 'registrar' | 'specialist' | 'consul
  */
 export interface RegisterDoctorProfileRequest {
   licenseNumber: string;
-  specialty: string;
-  specialtyId?: string;
+  specialtyId: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
@@ -119,7 +117,6 @@ export interface RegisterDoctorProfileRequest {
  * it (only `RegisterDoctorProfileUseCase` sets it, once, at registration).
  */
 export interface DoctorProfileUpdateRequest {
-  specialty?: string;
   specialtyId?: string;
   biography?: string;
   yearsOfExperience?: number;
@@ -179,14 +176,13 @@ export interface DoctorDirectoryEntry {
   doctorProfileId: string;
   accountId: string;
   displayName: string;
-  specialty: string;
-  specialtyId?: string;
+  specialtyId: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
   hospitalId?: string;
 }
 
-/** Matches DoctorProfileController's real `ListDoctorDirectoryQueryDto` exactly -- all optional, `specialty` is a free-text contains-match, `specialtyId`/`hospitalId` are exact-match UUID filters. */
+/** Matches DoctorProfileController's real `ListDoctorDirectoryQueryDto` exactly -- all optional, `specialty` is a free-text contains-match (now matched via a MedicalSpecialty.name join server-side, Stage O.9), `specialtyId`/`hospitalId` are exact-match UUID filters. */
 export interface ListDoctorDirectoryParams {
   page?: number;
   limit?: number;

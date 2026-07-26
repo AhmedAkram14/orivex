@@ -15,7 +15,6 @@ import type { ProfessionalRank } from '../../../domain/enums/professional-rank.e
 export interface RegisterDoctorProfileCommandProps {
   accountId: string;
   licenseNumber: string;
-  specialty: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
@@ -24,8 +23,9 @@ export interface RegisterDoctorProfileCommandProps {
   hospitalId?: string;
   publications?: PortfolioPublicationInput[];
   awards?: PortfolioAwardInput[];
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.3).
-  specialtyId?: string;
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
+  // a doctor's specialty, required.
+  specialtyId: string;
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: Date;
   departmentId?: string;
@@ -36,7 +36,6 @@ export interface RegisterDoctorProfileCommandProps {
 export class RegisterDoctorProfileCommand {
   readonly accountId: string;
   readonly licenseNumber: string;
-  readonly specialty: string;
   readonly biography?: string;
   readonly yearsOfExperience?: number;
   readonly languages?: string[];
@@ -44,7 +43,7 @@ export class RegisterDoctorProfileCommand {
   readonly hospitalId?: string;
   readonly publications?: PortfolioPublicationInput[];
   readonly awards?: PortfolioAwardInput[];
-  readonly specialtyId?: string;
+  readonly specialtyId: string;
   readonly professionalRank?: ProfessionalRank;
   readonly licenseExpiryDate?: Date;
   readonly departmentId?: string;
@@ -52,7 +51,6 @@ export class RegisterDoctorProfileCommand {
   constructor(props: RegisterDoctorProfileCommandProps) {
     this.accountId = props.accountId;
     this.licenseNumber = props.licenseNumber;
-    this.specialty = props.specialty;
     this.biography = props.biography;
     this.yearsOfExperience = props.yearsOfExperience;
     this.languages = props.languages;

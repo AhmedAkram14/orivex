@@ -3,6 +3,7 @@
 import { Mail, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { DoctorProfile } from '@/features/doctor/api/types';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -33,6 +34,8 @@ export interface DoctorProfileViewProps {
  */
 export function DoctorProfileView({ profile }: DoctorProfileViewProps) {
   const t = useTranslations('doctor.profile');
+  const { data: specialties } = useSpecialtiesList();
+  const specialtyName = specialties?.find((specialty) => specialty.id === profile.specialtyId)?.name ?? t('notOnRecord');
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,7 +45,7 @@ export function DoctorProfileView({ profile }: DoctorProfileViewProps) {
         </Avatar>
         <div className="flex flex-col gap-1">
           <p className="text-lg font-semibold text-text-primary">{profile.fullName}</p>
-          <p className="text-sm text-text-secondary">{profile.specialty}</p>
+          <p className="text-sm text-text-secondary">{specialtyName}</p>
         </div>
       </div>
 

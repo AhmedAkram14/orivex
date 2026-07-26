@@ -106,7 +106,7 @@ describe('SchedulingController (integration)', () => {
     const doctorProfile = DoctorProfile.register({
       accountId: DOCTOR_ACCOUNT_ID,
       licenseNumber: 'LIC-1',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
     const doctorProfileRepository = new InMemoryDoctorProfileRepository([doctorProfile]);
 

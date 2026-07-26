@@ -11,6 +11,7 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import type { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../consultation/domain/enums/appointment-status.enum.js';
@@ -79,7 +80,19 @@ export class PatientDashboardController {
     private readonly listVitalReadingsForPatientUseCase: ListVitalReadingsForPatientUseCase,
     private readonly listClinicalNotesForConsultationSessionUseCase: ListClinicalNotesForConsultationSessionUseCase,
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
+    private readonly listMedicalSpecialtiesUseCase: ListMedicalSpecialtiesUseCase,
   ) {}
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): DoctorProfile no
+  // longer carries its own free-text specialty name (dropped in favor of
+  // specialtyId only) -- this dashboard's "upcoming appointment" preview
+  // still needs a human-readable specialization string, so it's resolved
+  // here, once per request (ReferenceModule's own specialty list is small
+  // and already fully loaded either way), never per-appointment.
+  private async resolveSpecialtyNames(): Promise<Map<string, string>> {
+    const specialties = await this.listMedicalSpecialtiesUseCase.execute();
+    return new Map(specialties.map((specialty) => [specialty.getId(), specialty.getName()]));
+  }
 
   @Get('me/dashboard-summary')
   async getDashboardSummary(
@@ -127,8 +140,9 @@ export class PatientDashboardController {
       .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime());
 
     const doctorCache: DoctorCache = new Map();
+    const specialtyNames = await this.resolveSpecialtyNames();
     const items = await Promise.all(
-      upcoming.map((appointment) => this.toUpcomingAppointmentPreview(appointment, doctorCache)),
+      upcoming.map((appointment) => this.toUpcomingAppointmentPreview(appointment, doctorCache, specialtyNames)),
     );
 
     return envelope(items.filter((item): item is UpcomingAppointmentPreviewResponseDto => item !== null));
@@ -274,12 +288,14 @@ export class PatientDashboardController {
   private async toUpcomingAppointmentPreview(
     appointment: Appointment,
     doctorCache: DoctorCache,
+    specialtyNames: Map<string, string>,
   ): Promise<UpcomingAppointmentPreviewResponseDto | null> {
     const resolved = await this.resolveDoctor(appointment.getDoctorId(), doctorCache);
     if (!resolved) {
       return null;
     }
-    return UpcomingAppointmentPreviewResponseDto.fromDomain(appointment, resolved.profile, resolved.account);
+    const specialization = specialtyNames.get(resolved.profile.getSpecialtyId()) ?? 'Unknown specialty';
+    return UpcomingAppointmentPreviewResponseDto.fromDomain(appointment, resolved.account, specialization);
   }
 
   private async toActivePrescriptionPreview(

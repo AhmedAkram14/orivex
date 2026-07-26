@@ -50,12 +50,13 @@ export class AppointmentListItemResponseDto {
     doctorProfile: DoctorProfile,
     doctorAccount: Account,
     consultationSessionId: string | null,
+    specialization: string,
   ): AppointmentListItemResponseDto {
     const dto = new AppointmentListItemResponseDto();
     dto.id = appointment.getId();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.doctorName = doctorAccount.getUserProfile().getDisplayName().toString();
-    dto.specialization = doctorProfile.getSpecialty();
+    dto.specialization = specialization;
     dto.status = appointment.getStatus();
     dto.consultationType = appointment.getConsultationType();
     dto.reasonForVisit = appointment.getReasonForVisit() ?? null;

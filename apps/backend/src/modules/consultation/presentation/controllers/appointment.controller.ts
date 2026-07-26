@@ -15,6 +15,7 @@ import type { DoctorProfile } from '../../../doctor/domain/entities/doctor-profi
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { PaginationQueryDto } from '../../../../shared/http/pagination-query.dto.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
@@ -56,7 +57,17 @@ export class AppointmentController {
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
+    private readonly listMedicalSpecialtiesUseCase: ListMedicalSpecialtiesUseCase,
   ) {}
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): DoctorProfile no
+  // longer carries its own free-text specialty name -- resolved here, once
+  // per request (ReferenceModule's own specialty list is small), never
+  // per-appointment.
+  private async resolveSpecialtyNames(): Promise<Map<string, string>> {
+    const specialties = await this.listMedicalSpecialtiesUseCase.execute();
+    return new Map(specialties.map((specialty) => [specialty.getId(), specialty.getName()]));
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -112,7 +123,8 @@ export class AppointmentController {
       page,
       limit,
     });
-    const items = await Promise.all(appointments.map((appointment) => this.toListItem(appointment)));
+    const specialtyNames = await this.resolveSpecialtyNames();
+    const items = await Promise.all(appointments.map((appointment) => this.toListItem(appointment, specialtyNames)));
 
     return envelope(items.filter((item): item is AppointmentListItemResponseDto => item !== null), {
       page,
@@ -162,7 +174,10 @@ export class AppointmentController {
     return false;
   }
 
-  private async toListItem(appointment: Appointment): Promise<AppointmentListItemResponseDto | null> {
+  private async toListItem(
+    appointment: Appointment,
+    specialtyNames: Map<string, string>,
+  ): Promise<AppointmentListItemResponseDto | null> {
     const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
       doctorProfileId: appointment.getDoctorId(),
     });
@@ -178,6 +193,13 @@ export class AppointmentController {
     const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
       appointmentId: appointment.getId(),
     });
-    return AppointmentListItemResponseDto.fromDomain(appointment, doctorProfile, doctorAccount, session?.getId() ?? null);
+    const specialization = specialtyNames.get(doctorProfile.getSpecialtyId()) ?? 'Unknown specialty';
+    return AppointmentListItemResponseDto.fromDomain(
+      appointment,
+      doctorProfile,
+      doctorAccount,
+      session?.getId() ?? null,
+      specialization,
+    );
   }
 }

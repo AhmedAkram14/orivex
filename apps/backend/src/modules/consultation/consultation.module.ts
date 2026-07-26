@@ -11,6 +11,7 @@ import { DoctorModule } from '../doctor/doctor.module.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
+import { ReferenceModule } from '../reference/reference.module.js';
 import { ConfirmSlotUseCase } from '../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { ReleaseSlotUseCase } from '../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
@@ -50,7 +51,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
 // those modules import Consultation back -- no circular imports, no
 // forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule, TrustGuardsModule],
+  imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule, TrustGuardsModule, ReferenceModule],
   controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController, TelemedicineWebhookController],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },

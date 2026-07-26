@@ -95,7 +95,6 @@ export class DoctorProfileController {
         new RegisterDoctorProfileCommand({
           accountId: user.accountId,
           licenseNumber: body.licenseNumber,
-          specialty: body.specialty,
           biography: body.biography,
           yearsOfExperience: body.yearsOfExperience,
           languages: body.languages,
@@ -141,7 +140,6 @@ export class DoctorProfileController {
       const profile = await this.updateDoctorProfileUseCase.execute(
         new UpdateDoctorProfileCommand({
           doctorProfileId: existing.getId(),
-          specialty: body.specialty,
           biography: body.biography,
           yearsOfExperience: body.yearsOfExperience,
           languages: body.languages,
@@ -225,7 +223,6 @@ export class DoctorProfileController {
       const profile = await this.updateDoctorProfileUseCase.execute(
         new UpdateDoctorProfileCommand({
           doctorProfileId: id,
-          specialty: body.specialty,
           biography: body.biography,
           yearsOfExperience: body.yearsOfExperience,
           languages: body.languages,

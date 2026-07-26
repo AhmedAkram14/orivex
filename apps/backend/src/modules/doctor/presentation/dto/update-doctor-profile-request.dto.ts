@@ -38,11 +38,6 @@ class PortfolioAwardDto {
 export class UpdateDoctorProfileRequestDto {
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  specialty?: string;
-
-  @IsOptional()
-  @IsString()
   biography?: string;
 
   @IsOptional()

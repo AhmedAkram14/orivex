@@ -136,7 +136,7 @@ function buildDoctorProfile(consultationFeeAmount?: number): DoctorProfile {
   return DoctorProfile.register({
     accountId: 'account-1',
     licenseNumber: 'LIC-1',
-    specialty: 'Cardiology',
+    specialtyId: '11111111-1111-4111-8111-111111111111',
     consultationFeeAmount,
   });
 }

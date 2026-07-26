@@ -53,6 +53,9 @@ import type { ClinicalNoteRepository } from '../../domain/repositories/clinical-
 import type { HealthGraphRepository } from '../../domain/repositories/health-graph.repository.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
 import type { VitalReadingRepository } from '../../domain/repositories/vital-reading.repository.js';
+import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
+import { MedicalSpecialty } from '../../../reference/domain/entities/medical-specialty.entity.js';
+import type { MedicalSpecialtyRepository } from '../../../reference/domain/repositories/medical-specialty.repository.js';
 
 import { PatientDashboardController } from './patient-dashboard.controller.js';
 
@@ -102,6 +105,17 @@ class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
   }
   async findByAccountId(): Promise<DoctorProfile | null> {
     return null;
+  }
+  async save(): Promise<void> {}
+}
+
+class InMemoryMedicalSpecialtyRepository implements MedicalSpecialtyRepository {
+  constructor(private readonly specialties: MedicalSpecialty[]) {}
+  async findAll(): Promise<MedicalSpecialty[]> {
+    return this.specialties;
+  }
+  async findById(id: string): Promise<MedicalSpecialty | null> {
+    return this.specialties.find((specialty) => specialty.getId() === id) ?? null;
   }
   async save(): Promise<void> {}
 }
@@ -231,7 +245,7 @@ describe('PatientDashboardController (integration)', () => {
     doctor = DoctorProfile.register({
       accountId: doctorAccount.getId().toString(),
       licenseNumber: 'LIC-1',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
 
     confirmedAppointment = Appointment.request({
@@ -356,6 +370,21 @@ describe('PatientDashboardController (integration)', () => {
             new GetHealthGraphSubgraphUseCase(
               new InMemoryHealthGraphRepository(healthGraph),
               new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
+            ),
+        },
+        {
+          provide: ListMedicalSpecialtiesUseCase,
+          useFactory: () =>
+            new ListMedicalSpecialtiesUseCase(
+              new InMemoryMedicalSpecialtyRepository([
+                MedicalSpecialty.reconstitute({
+                  id: '11111111-1111-4111-8111-111111111111',
+                  name: 'Cardiology',
+                  isActive: true,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                }),
+              ]),
             ),
         },
       ],

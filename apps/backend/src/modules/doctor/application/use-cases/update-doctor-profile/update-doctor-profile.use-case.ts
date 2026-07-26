@@ -21,7 +21,6 @@ export class UpdateDoctorProfileUseCase {
     }
 
     profile.update({
-      specialty: command.specialty,
       biography: command.biography,
       yearsOfExperience: command.yearsOfExperience,
       languages: command.languages,

@@ -11,7 +11,6 @@ import { PortfolioPublication, type PortfolioPublicationProps } from './portfoli
 export interface RegisterDoctorProfileProps {
   accountId: string;
   licenseNumber: string;
-  specialty: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
@@ -22,20 +21,19 @@ export interface RegisterDoctorProfileProps {
   hospitalId?: string;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): specialtyId is
-  // additive alongside the still-live free-text `specialty` during the
-  // transition (§10) -- both may be set; specialty is dropped in Stage O.9
-  // once every profile has a backfilled specialtyId. departmentId requires
-  // hospitalId (validated below) -- a department only makes sense within a
-  // hospital, never standalone.
-  specialtyId?: string;
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
+  // a doctor's specialty -- the transitional free-text `specialty` field
+  // (Stage O.3-O.8) is gone; specialtyId is now required, matching the
+  // database column it backs. departmentId requires hospitalId (validated
+  // below) -- a department only makes sense within a hospital, never
+  // standalone.
+  specialtyId: string;
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: Date;
   departmentId?: string;
 }
 
 export interface UpdateDoctorProfileProps {
-  specialty?: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
@@ -43,7 +41,9 @@ export interface UpdateDoctorProfileProps {
   hospitalId?: string | null;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
-  specialtyId?: string | null;
+  // Never nullable -- a doctor profile always has a specialty, this only
+  // ever changes which one.
+  specialtyId?: string;
   professionalRank?: ProfessionalRank | null;
   licenseExpiryDate?: Date | null;
   departmentId?: string | null;
@@ -53,7 +53,6 @@ export interface ReconstituteDoctorProfileProps {
   id: string;
   accountId: string;
   licenseNumber: string;
-  specialty: string;
   biography?: string;
   yearsOfExperience?: number;
   languages: string[];
@@ -63,7 +62,7 @@ export interface ReconstituteDoctorProfileProps {
   awards: PortfolioAward[];
   createdAt: Date;
   updatedAt: Date;
-  specialtyId?: string;
+  specialtyId: string;
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: Date;
   departmentId?: string;
@@ -82,7 +81,6 @@ export class DoctorProfile {
     private readonly id: string,
     private readonly accountId: string,
     private licenseNumber: string,
-    private specialty: string,
     private biography: string | undefined,
     private yearsOfExperience: number | undefined,
     private languages: string[],
@@ -92,7 +90,7 @@ export class DoctorProfile {
     private awards: PortfolioAward[],
     private readonly createdAt: Date,
     private updatedAt: Date,
-    private specialtyId: string | undefined,
+    private specialtyId: string,
     private professionalRank: ProfessionalRank | undefined,
     private licenseExpiryDate: Date | undefined,
     private departmentId: string | undefined,
@@ -100,7 +98,6 @@ export class DoctorProfile {
 
   static register(props: RegisterDoctorProfileProps): DoctorProfile {
     DoctorProfile.validateLicenseNumber(props.licenseNumber);
-    DoctorProfile.validateSpecialty(props.specialty);
     DoctorProfile.validateYearsOfExperience(props.yearsOfExperience);
     DoctorProfile.validateConsultationFee(props.consultationFeeAmount);
     DoctorProfile.validateDepartmentRequiresHospital(props.hospitalId, props.departmentId);
@@ -110,7 +107,6 @@ export class DoctorProfile {
       randomUUID(),
       props.accountId,
       props.licenseNumber.trim(),
-      props.specialty.trim(),
       props.biography?.trim(),
       props.yearsOfExperience,
       props.languages ?? [],
@@ -135,7 +131,6 @@ export class DoctorProfile {
       props.id,
       props.accountId,
       props.licenseNumber,
-      props.specialty,
       props.biography,
       props.yearsOfExperience,
       props.languages,
@@ -153,9 +148,8 @@ export class DoctorProfile {
   }
 
   update(props: UpdateDoctorProfileProps): void {
-    if (props.specialty !== undefined) {
-      DoctorProfile.validateSpecialty(props.specialty);
-      this.specialty = props.specialty.trim();
+    if (props.specialtyId !== undefined) {
+      this.specialtyId = props.specialtyId;
     }
     if (props.biography !== undefined) {
       this.biography = props.biography.trim();
@@ -184,9 +178,6 @@ export class DoctorProfile {
     if (props.awards !== undefined) {
       this.awards = props.awards.map((a) => PortfolioAward.create(a));
     }
-    if (props.specialtyId !== undefined) {
-      this.specialtyId = props.specialtyId ?? undefined;
-    }
     if (props.professionalRank !== undefined) {
       this.professionalRank = props.professionalRank ?? undefined;
     }
@@ -201,12 +192,6 @@ export class DoctorProfile {
   private static validateLicenseNumber(value: string): void {
     if (!value || value.trim().length === 0) {
       throw new DoctorDomainError('licenseNumber must not be empty.');
-    }
-  }
-
-  private static validateSpecialty(value: string): void {
-    if (!value || value.trim().length === 0) {
-      throw new DoctorDomainError('specialty must not be empty.');
     }
   }
 
@@ -245,10 +230,6 @@ export class DoctorProfile {
     return this.licenseNumber;
   }
 
-  getSpecialty(): string {
-    return this.specialty;
-  }
-
   getBiography(): string | undefined {
     return this.biography;
   }
@@ -269,7 +250,7 @@ export class DoctorProfile {
     return this.hospitalId;
   }
 
-  getSpecialtyId(): string | undefined {
+  getSpecialtyId(): string {
     return this.specialtyId;
   }
 

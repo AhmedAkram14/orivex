@@ -6,7 +6,6 @@ import type {
 
 export interface UpdateDoctorProfileCommandProps {
   doctorProfileId: string;
-  specialty?: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
@@ -15,8 +14,9 @@ export interface UpdateDoctorProfileCommandProps {
   hospitalId?: string | null;
   publications?: PortfolioPublicationInput[];
   awards?: PortfolioAwardInput[];
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.3).
-  specialtyId?: string | null;
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): never nullable --
+  // a doctor profile always has a specialty, this only ever changes which.
+  specialtyId?: string;
   professionalRank?: ProfessionalRank | null;
   licenseExpiryDate?: Date | null;
   departmentId?: string | null;
@@ -24,7 +24,6 @@ export interface UpdateDoctorProfileCommandProps {
 
 export class UpdateDoctorProfileCommand {
   readonly doctorProfileId: string;
-  readonly specialty?: string;
   readonly biography?: string;
   readonly yearsOfExperience?: number;
   readonly languages?: string[];
@@ -32,14 +31,13 @@ export class UpdateDoctorProfileCommand {
   readonly hospitalId?: string | null;
   readonly publications?: PortfolioPublicationInput[];
   readonly awards?: PortfolioAwardInput[];
-  readonly specialtyId?: string | null;
+  readonly specialtyId?: string;
   readonly professionalRank?: ProfessionalRank | null;
   readonly licenseExpiryDate?: Date | null;
   readonly departmentId?: string | null;
 
   constructor(props: UpdateDoctorProfileCommandProps) {
     this.doctorProfileId = props.doctorProfileId;
-    this.specialty = props.specialty;
     this.biography = props.biography;
     this.yearsOfExperience = props.yearsOfExperience;
     this.languages = props.languages;

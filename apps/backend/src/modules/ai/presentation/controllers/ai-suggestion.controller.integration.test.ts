@@ -194,12 +194,12 @@ describe('AISuggestionController (integration)', () => {
     doctor = DoctorProfile.register({
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-1',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
     otherDoctor = DoctorProfile.register({
       accountId: '55555555-5555-4555-8555-555555555555',
       licenseNumber: 'LIC-2',
-      specialty: 'Dermatology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
     doctorProfileRepo = new InMemoryDoctorProfileRepository([doctor, otherDoctor]);
     jwtSigner = new FakeJwtSigner(

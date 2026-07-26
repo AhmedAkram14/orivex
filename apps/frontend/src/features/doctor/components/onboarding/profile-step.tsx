@@ -42,9 +42,9 @@ export interface ProfileStepProps {
  * creates the profile via the real `POST /doctors` the first time through
  * (a still-Patient applicant), or updates it via the existing
  * `PATCH /doctors/me` on every later pass (editing before submission, or
- * after a rejection). `specialty` (free text) is derived from the selected
- * reference-data `specialtyId` at submission time, not shown as a separate
- * field -- one dropdown, not two redundant inputs for the same concept.
+ * after a rejection). Onboarding Redesign Stage O.9: `specialtyId` is the
+ * sole source of a doctor's specialty now -- the transitional free-text
+ * `specialty` field this step used to also derive and send is gone.
  */
 export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
   const t = useTranslations('doctor.onboarding.profileStep');
@@ -78,10 +78,8 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
   const { data: departments, isLoading: departmentsLoading } = useDepartmentsList(selectedHospitalId);
 
   async function onSubmit(values: OnboardingProfileFormValues) {
-    const specialtyName = specialties?.find((specialty) => specialty.id === values.specialtyId)?.name ?? '';
-    const payload = { ...values, specialty: specialtyName };
     try {
-      const saved = isEditing ? await updateProfile.mutateAsync(payload) : await registerProfile.mutateAsync(payload);
+      const saved = isEditing ? await updateProfile.mutateAsync(values) : await registerProfile.mutateAsync(values);
       onSaved(saved);
     } catch {
       // Inline error rendered below from mutation.error.

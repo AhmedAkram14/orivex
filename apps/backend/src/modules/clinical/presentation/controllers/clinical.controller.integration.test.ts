@@ -177,12 +177,12 @@ describe('Clinical controllers (integration)', () => {
     doctor = DoctorProfile.register({
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-1',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
     otherDoctor = DoctorProfile.register({
       accountId: '66666666-6666-4666-8666-666666666666',
       licenseNumber: 'LIC-2',
-      specialty: 'Dermatology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
     const appointment = Appointment.request({
       patientId: patient.getId(),

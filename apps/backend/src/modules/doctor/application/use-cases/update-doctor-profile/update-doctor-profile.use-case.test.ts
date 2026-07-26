@@ -10,6 +10,8 @@ import type { DoctorProfileRepository } from '../../../domain/repositories/docto
 import { UpdateDoctorProfileCommand } from './update-doctor-profile.command.js';
 import { UpdateDoctorProfileUseCase } from './update-doctor-profile.use-case.js';
 
+const SPECIALTY_ID = '11111111-1111-4111-8111-111111111111';
+
 class FakeDoctorProfileRepository implements DoctorProfileRepository {
   public readonly saved: DoctorProfile[] = [];
   constructor(private readonly profile: DoctorProfile | null) {}
@@ -35,7 +37,7 @@ function buildProfile(): DoctorProfile {
   return DoctorProfile.register({
     accountId: '11111111-1111-4111-8111-111111111111',
     licenseNumber: 'LIC-1',
-    specialty: 'Dermatology',
+    specialtyId: SPECIALTY_ID,
   });
 }
 
@@ -46,10 +48,10 @@ describe('UpdateDoctorProfileUseCase', () => {
     const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
 
     const updated = await useCase.execute(
-      new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), specialty: 'Pediatrics' }),
+      new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), biography: 'Updated biography.' }),
     );
 
-    assert.equal(updated.getSpecialty(), 'Pediatrics');
+    assert.equal(updated.getBiography(), 'Updated biography.');
     assert.equal(repo.saved.length, 1);
   });
 
@@ -73,7 +75,7 @@ describe('UpdateDoctorProfileUseCase', () => {
       id: '11111111-1111-4111-8111-111111111111',
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-1',
-      specialty: 'Dermatology',
+      specialtyId: SPECIALTY_ID,
       languages: [],
       hospitalId: '77777777-7777-4777-8777-777777777777',
       publications: [],
@@ -98,7 +100,7 @@ describe('UpdateDoctorProfileUseCase', () => {
     await assert.rejects(
       () =>
         useCase.execute(
-          new UpdateDoctorProfileCommand({ doctorProfileId: 'missing-id', specialty: 'Pediatrics' }),
+          new UpdateDoctorProfileCommand({ doctorProfileId: 'missing-id', biography: 'New biography.' }),
         ),
       NotFoundError,
     );
@@ -165,7 +167,7 @@ describe('UpdateDoctorProfileUseCase', () => {
     await assert.rejects(
       () =>
         useCase.execute(
-          new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), specialty: '   ' }),
+          new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), yearsOfExperience: -1 }),
         ),
       DoctorDomainError,
     );

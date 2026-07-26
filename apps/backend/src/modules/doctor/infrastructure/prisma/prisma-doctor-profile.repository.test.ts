@@ -46,7 +46,7 @@ describe('PrismaDoctorProfileRepository', () => {
     const profile = DoctorProfile.register({
       accountId: '11111111-1111-4111-8111-111111111111',
       licenseNumber: 'LIC-1',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
 
     await assert.rejects(() => repository.save(profile), DoctorProfileAlreadyExistsError);
@@ -66,7 +66,7 @@ describe('PrismaDoctorProfileRepository', () => {
     const profile = DoctorProfile.register({
       accountId: '33333333-3333-4333-8333-333333333333',
       licenseNumber: 'LIC-3',
-      specialty: 'Neurology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
 
     let caught: unknown;
@@ -95,7 +95,7 @@ describe('PrismaDoctorProfileRepository', () => {
     const profile = DoctorProfile.register({
       accountId: '44444444-4444-4444-8444-444444444444',
       licenseNumber: 'LIC-4',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
       hospitalId: '99999999-9999-4999-8999-999999999999',
     });
 
@@ -116,7 +116,6 @@ describe('PrismaDoctorProfileRepository', () => {
     const profile = DoctorProfile.register({
       accountId: '55555555-5555-4555-8555-555555555555',
       licenseNumber: 'LIC-5',
-      specialty: 'Cardiology',
       specialtyId: '99999999-9999-4999-8999-999999999999',
     });
 
@@ -137,7 +136,7 @@ describe('PrismaDoctorProfileRepository', () => {
     const profile = DoctorProfile.register({
       accountId: '66666666-6666-4666-8666-666666666666',
       licenseNumber: 'LIC-6',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
       hospitalId: '77777777-7777-4777-8777-777777777777',
       departmentId: '99999999-9999-4999-8999-999999999999',
     });
@@ -160,7 +159,7 @@ describe('PrismaDoctorProfileRepository', () => {
     const profile = DoctorProfile.register({
       accountId: '22222222-2222-4222-8222-222222222222',
       licenseNumber: 'LIC-2',
-      specialty: 'Dermatology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
     });
 
     await assert.rejects(() => repository.save(profile), (error: unknown) => error === otherError);

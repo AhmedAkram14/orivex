@@ -5,6 +5,7 @@ import { useAccountById } from '@/features/identity/hooks/use-account-by-id';
 import { useDoctorByAccountId } from '@/features/doctor/hooks/use-doctor-by-account-id';
 import { useVerificationCase } from '@/features/admin/hooks/use-verification-case';
 import { useVerificationCaseHistory } from '@/features/admin/hooks/use-verification-case-history';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import type { VerificationCase, VerificationCaseStatus } from '@/features/admin/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge, badgeVariants } from '@/shared/ui/badge';
@@ -72,6 +73,11 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
     verificationCase.subjectType === 'doctor',
   );
   const { data: history } = useVerificationCaseHistory(verificationCase.id);
+  const { data: specialties } = useSpecialtiesList();
+  const specialtyName =
+    specialties?.find((specialty) => specialty.id === doctorProfile?.specialtyId)?.name ??
+    verificationCase.specialtyCode ??
+    t('notOnRecord');
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,7 +140,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
           <Card>
             <CardContent className="grid grid-cols-2 gap-4 pt-6 sm:grid-cols-3">
               <InfoRow label={t('licenseNumber')} value={verificationCase.licenseNumber ?? t('notOnRecord')} />
-              <InfoRow label={t('specialty')} value={doctorProfile?.specialty ?? verificationCase.specialtyCode ?? t('notOnRecord')} />
+              <InfoRow label={t('specialty')} value={specialtyName} />
               <InfoRow
                 label={t('licenseExpiryDate')}
                 value={

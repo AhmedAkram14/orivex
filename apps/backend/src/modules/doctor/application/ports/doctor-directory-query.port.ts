@@ -7,19 +7,21 @@
 // query-side concern, served by its own small port with its own single
 // Prisma-backed implementation.
 //
-// Deliberately minimal -- hospital filtering, an exact/contains match on the
-// still-free-text `specialty` column, and (since Stage O.3) an exact
-// specialtyId match alongside it -- both filters are honored, not either/or,
-// so already-submitted profiles with an unmatched free-text specialty stay
-// searchable even after specialtyId exists. Paginated, no full-text name
+// Deliberately minimal -- hospital filtering, a `specialty` free-text search
+// (Onboarding Redesign, 2026-07-21 proposal, Stage O.9: matched against
+// MedicalSpecialty.name via a join now that DoctorProfile no longer carries
+// its own free-text copy), and an exact specialtyId match alongside it --
+// both filters are honored, not either/or. Paginated, no full-text name
 // search (that's Stage 8's real search work; see
-// docs/roadmaps/orivex-master-roadmap.md).
+// docs/roadmaps/orivex-master-roadmap.md). No specialty *name* on the entry
+// itself -- same convention as hospitalId/departmentId already on
+// DoctorProfile: the caller resolves the display name from the id via its
+// own reference-data lookup, not a denormalized copy here.
 export interface DoctorDirectoryEntry {
   doctorProfileId: string;
   accountId: string;
   displayName: string;
-  specialty: string;
-  specialtyId?: string;
+  specialtyId: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
   hospitalId?: string;

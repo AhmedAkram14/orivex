@@ -16,6 +16,7 @@ import type {
 import type { VerificationCase } from '@/shared/verification/types';
 import type { VerificationCase as AdminVerificationCase } from '@/features/admin/api/types';
 import { getDoctorById } from '@/mocks/doctor-store';
+import { listSpecialties } from '@/mocks/reference-store';
 import { markAvailabilityWindowBooked } from '@/mocks/scheduling-store';
 import {
   findAllVerificationCasesBySubject,
@@ -239,7 +240,7 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
     id,
     scheduledAt,
     doctorName: doctor?.fullName ?? 'Doctor',
-    specialization: doctor?.specialty ?? '',
+    specialization: (doctor && listSpecialties().find((specialty) => specialty.id === doctor.specialtyId)?.name) ?? '',
     status: isPaid ? 'requested' : 'confirmed',
     consultationType: request.consultationType,
     reasonForVisit: request.reasonForVisit,

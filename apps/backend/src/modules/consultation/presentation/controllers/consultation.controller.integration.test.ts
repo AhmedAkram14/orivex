@@ -63,6 +63,9 @@ import { ConsultationSession } from '../../domain/entities/consultation-session.
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
 import type { GenerateRoomTokenRequest, GenerateRoomTokenResult, RoomTokenGeneratorPort } from '../../application/ports/room-token-generator.port.js';
+import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
+import { MedicalSpecialty } from '../../../reference/domain/entities/medical-specialty.entity.js';
+import type { MedicalSpecialtyRepository } from '../../../reference/domain/repositories/medical-specialty.repository.js';
 
 import { AppointmentController } from './appointment.controller.js';
 import { DoctorAppointmentsController } from './doctor-appointments.controller.js';
@@ -105,6 +108,17 @@ class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
   }
   async findByAccountId(accountId: string): Promise<DoctorProfile | null> {
     return this.profile.getAccountId() === accountId ? this.profile : null;
+  }
+  async save(): Promise<void> {}
+}
+
+class InMemoryMedicalSpecialtyRepository implements MedicalSpecialtyRepository {
+  constructor(private readonly specialties: MedicalSpecialty[]) {}
+  async findAll(): Promise<MedicalSpecialty[]> {
+    return this.specialties;
+  }
+  async findById(id: string): Promise<MedicalSpecialty | null> {
+    return this.specialties.find((specialty) => specialty.getId() === id) ?? null;
   }
   async save(): Promise<void> {}
 }
@@ -264,7 +278,7 @@ describe('Consultation controllers (integration)', () => {
     doctor = DoctorProfile.register({
       accountId: doctorAccount.getId().toString(),
       licenseNumber: 'LIC-1',
-      specialty: 'Cardiology',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
       consultationFeeAmount: 500,
     });
 
@@ -446,6 +460,20 @@ describe('Consultation controllers (integration)', () => {
         { provide: GetSchedulingRulesUseCase, useValue: new GetSchedulingRulesUseCase() },
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(appointmentRepo) },
         { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(sessionRepo) },
+        {
+          provide: ListMedicalSpecialtiesUseCase,
+          useValue: new ListMedicalSpecialtiesUseCase(
+            new InMemoryMedicalSpecialtyRepository([
+              MedicalSpecialty.reconstitute({
+                id: '11111111-1111-4111-8111-111111111111',
+                name: 'Cardiology',
+                isActive: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }),
+            ]),
+          ),
+        },
       ],
     }).compile();
 

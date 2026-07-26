@@ -50,7 +50,7 @@ function buildDoctorProfile(): DoctorProfile {
   return DoctorProfile.register({
     accountId: '11111111-1111-4111-8111-111111111111',
     licenseNumber: 'LIC-1',
-    specialty: 'Cardiology',
+    specialtyId: '11111111-1111-4111-8111-111111111111',
   });
 }
 

@@ -49,6 +49,8 @@ const UNKNOWN_ACCOUNT_TOKEN = 'valid-doctor-token-unknown-account';
 // guard widening.
 const PATIENT_APPLICANT_TOKEN = 'valid-patient-applicant-token';
 const SUPER_ADMIN_TOKEN = 'valid-super-admin-token';
+const SPECIALTY_ID = '11111111-1111-4111-8111-111111111111';
+const OTHER_SPECIALTY_ID = '99999999-9999-4999-8999-999999999999';
 
 class InMemoryAccountRepository implements AccountRepository {
   constructor(private readonly accounts: Account[]) {}
@@ -152,7 +154,7 @@ describe('DoctorProfileController (integration)', () => {
     const meProfile = DoctorProfile.register({
       accountId: meAccountId,
       licenseNumber: 'LIC-12345',
-      specialty: 'Cardiology',
+      specialtyId: SPECIALTY_ID,
       biography: 'Experienced cardiologist.',
       yearsOfExperience: 8,
       languages: ['ar', 'en'],
@@ -243,7 +245,7 @@ describe('DoctorProfileController (integration)', () => {
   it('POST /doctors rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
-      .send({ licenseNumber: 'LIC-1', specialty: 'Cardiology' })
+      .send({ licenseNumber: 'LIC-1', specialtyId: SPECIALTY_ID })
       .expect(401);
 
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
@@ -253,10 +255,10 @@ describe('DoctorProfileController (integration)', () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
       .set('Authorization', `Bearer ${EXISTING_ACCOUNT_TOKEN}`)
-      .send({ licenseNumber: 'LIC-1', specialty: 'Cardiology' })
+      .send({ licenseNumber: 'LIC-1', specialtyId: SPECIALTY_ID })
       .expect(201);
 
-    assert.equal(response.body.data.specialty, 'Cardiology');
+    assert.equal(response.body.data.specialtyId, SPECIALTY_ID);
     assert.equal(response.body.data.accountId, existingAccountId);
     assert.ok(response.body.meta.requestId);
 
@@ -267,7 +269,7 @@ describe('DoctorProfileController (integration)', () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
       .set('Authorization', `Bearer ${EXISTING_ACCOUNT_TOKEN}`)
-      .send({ licenseNumber: 'LIC-2', specialty: 'Dermatology' })
+      .send({ licenseNumber: 'LIC-2', specialtyId: OTHER_SPECIALTY_ID })
       .expect(409);
 
     assert.equal(response.body.error.code, 'CONFLICT');
@@ -279,18 +281,28 @@ describe('DoctorProfileController (integration)', () => {
       .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
       .send({
         licenseNumber: 'LIC-3',
-        specialty: 'Oncology',
+        specialtyId: SPECIALTY_ID,
       })
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
-  it('POST /doctors rejects an empty specialty with a structured validation error', async () => {
+  it('POST /doctors rejects a missing specialtyId with a structured validation error', async () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
       .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
-      .send({ licenseNumber: 'LIC-4', specialty: '' })
+      .send({ licenseNumber: 'LIC-4' })
+      .expect(400);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
+  it('POST /doctors rejects a malformed specialtyId with a structured validation error', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/doctors')
+      .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
+      .send({ licenseNumber: 'LIC-4', specialtyId: 'not-a-uuid' })
       .expect(400);
 
     assert.equal(response.body.error.code, 'VALIDATION_FAILED');
@@ -302,7 +314,7 @@ describe('DoctorProfileController (integration)', () => {
       .set('Authorization', `Bearer ${UNKNOWN_ACCOUNT_TOKEN}`)
       .send({
         licenseNumber: 'LIC-5',
-        specialty: 'Cardiology',
+        specialtyId: SPECIALTY_ID,
         publications: [{}],
       })
       .expect(400);
@@ -322,13 +334,13 @@ describe('DoctorProfileController (integration)', () => {
     const found = await request(app.getHttpServer())
       .get(`/doctors/${registeredProfileId}`)
       .expect(200);
-    assert.equal(found.body.data.specialty, 'Cardiology');
+    assert.equal(found.body.data.specialtyId, SPECIALTY_ID);
   });
 
   it('PATCH /doctors/:id rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer())
       .patch(`/doctors/${registeredProfileId}`)
-      .send({ specialty: 'General Practice' })
+      .send({ specialtyId: OTHER_SPECIALTY_ID })
       .expect(401);
 
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
@@ -338,7 +350,7 @@ describe('DoctorProfileController (integration)', () => {
     const response = await request(app.getHttpServer())
       .patch(`/doctors/${registeredProfileId}`)
       .set('Authorization', `Bearer ${VALID_TOKEN}`)
-      .send({ specialty: 'General Practice' })
+      .send({ specialtyId: OTHER_SPECIALTY_ID })
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
@@ -348,10 +360,10 @@ describe('DoctorProfileController (integration)', () => {
     const updated = await request(app.getHttpServer())
       .patch(`/doctors/${registeredProfileId}`)
       .set('Authorization', `Bearer ${EXISTING_ACCOUNT_TOKEN}`)
-      .send({ specialty: 'General Practice' })
+      .send({ specialtyId: OTHER_SPECIALTY_ID })
       .expect(200);
 
-    assert.equal(updated.body.data.specialty, 'General Practice');
+    assert.equal(updated.body.data.specialtyId, OTHER_SPECIALTY_ID);
   });
 
   it('GET /doctors/me rejects a request with no bearer token', async () => {
@@ -378,7 +390,7 @@ describe('DoctorProfileController (integration)', () => {
     assert.equal(response.body.data.fullName, 'Nourhan Adel');
     assert.equal(response.body.data.email, 'nourhan.adel@example.com');
     assert.equal(response.body.data.licenseNumber, 'LIC-12345');
-    assert.equal(response.body.data.specialty, 'Cardiology');
+    assert.equal(response.body.data.specialtyId, SPECIALTY_ID);
     assert.ok(response.body.meta.requestId);
   });
 
@@ -386,10 +398,10 @@ describe('DoctorProfileController (integration)', () => {
     const response = await request(app.getHttpServer())
       .patch('/doctors/me')
       .set('Authorization', `Bearer ${VALID_TOKEN}`)
-      .send({ specialty: 'Pediatric Cardiology', yearsOfExperience: 9 })
+      .send({ specialtyId: OTHER_SPECIALTY_ID, yearsOfExperience: 9 })
       .expect(200);
 
-    assert.equal(response.body.data.specialty, 'Pediatric Cardiology');
+    assert.equal(response.body.data.specialtyId, OTHER_SPECIALTY_ID);
     assert.equal(response.body.data.yearsOfExperience, 9);
     assert.equal(response.body.data.fullName, 'Nourhan Adel');
   });
@@ -398,7 +410,7 @@ describe('DoctorProfileController (integration)', () => {
     const response = await request(app.getHttpServer())
       .patch('/doctors/me')
       .set('Authorization', `Bearer ${OTHER_VALID_TOKEN}`)
-      .send({ specialty: 'Dermatology' })
+      .send({ specialtyId: OTHER_SPECIALTY_ID })
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
@@ -412,10 +424,10 @@ describe('DoctorProfileController (integration)', () => {
     const response = await request(app.getHttpServer())
       .post('/doctors')
       .set('Authorization', `Bearer ${PATIENT_APPLICANT_TOKEN}`)
-      .send({ licenseNumber: 'LIC-ONBOARD-1', specialty: 'Family Medicine' })
+      .send({ licenseNumber: 'LIC-ONBOARD-1', specialtyId: SPECIALTY_ID })
       .expect(201);
 
-    assert.equal(response.body.data.specialty, 'Family Medicine');
+    assert.equal(response.body.data.specialtyId, SPECIALTY_ID);
     assert.equal(response.body.data.accountId, patientApplicantAccountId);
   });
 

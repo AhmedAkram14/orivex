@@ -1,5 +1,4 @@
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
-import type { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 
 // The Patient Portal dashboard's "next few appointments" preview
@@ -19,14 +18,14 @@ export class UpcomingAppointmentPreviewResponseDto {
 
   static fromDomain(
     appointment: Appointment,
-    doctorProfile: DoctorProfile,
     doctorAccount: Account,
+    specialization: string,
   ): UpcomingAppointmentPreviewResponseDto {
     const dto = new UpcomingAppointmentPreviewResponseDto();
     dto.id = appointment.getId();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.doctorName = doctorAccount.getUserProfile().getDisplayName().toString();
-    dto.specialization = doctorProfile.getSpecialty();
+    dto.specialization = specialization;
     dto.status = 'upcoming';
     return dto;
   }

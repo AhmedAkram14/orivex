@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { useSubmitVerification } from '@/features/doctor/hooks/use-submit-verification';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import type { DocumentSlots } from '@/shared/verification/components/documents-step';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
@@ -20,15 +21,16 @@ export interface ReviewStepProps {
  * Doctor Onboarding (Phase 4 continuation; redesigned Onboarding Redesign
  * 2026-07-21 proposal, Stage O.6): the wizard's final step -- submits for
  * review via the real `POST /doctors/:id/verifications`, reused as-is.
- * `specialtyCode` sends the profile's own free-text `specialty` (now
- * populated from the Professional Info step's reference-data dropdown
- * selection, resolved to its display name at that step) -- this backend
- * field is a free-string historical snapshot on the VerificationCase, not a
- * live FK, so a human-readable name is exactly what it expects.
+ * `specialtyCode` sends a human-readable specialty name -- a free-string
+ * historical snapshot on the VerificationCase, not a live FK -- resolved
+ * here from the profile's own `specialtyId` (Onboarding Redesign Stage O.9:
+ * DoctorProfile no longer carries its own free-text specialty at all).
  */
 export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewStepProps) {
   const t = useTranslations('doctor.onboarding.reviewStep');
   const submitVerification = useSubmitVerification(profile.id);
+  const { data: specialties } = useSpecialtiesList();
+  const specialtyName = specialties?.find((specialty) => specialty.id === profile.specialtyId)?.name ?? '';
   const documentAssetIds = Object.values(documents)
     .filter((document): document is NonNullable<typeof document> => Boolean(document))
     .map((document) => document.id);
@@ -37,7 +39,7 @@ export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewSt
     try {
       await submitVerification.mutateAsync({
         licenseNumber: profile.licenseNumber,
-        specialtyCode: profile.specialty,
+        specialtyCode: specialtyName,
         documentAssetIds,
       });
       onSubmitted();
@@ -65,7 +67,7 @@ export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewSt
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-text-tertiary">{t('specialty')}</dt>
-              <dd className="font-medium text-text-primary">{profile.specialty}</dd>
+              <dd className="font-medium text-text-primary">{specialtyName}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-text-tertiary">{t('documents')}</dt>

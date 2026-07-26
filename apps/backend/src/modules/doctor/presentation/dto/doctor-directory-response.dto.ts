@@ -4,8 +4,7 @@ export class DoctorDirectoryEntryResponseDto {
   doctorProfileId!: string;
   accountId!: string;
   displayName!: string;
-  specialty!: string;
-  specialtyId?: string;
+  specialtyId!: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
   hospitalId?: string;
@@ -15,7 +14,6 @@ export class DoctorDirectoryEntryResponseDto {
     dto.doctorProfileId = entry.doctorProfileId;
     dto.accountId = entry.accountId;
     dto.displayName = entry.displayName;
-    dto.specialty = entry.specialty;
     dto.specialtyId = entry.specialtyId;
     dto.yearsOfExperience = entry.yearsOfExperience;
     dto.consultationFeeAmount = entry.consultationFeeAmount;

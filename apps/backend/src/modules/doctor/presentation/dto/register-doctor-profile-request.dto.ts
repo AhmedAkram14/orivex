@@ -43,10 +43,6 @@ export class RegisterDoctorProfileRequestDto {
   @IsNotEmpty()
   licenseNumber!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  specialty!: string;
-
   @IsOptional()
   @IsString()
   biography?: string;
@@ -84,13 +80,12 @@ export class RegisterDoctorProfileRequestDto {
   @Type(() => PortfolioAwardDto)
   awards?: PortfolioAwardDto[];
 
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): additive alongside
-  // the still-required free-text `specialty` above during the transition
-  // (§10) -- existence of specialtyId/departmentId is enforced by their
-  // database FKs, not a second lookup here.
-  @IsOptional()
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
+  // a doctor's specialty now that the transitional free-text `specialty`
+  // field is gone -- existence of specialtyId/departmentId is enforced by
+  // their database FKs, not a second lookup here.
   @IsUUID('4')
-  specialtyId?: string;
+  specialtyId!: string;
 
   @IsOptional()
   @IsEnum(ProfessionalRank)

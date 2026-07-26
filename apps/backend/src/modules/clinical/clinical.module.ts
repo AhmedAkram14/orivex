@@ -12,6 +12,7 @@ import { DoctorModule } from '../doctor/doctor.module.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
+import { ReferenceModule } from '../reference/reference.module.js';
 
 import {
   AI_ACKNOWLEDGMENT_EVENT_SUBSCRIBER,
@@ -61,7 +62,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
 // those modules import Clinical back -- no circular imports, no
 // forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule],
+  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule, ReferenceModule],
   controllers: [ClinicalNoteController, HealthGraphController, PrescriptionController, PatientDashboardController],
   providers: [
     { provide: HEALTH_GRAPH_REPOSITORY, useClass: PrismaHealthGraphRepository },

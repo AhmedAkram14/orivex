@@ -15,6 +15,7 @@ import {
   setSubjectVerificationCases,
   submitVerificationCase,
 } from '@/mocks/verification-case-store';
+import { listSpecialties } from '@/mocks/reference-store';
 
 /**
  * In-memory mock "backend" state for `/doctor/*` — mirrors
@@ -55,7 +56,6 @@ function seedProfile(): DoctorProfile {
     email: 'doctor@orivex.dev',
     phoneNumber: '+20 100 000 0000',
     licenseNumber: 'LIC-2010-4471',
-    specialty: 'Cardiology',
     specialtyId: 'specialty-cardiology',
     professionalRank: 'consultant',
     licenseExpiryDate: '2030-01-01T00:00:00.000Z',
@@ -126,7 +126,7 @@ function toDirectoryEntry(doctorProfile: DoctorProfile): DoctorDirectoryEntry {
     doctorProfileId: doctorProfile.id,
     accountId: doctorProfile.accountId,
     displayName: doctorProfile.fullName,
-    specialty: doctorProfile.specialty,
+    specialtyId: doctorProfile.specialtyId,
     yearsOfExperience: doctorProfile.yearsOfExperience,
     consultationFeeAmount: doctorProfile.consultationFeeAmount,
     hospitalId: doctorProfile.hospitalId,
@@ -136,7 +136,12 @@ function toDirectoryEntry(doctorProfile: DoctorProfile): DoctorDirectoryEntry {
 export function listDoctors(params: ListDoctorDirectoryParams): { doctors: DoctorDirectoryEntry[]; total: number; page: number; limit: number } {
   const page = params.page ?? 1;
   const limit = params.limit ?? 50;
-  const matches = !params.specialty || profile.specialty.toLowerCase().includes(params.specialty.toLowerCase())
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the free-text
+  // `specialty` filter now matches against the referenced MedicalSpecialty's
+  // name, mirroring the real backend's relation-filter -- DoctorProfile no
+  // longer carries its own free-text copy.
+  const specialtyName = listSpecialties().find((specialty) => specialty.id === profile.specialtyId)?.name ?? '';
+  const matches = !params.specialty || specialtyName.toLowerCase().includes(params.specialty.toLowerCase())
     ? [toDirectoryEntry(profile)]
     : [];
   return { doctors: matches, total: matches.length, page, limit };
@@ -150,7 +155,6 @@ export function registerProfile(request: RegisterDoctorProfileRequest): DoctorPr
     email: 'doctor@orivex.dev',
     phoneNumber: '+20 100 000 0000',
     licenseNumber: request.licenseNumber,
-    specialty: request.specialty,
     specialtyId: request.specialtyId,
     professionalRank: request.professionalRank,
     licenseExpiryDate: request.licenseExpiryDate,
@@ -171,7 +175,6 @@ export function registerProfile(request: RegisterDoctorProfileRequest): DoctorPr
 export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfile {
   profile = {
     ...profile,
-    specialty: request.specialty ?? profile.specialty,
     specialtyId: request.specialtyId ?? profile.specialtyId,
     professionalRank: request.professionalRank ?? profile.professionalRank,
     licenseExpiryDate: request.licenseExpiryDate ?? profile.licenseExpiryDate,

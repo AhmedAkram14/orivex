@@ -13,7 +13,9 @@ import type {
 // DoctorProfile with its owning Account (same-database join, not a
 // cross-module network call) purely to surface displayName on this specific
 // list read, without adding a name field to the DoctorProfile aggregate
-// itself.
+// itself. Stage O.9: the `specialty` free-text filter now matches against
+// MedicalSpecialty.name via a relation filter, since DoctorProfile no longer
+// carries its own free-text copy.
 @Injectable()
 export class PrismaDoctorDirectoryQueryService implements DoctorDirectoryQueryPort {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,7 +23,7 @@ export class PrismaDoctorDirectoryQueryService implements DoctorDirectoryQueryPo
   async search(filter: DoctorDirectoryFilter): Promise<DoctorDirectoryResult> {
     const where: Prisma.DoctorProfileWhereInput = {
       ...(filter.hospitalId ? { hospitalId: filter.hospitalId } : {}),
-      ...(filter.specialty ? { specialty: { contains: filter.specialty, mode: 'insensitive' } } : {}),
+      ...(filter.specialty ? { medicalSpecialty: { name: { contains: filter.specialty, mode: 'insensitive' } } } : {}),
       ...(filter.specialtyId ? { specialtyId: filter.specialtyId } : {}),
     };
 
@@ -42,8 +44,7 @@ export class PrismaDoctorDirectoryQueryService implements DoctorDirectoryQueryPo
         doctorProfileId: row.id,
         accountId: row.accountId,
         displayName: row.account.displayName,
-        specialty: row.specialty,
-        specialtyId: row.specialtyId ?? undefined,
+        specialtyId: row.specialtyId,
         yearsOfExperience: row.yearsOfExperience ?? undefined,
         consultationFeeAmount: row.consultationFeeAmount ? Number(row.consultationFeeAmount) : undefined,
         hospitalId: row.hospitalId ?? undefined,

@@ -127,7 +127,6 @@ model DoctorProfile {
   accountId              String                @unique
   account                Account               @relation(fields: [accountId], references: [id], onDelete: Restrict)
   licenseNumber          String
-  specialty              String
   biography              String?
   yearsOfExperience      Int?
   languages              String[]
@@ -138,15 +137,17 @@ model DoctorProfile {
   // hospital affiliation at all.
   hospitalId             String?
   hospital               Hospital?             @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): specialtyId is
-  // additive alongside the still-live free-text `specialty` column during
-  // the transition (§10) -- `specialty` is dropped in Stage O.9 once every
-  // profile has a backfilled specialtyId. departmentId requires hospitalId
-  // (enforced in the domain entity, not the database) -- a doctor may exist
-  // with neither, with only a hospital, or with both a hospital and a
-  // department, but never a department alone.
-  specialtyId            String?
-  medicalSpecialty       MedicalSpecialty?     @relation(fields: [specialtyId], references: [id], onDelete: SetNull)
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
+  // a doctor's specialty, now that the transitional free-text `specialty`
+  // column (removed this stage, after a verified backfill -- see this
+  // stage's own migration) is gone. Restrict, not SetNull: a MedicalSpecialty
+  // referenced by a real doctor can no longer be deleted out from under a
+  // required field. departmentId requires hospitalId (enforced in the
+  // domain entity, not the database) -- a doctor may exist with neither,
+  // with only a hospital, or with both a hospital and a department, but
+  // never a department alone.
+  specialtyId            String
+  medicalSpecialty       MedicalSpecialty      @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
   professionalRank       String?
   licenseExpiryDate      DateTime?
   departmentId           String?

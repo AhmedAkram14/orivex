@@ -22,12 +22,12 @@ function createWrapper(queryClient: QueryClient) {
 
 describe('useRegisterDoctorProfile', () => {
   it('seeds the doctor-profile cache with the newly created profile', async () => {
-    const profile = { id: 'doctor-profile-1', licenseNumber: 'LIC-1', specialty: 'Cardiology' } as DoctorProfile;
+    const profile = { id: 'doctor-profile-1', licenseNumber: 'LIC-1', specialtyId: 'specialty-cardiology' } as DoctorProfile;
     vi.mocked(doctorApi.registerProfile).mockResolvedValue(profile);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     const { result } = renderHook(() => useRegisterDoctorProfile(), { wrapper: createWrapper(queryClient) });
-    result.current.mutate({ licenseNumber: 'LIC-1', specialty: 'Cardiology' });
+    result.current.mutate({ licenseNumber: 'LIC-1', specialtyId: 'specialty-cardiology' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 

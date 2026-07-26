@@ -28,7 +28,6 @@ export class DoctorProfileResponseDto {
   email!: string;
   phoneNumber?: string;
   licenseNumber!: string;
-  specialty!: string;
   biography?: string;
   yearsOfExperience?: number;
   languages!: string[];
@@ -38,7 +37,7 @@ export class DoctorProfileResponseDto {
   awards!: AwardView[];
   createdAt!: string;
   updatedAt!: string;
-  specialtyId?: string;
+  specialtyId!: string;
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: string;
   departmentId?: string;
@@ -53,7 +52,6 @@ export class DoctorProfileResponseDto {
     dto.email = account.getEmail().toString();
     dto.phoneNumber = userProfile.getPhoneNumber();
     dto.licenseNumber = profile.getLicenseNumber();
-    dto.specialty = profile.getSpecialty();
     dto.biography = profile.getBiography();
     dto.yearsOfExperience = profile.getYearsOfExperience();
     dto.languages = profile.getLanguages();

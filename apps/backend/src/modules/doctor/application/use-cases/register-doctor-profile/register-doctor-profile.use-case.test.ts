@@ -81,16 +81,18 @@ describe('RegisterDoctorProfileUseCase', () => {
     useCase = new RegisterDoctorProfileUseCase(doctorRepo, new NoopDispatcher(), getAccountByIdUseCase);
   });
 
+  const SPECIALTY_ID = '11111111-1111-4111-8111-111111111111';
+
   it('registers a doctor profile for an existing account', async () => {
     const profile = await useCase.execute(
       new RegisterDoctorProfileCommand({
         accountId: account.getId().toString(),
         licenseNumber: 'LIC-123',
-        specialty: 'Cardiology',
+        specialtyId: SPECIALTY_ID,
       }),
     );
 
-    assert.equal(profile.getSpecialty(), 'Cardiology');
+    assert.equal(profile.getSpecialtyId(), SPECIALTY_ID);
     assert.equal(doctorRepo.saved.length, 1);
   });
 
@@ -99,7 +101,7 @@ describe('RegisterDoctorProfileUseCase', () => {
       new RegisterDoctorProfileCommand({
         accountId: account.getId().toString(),
         licenseNumber: 'LIC-123',
-        specialty: 'Cardiology',
+        specialtyId: SPECIALTY_ID,
         hospitalId: '77777777-7777-4777-8777-777777777777',
       }),
     );
@@ -112,20 +114,19 @@ describe('RegisterDoctorProfileUseCase', () => {
       new RegisterDoctorProfileCommand({
         accountId: account.getId().toString(),
         licenseNumber: 'LIC-123',
-        specialty: 'Cardiology',
+        specialtyId: SPECIALTY_ID,
       }),
     );
 
     assert.equal(profile.getHospitalId(), undefined);
   });
 
-  it('registers with specialtyId/professionalRank/licenseExpiryDate/departmentId (Onboarding Redesign Stage O.3)', async () => {
+  it('registers with professionalRank/licenseExpiryDate/departmentId (Onboarding Redesign Stage O.3)', async () => {
     const licenseExpiryDate = new Date('2030-01-01');
     const profile = await useCase.execute(
       new RegisterDoctorProfileCommand({
         accountId: account.getId().toString(),
         licenseNumber: 'LIC-123',
-        specialty: 'Cardiology',
         specialtyId: '55555555-5555-4555-8555-555555555555',
         professionalRank: ProfessionalRank.Registrar,
         licenseExpiryDate,
@@ -153,7 +154,7 @@ describe('RegisterDoctorProfileUseCase', () => {
           new RegisterDoctorProfileCommand({
             accountId: '11111111-1111-4111-8111-111111111111',
             licenseNumber: 'LIC-123',
-            specialty: 'Cardiology',
+            specialtyId: SPECIALTY_ID,
           }),
         ),
       NotFoundError,
@@ -170,7 +171,7 @@ describe('RegisterDoctorProfileUseCase', () => {
           new RegisterDoctorProfileCommand({
             accountId: account.getId().toString(),
             licenseNumber: 'LIC-123',
-            specialty: 'Cardiology',
+            specialtyId: SPECIALTY_ID,
           }),
         ),
       ConflictError,
