@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { StartConsultationAction } from '@/features/consultation/components/start-consultation-action';
 import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
 import { RefundQueueAction } from '@/features/payment/components/refund-queue-action';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
@@ -96,7 +97,13 @@ export default function DoctorQueuePage() {
                           ? t('waitMinutes', { minutes: entry.estimatedWaitMinutes })
                           : undefined
                       }
-                      actions={entry.status === 'completed' ? <RefundQueueAction consultationSessionId={entry.id} /> : undefined}
+                      actions={
+                        entry.status === 'waiting' ? (
+                          <StartConsultationAction consultationSessionId={entry.id} />
+                        ) : entry.status === 'completed' ? (
+                          <RefundQueueAction consultationSessionId={entry.id} />
+                        ) : undefined
+                      }
                     />
                   </li>
                 ))}

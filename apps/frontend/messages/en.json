@@ -398,7 +398,9 @@
         "waiting": "Waiting",
         "in-consultation": "In consultation",
         "completed": "Completed"
-      }
+      },
+      "startConsultation": "Start consultation",
+      "startConsultationFailed": "Couldn't start the consultation. Please try again."
     },
     "consultation": {
       "title": "Consultation Workspace",

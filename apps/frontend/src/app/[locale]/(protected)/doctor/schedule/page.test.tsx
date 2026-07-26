@@ -85,11 +85,11 @@ describe('DoctorSchedulePage', () => {
     expect(screen.queryByRole('button', { name: 'Previous week' })).not.toBeInTheDocument();
   });
 
-  it('shows the working-hours editor when Edit working hours is clicked', async () => {
+  it('shows the working-hours editor when Edit available hours is clicked', async () => {
     renderPage();
     await screen.findByRole('button', { name: 'Today' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Edit working hours' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit available hours' }));
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
@@ -97,7 +97,7 @@ describe('DoctorSchedulePage', () => {
     renderPage();
     await screen.findByRole('button', { name: 'Today' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Edit working hours' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit available hours' }));
     await userEvent.click(screen.getByRole('switch', { name: 'Monday working day' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 

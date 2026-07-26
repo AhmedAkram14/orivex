@@ -398,7 +398,9 @@
         "waiting": "في الانتظار",
         "in-consultation": "في استشارة",
         "completed": "مكتملة"
-      }
+      },
+      "startConsultation": "بدء الاستشارة",
+      "startConsultationFailed": "تعذر بدء الاستشارة. حاول مرة أخرى."
     },
     "consultation": {
       "title": "مساحة عمل الاستشارة",
