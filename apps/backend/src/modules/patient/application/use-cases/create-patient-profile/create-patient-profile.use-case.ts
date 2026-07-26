@@ -41,7 +41,6 @@ export class CreatePatientProfileUseCase {
 
     const profile = PatientProfile.create({
       accountId: command.accountId,
-      dateOfBirth: command.dateOfBirth,
       emergencyContacts: command.emergencyContacts,
     });
 

@@ -5,6 +5,7 @@ import type {
 
 import { EmergencyContact } from '../../domain/entities/emergency-contact.entity.js';
 import { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
+import type { BloodType } from '../../domain/enums/blood-type.enum.js';
 
 import { toDomainEmergencyRelationship } from './emergency-relationship.mapper.js';
 
@@ -16,7 +17,6 @@ export function toDomainPatientProfile(row: PersistedPatientProfileRow): Patient
   return PatientProfile.reconstitute({
     id: row.id,
     accountId: row.accountId,
-    dateOfBirth: row.dateOfBirth ?? undefined,
     emergencyContacts: row.emergencyContacts.map((contact) =>
       EmergencyContact.reconstitute({
         id: contact.id,
@@ -27,5 +27,9 @@ export function toDomainPatientProfile(row: PersistedPatientProfileRow): Patient
     ),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    bloodType: (row.bloodType as BloodType | null) ?? undefined,
+    allergies: row.allergies ?? undefined,
+    chronicDiseases: row.chronicDiseases ?? undefined,
+    insuranceProviderId: row.insuranceProviderId ?? undefined,
   });
 }

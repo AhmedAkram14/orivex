@@ -10,6 +10,8 @@ export interface PortfolioAwardInput {
   awardedAt?: Date;
 }
 
+import type { ProfessionalRank } from '../../../domain/enums/professional-rank.enum.js';
+
 export interface RegisterDoctorProfileCommandProps {
   accountId: string;
   licenseNumber: string;
@@ -22,6 +24,11 @@ export interface RegisterDoctorProfileCommandProps {
   hospitalId?: string;
   publications?: PortfolioPublicationInput[];
   awards?: PortfolioAwardInput[];
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3).
+  specialtyId?: string;
+  professionalRank?: ProfessionalRank;
+  licenseExpiryDate?: Date;
+  departmentId?: string;
 }
 
 // Commands are application messages, not structural types — immutable by
@@ -37,6 +44,10 @@ export class RegisterDoctorProfileCommand {
   readonly hospitalId?: string;
   readonly publications?: PortfolioPublicationInput[];
   readonly awards?: PortfolioAwardInput[];
+  readonly specialtyId?: string;
+  readonly professionalRank?: ProfessionalRank;
+  readonly licenseExpiryDate?: Date;
+  readonly departmentId?: string;
 
   constructor(props: RegisterDoctorProfileCommandProps) {
     this.accountId = props.accountId;
@@ -49,5 +60,9 @@ export class RegisterDoctorProfileCommand {
     this.hospitalId = props.hospitalId;
     this.publications = props.publications;
     this.awards = props.awards;
+    this.specialtyId = props.specialtyId;
+    this.professionalRank = props.professionalRank;
+    this.licenseExpiryDate = props.licenseExpiryDate;
+    this.departmentId = props.departmentId;
   }
 }

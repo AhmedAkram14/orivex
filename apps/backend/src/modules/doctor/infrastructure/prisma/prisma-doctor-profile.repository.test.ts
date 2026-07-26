@@ -4,8 +4,10 @@ import { describe, it } from 'node:test';
 import { Prisma } from '@prisma/client';
 
 import { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
+import { DepartmentNotFoundError } from '../../domain/exceptions/department-not-found.error.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
 import { HospitalNotFoundError } from '../../domain/exceptions/hospital-not-found.error.js';
+import { MedicalSpecialtyNotFoundError } from '../../domain/exceptions/medical-specialty-not-found.error.js';
 import { mapDoctorError } from '../../presentation/mappers/doctor-exception.mapper.js';
 
 import { PrismaDoctorProfileRepository } from './prisma-doctor-profile.repository.js';
@@ -17,10 +19,15 @@ function buildUniqueConstraintViolation(): Prisma.PrismaClientKnownRequestError 
   });
 }
 
-function buildForeignKeyConstraintViolation(): Prisma.PrismaClientKnownRequestError {
-  return new Prisma.PrismaClientKnownRequestError('Foreign key constraint failed on the field: `hospitalId`', {
+// Onboarding Redesign (2026-07-21 proposal, Stage O.3): meta.field_name is
+// how Postgres actually reports which FK failed (the constraint name), now
+// that DoctorProfile has three nullable FKs instead of one -- the repository
+// must inspect it rather than assume, so the fake must supply it too.
+function buildForeignKeyConstraintViolation(fieldName: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError(`Foreign key constraint failed on the field: \`${fieldName}\``, {
     code: 'P2003',
     clientVersion: '5.22.0',
+    meta: { field_name: `DoctorProfile_${fieldName}_fkey (index)` },
   });
 }
 
@@ -81,7 +88,7 @@ describe('PrismaDoctorProfileRepository', () => {
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
-        throw buildForeignKeyConstraintViolation();
+        throw buildForeignKeyConstraintViolation('hospitalId');
       },
     } as never;
     const repository = new PrismaDoctorProfileRepository(fakePrisma);
@@ -93,6 +100,49 @@ describe('PrismaDoctorProfileRepository', () => {
     });
 
     await assert.rejects(() => repository.save(profile), HospitalNotFoundError);
+  });
+
+  it('translates a P2003 foreign-key violation on specialtyId into MedicalSpecialtyNotFoundError', async () => {
+    const noop = () => Promise.resolve();
+    const fakePrisma = {
+      doctorProfile: { upsert: noop },
+      portfolioPublication: { deleteMany: noop, createMany: noop },
+      portfolioAward: { deleteMany: noop, createMany: noop },
+      $transaction: async () => {
+        throw buildForeignKeyConstraintViolation('specialtyId');
+      },
+    } as never;
+    const repository = new PrismaDoctorProfileRepository(fakePrisma);
+    const profile = DoctorProfile.register({
+      accountId: '55555555-5555-4555-8555-555555555555',
+      licenseNumber: 'LIC-5',
+      specialty: 'Cardiology',
+      specialtyId: '99999999-9999-4999-8999-999999999999',
+    });
+
+    await assert.rejects(() => repository.save(profile), MedicalSpecialtyNotFoundError);
+  });
+
+  it('translates a P2003 foreign-key violation on departmentId into DepartmentNotFoundError', async () => {
+    const noop = () => Promise.resolve();
+    const fakePrisma = {
+      doctorProfile: { upsert: noop },
+      portfolioPublication: { deleteMany: noop, createMany: noop },
+      portfolioAward: { deleteMany: noop, createMany: noop },
+      $transaction: async () => {
+        throw buildForeignKeyConstraintViolation('departmentId');
+      },
+    } as never;
+    const repository = new PrismaDoctorProfileRepository(fakePrisma);
+    const profile = DoctorProfile.register({
+      accountId: '66666666-6666-4666-8666-666666666666',
+      licenseNumber: 'LIC-6',
+      specialty: 'Cardiology',
+      hospitalId: '77777777-7777-4777-8777-777777777777',
+      departmentId: '99999999-9999-4999-8999-999999999999',
+    });
+
+    await assert.rejects(() => repository.save(profile), DepartmentNotFoundError);
   });
 
   it('rethrows any other error unchanged', async () => {

@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
+import { ProfessionalRank } from '../../../domain/enums/professional-rank.enum.js';
 import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
 
@@ -101,6 +102,59 @@ describe('UpdateDoctorProfileUseCase', () => {
         ),
       NotFoundError,
     );
+  });
+
+  it('sets specialtyId/professionalRank/licenseExpiryDate (Onboarding Redesign Stage O.3)', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({
+        doctorProfileId: profile.getId(),
+        specialtyId: '88888888-8888-4888-8888-888888888888',
+        professionalRank: ProfessionalRank.Consultant,
+        licenseExpiryDate: new Date('2030-01-01'),
+      }),
+    );
+
+    assert.equal(updated.getSpecialtyId(), '88888888-8888-4888-8888-888888888888');
+    assert.equal(updated.getProfessionalRank(), ProfessionalRank.Consultant);
+    assert.deepEqual(updated.getLicenseExpiryDate(), new Date('2030-01-01'));
+  });
+
+  it('sets departmentId together with hospitalId in the same update', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({
+        doctorProfileId: profile.getId(),
+        hospitalId: '77777777-7777-4777-8777-777777777777',
+        departmentId: '99999999-9999-4999-8999-999999999999',
+      }),
+    );
+
+    assert.equal(updated.getDepartmentId(), '99999999-9999-4999-8999-999999999999');
+  });
+
+  it('rejects setting departmentId without an existing or concurrent hospitalId', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new UpdateDoctorProfileCommand({
+            doctorProfileId: profile.getId(),
+            departmentId: '99999999-9999-4999-8999-999999999999',
+          }),
+        ),
+      DoctorDomainError,
+    );
+    assert.equal(repo.saved.length, 0);
   });
 
   it('propagates DoctorDomainError for an invalid update without persisting', async () => {

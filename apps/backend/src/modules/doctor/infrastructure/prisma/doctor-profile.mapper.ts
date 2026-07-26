@@ -7,6 +7,7 @@ import type {
 import { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
 import { PortfolioAward } from '../../domain/entities/portfolio-award.entity.js';
 import { PortfolioPublication } from '../../domain/entities/portfolio-publication.entity.js';
+import type { ProfessionalRank } from '../../domain/enums/professional-rank.enum.js';
 
 export type PersistedDoctorProfileRow = PrismaDoctorProfileRow & {
   publications: PrismaPortfolioPublicationRow[];
@@ -24,6 +25,10 @@ export function toDomainDoctorProfile(row: PersistedDoctorProfileRow): DoctorPro
     languages: row.languages,
     consultationFeeAmount: row.consultationFeeAmount ? Number(row.consultationFeeAmount) : undefined,
     hospitalId: row.hospitalId ?? undefined,
+    specialtyId: row.specialtyId ?? undefined,
+    professionalRank: (row.professionalRank as ProfessionalRank | null) ?? undefined,
+    licenseExpiryDate: row.licenseExpiryDate ?? undefined,
+    departmentId: row.departmentId ?? undefined,
     publications: row.publications.map((p) =>
       PortfolioPublication.reconstitute({
         id: p.id,

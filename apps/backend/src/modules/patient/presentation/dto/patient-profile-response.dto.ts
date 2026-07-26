@@ -1,5 +1,6 @@
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
 import type { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
+import type { BloodType } from '../../domain/enums/blood-type.enum.js';
 
 interface EmergencyContactView {
   id: string;
@@ -9,15 +10,15 @@ interface EmergencyContactView {
 }
 
 // Composes PatientModule's own PatientProfile with IdentityModule's Account
-// (fullName/email/phoneNumber live on Account.userProfile, not duplicated
-// here — module-to-module composition at the presentation layer, not a
-// cross-module repository read, per docs/10-backend-architecture.md Section
-// 11). Deliberately omits `gender`/`address`/`medicalInfo`: none of these
-// are stored anywhere in the backend today (no field exists on Account or
-// PatientProfile, and clinical data belongs to the not-yet-built
-// ClinicalModule) -- returning them would be fabricated data, which this
-// codebase's "no fake business logic" rule forbids. Adding real storage for
-// address is real future work, not a silent omission.
+// (fullName/email/phoneNumber/dateOfBirth/gender/address/nationality live on
+// Account.userProfile, not duplicated here — module-to-module composition at
+// the presentation layer, not a cross-module repository read, per
+// docs/10-backend-architecture.md Section 11). Onboarding Redesign
+// (2026-07-21 proposal §0a): dateOfBirth/gender/address/nationalityId moved
+// here from PatientProfile's own former dateOfBirth field, now that Identity
+// is the single owner of cross-role personal info. bloodType/allergies/
+// chronicDiseases/insuranceProviderId (Stage O.3) are genuinely
+// PatientProfile's own medical-profile fields, not composed from Account.
 export class PatientProfileResponseDto {
   id!: string;
   accountId!: string;
@@ -25,6 +26,13 @@ export class PatientProfileResponseDto {
   email!: string;
   phoneNumber?: string;
   dateOfBirth?: string;
+  gender?: string;
+  nationalityId?: string;
+  address?: string;
+  bloodType?: BloodType;
+  allergies?: string;
+  chronicDiseases?: string;
+  insuranceProviderId?: string;
   emergencyContacts!: EmergencyContactView[];
   createdAt!: string;
   updatedAt!: string;
@@ -38,7 +46,14 @@ export class PatientProfileResponseDto {
     dto.fullName = userProfile.getDisplayName().toString();
     dto.email = account.getEmail().toString();
     dto.phoneNumber = userProfile.getPhoneNumber();
-    dto.dateOfBirth = profile.getDateOfBirth()?.toISOString();
+    dto.dateOfBirth = userProfile.getDateOfBirth()?.toISOString();
+    dto.gender = userProfile.getGender();
+    dto.nationalityId = userProfile.getNationalityId();
+    dto.address = userProfile.getAddress();
+    dto.bloodType = profile.getBloodType();
+    dto.allergies = profile.getAllergies();
+    dto.chronicDiseases = profile.getChronicDiseases();
+    dto.insuranceProviderId = profile.getInsuranceProviderId();
     dto.emergencyContacts = profile.getEmergencyContacts().map((contact) => ({
       id: contact.getId(),
       name: contact.getName(),

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { DoctorProfileUpdatedEvent } from '../events/doctor-profile-updated.event.js';
 import { DoctorDomainError } from '../exceptions/doctor-domain.error.js';
+import type { ProfessionalRank } from '../enums/professional-rank.enum.js';
 
 import { PortfolioAward, type PortfolioAwardProps } from './portfolio-award.entity.js';
 import { PortfolioPublication, type PortfolioPublicationProps } from './portfolio-publication.entity.js';
@@ -21,6 +22,16 @@ export interface RegisterDoctorProfileProps {
   hospitalId?: string;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): specialtyId is
+  // additive alongside the still-live free-text `specialty` during the
+  // transition (§10) -- both may be set; specialty is dropped in Stage O.9
+  // once every profile has a backfilled specialtyId. departmentId requires
+  // hospitalId (validated below) -- a department only makes sense within a
+  // hospital, never standalone.
+  specialtyId?: string;
+  professionalRank?: ProfessionalRank;
+  licenseExpiryDate?: Date;
+  departmentId?: string;
 }
 
 export interface UpdateDoctorProfileProps {
@@ -32,6 +43,10 @@ export interface UpdateDoctorProfileProps {
   hospitalId?: string | null;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
+  specialtyId?: string | null;
+  professionalRank?: ProfessionalRank | null;
+  licenseExpiryDate?: Date | null;
+  departmentId?: string | null;
 }
 
 export interface ReconstituteDoctorProfileProps {
@@ -48,6 +63,10 @@ export interface ReconstituteDoctorProfileProps {
   awards: PortfolioAward[];
   createdAt: Date;
   updatedAt: Date;
+  specialtyId?: string;
+  professionalRank?: ProfessionalRank;
+  licenseExpiryDate?: Date;
+  departmentId?: string;
 }
 
 // Aggregate root of the Doctor bounded context (docs/10-backend-
@@ -73,6 +92,10 @@ export class DoctorProfile {
     private awards: PortfolioAward[],
     private readonly createdAt: Date,
     private updatedAt: Date,
+    private specialtyId: string | undefined,
+    private professionalRank: ProfessionalRank | undefined,
+    private licenseExpiryDate: Date | undefined,
+    private departmentId: string | undefined,
   ) {}
 
   static register(props: RegisterDoctorProfileProps): DoctorProfile {
@@ -80,6 +103,7 @@ export class DoctorProfile {
     DoctorProfile.validateSpecialty(props.specialty);
     DoctorProfile.validateYearsOfExperience(props.yearsOfExperience);
     DoctorProfile.validateConsultationFee(props.consultationFeeAmount);
+    DoctorProfile.validateDepartmentRequiresHospital(props.hospitalId, props.departmentId);
 
     const now = new Date();
     const profile = new DoctorProfile(
@@ -96,6 +120,10 @@ export class DoctorProfile {
       (props.awards ?? []).map((a) => PortfolioAward.create(a)),
       now,
       now,
+      props.specialtyId,
+      props.professionalRank,
+      props.licenseExpiryDate,
+      props.departmentId,
     );
 
     profile.record(new DoctorProfileUpdatedEvent(profile.id));
@@ -117,6 +145,10 @@ export class DoctorProfile {
       props.awards,
       props.createdAt,
       props.updatedAt,
+      props.specialtyId,
+      props.professionalRank,
+      props.licenseExpiryDate,
+      props.departmentId,
     );
   }
 
@@ -139,14 +171,27 @@ export class DoctorProfile {
       DoctorProfile.validateConsultationFee(props.consultationFeeAmount ?? undefined);
       this.consultationFeeAmount = props.consultationFeeAmount ?? undefined;
     }
-    if (props.hospitalId !== undefined) {
-      this.hospitalId = props.hospitalId ?? undefined;
-    }
+
+    const nextHospitalId = props.hospitalId !== undefined ? (props.hospitalId ?? undefined) : this.hospitalId;
+    const nextDepartmentId = props.departmentId !== undefined ? (props.departmentId ?? undefined) : this.departmentId;
+    DoctorProfile.validateDepartmentRequiresHospital(nextHospitalId, nextDepartmentId);
+    this.hospitalId = nextHospitalId;
+    this.departmentId = nextDepartmentId;
+
     if (props.publications !== undefined) {
       this.publications = props.publications.map((p) => PortfolioPublication.create(p));
     }
     if (props.awards !== undefined) {
       this.awards = props.awards.map((a) => PortfolioAward.create(a));
+    }
+    if (props.specialtyId !== undefined) {
+      this.specialtyId = props.specialtyId ?? undefined;
+    }
+    if (props.professionalRank !== undefined) {
+      this.professionalRank = props.professionalRank ?? undefined;
+    }
+    if (props.licenseExpiryDate !== undefined) {
+      this.licenseExpiryDate = props.licenseExpiryDate ?? undefined;
     }
 
     this.updatedAt = new Date();
@@ -174,6 +219,17 @@ export class DoctorProfile {
   private static validateConsultationFee(value: number | undefined): void {
     if (value !== undefined && value < 0) {
       throw new DoctorDomainError('consultationFeeAmount must not be negative.');
+    }
+  }
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3): a department only
+  // makes sense within a hospital -- never standalone.
+  private static validateDepartmentRequiresHospital(
+    hospitalId: string | undefined,
+    departmentId: string | undefined,
+  ): void {
+    if (departmentId !== undefined && !hospitalId) {
+      throw new DoctorDomainError('departmentId requires hospitalId to be set.');
     }
   }
 
@@ -211,6 +267,22 @@ export class DoctorProfile {
 
   getHospitalId(): string | undefined {
     return this.hospitalId;
+  }
+
+  getSpecialtyId(): string | undefined {
+    return this.specialtyId;
+  }
+
+  getProfessionalRank(): ProfessionalRank | undefined {
+    return this.professionalRank;
+  }
+
+  getLicenseExpiryDate(): Date | undefined {
+    return this.licenseExpiryDate;
+  }
+
+  getDepartmentId(): string | undefined {
+    return this.departmentId;
   }
 
   getPublications(): PortfolioPublication[] {

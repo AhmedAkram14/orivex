@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { PatientProfile } from '../../../domain/entities/patient-profile.entity.js';
+import { BloodType } from '../../../domain/enums/blood-type.enum.js';
 import { EmergencyRelationship } from '../../../domain/enums/emergency-relationship.enum.js';
 import type { PatientProfileRepository } from '../../../domain/repositories/patient-profile.repository.js';
 
@@ -30,7 +31,7 @@ class NoopDispatcher {
 }
 
 describe('UpdatePatientProfileUseCase', () => {
-  it('updates the date of birth and emergency contacts', async () => {
+  it('updates emergency contacts', async () => {
     const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
     const repo = new FakePatientProfileRepository(profile);
     const useCase = new UpdatePatientProfileUseCase(repo, new NoopDispatcher());
@@ -38,14 +39,33 @@ describe('UpdatePatientProfileUseCase', () => {
     const result = await useCase.execute(
       new UpdatePatientProfileCommand({
         patientProfileId: profile.getId(),
-        dateOfBirth: new Date('1990-01-01'),
         emergencyContacts: [{ name: 'Jane Doe', relationship: EmergencyRelationship.Spouse, phoneNumber: '555-0100' }],
       }),
     );
 
-    assert.ok(result.getDateOfBirth());
     assert.equal(result.getEmergencyContacts().length, 1);
     assert.equal(repo.saved.length, 1);
+  });
+
+  it('updates bloodType/allergies/chronicDiseases/insuranceProviderId (Onboarding Redesign Stage O.3)', async () => {
+    const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+    const repo = new FakePatientProfileRepository(profile);
+    const useCase = new UpdatePatientProfileUseCase(repo, new NoopDispatcher());
+
+    const result = await useCase.execute(
+      new UpdatePatientProfileCommand({
+        patientProfileId: profile.getId(),
+        bloodType: BloodType.APositive,
+        allergies: 'Peanuts',
+        chronicDiseases: 'Asthma',
+        insuranceProviderId: '44444444-4444-4444-8444-444444444444',
+      }),
+    );
+
+    assert.equal(result.getBloodType(), BloodType.APositive);
+    assert.equal(result.getAllergies(), 'Peanuts');
+    assert.equal(result.getChronicDiseases(), 'Asthma');
+    assert.equal(result.getInsuranceProviderId(), '44444444-4444-4444-8444-444444444444');
   });
 
   it('throws NotFoundError when the profile does not exist', async () => {

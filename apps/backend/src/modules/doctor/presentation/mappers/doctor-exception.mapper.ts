@@ -1,8 +1,10 @@
 import { ConflictError, NotFoundError, ValidationError } from '../../../../shared/errors/app-error.js';
 import { AvailabilityWindowConflictError } from '../../domain/exceptions/availability-window-conflict.error.js';
+import { DepartmentNotFoundError } from '../../domain/exceptions/department-not-found.error.js';
 import { DoctorDomainError } from '../../domain/exceptions/doctor-domain.error.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
 import { HospitalNotFoundError } from '../../domain/exceptions/hospital-not-found.error.js';
+import { MedicalSpecialtyNotFoundError } from '../../domain/exceptions/medical-specialty-not-found.error.js';
 
 // Translates DoctorModule domain exceptions into the shared, HTTP-mappable
 // AppError types the global AllExceptionsFilter already understands (mirrors
@@ -19,7 +21,11 @@ export function mapDoctorError(error: unknown): unknown {
   if (error instanceof AvailabilityWindowConflictError || error instanceof DoctorProfileAlreadyExistsError) {
     return new ConflictError(error.message);
   }
-  if (error instanceof HospitalNotFoundError) {
+  if (
+    error instanceof HospitalNotFoundError ||
+    error instanceof MedicalSpecialtyNotFoundError ||
+    error instanceof DepartmentNotFoundError
+  ) {
     return new NotFoundError(error.message);
   }
   if (error instanceof DoctorDomainError) {

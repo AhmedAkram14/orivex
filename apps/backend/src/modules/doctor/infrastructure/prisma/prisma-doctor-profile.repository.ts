@@ -3,8 +3,10 @@ import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
+import { DepartmentNotFoundError } from '../../domain/exceptions/department-not-found.error.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
 import { HospitalNotFoundError } from '../../domain/exceptions/hospital-not-found.error.js';
+import { MedicalSpecialtyNotFoundError } from '../../domain/exceptions/medical-specialty-not-found.error.js';
 import type { DoctorProfileRepository } from '../../domain/repositories/doctor-profile.repository.js';
 
 import { toDomainDoctorProfile } from './doctor-profile.mapper.js';
@@ -15,11 +17,24 @@ function isUniqueConstraintViolation(error: unknown): error is Prisma.PrismaClie
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
-// A doctor-supplied hospitalId that doesn't exist -- caught at the database
-// FK rather than a second cross-module existence query (DoctorModule
-// deliberately does not import AdministrationModule, which owns Hospital).
+// A doctor-supplied hospitalId/specialtyId/departmentId that doesn't exist
+// -- caught at the database FK rather than a second cross-module existence
+// query (DoctorModule deliberately does not import AdministrationModule/
+// ReferenceModule, which own Hospital/Department/MedicalSpecialty).
 function isForeignKeyConstraintViolation(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003';
+}
+
+// Prisma's P2003 error doesn't say which caller-supplied field failed in a
+// structured way across every provider -- Postgres reports it in
+// meta.field_name as the constraint name, e.g. "DoctorProfile_hospitalId_fkey
+// (index)". Onboarding Redesign (2026-07-21 proposal, Stage O.3): now that
+// three nullable FKs exist on this aggregate, this must be inspected
+// explicitly rather than assumed (the pre-Stage-O.3 code only ever had one
+// nullable FK, so guessing by presence happened to be safe then).
+function violatedFieldName(error: Prisma.PrismaClientKnownRequestError): string | undefined {
+  const fieldName = error.meta?.field_name;
+  return typeof fieldName === 'string' ? fieldName : undefined;
 }
 
 @Injectable()
@@ -66,6 +81,10 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             languages: profile.getLanguages(),
             consultationFeeAmount: profile.getConsultationFeeAmount() ?? null,
             hospitalId: profile.getHospitalId() ?? null,
+            specialtyId: profile.getSpecialtyId() ?? null,
+            professionalRank: profile.getProfessionalRank() ?? null,
+            licenseExpiryDate: profile.getLicenseExpiryDate() ?? null,
+            departmentId: profile.getDepartmentId() ?? null,
           },
           update: {
             licenseNumber: profile.getLicenseNumber(),
@@ -75,6 +94,10 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             languages: profile.getLanguages(),
             consultationFeeAmount: profile.getConsultationFeeAmount() ?? null,
             hospitalId: profile.getHospitalId() ?? null,
+            specialtyId: profile.getSpecialtyId() ?? null,
+            professionalRank: profile.getProfessionalRank() ?? null,
+            licenseExpiryDate: profile.getLicenseExpiryDate() ?? null,
+            departmentId: profile.getDepartmentId() ?? null,
           },
         }),
         this.prisma.portfolioPublication.deleteMany({ where: { doctorProfileId: id } }),
@@ -102,8 +125,17 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
       if (isUniqueConstraintViolation(error)) {
         throw new DoctorProfileAlreadyExistsError(profile.getAccountId());
       }
-      if (isForeignKeyConstraintViolation(error) && profile.getHospitalId()) {
-        throw new HospitalNotFoundError(profile.getHospitalId() as string);
+      if (isForeignKeyConstraintViolation(error)) {
+        const fieldName = violatedFieldName(error);
+        if (fieldName?.includes('hospitalId') && profile.getHospitalId()) {
+          throw new HospitalNotFoundError(profile.getHospitalId() as string);
+        }
+        if (fieldName?.includes('specialtyId') && profile.getSpecialtyId()) {
+          throw new MedicalSpecialtyNotFoundError(profile.getSpecialtyId() as string);
+        }
+        if (fieldName?.includes('departmentId') && profile.getDepartmentId()) {
+          throw new DepartmentNotFoundError(profile.getDepartmentId() as string);
+        }
       }
       throw error;
     }

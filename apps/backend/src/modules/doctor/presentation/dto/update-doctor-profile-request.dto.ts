@@ -1,5 +1,19 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+
+import { ProfessionalRank } from '../../domain/enums/professional-rank.enum.js';
 
 class PortfolioPublicationDto {
   @IsString()
@@ -63,4 +77,21 @@ export class UpdateDoctorProfileRequestDto {
   @ValidateNested({ each: true })
   @Type(() => PortfolioAwardDto)
   awards?: PortfolioAwardDto[];
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.3).
+  @IsOptional()
+  @IsUUID('4')
+  specialtyId?: string;
+
+  @IsOptional()
+  @IsEnum(ProfessionalRank)
+  professionalRank?: ProfessionalRank;
+
+  @IsOptional()
+  @IsDateString()
+  licenseExpiryDate?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  departmentId?: string;
 }

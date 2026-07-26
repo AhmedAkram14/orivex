@@ -8,7 +8,6 @@ export interface EmergencyContactInput {
 
 export interface CreatePatientProfileCommandProps {
   accountId: string;
-  dateOfBirth?: Date;
   emergencyContacts?: EmergencyContactInput[];
 }
 
@@ -16,12 +15,10 @@ export interface CreatePatientProfileCommandProps {
 // construction (matches Identity/Doctor/Trust's established Command style).
 export class CreatePatientProfileCommand {
   readonly accountId: string;
-  readonly dateOfBirth?: Date;
   readonly emergencyContacts?: EmergencyContactInput[];
 
   constructor(props: CreatePatientProfileCommandProps) {
     this.accountId = props.accountId;
-    this.dateOfBirth = props.dateOfBirth;
     this.emergencyContacts = props.emergencyContacts;
   }
 }

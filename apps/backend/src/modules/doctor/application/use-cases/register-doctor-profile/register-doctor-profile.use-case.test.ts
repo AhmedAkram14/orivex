@@ -9,6 +9,7 @@ import type { AccountRepository } from '../../../../identity/domain/repositories
 import { DisplayName } from '../../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../../identity/domain/value-objects/email-address.value-object.js';
 import type { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
+import { ProfessionalRank } from '../../../domain/enums/professional-rank.enum.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
 
 import { RegisterDoctorProfileCommand } from './register-doctor-profile.command.js';
@@ -116,6 +117,27 @@ describe('RegisterDoctorProfileUseCase', () => {
     );
 
     assert.equal(profile.getHospitalId(), undefined);
+  });
+
+  it('registers with specialtyId/professionalRank/licenseExpiryDate/departmentId (Onboarding Redesign Stage O.3)', async () => {
+    const licenseExpiryDate = new Date('2030-01-01');
+    const profile = await useCase.execute(
+      new RegisterDoctorProfileCommand({
+        accountId: account.getId().toString(),
+        licenseNumber: 'LIC-123',
+        specialty: 'Cardiology',
+        specialtyId: '55555555-5555-4555-8555-555555555555',
+        professionalRank: ProfessionalRank.Registrar,
+        licenseExpiryDate,
+        hospitalId: '77777777-7777-4777-8777-777777777777',
+        departmentId: '66666666-6666-4666-8666-666666666666',
+      }),
+    );
+
+    assert.equal(profile.getSpecialtyId(), '55555555-5555-4555-8555-555555555555');
+    assert.equal(profile.getProfessionalRank(), ProfessionalRank.Registrar);
+    assert.deepEqual(profile.getLicenseExpiryDate(), licenseExpiryDate);
+    assert.equal(profile.getDepartmentId(), '66666666-6666-4666-8666-666666666666');
   });
 
   it('throws NotFoundError when the account does not exist', async () => {
