@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import type { DoctorProfile } from '@/features/doctor/api/types';
+import { useDepartmentsList } from '@/features/doctor/hooks/use-departments-list';
 import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useRegisterDoctorProfile } from '@/features/doctor/hooks/use-register-doctor-profile';
 import { useUpdateDoctorProfile } from '@/features/doctor/hooks/use-update-doctor-profile';
@@ -11,6 +12,7 @@ import {
   createOnboardingProfileSchema,
   type OnboardingProfileFormValues,
 } from '@/features/doctor/schemas/onboarding.schema';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -21,6 +23,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/shared/ui/textarea';
 
 const SUPPORTED_LANGUAGES = ['en', 'ar'] as const;
+const PROFESSIONAL_RANKS = ['resident', 'registrar', 'specialist', 'consultant', 'professor'] as const;
+// Doctor Onboarding hospital dropdown needs an explicit "Independent
+// Practice" option (§2's UX table) alongside real hospitals -- a Select
+// item can't carry an empty-string value, so this sentinel maps to
+// `hospitalId: undefined` at the form-state level (see onValueChange below).
+const INDEPENDENT_PRACTICE_VALUE = '__independent_practice__';
 
 export interface ProfileStepProps {
   /** Undefined the first time through (no DoctorProfile exists yet) -- the step registers instead of updates. */
@@ -29,20 +37,22 @@ export interface ProfileStepProps {
 }
 
 /**
- * Doctor Onboarding (Phase 4 continuation): the wizard's first step --
+ * Doctor Onboarding (Phase 4 continuation; redesigned Onboarding Redesign
+ * 2026-07-21 proposal, Stage O.6): the wizard's Professional Info step --
  * creates the profile via the real `POST /doctors` the first time through
  * (a still-Patient applicant), or updates it via the existing
  * `PATCH /doctors/me` on every later pass (editing before submission, or
- * after a rejection). Reuses `DoctorProfileForm`'s exact field set plus
- * `licenseNumber` (set once, at creation, per `RegisterDoctorProfileRequestDto`)
- * and an optional hospital affiliation (`GET /hospitals`, the public
- * directory -- Stage 4's `hospitalId` column, now genuinely wired).
+ * after a rejection). `specialty` (free text) is derived from the selected
+ * reference-data `specialtyId` at submission time, not shown as a separate
+ * field -- one dropdown, not two redundant inputs for the same concept.
  */
 export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
   const t = useTranslations('doctor.onboarding.profileStep');
   const tValidation = useTranslations('doctor.onboarding.profileStep.validation');
   const tLanguages = useTranslations('doctor.profile.languageNames');
+  const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
   const { data: hospitals, isLoading: hospitalsLoading } = useHospitalsList();
+  const { data: specialties, isLoading: specialtiesLoading } = useSpecialtiesList();
   const registerProfile = useRegisterDoctorProfile();
   const updateProfile = useUpdateDoctorProfile();
   const isEditing = Boolean(profile);
@@ -52,20 +62,26 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
     resolver: zodResolver(createOnboardingProfileSchema(tValidation)),
     defaultValues: {
       licenseNumber: profile?.licenseNumber ?? '',
-      specialty: profile?.specialty ?? '',
+      specialtyId: profile?.specialtyId ?? '',
       biography: profile?.biography,
       yearsOfExperience: profile?.yearsOfExperience,
       languages: profile?.languages ?? [],
       consultationFeeAmount: profile?.consultationFeeAmount,
       hospitalId: profile?.hospitalId,
+      professionalRank: profile?.professionalRank,
+      licenseExpiryDate: profile?.licenseExpiryDate?.slice(0, 10) ?? '',
+      departmentId: profile?.departmentId,
     },
   });
 
+  const selectedHospitalId = form.watch('hospitalId');
+  const { data: departments, isLoading: departmentsLoading } = useDepartmentsList(selectedHospitalId);
+
   async function onSubmit(values: OnboardingProfileFormValues) {
+    const specialtyName = specialties?.find((specialty) => specialty.id === values.specialtyId)?.name ?? '';
+    const payload = { ...values, specialty: specialtyName };
     try {
-      const saved = isEditing
-        ? await updateProfile.mutateAsync(values)
-        : await registerProfile.mutateAsync({ ...values, licenseNumber: values.licenseNumber });
+      const saved = isEditing ? await updateProfile.mutateAsync(payload) : await registerProfile.mutateAsync(payload);
       onSaved(saved);
     } catch {
       // Inline error rendered below from mutation.error.
@@ -97,12 +113,62 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
 
         <FormField
           control={form.control}
-          name="specialty"
+          name="specialtyId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('specialty')}</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange} disabled={specialtiesLoading}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('specialtyPlaceholder')} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {(specialties ?? []).map((specialty) => (
+                    <SelectItem key={specialty.id} value={specialty.id}>
+                      {specialty.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="professionalRank"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('professionalRank')}</FormLabel>
+              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('professionalRankPlaceholder')} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {PROFESSIONAL_RANKS.map((rank) => (
+                    <SelectItem key={rank} value={rank}>
+                      {tRanks(rank)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="licenseExpiryDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('licenseExpiryDate')}</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input type="date" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -157,13 +223,24 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('hospital')}</FormLabel>
-              <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={hospitalsLoading}>
+              <Select
+                value={field.value ?? INDEPENDENT_PRACTICE_VALUE}
+                onValueChange={(value) => {
+                  const nextHospitalId = value === INDEPENDENT_PRACTICE_VALUE ? undefined : value;
+                  field.onChange(nextHospitalId);
+                  if (!nextHospitalId) {
+                    form.setValue('departmentId', undefined);
+                  }
+                }}
+                disabled={hospitalsLoading}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder={t('hospitalPlaceholder')} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value={INDEPENDENT_PRACTICE_VALUE}>{t('independentPractice')}</SelectItem>
                   {(hospitals ?? []).map((hospital) => (
                     <SelectItem key={hospital.id} value={hospital.id}>
                       {hospital.name}
@@ -175,6 +252,33 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
             </FormItem>
           )}
         />
+
+        {selectedHospitalId && (
+          <FormField
+            control={form.control}
+            name="departmentId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('department')}</FormLabel>
+                <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={departmentsLoading}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('departmentPlaceholder')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {(departments ?? []).map((department) => (
+                      <SelectItem key={department.id} value={department.id}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

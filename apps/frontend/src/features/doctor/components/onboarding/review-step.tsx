@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { useSubmitVerification } from '@/features/doctor/hooks/use-submit-verification';
-import type { UploadedDocument } from '@/features/doctor/components/onboarding/documents-step';
+import type { DocumentSlots } from '@/shared/verification/components/documents-step';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -11,30 +11,34 @@ import { Card, CardContent } from '@/shared/ui/card';
 
 export interface ReviewStepProps {
   profile: DoctorProfile;
-  documents: UploadedDocument[];
+  documents: DocumentSlots;
   onSubmitted: () => void;
   onBack: () => void;
 }
 
 /**
- * Doctor Onboarding (Phase 4 continuation): the wizard's final step --
- * submits for review via the real `POST /doctors/:id/verifications`,
- * reused as-is. `specialtyCode` reuses the profile's own free-text
- * specialty verbatim: no specialty reference-data catalog exists in this
- * codebase yet (ReferenceDataModule is future work per the roadmap), so
- * there is no coded value to submit instead -- an honest, disclosed
- * limitation, not a fabricated code.
+ * Doctor Onboarding (Phase 4 continuation; redesigned Onboarding Redesign
+ * 2026-07-21 proposal, Stage O.6): the wizard's final step -- submits for
+ * review via the real `POST /doctors/:id/verifications`, reused as-is.
+ * `specialtyCode` sends the profile's own free-text `specialty` (now
+ * populated from the Professional Info step's reference-data dropdown
+ * selection, resolved to its display name at that step) -- this backend
+ * field is a free-string historical snapshot on the VerificationCase, not a
+ * live FK, so a human-readable name is exactly what it expects.
  */
 export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewStepProps) {
   const t = useTranslations('doctor.onboarding.reviewStep');
   const submitVerification = useSubmitVerification(profile.id);
+  const documentAssetIds = Object.values(documents)
+    .filter((document): document is NonNullable<typeof document> => Boolean(document))
+    .map((document) => document.id);
 
   async function handleSubmit() {
     try {
       await submitVerification.mutateAsync({
         licenseNumber: profile.licenseNumber,
         specialtyCode: profile.specialty,
-        documentAssetIds: documents.map((document) => document.id),
+        documentAssetIds,
       });
       onSubmitted();
     } catch {
@@ -65,7 +69,7 @@ export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewSt
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-text-tertiary">{t('documents')}</dt>
-              <dd className="font-medium text-text-primary">{t('documentsCount', { count: documents.length })}</dd>
+              <dd className="font-medium text-text-primary">{t('documentsCount', { count: documentAssetIds.length })}</dd>
             </div>
           </dl>
         </CardContent>

@@ -13,9 +13,12 @@ import type { AccessTokenClaims, JwtSignerPort } from '../../../authentication/a
 import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js';
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
-import { HOSPITAL_REPOSITORY } from '../../application/ports/tokens.js';
+import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from '../../application/ports/tokens.js';
+import { ListDepartmentsUseCase } from '../../application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from '../../application/use-cases/list-hospitals/list-hospitals.use-case.js';
+import { Department } from '../../domain/entities/department.entity.js';
 import { Hospital } from '../../domain/entities/hospital.entity.js';
+import type { DepartmentRepository } from '../../domain/repositories/department.repository.js';
 import type { HospitalRepository } from '../../domain/repositories/hospital.repository.js';
 
 import { HospitalDirectoryController } from './hospital-directory.controller.js';
@@ -47,6 +50,16 @@ class InMemoryHospitalRepository implements HospitalRepository {
   }
 }
 
+class InMemoryDepartmentRepository implements DepartmentRepository {
+  constructor(private readonly departments: Department[]) {}
+  findAllByHospitalId(hospitalId: string): Promise<Department[]> {
+    return Promise.resolve(this.departments.filter((department) => department.getHospitalId() === hospitalId));
+  }
+  save(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
 // Doctor Onboarding (Phase 4 continuation): any authenticated account (not
 // just SuperAdmin) must be able to browse the hospital directory to pick an
 // affiliation during onboarding -- deliberately not the SuperAdmin-only
@@ -57,6 +70,8 @@ describe('HospitalDirectoryController (integration)', () => {
   before(async () => {
     const hospital = Hospital.create({ name: 'Cairo General Hospital' });
     const hospitalRepository = new InMemoryHospitalRepository([hospital]);
+    const department = Department.create({ hospitalId: hospital.getId(), name: 'Cardiology' });
+    const departmentRepository = new InMemoryDepartmentRepository([department]);
 
     const moduleRef = await Test.createTestingModule({
       controllers: [HospitalDirectoryController],
@@ -66,10 +81,17 @@ describe('HospitalDirectoryController (integration)', () => {
         JwtAuthGuard,
         { provide: JWT_SIGNER, useClass: FakeJwtSigner },
         { provide: HOSPITAL_REPOSITORY, useValue: hospitalRepository },
+        { provide: DEPARTMENT_REPOSITORY, useValue: departmentRepository },
         {
           provide: ListHospitalsUseCase,
           useFactory: (repo: HospitalRepository) => new ListHospitalsUseCase(repo),
           inject: [HOSPITAL_REPOSITORY],
+        },
+        {
+          provide: ListDepartmentsUseCase,
+          useFactory: (hospitalRepo: HospitalRepository, departmentRepo: DepartmentRepository) =>
+            new ListDepartmentsUseCase(hospitalRepo, departmentRepo),
+          inject: [HOSPITAL_REPOSITORY, DEPARTMENT_REPOSITORY],
         },
       ],
     }).compile();
@@ -103,5 +125,42 @@ describe('HospitalDirectoryController (integration)', () => {
 
     assert.equal(response.body.data.length, 1);
     assert.equal(response.body.data[0].name, 'Cairo General Hospital');
+  });
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): a Doctor mid-
+  // onboarding must be able to browse a chosen hospital's departments too
+  // -- deliberately not the SuperAdmin-only /admin/hospitals/:id/departments
+  // surface.
+  describe('GET /hospitals/:id/departments', () => {
+    it('rejects a request with no bearer token', async () => {
+      await request(app.getHttpServer())
+        .get('/hospitals/11111111-1111-4111-8111-111111111111/departments')
+        .expect(401);
+    });
+
+    it('is reachable by a plain Patient account and lists the hospital\'s departments', async () => {
+      const hospitals = await request(app.getHttpServer())
+        .get('/hospitals')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .expect(200);
+      const hospitalId = hospitals.body.data[0].id;
+
+      const response = await request(app.getHttpServer())
+        .get(`/hospitals/${hospitalId}/departments`)
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .expect(200);
+
+      assert.equal(response.body.data.length, 1);
+      assert.equal(response.body.data[0].name, 'Cardiology');
+    });
+
+    it('returns 404 for an unknown hospital id', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/hospitals/99999999-9999-4999-8999-999999999999/departments')
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .expect(404);
+
+      assert.equal(response.body.error.code, 'NOT_FOUND');
+    });
   });
 });

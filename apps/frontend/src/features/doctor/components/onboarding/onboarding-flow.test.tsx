@@ -6,6 +6,8 @@ import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { OnboardingFlow } from './onboarding-flow';
+import { resetDoctorStore } from '@/mocks/doctor-store';
+import { resetIdentityStore } from '@/mocks/identity-store';
 import { server } from '@/mocks/server';
 import { env } from '@/shared/lib/env';
 import enMessages from '../../../../../messages/en.json';
@@ -23,7 +25,11 @@ vi.mock('next/navigation', () => ({
 const base = () => env.apiBaseUrl;
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  resetIdentityStore();
+  resetDoctorStore();
+});
 afterAll(() => server.close());
 
 function renderFlow() {
@@ -38,7 +44,12 @@ function renderFlow() {
 }
 
 describe('OnboardingFlow', () => {
-  it('shows the profile step (Draft) when no doctor profile exists yet', async () => {
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): the shared
+  // Personal Info step is now the wizard's leading step, ahead of
+  // Professional Info -- this is the explicit "resume at the right step
+  // still works with the new leading step inserted" regression the
+  // proposal calls for.
+  it('starts at the Personal Info step (Draft) when no doctor profile exists yet, then advances to Professional Info', async () => {
     server.use(
       http.get(`${base()}/doctors/me`, () =>
         HttpResponse.json(
@@ -46,12 +57,101 @@ describe('OnboardingFlow', () => {
           { status: 404 },
         ),
       ),
+      // This test exercises the genuinely-blank-personal-info scenario --
+      // `identity-store.ts`'s shared seed account now carries a filled-in
+      // dateOfBirth/gender/nationalityId/address (needed for Stage O.7's
+      // Patient Identity Verification tests), so it's overridden here back
+      // to unset, matching a real account that has never completed the
+      // shared Personal Info step yet.
+      http.get(`${base()}/accounts/me`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'user-doctor-1',
+            email: 'doctor@orivex.dev',
+            role: 'doctor',
+            status: 'active',
+            displayName: 'Dr. Sarah Ahmed',
+            preferredLanguage: 'en',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+      ),
     );
 
     renderFlow();
 
+    expect(await screen.findByLabelText('Date of birth')).toBeInTheDocument();
+    expect(screen.queryByLabelText('License number')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Date of birth'), '1985-06-15');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Gender' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Female' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Nationality' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Egypt' }));
+    await userEvent.type(screen.getByLabelText('Address'), '12 Tahrir Street, Cairo');
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
+
     expect(await screen.findByLabelText('License number')).toBeInTheDocument();
-  });
+  }, 15000);
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): the redesigned
+  // Professional Info step -- reference-data specialty dropdown,
+  // Professional Rank, License Expiry Date, and "Independent Practice"
+  // (no hospital/department required) all the way through to the
+  // redesigned 7-slot Documents step.
+  it('completes Personal Info then Professional Info (Independent Practice) and reaches the 7-slot Documents step', async () => {
+    server.use(
+      http.get(`${base()}/doctors/me`, () =>
+        HttpResponse.json(
+          { error: { code: 'NOT_FOUND', message: 'not found', requestId: 'r', timestamp: new Date().toISOString() } },
+          { status: 404 },
+        ),
+      ),
+      // See the previous test's comment: overridden back to a genuinely
+      // blank personal-info account, since `identity-store.ts`'s shared seed
+      // account now carries a filled-in dateOfBirth for Stage O.7's Patient
+      // Identity Verification tests.
+      http.get(`${base()}/accounts/me`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'user-doctor-1',
+            email: 'doctor@orivex.dev',
+            role: 'doctor',
+            status: 'active',
+            displayName: 'Dr. Sarah Ahmed',
+            preferredLanguage: 'en',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        }),
+      ),
+    );
+
+    renderFlow();
+
+    await userEvent.type(await screen.findByLabelText('Date of birth'), '1985-06-15');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Gender' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Female' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Nationality' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Egypt' }));
+    await userEvent.type(screen.getByLabelText('Address'), '12 Tahrir Street, Cairo');
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
+
+    await userEvent.type(await screen.findByLabelText('License number'), 'LIC-9001');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Specialty' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Dermatology' }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Professional rank' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Registrar' }));
+    await userEvent.type(screen.getByLabelText('License expiry date'), '2031-01-01');
+    await userEvent.click(screen.getByLabelText('English'));
+    // Hospital defaults to "Independent Practice" -- no department field
+    // should even render, so this is left untouched.
+    await userEvent.click(screen.getByRole('button', { name: 'Create profile and continue' }));
+
+    expect(await screen.findByText('National ID (front)')).toBeInTheDocument();
+    expect(screen.getByText('Professional membership card')).toBeInTheDocument();
+  }, 15000);
 
   it('resumes at the documents step (Draft) when a profile exists but nothing has been submitted', async () => {
     server.use(
@@ -60,7 +160,8 @@ describe('OnboardingFlow', () => {
 
     renderFlow();
 
-    expect(await screen.findByText('Upload a document')).toBeInTheDocument();
+    expect(await screen.findByText('National ID (front)')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Date of birth')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('License number')).not.toBeInTheDocument();
   });
 
@@ -89,7 +190,38 @@ describe('OnboardingFlow', () => {
         'Your application is being reviewed. You will gain access to the Doctor Portal automatically once approved.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Upload a document')).not.toBeInTheDocument();
+    expect(screen.queryByText('National ID (front)')).not.toBeInTheDocument();
+  });
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): MoreInfoNeeded
+  // gets its own friendlier copy now, distinct from Rejected's.
+  it('shows the MoreInfoNeeded status with its own copy, distinct from Rejected', async () => {
+    server.use(
+      http.get(`${base()}/doctors/:id/verifications`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'case-1',
+              doctorId: 'doctor-profile-1',
+              status: 'more_info_needed',
+              reason: 'Please upload a clearer photo of your medical license.',
+              submittedAt: new Date().toISOString(),
+              decidedAt: new Date().toISOString(),
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderFlow();
+
+    expect(await screen.findByText('More info needed')).toBeInTheDocument();
+    expect(
+      screen.getByText('We need one more thing from you before we can continue reviewing your application.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('You can edit your profile and documents, then resubmit for review.'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the rejection reason and lets the applicant edit and resubmit', async () => {

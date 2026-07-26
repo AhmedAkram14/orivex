@@ -1,16 +1,30 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
 import type {
+  DepartmentOption,
   DoctorDashboardSummary,
+  DoctorDirectoryResult,
   DoctorProfile,
   DoctorProfileUpdateRequest,
   HospitalOption,
+  ListDoctorDirectoryParams,
   QueueResponse,
   RegisterDoctorProfileRequest,
   SubmitVerificationRequest,
   UpcomingWorkResponse,
   VerificationCase,
 } from '@/features/doctor/api/types';
+
+function buildListDoctorsQuery(params: ListDoctorDirectoryParams): string {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  if (params.specialty) query.set('specialty', params.specialty);
+  if (params.specialtyId) query.set('specialtyId', params.specialtyId);
+  if (params.hospitalId) query.set('hospitalId', params.hospitalId);
+  const qs = query.toString();
+  return qs ? `${DOCTOR_PATHS.list}?${qs}` : DOCTOR_PATHS.list;
+}
 
 /**
  * The only module that talks to `/doctor/*` and `/appointments/doctor/*` —
@@ -43,9 +57,22 @@ export const doctorApi = {
 
   listHospitals: () => apiFetch<HospitalOption[]>({ path: DOCTOR_PATHS.hospitals }),
 
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.6).
+  listDepartments: (hospitalId: string) =>
+    apiFetch<DepartmentOption[]>({ path: DOCTOR_PATHS.departmentsByHospital(hospitalId) }),
+
   submitVerification: (doctorId: string, request: SubmitVerificationRequest) =>
     apiFetch<VerificationCase>({ method: 'POST', path: DOCTOR_PATHS.verifications(doctorId), body: request }),
 
   listVerifications: (doctorId: string) =>
     apiFetch<VerificationCase[]>({ path: DOCTOR_PATHS.verifications(doctorId) }),
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Patient
+  // Dashboard's Browse/Search Doctors screen + patient-facing profile view.
+  listDoctors: (params: ListDoctorDirectoryParams = {}) =>
+    apiFetch<DoctorDirectoryResult>({ path: buildListDoctorsQuery(params) }),
+
+  getById: (doctorProfileId: string) => apiFetch<DoctorProfile>({ path: DOCTOR_PATHS.byId(doctorProfileId) }),
+
+  getByAccountId: (accountId: string) => apiFetch<DoctorProfile>({ path: DOCTOR_PATHS.byAccountId(accountId) }),
 };

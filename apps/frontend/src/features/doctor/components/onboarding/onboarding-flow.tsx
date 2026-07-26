@@ -5,24 +5,51 @@ import { useTranslations } from 'next-intl';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useMyVerifications } from '@/features/doctor/hooks/use-my-verifications';
 import type { DoctorProfile } from '@/features/doctor/api/types';
-import { DocumentsStep, type UploadedDocument } from '@/features/doctor/components/onboarding/documents-step';
 import { ProfileStep } from '@/features/doctor/components/onboarding/profile-step';
 import { ReviewStep } from '@/features/doctor/components/onboarding/review-step';
-import { VerificationStatus } from '@/features/doctor/components/onboarding/verification-status';
+import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
+import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { DocumentsStep, type DocumentSlots } from '@/shared/verification/components/documents-step';
+import { VerificationStatus } from '@/shared/verification/components/verification-status';
+import type { MediaAssetPurpose } from '@/shared/media/types';
+import { Link } from '@/shared/i18n/navigation';
+import { Button } from '@/shared/ui/button';
 
-type WizardStep = 'profile' | 'documents' | 'review';
+// Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6): 7 typed upload
+// slots, each its own MediaAssetPurpose value. Order matches §2's UX table.
+const DOCTOR_DOCUMENT_SLOTS: readonly MediaAssetPurpose[] = [
+  'national_id_front',
+  'national_id_back',
+  'selfie_with_id',
+  'medical_license',
+  'graduation_certificate',
+  'board_certificate',
+  'professional_membership_card',
+];
+
+// Onboarding Redesign (2026-07-21 proposal, Stage O.6): 'personal' is the
+// new leading step (the shared Personal Info step, §0a). The resume logic
+// below is unchanged from before this step existed -- an existing
+// DoctorProfile with nothing submitted yet still resumes at 'documents'
+// (personal + professional info were both necessarily already completed to
+// reach that state in the first place, since the wizard is strictly
+// sequential); only the *first-time-through* default moved from 'profile'
+// to 'personal'.
+type WizardStep = 'personal' | 'profile' | 'documents' | 'review';
 
 /**
  * Doctor Onboarding (Phase 4 continuation) -- the entire self-service
  * workflow as one state machine, derived entirely from real data (never a
  * client-only fake "Draft" record):
  *
- * - No DoctorProfile yet -> Draft, step 1 (create profile).
+ * - No DoctorProfile yet -> Draft, step 1 (shared Personal Info, then
+ *   Professional Info/create profile).
  * - DoctorProfile exists, no VerificationCase ever submitted -> Draft,
- *   continues at step 2 (documents).
+ *   continues at the Documents step (personal + professional info were
+ *   both necessarily completed already to reach this state).
  * - Latest VerificationCase is Submitted/UnderReview/MoreInfoNeeded/
  *   ReVerificationDue -> Pending (blocked from re-entering the wizard).
  * - Latest is Rejected -> shows the reason, offers "Edit and resubmit"
@@ -34,12 +61,13 @@ type WizardStep = 'profile' | 'documents' | 'review';
  */
 export function OnboardingFlow() {
   const t = useTranslations('doctor.onboarding');
+  const { data: account, isLoading: accountLoading } = useMyAccount();
   const { data: profile, isLoading: profileLoading, error: profileError } = useDoctorProfile();
   const hasProfile = Boolean(profile);
   const { data: verifications, isLoading: verificationsLoading } = useMyVerifications(profile?.id);
 
-  const [step, setStep] = useState<WizardStep>('profile');
-  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
+  const [step, setStep] = useState<WizardStep>('personal');
+  const [documents, setDocuments] = useState<DocumentSlots>({});
   const [resubmitting, setResubmitting] = useState(false);
   const [workingProfile, setWorkingProfile] = useState<DoctorProfile | undefined>(undefined);
 
@@ -63,7 +91,7 @@ export function OnboardingFlow() {
     }
   }, [profileLoading, hasProfile, verificationsLoading, verifications]);
 
-  if (profileLoading || (hasProfile && verificationsLoading)) {
+  if (accountLoading || profileLoading || (hasProfile && verificationsLoading)) {
     return (
       <div className="flex flex-col gap-3">
         <Skeleton className="h-10 w-full" />
@@ -84,6 +112,7 @@ export function OnboardingFlow() {
     return (
       <VerificationStatus
         verificationCase={latestCase}
+        translationNamespace="doctor.onboarding.status"
         onEditAndResubmit={
           latestCase.status === 'rejected' || latestCase.status === 'more_info_needed'
             ? () => {
@@ -92,6 +121,11 @@ export function OnboardingFlow() {
               }
             : undefined
         }
+        approvedAction={
+          <Button asChild>
+            <Link href="/doctor">{t('status.goToDoctorPortal')}</Link>
+          </Button>
+        }
       />
     );
   }
@@ -99,6 +133,10 @@ export function OnboardingFlow() {
   return (
     <div className="flex flex-col gap-6">
       <ol className="flex items-center gap-2 text-xs text-text-tertiary">
+        <li aria-current={step === 'personal' ? 'step' : undefined} className={step === 'personal' ? 'font-semibold text-primary' : ''}>
+          {t('steps.personal')}
+        </li>
+        <li aria-hidden="true">/</li>
         <li aria-current={step === 'profile' ? 'step' : undefined} className={step === 'profile' ? 'font-semibold text-primary' : ''}>
           {t('steps.profile')}
         </li>
@@ -112,6 +150,10 @@ export function OnboardingFlow() {
         </li>
       </ol>
 
+      {step === 'personal' && (
+        <PersonalInfoStep account={account} onSaved={() => setStep('profile')} />
+      )}
+
       {step === 'profile' && (
         <ProfileStep
           profile={effectiveProfile}
@@ -124,6 +166,8 @@ export function OnboardingFlow() {
 
       {step === 'documents' && (
         <DocumentsStep
+          slots={DOCTOR_DOCUMENT_SLOTS}
+          translationNamespace="doctor.onboarding.documentsStep"
           documents={documents}
           onDocumentsChange={setDocuments}
           onBack={() => setStep('profile')}

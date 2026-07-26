@@ -1,3 +1,5 @@
+export type { VerificationCase, VerificationCaseStatus } from '@/shared/verification/types';
+
 export interface DoctorDashboardSummary {
   consultationsToday: number;
   patientsInQueue: number;
@@ -65,17 +67,28 @@ export interface DoctorProfile {
   phoneNumber?: string;
   licenseNumber: string;
   specialty: string;
+  /** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6): the reference-data specialty selection -- `specialty` above stays as the free-text snapshot backend entities still carry, `specialtyId` is the live FK. */
+  specialtyId?: string;
   biography?: string;
   yearsOfExperience?: number;
   languages: string[];
   consultationFeeAmount?: number;
   /** Doctor Onboarding (Phase 4 continuation) -- optional hospital affiliation. */
   hospitalId?: string;
+  /** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6). */
+  professionalRank?: ProfessionalRank;
+  /** ISO date. Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6). */
+  licenseExpiryDate?: string;
+  /** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6) -- requires `hospitalId` to be set. */
+  departmentId?: string;
   publications: DoctorPublication[];
   awards: DoctorAward[];
   createdAt: string;
   updatedAt: string;
 }
+
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6): matches DoctorModule's real ProfessionalRank enum exactly -- a plain enum, not reference data. */
+export type ProfessionalRank = 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
 
 /**
  * Doctor Onboarding (Phase 4 continuation): matches DoctorProfileController's
@@ -85,11 +98,15 @@ export interface DoctorProfile {
 export interface RegisterDoctorProfileRequest {
   licenseNumber: string;
   specialty: string;
+  specialtyId?: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number;
   hospitalId?: string;
+  professionalRank?: ProfessionalRank;
+  licenseExpiryDate?: string;
+  departmentId?: string;
 }
 
 /**
@@ -103,12 +120,16 @@ export interface RegisterDoctorProfileRequest {
  */
 export interface DoctorProfileUpdateRequest {
   specialty?: string;
+  specialtyId?: string;
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
   consultationFeeAmount?: number;
   /** Doctor Onboarding (Phase 4 continuation) -- optional hospital affiliation. */
   hospitalId?: string;
+  professionalRank?: ProfessionalRank;
+  licenseExpiryDate?: string;
+  departmentId?: string;
   /** No `id`/`publishedAt` — the backend's update DTO only accepts `title`/`reference` per entry. */
   publications?: { title: string; reference?: string }[];
   /** No `id`/`awardedAt` — the backend's update DTO only accepts `title`/`issuingBody` per entry. */
@@ -122,25 +143,12 @@ export interface HospitalOption {
   address?: string;
 }
 
-/** Matches TrustModule's real 7-value VerificationStatus enum exactly. */
-export type VerificationCaseStatus =
-  | 'submitted'
-  | 'under_review'
-  | 'approved'
-  | 'rejected'
-  | 'more_info_needed'
-  | 're_verification_due'
-  | 'suspended';
-
-/** Matches TrustModule's real VerificationCaseResponseDto exactly. */
-export interface VerificationCase {
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.6): matches AdministrationModule's real DepartmentResponseDto exactly (as returned by the public /hospitals/:id/departments directory). */
+export interface DepartmentOption {
   id: string;
-  doctorId: string;
-  status: VerificationCaseStatus;
-  /** Set when status is 'rejected' or 'more_info_needed'. */
-  reason?: string;
-  submittedAt: string;
-  decidedAt: string | null;
+  hospitalId: string;
+  name: string;
+  createdAt: string;
 }
 
 /** Matches DoctorVerificationController's real SubmitDoctorVerificationRequestDto exactly. */
@@ -157,6 +165,43 @@ export interface SubmitVerificationRequest {
 // doc comment anticipated: minute-granularity, real breaks, real
 // exceptions. The Doctor Availability page (`doctor/schedule/page.tsx`)
 // now consumes that type directly instead of a doctor-owned shape.
+
+/**
+ * Onboarding Redesign (2026-07-21 proposal, Stage O.5): matches
+ * DoctorProfileController's real GET /doctors (list) response exactly --
+ * `DoctorDirectoryEntryResponseDto`. Deliberately its own, smaller shape
+ * (not the full `DoctorProfile`): a directory listing surfaces only what a
+ * prospective patient needs to browse/filter, not biography/publications/
+ * awards/contact info (those are the single-profile view's concern, see
+ * `DoctorProfile` above / `getById`).
+ */
+export interface DoctorDirectoryEntry {
+  doctorProfileId: string;
+  accountId: string;
+  displayName: string;
+  specialty: string;
+  specialtyId?: string;
+  yearsOfExperience?: number;
+  consultationFeeAmount?: number;
+  hospitalId?: string;
+}
+
+/** Matches DoctorProfileController's real `ListDoctorDirectoryQueryDto` exactly -- all optional, `specialty` is a free-text contains-match, `specialtyId`/`hospitalId` are exact-match UUID filters. */
+export interface ListDoctorDirectoryParams {
+  page?: number;
+  limit?: number;
+  specialty?: string;
+  specialtyId?: string;
+  hospitalId?: string;
+}
+
+/** Matches DoctorProfileController's real `DoctorDirectoryResponseDto` exactly. */
+export interface DoctorDirectoryResult {
+  doctors: DoctorDirectoryEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export type QueueEntryStatus = 'waiting' | 'in-consultation' | 'completed';
 
