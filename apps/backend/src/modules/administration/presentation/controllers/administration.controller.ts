@@ -25,20 +25,27 @@ import { UpdateAccountRoleCommand } from '../../../identity/application/use-case
 import { UpdateAccountRoleUseCase } from '../../../identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { AccountResponseDto } from '../../../identity/presentation/dto/account-response.dto.js';
 import { mapIdentityError } from '../../../identity/presentation/mappers/identity-exception.mapper.js';
+import { GetVerificationCaseByIdUseCase } from '../../../trust/application/use-cases/get-verification-case-by-id/get-verification-case-by-id.use-case.js';
 import { ListSecurityEventsForAccountUseCase } from '../../../trust/application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
+import { SuspendVerificationCaseCommand } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.command.js';
+import { SuspendVerificationCaseUseCase } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
+import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import type { CreateDepartmentCommand } from '../../application/use-cases/create-department/create-department.command.js';
 import { CreateDepartmentUseCase } from '../../application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalCommand } from '../../application/use-cases/create-hospital/create-hospital.command.js';
 import { CreateHospitalUseCase } from '../../application/use-cases/create-hospital/create-hospital.use-case.js';
 import { GetPlatformKpisUseCase } from '../../application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
+import { GetVerificationHistoryUseCase } from '../../application/use-cases/get-verification-history/get-verification-history.use-case.js';
 import { GetVerificationReviewQueueUseCase } from '../../application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsQuery } from '../../application/use-cases/list-departments/list-departments.query.js';
 import { ListDepartmentsUseCase } from '../../application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from '../../application/use-cases/list-hospitals/list-hospitals.use-case.js';
 import { ReviewVerificationCaseCommand } from '../../application/use-cases/review-verification-case/review-verification-case.command.js';
 import { ReviewVerificationCaseUseCase } from '../../application/use-cases/review-verification-case/review-verification-case.use-case.js';
-import { VerificationCaseResponseDto } from '../../../trust/presentation/dto/verification-case-response.dto.js';
 import { DecideVerificationRequestDto } from '../../../trust/presentation/dto/decide-verification-request.dto.js';
+import { SuspendVerificationRequestDto } from '../../../trust/presentation/dto/suspend-verification-request.dto.js';
+import { mapTrustError } from '../../../trust/presentation/mappers/trust-exception.mapper.js';
+import { AdminVerificationCaseResponseDto } from '../dto/admin-verification-case-response.dto.js';
 import { CreateDepartmentRequestDto } from '../dto/create-department-request.dto.js';
 import { CreateHospitalRequestDto } from '../dto/create-hospital-request.dto.js';
 import { DepartmentResponseDto } from '../dto/department-response.dto.js';
@@ -49,6 +56,7 @@ import { ListAccountsResponseDto } from '../dto/list-accounts-response.dto.js';
 import { PlatformKpisResponseDto } from '../dto/platform-kpis-response.dto.js';
 import { SecurityEventResponseDto } from '../dto/security-event-response.dto.js';
 import { UpdateAccountRoleRequestDto } from '../dto/update-account-role-request.dto.js';
+import { VerificationQueueQueryDto } from '../dto/verification-queue-query.dto.js';
 import { mapAdministrationError } from '../mappers/administration-exception.mapper.js';
 
 // ORIVEX Roadmap 2.0 Stage 4: AdministrationModule's Admin Dashboard REST
@@ -73,6 +81,9 @@ export class AdministrationController {
     private readonly getPlatformKpisUseCase: GetPlatformKpisUseCase,
     private readonly getVerificationReviewQueueUseCase: GetVerificationReviewQueueUseCase,
     private readonly reviewVerificationCaseUseCase: ReviewVerificationCaseUseCase,
+    private readonly suspendVerificationCaseUseCase: SuspendVerificationCaseUseCase,
+    private readonly getVerificationHistoryUseCase: GetVerificationHistoryUseCase,
+    private readonly getVerificationCaseByIdUseCase: GetVerificationCaseByIdUseCase,
     private readonly listSecurityEventsForAccountUseCase: ListSecurityEventsForAccountUseCase,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
@@ -155,20 +166,70 @@ export class AdministrationController {
   // still works unchanged for backward compatibility; these routes are the
   // first way to list the queue at all.
   @Get('verification-queue')
-  async getVerificationQueue(): Promise<ResponseEnvelope<VerificationCaseResponseDto[]>> {
-    const cases = await this.getVerificationReviewQueueUseCase.execute();
-    return envelope(cases.map((verificationCase) => VerificationCaseResponseDto.fromDomain(verificationCase)));
+  async getVerificationQueue(
+    @Query() query: VerificationQueueQueryDto,
+  ): Promise<ResponseEnvelope<AdminVerificationCaseResponseDto[]>> {
+    const cases = await this.getVerificationReviewQueueUseCase.execute(query.subjectType, query.status);
+    return envelope(cases.map((verificationCase) => AdminVerificationCaseResponseDto.fromDomain(verificationCase)));
+  }
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): a
+  // real case-detail read -- GetVerificationCaseByIdUseCase already existed
+  // (backing getVerificationHistory below) but was never itself exposed as
+  // its own route.
+  @Get('verification-queue/:id')
+  async getVerificationCase(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ResponseEnvelope<AdminVerificationCaseResponseDto>> {
+    const verificationCase = await this.getVerificationCaseByIdUseCase.execute(id);
+    if (!verificationCase) {
+      throw new NotFoundError(`VerificationCase "${id}" not found.`);
+    }
+    return envelope(AdminVerificationCaseResponseDto.fromDomain(verificationCase));
   }
 
   @Patch('verification-queue/:id')
   async reviewVerificationCase(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: DecideVerificationRequestDto,
-  ): Promise<ResponseEnvelope<VerificationCaseResponseDto>> {
+  ): Promise<ResponseEnvelope<AdminVerificationCaseResponseDto>> {
     const verificationCase = await this.reviewVerificationCaseUseCase.execute(
       new ReviewVerificationCaseCommand({ verificationCaseId: id, status: body.status, reason: body.reason }),
     );
-    return envelope(VerificationCaseResponseDto.fromDomain(verificationCase));
+    return envelope(AdminVerificationCaseResponseDto.fromDomain(verificationCase));
+  }
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.2): revokes
+  // previously-granted standing (license lapse, a compliance finding)
+  // without losing the audit trail of ever having been Approved.
+  @Patch('verification-queue/:id/suspend')
+  async suspendVerificationCase(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SuspendVerificationRequestDto,
+  ): Promise<ResponseEnvelope<AdminVerificationCaseResponseDto>> {
+    try {
+      const verificationCase = await this.suspendVerificationCaseUseCase.execute(
+        new SuspendVerificationCaseCommand({ verificationCaseId: id, reason: body.reason }),
+      );
+      return envelope(AdminVerificationCaseResponseDto.fromDomain(verificationCase));
+    } catch (error) {
+      throw mapTrustError(error);
+    }
+  }
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.2): every past
+  // VerificationCase for the same subject as the named case -- falls out of
+  // the generalized subject model with no new domain logic.
+  @Get('verification-queue/:id/history')
+  async getVerificationHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ResponseEnvelope<AdminVerificationCaseResponseDto[]>> {
+    try {
+      const cases = await this.getVerificationHistoryUseCase.execute({ verificationCaseId: id });
+      return envelope(cases.map((verificationCase) => AdminVerificationCaseResponseDto.fromDomain(verificationCase)));
+    } catch (error) {
+      throw mapTrustError(error);
+    }
   }
 
   // Per-account audit-log lookup, not a global cross-account feed -- see

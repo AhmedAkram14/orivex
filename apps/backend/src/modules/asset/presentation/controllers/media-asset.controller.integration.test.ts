@@ -16,6 +16,7 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import { MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE } from '../../application/ports/tokens.js';
 import { ConfirmUploadUseCase } from '../../application/use-cases/confirm-upload/confirm-upload.use-case.js';
 import { CreateUploadIntentUseCase } from '../../application/use-cases/create-upload-intent/create-upload-intent.use-case.js';
+import { GetMediaAssetUseCase } from '../../application/use-cases/get-media-asset/get-media-asset.use-case.js';
 import type { MediaAsset } from '../../domain/entities/media-asset.entity.js';
 import type { MediaAssetRepository } from '../../domain/repositories/media-asset.repository.js';
 import { CheckIdentityVerificationStatusUseCase } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
@@ -27,6 +28,7 @@ import { MediaAssetController } from './media-asset.controller.js';
 const VALID_TOKEN = 'valid-token';
 const OTHER_VALID_TOKEN = 'other-valid-token';
 const UNVERIFIED_PATIENT_TOKEN = 'unverified-patient-token';
+const SUPER_ADMIN_TOKEN = 'super-admin-token';
 const VERIFIED_ACCOUNT_ID = '99999999-9999-4999-8999-999999999999';
 const UNVERIFIED_ACCOUNT_ID = '77777777-7777-4777-8777-777777777777';
 
@@ -43,6 +45,9 @@ class FakeJwtSigner implements JwtSignerPort {
     }
     if (token === UNVERIFIED_PATIENT_TOKEN) {
       return { accountId: UNVERIFIED_ACCOUNT_ID, role: AccountRole.Patient };
+    }
+    if (token === SUPER_ADMIN_TOKEN) {
+      return { accountId: '66666666-6666-4666-8666-666666666666', role: AccountRole.SuperAdmin };
     }
     throw new Error('invalid token');
   }
@@ -101,6 +106,12 @@ describe('MediaAssetController (integration)', () => {
           provide: ConfirmUploadUseCase,
           useFactory: (repo: MediaAssetRepository, storage: FakeObjectStorage) =>
             new ConfirmUploadUseCase(repo, storage),
+          inject: [MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE],
+        },
+        {
+          provide: GetMediaAssetUseCase,
+          useFactory: (repo: MediaAssetRepository, storage: FakeObjectStorage) =>
+            new GetMediaAssetUseCase(repo, storage),
           inject: [MEDIA_ASSET_REPOSITORY, OBJECT_STORAGE],
         },
         { provide: CheckIdentityVerificationStatusUseCase, useClass: FakeCheckIdentityVerificationStatusUseCase },
@@ -223,6 +234,63 @@ describe('MediaAssetController (integration)', () => {
 
     const response = await request(app.getHttpServer())
       .post(`/media-assets/${created.body.data.id}/confirm`)
+      .set('Authorization', `Bearer ${OTHER_VALID_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): the
+  // first read/download capability this controller has ever exposed.
+  it('GET /media-assets/:id lets the owner re-fetch their own confirmed asset', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ contentType: 'image/jpeg', purpose: 'national_id_front' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/media-assets/${created.body.data.id}/confirm`)
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get(`/media-assets/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.status, 'confirmed');
+    assert.equal(response.body.data.purpose, 'national_id_front');
+    assert.ok(response.body.data.signedUrl.includes('download=true'));
+  });
+
+  it('GET /media-assets/:id lets a SuperAdmin open a document they do not own (reviewing a verification case)', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ contentType: 'image/jpeg', purpose: 'selfie_with_id' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/media-assets/${created.body.data.id}/confirm`)
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get(`/media-assets/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    assert.ok(response.body.data.signedUrl.includes('download=true'));
+  });
+
+  it('GET /media-assets/:id returns 404 for a non-owner, non-admin caller', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/media-assets/upload-intent')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ contentType: 'application/pdf', purpose: 'lab_report' })
+      .expect(201);
+
+    const response = await request(app.getHttpServer())
+      .get(`/media-assets/${created.body.data.id}`)
       .set('Authorization', `Bearer ${OTHER_VALID_TOKEN}`)
       .expect(404);
 

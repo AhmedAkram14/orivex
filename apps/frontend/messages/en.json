@@ -219,6 +219,8 @@
       "patientWorkspace": "My Health",
       "patientProfile": "Profile",
       "patientAppointments": "Appointments",
+      "patientDoctors": "Browse Doctors",
+      "patientSpecialties": "Browse Specialties",
       "patientRecords": "Medical Records",
       "patientPrescriptions": "Prescriptions",
       "patientHealth": "Health Dashboard",
@@ -270,6 +272,30 @@
       "emptyTitle": "Nothing to show yet",
       "emptyDescription": "Your dashboard will fill in as more of Orivex comes online. In the meantime, you can review your account security.",
       "securityCenterAction": "Security Center"
+    }
+  },
+  "identity": {
+    "personalInfoStep": {
+      "fullName": "Full name",
+      "dateOfBirth": "Date of birth",
+      "gender": "Gender",
+      "genderPlaceholder": "Select a gender",
+      "genderOptions": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "nationality": "Nationality",
+      "nationalityPlaceholder": "Select a nationality",
+      "address": "Address",
+      "saveAndContinue": "Save and continue",
+      "validation": {
+        "dateOfBirthRequired": "Date of birth is required.",
+        "genderRequired": "Gender is required.",
+        "nationalityRequired": "Nationality is required.",
+        "addressRequired": "Address is required.",
+        "addressTooLong": "Address must be {max} characters or fewer."
+      }
     }
   },
   "doctor": {
@@ -392,24 +418,42 @@
       "description": "Complete your profile, upload your documents, and submit for verification.",
       "loadError": "Could not load your application.",
       "steps": {
-        "profile": "Profile",
+        "personal": "Personal Info",
+        "profile": "Professional Info",
         "documents": "Documents",
         "review": "Review & Submit"
       },
       "profileStep": {
         "licenseNumber": "License number",
         "specialty": "Specialty",
+        "specialtyPlaceholder": "Select a specialty",
+        "professionalRank": "Professional rank",
+        "professionalRankPlaceholder": "Select a rank",
+        "professionalRanks": {
+          "resident": "Resident",
+          "registrar": "Registrar",
+          "specialist": "Specialist",
+          "consultant": "Consultant",
+          "professor": "Professor"
+        },
+        "licenseExpiryDate": "License expiry date",
         "biography": "Biography",
         "experience": "Years of experience",
         "consultationFee": "Consultation fee",
         "hospital": "Hospital",
-        "hospitalPlaceholder": "Select a hospital (optional)",
+        "hospitalPlaceholder": "Select a hospital",
+        "independentPractice": "Independent Practice",
+        "department": "Department",
+        "departmentPlaceholder": "Select a department",
         "languages": "Languages",
         "createAndContinue": "Create profile and continue",
         "saveAndContinue": "Save and continue",
         "validation": {
           "licenseNumberRequired": "License number is required.",
           "specialtyRequired": "Specialty is required.",
+          "professionalRankRequired": "Professional rank is required.",
+          "licenseExpiryDateRequired": "License expiry date is required.",
+          "departmentRequired": "Department is required when a hospital is selected.",
           "biographyTooLong": "Biography must be {max} characters or fewer.",
           "experienceInvalid": "Enter a valid number of years (0-80).",
           "feeInvalid": "Enter a valid fee amount.",
@@ -417,8 +461,17 @@
         }
       },
       "documentsStep": {
-        "description": "Upload your medical license and any supporting certificates (PDF, JPG, or PNG).",
-        "uploadButton": "Upload a document",
+        "description": "Upload each of the following documents (PDF, JPG, or PNG). All 7 are required to submit for verification.",
+        "slots": {
+          "national_id_front": "National ID (front)",
+          "national_id_back": "National ID (back)",
+          "selfie_with_id": "Selfie with ID",
+          "medical_license": "Medical license",
+          "graduation_certificate": "Graduation certificate",
+          "board_certificate": "Board certificate",
+          "professional_membership_card": "Professional membership card"
+        },
+        "uploadButton": "Upload",
         "uploadError": "Could not upload this file. Please try again.",
         "remove": "Remove",
         "back": "Back",
@@ -447,6 +500,7 @@
         "approvedDescription": "Your application has been approved. You now have full access to the Doctor Portal.",
         "goToDoctorPortal": "Go to Doctor Portal",
         "rejectedDescription": "You can edit your profile and documents, then resubmit for review.",
+        "moreInfoDescription": "We need one more thing from you before we can continue reviewing your application.",
         "editAndResubmit": "Edit and resubmit",
         "suspendedDescription": "Your verification has been suspended. Please contact support for details."
       }
@@ -481,20 +535,50 @@
       "quickActions": {
         "viewProfile": "View profile",
         "viewAppointments": "View appointments",
+        "browseDoctors": "Browse doctors",
+        "browseSpecialties": "Browse specialties",
         "viewRecords": "View records",
         "viewPrescriptions": "View prescriptions",
         "becomeADoctor": "Become a Doctor"
       }
+    },
+    "doctors": {
+      "title": "Browse Doctors",
+      "description": "Find a doctor by specialty and book an appointment when you're ready.",
+      "searchLabel": "Search by specialty",
+      "searchPlaceholder": "Search by specialty...",
+      "loadError": "Couldn't load the doctor directory.",
+      "emptyTitle": "No doctors found",
+      "emptyDescription": "Try a different specialty or check back later.",
+      "yearsOfExperience": "{years, plural, one {# year of experience} other {# years of experience}}",
+      "profileTitle": "Doctor Profile",
+      "profileNotFoundTitle": "Doctor profile not found",
+      "profileNotFoundDescription": "This doctor profile may have been removed.",
+      "bookAppointment": "Book appointment"
+    },
+    "specialties": {
+      "title": "Browse Specialties",
+      "description": "Choose a specialty to see the doctors who practice it.",
+      "loadError": "Couldn't load the specialty list.",
+      "emptyTitle": "No specialties available yet"
     },
     "profile": {
       "title": "Profile",
       "editProfile": "Edit profile",
       "personalInformation": "Personal information",
       "phone": "Phone",
-      "dateOfBirth": "Date of birth",
+      "gender": "Gender",
+      "genderOptions": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "nationality": "Nationality",
+      "address": "Address",
       "medicalInformation": "Medical information",
-      "medicalInformationDescription": "Entered by your care team — you cannot edit this section yourself.",
+      "medicalInformationDescription": "Keep this up to date so your care team has accurate information.",
       "bloodType": "Blood type",
+      "bloodTypePlaceholder": "Select a blood type",
       "notOnRecord": "Not on record",
       "allergies": "Allergies",
       "noAllergiesOnRecord": "No allergies on record",
@@ -507,10 +591,20 @@
       "removeContact": "Remove contact",
       "contactName": "Name",
       "contactRelationship": "Relationship",
+      "relationshipOptions": {
+        "parent": "Parent",
+        "spouse": "Spouse",
+        "sibling": "Sibling",
+        "child": "Child",
+        "guardian": "Guardian",
+        "other": "Other"
+      },
       "contactPhone": "Contact phone",
       "insurance": "Insurance",
-      "insuranceUnavailableTitle": "Insurance details aren't available yet",
-      "insuranceUnavailableDescription": "Insurance and billing information will appear here once that part of Orivex is available.",
+      "insuranceProvider": "Insurance provider",
+      "insuranceProviderPlaceholder": "Select an insurance provider",
+      "insuranceUnavailableTitle": "No insurance provider on record",
+      "insuranceUnavailableDescription": "Add an insurance provider from Edit profile.",
       "settings": "Settings",
       "settingsComingSoonTitle": "More settings coming soon",
       "settingsComingSoonDescription": "Notification and privacy preferences will appear here in a future update.",
@@ -519,9 +613,11 @@
       "loadError": "Couldn't load your profile.",
       "validation": {
         "contactNameRequired": "Enter a name.",
-        "contactRelationshipRequired": "Enter a relationship.",
+        "contactRelationshipRequired": "Select a relationship.",
         "contactPhoneRequired": "Enter a phone number.",
-        "contactsTooMany": "You can add up to {max} emergency contacts."
+        "contactsTooMany": "You can add up to {max} emergency contacts.",
+        "allergiesTooLong": "Allergies must be {max} characters or fewer.",
+        "chronicDiseasesTooLong": "Chronic conditions must be {max} characters or fewer."
       }
     },
     "appointments": {
@@ -534,8 +630,8 @@
       "upcomingEmptyDescription": "Your upcoming appointments will appear here once scheduling is available.",
       "historyEmptyTitle": "No appointment history yet",
       "historyEmptyDescription": "Your past appointments will appear here.",
-      "bookingUnavailableTitle": "Booking isn't available yet",
-      "bookingUnavailableDescription": "Choosing a doctor to book with is coming soon — this page will let you pick a doctor and see their real availability once that's ready.",
+      "noDoctorSelectedTitle": "No doctor selected",
+      "noDoctorSelectedDescription": "Start from a doctor's profile and select \"Book appointment\" to book a real appointment with them.",
       "filters": {
         "all": "All",
         "completed": "Completed",
@@ -581,7 +677,13 @@
       "labResultsUnavailableDescription": "Lab results will appear here once that part of Orivex is available.",
       "imaging": "Imaging",
       "imagingUnavailableTitle": "Imaging isn't available yet",
-      "imagingUnavailableDescription": "Imaging studies and reports will appear here once that part of Orivex is available."
+      "imagingUnavailableDescription": "Imaging studies and reports will appear here once that part of Orivex is available.",
+      "clinicalUpload": {
+        "title": "Upload a document",
+        "description": "Upload a clinical document to share with your care team (PDF, JPG, or PNG).",
+        "uploadButton": "Upload",
+        "uploadError": "Could not upload this file. Please try again."
+      }
     },
     "prescriptions": {
       "title": "Prescriptions",
@@ -620,6 +722,69 @@
           "emptyTitle": "No blood sugar readings yet",
           "emptyDescription": "Your blood sugar readings will appear here once recorded by your care team."
         }
+      }
+    },
+    "identityVerification": {
+      "title": "Verify Your Identity",
+      "description": "Upload a National ID and a selfie so we can confirm it's really you.",
+      "loadError": "Couldn't load your verification status.",
+      "steps": {
+        "documents": "Documents",
+        "review": "Review & Submit"
+      },
+      "documentsStep": {
+        "description": "Upload each of the following (PDF, JPG, or PNG). All 3 are required to submit for verification.",
+        "slots": {
+          "national_id_front": "National ID (front)",
+          "national_id_back": "National ID (back)",
+          "selfie_with_id": "Selfie with ID"
+        },
+        "uploadButton": "Upload",
+        "uploadError": "Could not upload this file. Please try again.",
+        "remove": "Remove",
+        "back": "Back",
+        "continue": "Continue"
+      },
+      "reviewStep": {
+        "description": "Review your documents before submitting for verification.",
+        "documents": "Documents",
+        "documentsCount": "{count, plural, one {# document} other {# documents}}",
+        "back": "Back",
+        "submit": "Submit for verification"
+      },
+      "status": {
+        "badge": {
+          "submitted": "Submitted",
+          "under_review": "Under review",
+          "more_info_needed": "More info needed",
+          "re_verification_due": "Re-verification due",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "suspended": "Suspended"
+        },
+        "pendingDescription": "Your identity verification is being reviewed. This usually only takes a short while.",
+        "approvedDescription": "Your identity has been verified.",
+        "continueAction": "Continue",
+        "goToDashboard": "Go to My Health",
+        "rejectedDescription": "You can edit your documents and resubmit for review.",
+        "moreInfoDescription": "We need one more thing from you before we can continue reviewing your submission.",
+        "editAndResubmit": "Edit and resubmit",
+        "suspendedDescription": "Your verification has been suspended. Please contact support for details."
+      },
+      "gate": {
+        "title": {
+          "booking": "Verify your identity to book an appointment",
+          "consultation": "Verify your identity to join your consultation",
+          "documentUpload": "Verify your identity to upload documents",
+          "payment": "Verify your identity to make a payment"
+        },
+        "description": {
+          "booking": "Booking an appointment requires a verified identity, so your doctor knows who they're treating.",
+          "consultation": "Joining a video consultation requires a verified identity, so your doctor knows who they're treating.",
+          "documentUpload": "Uploading a clinical document requires a verified identity, to protect your medical records.",
+          "payment": "Making a payment requires a verified identity, to protect your account."
+        },
+        "startVerification": "Start verification"
       }
     }
   },
@@ -680,26 +845,23 @@
       "review": "Review",
       "confirm": "Confirm booking",
       "back": "Back",
-      "confirmed": "Confirmed",
-      "reschedule": "Reschedule",
-      "cancel": "Cancel",
-      "cancelDialogTitle": "Cancel this booking?",
-      "cancelDialogDescription": "This will cancel your booking for this slot. You can book a new slot at any time.",
-      "cancelDialogKeep": "Keep booking",
-      "cancelDialogConfirm": "Cancel booking",
       "durationMinutes": "{minutes} minutes",
-      "conflictReason": {
-        "insufficient-notice": "This slot is too soon to book -- please choose a later time.",
-        "beyond-booking-window": "This slot is too far in the future to book yet."
-      }
-    },
-    "waitlist": {
-      "emptyTitle": "No slots available on this date",
-      "emptyDescription": "Join the waiting list and we'll let you know if a slot opens up.",
-      "join": "Join waiting list",
-      "joinedTitle": "You're on the waiting list",
-      "joinedDescription": "We'll let you know if a slot opens up on this date."
+      "loadError": "Couldn't load available times for this date.",
+      "bookingFailed": "Couldn't confirm this booking. Please try again.",
+      "noSlotsTitle": "No slots available on this date",
+      "noSlotsDescription": "Try another date."
     }
+  },
+  "journey": {
+    "title": "Welcome to ORIVEX. What brings you here?",
+    "description": "Choose how you'd like to use ORIVEX -- you can always do the other thing later.",
+    "patientCardTitle": "Book appointments",
+    "patientCardDescription": "Find a doctor, book a consultation, and manage your health records.",
+    "patientCardAction": "Continue as a patient",
+    "doctorCardTitle": "Practice as a Doctor",
+    "doctorCardDescription": "Set up your professional profile and start seeing patients once verified.",
+    "doctorCardAction": "Apply as a doctor",
+    "choosePatientError": "Something went wrong setting up your account. Please try again."
   },
   "admin": {
     "overview": {
@@ -755,11 +917,18 @@
     },
     "verificationQueue": {
       "title": "Verification Queue",
-      "description": "Review pending doctor license verifications.",
-      "columnDoctor": "Doctor",
+      "description": "Review pending doctor and patient identity verifications.",
+      "columnApplicant": "Applicant",
+      "columnType": "Type",
       "columnStatus": "Status",
       "columnSubmitted": "Submitted",
       "columnActions": "Actions",
+      "filterSubjectType": "Filter by type",
+      "filterStatus": "Filter by status",
+      "subjectTypeAll": "All types",
+      "subjectTypeDoctor": "Doctor",
+      "subjectTypePatient": "Patient",
+      "statusPendingReview": "Pending review",
       "status": {
         "submitted": "Submitted",
         "under_review": "Under review",
@@ -769,12 +938,112 @@
         "re_verification_due": "Re-verification due",
         "suspended": "Suspended"
       },
-      "approve": "Approve",
-      "reject": "Reject",
+      "viewCase": "View case",
       "loadError": "Could not load the verification queue.",
-      "reviewError": "Could not record this decision.",
       "emptyTitle": "Nothing pending",
       "emptyDescription": "Every verification case has been reviewed."
+    },
+    "verificationCase": {
+      "title": "Verification Case",
+      "notFound": "This verification case could not be found.",
+      "notOnRecord": "Not on record",
+      "applicantSection": "Applicant",
+      "applicantLoadError": "Could not load the applicant's account.",
+      "applicantName": "Full name",
+      "applicantEmail": "Email",
+      "applicantPhone": "Phone",
+      "applicantDateOfBirth": "Date of birth",
+      "applicantGender": "Gender",
+      "applicantAddress": "Address",
+      "applicantAccountStatus": "Account status",
+      "applicantAccountRole": "Account role",
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "accountStatus": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "closed": "Closed"
+      },
+      "accountRole": {
+        "patient": "Patient",
+        "doctor": "Doctor",
+        "nurse": "Nurse",
+        "receptionist": "Receptionist",
+        "hospital_admin": "Hospital admin",
+        "super_admin": "Super admin"
+      },
+      "verificationInfoSection": "Verification information",
+      "subjectTypeDoctor": "Doctor verification",
+      "subjectTypePatient": "Patient identity verification",
+      "submittedAt": "Submitted",
+      "decidedAt": "Decided",
+      "notYetDecided": "Not yet decided",
+      "status": {
+        "submitted": "Submitted",
+        "under_review": "Under review",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "more_info_needed": "More info needed",
+        "re_verification_due": "Re-verification due",
+        "suspended": "Suspended"
+      },
+      "doctorContextSection": "Professional information",
+      "licenseNumber": "License number",
+      "specialty": "Specialty",
+      "licenseExpiryDate": "License expiry date",
+      "professionalRankLabel": "Professional rank",
+      "professionalRank": {
+        "resident": "Resident",
+        "registrar": "Registrar",
+        "specialist": "Specialist",
+        "consultant": "Consultant",
+        "professor": "Professor"
+      },
+      "department": "Department",
+      "yearsOfExperience": "Years of experience",
+      "documentsSection": "Submitted documents",
+      "documents": {
+        "loadError": "Could not load this document.",
+        "notYetAvailable": "This document isn't available yet.",
+        "openDocument": "Open document",
+        "purpose": {
+          "national_id_front": "National ID (front)",
+          "national_id_back": "National ID (back)",
+          "selfie_with_id": "Selfie with ID",
+          "medical_license": "Medical license",
+          "graduation_certificate": "Graduation certificate",
+          "board_certificate": "Board certificate",
+          "professional_membership_card": "Professional membership card",
+          "doctor_certificate": "Doctor certificate",
+          "clinical_attachment": "Clinical attachment",
+          "lab_report": "Lab report",
+          "profile_image": "Profile image",
+          "knowledge_media": "Knowledge media"
+        }
+      },
+      "actionsSection": "Review decision",
+      "actions": {
+        "approve": "Approve",
+        "requestMoreInfo": "Request more information",
+        "reject": "Reject",
+        "suspend": "Suspend",
+        "noActionsAvailable": "No further action is available for this case.",
+        "rejectDialogTitle": "Reject this application?",
+        "rejectDialogDescription": "The applicant will see this reason on their own status screen.",
+        "moreInfoDialogTitle": "Request more information",
+        "moreInfoDialogDescription": "The applicant will see this message and can correct and resubmit.",
+        "suspendDialogTitle": "Suspend this verification?",
+        "suspendDialogDescription": "This revokes previously granted standing. The applicant will see this reason.",
+        "reasonLabel": "Reason",
+        "reasonPlaceholder": "Explain why...",
+        "cancel": "Cancel"
+      },
+      "historySection": "Submission history",
+      "historyReviewerLimitation": "Timestamps and outcomes are real; which admin made each decision isn't recorded yet.",
+      "historyEmpty": "No submission history yet."
     },
     "featureFlags": {
       "title": "Feature Flags",

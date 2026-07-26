@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 
 import { ForbiddenError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
@@ -12,6 +12,8 @@ import { ConfirmUploadCommand } from '../../application/use-cases/confirm-upload
 import { ConfirmUploadUseCase } from '../../application/use-cases/confirm-upload/confirm-upload.use-case.js';
 import { CreateUploadIntentCommand } from '../../application/use-cases/create-upload-intent/create-upload-intent.command.js';
 import { CreateUploadIntentUseCase } from '../../application/use-cases/create-upload-intent/create-upload-intent.use-case.js';
+import { GetMediaAssetCommand } from '../../application/use-cases/get-media-asset/get-media-asset.command.js';
+import { GetMediaAssetUseCase } from '../../application/use-cases/get-media-asset/get-media-asset.use-case.js';
 import { CLINICAL_MEDIA_ASSET_PURPOSES } from '../../domain/enums/media-asset-purpose.enum.js';
 import { CreateUploadIntentRequestDto } from '../dto/create-upload-intent-request.dto.js';
 import { MediaAssetResponseDto } from '../dto/media-asset-response.dto.js';
@@ -34,6 +36,7 @@ export class MediaAssetController {
   constructor(
     private readonly createUploadIntentUseCase: CreateUploadIntentUseCase,
     private readonly confirmUploadUseCase: ConfirmUploadUseCase,
+    private readonly getMediaAssetUseCase: GetMediaAssetUseCase,
     private readonly checkIdentityVerificationStatusUseCase: CheckIdentityVerificationStatusUseCase,
   ) {}
 
@@ -66,6 +69,30 @@ export class MediaAssetController {
           purpose: body.purpose,
           contentType: body.contentType,
           sizeEstimate: body.sizeEstimate,
+        }),
+      );
+      return envelope(MediaAssetResponseDto.fromDomain(asset, signedUrl));
+    } catch (error) {
+      throw mapAssetError(error);
+    }
+  }
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): the
+  // first read/download capability this controller has ever exposed --
+  // needed so an admin reviewing a VerificationCase can actually open the
+  // documents it references. Allowed for the asset's own owner too (not
+  // admin-only), matching ConfirmUpload's existing ownership model.
+  @Get(':id')
+  async getMediaAsset(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ResponseEnvelope<MediaAssetResponseDto>> {
+    try {
+      const { asset, signedUrl } = await this.getMediaAssetUseCase.execute(
+        new GetMediaAssetCommand({
+          mediaAssetId: id,
+          callerAccountId: user.accountId,
+          callerIsAdmin: user.role === AccountRole.SuperAdmin,
         }),
       );
       return envelope(MediaAssetResponseDto.fromDomain(asset, signedUrl));

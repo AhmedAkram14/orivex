@@ -229,6 +229,8 @@
       "patientWorkspace": "صحتي",
       "patientProfile": "الملف الشخصي",
       "patientAppointments": "المواعيد",
+      "patientDoctors": "تصفح الأطباء",
+      "patientSpecialties": "تصفح التخصصات",
       "patientRecords": "السجلات الطبية",
       "patientPrescriptions": "الوصفات الطبية",
       "patientHealth": "لوحة الصحة",
@@ -270,6 +272,30 @@
       "emptyTitle": "لا يوجد شيء لعرضه بعد",
       "emptyDescription": "ستمتلئ لوحة التحكم الخاصة بك مع إطلاق المزيد من أجزاء أوريفكس. في هذه الأثناء، يمكنك مراجعة أمان حسابك.",
       "securityCenterAction": "مركز الأمان"
+    }
+  },
+  "identity": {
+    "personalInfoStep": {
+      "fullName": "الاسم الكامل",
+      "dateOfBirth": "تاريخ الميلاد",
+      "gender": "الجنس",
+      "genderPlaceholder": "اختر الجنس",
+      "genderOptions": {
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "آخر"
+      },
+      "nationality": "الجنسية",
+      "nationalityPlaceholder": "اختر الجنسية",
+      "address": "العنوان",
+      "saveAndContinue": "حفظ ومتابعة",
+      "validation": {
+        "dateOfBirthRequired": "تاريخ الميلاد مطلوب.",
+        "genderRequired": "الجنس مطلوب.",
+        "nationalityRequired": "الجنسية مطلوبة.",
+        "addressRequired": "العنوان مطلوب.",
+        "addressTooLong": "يجب ألا يتجاوز العنوان {max} حرفًا."
+      }
     }
   },
   "doctor": {
@@ -392,24 +418,42 @@
       "description": "أكمل ملفك الشخصي، وارفع مستنداتك، وقدّم طلبك للتوثيق.",
       "loadError": "تعذر تحميل طلبك.",
       "steps": {
-        "profile": "الملف الشخصي",
+        "personal": "المعلومات الشخصية",
+        "profile": "المعلومات المهنية",
         "documents": "المستندات",
         "review": "المراجعة والتقديم"
       },
       "profileStep": {
         "licenseNumber": "رقم الترخيص",
         "specialty": "التخصص",
+        "specialtyPlaceholder": "اختر تخصصًا",
+        "professionalRank": "الدرجة المهنية",
+        "professionalRankPlaceholder": "اختر درجة",
+        "professionalRanks": {
+          "resident": "طبيب مقيم",
+          "registrar": "طبيب أخصائي مساعد",
+          "specialist": "أخصائي",
+          "consultant": "استشاري",
+          "professor": "أستاذ"
+        },
+        "licenseExpiryDate": "تاريخ انتهاء الترخيص",
         "biography": "نبذة تعريفية",
         "experience": "سنوات الخبرة",
         "consultationFee": "رسوم الاستشارة",
         "hospital": "المستشفى",
-        "hospitalPlaceholder": "اختر مستشفى (اختياري)",
+        "hospitalPlaceholder": "اختر مستشفى",
+        "independentPractice": "ممارسة مستقلة",
+        "department": "القسم",
+        "departmentPlaceholder": "اختر قسمًا",
         "languages": "اللغات",
         "createAndContinue": "إنشاء الملف الشخصي والمتابعة",
         "saveAndContinue": "حفظ ومتابعة",
         "validation": {
           "licenseNumberRequired": "رقم الترخيص مطلوب.",
           "specialtyRequired": "التخصص مطلوب.",
+          "professionalRankRequired": "الدرجة المهنية مطلوبة.",
+          "licenseExpiryDateRequired": "تاريخ انتهاء الترخيص مطلوب.",
+          "departmentRequired": "القسم مطلوب عند اختيار مستشفى.",
           "biographyTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
           "experienceInvalid": "أدخل عددًا صحيحًا من السنوات (0-80).",
           "feeInvalid": "أدخل قيمة رسوم صحيحة.",
@@ -417,8 +461,17 @@
         }
       },
       "documentsStep": {
-        "description": "ارفع ترخيصك الطبي وأي شهادات داعمة (PDF أو JPG أو PNG).",
-        "uploadButton": "رفع مستند",
+        "description": "ارفع كل مستند من المستندات التالية (PDF أو JPG أو PNG). جميع المستندات السبعة مطلوبة للتقديم للتوثيق.",
+        "slots": {
+          "national_id_front": "البطاقة الشخصية (الوجه الأمامي)",
+          "national_id_back": "البطاقة الشخصية (الوجه الخلفي)",
+          "selfie_with_id": "صورة شخصية مع البطاقة",
+          "medical_license": "الترخيص الطبي",
+          "graduation_certificate": "شهادة التخرج",
+          "board_certificate": "شهادة البورد",
+          "professional_membership_card": "بطاقة العضوية النقابية"
+        },
+        "uploadButton": "رفع",
         "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى.",
         "remove": "إزالة",
         "back": "رجوع",
@@ -447,6 +500,7 @@
         "approvedDescription": "تمت الموافقة على طلبك. أصبح لديك الآن وصول كامل إلى لوحة الطبيب.",
         "goToDoctorPortal": "الذهاب إلى لوحة الطبيب",
         "rejectedDescription": "يمكنك تعديل ملفك الشخصي ومستنداتك، ثم إعادة التقديم للمراجعة.",
+        "moreInfoDescription": "نحتاج إلى شيء واحد إضافي منك قبل أن نتمكن من متابعة مراجعة طلبك.",
         "editAndResubmit": "تعديل وإعادة التقديم",
         "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل."
       }
@@ -481,20 +535,50 @@
       "quickActions": {
         "viewProfile": "عرض الملف الشخصي",
         "viewAppointments": "عرض المواعيد",
+        "browseDoctors": "تصفح الأطباء",
+        "browseSpecialties": "تصفح التخصصات",
         "viewRecords": "عرض السجلات",
         "viewPrescriptions": "عرض الوصفات",
         "becomeADoctor": "كن طبيبًا"
       }
+    },
+    "doctors": {
+      "title": "تصفح الأطباء",
+      "description": "ابحث عن طبيب حسب التخصص واحجز موعدًا عندما تكون جاهزًا.",
+      "searchLabel": "البحث حسب التخصص",
+      "searchPlaceholder": "ابحث حسب التخصص...",
+      "loadError": "تعذّر تحميل دليل الأطباء.",
+      "emptyTitle": "لا يوجد أطباء",
+      "emptyDescription": "جرّب تخصصًا آخر أو تحقق لاحقًا.",
+      "yearsOfExperience": "{years, plural, one {# سنة خبرة} other {# سنوات خبرة}}",
+      "profileTitle": "الملف الشخصي للطبيب",
+      "profileNotFoundTitle": "لم يتم العثور على ملف الطبيب",
+      "profileNotFoundDescription": "ربما تمت إزالة ملف الطبيب هذا.",
+      "bookAppointment": "حجز موعد"
+    },
+    "specialties": {
+      "title": "تصفح التخصصات",
+      "description": "اختر تخصصًا لعرض الأطباء الذين يمارسونه.",
+      "loadError": "تعذّر تحميل قائمة التخصصات.",
+      "emptyTitle": "لا توجد تخصصات متاحة بعد"
     },
     "profile": {
       "title": "الملف الشخصي",
       "editProfile": "تعديل الملف الشخصي",
       "personalInformation": "المعلومات الشخصية",
       "phone": "الهاتف",
-      "dateOfBirth": "تاريخ الميلاد",
+      "gender": "الجنس",
+      "genderOptions": {
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "آخر"
+      },
+      "nationality": "الجنسية",
+      "address": "العنوان",
       "medicalInformation": "المعلومات الطبية",
-      "medicalInformationDescription": "يتم إدخالها بواسطة فريق الرعاية الخاص بك — لا يمكنك تعديل هذا القسم بنفسك.",
+      "medicalInformationDescription": "حافظ على تحديثها ليتوفر لفريق الرعاية معلومات دقيقة.",
       "bloodType": "فصيلة الدم",
+      "bloodTypePlaceholder": "اختر فصيلة الدم",
       "notOnRecord": "غير مسجلة",
       "allergies": "الحساسية",
       "noAllergiesOnRecord": "لا توجد حساسية مسجلة",
@@ -507,10 +591,20 @@
       "removeContact": "إزالة جهة الاتصال",
       "contactName": "الاسم",
       "contactRelationship": "صلة القرابة",
+      "relationshipOptions": {
+        "parent": "أحد الوالدين",
+        "spouse": "الزوج/الزوجة",
+        "sibling": "أخ/أخت",
+        "child": "ابن/ابنة",
+        "guardian": "ولي الأمر",
+        "other": "أخرى"
+      },
       "contactPhone": "هاتف جهة الاتصال",
       "insurance": "التأمين",
-      "insuranceUnavailableTitle": "تفاصيل التأمين غير متاحة بعد",
-      "insuranceUnavailableDescription": "ستظهر معلومات التأمين والفوترة هنا بمجرد توفر هذا الجزء من أوريفكس.",
+      "insuranceProvider": "شركة التأمين",
+      "insuranceProviderPlaceholder": "اختر شركة تأمين",
+      "insuranceUnavailableTitle": "لا توجد شركة تأمين مسجلة",
+      "insuranceUnavailableDescription": "أضف شركة تأمين من تعديل الملف الشخصي.",
       "settings": "الإعدادات",
       "settingsComingSoonTitle": "المزيد من الإعدادات قريبًا",
       "settingsComingSoonDescription": "ستظهر تفضيلات الإشعارات والخصوصية هنا في تحديث مستقبلي.",
@@ -519,9 +613,11 @@
       "loadError": "تعذّر تحميل ملفك الشخصي.",
       "validation": {
         "contactNameRequired": "أدخل الاسم.",
-        "contactRelationshipRequired": "أدخل صلة القرابة.",
+        "contactRelationshipRequired": "اختر صلة القرابة.",
         "contactPhoneRequired": "أدخل رقم الهاتف.",
-        "contactsTooMany": "يمكنك إضافة حتى {max} جهات اتصال للطوارئ."
+        "contactsTooMany": "يمكنك إضافة حتى {max} جهات اتصال للطوارئ.",
+        "allergiesTooLong": "يجب ألا تتجاوز الحساسية {max} حرفًا.",
+        "chronicDiseasesTooLong": "يجب ألا تتجاوز الأمراض المزمنة {max} حرفًا."
       }
     },
     "appointments": {
@@ -534,8 +630,8 @@
       "upcomingEmptyDescription": "ستظهر مواعيدك القادمة هنا بمجرد توفر الجدولة.",
       "historyEmptyTitle": "لا يوجد سجل مواعيد بعد",
       "historyEmptyDescription": "ستظهر مواعيدك السابقة هنا.",
-      "bookingUnavailableTitle": "الحجز غير متاح بعد",
-      "bookingUnavailableDescription": "اختيار الطبيب للحجز معه سيتوفر قريبًا — ستتيح لك هذه الصفحة اختيار طبيب ومشاهدة مواعيده المتاحة فعليًا بمجرد جاهزية هذه الميزة.",
+      "noDoctorSelectedTitle": "لم يتم اختيار طبيب",
+      "noDoctorSelectedDescription": "ابدأ من الملف الشخصي لطبيب واختر \"حجز موعد\" لحجز موعد حقيقي معه.",
       "filters": {
         "all": "الكل",
         "completed": "مكتملة",
@@ -581,7 +677,13 @@
       "labResultsUnavailableDescription": "ستظهر نتائج المختبر هنا بمجرد توفر هذا الجزء من أوريفكس.",
       "imaging": "الأشعة",
       "imagingUnavailableTitle": "الأشعة غير متاحة بعد",
-      "imagingUnavailableDescription": "ستظهر الدراسات والتقارير الإشعاعية هنا بمجرد توفر هذا الجزء من أوريفكس."
+      "imagingUnavailableDescription": "ستظهر الدراسات والتقارير الإشعاعية هنا بمجرد توفر هذا الجزء من أوريفكس.",
+      "clinicalUpload": {
+        "title": "رفع مستند",
+        "description": "ارفع مستندًا طبيًا لمشاركته مع فريق الرعاية الخاص بك (PDF أو JPG أو PNG).",
+        "uploadButton": "رفع",
+        "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى."
+      }
     },
     "prescriptions": {
       "title": "الوصفات الطبية",
@@ -620,6 +722,69 @@
           "emptyTitle": "لا توجد قراءات سكر الدم بعد",
           "emptyDescription": "ستظهر قراءات سكر الدم هنا بمجرد تسجيلها من قبل فريق الرعاية الخاص بك."
         }
+      }
+    },
+    "identityVerification": {
+      "title": "التحقق من الهوية",
+      "description": "ارفع بطاقة هوية وطنية وصورة شخصية للتأكد من هويتك.",
+      "loadError": "تعذّر تحميل حالة التحقق من هويتك.",
+      "steps": {
+        "documents": "المستندات",
+        "review": "المراجعة والتقديم"
+      },
+      "documentsStep": {
+        "description": "ارفع كل مستند من المستندات التالية (PDF أو JPG أو PNG). المستندات الثلاثة جميعها مطلوبة للتقديم للتوثيق.",
+        "slots": {
+          "national_id_front": "البطاقة الشخصية (الوجه الأمامي)",
+          "national_id_back": "البطاقة الشخصية (الوجه الخلفي)",
+          "selfie_with_id": "صورة شخصية مع البطاقة"
+        },
+        "uploadButton": "رفع",
+        "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى.",
+        "remove": "إزالة",
+        "back": "رجوع",
+        "continue": "متابعة"
+      },
+      "reviewStep": {
+        "description": "راجع مستنداتك قبل التقديم للتوثيق.",
+        "documents": "المستندات",
+        "documentsCount": "{count, plural, one {# مستند} other {# مستندات}}",
+        "back": "رجوع",
+        "submit": "تقديم للتوثيق"
+      },
+      "status": {
+        "badge": {
+          "submitted": "تم التقديم",
+          "under_review": "قيد المراجعة",
+          "more_info_needed": "مطلوب معلومات إضافية",
+          "re_verification_due": "يتطلب إعادة توثيق",
+          "approved": "موافق عليه",
+          "rejected": "مرفوض",
+          "suspended": "موقوف"
+        },
+        "pendingDescription": "التحقق من هويتك قيد المراجعة. عادةً ما يستغرق ذلك وقتًا قصيرًا فقط.",
+        "approvedDescription": "تم التحقق من هويتك.",
+        "continueAction": "متابعة",
+        "goToDashboard": "الذهاب إلى صحتي",
+        "rejectedDescription": "يمكنك تعديل مستنداتك وإعادة التقديم للمراجعة.",
+        "moreInfoDescription": "نحتاج إلى شيء واحد إضافي منك قبل أن نتمكن من متابعة مراجعة طلبك.",
+        "editAndResubmit": "تعديل وإعادة التقديم",
+        "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل."
+      },
+      "gate": {
+        "title": {
+          "booking": "تحقق من هويتك لحجز موعد",
+          "consultation": "تحقق من هويتك للانضمام إلى استشارتك",
+          "documentUpload": "تحقق من هويتك لرفع المستندات",
+          "payment": "تحقق من هويتك لإجراء الدفع"
+        },
+        "description": {
+          "booking": "يتطلب حجز موعد هوية موثقة، ليعرف طبيبك من يعالج.",
+          "consultation": "يتطلب الانضمام إلى استشارة الفيديو هوية موثقة، ليعرف طبيبك من يعالج.",
+          "documentUpload": "يتطلب رفع مستند طبي هوية موثقة، لحماية سجلاتك الطبية.",
+          "payment": "يتطلب إجراء الدفع هوية موثقة، لحماية حسابك."
+        },
+        "startVerification": "بدء التحقق"
       }
     }
   },
@@ -680,26 +845,23 @@
       "review": "مراجعة",
       "confirm": "تأكيد الحجز",
       "back": "رجوع",
-      "confirmed": "مؤكد",
-      "reschedule": "إعادة الجدولة",
-      "cancel": "إلغاء",
-      "cancelDialogTitle": "إلغاء هذا الحجز؟",
-      "cancelDialogDescription": "سيؤدي هذا إلى إلغاء حجزك لهذا الموعد. يمكنك حجز موعد جديد في أي وقت.",
-      "cancelDialogKeep": "الاحتفاظ بالحجز",
-      "cancelDialogConfirm": "إلغاء الحجز",
       "durationMinutes": "{minutes} دقيقة",
-      "conflictReason": {
-        "insufficient-notice": "هذا الموعد قريب جدًا للحجز -- يرجى اختيار وقت لاحق.",
-        "beyond-booking-window": "هذا الموعد بعيد جدًا في المستقبل ولا يمكن حجزه بعد."
-      }
-    },
-    "waitlist": {
-      "emptyTitle": "لا توجد مواعيد متاحة في هذا التاريخ",
-      "emptyDescription": "انضم إلى قائمة الانتظار وسنُعلمك عند توفر موعد.",
-      "join": "الانضمام إلى قائمة الانتظار",
-      "joinedTitle": "أنت الآن في قائمة الانتظار",
-      "joinedDescription": "سنُعلمك إذا أصبح موعد متاحًا في هذا التاريخ."
+      "loadError": "تعذّر تحميل المواعيد المتاحة لهذا التاريخ.",
+      "bookingFailed": "تعذّر تأكيد هذا الحجز. يرجى المحاولة مرة أخرى.",
+      "noSlotsTitle": "لا توجد مواعيد متاحة في هذا التاريخ",
+      "noSlotsDescription": "جرّب تاريخًا آخر."
     }
+  },
+  "journey": {
+    "title": "أهلاً بك في أوريفكس. ما الذي جاء بك اليوم؟",
+    "description": "اختر الطريقة التي تريد بها استخدام أوريفكس -- يمكنك دائمًا القيام بالأمر الآخر لاحقًا.",
+    "patientCardTitle": "حجز المواعيد",
+    "patientCardDescription": "ابحث عن طبيب واحجز استشارة وأدر سجلاتك الصحية.",
+    "patientCardAction": "المتابعة كمريض",
+    "doctorCardTitle": "الممارسة كطبيب",
+    "doctorCardDescription": "أنشئ ملفك المهني وابدأ باستقبال المرضى بمجرد التحقق من هويتك.",
+    "doctorCardAction": "التقديم كطبيب",
+    "choosePatientError": "حدث خطأ أثناء إعداد حسابك. يرجى المحاولة مرة أخرى."
   },
   "admin": {
     "overview": {
@@ -755,11 +917,18 @@
     },
     "verificationQueue": {
       "title": "طابور التحقق",
-      "description": "مراجعة طلبات توثيق تراخيص الأطباء المعلقة.",
-      "columnDoctor": "الطبيب",
+      "description": "مراجعة طلبات توثيق هوية الأطباء والمرضى المعلقة.",
+      "columnApplicant": "مقدّم الطلب",
+      "columnType": "النوع",
       "columnStatus": "الحالة",
       "columnSubmitted": "تاريخ التقديم",
       "columnActions": "الإجراءات",
+      "filterSubjectType": "التصفية حسب النوع",
+      "filterStatus": "التصفية حسب الحالة",
+      "subjectTypeAll": "كل الأنواع",
+      "subjectTypeDoctor": "طبيب",
+      "subjectTypePatient": "مريض",
+      "statusPendingReview": "قيد المراجعة",
       "status": {
         "submitted": "تم التقديم",
         "under_review": "قيد المراجعة",
@@ -769,12 +938,112 @@
         "re_verification_due": "يتطلب إعادة توثيق",
         "suspended": "موقوف"
       },
-      "approve": "موافقة",
-      "reject": "رفض",
+      "viewCase": "عرض الحالة",
       "loadError": "تعذر تحميل طابور التحقق.",
-      "reviewError": "تعذر تسجيل هذا القرار.",
       "emptyTitle": "لا يوجد شيء معلق",
       "emptyDescription": "تمت مراجعة جميع حالات التحقق."
+    },
+    "verificationCase": {
+      "title": "حالة التحقق",
+      "notFound": "تعذر العثور على حالة التحقق هذه.",
+      "notOnRecord": "غير مسجل",
+      "applicantSection": "مقدّم الطلب",
+      "applicantLoadError": "تعذر تحميل حساب مقدّم الطلب.",
+      "applicantName": "الاسم الكامل",
+      "applicantEmail": "البريد الإلكتروني",
+      "applicantPhone": "الهاتف",
+      "applicantDateOfBirth": "تاريخ الميلاد",
+      "applicantGender": "الجنس",
+      "applicantAddress": "العنوان",
+      "applicantAccountStatus": "حالة الحساب",
+      "applicantAccountRole": "دور الحساب",
+      "gender": {
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "آخر"
+      },
+      "accountStatus": {
+        "active": "نشط",
+        "suspended": "موقوف",
+        "closed": "مغلق"
+      },
+      "accountRole": {
+        "patient": "مريض",
+        "doctor": "طبيب",
+        "nurse": "ممرض",
+        "receptionist": "موظف استقبال",
+        "hospital_admin": "مسؤول المستشفى",
+        "super_admin": "مسؤول عام"
+      },
+      "verificationInfoSection": "معلومات التحقق",
+      "subjectTypeDoctor": "توثيق طبيب",
+      "subjectTypePatient": "توثيق هوية مريض",
+      "submittedAt": "تاريخ التقديم",
+      "decidedAt": "تاريخ القرار",
+      "notYetDecided": "لم يُتخذ قرار بعد",
+      "status": {
+        "submitted": "تم التقديم",
+        "under_review": "قيد المراجعة",
+        "approved": "موافق عليه",
+        "rejected": "مرفوض",
+        "more_info_needed": "مطلوب معلومات إضافية",
+        "re_verification_due": "يتطلب إعادة توثيق",
+        "suspended": "موقوف"
+      },
+      "doctorContextSection": "المعلومات المهنية",
+      "licenseNumber": "رقم الترخيص",
+      "specialty": "التخصص",
+      "licenseExpiryDate": "تاريخ انتهاء الترخيص",
+      "professionalRankLabel": "الدرجة المهنية",
+      "professionalRank": {
+        "resident": "طبيب مقيم",
+        "registrar": "طبيب مسجل",
+        "specialist": "أخصائي",
+        "consultant": "استشاري",
+        "professor": "أستاذ"
+      },
+      "department": "القسم",
+      "yearsOfExperience": "سنوات الخبرة",
+      "documentsSection": "المستندات المُقدَّمة",
+      "documents": {
+        "loadError": "تعذر تحميل هذا المستند.",
+        "notYetAvailable": "هذا المستند غير متاح بعد.",
+        "openDocument": "فتح المستند",
+        "purpose": {
+          "national_id_front": "البطاقة الشخصية (الوجه)",
+          "national_id_back": "البطاقة الشخصية (الظهر)",
+          "selfie_with_id": "صورة شخصية مع البطاقة",
+          "medical_license": "الترخيص الطبي",
+          "graduation_certificate": "شهادة التخرج",
+          "board_certificate": "شهادة البورد",
+          "professional_membership_card": "بطاقة العضوية المهنية",
+          "doctor_certificate": "شهادة الطبيب",
+          "clinical_attachment": "مرفق سريري",
+          "lab_report": "تقرير مختبر",
+          "profile_image": "صورة الملف الشخصي",
+          "knowledge_media": "وسائط معرفية"
+        }
+      },
+      "actionsSection": "قرار المراجعة",
+      "actions": {
+        "approve": "موافقة",
+        "requestMoreInfo": "طلب معلومات إضافية",
+        "reject": "رفض",
+        "suspend": "إيقاف",
+        "noActionsAvailable": "لا يوجد إجراء متاح لهذه الحالة.",
+        "rejectDialogTitle": "هل تريد رفض هذا الطلب؟",
+        "rejectDialogDescription": "سيظهر هذا السبب لمقدّم الطلب في شاشة حالته.",
+        "moreInfoDialogTitle": "طلب معلومات إضافية",
+        "moreInfoDialogDescription": "سيظهر هذا السبب لمقدّم الطلب، ويمكنه التصحيح وإعادة التقديم.",
+        "suspendDialogTitle": "هل تريد إيقاف هذا التوثيق؟",
+        "suspendDialogDescription": "هذا يلغي الوضع الممنوح سابقًا. سيظهر هذا السبب لمقدّم الطلب.",
+        "reasonLabel": "السبب",
+        "reasonPlaceholder": "اشرح السبب...",
+        "cancel": "إلغاء"
+      },
+      "historySection": "سجل التقديمات",
+      "historyReviewerLimitation": "الطوابع الزمنية والنتائج حقيقية؛ لم يتم تسجيل هوية المسؤول الذي اتخذ كل قرار بعد.",
+      "historyEmpty": "لا يوجد سجل تقديمات بعد."
     },
     "featureFlags": {
       "title": "مزايا النظام",

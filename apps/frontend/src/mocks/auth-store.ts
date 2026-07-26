@@ -41,6 +41,15 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
     locked: false,
   },
   {
+    id: 'user-admin-1',
+    email: 'admin@orivex.dev',
+    password: 'Password123!',
+    fullName: 'Layla Mansour',
+    roles: ['super_admin'],
+    emailVerified: true,
+    locked: false,
+  },
+  {
     id: 'user-locked-1',
     email: 'locked@orivex.dev',
     password: 'Password123!',

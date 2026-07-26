@@ -21,9 +21,11 @@ import type { DoctorProfileRepository } from '../../../doctor/domain/repositorie
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { VERIFICATION_CASE_REPOSITORY } from '../../application/ports/tokens.js';
 import { DecideVerificationUseCase } from '../../application/use-cases/decide-verification/decide-verification.use-case.js';
-import { ListVerificationCasesForDoctorUseCase } from '../../application/use-cases/list-verification-cases-for-doctor/list-verification-cases-for-doctor.use-case.js';
+import { ListVerificationCasesForSubjectUseCase } from '../../application/use-cases/list-verification-cases-for-subject/list-verification-cases-for-subject.use-case.js';
 import { SubmitDoctorVerificationUseCase } from '../../application/use-cases/submit-doctor-verification/submit-doctor-verification.use-case.js';
+import { SuspendVerificationCaseUseCase } from '../../application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
 import type { VerificationCase } from '../../domain/entities/verification-case.entity.js';
+import type { VerificationSubjectType } from '../../domain/enums/verification-subject-type.enum.js';
 import type { VerificationCaseRepository } from '../../domain/repositories/verification-case.repository.js';
 
 import { DoctorVerificationController } from './doctor-verification.controller.js';
@@ -79,9 +81,12 @@ class InMemoryVerificationCaseRepository implements VerificationCaseRepository {
     return [...this.byId.values()];
   }
 
-  async findAllByDoctorId(doctorId: string): Promise<VerificationCase[]> {
+  async findAllBySubject(subjectType: VerificationSubjectType, subjectAccountId: string): Promise<VerificationCase[]> {
     return [...this.byId.values()]
-      .filter((verificationCase) => verificationCase.getDoctorId() === doctorId)
+      .filter(
+        (verificationCase) =>
+          verificationCase.getSubjectType() === subjectType && verificationCase.getSubjectAccountId() === subjectAccountId,
+      )
       .sort((a, b) => b.getSubmittedAt().getTime() - a.getSubmittedAt().getTime());
   }
   async save(verificationCase: VerificationCase): Promise<void> {
@@ -145,8 +150,13 @@ describe('Trust controllers (integration)', () => {
           inject: [VERIFICATION_CASE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
         },
         {
-          provide: ListVerificationCasesForDoctorUseCase,
-          useFactory: (repo: VerificationCaseRepository) => new ListVerificationCasesForDoctorUseCase(repo),
+          provide: ListVerificationCasesForSubjectUseCase,
+          useFactory: (repo: VerificationCaseRepository) => new ListVerificationCasesForSubjectUseCase(repo),
+          inject: [VERIFICATION_CASE_REPOSITORY],
+        },
+        {
+          provide: SuspendVerificationCaseUseCase,
+          useFactory: (repo: VerificationCaseRepository) => new SuspendVerificationCaseUseCase(repo),
           inject: [VERIFICATION_CASE_REPOSITORY],
         },
       ],
@@ -208,7 +218,8 @@ describe('Trust controllers (integration)', () => {
       .expect(201);
 
     assert.equal(response.body.data.status, 'submitted');
-    assert.equal(response.body.data.doctorId, doctorProfile.getId());
+    assert.equal(response.body.data.subjectAccountId, doctorProfile.getAccountId());
+    assert.equal(response.body.data.subjectType, 'doctor');
 
     createdCaseId = response.body.data.id;
   });

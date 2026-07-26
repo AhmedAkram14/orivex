@@ -24,16 +24,24 @@ import type { AccountRepository, ListAccountsOptions } from '../../../identity/d
 import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
 import { DecideVerificationUseCase } from '../../../trust/application/use-cases/decide-verification/decide-verification.use-case.js';
+import { GetVerificationCaseByIdUseCase } from '../../../trust/application/use-cases/get-verification-case-by-id/get-verification-case-by-id.use-case.js';
 import { ListPendingVerificationCasesUseCase } from '../../../trust/application/use-cases/list-pending-verification-cases/list-pending-verification-cases.use-case.js';
 import { ListSecurityEventsForAccountUseCase } from '../../../trust/application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
+import { ListVerificationCasesForSubjectUseCase } from '../../../trust/application/use-cases/list-verification-cases-for-subject/list-verification-cases-for-subject.use-case.js';
+import { SuspendVerificationCaseUseCase } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
 import type { SecurityEvent } from '../../../trust/domain/entities/security-event.entity.js';
-import type { VerificationCase } from '../../../trust/domain/entities/verification-case.entity.js';
+import { VerificationCase } from '../../../trust/domain/entities/verification-case.entity.js';
+import { VerificationStatus } from '../../../trust/domain/enums/verification-status.enum.js';
+import type { VerificationSubjectType } from '../../../trust/domain/enums/verification-subject-type.enum.js';
 import type { SecurityEventRepository } from '../../../trust/domain/repositories/security-event.repository.js';
 import type { VerificationCaseRepository } from '../../../trust/domain/repositories/verification-case.repository.js';
+import { DoctorProfessionalDetails } from '../../../trust/domain/value-objects/doctor-professional-details.js';
+import { PatientIdentityDetails } from '../../../trust/domain/value-objects/patient-identity-details.js';
 import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from '../../application/ports/tokens.js';
 import { CreateDepartmentUseCase } from '../../application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalUseCase } from '../../application/use-cases/create-hospital/create-hospital.use-case.js';
 import { GetPlatformKpisUseCase } from '../../application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
+import { GetVerificationHistoryUseCase } from '../../application/use-cases/get-verification-history/get-verification-history.use-case.js';
 import { GetVerificationReviewQueueUseCase } from '../../application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsUseCase } from '../../application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from '../../application/use-cases/list-hospitals/list-hospitals.use-case.js';
@@ -120,17 +128,32 @@ class InMemoryDepartmentRepository implements DepartmentRepository {
 }
 
 class InMemoryVerificationCaseRepository implements VerificationCaseRepository {
-  async findById(): Promise<VerificationCase | null> {
-    return null;
+  private readonly byId = new Map<string, VerificationCase>();
+
+  async findById(id: string): Promise<VerificationCase | null> {
+    return this.byId.get(id) ?? null;
   }
-  async findPendingReview(): Promise<VerificationCase[]> {
-    return [];
+  async findPendingReview(_subjectType?: VerificationSubjectType, status?: VerificationStatus): Promise<VerificationCase[]> {
+    const all = [...this.byId.values()];
+    if (status) return all.filter((c) => c.getStatus() === status);
+    const pendingStatuses: VerificationStatus[] = [
+      VerificationStatus.Submitted,
+      VerificationStatus.UnderReview,
+      VerificationStatus.MoreInfoNeeded,
+    ];
+    return all.filter((c) => pendingStatuses.includes(c.getStatus()));
   }
 
-  findAllByDoctorId(): Promise<VerificationCase[]> {
-    return Promise.resolve([]);
+  findAllBySubject(_subjectType: VerificationSubjectType, subjectAccountId: string): Promise<VerificationCase[]> {
+    return Promise.resolve([...this.byId.values()].filter((c) => c.getSubjectAccountId() === subjectAccountId));
   }
-  async save(): Promise<void> {}
+  async save(verificationCase: VerificationCase): Promise<void> {
+    this.byId.set(verificationCase.getId(), verificationCase);
+  }
+
+  seed(verificationCase: VerificationCase): void {
+    this.byId.set(verificationCase.getId(), verificationCase);
+  }
 }
 
 class InMemorySecurityEventRepository implements SecurityEventRepository {
@@ -172,12 +195,13 @@ function buildDoctorAccount(): Account {
 
 describe('AdministrationController (integration)', () => {
   let app: INestApplication;
+  let verificationCaseRepository: InMemoryVerificationCaseRepository;
 
   before(async () => {
     const accountRepository = new InMemoryAccountRepository([buildDoctorAccount()]);
     const hospitalRepository = new InMemoryHospitalRepository();
     const departmentRepository = new InMemoryDepartmentRepository();
-    const verificationCaseRepository = new InMemoryVerificationCaseRepository();
+    verificationCaseRepository = new InMemoryVerificationCaseRepository();
     const securityEventRepository = new InMemorySecurityEventRepository();
     const dispatcher = new NoopDomainEventDispatcher();
 
@@ -231,6 +255,26 @@ describe('AdministrationController (integration)', () => {
           provide: ReviewVerificationCaseUseCase,
           useFactory: (d: DecideVerificationUseCase) => new ReviewVerificationCaseUseCase(d),
           inject: [DecideVerificationUseCase],
+        },
+        {
+          provide: SuspendVerificationCaseUseCase,
+          useFactory: () => new SuspendVerificationCaseUseCase(verificationCaseRepository),
+        },
+        {
+          provide: GetVerificationCaseByIdUseCase,
+          useFactory: () => new GetVerificationCaseByIdUseCase(verificationCaseRepository),
+        },
+        {
+          provide: ListVerificationCasesForSubjectUseCase,
+          useFactory: () => new ListVerificationCasesForSubjectUseCase(verificationCaseRepository),
+        },
+        {
+          provide: GetVerificationHistoryUseCase,
+          useFactory: (
+            getById: GetVerificationCaseByIdUseCase,
+            listForSubject: ListVerificationCasesForSubjectUseCase,
+          ) => new GetVerificationHistoryUseCase(getById, listForSubject),
+          inject: [GetVerificationCaseByIdUseCase, ListVerificationCasesForSubjectUseCase],
         },
         {
           provide: ListSecurityEventsForAccountUseCase,
@@ -363,6 +407,89 @@ describe('AdministrationController (integration)', () => {
       .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
       .expect(200);
     assert.deepEqual(response.body.data, []);
+  });
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8).
+  it('GET /admin/verification-queue includes documentAssetIds for real admin review', async () => {
+    const doctorCase = VerificationCase.submit({
+      subjectAccountId: '33333333-3333-4333-8333-333333333333',
+      subjectDetails: DoctorProfessionalDetails.create('LIC-9001', 'cardiology'),
+      documentAssetIds: ['44444444-4444-4444-8444-444444444444'],
+    });
+    verificationCaseRepository.seed(doctorCase);
+
+    const response = await request(app.getHttpServer())
+      .get('/admin/verification-queue')
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    const found = response.body.data.find((c: { id: string }) => c.id === doctorCase.getId());
+    assert.ok(found, 'expected the seeded case in the queue');
+    assert.deepEqual(found.documentAssetIds, ['44444444-4444-4444-8444-444444444444']);
+    assert.equal(found.subjectType, 'doctor');
+    assert.equal(found.licenseNumber, 'LIC-9001');
+  });
+
+  it('GET /admin/verification-queue?status=approved finds an Approved case, invisible in the default pending view', async () => {
+    const approvedCase = VerificationCase.submit({
+      subjectAccountId: '55555555-5555-4555-8555-555555555555',
+      subjectDetails: PatientIdentityDetails.create(),
+      documentAssetIds: ['66666666-6666-4666-8666-666666666666'],
+    });
+    approvedCase.decide(VerificationStatus.Approved);
+    verificationCaseRepository.seed(approvedCase);
+
+    const defaultQueue = await request(app.getHttpServer())
+      .get('/admin/verification-queue')
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+    assert.ok(!defaultQueue.body.data.some((c: { id: string }) => c.id === approvedCase.getId()));
+
+    const approvedQueue = await request(app.getHttpServer())
+      .get('/admin/verification-queue?status=approved')
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+    assert.ok(approvedQueue.body.data.some((c: { id: string }) => c.id === approvedCase.getId()));
+  });
+
+  it('GET /admin/verification-queue/:id returns the full case detail', async () => {
+    const patientCase = VerificationCase.submit({
+      subjectAccountId: '77777777-7777-4777-8777-777777777777',
+      subjectDetails: PatientIdentityDetails.create(),
+      documentAssetIds: ['88888888-8888-4888-8888-888888888888'],
+    });
+    verificationCaseRepository.seed(patientCase);
+
+    const response = await request(app.getHttpServer())
+      .get(`/admin/verification-queue/${patientCase.getId()}`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.id, patientCase.getId());
+    assert.equal(response.body.data.subjectType, 'patient');
+    assert.deepEqual(response.body.data.documentAssetIds, ['88888888-8888-4888-8888-888888888888']);
+  });
+
+  it('GET /admin/verification-queue/:id returns 404 for an unknown case', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/admin/verification-queue/99999999-9999-4999-8999-999999999999')
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(404);
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('GET /admin/verification-queue/:id rejects a non-SuperAdmin caller with 403', async () => {
+    const patientCase = VerificationCase.submit({
+      subjectAccountId: '11111111-1111-4111-8111-111111111112',
+      subjectDetails: PatientIdentityDetails.create(),
+      documentAssetIds: ['22222222-2222-4222-8222-222222222223'],
+    });
+    verificationCaseRepository.seed(patientCase);
+
+    await request(app.getHttpServer())
+      .get(`/admin/verification-queue/${patientCase.getId()}`)
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+      .expect(403);
   });
 
   it('GET /admin/accounts/:id/security-events returns an empty audit log for an account', async () => {

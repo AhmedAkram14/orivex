@@ -3,10 +3,12 @@ import { env } from '@/shared/lib/env';
 import { adminHandlers } from '@/mocks/handlers/admin';
 import { authHandlers } from '@/mocks/handlers/auth';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
+import { identityHandlers } from '@/mocks/handlers/identity';
 import { mediaAssetHandlers } from '@/mocks/handlers/media-assets';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
 import { patientHandlers } from '@/mocks/handlers/patient';
 import { paymentHandlers } from '@/mocks/handlers/payment';
+import { referenceHandlers } from '@/mocks/handlers/reference';
 import { schedulingHandlers } from '@/mocks/handlers/scheduling';
 import { telemedicineHandlers } from '@/mocks/handlers/telemedicine';
 
@@ -27,9 +29,11 @@ export const handlers = [
   ...authHandlers,
   ...notificationHandlers,
   ...doctorHandlers,
+  ...identityHandlers,
   ...mediaAssetHandlers,
   ...patientHandlers,
   ...paymentHandlers,
+  ...referenceHandlers,
   ...schedulingHandlers,
   ...telemedicineHandlers,
 ];

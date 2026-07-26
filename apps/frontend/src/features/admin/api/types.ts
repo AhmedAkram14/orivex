@@ -70,13 +70,27 @@ export type VerificationCaseStatus =
   | 're_verification_due'
   | 'suspended';
 
-/** Matches TrustModule's real VerificationCaseResponseDto exactly. */
+export type VerificationSubjectType = 'doctor' | 'patient';
+
+/**
+ * Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
+ * matches AdministrationModule's real AdminVerificationCaseResponseDto
+ * exactly (Stage O.2's subjectAccountId/subjectType generalization -- the
+ * stale pre-O.2 `doctorId` field this replaces never matched the real
+ * backend response and was never populated in production). `documentAssetIds`
+ * is admin-only -- never returned by the applicant-facing status endpoints.
+ */
 export interface VerificationCase {
   id: string;
-  doctorId: string;
+  subjectAccountId: string;
+  subjectType: VerificationSubjectType;
+  licenseNumber?: string;
+  specialtyCode?: string;
   status: VerificationCaseStatus;
+  reason?: string;
   submittedAt: string;
   decidedAt: string | null;
+  documentAssetIds: string[];
 }
 
 export type VerificationDecisionStatus = 'approved' | 'rejected' | 'more_info_needed';
@@ -84,6 +98,15 @@ export type VerificationDecisionStatus = 'approved' | 'rejected' | 'more_info_ne
 export interface ReviewVerificationCaseRequest {
   status: VerificationDecisionStatus;
   reason?: string;
+}
+
+export interface SuspendVerificationCaseRequest {
+  reason: string;
+}
+
+export interface VerificationQueueParams {
+  subjectType?: VerificationSubjectType;
+  status?: VerificationCaseStatus;
 }
 
 /** Matches AdministrationModule's real SecurityEventResponseDto exactly. */

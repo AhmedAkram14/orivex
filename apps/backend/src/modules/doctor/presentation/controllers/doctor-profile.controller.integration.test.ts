@@ -21,13 +21,21 @@ import type { AccountRepository } from '../../../identity/domain/repositories/ac
 import type { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
 import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
-import { DOCTOR_PROFILE_REPOSITORY } from '../../application/ports/tokens.js';
+import { DOCTOR_DIRECTORY_QUERY_PORT, DOCTOR_PROFILE_REPOSITORY } from '../../application/ports/tokens.js';
+import type { DoctorDirectoryFilter, DoctorDirectoryQueryPort, DoctorDirectoryResult } from '../../application/ports/doctor-directory-query.port.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { ListDoctorDirectoryUseCase } from '../../application/use-cases/list-doctor-directory/list-doctor-directory.use-case.js';
 import { RegisterDoctorProfileUseCase } from '../../application/use-cases/register-doctor-profile/register-doctor-profile.use-case.js';
 import { UpdateDoctorProfileUseCase } from '../../application/use-cases/update-doctor-profile/update-doctor-profile.use-case.js';
 import { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../domain/repositories/doctor-profile.repository.js';
+
+class FakeDoctorDirectoryQueryPort implements DoctorDirectoryQueryPort {
+  async search(_filter: DoctorDirectoryFilter): Promise<DoctorDirectoryResult> {
+    return { entries: [], total: 0 };
+  }
+}
 
 import { DoctorProfileController } from './doctor-profile.controller.js';
 
@@ -40,6 +48,7 @@ const UNKNOWN_ACCOUNT_TOKEN = 'valid-doctor-token-unknown-account';
 // is ever decided -- see DoctorProfileController's own comment on this
 // guard widening.
 const PATIENT_APPLICANT_TOKEN = 'valid-patient-applicant-token';
+const SUPER_ADMIN_TOKEN = 'valid-super-admin-token';
 
 class InMemoryAccountRepository implements AccountRepository {
   constructor(private readonly accounts: Account[]) {}
@@ -158,8 +167,12 @@ describe('DoctorProfileController (integration)', () => {
         [EXISTING_ACCOUNT_TOKEN, existingAccountId],
         [UNKNOWN_ACCOUNT_TOKEN, '22222222-2222-4222-8222-222222222222'],
         [PATIENT_APPLICANT_TOKEN, patientApplicantAccountId],
+        [SUPER_ADMIN_TOKEN, existingAccountId],
       ]),
-      new Map([[PATIENT_APPLICANT_TOKEN, AccountRole.Patient]]),
+      new Map([
+        [PATIENT_APPLICANT_TOKEN, AccountRole.Patient],
+        [SUPER_ADMIN_TOKEN, AccountRole.SuperAdmin],
+      ]),
     );
 
     const moduleRef = await Test.createTestingModule({
@@ -200,6 +213,12 @@ describe('DoctorProfileController (integration)', () => {
           provide: GetDoctorProfileByAccountIdUseCase,
           useFactory: (repo: DoctorProfileRepository) => new GetDoctorProfileByAccountIdUseCase(repo),
           inject: [DOCTOR_PROFILE_REPOSITORY],
+        },
+        { provide: DOCTOR_DIRECTORY_QUERY_PORT, useClass: FakeDoctorDirectoryQueryPort },
+        {
+          provide: ListDoctorDirectoryUseCase,
+          useFactory: (queryPort: DoctorDirectoryQueryPort) => new ListDoctorDirectoryUseCase(queryPort),
+          inject: [DOCTOR_DIRECTORY_QUERY_PORT],
         },
       ],
     }).compile();
@@ -417,5 +436,49 @@ describe('DoctorProfileController (integration)', () => {
       .expect(200);
 
     assert.equal(response.body.data.biography, 'Completed medical school in 2015.');
+  });
+
+  // Onboarding Redesign (2026-07-21 proposal, §5/§9/§14 Stage O.1).
+  it('GET /doctors rejects a request with no bearer token', async () => {
+    await request(app.getHttpServer()).get('/doctors').expect(401);
+  });
+
+  it('GET /doctors returns a paginated, empty-by-default directory result for an authenticated caller', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/doctors')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data.doctors, []);
+    assert.equal(response.body.data.total, 0);
+    assert.equal(response.body.data.page, 1);
+    assert.equal(response.body.data.limit, 50);
+  });
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8).
+  it('GET /doctors/by-account/:accountId resolves a DoctorProfile for a SuperAdmin caller', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/doctors/by-account/${meAccountId}`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.accountId, meAccountId);
+    assert.equal(response.body.data.licenseNumber, 'LIC-12345');
+  });
+
+  it('GET /doctors/by-account/:accountId returns 404 when the account has no DoctorProfile', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/doctors/by-account/${noProfileAccountId}`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('GET /doctors/by-account/:accountId rejects a non-SuperAdmin caller with 403', async () => {
+    await request(app.getHttpServer())
+      .get(`/doctors/by-account/${meAccountId}`)
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(403);
   });
 });

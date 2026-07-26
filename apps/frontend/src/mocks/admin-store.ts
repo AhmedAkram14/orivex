@@ -9,8 +9,17 @@ import type {
   PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
+  SuspendVerificationCaseRequest,
   VerificationCase,
+  VerificationQueueParams,
 } from '@/features/admin/api/types';
+import {
+  decideVerificationCase,
+  findAllVerificationCasesBySubject,
+  findVerificationCaseById,
+  findVerificationCasesForQueue,
+  suspendVerificationCase as suspendVerificationCaseInStore,
+} from '@/mocks/verification-case-store';
 
 /**
  * In-memory mock "backend" state for `/admin/*` -- mirrors
@@ -53,14 +62,9 @@ function seedDepartments(): Record<string, Department[]> {
   return {};
 }
 
-function seedVerificationQueue(): VerificationCase[] {
-  return [];
-}
-
 let accounts: AdminAccount[] = seedAccounts();
 let hospitals: Hospital[] = seedHospitals();
 let departmentsByHospital: Record<string, Department[]> = seedDepartments();
-let verificationQueue: VerificationCase[] = seedVerificationQueue();
 
 export function getPlatformKpis(): PlatformKpis {
   return {
@@ -116,17 +120,44 @@ export function createDepartment(hospitalId: string, request: CreateDepartmentRe
   return { ok: true, department: created };
 }
 
-export function getVerificationQueue(): VerificationCase[] {
-  return verificationQueue;
+/**
+ * Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): the
+ * real, server-side subjectType/status filters -- reads the same shared
+ * `verification-case-store.ts` a Doctor's or Patient's own submission
+ * writes to, so a real (mocked) submission genuinely appears in the admin
+ * queue, and an admin's decision genuinely flows back to the applicant's
+ * own status view.
+ */
+export function getVerificationQueue(params: VerificationQueueParams): VerificationCase[] {
+  return findVerificationCasesForQueue(params.subjectType, params.status);
+}
+
+export function getVerificationCase(id: string): VerificationCase | undefined {
+  return findVerificationCaseById(id);
+}
+
+// Every past case for the same subject as the named case, most-recently-
+// submitted-first -- matches the real GetVerificationHistoryUseCase's own
+// contract exactly (resolve the subject, then list all of its cases).
+export function getVerificationCaseHistory(id: string): VerificationCase[] {
+  const target = findVerificationCaseById(id);
+  if (!target) return [];
+  return findAllVerificationCasesBySubject(target.subjectType, target.subjectAccountId);
 }
 
 export type ReviewVerificationCaseResult = { ok: true; verificationCase: VerificationCase } | { ok: false };
 
 export function reviewVerificationCase(id: string, request: ReviewVerificationCaseRequest): ReviewVerificationCaseResult {
-  const existing = verificationQueue.find((c) => c.id === id);
-  if (!existing) return { ok: false };
-  const updated: VerificationCase = { ...existing, status: request.status, decidedAt: new Date().toISOString() };
-  verificationQueue = verificationQueue.map((c) => (c.id === id ? updated : c));
+  const updated = decideVerificationCase(id, request.status, request.reason);
+  if (!updated) return { ok: false };
+  return { ok: true, verificationCase: updated };
+}
+
+export type SuspendVerificationCaseResult = { ok: true; verificationCase: VerificationCase } | { ok: false };
+
+export function suspendVerificationCase(id: string, request: SuspendVerificationCaseRequest): SuspendVerificationCaseResult {
+  const updated = suspendVerificationCaseInStore(id, request.reason);
+  if (!updated) return { ok: false };
   return { ok: true, verificationCase: updated };
 }
 
@@ -146,5 +177,8 @@ export function resetAdminStore(): void {
   accounts = seedAccounts();
   hospitals = seedHospitals();
   departmentsByHospital = seedDepartments();
-  verificationQueue = seedVerificationQueue();
+  // Verification cases are owned by whichever store originated the
+  // submission (doctor-store.ts/patient-store.ts) -- their own
+  // reset*Store()/setPatientVerified() already reset their own slice of the
+  // shared verification-case-store.ts; this store never seeded any itself.
 }

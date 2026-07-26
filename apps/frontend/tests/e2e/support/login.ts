@@ -6,6 +6,7 @@ import { expect } from '@playwright/test';
 export const MOCK_CREDENTIALS = {
   patient: { email: 'patient@orivex.dev', password: 'Password123!', fullName: 'Amina Youssef' },
   doctor: { email: 'doctor@orivex.dev', password: 'Password123!', fullName: 'Dr. Sarah Ahmed' },
+  admin: { email: 'admin@orivex.dev', password: 'Password123!', fullName: 'Layla Mansour' },
 } as const;
 
 export async function loginAs(page: Page, role: keyof typeof MOCK_CREDENTIALS): Promise<void> {

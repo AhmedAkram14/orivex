@@ -1,13 +1,20 @@
 import type {
   DoctorDashboardSummary,
+  DoctorDirectoryEntry,
   DoctorProfile,
   DoctorProfileUpdateRequest,
+  ListDoctorDirectoryParams,
   QueueEntry,
   RegisterDoctorProfileRequest,
   SubmitVerificationRequest,
   UpcomingWorkItem,
   VerificationCase,
 } from '@/features/doctor/api/types';
+import {
+  findAllVerificationCasesBySubject,
+  setSubjectVerificationCases,
+  submitVerificationCase,
+} from '@/mocks/verification-case-store';
 
 /**
  * In-memory mock "backend" state for `/doctor/*` — mirrors
@@ -43,12 +50,15 @@ function seedUpcomingWork(): UpcomingWorkItem[] {
 function seedProfile(): DoctorProfile {
   return {
     id: 'doctor-profile-1',
-    accountId: 'doctor-account-1',
+    accountId: 'user-doctor-1',
     fullName: 'Dr. Sarah Ahmed',
     email: 'doctor@orivex.dev',
     phoneNumber: '+20 100 000 0000',
     licenseNumber: 'LIC-2010-4471',
     specialty: 'Cardiology',
+    specialtyId: 'specialty-cardiology',
+    professionalRank: 'consultant',
+    licenseExpiryDate: '2030-01-01T00:00:00.000Z',
     biography: 'Cardiologist with a focus on preventive care and long-term patient relationships.',
     yearsOfExperience: 12,
     languages: ['en', 'ar'],
@@ -82,11 +92,6 @@ let summary: DoctorDashboardSummary = seedSummary();
 let upcomingWork: UpcomingWorkItem[] = seedUpcomingWork();
 let profile: DoctorProfile = seedProfile();
 let queue: QueueEntry[] = seedQueue();
-// Doctor Onboarding (Phase 4 continuation): keyed by doctorProfileId, most
-// recently submitted first -- an honest empty array by default (the seeded
-// `doctor@orivex.dev` account is a fully-provisioned demo doctor, not an
-// onboarding applicant).
-let verificationsByDoctorId: Record<string, VerificationCase[]> = {};
 
 export function getDashboardSummary(): DoctorDashboardSummary {
   return summary;
@@ -100,20 +105,61 @@ export function getProfile(): DoctorProfile {
   return profile;
 }
 
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.5) -- the public GET /doctors/:id lookup. */
+export function getDoctorById(doctorProfileId: string): DoctorProfile | null {
+  return profile.id === doctorProfileId ? profile : null;
+}
+
+// Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): the
+// SuperAdmin-only GET /doctors/by-account/:accountId lookup -- backs the
+// verification case-detail page's Doctor-specific context section (a
+// VerificationCase only stores subjectAccountId, never a doctorProfileId).
+export function getDoctorByAccountId(accountId: string): DoctorProfile | null {
+  return profile.accountId === accountId ? profile : null;
+}
+
+// Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Browse/Search
+// Doctors screen's data source -- a single-entry "directory" (the one
+// seeded demo doctor), honest given this mock's own single-profile store.
+function toDirectoryEntry(doctorProfile: DoctorProfile): DoctorDirectoryEntry {
+  return {
+    doctorProfileId: doctorProfile.id,
+    accountId: doctorProfile.accountId,
+    displayName: doctorProfile.fullName,
+    specialty: doctorProfile.specialty,
+    yearsOfExperience: doctorProfile.yearsOfExperience,
+    consultationFeeAmount: doctorProfile.consultationFeeAmount,
+    hospitalId: doctorProfile.hospitalId,
+  };
+}
+
+export function listDoctors(params: ListDoctorDirectoryParams): { doctors: DoctorDirectoryEntry[]; total: number; page: number; limit: number } {
+  const page = params.page ?? 1;
+  const limit = params.limit ?? 50;
+  const matches = !params.specialty || profile.specialty.toLowerCase().includes(params.specialty.toLowerCase())
+    ? [toDirectoryEntry(profile)]
+    : [];
+  return { doctors: matches, total: matches.length, page, limit };
+}
+
 export function registerProfile(request: RegisterDoctorProfileRequest): DoctorProfile {
   profile = {
     id: 'doctor-profile-1',
-    accountId: 'doctor-account-1',
+    accountId: 'user-doctor-1',
     fullName: 'Dr. Sarah Ahmed',
     email: 'doctor@orivex.dev',
     phoneNumber: '+20 100 000 0000',
     licenseNumber: request.licenseNumber,
     specialty: request.specialty,
+    specialtyId: request.specialtyId,
+    professionalRank: request.professionalRank,
+    licenseExpiryDate: request.licenseExpiryDate,
     biography: request.biography,
     yearsOfExperience: request.yearsOfExperience,
     languages: request.languages ?? [],
     consultationFeeAmount: request.consultationFeeAmount,
     hospitalId: request.hospitalId,
+    departmentId: request.departmentId,
     publications: [],
     awards: [],
     createdAt: new Date().toISOString(),
@@ -126,11 +172,15 @@ export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfil
   profile = {
     ...profile,
     specialty: request.specialty ?? profile.specialty,
+    specialtyId: request.specialtyId ?? profile.specialtyId,
+    professionalRank: request.professionalRank ?? profile.professionalRank,
+    licenseExpiryDate: request.licenseExpiryDate ?? profile.licenseExpiryDate,
     biography: request.biography ?? profile.biography,
     yearsOfExperience: request.yearsOfExperience ?? profile.yearsOfExperience,
     languages: request.languages ?? profile.languages,
     consultationFeeAmount: request.consultationFeeAmount ?? profile.consultationFeeAmount,
     hospitalId: request.hospitalId ?? profile.hospitalId,
+    departmentId: request.departmentId ?? profile.departmentId,
     publications:
       request.publications?.map((publication, index) => ({
         id: `pub-${Date.now()}-${index}`,
@@ -152,21 +202,24 @@ export function getQueue(): QueueEntry[] {
   return queue;
 }
 
+// Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
+// delegates to the shared, cross-store `verification-case-store.ts` --
+// `doctorId` (the profile id) is unused beyond keeping this function's
+// existing call-site signature, since the real subject key is
+// `profile.accountId` (this mock only ever seeds one doctor profile).
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match doctorApi.getVerifications' real shape
 export function listVerifications(doctorId: string): VerificationCase[] {
-  return verificationsByDoctorId[doctorId] ?? [];
+  return findAllVerificationCasesBySubject('doctor', profile.accountId);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match doctorApi.submitVerification's real shape
-export function submitVerification(doctorId: string, request: SubmitVerificationRequest): VerificationCase {
-  const created: VerificationCase = {
-    id: `verification-${Date.now()}`,
-    doctorId,
-    status: 'submitted',
-    submittedAt: new Date().toISOString(),
-    decidedAt: null,
-  };
-  verificationsByDoctorId[doctorId] = [created, ...(verificationsByDoctorId[doctorId] ?? [])];
-  return created;
+export function submitVerification(_doctorId: string, request: SubmitVerificationRequest): VerificationCase {
+  return submitVerificationCase({
+    subjectAccountId: profile.accountId,
+    subjectType: 'doctor',
+    licenseNumber: request.licenseNumber,
+    specialtyCode: request.specialtyCode,
+    documentAssetIds: request.documentAssetIds,
+  });
 }
 
 /** Test-only: restores the seed state. Never called from application code. */
@@ -175,5 +228,5 @@ export function resetDoctorStore(): void {
   upcomingWork = seedUpcomingWork();
   profile = seedProfile();
   queue = seedQueue();
-  verificationsByDoctorId = {};
+  setSubjectVerificationCases('doctor', profile.accountId, []);
 }

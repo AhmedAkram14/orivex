@@ -1,5 +1,6 @@
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
 import type { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
+import type { ProfessionalRank } from '../../domain/enums/professional-rank.enum.js';
 
 interface PublicationView {
   id: string;
@@ -37,6 +38,10 @@ export class DoctorProfileResponseDto {
   awards!: AwardView[];
   createdAt!: string;
   updatedAt!: string;
+  specialtyId?: string;
+  professionalRank?: ProfessionalRank;
+  licenseExpiryDate?: string;
+  departmentId?: string;
 
   static fromDomain(profile: DoctorProfile, account: Account): DoctorProfileResponseDto {
     const userProfile = account.getUserProfile();
@@ -68,6 +73,10 @@ export class DoctorProfileResponseDto {
     }));
     dto.createdAt = profile.getCreatedAt().toISOString();
     dto.updatedAt = profile.getUpdatedAt().toISOString();
+    dto.specialtyId = profile.getSpecialtyId();
+    dto.professionalRank = profile.getProfessionalRank();
+    dto.licenseExpiryDate = profile.getLicenseExpiryDate()?.toISOString();
+    dto.departmentId = profile.getDepartmentId();
 
     return dto;
   }

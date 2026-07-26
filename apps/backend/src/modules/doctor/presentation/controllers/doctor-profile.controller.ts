@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
@@ -11,21 +11,27 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { ListDoctorDirectoryQuery } from '../../application/use-cases/list-doctor-directory/list-doctor-directory.query.js';
+import { ListDoctorDirectoryUseCase } from '../../application/use-cases/list-doctor-directory/list-doctor-directory.use-case.js';
 import { RegisterDoctorProfileCommand } from '../../application/use-cases/register-doctor-profile/register-doctor-profile.command.js';
 import { RegisterDoctorProfileUseCase } from '../../application/use-cases/register-doctor-profile/register-doctor-profile.use-case.js';
 import { UpdateDoctorProfileCommand } from '../../application/use-cases/update-doctor-profile/update-doctor-profile.command.js';
 import { UpdateDoctorProfileUseCase } from '../../application/use-cases/update-doctor-profile/update-doctor-profile.use-case.js';
 import type { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
+import { DoctorDirectoryResponseDto } from '../dto/doctor-directory-response.dto.js';
 import { DoctorProfileResponseDto } from '../dto/doctor-profile-response.dto.js';
+import { ListDoctorDirectoryQueryDto } from '../dto/list-doctor-directory-query.dto.js';
 import { RegisterDoctorProfileRequestDto } from '../dto/register-doctor-profile-request.dto.js';
 import { UpdateDoctorProfileRequestDto } from '../dto/update-doctor-profile-request.dto.js';
 import { mapDoctorError } from '../mappers/doctor-exception.mapper.js';
 
-// Own, additive resource — not the documented GET /doctors (search,
-// composites ReferenceData/Trust/Availability/Reviews, none of which exist
-// yet) or GET /doctors/{id}/portfolio (same composition problem). This is
-// DoctorModule's own profile management surface; the composed discovery
-// endpoints are future work once their dependency modules exist.
+// GET /doctors (no id) is real now (Onboarding Redesign, 2026-07-21 proposal
+// §5/§9/§14 Stage O.1) -- a deliberately minimal list/filter endpoint (specialty
+// contains-match + hospitalId, paginated) backing the Patient Dashboard's
+// Browse/Search Doctors screens. Not full-text search or the richer
+// composited GET /doctors/{id}/portfolio (Trust/Availability/Reviews
+// composition) -- both remain Stage 8/future work; this is intentionally
+// narrow, see ListDoctorDirectoryUseCase's own header comment.
 //
 // GET/PATCH /doctors/me are the caller's own "my profile" surface (mirrors
 // PatientProfileController's /patients/me). Guarded to Patient OR Doctor
@@ -52,7 +58,29 @@ export class DoctorProfileController {
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
     private readonly updateDoctorProfileUseCase: UpdateDoctorProfileUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
+    private readonly listDoctorDirectoryUseCase: ListDoctorDirectoryUseCase,
   ) {}
+
+  // Gated to any authenticated account (not fully public like GET /doctors/:id
+  // below) per the approved proposal §5 -- a Patient mid-onboarding still
+  // needs to be logged in to browse, and this deliberately doesn't open a
+  // second, unauthenticated way to enumerate every doctor on the platform.
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async list(@Query() query: ListDoctorDirectoryQueryDto): Promise<ResponseEnvelope<DoctorDirectoryResponseDto>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const result = await this.listDoctorDirectoryUseCase.execute(
+      new ListDoctorDirectoryQuery({
+        page,
+        limit,
+        specialty: query.specialty,
+        specialtyId: query.specialtyId,
+        hospitalId: query.hospitalId,
+      }),
+    );
+    return envelope(DoctorDirectoryResponseDto.fromResult(result, page, limit));
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -75,6 +103,10 @@ export class DoctorProfileController {
           hospitalId: body.hospitalId,
           publications: body.publications,
           awards: body.awards,
+          specialtyId: body.specialtyId,
+          professionalRank: body.professionalRank,
+          licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
+          departmentId: body.departmentId,
         }),
       );
       const account = await this.getAccountOrThrow(profile.getAccountId());
@@ -117,9 +149,38 @@ export class DoctorProfileController {
           hospitalId: body.hospitalId,
           publications: body.publications,
           awards: body.awards,
+          specialtyId: body.specialtyId,
+          professionalRank: body.professionalRank,
+          licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
+          departmentId: body.departmentId,
         }),
       );
       const account = await this.getAccountOrThrow(user.accountId);
+      return envelope(DoctorProfileResponseDto.fromDomain(profile, account));
+    } catch (error) {
+      throw mapDoctorError(error);
+    }
+  }
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
+  // resolves a VerificationCase's own subjectAccountId to its DoctorProfile
+  // -- the admin case-detail page's only way to show the fuller professional
+  // fields (expiry/rank/department) a VerificationCase doesn't itself
+  // denormalize. SuperAdmin-only (unlike the public GET /doctors/:id below):
+  // an arbitrary account-id lookup is an administrative capability, not
+  // public directory data.
+  @Get('by-account/:accountId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.SuperAdmin)
+  async getByAccountId(
+    @Param('accountId', ParseUUIDPipe) accountId: string,
+  ): Promise<ResponseEnvelope<DoctorProfileResponseDto>> {
+    try {
+      const profile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId });
+      if (!profile) {
+        throw new NotFoundError(`Doctor profile for account "${accountId}" not found.`);
+      }
+      const account = await this.getAccountOrThrow(profile.getAccountId());
       return envelope(DoctorProfileResponseDto.fromDomain(profile, account));
     } catch (error) {
       throw mapDoctorError(error);
@@ -172,6 +233,10 @@ export class DoctorProfileController {
           hospitalId: body.hospitalId,
           publications: body.publications,
           awards: body.awards,
+          specialtyId: body.specialtyId,
+          professionalRank: body.professionalRank,
+          licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
+          departmentId: body.departmentId,
         }),
       );
       const account = await this.getAccountOrThrow(profile.getAccountId());

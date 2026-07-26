@@ -13,8 +13,18 @@ import type {
   PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
+  SuspendVerificationCaseRequest,
   VerificationCase,
+  VerificationQueueParams,
 } from '@/features/admin/api/types';
+
+function buildVerificationQueueQuery(params: VerificationQueueParams): string {
+  const query = new URLSearchParams();
+  if (params.subjectType) query.set('subjectType', params.subjectType);
+  if (params.status) query.set('status', params.status);
+  const qs = query.toString();
+  return qs ? `${ADMIN_PATHS.verificationQueue}?${qs}` : ADMIN_PATHS.verificationQueue;
+}
 
 function buildAccountsQuery(params: ListAccountsParams): string {
   const query = new URLSearchParams();
@@ -52,10 +62,19 @@ export const adminApi = {
   createDepartment: (hospitalId: string, request: CreateDepartmentRequest) =>
     apiFetch<Department>({ method: 'POST', path: ADMIN_PATHS.departments(hospitalId), body: request }),
 
-  getVerificationQueue: () => apiFetch<VerificationCase[]>({ path: ADMIN_PATHS.verificationQueue }),
+  getVerificationQueue: (params: VerificationQueueParams = {}) =>
+    apiFetch<VerificationCase[]>({ path: buildVerificationQueueQuery(params) }),
+
+  getVerificationCase: (id: string) => apiFetch<VerificationCase>({ path: ADMIN_PATHS.verificationCase(id) }),
+
+  getVerificationCaseHistory: (id: string) =>
+    apiFetch<VerificationCase[]>({ path: ADMIN_PATHS.verificationCaseHistory(id) }),
 
   reviewVerificationCase: (id: string, request: ReviewVerificationCaseRequest) =>
     apiFetch<VerificationCase>({ method: 'PATCH', path: ADMIN_PATHS.reviewVerificationCase(id), body: request }),
+
+  suspendVerificationCase: (id: string, request: SuspendVerificationCaseRequest) =>
+    apiFetch<VerificationCase>({ method: 'PATCH', path: ADMIN_PATHS.suspendVerificationCase(id), body: request }),
 
   getFeatureFlags: () => apiFetch<FeatureFlags>({ path: ADMIN_PATHS.featureFlags }),
 };

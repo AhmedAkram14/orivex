@@ -24,4 +24,20 @@ export const DOCTOR_PATHS = {
   // SuperAdmin-only /admin/hospitals) -- any authenticated account can
   // browse it to pick an affiliation.
   hospitals: '/hospitals',
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): the same public,
+  // any-authenticated-account mirror of AdministrationController's
+  // SuperAdmin-only /admin/hospitals/:id/departments.
+  departmentsByHospital: (hospitalId: string) => `/hospitals/${hospitalId}/departments`,
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the same real
+  // GET /doctors (no id) DoctorProfileController route as `profile`/`register`
+  // above -- the Patient Dashboard's Browse/Search Doctors screen.
+  list: '/doctors',
+  // Public single-doctor lookup (DoctorProfileController's GET /doctors/:id)
+  // -- backs the patient-facing doctor profile view.
+  byId: (doctorProfileId: string) => `/doctors/${doctorProfileId}`,
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
+  // SuperAdmin-only lookup by account id -- backs the verification
+  // case-detail page's Doctor-specific context section (a VerificationCase
+  // only stores subjectAccountId, never a doctorProfileId).
+  byAccountId: (accountId: string) => `/doctors/by-account/${accountId}`,
 } as const;

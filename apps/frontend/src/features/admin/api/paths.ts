@@ -7,6 +7,9 @@ export const ADMIN_PATHS = {
   hospitals: '/admin/hospitals',
   departments: (hospitalId: string) => `/admin/hospitals/${hospitalId}/departments`,
   verificationQueue: '/admin/verification-queue',
+  verificationCase: (id: string) => `/admin/verification-queue/${id}`,
   reviewVerificationCase: (id: string) => `/admin/verification-queue/${id}`,
+  suspendVerificationCase: (id: string) => `/admin/verification-queue/${id}/suspend`,
+  verificationCaseHistory: (id: string) => `/admin/verification-queue/${id}/history`,
   featureFlags: '/admin/feature-flags',
 } as const;

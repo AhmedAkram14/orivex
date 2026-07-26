@@ -6,6 +6,9 @@ import type {
   CreateHospitalRequest,
   ListAccountsParams,
   ReviewVerificationCaseRequest,
+  SuspendVerificationCaseRequest,
+  VerificationCaseStatus,
+  VerificationSubjectType,
 } from '@/features/admin/api/types';
 import type { Role } from '@/shared/auth/types';
 import {
@@ -14,11 +17,14 @@ import {
   getFeatureFlags,
   getPlatformKpis,
   getSecurityEventsForAccount,
+  getVerificationCase,
+  getVerificationCaseHistory,
   getVerificationQueue,
   listAccounts,
   listDepartments,
   listHospitals,
   reviewVerificationCase,
+  suspendVerificationCase,
   updateAccountRole,
 } from '@/mocks/admin-store';
 
@@ -33,9 +39,9 @@ function errorResponse(status: number, code: string, message: string) {
 
 /**
  * Every route below is a real endpoint (AdministrationModule's
- * AdministrationController, ORIVEX Roadmap 2.0 Stage 4) -- these handlers
- * exist purely to keep the frontend test suite deterministic, matching
- * `scheduling.ts`'s own precedent.
+ * AdministrationController, ORIVEX Roadmap 2.0 Stage 4 / Onboarding
+ * Redesign Stage O.8) -- these handlers exist purely to keep the frontend
+ * test suite deterministic, matching `scheduling.ts`'s own precedent.
  */
 export const adminHandlers = [
   http.get(`${base()}${ADMIN_PATHS.kpis}`, () => HttpResponse.json({ data: getPlatformKpis() })),
@@ -81,7 +87,32 @@ export const adminHandlers = [
     return HttpResponse.json({ data: result.department }, { status: 201 });
   }),
 
-  http.get(`${base()}${ADMIN_PATHS.verificationQueue}`, () => HttpResponse.json({ data: getVerificationQueue() })),
+  http.get(`${base()}${ADMIN_PATHS.verificationQueue}`, ({ request }) => {
+    const url = new URL(request.url);
+    const subjectType = (url.searchParams.get('subjectType') as VerificationSubjectType | null) ?? undefined;
+    const status = (url.searchParams.get('status') as VerificationCaseStatus | null) ?? undefined;
+    return HttpResponse.json({ data: getVerificationQueue({ subjectType, status }) });
+  }),
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
+  // registered before `/admin/verification-queue/:id` below so the two
+  // literal sub-paths (`/suspend`, `/history`) always win the match.
+  http.patch(`${base()}/admin/verification-queue/:id/suspend`, async ({ request, params }) => {
+    const body = (await request.json()) as SuspendVerificationCaseRequest;
+    const result = suspendVerificationCase(params.id as string, body);
+    if (!result.ok) return errorResponse(404, 'NOT_FOUND', 'Verification case not found.');
+    return HttpResponse.json({ data: result.verificationCase });
+  }),
+
+  http.get(`${base()}/admin/verification-queue/:id/history`, ({ params }) =>
+    HttpResponse.json({ data: getVerificationCaseHistory(params.id as string) }),
+  ),
+
+  http.get(`${base()}/admin/verification-queue/:id`, ({ params }) => {
+    const found = getVerificationCase(params.id as string);
+    if (!found) return errorResponse(404, 'NOT_FOUND', 'Verification case not found.');
+    return HttpResponse.json({ data: found });
+  }),
 
   http.patch(`${base()}/admin/verification-queue/:id`, async ({ request, params }) => {
     const body = (await request.json()) as ReviewVerificationCaseRequest;
