@@ -1,3 +1,5 @@
+import type { VerificationCaseStatus } from '@/shared/verification/types';
+
 export interface PatientDashboardSummary {
   upcomingAppointmentsCount: number;
   activePrescriptionsCount: number;
@@ -57,37 +59,30 @@ export interface ActivePrescriptionPreview {
 
 export type ActivePrescriptionsResponse = ActivePrescriptionPreview[];
 
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.7): matches PatientModule's real EmergencyRelationship enum exactly -- a plain enum, not free text (the backend now validates it as such). */
+export type EmergencyRelationship = 'parent' | 'spouse' | 'sibling' | 'child' | 'guardian' | 'other';
+
 export interface EmergencyContact {
   id: string;
   name: string;
-  relationship: string;
+  relationship: EmergencyRelationship;
   phoneNumber: string;
 }
 
-/**
- * Clinical facts about the patient — deliberately read-only from the
- * frontend's perspective (CLAUDE.md: "AI never writes directly to clinical
- * records," extended here to "a patient never self-edits their own clinical
- * record" either; these fields are clinician-entered via `ClinicalModule`,
- * not yet wired into this frontend). Always honestly empty today: the real
- * backend (PatientModule's PatientProfileController) doesn't return this at
- * all yet — no ClinicalModule exists — so this object is a client-side
- * constant, not something the API response carries. `allergies`/
- * `chronicConditions` are honest empty arrays, never fabricated.
- */
-export interface PatientMedicalInfo {
-  /** e.g. "O+" — undefined means not yet on record, never a guessed default. */
-  bloodType?: string;
-  allergies: string[];
-  chronicConditions: string[];
-}
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.7): matches PatientModule's real BloodType enum exactly -- a plain enum, not reference data. */
+export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
+
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.1/O.7): matches Identity's real Gender enum exactly. */
+export type Gender = 'male' | 'female' | 'other';
 
 /**
  * Matches PatientModule's real `PatientProfileResponseDto` exactly.
- * `phoneNumber` is composed from the owning Account's own profile (Identity
- * has no update-profile endpoint yet, so it's read-only here). `gender` and
- * `address` have no backend field anywhere — deliberately absent, not
- * fabricated. `dateOfBirth` is undefined until the patient sets one.
+ * `phoneNumber` is composed from the owning Account's own profile.
+ * `gender`/`nationalityId`/`address`/`dateOfBirth` are also Account-owned
+ * (the shared Personal Info step, §0a) -- edited via `PATCH /accounts/me`,
+ * not this profile's own PATCH endpoint (see `PatientProfileUpdateRequest`).
+ * `bloodType`/`allergies`/`chronicDiseases`/`insuranceProviderId` (Stage
+ * O.3/O.7) are genuinely this profile's own medical-profile fields.
  */
 export interface PatientProfile {
   id: string;
@@ -96,19 +91,49 @@ export interface PatientProfile {
   phoneNumber?: string;
   /** ISO date. Undefined when not yet on record. */
   dateOfBirth?: string;
+  gender?: Gender;
+  nationalityId?: string;
+  address?: string;
+  bloodType?: BloodType;
+  /** Plain free text (finalized product decision, §11 -- no ICD-11/SNOMED CT coding). */
+  allergies?: string;
+  /** Plain free text, same reasoning as `allergies`. */
+  chronicDiseases?: string;
+  insuranceProviderId?: string;
   emergencyContacts: EmergencyContact[];
 }
 
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.5): matches PatientProfileController's real PatientProfileExistsResponseDto exactly. */
+export interface PatientProfileExistsResponse {
+  exists: boolean;
+}
+
 /**
- * Only the fields PatientProfileController's real PATCH endpoint accepts.
+ * Only the fields PatientProfileController's real PATCH endpoint accepts --
+ * matches `UpdatePatientProfileRequestDto` exactly. `dateOfBirth`/`gender`/
+ * `nationalityId`/`address` are deliberately absent: they moved to the
+ * shared `PATCH /accounts/me` (Identity-owned, §0a), never this endpoint.
  * `emergencyContacts` omits `id` per entry for new contacts (the backend
  * assigns it); existing contacts keep theirs so updates target the right
  * row.
  */
 export interface PatientProfileUpdateRequest {
-  /** ISO date. */
-  dateOfBirth?: string;
-  emergencyContacts: (Omit<EmergencyContact, 'id'> & { id?: string })[];
+  emergencyContacts?: (Omit<EmergencyContact, 'id'> & { id?: string })[];
+  bloodType?: BloodType;
+  allergies?: string;
+  chronicDiseases?: string;
+  insuranceProviderId?: string;
+}
+
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): matches TrustModule's real IdentityVerificationStatusResponseDto exactly -- the UX-convenience check backing the four gated actions' pre-emptive "you'll need to verify" prompt. */
+export interface IdentityVerificationStatus {
+  status: VerificationCaseStatus | 'not_submitted';
+  isVerified: boolean;
+}
+
+/** Onboarding Redesign (2026-07-21 proposal, Stage O.2/O.7): matches TrustModule's real SubmitPatientVerificationRequestDto exactly -- no license/specialty fields, unlike Doctor's. */
+export interface SubmitPatientVerificationRequest {
+  documentAssetIds: string[];
 }
 
 /** Matches ConsultationModule's real `AppointmentStatus` enum exactly. */
@@ -146,6 +171,40 @@ export interface Appointment {
 }
 
 export type AppointmentsResponse = Appointment[];
+
+/**
+ * Onboarding Redesign integration-gap closure (2026-07-25): the real
+ * `POST /appointments` request shape (ConsultationModule's
+ * `BookAppointmentRequestDto`) -- `availabilityWindowId` is the only slot
+ * reference, never a raw start/end time (the backend re-validates the
+ * window's own doctor/consultationType regardless of what's sent here).
+ */
+export interface BookAppointmentRequest {
+  doctorId: string;
+  availabilityWindowId: string;
+  consultationType: ConsultationType;
+  reasonForVisit?: string;
+}
+
+/**
+ * The real `POST /appointments` response shape (ConsultationModule's
+ * `AppointmentResponseDto`) -- deliberately leaner than `Appointment` above
+ * (no `doctorName`/`specialization`/`feeAmount`, which that type composes
+ * from a joined doctor lookup `GET /appointments/me` does server-side, not
+ * this create response).
+ */
+export interface BookedAppointment {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  availabilityWindowId: string;
+  consultationType: ConsultationType;
+  status: AppointmentStatus;
+  /** ISO timestamp. */
+  scheduledAt: string;
+  reasonForVisit: string | null;
+  rescheduledFromId: string | null;
+}
 
 /**
  * Matches what `GET /patients/me/medical-records` (ClinicalModule's

@@ -15,6 +15,7 @@ import { GetPatientProfileByAccountIdUseCase } from '../../application/use-cases
 import { UpdatePatientProfileCommand } from '../../application/use-cases/update-patient-profile/update-patient-profile.command.js';
 import { UpdatePatientProfileUseCase } from '../../application/use-cases/update-patient-profile/update-patient-profile.use-case.js';
 import type { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
+import { PatientProfileExistsResponseDto } from '../dto/patient-profile-exists-response.dto.js';
 import { PatientProfileResponseDto } from '../dto/patient-profile-response.dto.js';
 import { UpdatePatientProfileRequestDto } from '../dto/update-patient-profile-request.dto.js';
 import { mapPatientError } from '../mappers/patient-exception.mapper.js';
@@ -35,6 +36,19 @@ export class PatientProfileController {
     private readonly updatePatientProfileUseCase: UpdatePatientProfileUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
   ) {}
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the
+  // Choose-Your-Journey gate's PatientProfile half -- a plain
+  // findByAccountId read, never the lazy-create path getMyProfile()/
+  // myProfile() below uses. Registered as its own sub-path so it can never
+  // be confused with (or accidentally reached via) the "me" route.
+  @Get('me/exists')
+  async checkMyProfileExists(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<PatientProfileExistsResponseDto>> {
+    const existing = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    return envelope(PatientProfileExistsResponseDto.fromResult(existing !== null));
+  }
 
   @Get('me')
   async getMyProfile(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<PatientProfileResponseDto>> {
@@ -58,8 +72,11 @@ export class PatientProfileController {
       const profile = await this.updatePatientProfileUseCase.execute(
         new UpdatePatientProfileCommand({
           patientProfileId: existing.getId(),
-          dateOfBirth: body.dateOfBirth ? new Date(body.dateOfBirth) : undefined,
           emergencyContacts: body.emergencyContacts,
+          bloodType: body.bloodType,
+          allergies: body.allergies,
+          chronicDiseases: body.chronicDiseases,
+          insuranceProviderId: body.insuranceProviderId,
         }),
       );
       const account = await this.getAccountByIdUseCase.execute({ accountId: user.accountId });

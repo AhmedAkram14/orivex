@@ -20,8 +20,11 @@ export class UpdatePatientProfileUseCase {
     }
 
     profile.update({
-      dateOfBirth: command.dateOfBirth,
       emergencyContacts: command.emergencyContacts,
+      bloodType: command.bloodType,
+      allergies: command.allergies,
+      chronicDiseases: command.chronicDiseases,
+      insuranceProviderId: command.insuranceProviderId,
     });
 
     await this.patientProfileRepository.save(profile);

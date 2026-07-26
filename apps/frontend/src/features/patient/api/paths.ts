@@ -31,4 +31,18 @@ export const PATIENT_PATHS = {
   // The real backend route (ClinicalModule's PatientDashboardController) --
   // not /patient/health-dashboard.
   healthDashboard: '/patients/me/health-dashboard',
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the real backend
+  // route (PatientModule's PatientProfileController) -- a side-effect-free
+  // existence check, deliberately distinct from `profile` above (GET
+  // /patients/me), which lazily creates a bare profile on first read.
+  exists: '/patients/me/exists',
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): the real
+  // backend routes (TrustModule's PatientVerificationController /
+  // RequiresIdentityVerificationGuard's UX-convenience endpoint).
+  identityVerificationStatus: '/patients/me/identity-verification-status',
+  verifications: (patientProfileId: string) => `/patients/${patientProfileId}/verifications`,
+  // Onboarding Redesign integration-gap closure (2026-07-25): the real
+  // backend route (ConsultationModule's AppointmentController) -- distinct
+  // from `appointments` above (GET /appointments/me), which only ever lists.
+  createAppointment: '/appointments',
 } as const;

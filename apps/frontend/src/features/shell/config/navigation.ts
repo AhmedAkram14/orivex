@@ -7,8 +7,10 @@ import {
   Flag,
   HeartPulse,
   LayoutDashboard,
+  Layers,
   Pill,
   Receipt,
+  Search,
   ShieldAlert,
   ShieldCheck,
   Stethoscope,
@@ -124,6 +126,22 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'patientAppointments',
         icon: CalendarDays,
         href: '/patient/appointments',
+        roles: ['patient'],
+      },
+      {
+        // Onboarding Redesign (2026-07-21 proposal, Stage O.5) -- immediately
+        // reachable, no identity-verification gate.
+        id: 'patient-workspace-doctors',
+        labelKey: 'patientDoctors',
+        icon: Search,
+        href: '/patient/doctors',
+        roles: ['patient'],
+      },
+      {
+        id: 'patient-workspace-specialties',
+        labelKey: 'patientSpecialties',
+        icon: Layers,
+        href: '/patient/specialties',
         roles: ['patient'],
       },
       {

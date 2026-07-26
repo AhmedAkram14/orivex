@@ -157,6 +157,23 @@ describe('PatientProfileController (integration)', () => {
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
   });
 
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.5): placed before any
+  // GET /patients/me call in this suite so it reflects the true pre-vivify
+  // state -- proves this check never itself creates the row.
+  it('GET /patients/me/exists rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/patients/me/exists').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /patients/me/exists reports false before any profile has been created, without creating one', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/exists')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.exists, false);
+  });
+
   it('GET /patients/me lazily creates and returns a profile on first read', async () => {
     const response = await request(app.getHttpServer())
       .get('/patients/me')
@@ -168,6 +185,15 @@ describe('PatientProfileController (integration)', () => {
     assert.equal(response.body.data.email, 'patient@example.com');
     assert.deepEqual(response.body.data.emergencyContacts, []);
     assert.ok(response.body.meta.requestId);
+  });
+
+  it('GET /patients/me/exists reports true once a profile exists', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/exists')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.exists, true);
   });
 
   it('GET /patients/me returns the same profile id on a second call (not recreated)', async () => {
@@ -183,17 +209,15 @@ describe('PatientProfileController (integration)', () => {
     assert.equal(first.body.data.id, second.body.data.id);
   });
 
-  it('PATCH /patients/me updates dateOfBirth and emergencyContacts', async () => {
+  it('PATCH /patients/me updates emergencyContacts', async () => {
     const response = await request(app.getHttpServer())
       .patch('/patients/me')
       .set('Authorization', `Bearer ${VALID_TOKEN}`)
       .send({
-        dateOfBirth: '1990-04-12',
         emergencyContacts: [{ name: 'Mona Youssef', relationship: 'sibling', phoneNumber: '+20 100 333 4444' }],
       })
       .expect(200);
 
-    assert.equal(response.body.data.dateOfBirth.slice(0, 10), '1990-04-12');
     assert.equal(response.body.data.emergencyContacts.length, 1);
     assert.equal(response.body.data.emergencyContacts[0].name, 'Mona Youssef');
   });

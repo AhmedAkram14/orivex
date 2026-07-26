@@ -42,6 +42,10 @@ export class RegisterDoctorProfileUseCase {
       hospitalId: command.hospitalId,
       publications: command.publications,
       awards: command.awards,
+      specialtyId: command.specialtyId,
+      professionalRank: command.professionalRank,
+      licenseExpiryDate: command.licenseExpiryDate,
+      departmentId: command.departmentId,
     });
 
     await this.doctorProfileRepository.save(profile);

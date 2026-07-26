@@ -3,14 +3,20 @@ import { PATIENT_PATHS } from '@/features/patient/api/paths';
 import type {
   ActivePrescriptionsResponse,
   AppointmentsResponse,
+  BookAppointmentRequest,
+  BookedAppointment,
   HealthDashboardResponse,
+  IdentityVerificationStatus,
   MedicalRecordsResponse,
   PatientDashboardSummary,
   PatientProfile,
+  PatientProfileExistsResponse,
   PatientProfileUpdateRequest,
   PrescriptionsResponse,
+  SubmitPatientVerificationRequest,
   UpcomingAppointmentsResponse,
 } from '@/features/patient/api/types';
+import type { VerificationCase } from '@/shared/verification/types';
 
 /**
  * The only module that talks to `/patient/*` — mirrors `doctorApi`'s shape.
@@ -35,9 +41,29 @@ export const patientApi = {
 
   getAppointments: () => apiFetch<AppointmentsResponse>({ path: PATIENT_PATHS.appointments }),
 
+  // Onboarding Redesign integration-gap closure (2026-07-25): the real
+  // production booking endpoint -- RequiresIdentityVerificationGuard-gated.
+  bookAppointment: (request: BookAppointmentRequest) =>
+    apiFetch<BookedAppointment>({ method: 'POST', path: PATIENT_PATHS.createAppointment, body: request }),
+
   getMedicalRecords: () => apiFetch<MedicalRecordsResponse>({ path: PATIENT_PATHS.medicalRecords }),
 
   getPrescriptions: () => apiFetch<PrescriptionsResponse>({ path: PATIENT_PATHS.prescriptions }),
 
   getHealthDashboard: () => apiFetch<HealthDashboardResponse>({ path: PATIENT_PATHS.healthDashboard }),
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Choose-Your-
+  // Journey gate's side-effect-free existence check -- never call
+  // `getProfile()` for this purpose, it lazily creates a profile.
+  checkProfileExists: () => apiFetch<PatientProfileExistsResponse>({ path: PATIENT_PATHS.exists }),
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7).
+  getMyIdentityVerificationStatus: () =>
+    apiFetch<IdentityVerificationStatus>({ path: PATIENT_PATHS.identityVerificationStatus }),
+
+  submitVerification: (patientProfileId: string, request: SubmitPatientVerificationRequest) =>
+    apiFetch<VerificationCase>({ method: 'POST', path: PATIENT_PATHS.verifications(patientProfileId), body: request }),
+
+  listVerifications: (patientProfileId: string) =>
+    apiFetch<VerificationCase[]>({ path: PATIENT_PATHS.verifications(patientProfileId) }),
 };

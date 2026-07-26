@@ -1,15 +1,17 @@
 import { ConflictError, ValidationError } from '../../../../shared/errors/app-error.js';
 import { TrustDomainError } from '../../domain/exceptions/trust-domain.error.js';
 import { VerificationCaseAlreadyDecidedError } from '../../domain/exceptions/verification-case-already-decided.error.js';
+import { VerificationCaseNotApprovedError } from '../../domain/exceptions/verification-case-not-approved.error.js';
 
 // Translates TrustModule domain exceptions into the shared, HTTP-mappable
 // AppError types the global AllExceptionsFilter already understands (mirrors
-// Identity/Doctor/Asset's exception-mapper pattern). VerificationCaseAlreadyDecidedError
-// is checked first since it is a TrustDomainError subtype -- a VerificationCase
-// state conflict is a 409, distinct from the generic 422 used for other
-// domain violations in this module.
+// Identity/Doctor/Asset's exception-mapper pattern). VerificationCaseAlreadyDecidedError/
+// VerificationCaseNotApprovedError are checked first since both are
+// TrustDomainError subtypes -- a VerificationCase state conflict is a 409,
+// distinct from the generic 422 used for other domain violations in this
+// module.
 export function mapTrustError(error: unknown): unknown {
-  if (error instanceof VerificationCaseAlreadyDecidedError) {
+  if (error instanceof VerificationCaseAlreadyDecidedError || error instanceof VerificationCaseNotApprovedError) {
     return new ConflictError(error.message);
   }
   if (error instanceof TrustDomainError) {
