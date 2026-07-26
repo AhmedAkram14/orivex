@@ -181,7 +181,7 @@ describe('BookAppointmentUseCase', () => {
     assert.equal(appointmentRepo.saved.length, 2); // Requested, then Confirmed
   });
 
-  it('books a paid appointment, leaves it Requested, and opens a payable ConsultationSession', async () => {
+  it('books a paid appointment and confirms it immediately too (temporary -- Stripe is not yet wired up, see class header comment)', async () => {
     const window = buildWindow(DoctorConsultationType.Paid);
     const appointmentRepo = new FakeAppointmentRepository();
     const sessionRepo = new FakeConsultationSessionRepository();
@@ -196,12 +196,8 @@ describe('BookAppointmentUseCase', () => {
       }),
     );
 
-    assert.equal(appointment.getStatus(), AppointmentStatus.Requested);
-    assert.equal(appointmentRepo.saved.length, 1);
-    // ORIVEX Roadmap 2.0 Stage 1 -- a Paid appointment must have a real
-    // ConsultationSession to reference when initiating payment; without
-    // this, PaymentModule's initiateCharge could never succeed for a real
-    // booking (the pre-existing gap this session's fix closes).
+    assert.equal(appointment.getStatus(), AppointmentStatus.Confirmed);
+    assert.equal(appointmentRepo.saved.length, 2); // Requested, then Confirmed
     const session = await sessionRepo.findByAppointmentId(appointment.getId());
     assert.ok(session, 'expected a ConsultationSession to be opened for the paid appointment');
     assert.equal(session?.getState(), ConsultationState.WaitingRoom);

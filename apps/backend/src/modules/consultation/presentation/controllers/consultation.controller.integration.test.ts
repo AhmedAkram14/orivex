@@ -243,6 +243,7 @@ describe('Consultation controllers (integration)', () => {
   let secondFreeWindow: AvailabilityWindow;
   let paidWindow: AvailabilityWindow;
   let sessionRepo: InMemoryConsultationSessionRepository;
+  let appointmentRepo: InMemoryAppointmentRepository;
   let bookedAppointmentId: string;
   let todaysConsultationSessionId: string;
   let roomTokenGenerator: FakeRoomTokenGenerator;
@@ -311,7 +312,7 @@ describe('Consultation controllers (integration)', () => {
     availabilityWindowRepo.seed(secondFreeWindow);
     availabilityWindowRepo.seed(paidWindow);
 
-    const appointmentRepo = new InMemoryAppointmentRepository();
+    appointmentRepo = new InMemoryAppointmentRepository();
     sessionRepo = new InMemoryConsultationSessionRepository();
 
     // A Confirmed appointment scheduled "now" (guaranteed today), seeded
@@ -708,31 +709,37 @@ describe('Consultation controllers (integration)', () => {
 
   // ORIVEX Roadmap 2.0 Stage 1: GET /appointments/me must surface enough
   // for the frontend to render a real "Pay now" action -- a real
-  // ConsultationSession id (opened at booking time for a Paid appointment,
-  // not after payment, per this stage's fix to BookAppointmentUseCase) plus
-  // the doctor's real fee, and only while the appointment is genuinely
-  // still awaiting payment.
+  // ConsultationSession id plus the doctor's real fee, and only while the
+  // appointment is genuinely still awaiting payment.
+  //
+  // TEMPORARY (2026-07-26): BookAppointmentUseCase now auto-confirms Paid
+  // bookings too (Stripe isn't wired up in production yet -- see that
+  // class's header comment), so a Requested-Paid appointment can no longer
+  // be produced through the real booking flow. This still seeds one
+  // directly into the repos (exactly as ConfirmAppointmentUseCase/
+  // BookAppointmentUseCase used to leave it) to keep proving the list
+  // endpoint's own `paymentRequired`/session-id/fee computation is correct
+  // for whenever that state becomes reachable again (a real Stripe charge
+  // failing partway, or once Stripe booking is properly reintroduced).
   it('GET /appointments/me marks a Paid, unconfirmed appointment as paymentRequired with a real session id and fee', async () => {
-    const booked = await request(app.getHttpServer())
-      .post('/appointments')
-      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
-      .send({
-        doctorId: doctor.getId(),
-        availabilityWindowId: paidWindow.getId(),
-        consultationType: 'paid',
-        reasonForVisit: 'Specialist consultation',
-      })
-      .expect(201);
-
-    assert.equal(booked.body.data.status, 'requested');
+    const requestedPaidAppointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: paidWindow.getId(),
+      consultationType: ConsultationType.Paid,
+      scheduledAt: paidWindow.getStartTime(),
+      reasonForVisit: 'Specialist consultation',
+    });
+    await appointmentRepo.save(requestedPaidAppointment);
+    await sessionRepo.save(ConsultationSession.open(requestedPaidAppointment.getId()));
 
     const response = await request(app.getHttpServer())
       .get('/appointments/me')
       .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .expect(200);
 
-    const item = response.body.data.find((entry: { id: string }) => entry.id === booked.body.data.id);
-    assert.ok(item, 'expected the newly booked Paid appointment in the list');
+    const item = response.body.data.find((entry: { id: string }) => entry.id === requestedPaidAppointment.getId());
+    assert.ok(item, 'expected the seeded Requested-Paid appointment in the list');
     assert.equal(item.paymentRequired, true);
     assert.ok(item.consultationSessionId, 'expected a real ConsultationSession id to already exist');
     assert.deepEqual(item.feeAmount, { amount: 500, currency: 'EGP' });

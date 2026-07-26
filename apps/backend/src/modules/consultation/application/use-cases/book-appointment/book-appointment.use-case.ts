@@ -8,8 +8,6 @@ import type { ReleaseSlotUseCase } from '../../../../scheduling/application/use-
 import { ReserveSlotCommand } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.command.js';
 import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
-import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
@@ -26,15 +24,20 @@ import type { BookAppointmentCommand } from './book-appointment.command.js';
 // through a published interface) -> re-validate the window's doctor and
 // consultationType regardless of client-supplied values (docs/12-openapi.md's
 // bookAppointment description) -> reserve the slot via SchedulingModule's
-// exported ReserveSlotUseCase -> Appointment.request() -> persist -> for a
-// free booking, confirm immediately (no payment step); a paid booking opens
-// its ConsultationSession right here (ORIVEX Roadmap 2.0 Stage 1 -- fixes a
-// pre-existing gap where a Paid appointment had no session to reference
-// until *after* a payment succeeded, i.e. never, since PaymentModule's
-// initiateCharge requires an existing session id) but stays Requested; the
-// appointment is only confirmed once PaymentModule's InitiateChargeUseCase
-// succeeds. ConfirmAppointmentUseCase reuses this same session rather than
-// opening a second one.
+// exported ReserveSlotUseCase -> Appointment.request() -> persist -> confirm
+// immediately (ConfirmAppointmentUseCase, which opens the ConsultationSession
+// too).
+//
+// TEMPORARY (2026-07-26): a Paid booking is auto-confirmed exactly like a
+// Free one, skipping the payment gate entirely -- Stripe (ORIVEX Roadmap 2.0
+// Stage 1) is not yet wired up in production (no STRIPE_SECRET_KEY
+// configured, PaymentGatewayPort falls back to NotConfiguredPaymentGateway
+// Adapter, which fails loudly rather than faking a charge), so a Paid
+// appointment would otherwise sit in Requested forever -- never confirmed,
+// never notified, never appearing in the doctor's queue. Explicit product
+// decision to keep the platform usable for now. Revert once Stripe is
+// actually built: gate this on consultationType again, confirming Paid only
+// from PaymentModule's InitiateChargeUseCase once a real charge succeeds.
 export class BookAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
@@ -96,19 +99,14 @@ export class BookAppointmentUseCase {
     }
     await this.eventDispatcher.dispatch(appointment.releaseDomainEvents());
 
-    if (command.consultationType === ConsultationType.Free) {
-      const result = await this.confirmAppointmentUseCase.execute(
-        new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }),
-      );
-      appointment = result.appointment;
-    } else {
-      // Paid: the appointment stays Requested (confirmed only once payment
-      // succeeds), but the patient needs a real ConsultationSession to
-      // reference when paying -- open it now, in WaitingRoom, unconfirmed.
-      const session = ConsultationSession.open(appointment.getId());
-      await this.consultationSessionRepository.save(session);
-      await this.eventDispatcher.dispatch(session.releaseDomainEvents());
-    }
+    // TEMPORARY: confirms Paid bookings immediately too -- see this class's
+    // header comment. ConfirmAppointmentUseCase opens the ConsultationSession
+    // itself when none exists yet, so no separate session-opening branch is
+    // needed here.
+    const result = await this.confirmAppointmentUseCase.execute(
+      new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }),
+    );
+    appointment = result.appointment;
 
     return appointment;
   }
