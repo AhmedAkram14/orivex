@@ -112,6 +112,9 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
   async findOverlapping(): Promise<AvailabilityWindow[]> {
     return [];
   }
+  async findByDoctorAndRange(): Promise<AvailabilityWindow[]> {
+    return [];
+  }
   async save(window: AvailabilityWindow): Promise<void> {
     this.byId.set(window.getId(), window);
   }

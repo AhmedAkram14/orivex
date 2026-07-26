@@ -4,21 +4,26 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFieldArray, useForm } from 'react-hook-form';
-import type { PatientProfile } from '@/features/patient/api/types';
+import type { EmergencyRelationship, PatientProfile } from '@/features/patient/api/types';
 import { useUpdatePatientProfile } from '@/features/patient/hooks/use-update-patient-profile';
 import {
   createPatientProfileSchema,
   type PatientProfileFormValues,
 } from '@/features/patient/schemas/profile.schema';
+import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
 import { ApiError } from '@/shared/lib/api/client';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Section } from '@/shared/ui/layout/section';
+import { Textarea } from '@/shared/ui/textarea';
 
 const MAX_EMERGENCY_CONTACTS = 5;
+const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
+const RELATIONSHIPS: EmergencyRelationship[] = ['parent', 'spouse', 'sibling', 'child', 'guardian', 'other'];
 
 export interface PatientProfileFormProps {
   profile: PatientProfile;
@@ -27,23 +32,28 @@ export interface PatientProfileFormProps {
 }
 
 /**
- * The Patient Profile's edit architecture — only the fields
- * `PatientProfileUpdateRequest` actually allows (`dateOfBirth`, emergency
- * contacts), matching PatientProfileController's real PATCH endpoint
- * exactly. `fullName`/`email`/`phoneNumber` are Account-owned (Identity has
- * no update-profile endpoint yet) and clinical fields don't exist on the
- * backend at all — both deliberately excluded, mirroring
- * `DoctorProfileForm`'s identity/verification-backed exclusion.
+ * Onboarding Redesign (2026-07-21 proposal, Stage O.7): the Patient Medical
+ * Profile editor -- only the fields `PatientProfileUpdateRequest` actually
+ * allows (blood type, allergies, chronic diseases, insurance provider,
+ * emergency contacts), matching PatientProfileController's real PATCH
+ * endpoint exactly. `fullName`/`email`/`phoneNumber`/`dateOfBirth`/`gender`/
+ * `nationality`/`address` are Account-owned and edited separately via the
+ * shared `PersonalInfoStep` (§0a) -- deliberately excluded here, mirroring
+ * `DoctorProfileForm`'s identity-field exclusion.
  */
 export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfileFormProps) {
   const t = useTranslations('patient.profile');
   const tValidation = useTranslations('patient.profile.validation');
+  const { data: insuranceProviders, isLoading: insuranceProvidersLoading } = useInsuranceProvidersList();
   const updateProfile = useUpdatePatientProfile();
 
   const form = useForm<PatientProfileFormValues>({
     resolver: zodResolver(createPatientProfileSchema(tValidation)),
     defaultValues: {
-      dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.slice(0, 10) : undefined,
+      bloodType: profile.bloodType,
+      allergies: profile.allergies ?? '',
+      chronicDiseases: profile.chronicDiseases ?? '',
+      insuranceProviderId: profile.insuranceProviderId,
       emergencyContacts: profile.emergencyContacts,
     },
   });
@@ -68,22 +78,88 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
           </Alert>
         )}
 
-        <Section title={t('personalInformation')}>
+        <Section title={t('medicalInformation')} description={t('medicalInformationDescription')}>
           <div className="flex flex-col gap-4">
             <FormField
               control={form.control}
-              name="dateOfBirth"
+              name="bloodType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('dateOfBirth')}</FormLabel>
+                  <FormLabel>{t('bloodType')}</FormLabel>
+                  <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('bloodTypePlaceholder')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {BLOOD_TYPES.map((bloodType) => (
+                        <SelectItem key={bloodType} value={bloodType}>
+                          {bloodType}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="allergies"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('allergies')}</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Textarea {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="chronicDiseases"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('chronicConditions')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
+        </Section>
+
+        <Section title={t('insurance')}>
+          <FormField
+            control={form.control}
+            name="insuranceProviderId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('insuranceProvider')}</FormLabel>
+                <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={insuranceProvidersLoading}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('insuranceProviderPlaceholder')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {(insuranceProviders ?? []).map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </Section>
 
         <Section
@@ -94,7 +170,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => contacts.append({ name: '', relationship: '', phoneNumber: '' })}
+                onClick={() => contacts.append({ name: '', relationship: 'other', phoneNumber: '' })}
               >
                 <Icon icon={Plus} size="sm" className="me-2" />
                 {t('addContact')}
@@ -129,9 +205,20 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('contactRelationship')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {RELATIONSHIPS.map((relationship) => (
+                                  <SelectItem key={relationship} value={relationship}>
+                                    {t(`relationshipOptions.${relationship}`)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}

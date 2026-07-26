@@ -71,4 +71,31 @@ describe('CallRoom', () => {
     expect(room.dataset.token).toBe('real-jwt-token');
     expect(room.dataset.serverUrl).toBe('wss://orivex-test.livekit.cloud');
   });
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): the real
+  // security boundary (RequiresIdentityVerificationGuard on
+  // POST /consultations/:id/room-token, Patient callers only).
+  it('shows the identity-verification gate instead of a generic error when the room-token mint is blocked', async () => {
+    server.use(
+      http.post(`${env.apiBaseUrl}${TELEMEDICINE_PATHS.roomToken('session-4')}`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'IDENTITY_VERIFICATION_REQUIRED',
+              message: 'Identity verification required.',
+              requestId: 'mock',
+              timestamp: new Date().toISOString(),
+            },
+          },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    renderWithProviders(<CallRoom consultationSessionId="session-4" />);
+
+    expect(await screen.findByText('Verify your identity to join your consultation')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Start verification' })).toBeInTheDocument();
+    expect(screen.queryByText('Could not start the video call. Please try again.')).not.toBeInTheDocument();
+  });
 });

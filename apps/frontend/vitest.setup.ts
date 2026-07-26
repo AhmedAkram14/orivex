@@ -21,3 +21,11 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 // on the active item unconditionally, so any test rendering a Command
 // needs at least a no-op stub.
 Element.prototype.scrollIntoView ??= function scrollIntoView() {};
+
+// jsdom has no pointer-capture APIs — Radix Select calls
+// hasPointerCapture/setPointerCapture/releasePointerCapture unconditionally
+// on its trigger's pointer events, so any test that opens a Select needs at
+// least a no-op/false stub for each.
+Element.prototype.hasPointerCapture ??= () => false;
+Element.prototype.setPointerCapture ??= () => {};
+Element.prototype.releasePointerCapture ??= () => {};

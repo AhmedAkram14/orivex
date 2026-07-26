@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { ClinicalDocumentUpload } from '@/features/patient/components/records/clinical-document-upload';
 import { LabImagingPlaceholders } from '@/features/patient/components/records/lab-imaging-placeholders';
 import { MedicalRecordsTimeline } from '@/features/patient/components/records/medical-records-timeline';
 import { usePatientMedicalRecords } from '@/features/patient/hooks/use-patient-medical-records';
@@ -60,6 +61,10 @@ export default function PatientMedicalRecordsPage() {
               <MedicalRecordsTimeline entries={filtered} />
             </div>
           )}
+        </Section>
+
+        <Section title={t('clinicalUpload.title')}>
+          <ClinicalDocumentUpload />
         </Section>
 
         <LabImagingPlaceholders />

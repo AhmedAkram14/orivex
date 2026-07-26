@@ -53,13 +53,13 @@ describe('PatientProfilePage', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('shows an honest "not on record" state for medical info the patient cannot self-edit', async () => {
+  it('shows the seeded medical info and an honest "no insurance on record" state', async () => {
     renderPage();
     await screen.findByText('Amina Youssef');
 
-    expect(screen.getByText('No allergies on record')).toBeInTheDocument();
+    expect(screen.getByText('Penicillin')).toBeInTheDocument();
     expect(screen.getByText('No chronic conditions on record')).toBeInTheDocument();
-    expect(screen.getByText("Insurance details aren't available yet")).toBeInTheDocument();
+    expect(screen.getByText('No insurance provider on record')).toBeInTheDocument();
   });
 
   it('toggles to edit mode and back to view mode on cancel', async () => {

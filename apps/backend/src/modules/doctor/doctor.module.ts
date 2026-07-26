@@ -9,7 +9,8 @@ import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-acc
 import { UpdateAccountRoleUseCase } from '../identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 
-import { AVAILABILITY_WINDOW_REPOSITORY, DOCTOR_PROFILE_REPOSITORY } from './application/ports/tokens.js';
+import { AVAILABILITY_WINDOW_REPOSITORY, DOCTOR_DIRECTORY_QUERY_PORT, DOCTOR_PROFILE_REPOSITORY } from './application/ports/tokens.js';
+import type { DoctorDirectoryQueryPort } from './application/ports/doctor-directory-query.port.js';
 import { ConfirmAvailabilityWindowUseCase } from './application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import {
   PromoteDoctorRoleOnVerificationHandler,
@@ -19,6 +20,8 @@ import { DefineAvailabilityWindowUseCase } from './application/use-cases/define-
 import { GetAvailabilityWindowByIdUseCase } from './application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from './application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from './application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { ListAvailabilityWindowsForDoctorUseCase } from './application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
+import { ListDoctorDirectoryUseCase } from './application/use-cases/list-doctor-directory/list-doctor-directory.use-case.js';
 import { RegisterDoctorProfileUseCase } from './application/use-cases/register-doctor-profile/register-doctor-profile.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from './application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from './application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
@@ -26,6 +29,7 @@ import { UpdateDoctorProfileUseCase } from './application/use-cases/update-docto
 import type { AvailabilityWindowRepository } from './domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from './domain/repositories/doctor-profile.repository.js';
 import { PrismaAvailabilityWindowRepository } from './infrastructure/prisma/prisma-availability-window.repository.js';
+import { PrismaDoctorDirectoryQueryService } from './infrastructure/prisma/prisma-doctor-directory-query.service.js';
 import { PrismaDoctorProfileRepository } from './infrastructure/prisma/prisma-doctor-profile.repository.js';
 import { DoctorProfileController } from './presentation/controllers/doctor-profile.controller.js';
 
@@ -51,6 +55,12 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
   providers: [
     { provide: DOCTOR_PROFILE_REPOSITORY, useClass: PrismaDoctorProfileRepository },
     { provide: AVAILABILITY_WINDOW_REPOSITORY, useClass: PrismaAvailabilityWindowRepository },
+    { provide: DOCTOR_DIRECTORY_QUERY_PORT, useClass: PrismaDoctorDirectoryQueryService },
+    {
+      provide: ListDoctorDirectoryUseCase,
+      useFactory: (queryPort: DoctorDirectoryQueryPort) => new ListDoctorDirectoryUseCase(queryPort),
+      inject: [DOCTOR_DIRECTORY_QUERY_PORT],
+    },
     {
       provide: RegisterDoctorProfileUseCase,
       useFactory: (
@@ -109,6 +119,11 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
       inject: [AVAILABILITY_WINDOW_REPOSITORY],
     },
     {
+      provide: ListAvailabilityWindowsForDoctorUseCase,
+      useFactory: (repository: AvailabilityWindowRepository) => new ListAvailabilityWindowsForDoctorUseCase(repository),
+      inject: [AVAILABILITY_WINDOW_REPOSITORY],
+    },
+    {
       // Registers Doctor Onboarding's own event subscriber against the
       // shared DomainEventDispatcher port (mirrors NotificationModule's
       // ScheduleAppointmentReminderHandler pattern exactly): reacts to
@@ -119,13 +134,11 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
       // runs exactly once, before any request is served.
       provide: PromoteDoctorRoleOnVerificationHandler,
       useFactory: (
-        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         updateAccountRoleUseCase: UpdateAccountRoleUseCase,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
         const handler = new PromoteDoctorRoleOnVerificationHandler(
-          getDoctorProfileByIdUseCase,
           updateAccountRoleUseCase,
           logger,
         );
@@ -134,7 +147,7 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
         );
         return handler;
       },
-      inject: [GetDoctorProfileByIdUseCase, UpdateAccountRoleUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+      inject: [UpdateAccountRoleUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
   exports: [
@@ -147,6 +160,7 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
     ReleaseAvailabilityWindowUseCase,
     ConfirmAvailabilityWindowUseCase,
     GetAvailabilityWindowByIdUseCase,
+    ListAvailabilityWindowsForDoctorUseCase,
   ],
 })
 export class DoctorModule {}

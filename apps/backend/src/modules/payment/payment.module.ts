@@ -13,6 +13,7 @@ import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
 import { PatientModule } from '../patient/patient.module.js';
+import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 
 import type { PaymentGatewayPort } from './application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
@@ -50,7 +51,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
 // the app boots cleanly; only an actual initiateCharge/refund call fails
 // with a clear error naming exactly what's missing, on the fallback path.
 @Module({
-  imports: [ConsultationModule, DoctorModule, PatientModule, AuthenticationGuardsModule],
+  imports: [ConsultationModule, DoctorModule, PatientModule, AuthenticationGuardsModule, TrustGuardsModule],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },

@@ -3,6 +3,7 @@ import { env } from '@/shared/lib/env';
 import { PAYMENT_PATHS } from '@/features/payment/api/paths';
 import type { InitiateChargeRequest } from '@/features/payment/api/types';
 import { createCharge, getByConsultationSessionId, getById, refundTransaction } from '@/mocks/payment-store';
+import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
 
 const base = () => env.apiBaseUrl;
 
@@ -14,7 +15,12 @@ function errorResponse(status: number, code: string, message: string) {
 }
 
 export const paymentHandlers = [
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): matches the
+  // real backend's RequiresIdentityVerificationGuard on POST /payments.
   http.post(`${base()}${PAYMENT_PATHS.initiateCharge}`, async ({ request }) => {
+    if (!isPatientVerified()) {
+      return identityVerificationRequiredResponse();
+    }
     const body = (await request.json()) as InitiateChargeRequest;
     return HttpResponse.json({ data: createCharge(body) }, { status: 201 });
   }),

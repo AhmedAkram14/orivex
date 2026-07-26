@@ -8,18 +8,23 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../../messages/en.json';
 
+const useSearchParamsMock = vi.fn(() => new URLSearchParams());
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/patient/appointments/book',
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => useSearchParamsMock(),
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
 }));
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  useSearchParamsMock.mockReturnValue(new URLSearchParams());
+});
 afterAll(() => server.close());
 
 const patientState: AuthState = {
@@ -41,14 +46,21 @@ function renderPage() {
 }
 
 describe('BookAppointmentPage', () => {
-  it("shows an honest 'not available yet' state instead of attempting a real booking flow", async () => {
+  it('shows an honest "no doctor selected" state when reached without a doctorId', () => {
     renderPage();
 
-    expect(screen.getByText("Booking isn't available yet")).toBeInTheDocument();
+    expect(screen.getByText('No doctor selected')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Choosing a doctor to book with is coming soon — this page will let you pick a doctor and see their real availability once that's ready.",
-      ),
+      screen.getByText('Start from a doctor\'s profile and select "Book appointment" to book a real appointment with them.'),
     ).toBeInTheDocument();
+  });
+
+  it('renders the real BookingFlow when a doctorId is present', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({ doctorId: 'doctor-profile-1' }));
+
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.queryByText('No doctor selected')).not.toBeInTheDocument();
   });
 });

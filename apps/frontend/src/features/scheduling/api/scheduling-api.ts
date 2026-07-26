@@ -1,14 +1,11 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { SCHEDULING_PATHS } from '@/features/scheduling/api/paths';
 import type {
-  Booking,
-  CreateBookingRequest,
+  AvailabilityWindowData,
   Holiday,
-  JoinWaitlistRequest,
   RecurringWeeklySchedule,
   ScheduleException,
   SchedulingRules,
-  WaitlistEntry,
 } from '@/features/scheduling/types';
 
 export interface AddScheduleExceptionRequest {
@@ -19,15 +16,16 @@ export interface AddScheduleExceptionRequest {
 }
 
 /**
- * The only module that talks to `/scheduling/*` — mirrors `patientApi`'s
- * shape. Backed by an MSW mock today (`src/mocks/handlers/scheduling.ts`);
- * this phase builds the Scheduling & Appointment Infrastructure
- * architecture only, not a real `SchedulingModule` integration. Scoped
- * implicitly to "the current doctor" (no doctor id in the path), same
- * convention as `/patient/profile` scoping to "the current patient" — this
- * demo has exactly one doctor account, and a real multi-doctor backend
- * would add the id param at that point, a request-shape change, not a
- * rewrite.
+ * The only module that talks to `/scheduling/*` and the read-only
+ * `/doctors/:id/availability-windows` -- mirrors `patientApi`'s shape.
+ * `getRules`/`getDoctorAvailability`/`updateDoctorAvailability`/
+ * `getDoctorExceptions`/`addDoctorException`/`removeDoctorException` are
+ * real backend routes scoped implicitly to "the current doctor" (no doctor
+ * id in the path, JWT-derived), same convention as `/patient/profile`.
+ * `getAvailabilityWindows` is the one exception -- a real, doctor-id-scoped,
+ * patient-facing read (Onboarding Redesign integration-gap closure,
+ * 2026-07-25) backing the real booking flow (`BookingFlow`,
+ * `POST /appointments`).
  */
 export const schedulingApi = {
   getRules: () => apiFetch<SchedulingRules>({ path: SCHEDULING_PATHS.rules }),
@@ -45,20 +43,10 @@ export const schedulingApi = {
   removeDoctorException: (id: string) =>
     apiFetch<void>({ method: 'DELETE', path: `${SCHEDULING_PATHS.doctorExceptions}/${id}` }),
 
-  getBookings: () => apiFetch<Booking[]>({ path: SCHEDULING_PATHS.bookings }),
-
-  createBooking: (request: CreateBookingRequest) =>
-    apiFetch<Booking>({ method: 'POST', path: SCHEDULING_PATHS.bookings, body: request }),
-
-  rescheduleBooking: (id: string, request: CreateBookingRequest) =>
-    apiFetch<Booking>({ method: 'PATCH', path: `${SCHEDULING_PATHS.bookings}/${id}`, body: request }),
-
-  cancelBooking: (id: string) => apiFetch<void>({ method: 'DELETE', path: `${SCHEDULING_PATHS.bookings}/${id}` }),
-
-  getWaitlist: () => apiFetch<WaitlistEntry[]>({ path: SCHEDULING_PATHS.waitlist }),
-
-  joinWaitlist: (request: JoinWaitlistRequest) =>
-    apiFetch<WaitlistEntry>({ method: 'POST', path: SCHEDULING_PATHS.waitlist, body: request }),
-
   getHolidays: () => apiFetch<Holiday[]>({ path: SCHEDULING_PATHS.holidays }),
+
+  getAvailabilityWindows: (doctorId: string, from: string, to: string) =>
+    apiFetch<AvailabilityWindowData[]>({
+      path: `${SCHEDULING_PATHS.availabilityWindows(doctorId)}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    }),
 };

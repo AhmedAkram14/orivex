@@ -1,3 +1,5 @@
+import type { ConsultationType } from '@/features/patient/api/types';
+
 /**
  * The Scheduling & Appointment Infrastructure's core domain model (Phase 9)
  * — the shared foundation every future scheduling surface (Doctor
@@ -82,41 +84,25 @@ export type ConflictReason =
   | 'beyond-booking-window';
 
 /**
- * Booking Architecture (Milestone 4) — a real, mocked booking round trip
- * (create/cancel/reschedule), scoped to "the current doctor" (no doctor id
- * in the request/response shape, same convention as the rest of this
- * module) since no doctor directory exists yet. Deliberately not the real
- * `SchedulingModule`'s reservation-hold concept (docs/10-backend-
- * architecture.md's `reserveSlot`/short-lived-hold flow) — that belongs to
- * a real backend integration, not this phase's architecture-only scope.
+ * Onboarding Redesign integration-gap closure (2026-07-25): a real,
+ * concurrency-safe bookable slot — backed by the real backend
+ * `AvailabilityWindow` aggregate (`GET /doctors/:id/availability-windows`),
+ * lazily materialized server-side from the doctor's own recurring working
+ * hours + exceptions + holidays. Replaces the old Milestone-4 "Booking
+ * Architecture" (`Booking`/`CreateBookingRequest`, MSW-only, no doctor id,
+ * no real reservation semantics) now that a real doctor directory and a
+ * real `POST /appointments` both exist -- never re-introduce a second,
+ * client-generated slot model alongside this one.
  */
-export type BookingStatus = 'confirmed' | 'cancelled';
-
-export interface Booking {
+export interface AvailabilityWindowData {
   id: string;
+  doctorId: string;
   /** ISO timestamp. */
-  slotStart: string;
+  startTime: string;
   /** ISO timestamp. */
-  slotEnd: string;
-  status: BookingStatus;
-}
-
-export interface CreateBookingRequest {
-  slotStart: string;
-  slotEnd: string;
-}
-
-/** Waiting-list architecture — a patient asking to be notified if a slot opens on a date with none available today. */
-export interface WaitlistEntry {
-  id: string;
-  /** ISO date (no time) — the date the patient wants, not a specific time (none were available to pick one). */
-  date: string;
-  /** ISO timestamp. */
-  createdAt: string;
-}
-
-export interface JoinWaitlistRequest {
-  date: string;
+  endTime: string;
+  consultationType: ConsultationType;
+  status: 'open' | 'held' | 'booked';
 }
 
 /**

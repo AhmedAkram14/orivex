@@ -2,9 +2,10 @@
 
 import { Mail, Phone } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import type { PatientMedicalInfo, PatientProfile } from '@/features/patient/api/types';
+import type { PatientProfile } from '@/features/patient/api/types';
+import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
+import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { Badge } from '@/shared/ui/badge';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Section } from '@/shared/ui/layout/section';
@@ -16,28 +17,28 @@ function initialsFor(fullName: string): string {
   return (first + last).toUpperCase();
 }
 
-// No ClinicalModule exists yet, so the real backend never returns medical
-// data at all (see PatientProfile's own doc comment) — this constant is the
-// honest "not on record" state every patient sees, not a per-patient value.
-const EMPTY_MEDICAL_INFO: PatientMedicalInfo = { bloodType: undefined, allergies: [], chronicConditions: [] };
-
 export interface PatientProfileViewProps {
   profile: PatientProfile;
 }
 
 /**
- * The read-only rendering of a patient's profile — Personal Information,
- * Medical Information (always read-only — clinical data, never patient-
- * edited), Emergency Contacts, Insurance (honestly not-yet-available, per
- * docs/roadmaps/frontend-master-plan.md's Phase 16 scoping), and a Settings
- * foundation placeholder. Used both as the default "View" mode and as the
- * Read-only mode for a viewer without edit access — mirrors
- * `DoctorProfileView`'s pattern exactly.
+ * The read-only rendering of a patient's profile — Personal Information
+ * (now including gender/nationality/address, Stage O.1/O.7), Medical
+ * Information (blood type/allergies/chronic diseases, patient-editable via
+ * `PatientProfileForm`, Stage O.3/O.7), Emergency Contacts, Insurance (a
+ * real reference-data lookup, Stage O.7), and a Settings foundation
+ * placeholder. Used both as the default "View" mode and as the Read-only
+ * mode for a viewer without edit access — mirrors `DoctorProfileView`'s
+ * pattern exactly.
  */
 export function PatientProfileView({ profile }: PatientProfileViewProps) {
   const t = useTranslations('patient.profile');
   const format = useFormatter();
-  const medicalInfo = EMPTY_MEDICAL_INFO;
+  const { data: countries } = useCountriesList();
+  const { data: insuranceProviders } = useInsuranceProvidersList();
+
+  const nationalityName = countries?.find((country) => country.id === profile.nationalityId)?.name;
+  const insuranceProviderName = insuranceProviders?.find((provider) => provider.id === profile.insuranceProviderId)?.name;
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,6 +66,20 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
             <Icon icon={Phone} size="sm" />
             {profile.phoneNumber ?? t('notOnRecord')}
           </div>
+          <div>
+            <p className="text-xs text-text-tertiary">{t('gender')}</p>
+            <p className="text-sm text-text-secondary">
+              {profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-text-tertiary">{t('nationality')}</p>
+            <p className="text-sm text-text-secondary">{nationalityName ?? t('notOnRecord')}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-tertiary">{t('address')}</p>
+            <p className="text-sm text-text-secondary">{profile.address ?? t('notOnRecord')}</p>
+          </div>
         </div>
       </Section>
 
@@ -72,35 +87,15 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-xs text-text-tertiary">{t('bloodType')}</p>
-            <p className="text-sm text-text-secondary">{medicalInfo.bloodType ?? t('notOnRecord')}</p>
+            <p className="text-sm text-text-secondary">{profile.bloodType ?? t('notOnRecord')}</p>
           </div>
           <div>
             <p className="text-xs text-text-tertiary">{t('allergies')}</p>
-            {medicalInfo.allergies.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {medicalInfo.allergies.map((allergy) => (
-                  <Badge key={allergy} variant="warning">
-                    {allergy}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">{t('noAllergiesOnRecord')}</p>
-            )}
+            <p className="text-sm text-text-secondary">{profile.allergies || t('noAllergiesOnRecord')}</p>
           </div>
           <div>
             <p className="text-xs text-text-tertiary">{t('chronicConditions')}</p>
-            {medicalInfo.chronicConditions.length > 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {medicalInfo.chronicConditions.map((condition) => (
-                  <Badge key={condition} variant="neutral">
-                    {condition}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">{t('noConditionsOnRecord')}</p>
-            )}
+            <p className="text-sm text-text-secondary">{profile.chronicDiseases || t('noConditionsOnRecord')}</p>
           </div>
         </div>
       </Section>
@@ -112,7 +107,7 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
               <li key={contact.id} className="flex flex-col gap-0.5">
                 <p className="text-sm font-medium text-text-primary">{contact.name}</p>
                 <p className="text-sm text-text-secondary">
-                  {contact.relationship} · {contact.phoneNumber}
+                  {t(`relationshipOptions.${contact.relationship}`)} · {contact.phoneNumber}
                 </p>
               </li>
             ))}
@@ -123,7 +118,11 @@ export function PatientProfileView({ profile }: PatientProfileViewProps) {
       </Section>
 
       <Section title={t('insurance')}>
-        <EmptyState title={t('insuranceUnavailableTitle')} description={t('insuranceUnavailableDescription')} />
+        {insuranceProviderName ? (
+          <p className="text-sm text-text-secondary">{insuranceProviderName}</p>
+        ) : (
+          <EmptyState title={t('insuranceUnavailableTitle')} description={t('insuranceUnavailableDescription')} />
+        )}
       </Section>
 
       <Section title={t('settings')}>

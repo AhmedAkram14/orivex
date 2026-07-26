@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { ConfirmAvailabilityWindowUseCase } from '../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
+import { DefineAvailabilityWindowUseCase } from '../doctor/application/use-cases/define-availability-window/define-availability-window.use-case.js';
+import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { ListAvailabilityWindowsForDoctorUseCase } from '../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from '../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from '../doctor/application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
@@ -9,6 +12,7 @@ import { DoctorModule } from '../doctor/doctor.module.js';
 import { HOLIDAY_REPOSITORY, SCHEDULE_EXCEPTION_REPOSITORY, WORKING_HOURS_REPOSITORY } from './application/ports/tokens.js';
 import { AddScheduleExceptionUseCase } from './application/use-cases/add-schedule-exception/add-schedule-exception.use-case.js';
 import { ConfirmSlotUseCase } from './application/use-cases/confirm-slot/confirm-slot.use-case.js';
+import { GetBookableAvailabilityUseCase } from './application/use-cases/get-bookable-availability/get-bookable-availability.use-case.js';
 import { GetDoctorWorkingHoursUseCase } from './application/use-cases/get-doctor-working-hours/get-doctor-working-hours.use-case.js';
 import { GetSchedulingRulesUseCase } from './application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 import { ListHolidaysUseCase } from './application/use-cases/list-holidays/list-holidays.use-case.js';
@@ -23,6 +27,7 @@ import type { WorkingHoursRepository } from './domain/repositories/working-hours
 import { PrismaHolidayRepository } from './infrastructure/prisma/prisma-holiday.repository.js';
 import { PrismaScheduleExceptionRepository } from './infrastructure/prisma/prisma-schedule-exception.repository.js';
 import { PrismaWorkingHoursRepository } from './infrastructure/prisma/prisma-working-hours.repository.js';
+import { DoctorAvailabilityController } from './presentation/controllers/doctor-availability.controller.js';
 import { SchedulingController } from './presentation/controllers/scheduling.controller.js';
 
 // Owns the doctor's own schedule management (working hours, time-off
@@ -44,7 +49,7 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
 // ConfirmAvailabilityWindow exports.
 @Module({
   imports: [DoctorModule, AuthenticationGuardsModule],
-  controllers: [SchedulingController],
+  controllers: [SchedulingController, DoctorAvailabilityController],
   providers: [
     { provide: WORKING_HOURS_REPOSITORY, useClass: PrismaWorkingHoursRepository },
     { provide: SCHEDULE_EXCEPTION_REPOSITORY, useClass: PrismaScheduleExceptionRepository },
@@ -98,6 +103,36 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
       inject: [HOLIDAY_REPOSITORY],
     },
     GetSchedulingRulesUseCase,
+    {
+      provide: GetBookableAvailabilityUseCase,
+      useFactory: (
+        getDoctorWorkingHoursUseCase: GetDoctorWorkingHoursUseCase,
+        listScheduleExceptionsForDoctorUseCase: ListScheduleExceptionsForDoctorUseCase,
+        listHolidaysUseCase: ListHolidaysUseCase,
+        getSchedulingRulesUseCase: GetSchedulingRulesUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        listAvailabilityWindowsForDoctorUseCase: ListAvailabilityWindowsForDoctorUseCase,
+        defineAvailabilityWindowUseCase: DefineAvailabilityWindowUseCase,
+      ) =>
+        new GetBookableAvailabilityUseCase(
+          getDoctorWorkingHoursUseCase,
+          listScheduleExceptionsForDoctorUseCase,
+          listHolidaysUseCase,
+          getSchedulingRulesUseCase,
+          getDoctorProfileByIdUseCase,
+          listAvailabilityWindowsForDoctorUseCase,
+          defineAvailabilityWindowUseCase,
+        ),
+      inject: [
+        GetDoctorWorkingHoursUseCase,
+        ListScheduleExceptionsForDoctorUseCase,
+        ListHolidaysUseCase,
+        GetSchedulingRulesUseCase,
+        GetDoctorProfileByIdUseCase,
+        ListAvailabilityWindowsForDoctorUseCase,
+        DefineAvailabilityWindowUseCase,
+      ],
+    },
   ],
   exports: [ReserveSlotUseCase, ReleaseSlotUseCase, ConfirmSlotUseCase, GetSchedulingRulesUseCase],
 })

@@ -18,4 +18,10 @@ export const mediaApi = {
     apiFetch<MediaAsset>({ method: 'POST', path: '/media-assets/upload-intent', body: request }),
 
   confirmUpload: (id: string) => apiFetch<MediaAsset>({ method: 'POST', path: `/media-assets/${id}/confirm` }),
+
+  // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): lets
+  // the owner re-fetch their own asset, or a SuperAdmin open a document they
+  // don't own (reviewing a verification case) -- a fresh signed download URL
+  // each call, never a cached/raw storage URL.
+  getMediaAsset: (id: string) => apiFetch<MediaAsset>({ path: `/media-assets/${id}` }),
 };

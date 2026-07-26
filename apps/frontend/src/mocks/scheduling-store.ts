@@ -1,26 +1,25 @@
 import type {
-  Booking,
-  CreateBookingRequest,
+  AvailabilityWindowData,
   Holiday,
-  JoinWaitlistRequest,
   RecurringWeeklySchedule,
   ScheduleException,
   SchedulingRules,
-  WaitlistEntry,
   WeekDay,
 } from '@/features/scheduling/types';
+import { getWeekDayName } from '@/features/doctor/lib/week';
+import { generateDaySlots } from '@/features/scheduling/utils/slots';
+import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
+import { addDays } from '@/shared/lib/date/week';
 
 /**
  * In-memory mock "backend" state for `/scheduling/*` — mirrors
- * `doctor-store.ts`'s pattern. `bookings`/`waitlist` remain MSW-only (the
- * patient-facing booking flow is deliberately deferred, blocked on a real
- * doctor-directory feature). `rules`/`doctorAvailability`/
- * `doctorExceptions`/`holidays` are now real backend endpoints
- * (SchedulingModule's own GET/PATCH doctor-availability, doctor-exceptions,
- * holidays, rules), so these four seeds exist purely to keep the frontend
- * test suite deterministic, matching `patient-store.ts`'s `seedProfile()`
- * precedent. No application code outside `src/mocks/` may import this
- * directly; go through `schedulingApi`.
+ * `doctor-store.ts`'s pattern. `rules`/`doctorAvailability`/
+ * `doctorExceptions`/`holidays` are real backend endpoints (SchedulingModule's
+ * own GET/PATCH doctor-availability, doctor-exceptions, holidays, rules), so
+ * these four seeds exist purely to keep the frontend test suite
+ * deterministic, matching `patient-store.ts`'s `seedProfile()` precedent.
+ * No application code outside `src/mocks/` may import this directly; go
+ * through `schedulingApi`.
  */
 function seedRules(): SchedulingRules {
   return {
@@ -63,16 +62,6 @@ function seedDoctorExceptions(): ScheduleException[] {
   return [];
 }
 
-/** Booking Architecture (milestone 4) — an honest empty array: no patient has actually booked anything yet, never a fabricated appointment. */
-function seedBookings(): Booking[] {
-  return [];
-}
-
-/** Waiting-list architecture — an honest empty array, same reasoning as `seedBookings`. */
-function seedWaitlist(): WaitlistEntry[] {
-  return [];
-}
-
 /**
  * Holiday support (milestone 6) — `GET /scheduling/holidays` is a real
  * backend endpoint (SchedulingModule's own read-only Holiday table); real,
@@ -93,9 +82,13 @@ function seedHolidays(): Holiday[] {
 let rules: SchedulingRules = seedRules();
 let doctorAvailability: RecurringWeeklySchedule = seedDoctorAvailability();
 let doctorExceptions: ScheduleException[] = seedDoctorExceptions();
-let bookings: Booking[] = seedBookings();
-let waitlist: WaitlistEntry[] = seedWaitlist();
 let holidays: Holiday[] = seedHolidays();
+// Onboarding Redesign integration-gap closure (2026-07-25): mirrors the real
+// backend's AvailabilityWindow -- once a window id has been consumed by the
+// mock's own `bookAppointment()` (patient-store.ts), it must stop appearing
+// as available, the same "a booked slot simply doesn't come back" contract
+// the real GetBookableAvailabilityUseCase guarantees.
+const bookedAvailabilityWindowIds = new Set<string>();
 
 export function getSchedulingRules(): SchedulingRules {
   return rules;
@@ -124,59 +117,53 @@ export function removeDoctorException(id: string): void {
   doctorExceptions = doctorExceptions.filter((exception) => exception.id !== id);
 }
 
-function bookingsOverlap(a: CreateBookingRequest, b: Booking): boolean {
-  return a.slotStart < b.slotEnd && b.slotStart < a.slotEnd;
-}
-
-export function getBookings(): Booking[] {
-  return bookings.filter((booking) => booking.status === 'confirmed');
-}
-
-export type CreateBookingResult = { ok: true; booking: Booking } | { ok: false; reason: 'already-booked' };
-
-/** Real conflict detection against every other confirmed booking — the "this slot was just taken" case docs/roadmaps/frontend-master-plan.md's Phase 9 section calls out by name, not a generic error. */
-export function createBooking(request: CreateBookingRequest): CreateBookingResult {
-  const conflict = bookings.some((booking) => booking.status === 'confirmed' && bookingsOverlap(request, booking));
-  if (conflict) return { ok: false, reason: 'already-booked' };
-
-  const created: Booking = { id: `booking-${Date.now()}`, slotStart: request.slotStart, slotEnd: request.slotEnd, status: 'confirmed' };
-  bookings = [...bookings, created];
-  return { ok: true, booking: created };
-}
-
-export type RescheduleBookingResult = { ok: true; booking: Booking } | { ok: false; reason: 'not-found' | 'already-booked' };
-
-export function rescheduleBooking(id: string, request: CreateBookingRequest): RescheduleBookingResult {
-  const existing = bookings.find((booking) => booking.id === id);
-  if (!existing) return { ok: false, reason: 'not-found' };
-
-  const conflict = bookings.some(
-    (booking) => booking.id !== id && booking.status === 'confirmed' && bookingsOverlap(request, booking),
-  );
-  if (conflict) return { ok: false, reason: 'already-booked' };
-
-  bookings = bookings.map((booking) =>
-    booking.id === id ? { ...booking, slotStart: request.slotStart, slotEnd: request.slotEnd } : booking,
-  );
-  return { ok: true, booking: bookings.find((booking) => booking.id === id)! };
-}
-
-export function cancelBooking(id: string): void {
-  bookings = bookings.map((booking) => (booking.id === id ? { ...booking, status: 'cancelled' } : booking));
-}
-
-export function getWaitlist(): WaitlistEntry[] {
-  return waitlist;
-}
-
-export function joinWaitlist(request: JoinWaitlistRequest): WaitlistEntry {
-  const created: WaitlistEntry = { id: `waitlist-${Date.now()}`, date: request.date, createdAt: new Date().toISOString() };
-  waitlist = [...waitlist, created];
-  return created;
-}
-
 export function getHolidays(): Holiday[] {
   return holidays;
+}
+
+/**
+ * Onboarding Redesign integration-gap closure (2026-07-25): mocks the real
+ * `GET /doctors/:id/availability-windows` contract -- reuses the same pure,
+ * already-tested slot-generation utils (`resolveDayForDate`/
+ * `generateDaySlots`) that used to live inside `BookingFlow` itself, now
+ * relocated here since this is test/mock infrastructure, not the
+ * production path (the production path gets its slots from the real
+ * backend). `consultationType` is derived from the seeded demo doctor's own
+ * `consultationFeeAmount` (Stage O.7's precedent for deriving it), not a
+ * per-request choice.
+ */
+export function getAvailabilityWindows(
+  doctorId: string,
+  from: string,
+  to: string,
+  consultationType: 'free' | 'paid',
+): AvailabilityWindowData[] {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  const windows: AvailabilityWindowData[] = [];
+
+  for (let cursor = new Date(fromDate); cursor < toDate; cursor = addDays(cursor, 1)) {
+    const weekday = getWeekDayName(cursor);
+    const day = resolveDayForDate(cursor, weekday, doctorAvailability, doctorExceptions, holidays);
+    const slots = generateDaySlots(day, rules, cursor, new Date());
+
+    for (const slot of slots) {
+      if (slot.status !== 'available') continue;
+      const id = `${doctorId}::${slot.start}`;
+      if (bookedAvailabilityWindowIds.has(id)) continue;
+      windows.push({ id, doctorId, startTime: slot.start, endTime: slot.end, consultationType, status: 'open' });
+    }
+  }
+
+  return windows;
+}
+
+export function markAvailabilityWindowBooked(availabilityWindowId: string): void {
+  bookedAvailabilityWindowIds.add(availabilityWindowId);
+}
+
+export function isAvailabilityWindowBooked(availabilityWindowId: string): boolean {
+  return bookedAvailabilityWindowIds.has(availabilityWindowId);
 }
 
 /** Test-only: restores the seed state. Never called from application code. */
@@ -184,7 +171,6 @@ export function resetSchedulingStore(): void {
   rules = seedRules();
   doctorAvailability = seedDoctorAvailability();
   doctorExceptions = seedDoctorExceptions();
-  bookings = seedBookings();
-  waitlist = seedWaitlist();
   holidays = seedHolidays();
+  bookedAvailabilityWindowIds.clear();
 }

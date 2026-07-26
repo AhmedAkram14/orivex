@@ -4,6 +4,10 @@ import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer, VideoConference } from '@livekit/components-react';
 import { useTranslations } from 'next-intl';
 import { useRoomToken } from '@/features/telemedicine/hooks/use-room-token';
+import { IdentityVerificationGate } from '@/features/patient/components/identity-verification/identity-verification-gate';
+import { ApiError } from '@/shared/lib/api/client';
+import { SHARED_ERROR_CODES } from '@/shared/lib/api/error-codes';
+import { usePathname } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 
 export interface CallRoomProps {
@@ -23,10 +27,19 @@ export interface CallRoomProps {
  */
 export function CallRoom({ consultationSessionId, displayName, onLeave }: CallRoomProps) {
   const t = useTranslations('telemedicine');
-  const { data, isLoading, isError } = useRoomToken(consultationSessionId, displayName);
+  const pathname = usePathname();
+  const { data, isLoading, isError, error } = useRoomToken(consultationSessionId, displayName);
 
   if (isLoading) {
     return <p className="text-sm text-text-secondary">{t('connecting')}</p>;
+  }
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): the real
+  // security boundary (RequiresIdentityVerificationGuard on POST
+  // /consultations/:id/room-token, Patient callers only) surfaces as this
+  // exact ApiError code.
+  if (error instanceof ApiError && error.code === SHARED_ERROR_CODES.identityVerificationRequired) {
+    return <IdentityVerificationGate action="consultation" returnTo={pathname} />;
   }
 
   if (isError || !data) {

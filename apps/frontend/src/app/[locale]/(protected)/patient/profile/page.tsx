@@ -7,6 +7,8 @@ import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { PatientProfileForm } from '@/features/patient/components/profile/patient-profile-form';
 import { PatientProfileView } from '@/features/patient/components/profile/patient-profile-view';
 import { usePatientProfile } from '@/features/patient/hooks/use-patient-profile';
+import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
+import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
@@ -24,6 +26,7 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 export default function PatientProfilePage() {
   const t = useTranslations('patient.profile');
   const { data: profile, isLoading, isError } = usePatientProfile();
+  const { data: account } = useMyAccount();
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
   return (
@@ -56,7 +59,10 @@ export default function PatientProfilePage() {
 
         {profile && mode === 'view' && <PatientProfileView profile={profile} />}
         {profile && mode === 'edit' && (
-          <PatientProfileForm profile={profile} onSaved={() => setMode('view')} onCancel={() => setMode('view')} />
+          <div className="flex flex-col gap-6">
+            <PersonalInfoStep account={account} onSaved={() => {}} />
+            <PatientProfileForm profile={profile} onSaved={() => setMode('view')} onCancel={() => setMode('view')} />
+          </div>
         )}
       </Page>
     </RequireRole>

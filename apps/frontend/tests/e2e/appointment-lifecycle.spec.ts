@@ -26,13 +26,21 @@ test.describe('Appointment lifecycle', () => {
     await expect(page.getByRole('tab', { name: 'Cancelled' })).toBeVisible();
   });
 
-  test('the booking page is an honest placeholder, not a broken real-flow attempt', async ({ page }) => {
+  // Onboarding Redesign integration-gap closure (2026-07-25): this generic
+  // link (no doctorId, unlike the doctor-profile page's own "Book
+  // appointment" CTA) reaches the real Booking Architecture with nothing to
+  // book against yet -- an honest "pick a doctor first" state, not a broken
+  // real-flow attempt (the full real flow is covered end to end by
+  // `real-booking-flow.spec.ts`).
+  test('the booking page without a doctor selected shows an honest state, not a broken real-flow attempt', async ({
+    page,
+  }) => {
     await loginAs(page, 'patient');
     await page.goto('/en/patient/appointments');
 
     await page.getByRole('link', { name: 'Book appointment' }).click();
 
     await expect(page).toHaveURL(/\/en\/patient\/appointments\/book$/);
-    await expect(page.getByText("Booking isn't available yet")).toBeVisible();
+    await expect(page.getByText('No doctor selected')).toBeVisible();
   });
 });

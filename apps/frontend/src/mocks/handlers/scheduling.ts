@@ -2,39 +2,26 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { SCHEDULING_PATHS } from '@/features/scheduling/api/paths';
 import type { AddScheduleExceptionRequest } from '@/features/scheduling/api/scheduling-api';
-import type { CreateBookingRequest, JoinWaitlistRequest, RecurringWeeklySchedule } from '@/features/scheduling/types';
+import type { RecurringWeeklySchedule } from '@/features/scheduling/types';
 import {
   addDoctorException,
-  cancelBooking,
-  createBooking,
-  getBookings,
+  getAvailabilityWindows,
   getDoctorAvailability,
   getDoctorExceptions,
   getHolidays,
   getSchedulingRules,
-  getWaitlist,
-  joinWaitlist,
   removeDoctorException,
-  rescheduleBooking,
   updateDoctorAvailability,
 } from '@/mocks/scheduling-store';
+import { getDoctorById } from '@/mocks/doctor-store';
 
 const base = () => env.apiBaseUrl;
-
-function errorResponse(status: number, code: string, message: string) {
-  return HttpResponse.json(
-    { error: { code, message, requestId: 'mock-request', timestamp: new Date().toISOString() } },
-    { status },
-  );
-}
 
 export const schedulingHandlers = [
   // rules/doctorAvailability/doctorExceptions/holidays are real endpoints
   // (SchedulingModule's own GET/PATCH doctor-availability, doctor-exceptions,
   // holidays, rules) -- these handlers exist purely to keep the frontend
   // test suite deterministic, matching `patient.ts`'s dashboard handlers.
-  // bookings/waitlist below remain MSW-only: the patient-facing booking flow
-  // is deliberately deferred, blocked on a real doctor-directory feature.
   http.get(`${base()}${SCHEDULING_PATHS.rules}`, () => HttpResponse.json({ data: getSchedulingRules() })),
 
   http.get(`${base()}${SCHEDULING_PATHS.doctorAvailability}`, () =>
@@ -58,39 +45,20 @@ export const schedulingHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get(`${base()}${SCHEDULING_PATHS.bookings}`, () => HttpResponse.json({ data: getBookings() })),
-
-  http.post(`${base()}${SCHEDULING_PATHS.bookings}`, async ({ request }) => {
-    const body = (await request.json()) as CreateBookingRequest;
-    const result = createBooking(body);
-    if (!result.ok) {
-      return errorResponse(409, 'SLOT_ALREADY_BOOKED', 'This slot was just taken. Please choose another.');
-    }
-    return HttpResponse.json({ data: result.booking }, { status: 201 });
-  }),
-
-  http.patch(`${base()}${SCHEDULING_PATHS.bookings}/:id`, async ({ request, params }) => {
-    const body = (await request.json()) as CreateBookingRequest;
-    const result = rescheduleBooking(params.id as string, body);
-    if (!result.ok) {
-      return result.reason === 'not-found'
-        ? errorResponse(404, 'BOOKING_NOT_FOUND', 'This booking no longer exists.')
-        : errorResponse(409, 'SLOT_ALREADY_BOOKED', 'This slot was just taken. Please choose another.');
-    }
-    return HttpResponse.json({ data: result.booking });
-  }),
-
-  http.delete(`${base()}${SCHEDULING_PATHS.bookings}/:id`, ({ params }) => {
-    cancelBooking(params.id as string);
-    return new HttpResponse(null, { status: 204 });
-  }),
-
-  http.get(`${base()}${SCHEDULING_PATHS.waitlist}`, () => HttpResponse.json({ data: getWaitlist() })),
-
-  http.post(`${base()}${SCHEDULING_PATHS.waitlist}`, async ({ request }) => {
-    const body = (await request.json()) as JoinWaitlistRequest;
-    return HttpResponse.json({ data: joinWaitlist(body) }, { status: 201 });
-  }),
-
   http.get(`${base()}${SCHEDULING_PATHS.holidays}`, () => HttpResponse.json({ data: getHolidays() })),
+
+  // Onboarding Redesign integration-gap closure (2026-07-25): the real
+  // patient-facing discovery endpoint (SchedulingModule's
+  // DoctorAvailabilityController) -- consultationType is derived from the
+  // doctor's own consultationFeeAmount, same rule as the real
+  // GetBookableAvailabilityUseCase, never a per-request choice.
+  http.get(`${base()}/doctors/:doctorId/availability-windows`, ({ params, request }) => {
+    const doctorId = params.doctorId as string;
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from') ?? new Date().toISOString();
+    const to = url.searchParams.get('to') ?? new Date(Date.now() + 86_400_000).toISOString();
+    const doctor = getDoctorById(doctorId);
+    const consultationType = doctor?.consultationFeeAmount !== undefined ? 'paid' : 'free';
+    return HttpResponse.json({ data: getAvailabilityWindows(doctorId, from, to, consultationType) });
+  }),
 ];

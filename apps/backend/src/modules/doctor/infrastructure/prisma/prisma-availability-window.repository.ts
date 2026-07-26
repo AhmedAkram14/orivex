@@ -29,6 +29,14 @@ export class PrismaAvailabilityWindowRepository implements AvailabilityWindowRep
     return rows.map(toDomainAvailabilityWindow);
   }
 
+  async findByDoctorAndRange(doctorId: string, from: Date, to: Date): Promise<AvailabilityWindow[]> {
+    const rows = await this.prisma.availabilityWindow.findMany({
+      where: { doctorId, startTime: { gte: from, lt: to } },
+      orderBy: { startTime: 'asc' },
+    });
+    return rows.map(toDomainAvailabilityWindow);
+  }
+
   // Optimistic locking (architect direction, ahead of SchedulingModule's
   // concurrent slot-reservation use case): updates are conditioned on the
   // version the caller loaded; a 0-row result means another writer already

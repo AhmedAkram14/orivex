@@ -8,3 +8,8 @@ export const patientAppointmentsKeys = createQueryKeyFactory('patient-appointmen
 export const patientMedicalRecordsKeys = createQueryKeyFactory('patient-medical-records');
 export const patientPrescriptionsKeys = createQueryKeyFactory('patient-prescriptions');
 export const patientHealthDashboardKeys = createQueryKeyFactory('patient-health-dashboard');
+// Onboarding Redesign (2026-07-21 proposal, Stage O.5).
+export const patientProfileExistsKeys = createQueryKeyFactory('patient-profile-exists');
+// Onboarding Redesign (2026-07-21 proposal, Stage O.7).
+export const patientIdentityVerificationStatusKeys = createQueryKeyFactory('patient-identity-verification-status');
+export const patientVerificationsKeys = createQueryKeyFactory('patient-verifications');

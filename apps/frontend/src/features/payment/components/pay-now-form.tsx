@@ -6,6 +6,10 @@ import { CardElement, Elements, useElements, useStripe } from '@stripe/react-str
 import { useTranslations } from 'next-intl';
 import { useInitiateCharge } from '@/features/payment/hooks/use-initiate-charge';
 import type { Money } from '@/features/payment/api/types';
+import { IdentityVerificationGate } from '@/features/patient/components/identity-verification/identity-verification-gate';
+import { ApiError } from '@/shared/lib/api/client';
+import { SHARED_ERROR_CODES } from '@/shared/lib/api/error-codes';
+import { usePathname } from '@/shared/i18n/navigation';
 import { env } from '@/shared/lib/env';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -47,6 +51,7 @@ export function PayNowForm(props: PayNowFormProps) {
 
 function PayNowCardForm({ consultationSessionId, amount, onPaid }: PayNowFormProps) {
   const t = useTranslations('payment');
+  const pathname = usePathname();
   const stripe = useStripe();
   const elements = useElements();
   const initiateCharge = useInitiateCharge(consultationSessionId);
@@ -56,6 +61,13 @@ function PayNowCardForm({ consultationSessionId, amount, onPaid }: PayNowFormPro
     () => new Intl.NumberFormat(undefined, { style: 'currency', currency: amount.currency }).format(amount.amount),
     [amount],
   );
+
+  // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): the real
+  // security boundary (RequiresIdentityVerificationGuard on POST /payments)
+  // surfaces as this exact ApiError code.
+  if (initiateCharge.error instanceof ApiError && initiateCharge.error.code === SHARED_ERROR_CODES.identityVerificationRequired) {
+    return <IdentityVerificationGate action="payment" returnTo={pathname} />;
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

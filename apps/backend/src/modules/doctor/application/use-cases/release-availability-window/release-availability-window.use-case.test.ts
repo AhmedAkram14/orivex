@@ -20,6 +20,9 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
   async findOverlapping(): Promise<AvailabilityWindow[]> {
     return [];
   }
+  async findByDoctorAndRange(): Promise<AvailabilityWindow[]> {
+    return [];
+  }
   async save(window: AvailabilityWindow): Promise<void> {
     this.saved.push(window);
   }
