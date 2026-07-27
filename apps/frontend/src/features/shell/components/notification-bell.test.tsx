@@ -2,10 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
+import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { NotificationBell } from '@/features/shell/components/notification-bell';
 import { server } from '@/mocks/server';
 import { resetNotifications } from '@/mocks/notifications-store';
+import { env } from '@/shared/lib/env';
+import { NOTIFICATIONS_PATHS } from '@/features/notifications/api/paths';
 import enMessages from '../../../../messages/en.json';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -46,6 +49,32 @@ describe('NotificationBell + NotificationPanel', () => {
 
     await waitFor(() => expect(screen.queryByText('2')).not.toBeInTheDocument());
     expect(await screen.findByText('1')).toBeInTheDocument();
+  });
+
+  it('renders a notification with an actionUrl as a real link to that page, marking it as read on click', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}${NOTIFICATIONS_PATHS.list}`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'notification-case-1',
+              title: 'Verification rejected',
+              description: 'Your professional verification application was rejected.',
+              severity: 'danger',
+              createdAt: new Date().toISOString(),
+              read: false,
+              actionUrl: '/doctor/onboarding',
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderBell();
+    await userEvent.click(screen.getByRole('button', { name: /Notifications/ }));
+
+    const link = await screen.findByRole('link', { name: /Verification rejected/ });
+    expect(link).toHaveAttribute('href', '/en/doctor/onboarding');
   });
 
   it('marks every notification as read via "Mark all as read"', async () => {

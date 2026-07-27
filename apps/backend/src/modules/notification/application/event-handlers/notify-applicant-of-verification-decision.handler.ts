@@ -36,8 +36,9 @@ export class NotifyApplicantOfVerificationDecisionHandler {
           ? `Your ${subject} application was rejected.`
           : `Your ${subject} application needs more information before it can be reviewed.`;
       const description = event.reason ? `${base} Reason: ${event.reason}` : base;
+      const actionUrl = event.subjectType === 'doctor' ? '/doctor/onboarding' : '/patient/verify-identity';
 
-      const notification = Notification.create({ accountId: event.subjectAccountId, title, description });
+      const notification = Notification.create({ accountId: event.subjectAccountId, title, description, actionUrl });
       await this.notificationRepository.save(notification);
     } catch (error) {
       // A notification failure must never surface back through

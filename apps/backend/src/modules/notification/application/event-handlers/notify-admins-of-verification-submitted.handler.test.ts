@@ -87,6 +87,11 @@ describe('NotifyAdminsOfVerificationSubmittedHandler', () => {
     const notifiedAccountIds = notificationRepo.saved.map((notification) => notification.getAccountId()).sort();
     assert.deepEqual(notifiedAccountIds, [superAdmin1.getId().toString(), superAdmin2.getId().toString()].sort());
     assert.ok(notificationRepo.saved.every((notification) => notification.getDescription().includes('doctor')));
+    assert.ok(
+      notificationRepo.saved.every(
+        (notification) => notification.getActionUrl() === '/admin/verification-queue/11111111-1111-4111-8111-111111111111',
+      ),
+    );
     assert.equal(logger.errors.length, 0);
   });
 

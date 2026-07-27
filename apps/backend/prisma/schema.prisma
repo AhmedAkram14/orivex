@@ -981,6 +981,10 @@ model Notification {
   severity    NotificationSeverity @default(INFO)
   read        Boolean              @default(false)
   createdAt   DateTime             @default(now())
+  /// Same-origin, locale-agnostic app path (e.g. "/admin/verification-queue/{id}")
+  /// the frontend navigates to when this notification is clicked -- null for
+  /// notifications with no single relevant page to jump to.
+  actionUrl   String?
 
   @@index([accountId])
   @@index([createdAt])

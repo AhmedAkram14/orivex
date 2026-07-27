@@ -10,6 +10,7 @@ export class NotificationResponseDto {
   severity!: NotificationSeverity;
   createdAt!: string;
   read!: boolean;
+  actionUrl?: string;
 
   static fromDomain(notification: Notification): NotificationResponseDto {
     const dto = new NotificationResponseDto();
@@ -19,6 +20,7 @@ export class NotificationResponseDto {
     dto.severity = notification.getSeverity();
     dto.createdAt = notification.getCreatedAt().toISOString();
     dto.read = notification.isRead();
+    dto.actionUrl = notification.getActionUrl();
     return dto;
   }
 }

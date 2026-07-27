@@ -5,15 +5,64 @@ import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationEntry } from '@/features/notifications/api/types';
+import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { PopoverClose } from '@/shared/ui/popover';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
 
-function NotificationRow({ notification }: { notification: NotificationEntry }) {
+const notificationRowClassName = cn(
+  'flex w-full flex-col gap-1 rounded-md p-2 text-start transition-colors duration-(--duration-fast)',
+  'hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+  'disabled:cursor-default disabled:hover:bg-transparent',
+);
+
+function NotificationRowContent({ notification }: { notification: NotificationEntry }) {
   const format = useFormatter();
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        {!notification.read && <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />}
+        <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
+          {notification.title}
+        </p>
+      </div>
+      <p className="text-sm text-text-secondary">{notification.description}</p>
+      <p className="text-xs text-text-tertiary">{format.relativeTime(new Date(notification.createdAt), new Date())}</p>
+    </>
+  );
+}
+
+/**
+ * A notification with an `actionUrl` (e.g. "your verification was
+ * rejected" -> the onboarding wizard, "new application submitted" -> the
+ * admin's case detail page) navigates there on click and closes the
+ * popover -- marking as read is fire-and-forget alongside the navigation,
+ * never blocking it. One with no `actionUrl` (nothing relevant to jump to)
+ * keeps the old mark-as-read-only behavior.
+ */
+function NotificationRow({ notification }: { notification: NotificationEntry }) {
   const markAsRead = useMarkNotificationRead();
+
+  if (notification.actionUrl) {
+    return (
+      <li>
+        <PopoverClose asChild>
+          <Link
+            href={notification.actionUrl}
+            onClick={() => {
+              if (!notification.read) markAsRead.mutate(notification.id);
+            }}
+            className={notificationRowClassName}
+          >
+            <NotificationRowContent notification={notification} />
+          </Link>
+        </PopoverClose>
+      </li>
+    );
+  }
 
   return (
     <li>
@@ -21,20 +70,9 @@ function NotificationRow({ notification }: { notification: NotificationEntry }) 
         type="button"
         disabled={notification.read || markAsRead.isPending}
         onClick={() => markAsRead.mutate(notification.id)}
-        className={cn(
-          'flex w-full flex-col gap-1 rounded-md p-2 text-start transition-colors duration-(--duration-fast)',
-          'hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-          'disabled:cursor-default disabled:hover:bg-transparent',
-        )}
+        className={notificationRowClassName}
       >
-        <div className="flex items-center gap-2">
-          {!notification.read && <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />}
-          <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
-            {notification.title}
-          </p>
-        </div>
-        <p className="text-sm text-text-secondary">{notification.description}</p>
-        <p className="text-xs text-text-tertiary">{format.relativeTime(new Date(notification.createdAt), new Date())}</p>
+        <NotificationRowContent notification={notification} />
       </button>
     </li>
   );

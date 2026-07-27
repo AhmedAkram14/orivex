@@ -13,6 +13,7 @@ export function toDomainNotification(row: PrismaNotificationRow): Notification {
     severity: toDomainNotificationSeverity(row.severity),
     read: row.read,
     createdAt: row.createdAt,
+    actionUrl: row.actionUrl,
   });
 }
 
@@ -25,5 +26,6 @@ export function toPersistedNotification(notification: Notification) {
     severity: toPrismaNotificationSeverity(notification.getSeverity()),
     read: notification.isRead(),
     createdAt: notification.getCreatedAt(),
+    actionUrl: notification.getActionUrl() ?? null,
   };
 }

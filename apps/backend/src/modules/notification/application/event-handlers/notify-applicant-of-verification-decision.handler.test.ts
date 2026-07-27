@@ -54,6 +54,7 @@ describe('NotifyApplicantOfVerificationDecisionHandler', () => {
     assert.equal(notification.getTitle(), 'Verification rejected');
     assert.match(notification.getDescription(), /rejected/);
     assert.match(notification.getDescription(), /The submitted license number could not be verified\./);
+    assert.equal(notification.getActionUrl(), '/doctor/onboarding');
     assert.equal(logger.errors.length, 0);
   });
 
@@ -74,6 +75,7 @@ describe('NotifyApplicantOfVerificationDecisionHandler', () => {
     assert.equal(notification.getTitle(), 'More information needed');
     assert.match(notification.getDescription(), /identity verification/);
     assert.doesNotMatch(notification.getDescription(), /Reason:/);
+    assert.equal(notification.getActionUrl(), '/patient/verify-identity');
     assert.equal(logger.errors.length, 0);
   });
 

@@ -8,6 +8,8 @@ export interface CreateNotificationProps {
   title: string;
   description: string;
   severity?: NotificationSeverity;
+  /** Same-origin, locale-agnostic app path (e.g. "/admin/verification-queue/{id}") the frontend navigates to on click -- undefined when there's no single relevant page. */
+  actionUrl?: string;
 }
 
 export interface ReconstituteNotificationProps {
@@ -18,6 +20,7 @@ export interface ReconstituteNotificationProps {
   severity: NotificationSeverity;
   read: boolean;
   createdAt: Date;
+  actionUrl?: string | null;
 }
 
 // NotificationModule's own aggregate root (docs/05-information-architecture.md's
@@ -35,6 +38,7 @@ export class Notification {
     private readonly severity: NotificationSeverity,
     private read: boolean,
     private readonly createdAt: Date,
+    private readonly actionUrl: string | undefined,
   ) {}
 
   static create(props: CreateNotificationProps): Notification {
@@ -53,6 +57,7 @@ export class Notification {
       props.severity ?? NotificationSeverity.Info,
       false,
       new Date(),
+      props.actionUrl,
     );
   }
 
@@ -65,6 +70,7 @@ export class Notification {
       props.severity,
       props.read,
       props.createdAt,
+      props.actionUrl ?? undefined,
     );
   }
 
@@ -98,5 +104,9 @@ export class Notification {
 
   getCreatedAt(): Date {
     return this.createdAt;
+  }
+
+  getActionUrl(): string | undefined {
+    return this.actionUrl;
   }
 }

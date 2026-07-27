@@ -40,11 +40,12 @@ export class NotifyAdminsOfVerificationSubmittedHandler {
         event.subjectType === 'doctor'
           ? 'A doctor has submitted their professional verification for review.'
           : 'A patient has submitted their identity verification for review.';
+      const actionUrl = `/admin/verification-queue/${event.verificationCaseId}`;
 
       await Promise.all(
         accounts.map((account) =>
           this.notificationRepository.save(
-            Notification.create({ accountId: account.getId().toString(), title, description }),
+            Notification.create({ accountId: account.getId().toString(), title, description, actionUrl }),
           ),
         ),
       );
