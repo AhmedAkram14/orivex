@@ -18,6 +18,7 @@ import { ConsultationModule } from '../consultation/consultation.module.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from '../clinical/application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { ClinicalModule } from '../clinical/clinical.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import { ListAccountsUseCase } from '../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
@@ -32,6 +33,10 @@ import {
   NotifyConsultationCompletedHandler,
   type ConsultationCompletedEventPayload,
 } from './application/event-handlers/notify-consultation-completed.handler.js';
+import {
+  NotifyAdminsOfVerificationSubmittedHandler,
+  type VerificationCaseSubmittedEventPayload,
+} from './application/event-handlers/notify-admins-of-verification-submitted.handler.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
@@ -173,6 +178,26 @@ import { NotificationController } from './presentation/controllers/notification.
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
+    },
+    {
+      // Same by-name-only event-subscription pattern as the two handlers
+      // above -- reacts to TrustModule's 'verification.case.submitted'
+      // event, fanning out to every SuperAdmin account (the first fan-out
+      // notification in this module; every other handler here is 1:1).
+      provide: NotifyAdminsOfVerificationSubmittedHandler,
+      useFactory: (
+        listAccountsUseCase: ListAccountsUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyAdminsOfVerificationSubmittedHandler(listAccountsUseCase, notificationRepository, logger);
+        dispatcher.subscribe('verification.case.submitted', (event: DomainEvent) =>
+          handler.handle(event as unknown as VerificationCaseSubmittedEventPayload),
+        );
+        return handler;
+      },
+      inject: [ListAccountsUseCase, NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
   // NOTIFICATION_QUEUE is exported for HealthController's GET /health/

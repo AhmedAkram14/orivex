@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { DoctorVerifiedEvent } from '../events/doctor-verified.event.js';
+import { VerificationCaseSubmittedEvent } from '../events/verification-case-submitted.event.js';
 import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
 import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
@@ -47,6 +48,22 @@ describe('VerificationCase', () => {
     assert.ok(verificationCase.getSubjectDetails() instanceof PatientIdentityDetails);
   });
 
+  it('submit() raises VerificationCaseSubmittedEvent carrying the case id, subjectAccountId, and subjectType, for either subject', () => {
+    const doctorCase = buildDoctorCase();
+    const doctorEvents = doctorCase.releaseDomainEvents();
+    assert.equal(doctorEvents.length, 1);
+    assert.ok(doctorEvents[0] instanceof VerificationCaseSubmittedEvent);
+    const doctorEvent = doctorEvents[0] as VerificationCaseSubmittedEvent;
+    assert.equal(doctorEvent.verificationCaseId, doctorCase.getId());
+    assert.equal(doctorEvent.subjectAccountId, SUBJECT_ACCOUNT_ID);
+    assert.equal(doctorEvent.subjectType, VerificationSubjectType.Doctor);
+
+    const patientCase = buildPatientCase();
+    const patientEvents = patientCase.releaseDomainEvents();
+    assert.equal(patientEvents.length, 1);
+    assert.equal((patientEvents[0] as VerificationCaseSubmittedEvent).subjectType, VerificationSubjectType.Patient);
+  });
+
   it('rejects submission with no documentAssetIds, regardless of subject type', () => {
     assert.throws(
       () =>
@@ -61,6 +78,7 @@ describe('VerificationCase', () => {
 
   it('decide(Approved) on a Doctor case raises DoctorVerifiedEvent carrying subjectAccountId', () => {
     const verificationCase = buildDoctorCase();
+    verificationCase.releaseDomainEvents(); // clears the submission event -- decide() is a separate transaction in real usage
 
     verificationCase.decide(VerificationStatus.Approved);
 
@@ -74,6 +92,7 @@ describe('VerificationCase', () => {
 
   it('decide(Approved) on a Patient case raises no event at all -- dispatched polymorphically, not via a subjectType branch', () => {
     const verificationCase = buildPatientCase();
+    verificationCase.releaseDomainEvents(); // clears the submission event -- decide() is a separate transaction in real usage
 
     verificationCase.decide(VerificationStatus.Approved);
 

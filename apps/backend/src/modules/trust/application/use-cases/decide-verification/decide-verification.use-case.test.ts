@@ -39,11 +39,16 @@ class RecordingDispatcher {
 }
 
 function buildSubmittedCase(): VerificationCase {
-  return VerificationCase.submit({
+  const verificationCase = VerificationCase.submit({
     subjectAccountId: '11111111-1111-4111-8111-111111111111',
     subjectDetails: DoctorProfessionalDetails.create('LIC-1', 'cardiology'),
     documentAssetIds: ['22222222-2222-4222-8222-222222222222'],
   });
+  // Mirrors production: SubmitDoctorVerificationUseCase already dispatched
+  // (and thereby released) the submission event before this repository ever
+  // holds the case for a later decide() call.
+  verificationCase.releaseDomainEvents();
+  return verificationCase;
 }
 
 describe('DecideVerificationUseCase', () => {

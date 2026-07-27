@@ -4,6 +4,7 @@ import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
 import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
 import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
+import { VerificationCaseSubmittedEvent } from '../events/verification-case-submitted.event.js';
 import { VerificationStatus } from '../enums/verification-status.enum.js';
 import type { VerificationSubjectType } from '../enums/verification-subject-type.enum.js';
 import type { VerificationSubjectDetails } from '../value-objects/verification-subject-details.js';
@@ -65,7 +66,7 @@ export class VerificationCase {
       throw new TrustDomainError('At least one documentAssetId is required.');
     }
 
-    return new VerificationCase(
+    const verificationCase = new VerificationCase(
       randomUUID(),
       props.subjectAccountId,
       props.subjectDetails,
@@ -75,6 +76,16 @@ export class VerificationCase {
       new Date(),
       undefined,
     );
+
+    verificationCase.record(
+      new VerificationCaseSubmittedEvent(
+        verificationCase.id,
+        verificationCase.subjectAccountId,
+        verificationCase.getSubjectType(),
+      ),
+    );
+
+    return verificationCase;
   }
 
   static reconstitute(props: ReconstituteVerificationCaseProps): VerificationCase {
