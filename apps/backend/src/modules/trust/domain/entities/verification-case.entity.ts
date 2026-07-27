@@ -4,6 +4,7 @@ import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
 import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
 import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
+import { VerificationCaseDecidedEvent } from '../events/verification-case-decided.event.js';
 import { VerificationCaseSubmittedEvent } from '../events/verification-case-submitted.event.js';
 import { VerificationStatus } from '../enums/verification-status.enum.js';
 import type { VerificationSubjectType } from '../enums/verification-subject-type.enum.js';
@@ -122,6 +123,10 @@ export class VerificationCase {
       if (event) {
         this.record(event);
       }
+    }
+
+    if (status === VerificationStatus.Rejected || status === VerificationStatus.MoreInfoNeeded) {
+      this.record(new VerificationCaseDecidedEvent(this.id, this.subjectAccountId, this.getSubjectType(), status, reason));
     }
   }
 

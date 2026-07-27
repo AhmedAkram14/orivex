@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { DoctorVerifiedEvent } from '../events/doctor-verified.event.js';
+import { VerificationCaseDecidedEvent } from '../events/verification-case-decided.event.js';
 import { VerificationCaseSubmittedEvent } from '../events/verification-case-submitted.event.js';
 import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
 import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
@@ -98,6 +99,43 @@ describe('VerificationCase', () => {
 
     assert.equal(verificationCase.releaseDomainEvents().length, 0);
     assert.equal(verificationCase.getStatus(), VerificationStatus.Approved);
+  });
+
+  it('decide(Rejected) raises VerificationCaseDecidedEvent carrying the reason, for either subject type', () => {
+    const doctorCase = buildDoctorCase();
+    doctorCase.releaseDomainEvents();
+
+    doctorCase.decide(VerificationStatus.Rejected, 'Invalid license');
+
+    const events = doctorCase.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof VerificationCaseDecidedEvent);
+    const event = events[0] as VerificationCaseDecidedEvent;
+    assert.equal(event.verificationCaseId, doctorCase.getId());
+    assert.equal(event.subjectAccountId, SUBJECT_ACCOUNT_ID);
+    assert.equal(event.subjectType, VerificationSubjectType.Doctor);
+    assert.equal(event.status, VerificationStatus.Rejected);
+    assert.equal(event.reason, 'Invalid license');
+
+    const patientCase = buildPatientCase();
+    patientCase.releaseDomainEvents();
+    patientCase.decide(VerificationStatus.Rejected);
+    const patientEvents = patientCase.releaseDomainEvents();
+    assert.equal(patientEvents.length, 1);
+    assert.equal((patientEvents[0] as VerificationCaseDecidedEvent).subjectType, VerificationSubjectType.Patient);
+    assert.equal((patientEvents[0] as VerificationCaseDecidedEvent).reason, undefined);
+  });
+
+  it('decide(MoreInfoNeeded) also raises VerificationCaseDecidedEvent', () => {
+    const verificationCase = buildDoctorCase();
+    verificationCase.releaseDomainEvents();
+
+    verificationCase.decide(VerificationStatus.MoreInfoNeeded, 'Please upload a clearer photo.');
+
+    const events = verificationCase.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.equal((events[0] as VerificationCaseDecidedEvent).status, VerificationStatus.MoreInfoNeeded);
+    assert.equal(verificationCase.getDecidedAt(), undefined); // only Approved/Rejected set decidedAt
   });
 
   it('rejects redeciding an already-decided case, for either subject type', () => {

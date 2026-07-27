@@ -37,6 +37,10 @@ import {
   NotifyAdminsOfVerificationSubmittedHandler,
   type VerificationCaseSubmittedEventPayload,
 } from './application/event-handlers/notify-admins-of-verification-submitted.handler.js';
+import {
+  NotifyApplicantOfVerificationDecisionHandler,
+  type VerificationCaseDecidedEventPayload,
+} from './application/event-handlers/notify-applicant-of-verification-decision.handler.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
@@ -198,6 +202,22 @@ import { NotificationController } from './presentation/controllers/notification.
         return handler;
       },
       inject: [ListAccountsUseCase, NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Same by-name-only event-subscription pattern as the handlers above
+      // -- reacts to TrustModule's 'verification.case.decided' event
+      // (Rejected/MoreInfoNeeded only; see the handler's own comment on why
+      // Approved is deliberately excluded), notifying the single applicant
+      // 1:1, unlike the admin fan-out above.
+      provide: NotifyApplicantOfVerificationDecisionHandler,
+      useFactory: (notificationRepository: NotificationRepository, logger: PinoLoggerService, dispatcher: DomainEventDispatcher) => {
+        const handler = new NotifyApplicantOfVerificationDecisionHandler(notificationRepository, logger);
+        dispatcher.subscribe('verification.case.decided', (event: DomainEvent) =>
+          handler.handle(event as unknown as VerificationCaseDecidedEventPayload),
+        );
+        return handler;
+      },
+      inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
   // NOTIFICATION_QUEUE is exported for HealthController's GET /health/
