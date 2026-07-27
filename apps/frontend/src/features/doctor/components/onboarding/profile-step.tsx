@@ -79,7 +79,15 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
 
   async function onSubmit(values: OnboardingProfileFormValues) {
     try {
-      const saved = isEditing ? await updateProfile.mutateAsync(values) : await registerProfile.mutateAsync(values);
+      // licenseNumber is disabled (not removed) on the edit pass -- it's
+      // still present in react-hook-form's values, but PATCH /doctors/me's
+      // real DTO never accepts it (only registration sets it, once), and
+      // the global ValidationPipe's forbidNonWhitelisted rejects any extra
+      // field outright. Strip it here rather than loosening the backend
+      // contract for a field that's genuinely immutable after registration.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured only to exclude it from updateValues
+      const { licenseNumber: _licenseNumber, ...updateValues } = values;
+      const saved = isEditing ? await updateProfile.mutateAsync(updateValues) : await registerProfile.mutateAsync(values);
       onSaved(saved);
     } catch {
       // Inline error rendered below from mutation.error.

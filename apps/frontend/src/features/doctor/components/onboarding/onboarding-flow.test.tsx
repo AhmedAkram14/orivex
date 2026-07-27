@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { http, HttpResponse } from 'msw';
@@ -250,6 +250,47 @@ describe('OnboardingFlow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit and resubmit' }));
 
     expect(await screen.findByLabelText('License number')).toBeInTheDocument();
+  });
+
+  // Regression: PATCH /doctors/me's real DTO never accepts licenseNumber
+  // (only registration sets it, once) and the global ValidationPipe's
+  // forbidNonWhitelisted rejects any extra field outright -- the license
+  // number field is disabled (not removed) during resubmit, so it was
+  // still riding along in the submitted form values.
+  it('never sends licenseNumber on the resubmit PATCH, even though the disabled field still carries a value', async () => {
+    server.use(
+      http.get(`${base()}/doctors/:id/verifications`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'case-1',
+              doctorId: 'doctor-profile-1',
+              status: 'rejected',
+              reason: 'The submitted license number could not be verified.',
+              submittedAt: new Date().toISOString(),
+              decidedAt: new Date().toISOString(),
+            },
+          ],
+        }),
+      ),
+    );
+    let patchBody: Record<string, unknown> | undefined;
+    server.use(
+      http.patch(`${base()}/doctors/me`, async ({ request }) => {
+        patchBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ data: { id: 'doctor-profile-1' } });
+      }),
+    );
+
+    renderFlow();
+    await screen.findByText('Rejected');
+    await userEvent.click(screen.getByRole('button', { name: 'Edit and resubmit' }));
+
+    await screen.findByLabelText('License number');
+    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
+
+    await waitFor(() => expect(patchBody).toBeDefined());
+    expect(patchBody).not.toHaveProperty('licenseNumber');
   });
 
   it('shows an approved message with a link to the Doctor Portal', async () => {
