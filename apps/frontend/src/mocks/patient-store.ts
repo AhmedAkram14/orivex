@@ -218,6 +218,35 @@ export function getAppointments(): Appointment[] {
 }
 
 /**
+ * Test-only seam: seeds a Completed appointment linked to a real
+ * ConsultationSession id, so an E2E spec can drive the real
+ * `ConsultationOutcomeAction` (post-consultation summary + rating) without
+ * re-driving the full book -> join -> disconnect/reconnect -> complete
+ * chain through a real LiveKit connection (this mock system's independent
+ * appointment/consultation-session stores don't auto-sync a status flip the
+ * way the real backend's shared aggregate would -- see
+ * `mock-provider.tsx`'s own doc comment). Never called from application
+ * code.
+ */
+export function seedCompletedAppointment(consultationSessionId: string, doctor: { name: string; specialty: string }): void {
+  appointments = [
+    {
+      id: `appointment-${consultationSessionId}`,
+      scheduledAt: new Date().toISOString(),
+      doctorName: doctor.name,
+      specialization: doctor.specialty,
+      status: 'completed',
+      consultationType: 'paid',
+      reasonForVisit: undefined,
+      consultationSessionId,
+      paymentRequired: false,
+      feeAmount: null,
+    },
+    ...appointments,
+  ];
+}
+
+/**
  * Onboarding Redesign integration-gap closure (2026-07-25): mocks the real
  * `POST /appointments` contract -- a Free booking confirms immediately, a
  * Paid one stays `requested` with `paymentRequired` and a minted

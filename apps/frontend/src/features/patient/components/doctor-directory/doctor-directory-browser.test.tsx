@@ -41,6 +41,13 @@ describe('DoctorDirectoryBrowser', () => {
     expect(screen.getByText('Cardiology')).toBeInTheDocument();
   });
 
+  it('shows the doctor\'s real review-derived rating, never a fabricated one, on each directory card', async () => {
+    renderBrowser();
+    await screen.findByText('Dr. Sarah Ahmed');
+
+    expect(await screen.findByText('No reviews yet')).toBeInTheDocument();
+  });
+
   it('narrows results by specialty search', async () => {
     renderBrowser();
     await screen.findByText('Dr. Sarah Ahmed');

@@ -3,6 +3,7 @@
 import { Search, Stethoscope } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { DoctorRatingSummary } from '@/features/consultation/components/doctor-rating-summary';
 import { useDoctorsList } from '@/features/doctor/hooks/use-doctors-list';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { Alert } from '@/shared/ui/alert';
@@ -87,6 +88,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
                         {t('yearsOfExperience', { years: doctor.yearsOfExperience })}
                       </p>
                     )}
+                    <DoctorRatingSummary doctorProfileId={doctor.doctorProfileId} className="text-xs" />
                   </CardContent>
                 </Card>
               </Link>

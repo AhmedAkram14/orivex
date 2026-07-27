@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { ConsultationWorkspaceAction } from '@/features/consultation/components/consultation-workspace-action';
 import { StartConsultationAction } from '@/features/consultation/components/start-consultation-action';
 import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
 import { RefundQueueAction } from '@/features/payment/components/refund-queue-action';
@@ -73,7 +74,12 @@ export default function DoctorQueuePage() {
                     label={currentPatient.label}
                     status={currentPatient.status}
                     statusLabel={tStatus(currentPatient.status)}
-                    actions={<JoinCallAction consultationSessionId={currentPatient.id} />}
+                    actions={
+                      <div className="flex flex-wrap items-center gap-2">
+                        <JoinCallAction consultationSessionId={currentPatient.id} />
+                        <ConsultationWorkspaceAction consultationSessionId={currentPatient.id} />
+                      </div>
+                    }
                   />
                 ) : undefined
               }

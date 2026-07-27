@@ -59,16 +59,25 @@ import { VerificationStatus } from '../../../trust/domain/enums/verification-sta
 import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
 import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
+import { ConsultationCompletionReason } from '../../domain/enums/consultation-completion-reason.enum.js';
+import { ConsultationFeedback } from '../../domain/entities/consultation-feedback.entity.js';
 import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
+import type { ConsultationFeedbackRepository, DoctorRatingAggregate } from '../../domain/repositories/consultation-feedback.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
+import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens.js';
+import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
+import { ListConsultationFeedbackForDoctorUseCase } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
+import { SubmitConsultationFeedbackUseCase } from '../../application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
 import type { GenerateRoomTokenRequest, GenerateRoomTokenResult, RoomTokenGeneratorPort } from '../../application/ports/room-token-generator.port.js';
 import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { MedicalSpecialty } from '../../../reference/domain/entities/medical-specialty.entity.js';
 import type { MedicalSpecialtyRepository } from '../../../reference/domain/repositories/medical-specialty.repository.js';
 
 import { AppointmentController } from './appointment.controller.js';
+import { ConsultationFeedbackController } from './consultation-feedback.controller.js';
 import { DoctorAppointmentsController } from './doctor-appointments.controller.js';
+import { DoctorReviewsController } from './doctor-reviews.controller.js';
 import { ConsultationController } from './consultation.controller.js';
 
 const VALID_PATIENT_TOKEN = 'valid-patient-token';
@@ -216,6 +225,37 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
   }
 }
 
+class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  private readonly bySessionId = new Map<string, ConsultationFeedback>();
+  async findByConsultationSessionId(consultationSessionId: string): Promise<ConsultationFeedback | null> {
+    return this.bySessionId.get(consultationSessionId) ?? null;
+  }
+  async listForDoctor(doctorId: string): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    const feedback = Array.from(this.bySessionId.values())
+      .filter((item) => item.getDoctorId() === doctorId)
+      .sort((a, b) => b.getCreatedAt().getTime() - a.getCreatedAt().getTime());
+    return { feedback, total: feedback.length };
+  }
+  async getRatingAggregateForDoctor(doctorId: string): Promise<DoctorRatingAggregate> {
+    const { feedback } = await this.listForDoctor(doctorId);
+    if (feedback.length === 0) {
+      return { averageRating: null, reviewCount: 0 };
+    }
+    const averageRating = feedback.reduce((sum, item) => sum + item.getRating(), 0) / feedback.length;
+    return { averageRating, reviewCount: feedback.length };
+  }
+  async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
+    const result = new Map<string, DoctorRatingAggregate>();
+    for (const doctorId of doctorIds) {
+      result.set(doctorId, await this.getRatingAggregateForDoctor(doctorId));
+    }
+    return result;
+  }
+  async save(feedback: ConsultationFeedback): Promise<void> {
+    this.bySessionId.set(feedback.getConsultationSessionId(), feedback);
+  }
+}
+
 class NoopDomainEventDispatcher {
   async dispatch(): Promise<void> {
     // intentionally empty
@@ -246,6 +286,7 @@ describe('Consultation controllers (integration)', () => {
   let appointmentRepo: InMemoryAppointmentRepository;
   let bookedAppointmentId: string;
   let todaysConsultationSessionId: string;
+  let completedConsultationSessionId: string;
   let roomTokenGenerator: FakeRoomTokenGenerator;
 
   before(async () => {
@@ -334,6 +375,33 @@ describe('Consultation controllers (integration)', () => {
     await sessionRepo.save(todaysSession);
     todaysConsultationSessionId = todaysSession.getId();
 
+    // Consultation lifecycle completion follow-up (2026-07-26): a genuinely
+    // Completed appointment + session, seeded directly (mirrors the
+    // todaysConfirmedAppointment precedent above) -- backs the
+    // ConsultationFeedbackController tests, which need a session that has
+    // actually been closed with reason Completed, not just Confirmed.
+    // Deliberately scheduled several days in the past (not "today"), same
+    // reasoning as paidWindow's own comment above -- the doctor/dashboard-
+    // summary and doctor/queue endpoints are strictly scoped to today's
+    // date range, and this fixture must never be silently counted among them.
+    const completedAppointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: freeWindow.getId(),
+      consultationType: ConsultationType.Free,
+      scheduledAt: new Date(Date.now() - 72 * 60 * 60_000),
+      reasonForVisit: 'Completed consultation fixture',
+    });
+    completedAppointment.confirm();
+    await appointmentRepo.save(completedAppointment);
+    const completedSession = ConsultationSession.open(completedAppointment.getId());
+    completedSession.start();
+    completedSession.close(ConsultationCompletionReason.Completed);
+    completedAppointment.complete();
+    await appointmentRepo.save(completedAppointment);
+    await sessionRepo.save(completedSession);
+    completedConsultationSessionId = completedSession.getId();
+
     const reserveSlotUseCase = new ReserveSlotUseCase(
       new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDomainEventDispatcher()),
     );
@@ -396,9 +464,23 @@ describe('Consultation controllers (integration)', () => {
     const listAppointmentsForPatientUseCase = new ListAppointmentsForPatientUseCase(appointmentRepo);
     const listAppointmentsForPatientPageUseCase = new ListAppointmentsForPatientPageUseCase(appointmentRepo);
     const listAppointmentsForDoctorUseCase = new ListAppointmentsForDoctorUseCase(appointmentRepo);
+    const feedbackRepo = new InMemoryConsultationFeedbackRepository();
+    const submitConsultationFeedbackUseCase = new SubmitConsultationFeedbackUseCase(
+      feedbackRepo,
+      sessionRepo,
+      appointmentRepo,
+      new GetPatientProfileByAccountIdUseCase(new InMemoryPatientProfileRepository(patient)),
+      new NoopDomainEventDispatcher(),
+    );
 
     const moduleRef = await Test.createTestingModule({
-      controllers: [AppointmentController, DoctorAppointmentsController, ConsultationController],
+      controllers: [
+        AppointmentController,
+        DoctorAppointmentsController,
+        ConsultationController,
+        ConsultationFeedbackController,
+        DoctorReviewsController,
+      ],
       providers: [
         PinoLoggerService,
         Reflector,
@@ -440,6 +522,13 @@ describe('Consultation controllers (integration)', () => {
         },
         { provide: APPOINTMENT_REPOSITORY, useValue: appointmentRepo },
         { provide: CONSULTATION_SESSION_REPOSITORY, useValue: sessionRepo },
+        { provide: CONSULTATION_FEEDBACK_REPOSITORY, useValue: feedbackRepo },
+        { provide: SubmitConsultationFeedbackUseCase, useValue: submitConsultationFeedbackUseCase },
+        { provide: GetDoctorRatingAggregateUseCase, useValue: new GetDoctorRatingAggregateUseCase(feedbackRepo) },
+        {
+          provide: ListConsultationFeedbackForDoctorUseCase,
+          useValue: new ListConsultationFeedbackForDoctorUseCase(feedbackRepo),
+        },
         { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
         { provide: BookAppointmentUseCase, useValue: bookAppointmentUseCase },
         { provide: RescheduleOrCancelAppointmentUseCase, useValue: rescheduleOrCancelAppointmentUseCase },
@@ -947,6 +1036,97 @@ describe('Consultation controllers (integration)', () => {
         .expect(200);
 
       assert.ok(response.body.data.token);
+    });
+  });
+
+  // Consultation lifecycle completion follow-up (2026-07-26).
+  describe('POST /consultations/:id/feedback', () => {
+    it('rejects a request with no bearer token', async () => {
+      await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .send({ rating: 5 })
+        .expect(401);
+    });
+
+    it('rejects a rating out of range', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 6 })
+        .expect(400);
+
+      assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    });
+
+    it('rejects reviewing a consultation that has not been completed yet', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${todaysConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 5 })
+        .expect(422);
+
+      assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    });
+
+    it('rejects a caller with no patient profile', async () => {
+      await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_NO_PROFILE_TOKEN}`)
+        .send({ rating: 5 })
+        .expect(403);
+    });
+
+    it('submits feedback for a genuinely completed consultation, then rejects a duplicate', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 5, comment: 'Excellent, thorough, and kind.' })
+        .expect(201);
+
+      assert.equal(response.body.data.rating, 5);
+      assert.equal(response.body.data.comment, 'Excellent, thorough, and kind.');
+      assert.equal(response.body.data.consultationSessionId, completedConsultationSessionId);
+
+      const duplicate = await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 3 })
+        .expect(409);
+
+      assert.equal(duplicate.body.error.code, 'CONFLICT');
+    });
+
+    it('rejects a doctor caller (patient-only route)', async () => {
+      await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+        .send({ rating: 5 })
+        .expect(403);
+    });
+  });
+
+  // Consultation lifecycle completion follow-up (2026-07-26): confirms the
+  // real fix for the circular-module-dependency mistake -- this endpoint
+  // lives in ConsultationModule (DoctorReviewsController), not DoctorModule,
+  // and is reachable with no bearer token at all (public, same as
+  // GET /doctors/:id). Runs after the feedback describe block above (node:test
+  // preserves file order), so by this point exactly one review already
+  // exists for `doctor` (rating 5, from "submits feedback..." there) --
+  // asserted against directly rather than re-submitting (which the one-
+  // review-per-session rule would correctly reject as a duplicate).
+  describe('GET /doctors/:id/reviews', () => {
+    it('returns 404 for an unknown doctor id', async () => {
+      await request(app.getHttpServer()).get('/doctors/99999999-9999-4999-8999-999999999999/reviews').expect(404);
+    });
+
+    it('is reachable with no bearer token and reflects the real submitted review in both the list and the aggregate', async () => {
+      const response = await request(app.getHttpServer()).get(`/doctors/${doctor.getId()}/reviews`).expect(200);
+
+      assert.equal(response.body.data.reviews.length, 1);
+      assert.equal(response.body.data.reviews[0].rating, 5);
+      assert.equal(response.body.data.reviews[0].comment, 'Excellent, thorough, and kind.');
+      assert.equal(response.body.data.reviewCount, 1);
+      assert.equal(response.body.data.averageRating, 5);
     });
   });
 });

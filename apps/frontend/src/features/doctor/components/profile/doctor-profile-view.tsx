@@ -2,6 +2,8 @@
 
 import { Mail, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { DoctorRatingSummary } from '@/features/consultation/components/doctor-rating-summary';
+import { DoctorReviewsList } from '@/features/consultation/components/doctor-reviews-list';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
@@ -46,6 +48,7 @@ export function DoctorProfileView({ profile }: DoctorProfileViewProps) {
         <div className="flex flex-col gap-1">
           <p className="text-lg font-semibold text-text-primary">{profile.fullName}</p>
           <p className="text-sm text-text-secondary">{specialtyName}</p>
+          <DoctorRatingSummary doctorProfileId={profile.id} />
         </div>
       </div>
 
@@ -99,6 +102,10 @@ export function DoctorProfileView({ profile }: DoctorProfileViewProps) {
         ) : (
           <EmptyState title={t('awardsEmptyTitle')} />
         )}
+      </Section>
+
+      <Section title={t('reviews')}>
+        <DoctorReviewsList doctorProfileId={profile.id} />
       </Section>
 
       <Section title={t('contactInformation')}>

@@ -50,4 +50,15 @@ describe('AppointmentList', () => {
 
     expect(screen.queryByRole('button', { name: 'Pay now' })).not.toBeInTheDocument();
   });
+
+  it('renders a reachable "View summary" action for a Completed appointment with a consultation session', () => {
+    const appointment = buildAppointment({
+      status: 'completed',
+      consultationSessionId: '55555555-5555-4555-8555-555555555555',
+    });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'View summary' })).toBeInTheDocument();
+  });
 });

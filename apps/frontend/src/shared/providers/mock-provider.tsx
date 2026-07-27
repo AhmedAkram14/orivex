@@ -40,6 +40,21 @@ declare global {
     // then driven through 100% real clicks against the real admin UI.
     __mockDoctorStore?: {
       submitVerification: (doctorId: string, request: SubmitVerificationRequest) => VerificationCase;
+      seedInConsultationQueueEntry: (consultationSessionId: string, label: string) => void;
+    };
+    // Consultation-completion follow-up (2026-07-26): lets an E2E spec place
+    // a real ConsultationSession "in progress" on the doctor's queue and a
+    // matching Completed appointment on the patient's list, so the spec can
+    // drive the real Complete-Consultation -> post-consultation summary ->
+    // rate -> doctor-aggregate-changes chain through 100% real clicks,
+    // without a real LiveKit connection to join/disconnect/reconnect
+    // against (this environment has no real LiveKit server -- see this
+    // file's own top-level doc comment on why MSW replaces the backend, not
+    // LiveKit specifically, which no mock can meaningfully stand in for in a
+    // real browser). This is the one disclosed simplification in that
+    // chain, mirroring `__mockDoctorStore`'s own precedent.
+    __mockPatientAppointments?: {
+      seedCompletedAppointment: (consultationSessionId: string, doctor: { name: string; specialty: string }) => void;
     };
   }
 }
@@ -63,12 +78,20 @@ export function MockProvider({ children }: { children: ReactNode }) {
       import('@/mocks/patient-store'),
       import('@/mocks/scheduling-store'),
       import('@/mocks/doctor-store'),
-    ]).then(([{ worker }, { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification }, { addDoctorException }, { submitVerification }]) => {
-      window.__mockPatientVerification = { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification };
-      window.__mockScheduling = { addDoctorException };
-      window.__mockDoctorStore = { submitVerification };
-      worker.start({ onUnhandledRequest: 'bypass' }).then(() => setReady(true));
-    });
+    ]).then(
+      ([
+        { worker },
+        { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification, seedCompletedAppointment },
+        { addDoctorException },
+        { submitVerification, seedInConsultationQueueEntry },
+      ]) => {
+        window.__mockPatientVerification = { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification };
+        window.__mockScheduling = { addDoctorException };
+        window.__mockDoctorStore = { submitVerification, seedInConsultationQueueEntry };
+        window.__mockPatientAppointments = { seedCompletedAppointment };
+        worker.start({ onUnhandledRequest: 'bypass' }).then(() => setReady(true));
+      },
+    );
   }, []);
 
   if (!ready) return null;

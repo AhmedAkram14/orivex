@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { adminHandlers } from '@/mocks/handlers/admin';
 import { authHandlers } from '@/mocks/handlers/auth';
+import { consultationHandlers } from '@/mocks/handlers/consultation';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
 import { identityHandlers } from '@/mocks/handlers/identity';
 import { mediaAssetHandlers } from '@/mocks/handlers/media-assets';
@@ -27,6 +28,7 @@ export const handlers = [
   ),
   ...adminHandlers,
   ...authHandlers,
+  ...consultationHandlers,
   ...notificationHandlers,
   ...doctorHandlers,
   ...identityHandlers,

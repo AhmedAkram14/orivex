@@ -9,17 +9,17 @@ datasource db {
 }
 
 model Account {
-  id                String    @id @default(uuid())
-  email             String    @unique
-  role              String    @default("patient")
+  id                String             @id @default(uuid())
+  email             String             @unique
+  role              String             @default("patient")
   // Added Sprint 1.1C, synchronizing the persistence model with the already
   // approved Identity domain (Sprints 1.1A/1.1B) — docs/08-logical-data-model.md
   // and docs/09-physical-database.md don't yet reflect these fields; a
   // documentation synchronization task is scheduled after this sprint.
-  status            String    @default("active")
+  status            String             @default("active")
   displayName       String
   phoneNumber       String?
-  preferredLanguage String    @default("Arabic")
+  preferredLanguage String             @default("Arabic")
   // Onboarding Redesign (2026-07-21 proposal, §0a): cross-role personal
   // identity fields, extending the existing UserProfile child entity rather
   // than introducing a separate PersonalProfile table -- Identity remains the
@@ -32,10 +32,10 @@ model Account {
   // string-typed column; see identity/domain/enums/gender.enum.ts).
   gender            String?
   nationalityId     String?
-  nationality       Country?  @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
+  nationality       Country?           @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
   address           String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   credential        Credential?
   doctorProfile     DoctorProfile?
   patientProfile    PatientProfile?
@@ -76,16 +76,16 @@ model Credential {
 // credential (rotated in place on every /auth/refresh call, never a growing
 // history table). Replaces the earlier Keycloak-shaped Session model.
 model Session {
-  id               String    @id @default(uuid())
+  id               String     @id @default(uuid())
   credentialId     String
   credential       Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
-  refreshTokenHash String    @unique
+  refreshTokenHash String     @unique
   userAgent        String?
   ipAddress        String?
   expiresAt        DateTime
   revokedAt        DateTime?
-  lastUsedAt       DateTime  @default(now())
-  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime   @default(now())
+  createdAt        DateTime   @default(now())
 
   @@index([credentialId])
 }
@@ -123,20 +123,20 @@ model AuthToken {
 // DoctorModule entry). Verification status (TrustModule, future sprint) is
 // deliberately not duplicated here - single source of truth per fact.
 model DoctorProfile {
-  id                     String                @id @default(uuid())
-  accountId              String                @unique
-  account                Account               @relation(fields: [accountId], references: [id], onDelete: Restrict)
-  licenseNumber          String
-  biography              String?
-  yearsOfExperience      Int?
-  languages              String[]
-  consultationFeeAmount  Decimal?
+  id                              String                   @id @default(uuid())
+  accountId                       String                   @unique
+  account                         Account                  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  licenseNumber                   String
+  biography                       String?
+  yearsOfExperience               Int?
+  languages                       String[]
+  consultationFeeAmount           Decimal?
   // ORIVEX Roadmap 2.0 Stage 4: optional grouping/org-chart link only, not
   // multi-tenant scoping (true tenant isolation is explicitly deferred, see
   // Stage 4's roadmap completion note) -- a doctor may exist with no
   // hospital affiliation at all.
-  hospitalId             String?
-  hospital               Hospital?             @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  hospitalId                      String?
+  hospital                        Hospital?                @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
   // a doctor's specialty, now that the transitional free-text `specialty`
   // column (removed this stage, after a verified backfill -- see this
@@ -146,29 +146,35 @@ model DoctorProfile {
   // domain entity, not the database) -- a doctor may exist with neither,
   // with only a hospital, or with both a hospital and a department, but
   // never a department alone.
-  specialtyId            String
-  medicalSpecialty       MedicalSpecialty      @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
-  professionalRank       String?
-  licenseExpiryDate      DateTime?
-  departmentId           String?
-  department             Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  createdAt              DateTime              @default(now())
-  updatedAt              DateTime              @updatedAt
-  publications           PortfolioPublication[]
-  awards                 PortfolioAward[]
+  specialtyId                     String
+  medicalSpecialty                MedicalSpecialty         @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
+  professionalRank                String?
+  licenseExpiryDate               DateTime?
+  departmentId                    String?
+  department                      Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt                       DateTime                 @default(now())
+  updatedAt                       DateTime                 @updatedAt
+  publications                    PortfolioPublication[]
+  awards                          PortfolioAward[]
   // VerificationCase no longer relates to DoctorProfile directly (Onboarding
   // Redesign, 2026-07-21 proposal, Stage O.2) -- it references Account via
   // subjectAccountId uniformly for every subject type. A repository join
   // through DoctorProfile.accountId is how "cases for this doctor profile"
   // queries are served when needed, not a stored relation here.
-  availabilityWindows    AvailabilityWindow[]
-  appointments           Appointment[]
-  paymentTransactions    PaymentTransaction[]
-  authoredHealthGraphNodes HealthGraphNode[]
-  authoredClinicalNotes  ClinicalNote[]
-  authoredPrescriptions  Prescription[]
-  workingHoursDays       WorkingHoursDay[]
-  scheduleExceptions     ScheduleException[]
+  availabilityWindows             AvailabilityWindow[]
+  appointments                    Appointment[]
+  paymentTransactions             PaymentTransaction[]
+  authoredHealthGraphNodes        HealthGraphNode[]
+  authoredClinicalNotes           ClinicalNote[]
+  authoredPrescriptions           Prescription[]
+  workingHoursDays                WorkingHoursDay[]
+  scheduleExceptions              ScheduleException[]
+  // Consultation lifecycle completion follow-up (2026-07-26): reviews are
+  // the sole source of a doctor's rating -- computed at read time by
+  // aggregating these rows (AVG/COUNT), never a stored/manually-editable
+  // rating column on this model.
+  receivedFeedback                ConsultationFeedback[]
+  authoredFollowUpRecommendations FollowUpRecommendation[]
 
   @@index([hospitalId])
   @@index([specialtyId])
@@ -183,11 +189,11 @@ model DoctorProfile {
 // DoctorProfile pointed at it -- a doctor's own record must never be
 // destroyed as a side effect of an org-chart edit.
 model Hospital {
-  id          String       @id @default(uuid())
+  id          String          @id @default(uuid())
   name        String
   address     String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   departments Department[]
   doctors     DoctorProfile[]
 }
@@ -229,12 +235,12 @@ model MedicalSpecialty {
 }
 
 model Country {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  iso2Code  String    @unique
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                    String    @id @default(uuid())
+  name                  String    @unique
+  iso2Code              String    @unique
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   // Doubles as the nationality list -- a nationality is a country reference,
   // no separate table (proposal §4).
   accountsByNationality Account[]
@@ -284,22 +290,22 @@ model PortfolioAward {
 // storage — this table holds pointers/metadata only (docs/09-physical-
 // database.md's assets schema description).
 model MediaAsset {
-  id                     String                 @id @default(uuid())
-  purpose                String
-  contentType            String
-  sizeEstimate           Int?
-  storageKey             String                 @unique
-  status                 String                 @default("pending")
+  id                    String                 @id @default(uuid())
+  purpose               String
+  contentType           String
+  sizeEstimate          Int?
+  storageKey            String                 @unique
+  status                String                 @default("pending")
   // The account that requested this upload intent -- required so
   // confirm-upload can enforce that only the owner may confirm/download
   // their own asset (closes an IDOR: presigned download URLs must never be
   // mintable by an arbitrary authenticated caller guessing another user's
   // asset id).
-  ownerAccountId         String
-  owner                  Account                @relation(fields: [ownerAccountId], references: [id], onDelete: Restrict)
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  verificationDocuments  VerificationDocument[]
+  ownerAccountId        String
+  owner                 Account                @relation(fields: [ownerAccountId], references: [id], onDelete: Restrict)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  verificationDocuments VerificationDocument[]
 
   @@index([ownerAccountId])
 }
@@ -325,15 +331,15 @@ enum VerificationStatus {
 // entity's own DoctorProfessionalDetails value object -- no doctorId column
 // or DoctorProfile relation anymore, see DoctorProfile's own comment on why).
 model VerificationCase {
-  id               String                   @id @default(uuid())
+  id               String                  @id @default(uuid())
   subjectAccountId String
-  subjectAccount   Account                  @relation(fields: [subjectAccountId], references: [id], onDelete: Restrict)
+  subjectAccount   Account                 @relation(fields: [subjectAccountId], references: [id], onDelete: Restrict)
   subjectType      VerificationSubjectType
   licenseNumber    String?
   specialtyCode    String?
-  status           VerificationStatus       @default(SUBMITTED)
+  status           VerificationStatus      @default(SUBMITTED)
   reason           String?
-  submittedAt      DateTime                 @default(now())
+  submittedAt      DateTime                @default(now())
   decidedAt        DateTime?
   documents        VerificationDocument[]
 
@@ -420,28 +426,30 @@ enum EmergencyRelationship {
 // specified anywhere concretely. No additional demographic fields beyond
 // what's already documented (accountId, dateOfBirth).
 model PatientProfile {
-  id                String             @id @default(uuid())
-  accountId         String             @unique
-  account           Account            @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  id                  String                 @id @default(uuid())
+  accountId           String                 @unique
+  account             Account                @relation(fields: [accountId], references: [id], onDelete: Restrict)
   // dateOfBirth moved to Account/UserProfile (Onboarding Redesign,
   // 2026-07-21 proposal §0a) -- Identity owns cross-role personal info.
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  emergencyContacts EmergencyContact[]
-  appointments      Appointment[]
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  emergencyContacts   EmergencyContact[]
+  appointments        Appointment[]
   paymentTransactions PaymentTransaction[]
-  healthGraph       HealthGraph?
-  vitalReadings     VitalReading[]
+  healthGraph         HealthGraph?
+  vitalReadings       VitalReading[]
   // Onboarding Redesign (2026-07-21 proposal, Stage O.3): Patient's own
   // medical-profile fields -- deliberately unstructured free text for
   // allergies/chronicDiseases (no ICD-11/SNOMED CT, no reference tables,
   // for this phase; normalizing into discrete, coded entries is a future
   // phase, per the approved proposal).
-  bloodType         String?
-  allergies         String?
-  chronicDiseases   String?
+  bloodType           String?
+  allergies           String?
+  chronicDiseases     String?
   insuranceProviderId String?
-  insuranceProvider   InsuranceProvider? @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
+  insuranceProvider   InsuranceProvider?     @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
+  // Consultation lifecycle completion follow-up (2026-07-26).
+  submittedFeedback   ConsultationFeedback[]
 
   @@index([insuranceProviderId])
 }
@@ -528,24 +536,24 @@ enum ConsultationCompletionReason {
 // opaque ID, preserving referential integrity. version supports optimistic
 // locking for both aggregates ahead of concurrent booking/session workflows.
 model Appointment {
-  id                    String              @id @default(uuid())
-  patientId             String
-  patientProfile        PatientProfile      @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctorId              String
-  doctorProfile         DoctorProfile       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  availabilityWindowId  String
-  availabilityWindow    AvailabilityWindow  @relation(fields: [availabilityWindowId], references: [id], onDelete: Restrict)
-  consultationType      ConsultationType
-  status                AppointmentStatus   @default(REQUESTED)
-  scheduledAt           DateTime
-  reasonForVisit        String?
-  rescheduledFromId     String?
-  rescheduledFrom        Appointment?        @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
-  rescheduledTo          Appointment[]       @relation("AppointmentReschedule")
-  version               Int                 @default(1)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  consultationSession   ConsultationSession?
+  id                   String               @id @default(uuid())
+  patientId            String
+  patientProfile       PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId             String
+  doctorProfile        DoctorProfile        @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  availabilityWindowId String
+  availabilityWindow   AvailabilityWindow   @relation(fields: [availabilityWindowId], references: [id], onDelete: Restrict)
+  consultationType     ConsultationType
+  status               AppointmentStatus    @default(REQUESTED)
+  scheduledAt          DateTime
+  reasonForVisit       String?
+  rescheduledFromId    String?
+  rescheduledFrom      Appointment?         @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
+  rescheduledTo        Appointment[]        @relation("AppointmentReschedule")
+  version              Int                  @default(1)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  consultationSession  ConsultationSession?
 
   @@index([patientId])
   @@index([doctorId])
@@ -560,25 +568,78 @@ model Appointment {
 }
 
 model ConsultationSession {
-  id                String                        @id @default(uuid())
-  appointmentId     String                        @unique
-  appointment       Appointment                   @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  state             ConsultationState             @default(WAITING_ROOM)
-  completionReason  ConsultationCompletionReason?
-  version           Int                           @default(1)
-  startedAt         DateTime?
-  closedAt          DateTime?
-  createdAt         DateTime                      @default(now())
-  updatedAt         DateTime                      @updatedAt
-  connectionLogs    SessionConnectionLog[]
-  paymentTransactions PaymentTransaction[]
-  healthGraphNodes  HealthGraphNode[]
-  clinicalNotes     ClinicalNote[]
-  prescriptions     Prescription[]
-  aiSuggestions     AISuggestion[]
+  id                                 String                              @id @default(uuid())
+  appointmentId                      String                              @unique
+  appointment                        Appointment                         @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  state                              ConsultationState                   @default(WAITING_ROOM)
+  completionReason                   ConsultationCompletionReason?
+  version                            Int                                 @default(1)
+  startedAt                          DateTime?
+  closedAt                           DateTime?
+  createdAt                          DateTime                            @default(now())
+  updatedAt                          DateTime                            @updatedAt
+  connectionLogs                     SessionConnectionLog[]
+  paymentTransactions                PaymentTransaction[]
+  healthGraphNodes                   HealthGraphNode[]
+  clinicalNotes                      ClinicalNote[]
+  prescriptions                      Prescription[]
+  aiSuggestions                      AISuggestion[]
   pendingAISuggestionAcknowledgments PendingAISuggestionAcknowledgment[]
+  // Consultation lifecycle completion follow-up (2026-07-26): one feedback
+  // row and one follow-up recommendation per session, at most -- both
+  // deliberately 1:1 (unique FK), not lists.
+  consultationFeedback               ConsultationFeedback?
+  followUpRecommendation             FollowUpRecommendation?
 
   @@index([state])
+}
+
+// Consultation lifecycle completion follow-up (2026-07-26): the sole source
+// of a doctor's rating -- DoctorProfile deliberately carries no editable
+// rating column (§10 of the fix's own scope). One review per completed
+// consultation (consultationSessionId is unique, not just indexed) --
+// enforced at the database level, not just application-side, since this is
+// a real business invariant ("one review per consultation") rather than a
+// performance-only index. patientId/doctorId are both stored redundantly
+// (derivable from the session's own appointment) purely to make the two
+// most common queries -- "this doctor's reviews" and "this patient's
+// submitted reviews" -- simple indexed lookups instead of a join through
+// ConsultationSession -> Appointment every time; they are set once at
+// submission from the session's own appointment, never client-supplied.
+model ConsultationFeedback {
+  id                    String              @id @default(uuid())
+  consultationSessionId String              @unique
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  patientId             String
+  patientProfile        PatientProfile      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId              String
+  doctorProfile         DoctorProfile       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  rating                Int
+  comment               String?
+  createdAt             DateTime            @default(now())
+
+  @@index([doctorId])
+  @@index([patientId])
+}
+
+// Consultation lifecycle completion follow-up (2026-07-26): the smallest
+// real capability that lets a doctor's follow-up recommendation survive
+// consultation completion and reach the patient -- deliberately NOT a
+// second booking system (§13 of the fix's own scope): the patient books the
+// actual follow-up appointment through the existing real booking flow
+// (GET /doctors -> POST /appointments), this just carries the doctor's own
+// recommendation (a suggested date + reason) so the patient sees it.
+model FollowUpRecommendation {
+  id                    String              @id @default(uuid())
+  consultationSessionId String              @unique
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  authoringDoctorId     String
+  doctorProfile         DoctorProfile       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  recommendedDate       DateTime?
+  reason                String
+  createdAt             DateTime            @default(now())
+
+  @@index([authoringDoctorId])
 }
 
 model SessionConnectionLog {
@@ -619,7 +680,7 @@ model PaymentTransaction {
   // same request replays the original outcome instead of double-charging.
   idempotencyKey        String               @unique
   consultationSessionId String?
-  consultationSession   ConsultationSession?  @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  consultationSession   ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   patientId             String
   patientProfile        PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctorId              String
@@ -683,34 +744,34 @@ enum JourneyStage {
 // only); introduce it in the sprint that actually needs it, with full
 // domain behavior, not speculatively now.
 model HealthGraph {
-  id            String            @id @default(uuid())
-  patientId     String            @unique
-  patientProfile PatientProfile   @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  createdAt     DateTime          @default(now())
-  nodes         HealthGraphNode[]
-  journeys      HealthJourney[]
+  id             String            @id @default(uuid())
+  patientId      String            @unique
+  patientProfile PatientProfile    @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  createdAt      DateTime          @default(now())
+  nodes          HealthGraphNode[]
+  journeys       HealthJourney[]
 }
 
 // icd11_code_id is deliberately omitted -- it would reference
 // reference.icd11_codes (ReferenceDataModule), which doesn't exist yet;
 // no opaque placeholder FK is introduced in its place.
 model HealthGraphNode {
-  id                    String              @id @default(uuid())
+  id                    String               @id @default(uuid())
   healthGraphId         String
-  healthGraph           HealthGraph         @relation(fields: [healthGraphId], references: [id], onDelete: Restrict)
+  healthGraph           HealthGraph          @relation(fields: [healthGraphId], references: [id], onDelete: Restrict)
   nodeType              HealthGraphNodeType
   freeTextDescription   String?
-  certaintyLevel        CertaintyLevel      @default(SUSPECTED)
-  source                NodeSource          @default(CLINICAL)
+  certaintyLevel        CertaintyLevel       @default(SUSPECTED)
+  source                NodeSource           @default(CLINICAL)
   authoringDoctorId     String?
-  doctorProfile         DoctorProfile?      @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  doctorProfile         DoctorProfile?       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
   consultationSessionId String?
   consultationSession   ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   supersedesNodeId      String?
-  supersedes            HealthGraphNode?    @relation("NodeSupersede", fields: [supersedesNodeId], references: [id], onDelete: Restrict)
-  supersededBy          HealthGraphNode[]   @relation("NodeSupersede")
-  createdAt             DateTime            @default(now())
-  journeysAsRoot        HealthJourney[]     @relation("JourneyRootNode")
+  supersedes            HealthGraphNode?     @relation("NodeSupersede", fields: [supersedesNodeId], references: [id], onDelete: Restrict)
+  supersededBy          HealthGraphNode[]    @relation("NodeSupersede")
+  createdAt             DateTime             @default(now())
+  journeysAsRoot        HealthJourney[]      @relation("JourneyRootNode")
   journeyLinks          JourneyNodeLink[]
   prescriptions         Prescription[]
 
@@ -759,16 +820,16 @@ model JourneyNodeLink {
 // derivedFromSuggestionId is deliberately not stored -- would reference
 // AISuggestion (AIModule), which doesn't exist yet.
 model ClinicalNote {
-  id                    String        @id @default(uuid())
+  id                    String              @id @default(uuid())
   consultationSessionId String
   consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   authoringDoctorId     String
-  doctorProfile         DoctorProfile @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  doctorProfile         DoctorProfile       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
   content               String
   addendumOfNoteId      String?
-  addendumOf            ClinicalNote? @relation("NoteAddendum", fields: [addendumOfNoteId], references: [id], onDelete: Restrict)
-  addenda               ClinicalNote[] @relation("NoteAddendum")
-  createdAt             DateTime      @default(now())
+  addendumOf            ClinicalNote?       @relation("NoteAddendum", fields: [addendumOfNoteId], references: [id], onDelete: Restrict)
+  addenda               ClinicalNote[]      @relation("NoteAddendum")
+  createdAt             DateTime            @default(now())
 
   @@index([consultationSessionId])
   @@index([authoringDoctorId])
@@ -792,17 +853,17 @@ enum PrescriptionStatus {
 // this sprint; introduce it together with its full domain behavior when a
 // real workflow needs it.
 model Prescription {
-  id                    String              @id @default(uuid())
+  id                    String                 @id @default(uuid())
   consultationSessionId String
-  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  consultationSession   ConsultationSession    @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   diagnosisNodeId       String
-  diagnosisNode         HealthGraphNode     @relation(fields: [diagnosisNodeId], references: [id], onDelete: Restrict)
+  diagnosisNode         HealthGraphNode        @relation(fields: [diagnosisNodeId], references: [id], onDelete: Restrict)
   authoringDoctorId     String
-  doctorProfile         DoctorProfile       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
-  status                PrescriptionStatus  @default(DRAFT)
+  doctorProfile         DoctorProfile          @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  status                PrescriptionStatus     @default(DRAFT)
   signedAt              DateTime?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   lineItems             PrescriptionLineItem[]
 
   @@index([consultationSessionId])

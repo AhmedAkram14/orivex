@@ -350,7 +350,9 @@
         "biographyTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
         "experienceInvalid": "أدخل عددًا صحيحًا من السنوات.",
         "languagesRequired": "اختر لغة واحدة على الأقل."
-      }
+      },
+      "reviews": "التقييمات",
+      "reviewsEmptyTitle": "لا توجد تقييمات مكتوبة بعد."
     },
     "schedule": {
       "title": "الجدول الزمني",
@@ -1075,6 +1077,59 @@
         "emailProviderConfigured": "مزود البريد الإلكتروني (SendGrid)",
         "notificationQueueConfigured": "طابور الإشعارات (Redis)"
       }
+    }
+  },
+  "consultation": {
+    "workspace": {
+      "openAction": "مساحة عمل الاستشارة",
+      "title": "مساحة عمل الاستشارة",
+      "tabs": {
+        "notes": "الملاحظات",
+        "diagnosis": "التشخيص",
+        "followUp": "المتابعة",
+        "prescriptions": "الوصفات الطبية"
+      },
+      "notesPlaceholder": "أضف ملاحظة سريرية...",
+      "saveNote": "حفظ الملاحظة",
+      "diagnosisPlaceholder": "صف التشخيص...",
+      "saveDiagnosis": "حفظ التشخيص",
+      "certainty": {
+        "suspected": "مشتبه به",
+        "confirmed": "مؤكد",
+        "ruled_out": "مستبعد"
+      },
+      "followUpReasonPlaceholder": "سبب المتابعة الموصى بها...",
+      "saveFollowUp": "حفظ توصية المتابعة",
+      "noPrescriptions": "لا توجد وصفات طبية لهذه الاستشارة.",
+      "completeConsultation": "إنهاء الاستشارة",
+      "completeError": "تعذر إنهاء الاستشارة. حاول مرة أخرى.",
+      "saveError": "تعذر الحفظ. حاول مرة أخرى.",
+      "unsavedWorkWarning": "لديك محتوى غير محفوظ. هل تريد إنهاء الاستشارة على أي حال؟"
+    },
+    "rating": {
+      "prompt": "قيّم استشارتك",
+      "starLabel": "{count} من 5 نجوم",
+      "commentPlaceholder": "اترك تعليقًا اختياريًا...",
+      "submit": "إرسال التقييم",
+      "submitError": "تعذر إرسال التقييم. حاول مرة أخرى.",
+      "noReviewsYet": "لا توجد تقييمات بعد",
+      "reviewCount": "({count} تقييم)"
+    },
+    "outcome": {
+      "openAction": "عرض الملخص",
+      "title": "ملخص الاستشارة",
+      "visitDetails": "تفاصيل الزيارة",
+      "doctor": "الطبيب",
+      "loadingDoctor": "جارٍ التحميل...",
+      "date": "التاريخ",
+      "status": "الحالة",
+      "completed": "مكتملة",
+      "duration": "المدة",
+      "prescriptions": "الوصفات الطبية",
+      "followUp": "المتابعة الموصى بها",
+      "yourRating": "تقييمك",
+      "alreadyRated": "لقد قيّمت هذه الاستشارة بـ {rating} من 5.",
+      "loadError": "تعذر تحميل ملخص الاستشارة."
     }
   }
 }

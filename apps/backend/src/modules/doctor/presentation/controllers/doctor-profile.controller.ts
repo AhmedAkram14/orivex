@@ -33,6 +33,18 @@ import { mapDoctorError } from '../mappers/doctor-exception.mapper.js';
 // composition) -- both remain Stage 8/future work; this is intentionally
 // narrow, see ListDoctorDirectoryUseCase's own header comment.
 //
+// Rating/review data (averageRating/reviewCount, and the reviews list) is
+// deliberately NOT composed into this controller's responses (consultation
+// lifecycle completion follow-up, 2026-07-26) -- DoctorModule cannot import
+// ConsultationModule without creating a real circular module dependency
+// (ConsultationModule already imports DoctorModule to resolve doctor
+// profiles for booking/appointments; the reverse direction fails at Nest
+// bootstrap with an ESM circular-reference error, confirmed by an actual
+// boot attempt, not assumed). Instead, GET /doctors/:id/reviews lives in
+// ConsultationModule (`DoctorReviewsController`), which can safely depend on
+// both DoctorModule and its own feedback data -- see that controller's own
+// header comment. The frontend composes the two calls.
+//
 // GET/PATCH /doctors/me are the caller's own "my profile" surface (mirrors
 // PatientProfileController's /patients/me). Guarded to Patient OR Doctor
 // (Doctor Onboarding, Phase 4 continuation): every account starts as

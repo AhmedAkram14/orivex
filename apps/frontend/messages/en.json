@@ -350,7 +350,9 @@
         "biographyTooLong": "Biography must be at most {max} characters.",
         "experienceInvalid": "Enter a valid number of years.",
         "languagesRequired": "Select at least one language."
-      }
+      },
+      "reviews": "Reviews",
+      "reviewsEmptyTitle": "No written reviews yet."
     },
     "schedule": {
       "title": "Schedule",
@@ -1075,6 +1077,59 @@
         "emailProviderConfigured": "Email provider (SendGrid)",
         "notificationQueueConfigured": "Notification queue (Redis)"
       }
+    }
+  },
+  "consultation": {
+    "workspace": {
+      "openAction": "Consultation workspace",
+      "title": "Consultation workspace",
+      "tabs": {
+        "notes": "Notes",
+        "diagnosis": "Diagnosis",
+        "followUp": "Follow-up",
+        "prescriptions": "Prescriptions"
+      },
+      "notesPlaceholder": "Add a clinical note...",
+      "saveNote": "Save note",
+      "diagnosisPlaceholder": "Describe the diagnosis...",
+      "saveDiagnosis": "Save diagnosis",
+      "certainty": {
+        "suspected": "Suspected",
+        "confirmed": "Confirmed",
+        "ruled_out": "Ruled out"
+      },
+      "followUpReasonPlaceholder": "Reason for the recommended follow-up...",
+      "saveFollowUp": "Save follow-up recommendation",
+      "noPrescriptions": "No prescriptions for this consultation.",
+      "completeConsultation": "Complete Consultation",
+      "completeError": "Couldn't complete the consultation. Please try again.",
+      "saveError": "Couldn't save. Please try again.",
+      "unsavedWorkWarning": "You have unsaved input. Complete the consultation anyway?"
+    },
+    "rating": {
+      "prompt": "Rate your consultation",
+      "starLabel": "{count} of 5 stars",
+      "commentPlaceholder": "Leave an optional comment...",
+      "submit": "Submit rating",
+      "submitError": "Couldn't submit your rating. Please try again.",
+      "noReviewsYet": "No reviews yet",
+      "reviewCount": "({count} reviews)"
+    },
+    "outcome": {
+      "openAction": "View summary",
+      "title": "Consultation summary",
+      "visitDetails": "Visit details",
+      "doctor": "Doctor",
+      "loadingDoctor": "Loading...",
+      "date": "Date",
+      "status": "Status",
+      "completed": "Completed",
+      "duration": "Duration",
+      "prescriptions": "Prescriptions",
+      "followUp": "Recommended follow-up",
+      "yourRating": "Your rating",
+      "alreadyRated": "You rated this consultation {rating} of 5.",
+      "loadError": "Couldn't load the consultation summary."
     }
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
+import { ConsultationOutcomeAction } from '@/features/consultation/components/consultation-outcome-action';
 import { PayNowAction } from '@/features/payment/components/pay-now-action';
 import type { Appointment } from '@/features/patient/api/types';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
@@ -45,6 +46,8 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription }: 
                 <PayNowAction consultationSessionId={appointment.consultationSessionId} amount={appointment.feeAmount} />
               ) : appointment.status === 'confirmed' && appointment.consultationSessionId ? (
                 <JoinCallAction consultationSessionId={appointment.consultationSessionId} />
+              ) : appointment.status === 'completed' && appointment.consultationSessionId ? (
+                <ConsultationOutcomeAction consultationSessionId={appointment.consultationSessionId} />
               ) : undefined
             }
           />

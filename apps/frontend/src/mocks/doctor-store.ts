@@ -205,6 +205,18 @@ export function getQueue(): QueueEntry[] {
   return queue;
 }
 
+/**
+ * Test-only seam: places a real ConsultationSession's id "in consultation"
+ * on the doctor's queue, letting an E2E spec drive the real
+ * `ConsultationWorkspaceAction`/`JoinCallAction` UI against it without a
+ * real LiveKit connection (see `mock-provider.tsx`'s own doc comment for why
+ * that's the one genuinely unexercisable slice). Never called from
+ * application code.
+ */
+export function seedInConsultationQueueEntry(consultationSessionId: string, label: string): void {
+  queue = [...queue, { id: consultationSessionId, label, status: 'in-consultation', position: 0 }];
+}
+
 // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
 // delegates to the shared, cross-store `verification-case-store.ts` --
 // `doctorId` (the profile id) is unused beyond keeping this function's
