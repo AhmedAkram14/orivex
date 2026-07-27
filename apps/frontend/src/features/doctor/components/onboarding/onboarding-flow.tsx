@@ -9,7 +9,6 @@ import { ProfileStep } from '@/features/doctor/components/onboarding/profile-ste
 import { ReviewStep } from '@/features/doctor/components/onboarding/review-step';
 import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
-import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { DocumentsStep, type DocumentSlots } from '@/shared/verification/components/documents-step';
@@ -62,7 +61,7 @@ type WizardStep = 'personal' | 'profile' | 'documents' | 'review';
 export function OnboardingFlow() {
   const t = useTranslations('doctor.onboarding');
   const { data: account, isLoading: accountLoading } = useMyAccount();
-  const { data: profile, isLoading: profileLoading, error: profileError } = useDoctorProfile();
+  const { data: profile, isLoading: profileLoading, isError: profileError } = useDoctorProfile();
   const hasProfile = Boolean(profile);
   const { data: verifications, isLoading: verificationsLoading } = useMyVerifications(profile?.id);
 
@@ -70,8 +69,6 @@ export function OnboardingFlow() {
   const [documents, setDocuments] = useState<DocumentSlots>({});
   const [resubmitting, setResubmitting] = useState(false);
   const [workingProfile, setWorkingProfile] = useState<DoctorProfile | undefined>(undefined);
-
-  const profileNotFound = profileError instanceof ApiError && profileError.status === 404;
 
   const latestCase = useMemo(() => verifications?.[0], [verifications]);
 
@@ -100,11 +97,11 @@ export function OnboardingFlow() {
     );
   }
 
-  if (profileError && !profileNotFound) {
+  if (profileError) {
     return <Alert variant="danger">{t('loadError')}</Alert>;
   }
 
-  const effectiveProfile = workingProfile ?? profile;
+  const effectiveProfile = workingProfile ?? profile ?? undefined;
 
   // A decided case blocks re-entering the wizard unless it was Rejected/
   // MoreInfoNeeded and the applicant explicitly asked to edit + resubmit.

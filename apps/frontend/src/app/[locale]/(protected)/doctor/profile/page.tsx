@@ -54,7 +54,11 @@ export default function DoctorProfilePage() {
           </Card>
         )}
 
-        {isError && <Alert variant="danger">{t('loadError')}</Alert>}
+        {/* A Doctor-role account with no profile row is a genuine anomaly
+            here (unlike onboarding, where it's the expected pre-registration
+            state) -- `useDoctorProfile` resolves a 404 to `undefined` rather
+            than throwing, so that anomaly has to be checked explicitly. */}
+        {(isError || (!isLoading && !profile)) && <Alert variant="danger">{t('loadError')}</Alert>}
 
         {profile && mode === 'view' && <DoctorProfileView profile={profile} />}
         {profile && mode === 'edit' && (
