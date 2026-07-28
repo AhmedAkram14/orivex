@@ -402,7 +402,19 @@
         "completed": "Completed"
       },
       "startConsultation": "Start consultation",
-      "startConsultationFailed": "Couldn't start the consultation. Please try again."
+      "startConsultationFailed": "Couldn't start the consultation. Please try again.",
+      "pendingApproval": {
+        "title": "Pending approval",
+        "emptyTitle": "No requests waiting",
+        "emptyDescription": "New appointment requests will appear here for your approval.",
+        "loadError": "Couldn't load pending requests.",
+        "approve": "Approve",
+        "approveError": "Couldn't approve this appointment. Please try again.",
+        "consultationType": {
+          "free": "Free",
+          "paid": "Paid"
+        }
+      }
     },
     "consultation": {
       "title": "Consultation Workspace",
@@ -647,7 +659,7 @@
         "cancelled": "Cancelled"
       },
       "status": {
-        "requested": "Requested",
+        "requested": "Waiting doctor approval",
         "confirmed": "Confirmed",
         "rescheduled": "Rescheduled",
         "cancelled": "Cancelled",

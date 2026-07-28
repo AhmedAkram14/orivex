@@ -402,7 +402,19 @@
         "completed": "مكتملة"
       },
       "startConsultation": "بدء الاستشارة",
-      "startConsultationFailed": "تعذر بدء الاستشارة. حاول مرة أخرى."
+      "startConsultationFailed": "تعذر بدء الاستشارة. حاول مرة أخرى.",
+      "pendingApproval": {
+        "title": "بانتظار الموافقة",
+        "emptyTitle": "لا توجد طلبات بانتظار الموافقة",
+        "emptyDescription": "ستظهر طلبات المواعيد الجديدة هنا بانتظار موافقتك.",
+        "loadError": "تعذّر تحميل الطلبات المعلّقة.",
+        "approve": "الموافقة",
+        "approveError": "تعذرت الموافقة على هذا الموعد. حاول مرة أخرى.",
+        "consultationType": {
+          "free": "مجانية",
+          "paid": "مدفوعة"
+        }
+      }
     },
     "consultation": {
       "title": "مساحة عمل الاستشارة",
@@ -647,7 +659,7 @@
         "cancelled": "ملغاة"
       },
       "status": {
-        "requested": "مطلوب",
+        "requested": "بانتظار موافقة الطبيب",
         "confirmed": "مؤكد",
         "rescheduled": "أُعيدت جدولته",
         "cancelled": "ملغى",

@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ConsultationWorkspaceAction } from '@/features/consultation/components/consultation-workspace-action';
 import { StartConsultationAction } from '@/features/consultation/components/start-consultation-action';
+import { PendingApprovalSection } from '@/features/doctor/components/queue/pending-approval-section';
 import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
 import { RefundQueueAction } from '@/features/payment/components/refund-queue-action';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
@@ -53,6 +54,8 @@ export default function DoctorQueuePage() {
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page>
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
+
+        <PendingApprovalSection />
 
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 

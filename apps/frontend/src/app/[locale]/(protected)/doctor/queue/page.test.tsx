@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -69,5 +70,62 @@ describe('DoctorQueuePage', () => {
 
     expect(await screen.findByRole('button', { name: 'Join video call' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Consultation workspace' })).toBeInTheDocument();
+  });
+
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested and waits in this section until the doctor approves it.
+  it('lists a pending appointment request and lets the doctor approve it', async () => {
+    let approveCallCount = 0;
+    server.use(
+      http.get(`${env.apiBaseUrl}/appointments/doctor/pending-approval`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appointment-1',
+              patientName: 'Amina Youssef',
+              scheduledAt: new Date().toISOString(),
+              reasonForVisit: 'Routine check-up',
+              consultationType: 'free',
+            },
+          ],
+        }),
+      ),
+      http.patch(`${env.apiBaseUrl}/appointments/:id/approve`, ({ params }) => {
+        approveCallCount += 1;
+        return HttpResponse.json({ data: { id: params.id, status: 'confirmed' } });
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={doctorState}>
+            <DoctorQueuePage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Amina Youssef')).toBeInTheDocument();
+    expect(screen.getByText('Routine check-up')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+    await waitFor(() => expect(approveCallCount).toBe(1));
+  });
+
+  it('shows an honest empty state when there are no pending requests', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={doctorState}>
+            <DoctorQueuePage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('No requests waiting')).toBeInTheDocument();
   });
 });

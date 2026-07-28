@@ -1,6 +1,7 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
 import type {
+  ApprovedAppointment,
   DepartmentOption,
   DoctorDashboardSummary,
   DoctorDirectoryResult,
@@ -8,6 +9,7 @@ import type {
   DoctorProfileUpdateRequest,
   HospitalOption,
   ListDoctorDirectoryParams,
+  PendingApprovalAppointment,
   QueueResponse,
   RegisterDoctorProfileRequest,
   SubmitVerificationRequest,
@@ -47,6 +49,13 @@ export const doctorApi = {
     apiFetch<DoctorProfile>({ method: 'PATCH', path: DOCTOR_PATHS.profile, body: request }),
 
   getQueue: () => apiFetch<QueueResponse>({ path: DOCTOR_PATHS.queue }),
+
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested and waits here until the doctor approves it.
+  getPendingApproval: () => apiFetch<PendingApprovalAppointment[]>({ path: DOCTOR_PATHS.pendingApproval }),
+
+  approveAppointment: (appointmentId: string) =>
+    apiFetch<ApprovedAppointment>({ method: 'PATCH', path: DOCTOR_PATHS.approveAppointment(appointmentId) }),
 
   // Doctor Onboarding (Phase 4 continuation) -- real backend endpoints,
   // reused as-is (DoctorProfileController's POST /doctors,

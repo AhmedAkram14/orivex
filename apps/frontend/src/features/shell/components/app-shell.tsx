@@ -8,6 +8,7 @@ import { NotificationBell } from '@/features/shell/components/notification-bell'
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
 import { UserMenu } from '@/features/shell/components/user-menu';
 import { Link } from '@/shared/i18n/navigation';
+import { useRealtimeSocket } from '@/shared/lib/realtime/use-realtime-socket';
 import { Content } from '@/shared/ui/layout/content';
 import { Footer } from '@/shared/ui/layout/footer';
 import { Sidebar } from '@/shared/ui/layout/sidebar';
@@ -25,6 +26,7 @@ import { Topbar } from '@/shared/ui/layout/topbar';
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations('shell');
   const tCommon = useTranslations('common');
+  useRealtimeSocket();
 
   return (
     <div className="flex h-screen flex-col">

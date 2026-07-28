@@ -15,6 +15,10 @@ export const DOCTOR_PATHS = {
   // The real backend route (ConsultationModule's AppointmentController) --
   // not /doctor/queue.
   queue: '/appointments/doctor/queue',
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested and waits here until the doctor approves it.
+  pendingApproval: '/appointments/doctor/pending-approval',
+  approveAppointment: (appointmentId: string) => `/appointments/${appointmentId}/approve`,
   // Doctor Onboarding (Phase 4 continuation) -- the same DoctorProfileController
   // real backend routes, reused as-is: POST /doctors (register), and the
   // caller's own verification history under /doctors/:id/verifications.

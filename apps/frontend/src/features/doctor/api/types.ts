@@ -212,3 +212,18 @@ export interface QueueEntry {
 }
 
 export type QueueResponse = QueueEntry[];
+
+/** Doctor-approval-workflow fix: matches PendingApprovalAppointmentResponseDto exactly. */
+export interface PendingApprovalAppointment {
+  id: string;
+  patientName: string;
+  scheduledAt: string;
+  reasonForVisit?: string;
+  consultationType: 'free' | 'paid';
+}
+
+/** The real AppointmentResponseDto's shape, narrowed to what the approve action's caller needs. */
+export interface ApprovedAppointment {
+  id: string;
+  status: string;
+}

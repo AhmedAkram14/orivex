@@ -265,15 +265,19 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
 
   markAvailabilityWindowBooked(request.availabilityWindowId);
 
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested with no session yet -- both wait for the doctor's explicit
+  // approval (mirrors BookAppointmentUseCase's real removal of its own
+  // former auto-confirm-both workaround).
   const listItem: Appointment = {
     id,
     scheduledAt,
     doctorName: doctor?.fullName ?? 'Doctor',
     specialization: (doctor && listSpecialties().find((specialty) => specialty.id === doctor.specialtyId)?.name) ?? '',
-    status: isPaid ? 'requested' : 'confirmed',
+    status: 'requested',
     consultationType: request.consultationType,
     reasonForVisit: request.reasonForVisit,
-    consultationSessionId: isPaid ? `session-${id}` : null,
+    consultationSessionId: null,
     paymentRequired: isPaid,
     feeAmount: isPaid && doctor?.consultationFeeAmount !== undefined ? { amount: doctor.consultationFeeAmount, currency: 'EGP' } : null,
   };
@@ -290,6 +294,36 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
     reasonForVisit: request.reasonForVisit ?? null,
     rescheduledFromId: null,
   };
+}
+
+/** Doctor-approval-workflow fix: the doctor's own "Pending approval" list. */
+export function getPendingApprovalAppointments(): {
+  id: string;
+  patientName: string;
+  scheduledAt: string;
+  reasonForVisit?: string;
+  consultationType: 'free' | 'paid';
+}[] {
+  return appointments
+    .filter((appointment) => appointment.status === 'requested')
+    .map((appointment) => ({
+      id: appointment.id,
+      patientName: 'Amina Youssef',
+      scheduledAt: appointment.scheduledAt,
+      reasonForVisit: appointment.reasonForVisit,
+      consultationType: appointment.consultationType,
+    }));
+}
+
+/** Doctor-approval-workflow fix: approving mints the session and moves the appointment into the real (Confirmed) queue. */
+export function approveAppointment(appointmentId: string): { id: string; status: string } {
+  const appointment = appointments.find((entry) => entry.id === appointmentId);
+  if (!appointment) {
+    throw new Error(`Appointment "${appointmentId}" not found.`);
+  }
+  appointment.status = 'confirmed';
+  appointment.consultationSessionId = `session-${appointmentId}`;
+  return { id: appointment.id, status: appointment.status };
 }
 
 export function getMedicalRecords(): MedicalRecordEntry[] {

@@ -20,6 +20,7 @@ import {
   updateProfile,
 } from '@/mocks/doctor-store';
 import { listDepartments, listHospitals } from '@/mocks/admin-store';
+import { approveAppointment, getPendingApprovalAppointments } from '@/mocks/patient-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -41,6 +42,16 @@ export const doctorHandlers = [
   }),
 
   http.get(`${base()}${DOCTOR_PATHS.queue}`, () => HttpResponse.json({ data: getQueue() })),
+
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested and waits here until the doctor approves it.
+  http.get(`${base()}${DOCTOR_PATHS.pendingApproval}`, () =>
+    HttpResponse.json({ data: getPendingApprovalAppointments() }),
+  ),
+
+  http.patch(`${base()}/appointments/:id/approve`, ({ params }) =>
+    HttpResponse.json({ data: approveAppointment(params.id as string) }),
+  ),
 
   // Doctor Onboarding (Phase 4 continuation).
   http.post(`${base()}${DOCTOR_PATHS.register}`, async ({ request }) => {
