@@ -58,6 +58,28 @@ describe('NotifyApplicantOfVerificationDecisionHandler', () => {
     assert.equal(logger.errors.length, 0);
   });
 
+  it('notifies the applicant of an approval, with no reason to show', async () => {
+    const notificationRepo = new FakeNotificationRepository();
+    const logger = new FakeLogger();
+    const handler = new NotifyApplicantOfVerificationDecisionHandler(notificationRepo, logger as never);
+
+    await handler.handle({
+      verificationCaseId: '22222222-2222-4222-8222-222222222222',
+      subjectAccountId: SUBJECT_ACCOUNT_ID,
+      subjectType: 'doctor',
+      status: 'approved',
+    });
+
+    assert.equal(notificationRepo.saved.length, 1);
+    const notification = notificationRepo.saved[0];
+    assert.equal(notification.getAccountId(), SUBJECT_ACCOUNT_ID);
+    assert.equal(notification.getTitle(), 'Verification approved');
+    assert.match(notification.getDescription(), /approved/);
+    assert.doesNotMatch(notification.getDescription(), /Reason:/);
+    assert.equal(notification.getActionUrl(), '/doctor/onboarding');
+    assert.equal(logger.errors.length, 0);
+  });
+
   it('notifies a patient applicant of a more-info-needed decision, with distinct copy from rejection', async () => {
     const notificationRepo = new FakeNotificationRepository();
     const logger = new FakeLogger();

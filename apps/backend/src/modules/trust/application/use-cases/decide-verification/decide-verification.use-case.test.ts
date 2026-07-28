@@ -52,7 +52,7 @@ function buildSubmittedCase(): VerificationCase {
 }
 
 describe('DecideVerificationUseCase', () => {
-  it('approves a submitted case and dispatches DoctorVerified', async () => {
+  it('approves a submitted case and dispatches DoctorVerified plus the generic decided event', async () => {
     const verificationCase = buildSubmittedCase();
     const repo = new FakeVerificationCaseRepository(verificationCase);
     const dispatcher = new RecordingDispatcher();
@@ -68,7 +68,7 @@ describe('DecideVerificationUseCase', () => {
     assert.equal(result.getStatus(), VerificationStatus.Approved);
     assert.ok(result.getDecidedAt());
     assert.equal(repo.saved.length, 1);
-    assert.equal(dispatcher.dispatched.length, 1);
+    assert.equal(dispatcher.dispatched.length, 2);
   });
 
   it('throws NotFoundError when the verification case does not exist', async () => {

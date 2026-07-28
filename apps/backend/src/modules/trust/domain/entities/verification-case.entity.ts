@@ -125,9 +125,10 @@ export class VerificationCase {
       }
     }
 
-    if (status === VerificationStatus.Rejected || status === VerificationStatus.MoreInfoNeeded) {
-      this.record(new VerificationCaseDecidedEvent(this.id, this.subjectAccountId, this.getSubjectType(), status, reason));
-    }
+    // Generic, subject-agnostic "you were decided" notification event --
+    // raised for every outcome, including Approved (alongside
+    // DoctorVerifiedEvent above when applicable).
+    this.record(new VerificationCaseDecidedEvent(this.id, this.subjectAccountId, this.getSubjectType(), status, reason));
   }
 
   // Revokes previously-granted standing (license lapse, a compliance

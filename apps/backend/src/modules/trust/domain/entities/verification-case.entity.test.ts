@@ -77,27 +77,36 @@ describe('VerificationCase', () => {
     );
   });
 
-  it('decide(Approved) on a Doctor case raises DoctorVerifiedEvent carrying subjectAccountId', () => {
+  it('decide(Approved) on a Doctor case raises both DoctorVerifiedEvent and the generic VerificationCaseDecidedEvent', () => {
     const verificationCase = buildDoctorCase();
     verificationCase.releaseDomainEvents(); // clears the submission event -- decide() is a separate transaction in real usage
 
     verificationCase.decide(VerificationStatus.Approved);
 
     const events = verificationCase.releaseDomainEvents();
-    assert.equal(events.length, 1);
-    assert.ok(events[0] instanceof DoctorVerifiedEvent);
-    assert.equal((events[0] as DoctorVerifiedEvent).subjectAccountId, SUBJECT_ACCOUNT_ID);
+    assert.equal(events.length, 2);
+    const doctorVerifiedEvent = events.find((event): event is DoctorVerifiedEvent => event instanceof DoctorVerifiedEvent);
+    assert.ok(doctorVerifiedEvent);
+    assert.equal(doctorVerifiedEvent.subjectAccountId, SUBJECT_ACCOUNT_ID);
+    const decidedEvent = events.find(
+      (event): event is VerificationCaseDecidedEvent => event instanceof VerificationCaseDecidedEvent,
+    );
+    assert.ok(decidedEvent);
+    assert.equal(decidedEvent.status, VerificationStatus.Approved);
     assert.equal(verificationCase.getStatus(), VerificationStatus.Approved);
     assert.ok(verificationCase.getDecidedAt());
   });
 
-  it('decide(Approved) on a Patient case raises no event at all -- dispatched polymorphically, not via a subjectType branch', () => {
+  it('decide(Approved) on a Patient case raises only the generic VerificationCaseDecidedEvent -- no DoctorVerifiedEvent, dispatched polymorphically not via a subjectType branch', () => {
     const verificationCase = buildPatientCase();
     verificationCase.releaseDomainEvents(); // clears the submission event -- decide() is a separate transaction in real usage
 
     verificationCase.decide(VerificationStatus.Approved);
 
-    assert.equal(verificationCase.releaseDomainEvents().length, 0);
+    const events = verificationCase.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof VerificationCaseDecidedEvent);
+    assert.equal((events[0] as VerificationCaseDecidedEvent).status, VerificationStatus.Approved);
     assert.equal(verificationCase.getStatus(), VerificationStatus.Approved);
   });
 

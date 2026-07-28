@@ -26,6 +26,9 @@ import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get
 import { DoctorModule } from '../doctor/doctor.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
+import { GetPaymentTransactionByIdUseCase } from '../payment/application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
+import { PaymentModule } from '../payment/payment.module.js';
+import { GetPrescriptionByIdUseCase } from '../clinical/application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 
 import { NOTIFICATION_QUEUE, NOTIFICATION_REPOSITORY } from './application/ports/tokens.js';
@@ -54,6 +57,34 @@ import {
   NotifyPatientOfAppointmentConfirmedHandler,
   type AppointmentConfirmedEventPayload,
 } from './application/event-handlers/notify-patient-of-appointment-confirmed.handler.js';
+import {
+  NotifyPatientOfPaymentCompletedHandler,
+  type PaymentCompletedEventPayload,
+} from './application/event-handlers/notify-patient-of-payment-completed.handler.js';
+import {
+  NotifyPatientOfRefundIssuedHandler,
+  type RefundIssuedEventPayload,
+} from './application/event-handlers/notify-patient-of-refund-issued.handler.js';
+import {
+  NotifyPatientOfPrescriptionSignedHandler,
+  type PrescriptionSignedEventPayload,
+} from './application/event-handlers/notify-patient-of-prescription-signed.handler.js';
+import {
+  NotifyOfConsultationInterruptedHandler,
+  type ConsultationInterruptedEventPayload,
+} from './application/event-handlers/notify-of-consultation-interrupted.handler.js';
+import {
+  NotifyOfAccountCreatedHandler,
+  type AccountCreatedEventPayload,
+} from './application/event-handlers/notify-of-account-created.handler.js';
+import {
+  NotifyOfPasswordChangedHandler,
+  type PasswordChangedEventPayload,
+} from './application/event-handlers/notify-of-password-changed.handler.js';
+import {
+  NotifyOfAccountLockedHandler,
+  type AccountLockedEventPayload,
+} from './application/event-handlers/notify-of-account-locked.handler.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
@@ -76,7 +107,7 @@ import { NotificationController } from './presentation/controllers/notification.
 // than a second email-sending path (docs/05-information-architecture.md's
 // Notifications Domain: "Owns delivery only").
 @Module({
-  imports: [AuthenticationModule, ConsultationModule, ClinicalModule, PatientModule, IdentityModule, DoctorModule],
+  imports: [AuthenticationModule, ConsultationModule, ClinicalModule, PatientModule, IdentityModule, DoctorModule, PaymentModule],
   controllers: [NotificationController],
   providers: [
     {
@@ -312,6 +343,185 @@ import { NotificationController } from './presentation/controllers/notification.
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
+    },
+    {
+      // Reacts to PaymentModule's 'payment.transaction.completed' event --
+      // existed since Stage 1 but nothing ever subscribed to it.
+      provide: NotifyPatientOfPaymentCompletedHandler,
+      useFactory: (
+        getPaymentTransactionByIdUseCase: GetPaymentTransactionByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfPaymentCompletedHandler(
+          getPaymentTransactionByIdUseCase,
+          getPatientProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('payment.transaction.completed', (event: DomainEvent) =>
+          handler.handle(event as unknown as PaymentCompletedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetPaymentTransactionByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Reacts to PaymentModule's 'payment.transaction.refund-issued' event
+      // -- existed since Stage 1 but nothing ever subscribed to it.
+      provide: NotifyPatientOfRefundIssuedHandler,
+      useFactory: (
+        getPaymentTransactionByIdUseCase: GetPaymentTransactionByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfRefundIssuedHandler(
+          getPaymentTransactionByIdUseCase,
+          getPatientProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('payment.transaction.refund-issued', (event: DomainEvent) =>
+          handler.handle(event as unknown as RefundIssuedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetPaymentTransactionByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Reacts to ClinicalModule's 'clinical.prescription.signed' event --
+      // existed since ClinicalModule's own Stage work but nothing ever
+      // subscribed to it.
+      provide: NotifyPatientOfPrescriptionSignedHandler,
+      useFactory: (
+        getPrescriptionByIdUseCase: GetPrescriptionByIdUseCase,
+        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfPrescriptionSignedHandler(
+          getPrescriptionByIdUseCase,
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('clinical.prescription.signed', (event: DomainEvent) =>
+          handler.handle(event as unknown as PrescriptionSignedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetPrescriptionByIdUseCase,
+        GetConsultationSessionByIdUseCase,
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Reacts to ConsultationModule's 'consultation.session.interrupted'
+      // event -- existed since the consultation-lifecycle work but nothing
+      // ever subscribed to it. Deliberately separate from
+      // NotifyConsultationCompletedHandler (never subscribes to
+      // 'completed', this never subscribes to 'interrupted') -- the two
+      // outcomes get different copy and, here, both parties are notified.
+      provide: NotifyOfConsultationInterruptedHandler,
+      useFactory: (
+        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyOfConsultationInterruptedHandler(
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.session.interrupted', (event: DomainEvent) =>
+          handler.handle(event as unknown as ConsultationInterruptedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetConsultationSessionByIdUseCase,
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Reacts to IdentityModule's 'identity.account.created' event -- a
+      // welcome notification, the first thing a new account sees.
+      provide: NotifyOfAccountCreatedHandler,
+      useFactory: (notificationRepository: NotificationRepository, logger: PinoLoggerService, dispatcher: DomainEventDispatcher) => {
+        const handler = new NotifyOfAccountCreatedHandler(notificationRepository, logger);
+        dispatcher.subscribe('identity.account.created', (event: DomainEvent) =>
+          handler.handle(event as unknown as AccountCreatedEventPayload),
+        );
+        return handler;
+      },
+      inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Reacts to AuthenticationModule's 'authentication.password.changed'
+      // event -- a security-relevant notification the account holder needs
+      // even if they weren't the one who changed it.
+      provide: NotifyOfPasswordChangedHandler,
+      useFactory: (notificationRepository: NotificationRepository, logger: PinoLoggerService, dispatcher: DomainEventDispatcher) => {
+        const handler = new NotifyOfPasswordChangedHandler(notificationRepository, logger);
+        dispatcher.subscribe('authentication.password.changed', (event: DomainEvent) =>
+          handler.handle(event as unknown as PasswordChangedEventPayload),
+        );
+        return handler;
+      },
+      inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Reacts to AuthenticationModule's 'authentication.account.locked'
+      // event -- a security-relevant notification for a lockout, whether
+      // it was the account holder mistyping a password or someone else
+      // trying to break in.
+      provide: NotifyOfAccountLockedHandler,
+      useFactory: (notificationRepository: NotificationRepository, logger: PinoLoggerService, dispatcher: DomainEventDispatcher) => {
+        const handler = new NotifyOfAccountLockedHandler(notificationRepository, logger);
+        dispatcher.subscribe('authentication.account.locked', (event: DomainEvent) =>
+          handler.handle(event as unknown as AccountLockedEventPayload),
+        );
+        return handler;
+      },
+      inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
   // NOTIFICATION_QUEUE is exported for HealthController's GET /health/
