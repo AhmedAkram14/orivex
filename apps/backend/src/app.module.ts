@@ -24,6 +24,7 @@ import { HealthModule } from './platform/health/health.module.js';
 import { RequestLoggingInterceptor } from './platform/interceptors/request-logging.interceptor.js';
 import { LoggingModule } from './platform/logging/logging.module.js';
 import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.middleware.js';
+import { RealtimeModule } from './platform/realtime/realtime.module.js';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.mi
     LoggingModule,
     PrismaModule,
     EventsModule,
+    RealtimeModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     HealthModule,
     IdentityModule,

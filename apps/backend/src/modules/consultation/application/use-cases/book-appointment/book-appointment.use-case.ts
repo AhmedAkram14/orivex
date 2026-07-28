@@ -10,9 +10,6 @@ import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
-import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
-import { ConfirmAppointmentCommand } from '../confirm-appointment/confirm-appointment.command.js';
-import type { ConfirmAppointmentUseCase } from '../confirm-appointment/confirm-appointment.use-case.js';
 
 import type { BookAppointmentCommand } from './book-appointment.command.js';
 
@@ -24,31 +21,25 @@ import type { BookAppointmentCommand } from './book-appointment.command.js';
 // through a published interface) -> re-validate the window's doctor and
 // consultationType regardless of client-supplied values (docs/12-openapi.md's
 // bookAppointment description) -> reserve the slot via SchedulingModule's
-// exported ReserveSlotUseCase -> Appointment.request() -> persist -> confirm
-// immediately (ConfirmAppointmentUseCase, which opens the ConsultationSession
-// too).
+// exported ReserveSlotUseCase -> Appointment.request() -> persist.
 //
-// TEMPORARY (2026-07-26): a Paid booking is auto-confirmed exactly like a
-// Free one, skipping the payment gate entirely -- Stripe (ORIVEX Roadmap 2.0
-// Stage 1) is not yet wired up in production (no STRIPE_SECRET_KEY
-// configured, PaymentGatewayPort falls back to NotConfiguredPaymentGateway
-// Adapter, which fails loudly rather than faking a charge), so a Paid
-// appointment would otherwise sit in Requested forever -- never confirmed,
-// never notified, never appearing in the doctor's queue. Explicit product
-// decision to keep the platform usable for now. Revert once Stripe is
-// actually built: gate this on consultationType again, confirming Paid only
-// from PaymentModule's InitiateChargeUseCase once a real charge succeeds.
+// Every booking (Free or Paid) now lands Requested and stays there until
+// the doctor explicitly approves it (ApproveAppointmentUseCase, called from
+// DoctorAppointmentsController) -- product decision superseding the
+// 2026-07-26 "temporarily auto-confirm Paid bookings too" workaround, which
+// this removes entirely rather than layering a new special case on top of
+// it. The slot stays Held (not yet Confirmed) until that approval; nothing
+// here opens a ConsultationSession anymore either -- ConfirmAppointmentUseCase
+// (called from the approval path) still does that, unchanged.
 export class BookAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
-    private readonly consultationSessionRepository: ConsultationSessionRepository,
     private readonly eventDispatcher: DomainEventDispatcher,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getAvailabilityWindowByIdUseCase: GetAvailabilityWindowByIdUseCase,
     private readonly reserveSlotUseCase: ReserveSlotUseCase,
     private readonly releaseSlotUseCase: ReleaseSlotUseCase,
-    private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
   ) {}
 
   async execute(command: BookAppointmentCommand): Promise<Appointment> {
@@ -79,7 +70,7 @@ export class BookAppointmentUseCase {
 
     await this.reserveSlotUseCase.execute(new ReserveSlotCommand({ availabilityWindowId: command.availabilityWindowId }));
 
-    let appointment = Appointment.request({
+    const appointment = Appointment.request({
       patientId: command.patientId,
       doctorId: command.doctorId,
       availabilityWindowId: command.availabilityWindowId,
@@ -98,15 +89,6 @@ export class BookAppointmentUseCase {
       throw error;
     }
     await this.eventDispatcher.dispatch(appointment.releaseDomainEvents());
-
-    // TEMPORARY: confirms Paid bookings immediately too -- see this class's
-    // header comment. ConfirmAppointmentUseCase opens the ConsultationSession
-    // itself when none exists yet, so no separate session-opening branch is
-    // needed here.
-    const result = await this.confirmAppointmentUseCase.execute(
-      new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }),
-    );
-    appointment = result.appointment;
 
     return appointment;
   }

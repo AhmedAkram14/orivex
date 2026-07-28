@@ -419,14 +419,12 @@ describe('Consultation controllers (integration)', () => {
     );
     const bookAppointmentUseCase = new BookAppointmentUseCase(
       appointmentRepo,
-      sessionRepo,
       new NoopDomainEventDispatcher(),
       new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient)),
       new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor)),
       new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
       reserveSlotUseCase,
       releaseSlotUseCase,
-      confirmAppointmentUseCase,
     );
     const rescheduleOrCancelAppointmentUseCase = new RescheduleOrCancelAppointmentUseCase(
       appointmentRepo,
@@ -549,6 +547,7 @@ describe('Consultation controllers (integration)', () => {
         },
         { provide: GetSchedulingRulesUseCase, useValue: new GetSchedulingRulesUseCase() },
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(appointmentRepo) },
+        { provide: ConfirmAppointmentUseCase, useValue: confirmAppointmentUseCase },
         { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(sessionRepo) },
         {
           provide: ListMedicalSpecialtiesUseCase,
@@ -598,7 +597,7 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
   });
 
-  it('POST /appointments books and immediately confirms a free appointment', async () => {
+  it('POST /appointments books a free appointment as Requested, awaiting doctor approval', async () => {
     const response = await request(app.getHttpServer())
       .post('/appointments')
       .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
@@ -610,8 +609,33 @@ describe('Consultation controllers (integration)', () => {
       })
       .expect(201);
 
-    assert.equal(response.body.data.status, 'confirmed');
+    assert.equal(response.body.data.status, 'requested');
     bookedAppointmentId = response.body.data.id;
+  });
+
+  // Doctor-approval-workflow fix: the doctor's explicit approval -- every
+  // booking (Free or Paid) waits here before it's Confirmed and a
+  // ConsultationSession opens, which the rest of this suite's start/close/
+  // cancel-terminal chain depends on exactly as it did before this fix
+  // (when booking auto-confirmed).
+  it('PATCH /appointments/:id/approve confirms the appointment and opens a ConsultationSession', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${bookedAppointmentId}/approve`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.status, 'confirmed');
+    const session = await sessionRepo.findByAppointmentId(bookedAppointmentId);
+    assert.ok(session, 'expected a ConsultationSession to be opened on approval');
+  });
+
+  it('PATCH /appointments/:id/approve rejects a doctor who does not own the appointment', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${bookedAppointmentId}/approve`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
   it('POST /appointments rejects a caller with no patient profile with 404', async () => {

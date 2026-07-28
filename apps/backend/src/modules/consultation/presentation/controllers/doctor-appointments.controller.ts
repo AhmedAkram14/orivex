@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -11,14 +11,21 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetSchedulingRulesUseCase } from '../../../scheduling/application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
+import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
+import { ConfirmAppointmentCommand } from '../../application/use-cases/confirm-appointment/confirm-appointment.command.js';
+import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
+import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
 import { DoctorUpcomingWorkItemResponseDto } from '../dto/doctor-upcoming-work-item-response.dto.js';
+import { PendingApprovalAppointmentResponseDto } from '../dto/pending-approval-appointment-response.dto.js';
 import { QueueEntryResponseDto } from '../dto/queue-entry-response.dto.js';
+import { mapConsultationError } from '../mappers/consultation-exception.mapper.js';
 import { toQueueStatus } from '../mappers/queue-status.mapper.js';
 import { toUpcomingWorkStatus } from '../mappers/upcoming-work-status.mapper.js';
 
@@ -37,6 +44,8 @@ export class DoctorAppointmentsController {
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
     private readonly getSchedulingRulesUseCase: GetSchedulingRulesUseCase,
+    private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+    private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
   ) {}
 
   // Doctor-scoped dashboard counts (Doctor Workspace's "Today's Summary").
@@ -157,6 +166,86 @@ export class DoctorAppointmentsController {
     });
 
     return envelope(items);
+  }
+
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested and stays there until this list surfaces it and the doctor
+  // approves it below -- not date-scoped like the Patient Queue above,
+  // since a request isn't necessarily for today.
+  @Get('doctor/pending-approval')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getPendingApproval(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<PendingApprovalAppointmentResponseDto[]>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
+    const pending = appointments
+      .filter((appointment) => appointment.getStatus() === AppointmentStatus.Requested)
+      .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime());
+
+    const items = await Promise.all(pending.map((appointment) => this.toPendingApprovalItem(appointment)));
+    return envelope(items.filter((item): item is PendingApprovalAppointmentResponseDto => item !== null));
+  }
+
+  // Doctor-approval-workflow fix: the doctor's explicit approval action --
+  // every booking (Free or Paid) now waits here before it's Confirmed and
+  // enters the real queue (supersedes the removed "auto-confirm" behavior).
+  // Reuses ConfirmAppointmentUseCase unchanged (the same use case a
+  // successful Paid charge would call once PaymentModule's Stripe
+  // integration is real) -- confirming is confirming, regardless of what
+  // triggered it.
+  @Patch(':id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async approve(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ResponseEnvelope<AppointmentResponseDto>> {
+    try {
+      const existing = await this.getAppointmentByIdUseCase.execute({ appointmentId: id });
+      if (!existing) {
+        throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
+      const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+      if (!doctorProfile || doctorProfile.getId() !== existing.getDoctorId()) {
+        // 404, not 403 -- never confirms to a caller whether an appointment
+        // id belonging to someone else's queue exists at all.
+        throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
+
+      const result = await this.confirmAppointmentUseCase.execute(new ConfirmAppointmentCommand({ appointmentId: id }));
+      return envelope(AppointmentResponseDto.fromDomain(result.appointment));
+    } catch (error) {
+      throw mapConsultationError(error);
+    }
+  }
+
+  private async toPendingApprovalItem(appointment: Appointment): Promise<PendingApprovalAppointmentResponseDto | null> {
+    const patientProfile = await this.getPatientProfileByIdUseCase.execute({
+      patientProfileId: appointment.getPatientId(),
+    });
+    if (!patientProfile) {
+      return null;
+    }
+    const patientAccount: Account | null = await this.getAccountByIdUseCase.execute({
+      accountId: patientProfile.getAccountId(),
+    });
+    if (!patientAccount) {
+      return null;
+    }
+
+    const dto = new PendingApprovalAppointmentResponseDto();
+    dto.id = appointment.getId();
+    dto.patientName = patientAccount.getUserProfile().getDisplayName().toString();
+    dto.scheduledAt = appointment.getScheduledAt().toISOString();
+    dto.reasonForVisit = appointment.getReasonForVisit() ?? undefined;
+    dto.consultationType = appointment.getConsultationType();
+    return dto;
   }
 
   private async toUpcomingWorkItem(appointment: Appointment): Promise<DoctorUpcomingWorkItemResponseDto | null> {

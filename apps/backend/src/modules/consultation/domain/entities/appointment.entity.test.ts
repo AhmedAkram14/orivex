@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
 import { ConsultationType } from '../enums/consultation-type.enum.js';
+import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
 
 import { Appointment } from './appointment.entity.js';
@@ -29,6 +30,18 @@ describe('Appointment', () => {
     const appointment = requestAppointment();
     appointment.confirm();
     assert.equal(appointment.getStatus(), AppointmentStatus.Confirmed);
+  });
+
+  it('confirm() raises AppointmentConfirmedEvent carrying the appointment id -- the doctor-approval workflow\'s cue to notify the patient', () => {
+    const appointment = requestAppointment();
+    appointment.releaseDomainEvents(); // clears AppointmentBooked -- confirm() is a separate transaction (the doctor's later approval) in real usage
+
+    appointment.confirm();
+
+    const events = appointment.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof AppointmentConfirmedEvent);
+    assert.equal((events[0] as AppointmentConfirmedEvent).appointmentId, appointment.getId());
   });
 
   it('rejects confirming a non-Requested appointment', () => {

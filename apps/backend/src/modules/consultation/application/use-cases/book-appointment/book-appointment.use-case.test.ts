@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
-import { ConfirmAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
@@ -15,18 +14,13 @@ import type { DoctorProfileRepository } from '../../../../doctor/domain/reposito
 import { GetPatientProfileByIdUseCase } from '../../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import type { PatientProfile } from '../../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../../patient/domain/repositories/patient-profile.repository.js';
-import { ConfirmSlotUseCase } from '../../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import type { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
-import { ConsultationState } from '../../../domain/enums/consultation-state.enum.js';
 import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
-import type { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
-import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
-import { ConfirmAppointmentUseCase } from '../confirm-appointment/confirm-appointment.use-case.js';
 
 import { BookAppointmentCommand } from './book-appointment.command.js';
 import { BookAppointmentUseCase } from './book-appointment.use-case.js';
@@ -60,19 +54,6 @@ class FakeAppointmentRepository implements AppointmentRepository {
     }
     this.saved.push(appointment);
     this.byId.set(appointment.getId(), appointment);
-  }
-}
-
-class FakeConsultationSessionRepository implements ConsultationSessionRepository {
-  public readonly saved: ConsultationSession[] = [];
-  async findById(id: string): Promise<ConsultationSession | null> {
-    return this.saved.find((session) => session.getId() === id) ?? null;
-  }
-  async findByAppointmentId(appointmentId: string): Promise<ConsultationSession | null> {
-    return this.saved.find((session) => session.getAppointmentId() === appointmentId) ?? null;
-  }
-  async save(session: ConsultationSession): Promise<void> {
-    this.saved.push(session);
   }
 }
 
@@ -133,37 +114,28 @@ function buildUseCase(props: {
   window: AvailabilityWindow | null;
   patient?: PatientProfile | null;
   doctor?: DoctorProfile | null;
-  sessionRepo?: FakeConsultationSessionRepository;
 }): BookAppointmentUseCase {
   const availabilityWindowRepo = new FakeAvailabilityWindowRepository(props.window);
   const patient = props.patient === undefined ? ({} as PatientProfile) : props.patient;
   const doctor = props.doctor === undefined ? ({} as DoctorProfile) : props.doctor;
-  // Shared between BookAppointmentUseCase and its nested ConfirmAppointmentUseCase
-  // -- both must see the same session store, matching the real module wiring
-  // (both are bound to the same CONSULTATION_SESSION_REPOSITORY token), so a
-  // Paid booking's session (opened here) is the one ConfirmAppointmentUseCase
-  // later reuses rather than duplicating.
-  const sessionRepo = props.sessionRepo ?? new FakeConsultationSessionRepository();
   return new BookAppointmentUseCase(
     props.appointmentRepo,
-    sessionRepo,
     new NoopDispatcher(),
     new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
     new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctor)),
     new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
     new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
     new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
-    new ConfirmAppointmentUseCase(
-      props.appointmentRepo,
-      sessionRepo,
-      new ConfirmSlotUseCase(new ConfirmAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
-      new NoopDispatcher(),
-    ),
   );
 }
 
 describe('BookAppointmentUseCase', () => {
-  it('books and immediately confirms a free appointment', async () => {
+  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
+  // Requested and stays there until the doctor explicitly approves it via
+  // ApproveAppointmentUseCase -- this use case never auto-confirms either
+  // kind anymore, superseding (and fully removing, not layering on top of)
+  // the 2026-07-26 "temporarily auto-confirm Paid bookings too" workaround.
+  it('books a free appointment as Requested, never auto-confirming it', async () => {
     const window = buildWindow(DoctorConsultationType.Free);
     const appointmentRepo = new FakeAppointmentRepository();
     const useCase = buildUseCase({ appointmentRepo, window });
@@ -177,15 +149,14 @@ describe('BookAppointmentUseCase', () => {
       }),
     );
 
-    assert.equal(appointment.getStatus(), AppointmentStatus.Confirmed);
-    assert.equal(appointmentRepo.saved.length, 2); // Requested, then Confirmed
+    assert.equal(appointment.getStatus(), AppointmentStatus.Requested);
+    assert.equal(appointmentRepo.saved.length, 1);
   });
 
-  it('books a paid appointment and confirms it immediately too (temporary -- Stripe is not yet wired up, see class header comment)', async () => {
+  it('books a paid appointment as Requested the same way', async () => {
     const window = buildWindow(DoctorConsultationType.Paid);
     const appointmentRepo = new FakeAppointmentRepository();
-    const sessionRepo = new FakeConsultationSessionRepository();
-    const useCase = buildUseCase({ appointmentRepo, window, sessionRepo });
+    const useCase = buildUseCase({ appointmentRepo, window });
 
     const appointment = await useCase.execute(
       new BookAppointmentCommand({
@@ -196,11 +167,8 @@ describe('BookAppointmentUseCase', () => {
       }),
     );
 
-    assert.equal(appointment.getStatus(), AppointmentStatus.Confirmed);
-    assert.equal(appointmentRepo.saved.length, 2); // Requested, then Confirmed
-    const session = await sessionRepo.findByAppointmentId(appointment.getId());
-    assert.ok(session, 'expected a ConsultationSession to be opened for the paid appointment');
-    assert.equal(session?.getState(), ConsultationState.WaitingRoom);
+    assert.equal(appointment.getStatus(), AppointmentStatus.Requested);
+    assert.equal(appointmentRepo.saved.length, 1);
   });
 
   it('throws NotFoundError when the patient does not exist', async () => {
@@ -263,19 +231,12 @@ describe('BookAppointmentUseCase', () => {
     appointmentRepo.failOnSaveCount = 1;
     const useCase = new BookAppointmentUseCase(
       appointmentRepo,
-      new FakeConsultationSessionRepository(),
       new NoopDispatcher(),
       new GetPatientProfileByIdUseCase(new FakePatientProfileRepository({} as PatientProfile)),
       new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository({} as DoctorProfile)),
       new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
       new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
       new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
-      new ConfirmAppointmentUseCase(
-        appointmentRepo,
-        new FakeConsultationSessionRepository(),
-        new ConfirmSlotUseCase(new ConfirmAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
-        new NoopDispatcher(),
-      ),
     );
 
     await assert.rejects(() =>
@@ -293,4 +254,3 @@ describe('BookAppointmentUseCase', () => {
     assert.equal(releasedWindow?.getStatus(), 'open');
   });
 });
-

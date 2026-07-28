@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { AppointmentBookedEvent } from '../events/appointment-booked.event.js';
+import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
 import type { ConsultationType } from '../enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
@@ -100,6 +101,7 @@ export class Appointment {
     }
     this.status = AppointmentStatus.Confirmed;
     this.updatedAt = new Date();
+    this.record(new AppointmentConfirmedEvent(this.id));
   }
 
   cancel(): void {

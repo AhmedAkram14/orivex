@@ -8,6 +8,8 @@ import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
+import type { RealtimeEmitterPort } from '../../platform/realtime/ports/realtime-emitter.port.js';
+import { REALTIME_EMITTER } from '../../platform/realtime/ports/tokens.js';
 import type { EmailSenderPort } from '../authentication/application/ports/email-sender.port.js';
 import { EMAIL_SENDER } from '../authentication/application/ports/tokens.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
@@ -20,8 +22,11 @@ import { ClinicalModule } from '../clinical/clinical.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { ListAccountsUseCase } from '../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
+import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { DoctorModule } from '../doctor/doctor.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
+import { PrismaService } from '../../platform/database/prisma.service.js';
 
 import { NOTIFICATION_QUEUE, NOTIFICATION_REPOSITORY } from './application/ports/tokens.js';
 import type { EnqueueAppointmentReminderJob, NotificationQueuePort } from './application/ports/notification-queue.port.js';
@@ -41,6 +46,14 @@ import {
   NotifyApplicantOfVerificationDecisionHandler,
   type VerificationCaseDecidedEventPayload,
 } from './application/event-handlers/notify-applicant-of-verification-decision.handler.js';
+import {
+  NotifyDoctorOfAppointmentRequestedHandler,
+  type AppointmentRequestedEventPayload,
+} from './application/event-handlers/notify-doctor-of-appointment-requested.handler.js';
+import {
+  NotifyPatientOfAppointmentConfirmedHandler,
+  type AppointmentConfirmedEventPayload,
+} from './application/event-handlers/notify-patient-of-appointment-confirmed.handler.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
@@ -50,6 +63,7 @@ import { AppointmentReminderWorkerService } from './infrastructure/queue/appoint
 import { BullMqNotificationQueueAdapter, NOTIFICATION_QUEUE_NAME } from './infrastructure/queue/bullmq-notification-queue.adapter.js';
 import { NotConfiguredNotificationQueueAdapter } from './infrastructure/queue/not-configured-notification-queue.adapter.js';
 import { PrismaNotificationRepository } from './infrastructure/prisma/prisma-notification.repository.js';
+import { RealtimeNotifyingNotificationRepository } from './infrastructure/realtime/realtime-notifying-notification.repository.js';
 import { NotificationController } from './presentation/controllers/notification.controller.js';
 
 // Imports ConsultationModule/PatientModule/IdentityModule only to consume
@@ -62,10 +76,19 @@ import { NotificationController } from './presentation/controllers/notification.
 // than a second email-sending path (docs/05-information-architecture.md's
 // Notifications Domain: "Owns delivery only").
 @Module({
-  imports: [AuthenticationModule, ConsultationModule, ClinicalModule, PatientModule, IdentityModule],
+  imports: [AuthenticationModule, ConsultationModule, ClinicalModule, PatientModule, IdentityModule, DoctorModule],
   controllers: [NotificationController],
   providers: [
-    { provide: NOTIFICATION_REPOSITORY, useClass: PrismaNotificationRepository },
+    {
+      // Wraps the real repository with a single, central live-push point
+      // (RealtimeNotifyingNotificationRepository's own comment) -- every
+      // notification producer just calls `save()` as it always has, none
+      // of them need their own RealtimeEmitterPort wiring.
+      provide: NOTIFICATION_REPOSITORY,
+      useFactory: (prisma: PrismaService, realtimeEmitter: RealtimeEmitterPort) =>
+        new RealtimeNotifyingNotificationRepository(new PrismaNotificationRepository(prisma), realtimeEmitter),
+      inject: [PrismaService, REALTIME_EMITTER],
+    },
     {
       provide: ListNotificationsForAccountUseCase,
       useFactory: (repository: NotificationRepository) => new ListNotificationsForAccountUseCase(repository),
@@ -218,6 +241,77 @@ import { NotificationController } from './presentation/controllers/notification.
         return handler;
       },
       inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // A second subscriber on the same 'consultation.appointment.booked'
+      // event ScheduleAppointmentReminderHandler already reacts to (the
+      // dispatcher supports multiple handlers per event name) -- that one
+      // schedules the patient's own reminder, this one tells the doctor a
+      // new request needs their approval.
+      provide: NotifyDoctorOfAppointmentRequestedHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyDoctorOfAppointmentRequestedHandler(
+          getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.booked', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentRequestedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Reacts to ConsultationModule's 'consultation.appointment.confirmed'
+      // event (raised only from the doctor's approval path now -- see
+      // Appointment.confirm()'s own comment), telling the patient their
+      // request was approved.
+      provide: NotifyPatientOfAppointmentConfirmedHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfAppointmentConfirmedHandler(
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.confirmed', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentConfirmedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
     },
   ],
   // NOTIFICATION_QUEUE is exported for HealthController's GET /health/
