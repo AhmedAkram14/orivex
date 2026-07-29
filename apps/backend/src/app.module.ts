@@ -14,6 +14,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import { PatientModule } from './modules/patient/patient.module.js';
 import { PaymentModule } from './modules/payment/payment.module.js';
+import { PublicModule } from './modules/public/public.module.js';
 import { ReferenceModule } from './modules/reference/reference.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
 import { TrustModule } from './modules/trust/trust.module.js';
@@ -49,6 +50,7 @@ import { RealtimeModule } from './platform/realtime/realtime.module.js';
     ClinicalModule,
     AIModule,
     NotificationModule,
+    PublicModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
