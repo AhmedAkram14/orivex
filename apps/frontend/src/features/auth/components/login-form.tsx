@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { AUTH_ERROR_CODES } from '@/features/auth/api/types';
@@ -28,9 +29,18 @@ export function LoginForm() {
   const t = useTranslations('auth.login');
   const tValidation = useTranslations('auth.validation');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const login = useLogin();
   const resendVerification = useResendVerification();
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+
+  // Public Landing Page (2026-07-29): RequireAuth/`/unauthorized` forward a
+  // `?returnTo=` when a signed-out visitor followed a real deep link (e.g. a
+  // specialty picked on the landing page) -- honored only when it's a
+  // same-site relative path, never followed blindly (an open-redirect guard,
+  // not just a UX nicety).
+  const returnTo = searchParams.get('returnTo');
+  const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : null;
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(createLoginSchema(tValidation)),
@@ -41,7 +51,7 @@ export function LoginForm() {
     setUnverifiedEmail(null);
     try {
       await login.mutateAsync(values);
-      router.push('/dashboard');
+      router.push(safeReturnTo ?? '/dashboard');
     } catch (error) {
       if (error instanceof ApiError && error.code === AUTH_ERROR_CODES.accountLocked) {
         router.push('/account-locked');

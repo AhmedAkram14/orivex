@@ -18,8 +18,18 @@ export async function generateMetadata({
 }
 
 /** For a visitor with no session at all attempting a protected page — distinct from Session Expired (had a session, it ended) and Forbidden (has a session, lacks a role/permission). */
-export default async function UnauthorizedPage() {
+export default async function UnauthorizedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
   const t = await getTranslations('auth.unauthorized');
+  const { returnTo } = await searchParams;
+  // Public Landing Page (2026-07-29): forwards RequireAuth's returnTo along
+  // to /login, so a visitor who arrived here from a real deep link (e.g. a
+  // specialty/doctor picked on the landing page) lands back there after
+  // signing in instead of always on /dashboard.
+  const signInHref = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login';
 
   return (
     <StatusPage
@@ -28,7 +38,7 @@ export default async function UnauthorizedPage() {
       description={t('description')}
       action={
         <Button asChild>
-          <Link href="/login">{t('signIn')}</Link>
+          <Link href={signInHref}>{t('signIn')}</Link>
         </Button>
       }
     />
