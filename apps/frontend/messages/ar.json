@@ -33,11 +33,15 @@
       "submit": "بحث"
     },
     "specialties": {
-      "title": "تصفح حسب التخصص",
-      "description": "اعثر على الطبيب المناسب لاحتياجاتك ضمن تخصصاتنا الموثّقة.",
+      "verifiedBadge": "أخصائيون موثّقون",
+      "title": "اعثر على الأخصائي الطبي المناسب",
+      "description": "تصفح أطباء موثّقين عبر تخصصات متعددة واحجز موعدًا خلال دقائق.",
+      "specialtiesStat": "تخصص",
+      "doctorsStat": "طبيب موثّق",
       "emptyTitle": "لا توجد تخصصات متاحة بعد",
       "emptyDescription": "تحقق لاحقًا مع انضمام المزيد من الأطباء إلى المنصة.",
-      "doctorCount": "{count} طبيب"
+      "doctorCount": "{count} طبيب",
+      "viewDoctors": "عرض الأطباء"
     },
     "popularDoctors": {
       "title": "الأطباء الأكثر تقييمًا",

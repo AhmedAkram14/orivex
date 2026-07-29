@@ -23,4 +23,17 @@ describe('SpecialtiesSection', () => {
     const link = screen.getByText('Cardiology').closest('a');
     expect(link).toHaveAttribute('href', expect.stringContaining('/patient/doctors?specialtyId='));
   });
+
+  it('shows the real specialty/doctor counts in the stats bar, never a fabricated satisfaction metric', async () => {
+    renderWithProviders(<SpecialtiesSection />);
+
+    await screen.findByText('Cardiology');
+
+    expect(screen.getAllByText('1+').length).toBe(2); // 1 specialty with doctors, 1 total verified doctor
+    expect(screen.getByText('Specialties')).toBeInTheDocument();
+    expect(screen.getByText('Verified Doctors')).toBeInTheDocument();
+    expect(screen.queryByText(/satisfaction/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Verified Specialists')).toBeInTheDocument();
+    expect(screen.getByText('View Doctors')).toBeInTheDocument();
+  });
 });

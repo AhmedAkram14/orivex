@@ -33,11 +33,15 @@
       "submit": "Search"
     },
     "specialties": {
-      "title": "Browse by Specialty",
-      "description": "Find the right doctor for your needs across our verified specialties.",
+      "verifiedBadge": "Verified Specialists",
+      "title": "Find the Right Medical Specialist",
+      "description": "Browse verified doctors across multiple specialties and book an appointment in minutes.",
+      "specialtiesStat": "Specialties",
+      "doctorsStat": "Verified Doctors",
       "emptyTitle": "No specialties available yet",
       "emptyDescription": "Check back soon as more doctors join the platform.",
-      "doctorCount": "{count} doctors"
+      "doctorCount": "{count} doctors",
+      "viewDoctors": "View Doctors"
     },
     "popularDoctors": {
       "title": "Popular Doctors",
