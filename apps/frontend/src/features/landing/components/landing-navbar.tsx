@@ -26,14 +26,16 @@ const SECTION_LINKS = [
  */
 export function LandingNavbar() {
   const t = useTranslations('landing.nav');
+  const tCommon = useTranslations('common');
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-4 z-(--z-dropdown)">
+    <header className="fixed inset-x-0 top-4 z-(--z-dropdown)">
       <Container size="lg">
         <div className="flex h-16 items-center justify-between gap-4 rounded-full border border-border-default bg-surface px-4 shadow-sm sm:px-6">
           <a href="#top" className="flex items-center gap-2 text-lg font-semibold text-text-primary">
             <Logo size="sm" />
+            {tCommon('appName')}
           </a>
 
           <nav aria-label={t('sectionsLabel')} className="hidden items-center gap-6 md:flex">
@@ -62,6 +64,7 @@ export function LandingNavbar() {
             <Drawer.Content side="start" className="flex flex-col gap-6">
               <Drawer.Title className="flex items-center gap-2 text-lg font-semibold text-text-primary">
                 <Logo size="sm" />
+                {tCommon('appName')}
               </Drawer.Title>
               <nav aria-label={t('sectionsLabel')} className="flex flex-col gap-4">
                 {SECTION_LINKS.map((link) => (
