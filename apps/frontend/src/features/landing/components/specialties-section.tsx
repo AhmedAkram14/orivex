@@ -94,12 +94,12 @@ function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
         <Text size="sm" tone="secondary">
           {t(`categories.${style.key}`)}
         </Text>
-        <span className="h-px w-full bg-border-default" aria-hidden="true" />
         <Badge variant={accent.badge} className="gap-1.5">
           <Icon icon={Users} size="xs" />
           {t('doctorCount', { count: specialty.doctorCount })}
         </Badge>
-        <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary">
+        <span className="h-px w-full bg-border-default" aria-hidden="true" />
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
           {t('viewDoctors')}
           <Icon icon={ArrowRight} size="sm" flipRtl />
         </span>
