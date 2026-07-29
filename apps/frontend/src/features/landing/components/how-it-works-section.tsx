@@ -38,7 +38,7 @@ export function HowItWorksSection() {
   const t = useTranslations('landing.howItWorks');
 
   return (
-    <Container size="lg" className="flex flex-col gap-8 py-16">
+    <Container id="how-it-works" size="lg" className="flex flex-col gap-8 py-16 scroll-mt-16">
       <div className="flex flex-col items-center gap-2 text-center">
         <Heading level={1}>{t('title')}</Heading>
         <Text tone="secondary" className="max-w-xl">

@@ -12,7 +12,7 @@ export function ForDoctorsSection() {
   const t = useTranslations('landing.forDoctors');
 
   return (
-    <Container size="lg" className="bg-surface-raised py-16">
+    <Container id="for-doctors" size="lg" className="scroll-mt-16 bg-surface-raised py-16">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <Heading level={1}>{t('title')}</Heading>
         <Text tone="secondary">{t('description')}</Text>

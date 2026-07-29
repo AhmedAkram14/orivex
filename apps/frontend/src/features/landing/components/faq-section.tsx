@@ -15,7 +15,7 @@ export function FaqSection() {
   const t = useTranslations('landing.faq');
 
   return (
-    <Container size="md" className="flex flex-col gap-8 py-16">
+    <Container id="faq" size="md" className="flex flex-col gap-8 py-16 scroll-mt-16">
       <Heading level={1} className="text-center">
         {t('title')}
       </Heading>

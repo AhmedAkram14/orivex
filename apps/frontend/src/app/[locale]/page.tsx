@@ -8,6 +8,7 @@ import { ForPatientsSection } from '@/features/landing/components/for-patients-s
 import { HeroSection } from '@/features/landing/components/hero-section';
 import { HowItWorksSection } from '@/features/landing/components/how-it-works-section';
 import { LandingFooter } from '@/features/landing/components/landing-footer';
+import { LandingNavbar } from '@/features/landing/components/landing-navbar';
 import { PopularDoctorsSection } from '@/features/landing/components/popular-doctors-section';
 import { SearchSection } from '@/features/landing/components/search-section';
 import { SecurityTrustSection } from '@/features/landing/components/security-trust-section';
@@ -62,11 +63,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   };
 
   return (
-    <main>
+    <main id="top">
       {/* Static, server-rendered JSON-LD built from this page's own translated copy, not user input. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
+      <LandingNavbar />
       <HeroSection />
       <SearchSection />
       <SpecialtiesSection />

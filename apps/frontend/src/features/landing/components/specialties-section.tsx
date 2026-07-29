@@ -23,7 +23,7 @@ export function SpecialtiesSection() {
   const visible = specialties?.filter((specialty) => specialty.doctorCount > 0) ?? [];
 
   return (
-    <Container size="lg" className="flex flex-col gap-8 py-16">
+    <Container id="specialties" size="lg" className="flex flex-col gap-8 py-16 scroll-mt-16">
       <div className="flex flex-col items-center gap-2 text-center">
         <Heading level={1}>{t('title')}</Heading>
         <Text tone="secondary" className="max-w-xl">

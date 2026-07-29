@@ -6,6 +6,16 @@
     "retry": "Retry"
   },
   "landing": {
+    "nav": {
+      "sectionsLabel": "Page sections",
+      "specialties": "Specialties",
+      "howItWorks": "How It Works",
+      "forDoctors": "For Doctors",
+      "faq": "FAQ",
+      "signIn": "Sign In",
+      "register": "Register",
+      "openMenu": "Open menu"
+    },
     "hero": {
       "headline": "Healthcare that meets you where you are",
       "subheadline": "Find a verified doctor, book an appointment, and consult from anywhere — all in one secure platform.",
