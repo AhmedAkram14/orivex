@@ -19,8 +19,6 @@
     "hero": {
       "headline": "Healthcare that meets you where you are",
       "subheadline": "Find a verified doctor, book an appointment, and consult from anywhere — all in one secure platform.",
-      "primaryCta": "Find a Doctor",
-      "secondaryCta": "Become a Doctor",
       "imageAlt": "A doctor consulting with a patient over a video call"
     },
     "search": {

@@ -10,7 +10,6 @@ import { HowItWorksSection } from '@/features/landing/components/how-it-works-se
 import { LandingFooter } from '@/features/landing/components/landing-footer';
 import { LandingNavbar } from '@/features/landing/components/landing-navbar';
 import { PopularDoctorsSection } from '@/features/landing/components/popular-doctors-section';
-import { SearchSection } from '@/features/landing/components/search-section';
 import { SecurityTrustSection } from '@/features/landing/components/security-trust-section';
 import { SpecialtiesSection } from '@/features/landing/components/specialties-section';
 import { env } from '@/shared/lib/env';
@@ -70,7 +69,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       <LandingNavbar />
       <HeroSection />
-      <SearchSection />
       <SpecialtiesSection />
       <PopularDoctorsSection />
       <HowItWorksSection />

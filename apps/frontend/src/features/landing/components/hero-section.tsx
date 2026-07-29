@@ -1,49 +1,42 @@
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { Display, Text } from '@/design-system/typography';
-import { Link } from '@/shared/i18n/navigation';
-import { Button } from '@/shared/ui/button';
+import { Text } from '@/design-system/typography';
+import { SearchSection } from '@/features/landing/components/search-section';
 import { Container } from '@/shared/ui/container';
-import { Logo } from '@/shared/ui/logo';
 
 /**
- * The landing page's opening section. Both CTAs go straight into the real,
- * already-working booking flow (`/patient/doctors`) or doctor onboarding
- * (`/register` -- doctor onboarding itself starts post-registration at
- * `/doctor/onboarding`, so this is the correct real entry point, not a
- * placeholder) -- neither is a dead link, both simply require signing in
- * first if the visitor isn't already, exactly like every other deep link
- * on this page.
+ * The landing page's opening section: one large rounded card (matching the
+ * approved reference layout) holding the headline/subheadline, the real
+ * specialty+name search pill (see `SearchSection`), and the hero photo.
+ * The search pill IS the primary call to action here -- it submits
+ * straight into the real, already-working Doctor Directory
+ * (`/patient/doctors`), never a dead end.
  */
 export function HeroSection() {
   const t = useTranslations('landing.hero');
 
   return (
-    <Container size="lg" className="grid grid-cols-1 items-center gap-12 py-16 lg:grid-cols-2 lg:py-24">
-      <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-start">
-        <Logo size="lg" />
-        <Display className="text-balance">{t('headline')}</Display>
-        <Text size="lg" tone="secondary" className="max-w-lg text-balance">
-          {t('subheadline')}
-        </Text>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button asChild size="lg">
-            <Link href="/patient/doctors">{t('primaryCta')}</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href="/register">{t('secondaryCta')}</Link>
-          </Button>
+    <Container size="lg" className="pb-8 pt-4">
+      <div className="grid grid-cols-1 items-center gap-10 overflow-hidden rounded-3xl bg-surface p-8 shadow-xl sm:p-12 lg:grid-cols-2 lg:p-16">
+        <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-start">
+          <h1 className="text-balance text-4xl font-bold tracking-tight text-text-primary sm:text-5xl lg:text-6xl">
+            {t('headline')}
+          </h1>
+          <Text size="lg" tone="secondary" className="max-w-lg text-balance">
+            {t('subheadline')}
+          </Text>
+          <SearchSection />
         </div>
-      </div>
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl shadow-lg">
-        <Image
-          src="/hero.jpg"
-          alt={t('imageAlt')}
-          fill
-          priority
-          sizes="(min-width: 1024px) 50vw, 100vw"
-          className="object-cover"
-        />
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <Image
+            src="/hero.jpg"
+            alt={t('imageAlt')}
+            fill
+            priority
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
       </div>
     </Container>
   );
