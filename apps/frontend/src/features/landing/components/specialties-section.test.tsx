@@ -36,4 +36,12 @@ describe('SpecialtiesSection', () => {
     expect(screen.getByText('Verified Specialists')).toBeInTheDocument();
     expect(screen.getByText('View Doctors')).toBeInTheDocument();
   });
+
+  it("shows each card's category tagline, keyed off the specialty itself (not its position), so it stays stable across re-sorts", async () => {
+    renderWithProviders(<SpecialtiesSection />);
+
+    await screen.findByText('Cardiology');
+
+    expect(screen.getByText('Heart and cardiovascular care from trusted specialists.')).toBeInTheDocument();
+  });
 });

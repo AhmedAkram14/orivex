@@ -41,7 +41,19 @@
       "emptyTitle": "No specialties available yet",
       "emptyDescription": "Check back soon as more doctors join the platform.",
       "doctorCount": "{count} doctors",
-      "viewDoctors": "View Doctors"
+      "viewDoctors": "View Doctors",
+      "categories": {
+        "orthopedics": "Bone, joint and spine care for better movement.",
+        "anesthesiology": "Pain management and surgical anesthesia care.",
+        "dentistry": "Complete oral care for a healthy smile.",
+        "pediatrics": "Compassionate care for your little ones.",
+        "radiology": "Advanced imaging for accurate diagnosis.",
+        "cardiology": "Heart and cardiovascular care from trusted specialists.",
+        "neurology": "Expert care for the brain and nervous system.",
+        "ophthalmology": "Comprehensive eye care and vision health.",
+        "ent": "Care for the ear, nose, and throat.",
+        "generic": "Expert, verified care from trusted specialists."
+      }
     },
     "popularDoctors": {
       "title": "Popular Doctors",
