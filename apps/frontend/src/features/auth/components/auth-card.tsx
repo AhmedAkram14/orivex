@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Heading, Text } from '@/design-system/typography';
 import { Card, CardContent } from '@/shared/ui/card';
+import { Logo } from '@/shared/ui/logo';
 
 export interface AuthCardProps {
   title: string;
@@ -13,6 +14,7 @@ export interface AuthCardProps {
 export function AuthCard({ title, description, children, footer }: AuthCardProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
+      <Logo size="lg" className="text-primary" />
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col gap-6 p-8">
           <div className="flex flex-col gap-1 text-center">

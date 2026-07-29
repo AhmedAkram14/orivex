@@ -11,6 +11,7 @@ import { Link } from '@/shared/i18n/navigation';
 import { useRealtimeSocket } from '@/shared/lib/realtime/use-realtime-socket';
 import { Content } from '@/shared/ui/layout/content';
 import { Footer } from '@/shared/ui/layout/footer';
+import { Logo } from '@/shared/ui/logo';
 import { Sidebar } from '@/shared/ui/layout/sidebar';
 import { Topbar } from '@/shared/ui/layout/topbar';
 
@@ -32,7 +33,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen flex-col">
       <Topbar>
         <MobileNav />
-        <Link href="/dashboard" className="text-lg font-semibold text-text-primary">
+        <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold text-text-primary">
+          <Logo size="sm" className="text-primary" />
           {tCommon('appName')}
         </Link>
         <div className="ms-auto flex items-center gap-2">

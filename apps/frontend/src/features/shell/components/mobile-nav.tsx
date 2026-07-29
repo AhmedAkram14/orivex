@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
+import { Logo } from '@/shared/ui/logo';
 import { Drawer } from '@/shared/ui/side-panel';
 
 /** The small-viewport equivalent of the desktop `Sidebar` — the same `SidebarNav` content inside a `Drawer` (side-anchored, direction-aware) rather than a permanently-visible column. Closes on navigation since `SidebarNav`'s links are real `Link`s causing a route change, which unmounts this component's open state along with the rest of the page — no explicit close-on-navigate wiring needed. */
@@ -22,7 +23,10 @@ export function MobileNav() {
         </Button>
       </Drawer.Trigger>
       <Drawer.Content side="start" className="flex flex-col gap-4 overflow-y-auto">
-        <Drawer.Title className="text-lg font-semibold text-text-primary">{tCommon('appName')}</Drawer.Title>
+        <Drawer.Title className="flex items-center gap-2 text-lg font-semibold text-text-primary">
+          <Logo size="sm" className="text-primary" />
+          {tCommon('appName')}
+        </Drawer.Title>
         <SidebarNav />
       </Drawer.Content>
     </Drawer>
