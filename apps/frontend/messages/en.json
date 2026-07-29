@@ -18,11 +18,15 @@
       "goToDashboard": "Go to Dashboard"
     },
     "hero": {
-      "headline": "Healthcare that meets you where you are",
-      "subheadline": "Find a verified doctor, book an appointment, and consult from anywhere — all in one secure platform.",
-      "imageAlt": "A doctor consulting with a patient over a video call",
+      "trustLine": "Secure. Trusted. Always with you.",
+      "headlineLine1": "Your Healthcare.",
+      "headlineLine2": "Anywhere.",
+      "subheadline": "Consult with verified doctors, book appointments, and manage your health — all in one secure platform.",
+      "imageAlt": "A doctor waving during a live video consultation, with a digital prescription and upcoming appointment shown alongside",
       "primaryCta": "Find a Doctor",
-      "secondaryCta": "Become a Doctor"
+      "secondaryCta": "Apply as Doctor",
+      "doctorsStat": "Verified Doctors",
+      "specialtiesStat": "Specialties"
     },
     "search": {
       "namePlaceholder": "Search by doctor name...",
