@@ -41,7 +41,7 @@ export function LandingNavbar() {
             {tCommon('appName')}
           </a>
 
-          <nav aria-label={t('sectionsLabel')} className="hidden items-center gap-6 md:flex">
+          <nav aria-label={t('sectionsLabel')} className="hidden items-center gap-8 md:flex">
             {SECTION_LINKS.map((link) => (
               <a key={link.key} href={link.href} className="text-sm text-text-secondary hover:text-primary">
                 {t(link.key)}
@@ -49,7 +49,7 @@ export function LandingNavbar() {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-3 md:flex">
             {status === 'authenticated' && user ? (
               <LandingUserMenu user={user} />
             ) : (

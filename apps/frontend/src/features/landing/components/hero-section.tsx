@@ -1,12 +1,13 @@
 'use client';
 
 import { Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
-import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
+import Image from 'next/image';
+
 import { Text } from '@/design-system/typography';
-import { Icon } from '@/shared/icons/icon';
+import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
 import { Link } from '@/shared/i18n/navigation';
+import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
 
@@ -20,6 +21,12 @@ import { Container } from '@/shared/ui/container';
  * `GET /public/specialties` response the Browse Specialties section uses.
  * No "Happy Patients" or "Platform Uptime" style figure is shown; neither
  * is backed by any real, publicly-exposed metric.
+ *
+ * The illustration itself (`/updated-hero.png`) is a single flattened
+ * image -- the call controls, top labels, and menu/fullscreen icons baked
+ * into it can only be reframed as a whole (crop + `object-position`), not
+ * repositioned individually; there is no way to nudge just the mic button
+ * or just the "Live" label independently without a new source asset.
  */
 export function HeroSection() {
   const t = useTranslations('landing.hero');
@@ -28,9 +35,9 @@ export function HeroSection() {
   const totalDoctors = visible.reduce((sum, specialty) => sum + specialty.doctorCount, 0);
 
   return (
-    <Container size="lg" className="pb-16 pt-28 lg:pb-24 lg:pt-32">
-      <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-        <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-start">
+    <Container size="lg" className="pb-20 pt-24 lg:pb-28 lg:pt-28">
+      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-start">
           <div className="flex items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
               <Icon icon={ShieldCheck} size="sm" className="text-primary" />
@@ -40,17 +47,17 @@ export function HeroSection() {
             </Text>
           </div>
 
-          <h1 className="text-balance text-4xl font-bold tracking-tight text-text-primary sm:text-5xl lg:text-6xl">
+          <h1 className="text-balance text-5xl font-bold tracking-tight text-text-primary sm:text-6xl lg:text-7xl">
             {t('headlineLine1')}
             <br />
             <span className="text-primary">{t('headlineLine2')}</span>
           </h1>
 
-          <Text size="lg" tone="secondary" className="max-w-lg text-balance">
+          <Text size="lg" tone="secondary" className="max-w-md text-balance">
             {t('subheadline')}
           </Text>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <Button asChild size="lg">
               <Link href="/patient/doctors">
                 <Icon icon={Search} size="sm" />
@@ -66,7 +73,7 @@ export function HeroSection() {
           </div>
 
           {visible.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-8 pt-2 sm:justify-start">
+            <div className="flex flex-wrap items-center justify-center gap-8 pt-4 sm:justify-start">
               <div className="flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success-subtle">
                   <Icon icon={Users} size="md" className="text-success" />
@@ -94,20 +101,19 @@ export function HeroSection() {
         </div>
 
         <div className="relative flex items-center justify-center">
-          {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. */}
+          {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. Less blur/spread than before, closer to the reference's tighter glow. */}
           <div
-            className="absolute end-0 top-1/2 -z-10 size-[26rem] -translate-y-1/2 rounded-full bg-primary/10 blur-3xl"
+            className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"
             aria-hidden="true"
           />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-3xl shadow-xl">
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] shadow-xl">
             <Image
               src="/updated-hero.png"
               alt={t('imageAlt')}
-              width={1536}
-              height={1024}
+              fill
               priority
               sizes="(min-width: 1024px) 50vw, 100vw"
-              className="h-auto w-full"
+              className="object-cover object-[35%_center]"
             />
           </div>
         </div>
