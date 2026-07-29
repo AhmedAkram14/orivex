@@ -1,44 +1,84 @@
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { apiFetch } from '@/shared/lib/api/client';
+import { CoreFeaturesSection } from '@/features/landing/components/core-features-section';
+import { CtaSection } from '@/features/landing/components/cta-section';
+import { FaqSection, FAQ_KEYS } from '@/features/landing/components/faq-section';
+import { ForDoctorsSection } from '@/features/landing/components/for-doctors-section';
+import { ForPatientsSection } from '@/features/landing/components/for-patients-section';
+import { HeroSection } from '@/features/landing/components/hero-section';
+import { HowItWorksSection } from '@/features/landing/components/how-it-works-section';
+import { LandingFooter } from '@/features/landing/components/landing-footer';
+import { PopularDoctorsSection } from '@/features/landing/components/popular-doctors-section';
+import { SearchSection } from '@/features/landing/components/search-section';
+import { SecurityTrustSection } from '@/features/landing/components/security-trust-section';
+import { SpecialtiesSection } from '@/features/landing/components/specialties-section';
+import { env } from '@/shared/lib/env';
+import { buildPageMetadata } from '@/shared/lib/seo';
+import type { AppLocale } from '@/shared/i18n/routing';
 
-// Without this, Next.js statically prerenders this page at build time
-// (confirmed: `next build` marked it ○ Static) -- the backend-reachable
-// check below would be frozen at whatever the build environment saw once,
-// never re-checked per request. Forces the actual live check this page
-// exists to demonstrate.
-export const dynamic = 'force-dynamic';
-
-interface LivenessResponse {
-  status: 'ok';
-  uptimeSeconds: number;
-  timestamp: string;
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'landing.hero' });
+  return buildPageMetadata({
+    locale: locale as AppLocale,
+    path: '/',
+    title: 'ORIVEX — AI-Powered Healthcare Platform',
+    description: t('subheadline'),
+  });
 }
 
-// Deliberately calls the one endpoint guaranteed to exist and require no
-// auth (apps/backend/src/platform/health/health.controller.ts) -- this
-// page exists to prove the API client is genuinely wired to the deployed
-// backend, not to be the real landing page (Phase 6 builds that).
-export default async function HomePage() {
-  const t = await getTranslations('home');
-  let liveness: LivenessResponse | null = null;
-  let error: string | null = null;
+/**
+ * The real public landing page (Phase 6). Every section shows only what
+ * the product actually does today -- see the audit backing this page for
+ * the full "real vs. not built" breakdown. Sections marked with a live
+ * data hook (Browse Specialties, Popular Doctors) call the two new public
+ * endpoints (`GET /public/specialties`, `GET /public/doctors`) added
+ * specifically so this page never hardcodes what it shows.
+ */
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: 'landing.faq' });
 
-  try {
-    liveness = await apiFetch<LivenessResponse>({ path: '/health/liveness' });
-  } catch (caught) {
-    error = caught instanceof Error ? caught.message : 'Unknown error contacting the backend.';
-  }
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'MedicalOrganization',
+    name: 'ORIVEX',
+    url: env.appUrl,
+    logo: `${env.appUrl}/orivex-icon.png`,
+  };
+
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_KEYS.map((key) => ({
+      '@type': 'Question',
+      name: t(`items.${key}.question`),
+      acceptedAnswer: { '@type': 'Answer', text: t(`items.${key}.answer`) },
+    })),
+  };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-      <h1 className="text-2xl font-semibold">{t('title')}</h1>
-      {liveness ? (
-        <p className="text-success">
-          {t('backendReachable', { status: liveness.status, uptime: liveness.uptimeSeconds })}
-        </p>
-      ) : (
-        <p className="text-danger">{t('backendUnreachable', { error: error ?? '' })}</p>
-      )}
+    <main>
+      {/* Static, server-rendered JSON-LD built from this page's own translated copy, not user input. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+
+      <HeroSection />
+      <SearchSection />
+      <SpecialtiesSection />
+      <PopularDoctorsSection />
+      <HowItWorksSection />
+      <CoreFeaturesSection />
+      <ForPatientsSection />
+      <ForDoctorsSection />
+      <SecurityTrustSection />
+      <FaqSection />
+      <CtaSection />
+      <LandingFooter />
     </main>
   );
 }

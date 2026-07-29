@@ -5,10 +5,187 @@
     "error": "Something went wrong",
     "retry": "Retry"
   },
-  "home": {
-    "title": "Orivex",
-    "backendReachable": "Backend reachable — status: {status}, uptime: {uptime}s",
-    "backendUnreachable": "Backend unreachable: {error}"
+  "landing": {
+    "hero": {
+      "headline": "Healthcare that meets you where you are",
+      "subheadline": "Find a verified doctor, book an appointment, and consult from anywhere — all in one secure platform.",
+      "primaryCta": "Find a Doctor",
+      "secondaryCta": "Become a Doctor"
+    },
+    "search": {
+      "namePlaceholder": "Search by doctor name...",
+      "nameLabel": "Doctor name",
+      "specialtyLabel": "Specialty",
+      "specialtyPlaceholder": "Any specialty",
+      "allSpecialties": "All specialties",
+      "submit": "Search"
+    },
+    "specialties": {
+      "title": "Browse by Specialty",
+      "description": "Find the right doctor for your needs across our verified specialties.",
+      "emptyTitle": "No specialties available yet",
+      "emptyDescription": "Check back soon as more doctors join the platform.",
+      "doctorCount": "{count} doctors"
+    },
+    "popularDoctors": {
+      "title": "Popular Doctors",
+      "description": "Meet some of the highly-rated doctors already practicing on ORIVEX.",
+      "emptyTitle": "No doctors yet",
+      "emptyDescription": "Check back soon as more doctors join the platform.",
+      "ranks": {
+        "resident": "Resident",
+        "registrar": "Registrar",
+        "specialist": "Specialist",
+        "consultant": "Consultant",
+        "professor": "Professor"
+      },
+      "reviewCount": "({count} reviews)",
+      "noReviewsYet": "No reviews yet",
+      "consultationFee": "Consultation fee: {amount}",
+      "viewProfile": "View Profile",
+      "bookAppointment": "Book Appointment"
+    },
+    "howItWorks": {
+      "title": "How ORIVEX Works",
+      "description": "A clear path for patients and doctors alike.",
+      "patientTitle": "For Patients",
+      "doctorTitle": "For Doctors",
+      "steps": {
+        "findDoctor": "Find a doctor by specialty or name.",
+        "bookAppointment": "Book an appointment for a time that works for you.",
+        "identityVerification": "Verify your identity to keep your care secure.",
+        "videoConsultation": "Meet your doctor over a secure video consultation.",
+        "medicalRecords": "Access your prescriptions and medical records afterward.",
+        "register": "Create an account to start your application.",
+        "verification": "Submit your credentials for professional verification.",
+        "manageSchedule": "Set your availability and working hours.",
+        "meetPatients": "Review and approve incoming appointment requests.",
+        "consult": "Consult with patients over secure video.",
+        "managePractice": "Manage your schedule, prescriptions, and patients in one place."
+      }
+    },
+    "coreFeatures": {
+      "title": "Everything You Need",
+      "description": "A complete, secure platform for modern healthcare.",
+      "items": {
+        "doctorDirectory": {
+          "title": "Doctor Directory",
+          "description": "Search and browse verified doctors by specialty."
+        },
+        "onlineBooking": {
+          "title": "Online Booking",
+          "description": "Book appointments that require doctor approval, so your visit is always confirmed."
+        },
+        "videoConsultations": {
+          "title": "Video Consultations",
+          "description": "Meet your doctor securely from anywhere, powered by LiveKit."
+        },
+        "digitalPrescriptions": {
+          "title": "Digital Prescriptions",
+          "description": "Doctors issue signed prescriptions you can view and print."
+        },
+        "securePayments": {
+          "title": "Secure Payments",
+          "description": "Consultation fees are processed securely through Stripe."
+        },
+        "identityVerification": {
+          "title": "Identity Verification",
+          "description": "Every patient and doctor identity is verified before care begins."
+        }
+      }
+    },
+    "forPatients": {
+      "title": "For Patients",
+      "description": "Getting the care you need has never been easier.",
+      "bullets": {
+        "findVerifiedDoctors": "Find verified doctors across a range of specialties.",
+        "bookInMinutes": "Book an appointment in minutes.",
+        "consultFromHome": "Consult with your doctor from home over secure video.",
+        "secureRecords": "Keep your medical records and prescriptions in one secure place.",
+        "digitalPrescriptions": "Receive digital prescriptions you can view and print anytime."
+      },
+      "cta": "Find a Doctor"
+    },
+    "forDoctors": {
+      "title": "For Doctors",
+      "description": "Grow your practice and reach more patients online.",
+      "bullets": {
+        "flexibleSchedule": "Set your own availability and working hours.",
+        "videoConsultations": "Consult with patients over secure video, from anywhere.",
+        "digitalPrescriptions": "Issue digital prescriptions during your consultations.",
+        "securePayments": "Get paid securely for your consultations through Stripe.",
+        "growPractice": "Reach new patients searching for your specialty."
+      },
+      "cta": "Become a Doctor"
+    },
+    "securityTrust": {
+      "title": "Security & Trust",
+      "description": "Your care and your data, protected at every step.",
+      "items": {
+        "verifiedDoctors": {
+          "title": "Verified Doctors",
+          "description": "Every doctor completes a professional verification review before treating patients."
+        },
+        "identityVerification": {
+          "title": "Identity Verification",
+          "description": "Patient identities are verified to keep consultations secure."
+        },
+        "roleBasedAccess": {
+          "title": "Role-Based Access",
+          "description": "Access to medical data is limited to the people who need it."
+        },
+        "secureUploads": {
+          "title": "Secure Document Uploads",
+          "description": "Medical documents and records are uploaded and stored securely."
+        }
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "items": {
+        "booking": {
+          "question": "How do I book an appointment?",
+          "answer": "Find a doctor by specialty or name, choose an available time, and submit your request. Your doctor reviews and approves every booking before it's confirmed."
+        },
+        "becomeDoctor": {
+          "question": "How do I become a doctor on ORIVEX?",
+          "answer": "Register for an account, then complete the doctor onboarding wizard with your professional details and license documents. Your application is reviewed before you can start practicing."
+        },
+        "verification": {
+          "question": "How does verification work?",
+          "answer": "Both patients and doctors verify their identity — doctors also submit their professional credentials for admin review before they can accept patients."
+        },
+        "consultations": {
+          "question": "Are consultations online?",
+          "answer": "Yes. Consultations happen over secure video, directly in your browser — no extra software required."
+        },
+        "prescriptions": {
+          "question": "How do prescriptions work?",
+          "answer": "Your doctor can issue a digital prescription during your consultation, which you can then view and print from your medical records."
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready to get started?",
+      "description": "Join ORIVEX to find a doctor or grow your practice.",
+      "primaryCta": "Create an Account",
+      "secondaryCta": "Sign In"
+    },
+    "footer": {
+      "tagline": "AI-Powered Healthcare Platform",
+      "patients": {
+        "heading": "Patients",
+        "findDoctor": "Find a Doctor",
+        "bookAppointment": "Book Appointment",
+        "signIn": "Sign In"
+      },
+      "doctors": {
+        "heading": "Doctors",
+        "becomeDoctor": "Become a Doctor",
+        "signIn": "Sign In"
+      },
+      "copyright": "© {year} ORIVEX. All rights reserved."
+    }
   },
   "payment": {
     "formLabel": "Payment details",

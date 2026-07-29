@@ -9,6 +9,7 @@ import { mediaAssetHandlers } from '@/mocks/handlers/media-assets';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
 import { patientHandlers } from '@/mocks/handlers/patient';
 import { paymentHandlers } from '@/mocks/handlers/payment';
+import { publicHandlers } from '@/mocks/handlers/public';
 import { referenceHandlers } from '@/mocks/handlers/reference';
 import { schedulingHandlers } from '@/mocks/handlers/scheduling';
 import { telemedicineHandlers } from '@/mocks/handlers/telemedicine';
@@ -35,6 +36,7 @@ export const handlers = [
   ...mediaAssetHandlers,
   ...patientHandlers,
   ...paymentHandlers,
+  ...publicHandlers,
   ...referenceHandlers,
   ...schedulingHandlers,
   ...telemedicineHandlers,
