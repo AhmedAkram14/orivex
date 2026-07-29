@@ -18,6 +18,8 @@
 
 body {
   background-color: var(--color-canvas);
+  background-image: var(--gradient-canvas);
+  background-attachment: fixed;
   color: var(--color-text-primary);
 }
 

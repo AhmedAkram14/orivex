@@ -54,6 +54,14 @@
   --info-50: #eff6ff;
   --info-600: #2563eb;
   --info-900: #1e3a8a;
+
+  /* Canvas-gradient stops -- backs --gradient-canvas below only. Not a
+     semantic color (no single "this means X" reading), so it stays a
+     primitive rather than living in the @theme block, which expects a
+     flat color per token, not a multi-stop composite. */
+  --canvas-gradient-a: #eaf2ff;
+  --canvas-gradient-b: #f5f9ff;
+  --canvas-gradient-c: #f8faff;
 }
 
 @theme {
@@ -104,4 +112,16 @@
   --color-neutral-foreground: var(--gray-0);
 
   --color-focus-ring: var(--brand-500);
+}
+
+/* Plain custom property, not inside @theme -- Tailwind's @theme block
+   generates single-color utilities per token; this is a multi-stop
+   `background-image` composite, not a color, so it's consumed directly
+   (`background-image: var(--gradient-canvas)`) rather than through a
+   `bg-*` utility class. Dark mode clears this back to `none` in
+   theme-dark.css -- these exact light-blue stops are light-theme only. */
+:root {
+  --gradient-canvas: radial-gradient(circle at 80% 30%, var(--canvas-gradient-a) 0%, transparent 35%),
+    radial-gradient(circle at 15% 85%, var(--canvas-gradient-b) 0%, transparent 30%),
+    linear-gradient(180deg, var(--gray-0) 0%, var(--canvas-gradient-c) 100%);
 }
