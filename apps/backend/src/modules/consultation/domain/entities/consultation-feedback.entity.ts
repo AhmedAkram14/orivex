@@ -32,10 +32,15 @@ export interface ReconstituteConsultationFeedbackProps {
 // for an existing row first) and at the database level (unique index on
 // consultationSessionId) -- belt and suspenders, matching this codebase's
 // own established double-enforcement idiom (e.g. Stage O.9's migration
-// safety check). Immutable once submitted -- no edit/delete use case exists
-// (matches the approved "one review per consultation... unless existing
-// product rules support editing" scope: they don't yet, so this stays
-// simple).
+// safety check).
+//
+// Product follow-up (2026-07-29): the patient can now edit or delete their
+// own review (UpdateConsultationFeedbackUseCase/DeleteConsultationFeedback
+// UseCase) -- supersedes this entity's own earlier "immutable, no edit/
+// delete" comment, per explicit product direction. `rating`/`comment` are no
+// longer `readonly`; `id`/`consultationSessionId`/`patientId`/`doctorId`/
+// `createdAt` still are -- editing a review never reassigns which session,
+// patient, or doctor it belongs to.
 export class ConsultationFeedback {
   private readonly domainEvents: DomainEvent[] = [];
 
@@ -44,8 +49,8 @@ export class ConsultationFeedback {
     private readonly consultationSessionId: string,
     private readonly patientId: string,
     private readonly doctorId: string,
-    private readonly rating: number,
-    private readonly comment: string | undefined,
+    private rating: number,
+    private comment: string | undefined,
     private readonly createdAt: Date,
   ) {}
 
@@ -66,6 +71,16 @@ export class ConsultationFeedback {
 
     feedback.record(new ConsultationFeedbackSubmittedEvent(feedback.id, feedback.doctorId));
     return feedback;
+  }
+
+  // Same validation as submit() -- a rating out of range is never valid,
+  // whether this is the first submission or a correction.
+  update(rating: number, comment?: string): void {
+    if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) {
+      throw new ConsultationDomainError(`Rating must be an integer between ${MIN_RATING} and ${MAX_RATING}.`);
+    }
+    this.rating = rating;
+    this.comment = comment?.trim() || undefined;
   }
 
   static reconstitute(props: ReconstituteConsultationFeedbackProps): ConsultationFeedback {

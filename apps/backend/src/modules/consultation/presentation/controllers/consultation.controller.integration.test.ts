@@ -69,6 +69,9 @@ import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
 import { ListConsultationFeedbackForDoctorUseCase } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
 import { SubmitConsultationFeedbackUseCase } from '../../application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
+import { UpdateConsultationFeedbackUseCase } from '../../application/use-cases/update-consultation-feedback/update-consultation-feedback.use-case.js';
+import { DeleteConsultationFeedbackUseCase } from '../../application/use-cases/delete-consultation-feedback/delete-consultation-feedback.use-case.js';
+import type { RealtimeEmitterPort } from '../../../../platform/realtime/ports/realtime-emitter.port.js';
 import type { GenerateRoomTokenRequest, GenerateRoomTokenResult, RoomTokenGeneratorPort } from '../../application/ports/room-token-generator.port.js';
 import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { MedicalSpecialty } from '../../../reference/domain/entities/medical-specialty.entity.js';
@@ -253,6 +256,17 @@ class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepo
   }
   async save(feedback: ConsultationFeedback): Promise<void> {
     this.bySessionId.set(feedback.getConsultationSessionId(), feedback);
+  }
+  async update(feedback: ConsultationFeedback): Promise<void> {
+    this.bySessionId.set(feedback.getConsultationSessionId(), feedback);
+  }
+  async delete(id: string): Promise<void> {
+    for (const [sessionId, feedback] of this.bySessionId.entries()) {
+      if (feedback.getId() === id) {
+        this.bySessionId.delete(sessionId);
+        return;
+      }
+    }
   }
 }
 
@@ -470,6 +484,19 @@ describe('Consultation controllers (integration)', () => {
       new GetPatientProfileByAccountIdUseCase(new InMemoryPatientProfileRepository(patient)),
       new NoopDomainEventDispatcher(),
     );
+    const noopRealtimeEmitter: RealtimeEmitterPort = { emitToAccount: () => {} };
+    const updateConsultationFeedbackUseCase = new UpdateConsultationFeedbackUseCase(
+      feedbackRepo,
+      new GetPatientProfileByAccountIdUseCase(new InMemoryPatientProfileRepository(patient)),
+      getDoctorProfileByIdUseCase,
+      noopRealtimeEmitter,
+    );
+    const deleteConsultationFeedbackUseCase = new DeleteConsultationFeedbackUseCase(
+      feedbackRepo,
+      new GetPatientProfileByAccountIdUseCase(new InMemoryPatientProfileRepository(patient)),
+      getDoctorProfileByIdUseCase,
+      noopRealtimeEmitter,
+    );
 
     const moduleRef = await Test.createTestingModule({
       controllers: [
@@ -522,6 +549,8 @@ describe('Consultation controllers (integration)', () => {
         { provide: CONSULTATION_SESSION_REPOSITORY, useValue: sessionRepo },
         { provide: CONSULTATION_FEEDBACK_REPOSITORY, useValue: feedbackRepo },
         { provide: SubmitConsultationFeedbackUseCase, useValue: submitConsultationFeedbackUseCase },
+        { provide: UpdateConsultationFeedbackUseCase, useValue: updateConsultationFeedbackUseCase },
+        { provide: DeleteConsultationFeedbackUseCase, useValue: deleteConsultationFeedbackUseCase },
         { provide: GetDoctorRatingAggregateUseCase, useValue: new GetDoctorRatingAggregateUseCase(feedbackRepo) },
         {
           provide: ListConsultationFeedbackForDoctorUseCase,
@@ -1126,6 +1155,94 @@ describe('Consultation controllers (integration)', () => {
         .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
         .send({ rating: 5 })
         .expect(403);
+    });
+  });
+
+  // Follow-up (2026-07-29): review edit/delete. Runs against the exact
+  // feedback row the block above just created, and ends by restoring its
+  // original rating/comment so the "GET /doctors/:id/reviews" block below
+  // (which asserts on that same row) keeps seeing the values it expects.
+  describe('PATCH & DELETE /consultations/:id/feedback', () => {
+    it('rejects a PATCH with no bearer token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/consultations/${completedConsultationSessionId}/feedback`)
+        .send({ rating: 4 })
+        .expect(401);
+    });
+
+    it('rejects a PATCH with an out-of-range rating', async () => {
+      const response = await request(app.getHttpServer())
+        .patch(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 6 })
+        .expect(400);
+
+      assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    });
+
+    it('rejects a PATCH from a caller with no patient profile', async () => {
+      await request(app.getHttpServer())
+        .patch(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_NO_PROFILE_TOKEN}`)
+        .send({ rating: 4 })
+        .expect(403);
+    });
+
+    it('rejects a doctor caller (patient-only route)', async () => {
+      await request(app.getHttpServer())
+        .patch(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+        .send({ rating: 4 })
+        .expect(403);
+    });
+
+    it('updates the rating and comment of an existing review', async () => {
+      const response = await request(app.getHttpServer())
+        .patch(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 2, comment: 'Actually, the follow-up was disappointing.' })
+        .expect(200);
+
+      assert.equal(response.body.data.rating, 2);
+      assert.equal(response.body.data.comment, 'Actually, the follow-up was disappointing.');
+
+      // Restore the original values so later assertions on this same review
+      // (the "GET /doctors/:id/reviews" block) see what they expect.
+      await request(app.getHttpServer())
+        .patch(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 5, comment: 'Excellent, thorough, and kind.' })
+        .expect(200);
+    });
+
+    it('rejects a DELETE with no bearer token', async () => {
+      await request(app.getHttpServer()).delete(`/consultations/${completedConsultationSessionId}/feedback`).expect(401);
+    });
+
+    it('rejects a DELETE from a caller with no patient profile', async () => {
+      await request(app.getHttpServer())
+        .delete(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_NO_PROFILE_TOKEN}`)
+        .expect(403);
+    });
+
+    it('deletes the review, then lets the same patient submit a fresh one (frees the one-per-session constraint)', async () => {
+      await request(app.getHttpServer())
+        .delete(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .expect(204);
+
+      // Re-submit the original values so later assertions on this same
+      // consultation session (the "GET /doctors/:id/reviews" block) see the
+      // exact review they expect, just with a fresh id.
+      const response = await request(app.getHttpServer())
+        .post(`/consultations/${completedConsultationSessionId}/feedback`)
+        .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+        .send({ rating: 5, comment: 'Excellent, thorough, and kind.' })
+        .expect(201);
+
+      assert.equal(response.body.data.rating, 5);
+      assert.equal(response.body.data.comment, 'Excellent, thorough, and kind.');
     });
   });
 

@@ -52,6 +52,33 @@ describe('ConsultationFeedback', () => {
     });
   }
 
+  it('update() changes the rating and comment in place, without touching id/consultationSessionId/patientId/doctorId', () => {
+    const feedback = ConsultationFeedback.submit({ ...PROPS, comment: 'Original comment' });
+    const originalId = feedback.getId();
+
+    feedback.update(2, 'Revised after a follow-up visit.');
+
+    assert.equal(feedback.getRating(), 2);
+    assert.equal(feedback.getComment(), 'Revised after a follow-up visit.');
+    assert.equal(feedback.getId(), originalId);
+    assert.equal(feedback.getConsultationSessionId(), PROPS.consultationSessionId);
+    assert.equal(feedback.getPatientId(), PROPS.patientId);
+    assert.equal(feedback.getDoctorId(), PROPS.doctorId);
+  });
+
+  it('update() trims and clears the comment the same way submit() does', () => {
+    const feedback = ConsultationFeedback.submit(PROPS);
+    feedback.update(3, '   ');
+    assert.equal(feedback.getComment(), undefined);
+  });
+
+  for (const rating of [0, 6, -1, 1.5]) {
+    it(`update() rejects an out-of-range rating (${rating})`, () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      assert.throws(() => feedback.update(rating), ConsultationDomainError);
+    });
+  }
+
   it('reconstitutes without raising a domain event', () => {
     const feedback = ConsultationFeedback.reconstitute({
       id: '44444444-4444-4444-8444-444444444444',

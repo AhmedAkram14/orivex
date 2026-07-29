@@ -13,4 +13,7 @@ export interface ConsultationFeedbackRepository {
   /** Batched form for a paginated doctor-directory listing -- avoids one aggregate query per doctor per page (N+1). */
   getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>>;
   save(feedback: ConsultationFeedback): Promise<void>;
+  /** Persists an edit to an already-saved feedback row -- distinct from `save()`, which only ever inserts a new one. */
+  update(feedback: ConsultationFeedback): Promise<void>;
+  delete(id: string): Promise<void>;
 }

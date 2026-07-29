@@ -79,4 +79,15 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
       },
     });
   }
+
+  async update(feedback: ConsultationFeedback): Promise<void> {
+    await this.prisma.consultationFeedback.update({
+      where: { id: feedback.getId() },
+      data: { rating: feedback.getRating(), comment: feedback.getComment() ?? null },
+    });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.consultationFeedback.delete({ where: { id } });
+  }
 }

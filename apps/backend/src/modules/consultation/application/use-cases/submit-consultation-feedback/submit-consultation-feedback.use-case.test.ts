@@ -41,6 +41,12 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
     this.saved.push(feedback);
     this.existing = feedback;
   }
+  async update(feedback: ConsultationFeedback): Promise<void> {
+    this.existing = feedback;
+  }
+  async delete(): Promise<void> {
+    this.existing = null;
+  }
 }
 
 class FakeConsultationSessionRepository implements ConsultationSessionRepository {

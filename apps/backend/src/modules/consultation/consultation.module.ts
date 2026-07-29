@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import type { RealtimeEmitterPort } from '../../platform/realtime/ports/realtime-emitter.port.js';
+import { REALTIME_EMITTER } from '../../platform/realtime/ports/tokens.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
 import { GetAvailabilityWindowByIdUseCase } from '../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
@@ -48,6 +50,8 @@ import { RecordSessionConnectionLogUseCase } from './application/use-cases/recor
 import { RescheduleOrCancelAppointmentUseCase } from './application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from './application/use-cases/start-consultation/start-consultation.use-case.js';
 import { SubmitConsultationFeedbackUseCase } from './application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
+import { UpdateConsultationFeedbackUseCase } from './application/use-cases/update-consultation-feedback/update-consultation-feedback.use-case.js';
+import { DeleteConsultationFeedbackUseCase } from './application/use-cases/delete-consultation-feedback/delete-consultation-feedback.use-case.js';
 import type { AppointmentRepository } from './domain/repositories/appointment.repository.js';
 import type { ConsultationFeedbackRepository } from './domain/repositories/consultation-feedback.repository.js';
 import type { ConsultationSessionRepository } from './domain/repositories/consultation-session.repository.js';
@@ -247,6 +251,40 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         GetPatientProfileByAccountIdUseCase,
         DOMAIN_EVENT_DISPATCHER,
       ],
+    },
+    // Product follow-up (2026-07-29): patient-initiated edit/delete of their
+    // own review.
+    {
+      provide: UpdateConsultationFeedbackUseCase,
+      useFactory: (
+        feedbackRepository: ConsultationFeedbackRepository,
+        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        realtimeEmitter: RealtimeEmitterPort,
+      ) =>
+        new UpdateConsultationFeedbackUseCase(
+          feedbackRepository,
+          getPatientProfileByAccountIdUseCase,
+          getDoctorProfileByIdUseCase,
+          realtimeEmitter,
+        ),
+      inject: [CONSULTATION_FEEDBACK_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByIdUseCase, REALTIME_EMITTER],
+    },
+    {
+      provide: DeleteConsultationFeedbackUseCase,
+      useFactory: (
+        feedbackRepository: ConsultationFeedbackRepository,
+        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        realtimeEmitter: RealtimeEmitterPort,
+      ) =>
+        new DeleteConsultationFeedbackUseCase(
+          feedbackRepository,
+          getPatientProfileByAccountIdUseCase,
+          getDoctorProfileByIdUseCase,
+          realtimeEmitter,
+        ),
+      inject: [CONSULTATION_FEEDBACK_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByIdUseCase, REALTIME_EMITTER],
     },
     {
       provide: GetConsultationFeedbackForSessionUseCase,
