@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { PageContainer } from '@/shared/ui/layout/page-container';
+import { Logo } from '@/shared/ui/logo';
 import { toUserMessage } from '@/shared/lib/api/error';
 
 /**
@@ -22,6 +23,7 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
 
   return (
     <PageContainer size="sm">
+      <Logo size="md" className="self-start text-primary" />
       <Alert variant="danger" title="Something went wrong">
         {toUserMessage(error)}
       </Alert>

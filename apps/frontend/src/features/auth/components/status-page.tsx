@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Icon } from '@/shared/icons/icon';
+import { Logo } from '@/shared/ui/logo';
 
 export interface StatusPageProps {
   icon: LucideIcon;
@@ -18,7 +19,8 @@ export interface StatusPageProps {
  */
 export function StatusPage({ icon, title, description, action }: StatusPageProps) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
+      <Logo size="md" className="text-primary" />
       <div className="flex size-16 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
         <Icon icon={icon} size="lg" />
       </div>
