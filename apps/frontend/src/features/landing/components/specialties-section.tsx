@@ -29,14 +29,18 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
 
-type AccentKey = 'primary' | 'success' | 'info' | 'danger' | 'warning';
+// "info" is deliberately excluded here -- this design system's own tokens
+// define --color-info as the exact same hex as --color-primary (both
+// #2563eb), so a card accented "info" is visually indistinguishable from
+// one accented "primary", not just similar. These 4 are the only genuinely
+// distinct hues the existing token set has to offer.
+type AccentKey = 'primary' | 'success' | 'warning' | 'danger';
 
 const ACCENTS: Record<AccentKey, { badge: BadgeProps['variant']; icon: string; iconBg: string; border: string }> = {
   primary: { badge: 'primary', icon: 'text-primary', iconBg: 'bg-primary-subtle', border: 'border-t-primary' },
   success: { badge: 'success', icon: 'text-success', iconBg: 'bg-success-subtle', border: 'border-t-success' },
-  info: { badge: 'info', icon: 'text-info', iconBg: 'bg-info-subtle', border: 'border-t-info' },
-  danger: { badge: 'danger', icon: 'text-danger', iconBg: 'bg-danger-subtle', border: 'border-t-danger' },
   warning: { badge: 'warning', icon: 'text-warning', iconBg: 'bg-warning-subtle', border: 'border-t-warning' },
+  danger: { badge: 'danger', icon: 'text-danger', iconBg: 'bg-danger-subtle', border: 'border-t-danger' },
 };
 const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];
 
@@ -45,17 +49,21 @@ const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];
 // what the specialty is. Each category keeps the SAME icon+color+tagline
 // every time (keyed off the category itself, not the card's position in
 // the grid), so a specialty's look stays stable even if the real doctor
-// counts driving the sort order change. Anything unmatched falls back to
-// a generic stethoscope + a hash-stable color (still consistent per
-// specialty, just not hand-picked) and a generic tagline.
+// counts driving the sort order change. Adjacent categories are assigned
+// different accents from each other so no two neighbors render
+// identically; with only 4 distinct hues and more than 4 categories, a
+// repeat is unavoidable somewhere, but never between neighbors. Anything
+// unmatched falls back to a generic stethoscope + a hash-stable color
+// (still consistent per specialty, just not hand-picked) and a generic
+// tagline.
 const CATEGORIES: { pattern: RegExp; key: string; icon: LucideIcon; accent: AccentKey }[] = [
   { pattern: /orthop|bone|spine/i, key: 'orthopedics', icon: Bone, accent: 'primary' },
   { pattern: /anesthes/i, key: 'anesthesiology', icon: Syringe, accent: 'success' },
-  { pattern: /dent|oral/i, key: 'dentistry', icon: Smile, accent: 'info' },
+  { pattern: /dent|oral/i, key: 'dentistry', icon: Smile, accent: 'warning' },
   { pattern: /pediatric/i, key: 'pediatrics', icon: Baby, accent: 'danger' },
-  { pattern: /radiol|imaging/i, key: 'radiology', icon: ScanLine, accent: 'warning' },
+  { pattern: /radiol|imaging/i, key: 'radiology', icon: ScanLine, accent: 'success' },
   { pattern: /cardio|heart/i, key: 'cardiology', icon: HeartPulse, accent: 'danger' },
-  { pattern: /neuro|brain/i, key: 'neurology', icon: Brain, accent: 'info' },
+  { pattern: /neuro|brain/i, key: 'neurology', icon: Brain, accent: 'warning' },
   { pattern: /ophthalmol|\beye/i, key: 'ophthalmology', icon: Eye, accent: 'primary' },
   { pattern: /\bent\b|ear|nose|throat/i, key: 'ent', icon: Ear, accent: 'success' },
 ];
