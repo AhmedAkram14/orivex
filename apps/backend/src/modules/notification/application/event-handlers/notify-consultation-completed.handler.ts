@@ -75,6 +75,7 @@ export class NotifyConsultationCompletedHandler {
         accountId: patient.getAccountId(),
         title: 'Consultation completed',
         description,
+        actionUrl: '/patient/appointments',
       });
       await this.notificationRepository.save(notification);
     } catch (error) {
