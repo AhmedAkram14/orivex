@@ -60,6 +60,18 @@ export function useRealtimeSocket(): void {
       queryClient.invalidateQueries({ queryKey: ['patient-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['consultation-summary'] });
       queryClient.invalidateQueries({ queryKey: ['doctor-reviews'] });
+      // Product follow-up (2026-07-29): a role change (e.g. a doctor
+      // verification getting approved) also arrives as a Notification.
+      // The account's role only actually changes in the access token the
+      // NEXT time it's refreshed (RolesGuard trusts the JWT claim, never a
+      // live DB read -- see RefreshSessionUseCase, which re-derives role
+      // from the account on every refresh) -- so without this, a doctor who
+      // gets approved while already logged in keeps hitting "Access
+      // restricted" on /doctor/* until they refresh the page or their token
+      // happens to expire. Invalidating the session query re-triggers
+      // bootstrapSession(), which refreshes the token (picking up the new
+      // role claim) and re-fetches the user in one round trip.
+      queryClient.invalidateQueries({ queryKey: ['auth-session'] });
     });
 
     // Product follow-up (2026-07-29): edit/delete on a review recompute the
