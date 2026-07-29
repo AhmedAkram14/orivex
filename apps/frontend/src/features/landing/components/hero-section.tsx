@@ -2,6 +2,8 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Text } from '@/design-system/typography';
 import { SearchSection } from '@/features/landing/components/search-section';
+import { Link } from '@/shared/i18n/navigation';
+import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
 
 /**
@@ -40,6 +42,14 @@ export function HeroSection() {
             {t('subheadline')}
           </Text>
           <SearchSection />
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild size="lg" className="bg-white text-text-primary hover:bg-white/90">
+              <Link href="/patient/doctors">{t('primaryCta')}</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+              <Link href="/register">{t('secondaryCta')}</Link>
+            </Button>
+          </div>
         </div>
       </Container>
     </div>

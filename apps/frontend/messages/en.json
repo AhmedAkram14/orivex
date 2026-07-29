@@ -14,12 +14,15 @@
       "faq": "FAQ",
       "signIn": "Sign In",
       "register": "Register",
-      "openMenu": "Open menu"
+      "openMenu": "Open menu",
+      "goToDashboard": "Go to Dashboard"
     },
     "hero": {
       "headline": "Healthcare that meets you where you are",
       "subheadline": "Find a verified doctor, book an appointment, and consult from anywhere — all in one secure platform.",
-      "imageAlt": "A doctor consulting with a patient over a video call"
+      "imageAlt": "A doctor consulting with a patient over a video call",
+      "primaryCta": "Find a Doctor",
+      "secondaryCta": "Become a Doctor"
     },
     "search": {
       "namePlaceholder": "Search by doctor name...",

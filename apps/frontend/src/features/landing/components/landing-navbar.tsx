@@ -3,6 +3,8 @@
 import { Menu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { LandingUserMenu } from '@/features/landing/components/landing-user-menu';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
@@ -27,6 +29,7 @@ const SECTION_LINKS = [
 export function LandingNavbar() {
   const t = useTranslations('landing.nav');
   const tCommon = useTranslations('common');
+  const { status, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -47,12 +50,18 @@ export function LandingNavbar() {
           </nav>
 
           <div className="hidden items-center gap-2 md:flex">
-            <Button asChild variant="ghost" size="sm" className="rounded-full">
-              <Link href="/login">{t('signIn')}</Link>
-            </Button>
-            <Button asChild size="sm" className="rounded-full">
-              <Link href="/register">{t('register')}</Link>
-            </Button>
+            {status === 'authenticated' && user ? (
+              <LandingUserMenu user={user} />
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm" className="rounded-full">
+                  <Link href="/login">{t('signIn')}</Link>
+                </Button>
+                <Button asChild size="sm" className="rounded-full">
+                  <Link href="/register">{t('register')}</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           <Drawer open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -79,12 +88,18 @@ export function LandingNavbar() {
                 ))}
               </nav>
               <div className="mt-auto flex flex-col gap-2">
-                <Button asChild variant="outline" className="rounded-full">
-                  <Link href="/login">{t('signIn')}</Link>
-                </Button>
-                <Button asChild className="rounded-full">
-                  <Link href="/register">{t('register')}</Link>
-                </Button>
+                {status === 'authenticated' && user ? (
+                  <LandingUserMenu user={user} />
+                ) : (
+                  <>
+                    <Button asChild variant="outline" className="rounded-full">
+                      <Link href="/login">{t('signIn')}</Link>
+                    </Button>
+                    <Button asChild className="rounded-full">
+                      <Link href="/register">{t('register')}</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </Drawer.Content>
           </Drawer>
