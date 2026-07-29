@@ -152,6 +152,22 @@ export function submitConsultationFeedback(
   return feedback;
 }
 
+export function updateConsultationFeedback(
+  consultationSessionId: string,
+  rating: number,
+  comment: string | undefined,
+): ConsultationFeedback | null {
+  const existing = feedbackBySessionId.get(consultationSessionId);
+  if (!existing) return null;
+  const updated: ConsultationFeedback = { ...existing, rating, comment: comment ?? null };
+  feedbackBySessionId.set(consultationSessionId, updated);
+  return updated;
+}
+
+export function deleteConsultationFeedback(consultationSessionId: string): boolean {
+  return feedbackBySessionId.delete(consultationSessionId);
+}
+
 export function recommendFollowUp(
   consultationSessionId: string,
   reason: string,

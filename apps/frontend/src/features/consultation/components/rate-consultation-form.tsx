@@ -4,6 +4,7 @@ import { Star } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useSubmitConsultationFeedback } from '@/features/consultation/hooks/use-submit-consultation-feedback';
+import { useUpdateConsultationFeedback } from '@/features/consultation/hooks/use-update-consultation-feedback';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
@@ -14,20 +15,35 @@ export interface RateConsultationFormProps {
   consultationSessionId: string;
   doctorProfileId: string;
   onSubmitted?: () => void;
+  /** 'edit' reuses this same star-picker UI for correcting an already-submitted review, per the 2026-07-29 product follow-up. */
+  mode?: 'create' | 'edit';
+  initialRating?: number;
+  initialComment?: string;
+  onCancel?: () => void;
 }
 
 const RATING_VALUES = [1, 2, 3, 4, 5] as const;
 
 /** §8/§9/§11 of the consultation-completion follow-up: "Rate your consultation" -- overall 1-5 + optional comment, sufficient for V1 per the approved scope. */
-export function RateConsultationForm({ consultationSessionId, doctorProfileId, onSubmitted }: RateConsultationFormProps) {
+export function RateConsultationForm({
+  consultationSessionId,
+  doctorProfileId,
+  onSubmitted,
+  mode = 'create',
+  initialRating = 0,
+  initialComment = '',
+  onCancel,
+}: RateConsultationFormProps) {
   const t = useTranslations('consultation.rating');
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [rating, setRating] = useState(initialRating);
+  const [comment, setComment] = useState(initialComment);
   const submitFeedback = useSubmitConsultationFeedback(consultationSessionId, doctorProfileId);
+  const updateFeedback = useUpdateConsultationFeedback(consultationSessionId, doctorProfileId);
+  const activeMutation = mode === 'edit' ? updateFeedback : submitFeedback;
 
   async function handleSubmit() {
     if (rating === 0) return;
-    await submitFeedback.mutateAsync({ rating, comment: comment.trim() || undefined });
+    await activeMutation.mutateAsync({ rating, comment: comment.trim() || undefined });
     onSubmitted?.();
   }
 
@@ -59,10 +75,17 @@ export function RateConsultationForm({ consultationSessionId, doctorProfileId, o
         placeholder={t('commentPlaceholder')}
         rows={3}
       />
-      {submitFeedback.isError && <Alert variant="danger">{t('submitError')}</Alert>}
-      <Button type="button" loading={submitFeedback.isPending} disabled={rating === 0} onClick={handleSubmit}>
-        {t('submit')}
-      </Button>
+      {activeMutation.isError && <Alert variant="danger">{t(mode === 'edit' ? 'updateError' : 'submitError')}</Alert>}
+      <div className="flex items-center gap-2">
+        <Button type="button" loading={activeMutation.isPending} disabled={rating === 0} onClick={handleSubmit}>
+          {t(mode === 'edit' ? 'save' : 'submit')}
+        </Button>
+        {mode === 'edit' && onCancel && (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={activeMutation.isPending}>
+            {t('cancel')}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

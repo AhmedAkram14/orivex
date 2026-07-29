@@ -3,6 +3,7 @@ import { env } from '@/shared/lib/env';
 import type { ConsultationCompletionReason } from '@/features/consultation/api/types';
 import {
   closeConsultation,
+  deleteConsultationFeedback,
   getConsultationSummary,
   getDoctorReviews,
   recommendFollowUp,
@@ -10,6 +11,7 @@ import {
   recordConsultationNote,
   startConsultation,
   submitConsultationFeedback,
+  updateConsultationFeedback,
 } from '@/mocks/consultation-store';
 
 const base = () => env.apiBaseUrl;
@@ -41,6 +43,23 @@ export const consultationHandlers = [
       { data: submitConsultationFeedback(params.id as string, body.rating, body.comment) },
       { status: 201 },
     );
+  }),
+
+  http.patch(`${base()}/consultations/:id/feedback`, async ({ request, params }) => {
+    const body = (await request.json()) as { rating: number; comment?: string };
+    const updated = updateConsultationFeedback(params.id as string, body.rating, body.comment);
+    if (!updated) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'No feedback exists for this session.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({ data: updated });
+  }),
+
+  http.delete(`${base()}/consultations/:id/feedback`, ({ params }) => {
+    deleteConsultationFeedback(params.id as string);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.post(`${base()}/consultations/:id/follow-up`, async ({ request, params }) => {

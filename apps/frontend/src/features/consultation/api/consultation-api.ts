@@ -46,6 +46,16 @@ export const consultationApi = {
       body: { rating, comment },
     }),
 
+  updateFeedback: (consultationSessionId: string, rating: number, comment?: string) =>
+    apiFetch<ConsultationFeedback>({
+      method: 'PATCH',
+      path: CONSULTATION_PATHS.feedback(consultationSessionId),
+      body: { rating, comment },
+    }),
+
+  deleteFeedback: (consultationSessionId: string) =>
+    apiFetch<void>({ method: 'DELETE', path: CONSULTATION_PATHS.feedback(consultationSessionId) }),
+
   recommendFollowUp: (consultationSessionId: string, reason: string, recommendedDate?: string) =>
     apiFetch<FollowUpRecommendation>({
       method: 'POST',

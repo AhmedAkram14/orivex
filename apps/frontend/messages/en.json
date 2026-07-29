@@ -1123,7 +1123,10 @@
       "starLabel": "{count} of 5 stars",
       "commentPlaceholder": "Leave an optional comment...",
       "submit": "Submit rating",
+      "save": "Save changes",
+      "cancel": "Cancel",
       "submitError": "Couldn't submit your rating. Please try again.",
+      "updateError": "Couldn't save your changes. Please try again.",
       "noReviewsYet": "No reviews yet",
       "reviewCount": "({count} reviews)"
     },
@@ -1141,6 +1144,10 @@
       "followUp": "Recommended follow-up",
       "yourRating": "Your rating",
       "alreadyRated": "You rated this consultation {rating} of 5.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirmBody": "Delete your review? This removes your rating and comment for this consultation. You can submit a new review later if you change your mind.",
+      "deleteError": "Couldn't delete your review. Please try again.",
       "loadError": "Couldn't load the consultation summary."
     }
   }

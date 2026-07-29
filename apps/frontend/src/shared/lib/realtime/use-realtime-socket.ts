@@ -59,6 +59,16 @@ export function useRealtimeSocket(): void {
       queryClient.invalidateQueries({ queryKey: ['patient-upcoming-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['patient-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['consultation-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['doctor-reviews'] });
+    });
+
+    // Product follow-up (2026-07-29): edit/delete on a review recompute the
+    // doctor's rating without creating a Notification (that would spam the
+    // doctor on every correction) -- so it needs its own direct event,
+    // separate from the notification.changed fan-out above.
+    socket.on('doctor-reviews.changed', () => {
+      queryClient.invalidateQueries({ queryKey: ['doctor-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['doctor-dashboard'] });
     });
 
     return () => {

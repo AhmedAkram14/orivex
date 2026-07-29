@@ -1,16 +1,23 @@
 'use client';
 
+import { Star } from 'lucide-react';
 import { useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useConsultationSummary } from '@/features/consultation/hooks/use-consultation-summary';
 import { RateConsultationForm } from '@/features/consultation/components/rate-consultation-form';
+import { useDeleteConsultationFeedback } from '@/features/consultation/hooks/use-delete-consultation-feedback';
 import { useDoctorById } from '@/features/doctor/hooks/use-doctor-by-id';
+import type { ConsultationFeedback } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { Icon } from '@/shared/icons/icon';
 import { Section } from '@/shared/ui/layout/section';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { cn } from '@/shared/lib/cn';
+
+const RATING_DISPLAY_VALUES = [1, 2, 3, 4, 5] as const;
 
 export interface ConsultationOutcomeActionProps {
   consultationSessionId: string;
@@ -20,6 +27,49 @@ function formatDuration(startedAt: string | null, closedAt: string | null): stri
   if (!startedAt || !closedAt) return null;
   const minutes = Math.round((new Date(closedAt).getTime() - new Date(startedAt).getTime()) / 60_000);
   return `${minutes} min`;
+}
+
+interface SubmittedRatingViewProps {
+  feedback: ConsultationFeedback;
+  onEdit: () => void;
+  consultationSessionId: string;
+  doctorProfileId: string;
+}
+
+/** Read-only view of an already-submitted review, with Edit/Delete actions -- the 2026-07-29 product follow-up replacing the old immutable "you rated this X of 5" alert. */
+function SubmittedRatingView({ feedback, onEdit, consultationSessionId, doctorProfileId }: SubmittedRatingViewProps) {
+  const t = useTranslations('consultation.outcome');
+  const deleteFeedback = useDeleteConsultationFeedback(consultationSessionId, doctorProfileId);
+
+  async function handleDelete() {
+    if (!window.confirm(t('deleteConfirmBody'))) return;
+    await deleteFeedback.mutateAsync();
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-1" aria-label={t('alreadyRated', { rating: feedback.rating })}>
+        {RATING_DISPLAY_VALUES.map((value) => (
+          <Icon
+            key={value}
+            icon={Star}
+            size="lg"
+            className={cn(value <= feedback.rating ? 'fill-warning text-warning' : 'text-border-strong')}
+          />
+        ))}
+      </div>
+      {feedback.comment && <p className="text-sm text-text-secondary">{feedback.comment}</p>}
+      {deleteFeedback.isError && <Alert variant="danger">{t('deleteError')}</Alert>}
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={onEdit}>
+          {t('edit')}
+        </Button>
+        <Button type="button" variant="danger" size="sm" loading={deleteFeedback.isPending} onClick={handleDelete}>
+          {t('delete')}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -37,6 +87,7 @@ export function ConsultationOutcomeAction({ consultationSessionId }: Consultatio
   const t = useTranslations('consultation.outcome');
   const format = useFormatter();
   const [open, setOpen] = useState(false);
+  const [isEditingRating, setIsEditingRating] = useState(false);
   const { data: summary, isLoading, isError } = useConsultationSummary(open ? consultationSessionId : undefined);
   const { data: doctor } = useDoctorById(summary?.appointment.doctorId ?? '');
 
@@ -108,9 +159,28 @@ export function ConsultationOutcomeAction({ consultationSessionId }: Consultatio
             )}
 
             <Section title={t('yourRating')}>
-              {summary.feedback ? (
-                <Alert variant="success">{t('alreadyRated', { rating: summary.feedback.rating })}</Alert>
-              ) : (
+              {summary.feedback && !isEditingRating && (
+                <SubmittedRatingView
+                  feedback={summary.feedback}
+                  onEdit={() => setIsEditingRating(true)}
+                  consultationSessionId={consultationSessionId}
+                  doctorProfileId={summary.appointment.doctorId}
+                />
+              )}
+
+              {summary.feedback && isEditingRating && (
+                <RateConsultationForm
+                  consultationSessionId={consultationSessionId}
+                  doctorProfileId={summary.appointment.doctorId}
+                  mode="edit"
+                  initialRating={summary.feedback.rating}
+                  initialComment={summary.feedback.comment ?? ''}
+                  onSubmitted={() => setIsEditingRating(false)}
+                  onCancel={() => setIsEditingRating(false)}
+                />
+              )}
+
+              {!summary.feedback && (
                 <RateConsultationForm consultationSessionId={consultationSessionId} doctorProfileId={summary.appointment.doctorId} />
               )}
             </Section>

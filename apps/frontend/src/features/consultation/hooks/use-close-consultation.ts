@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { consultationApi } from '@/features/consultation/api/consultation-api';
 import type { ConsultationCompletionReason } from '@/features/consultation/api/types';
 import { consultationSummaryKeys } from '@/features/consultation/hooks/query-keys';
-import { doctorQueueKeys } from '@/features/doctor/hooks/query-keys';
+import { doctorDashboardKeys, doctorQueueKeys, doctorUpcomingWorkKeys } from '@/features/doctor/hooks/query-keys';
 import { patientAppointmentsKeys, patientPrescriptionsKeys } from '@/features/patient/hooks/query-keys';
 import { notificationKeys } from '@/features/notifications/hooks/query-keys';
 
@@ -20,6 +20,10 @@ import { notificationKeys } from '@/features/notifications/hooks/query-keys';
  * Completed), prescriptions (any signed during the visit become visible),
  * the consultation summary itself, and notifications (the patient gets a
  * "Consultation completed" notification server-side).
+ *
+ * Also invalidates the acting doctor's own dashboard/upcoming-work --
+ * they never get a Notification for their own action, so without this
+ * their "Completed" count/list would only refresh on a manual reload.
  */
 export function useCloseConsultation() {
   const queryClient = useQueryClient();
@@ -35,6 +39,8 @@ export function useCloseConsultation() {
     onSuccess: async (_data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: doctorQueueKeys.all }),
+        queryClient.invalidateQueries({ queryKey: doctorDashboardKeys.all }),
+        queryClient.invalidateQueries({ queryKey: doctorUpcomingWorkKeys.all }),
         queryClient.invalidateQueries({ queryKey: patientAppointmentsKeys.all }),
         queryClient.invalidateQueries({ queryKey: patientPrescriptionsKeys.all }),
         queryClient.invalidateQueries({ queryKey: notificationKeys.all }),

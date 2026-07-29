@@ -78,7 +78,53 @@ describe('ConsultationOutcomeAction', () => {
     renderWithProviders(<ConsultationOutcomeAction consultationSessionId={SESSION_ID} />);
     await userEvent.click(screen.getByRole('button', { name: 'View summary' }));
 
-    await waitFor(() => expect(screen.getByText('You rated this consultation 5 of 5.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('You rated this consultation 5 of 5.')).toBeInTheDocument());
     expect(screen.queryByText('Rate your consultation')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it('lets the patient edit an already-submitted rating', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/consultations/:id/summary`, () =>
+        HttpResponse.json({
+          data: completedSummary({
+            feedback: {
+              id: 'feedback-1',
+              consultationSessionId: SESSION_ID,
+              doctorId: 'doctor-profile-1',
+              rating: 3,
+              comment: 'It was okay.',
+              createdAt: '2026-07-26T10:25:00.000Z',
+            },
+          }),
+        }),
+      ),
+      http.patch(`${env.apiBaseUrl}/consultations/:id/feedback`, async ({ request }) => {
+        const body = (await request.json()) as { rating: number; comment?: string };
+        return HttpResponse.json({
+          data: {
+            id: 'feedback-1',
+            consultationSessionId: SESSION_ID,
+            doctorId: 'doctor-profile-1',
+            rating: body.rating,
+            comment: body.comment ?? null,
+            createdAt: '2026-07-26T10:25:00.000Z',
+          },
+        });
+      }),
+    );
+
+    renderWithProviders(<ConsultationOutcomeAction consultationSessionId={SESSION_ID} />);
+    await userEvent.click(screen.getByRole('button', { name: 'View summary' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(await screen.findByDisplayValue('It was okay.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: '4 of 5 stars' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument());
   });
 });
