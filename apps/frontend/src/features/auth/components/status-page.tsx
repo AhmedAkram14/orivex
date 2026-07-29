@@ -20,7 +20,7 @@ export interface StatusPageProps {
 export function StatusPage({ icon, title, description, action }: StatusPageProps) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
-      <Logo size="md" className="text-primary" />
+      <Logo size="md" />
       <div className="flex size-16 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
         <Icon icon={icon} size="lg" />
       </div>

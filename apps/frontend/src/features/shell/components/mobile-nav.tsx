@@ -24,7 +24,7 @@ export function MobileNav() {
       </Drawer.Trigger>
       <Drawer.Content side="start" className="flex flex-col gap-4 overflow-y-auto">
         <Drawer.Title className="flex items-center gap-2 text-lg font-semibold text-text-primary">
-          <Logo size="sm" className="text-primary" />
+          <Logo size="sm" />
           {tCommon('appName')}
         </Drawer.Title>
         <SidebarNav />

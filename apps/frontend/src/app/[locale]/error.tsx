@@ -23,7 +23,7 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
 
   return (
     <PageContainer size="sm">
-      <Logo size="md" className="self-start text-primary" />
+      <Logo size="md" className="self-start" />
       <Alert variant="danger" title="Something went wrong">
         {toUserMessage(error)}
       </Alert>

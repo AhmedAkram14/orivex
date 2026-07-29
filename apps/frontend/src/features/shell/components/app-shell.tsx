@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Topbar>
         <MobileNav />
         <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold text-text-primary">
-          <Logo size="sm" className="text-primary" />
+          <Logo size="sm" />
           {tCommon('appName')}
         </Link>
         <div className="ms-auto flex items-center gap-2">
