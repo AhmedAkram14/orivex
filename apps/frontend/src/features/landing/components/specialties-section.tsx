@@ -132,12 +132,11 @@ export function SpecialtiesSection() {
 
   return (
     <Container id="specialties" size="lg" className="flex flex-col items-center gap-8 py-16 scroll-mt-16">
-      <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
-        <Icon icon={ShieldCheck} size="xs" />
-        {t('verifiedBadge')}
-      </Badge>
-
       <div className="flex flex-col items-center gap-2 text-center">
+        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
+          <Icon icon={ShieldCheck} size="xs" />
+          {t('verifiedBadge')}
+        </Badge>
         <Heading level={1}>{t('title')}</Heading>
         <Text tone="secondary" className="max-w-xl">
           {t('description')}

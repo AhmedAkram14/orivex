@@ -42,7 +42,12 @@ function initialsOf(fullName: string): string {
 // grid to not all match, so a name-hash over the same 4 distinct hues this
 // design system actually has (see specialties-section.tsx's own comment on
 // the info/primary token duplicate) is enough.
-const SPECIALTY_BADGE_VARIANTS: BadgeProps['variant'][] = ['primary', 'success', 'warning', 'danger'];
+const SPECIALTY_BADGE_VARIANTS: BadgeProps['variant'][] = [
+  'primary',
+  'success',
+  'warning',
+  'danger',
+];
 
 function specialtyBadgeVariant(specialtyName: string): BadgeProps['variant'] {
   let hash = 0;
@@ -56,43 +61,55 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
   const t = useTranslations('landing.popularDoctors');
 
   return (
-    <Card className="flex h-full flex-col gap-4 p-6">
+    <Card className="relative flex h-full flex-col gap-4 p-6 pb-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
-          <Avatar size="lg">
+          <Avatar size="lg" className="size-20">
             <AvatarFallback>{initialsOf(doctor.fullName)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-1.5">
             <span className="flex items-center gap-1 text-base font-bold text-text-primary">
               {doctor.fullName}
-              <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-primary" aria-label={t('verified')} />
+              <Icon
+                icon={BadgeCheck}
+                size="sm"
+                className="shrink-0 text-primary"
+                aria-label={t('verified')}
+              />
             </span>
             <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="w-fit gap-1">
               <Icon icon={Stethoscope} size="xs" />
               {doctor.specialtyName}
             </Badge>
+
+            {doctor.reviewCount > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <Icon icon={Star} size="sm" className="fill-warning text-warning" />
+                <span className="text-sm font-bold text-text-primary">
+                  {doctor.averageRating?.toFixed(1)}
+                </span>
+                <span className="text-sm text-text-tertiary">
+                  {t('reviewCount', { count: doctor.reviewCount })}
+                </span>
+              </div>
+            ) : (
+              <Text size="sm" tone="tertiary">
+                {t('noReviewsYet')}
+              </Text>
+            )}
           </div>
         </div>
 
         {(doctor.isTopRated || doctor.isMostBooked) && (
-          <Badge variant={doctor.isTopRated ? 'success' : 'warning'} className="shrink-0 gap-1">
+          <Badge
+            variant={doctor.isTopRated ? 'success' : 'warning'}
+            className="absolute top-0 end-0 shrink-0 gap-1 rounded-[13px] px-2 py-2"
+          >
             <Icon icon={doctor.isTopRated ? Trophy : Flame} size="xs" />
             {doctor.isTopRated ? t('topRated') : t('mostBooked')}
           </Badge>
         )}
       </div>
-
-      {doctor.reviewCount > 0 ? (
-        <div className="flex items-center gap-1.5">
-          <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-          <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
-          <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
-        </div>
-      ) : (
-        <Text size="sm" tone="tertiary">
-          {t('noReviewsYet')}
-        </Text>
-      )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-tertiary">
         {doctor.yearsOfExperience !== undefined && (
@@ -118,14 +135,16 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
       {doctor.consultationFeeAmount !== undefined && (
         <div className="flex flex-col">
           <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
-          <span className="text-base font-bold text-text-primary">{t('consultationFee', { amount: doctor.consultationFeeAmount })}</span>
+          <span className="text-base font-bold text-text-primary">
+            {t('consultationFee', { amount: doctor.consultationFeeAmount })}
+          </span>
         </div>
       )}
 
-      <div className="mt-auto flex items-center justify-between gap-3">
+      <div className="mt-auto flex items-center justify-between gap-8">
         <Link
           href={`/patient/doctors/${doctor.doctorProfileId}`}
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-text-primary hover:text-primary"
+          className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
         >
           {t('viewProfile')}
           <Icon icon={ArrowRight} size="sm" flipRtl />
@@ -157,10 +176,26 @@ export function PopularDoctorsSection() {
   const doctors = data?.doctors ?? [];
 
   const trustItems = [
-    { icon: ShieldCheck, title: t('trust.verified.title'), description: t('trust.verified.description') },
-    { icon: Lock, title: t('trust.secureBooking.title'), description: t('trust.secureBooking.description') },
-    { icon: CalendarCheck, title: t('trust.available.title'), description: t('trust.available.description') },
-    { icon: Headphones, title: t('trust.support.title'), description: t('trust.support.description') },
+    {
+      icon: ShieldCheck,
+      title: t('trust.verified.title'),
+      description: t('trust.verified.description'),
+    },
+    {
+      icon: Lock,
+      title: t('trust.secureBooking.title'),
+      description: t('trust.secureBooking.description'),
+    },
+    {
+      icon: CalendarCheck,
+      title: t('trust.available.title'),
+      description: t('trust.available.description'),
+    },
+    {
+      icon: Headphones,
+      title: t('trust.support.title'),
+      description: t('trust.support.description'),
+    },
   ];
 
   return (
@@ -178,7 +213,12 @@ export function PopularDoctorsSection() {
 
       {!isLoading && doctors.length > 0 && (
         <div className="flex justify-center sm:justify-end">
-          <Button asChild variant="outline" size="sm" className="rounded-full">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-border-default px-5.5 py-4.5 text-primary"
+          >
             <Link href="/patient/doctors">
               {t('viewAllDoctors')}
               <Icon icon={ArrowRight} size="sm" flipRtl />
