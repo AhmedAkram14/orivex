@@ -30,3 +30,25 @@ body {
 :lang(ar) {
   font-family: var(--font-arabic);
 }
+
+/* Brand-colored scrollbar, both engines -- tokens only, so it already
+   adapts per theme with no dark-mode-specific overrides needed. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) var(--color-canvas);
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary);
+  border-radius: 9999px;
+  border: 2px solid var(--color-canvas);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary-hover);
+}

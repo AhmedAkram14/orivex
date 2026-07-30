@@ -16,6 +16,8 @@ import { SpecialtiesSection } from '@/features/landing/components/specialties-se
 import { env } from '@/shared/lib/env';
 import { buildPageMetadata } from '@/shared/lib/seo';
 import type { AppLocale } from '@/shared/i18n/routing';
+import { BackToTopButton } from '@/shared/ui/back-to-top-button';
+import { RevealOnScroll } from '@/shared/ui/reveal-on-scroll';
 
 export async function generateMetadata({
   params,
@@ -70,16 +72,35 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
       <LandingNavbar />
       <HeroSection />
-      <SpecialtiesSection />
-      <PopularDoctorsSection />
-      <HowItWorksSection />
-      <CoreFeaturesSection />
-      <ForPatientsSection />
-      <ForDoctorsSection />
-      <SecurityTrustSection />
-      <FaqSection />
-      <CtaSection />
+      <RevealOnScroll>
+        <SpecialtiesSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <PopularDoctorsSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <HowItWorksSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <CoreFeaturesSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <ForPatientsSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <ForDoctorsSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <SecurityTrustSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <FaqSection />
+      </RevealOnScroll>
+      <RevealOnScroll>
+        <CtaSection />
+      </RevealOnScroll>
       <LandingFooter />
+      <BackToTopButton />
     </main>
   );
 }
