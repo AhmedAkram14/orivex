@@ -41,7 +41,7 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale} dir={isRtlLocale(locale) ? 'rtl' : 'ltr'}>
+    <html lang={locale} dir={isRtlLocale(locale) ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>
