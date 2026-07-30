@@ -13,6 +13,9 @@ class FakeWorkingHoursRepository implements WorkingHoursRepository {
   async findByDoctorId(doctorId: string): Promise<WorkingHoursDay[]> {
     return this.byDoctorId.get(doctorId) ?? [];
   }
+  async findByDoctorIds(): Promise<Map<string, WorkingHoursDay[]>> {
+    return new Map();
+  }
   async replaceAllForDoctor(doctorId: string, days: WorkingHoursDay[]): Promise<WorkingHoursDay[]> {
     this.byDoctorId.set(doctorId, days);
     return days;

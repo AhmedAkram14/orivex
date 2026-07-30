@@ -61,8 +61,9 @@
       }
     },
     "popularDoctors": {
-      "title": "الأطباء الأكثر تقييمًا",
-      "description": "تعرّف على بعض الأطباء الأعلى تقييمًا الذين يمارسون بالفعل على أوريفكس.",
+      "eyebrow": "موثوق من المرضى",
+      "title": "تعرّف على أفضل أطبائنا تقييمًا",
+      "description": "تصفّح أخصائيين موثوقين بتقييمات ممتازة من المرضى واحجز موعدك فورًا.",
       "emptyTitle": "لا يوجد أطباء بعد",
       "emptyDescription": "تحقق لاحقًا مع انضمام المزيد من الأطباء إلى المنصة.",
       "ranks": {
@@ -76,7 +77,21 @@
       "noReviewsYet": "لا توجد تقييمات بعد",
       "consultationFee": "رسوم الاستشارة: {amount}",
       "viewProfile": "عرض الملف الشخصي",
-      "bookAppointment": "حجز موعد"
+      "bookAppointment": "حجز موعد",
+      "viewAllDoctors": "عرض كل الأطباء",
+      "topRated": "الأعلى تقييمًا",
+      "mostBooked": "الأكثر حجزًا",
+      "verified": "موثّق",
+      "yearsExperience": "{count} سنوات خبرة",
+      "independentPractice": "عيادة مستقلة",
+      "availableToday": "متاح اليوم",
+      "availableTomorrow": "متاح غدًا",
+      "trust": {
+        "verified": { "title": "أطباء موثّقون", "description": "جميع الأطباء موثّقون" },
+        "secureBooking": { "title": "حجز آمن", "description": "بياناتك محمية دائمًا" },
+        "available": { "title": "متاح على مدار الساعة", "description": "احجز في أي وقت ومن أي مكان" },
+        "support": { "title": "الدعم", "description": "نحن هنا لمساعدتك" }
+      }
     },
     "howItWorks": {
       "title": "كيف تعمل أوريفكس",

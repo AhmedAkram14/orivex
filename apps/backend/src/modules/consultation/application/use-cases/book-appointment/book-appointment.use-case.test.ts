@@ -47,6 +47,9 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findByDoctorIdForDateRange(doctorId: string): Promise<Appointment[]> {
     return this.findByDoctorId(doctorId);
   }
+  async countByDoctorIds(): Promise<Map<string, number>> {
+    return new Map();
+  }
   async save(appointment: Appointment): Promise<void> {
     if (this.failOnSaveCount > 0) {
       this.failOnSaveCount -= 1;

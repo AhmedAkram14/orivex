@@ -61,8 +61,9 @@
       }
     },
     "popularDoctors": {
-      "title": "Popular Doctors",
-      "description": "Meet some of the highly-rated doctors already practicing on ORIVEX.",
+      "eyebrow": "Trusted by patients",
+      "title": "Meet Our Top Rated Doctors",
+      "description": "Browse verified specialists with excellent patient ratings and book appointments instantly.",
       "emptyTitle": "No doctors yet",
       "emptyDescription": "Check back soon as more doctors join the platform.",
       "ranks": {
@@ -76,7 +77,21 @@
       "noReviewsYet": "No reviews yet",
       "consultationFee": "Consultation fee: {amount}",
       "viewProfile": "View Profile",
-      "bookAppointment": "Book Appointment"
+      "bookAppointment": "Book Appointment",
+      "viewAllDoctors": "View All Doctors",
+      "topRated": "Top Rated",
+      "mostBooked": "Most Booked",
+      "verified": "Verified",
+      "yearsExperience": "{count} Years Exp.",
+      "independentPractice": "Independent Practice",
+      "availableToday": "Available Today",
+      "availableTomorrow": "Available Tomorrow",
+      "trust": {
+        "verified": { "title": "Verified Doctors", "description": "All doctors are verified" },
+        "secureBooking": { "title": "Secure Booking", "description": "Your data is always safe" },
+        "available": { "title": "Available 24/7", "description": "Book anytime, anywhere" },
+        "support": { "title": "Support", "description": "We're here to help" }
+      }
     },
     "howItWorks": {
       "title": "How ORIVEX Works",

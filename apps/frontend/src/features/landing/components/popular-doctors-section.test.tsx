@@ -16,11 +16,19 @@ describe('PopularDoctorsSection', () => {
     expect(await screen.findByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('Cardiology')).toBeInTheDocument();
     expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+    expect(screen.getByText('12 Years Exp.')).toBeInTheDocument();
+    expect(screen.getByText('Independent Practice')).toBeInTheDocument();
+    // Reviewless doctor is never tagged "Top Rated"/"Most Booked".
+    expect(screen.queryByText('Top Rated')).not.toBeInTheDocument();
+    expect(screen.queryByText('Most Booked')).not.toBeInTheDocument();
 
     const viewProfileLink = screen.getByRole('link', { name: 'View Profile' });
     expect(viewProfileLink).toHaveAttribute('href', expect.stringContaining('/patient/doctors/doctor-profile-1'));
 
-    const bookLink = screen.getByRole('link', { name: 'Book Appointment' });
+    const bookLink = screen.getByRole('link', { name: /Book Appointment/ });
     expect(bookLink).toHaveAttribute('href', expect.stringContaining('doctorId=doctor-profile-1'));
+
+    const viewAllLink = screen.getByRole('link', { name: /View All Doctors/ });
+    expect(viewAllLink).toHaveAttribute('href', expect.stringContaining('/patient/doctors'));
   });
 });

@@ -18,6 +18,8 @@ export interface PublicDoctorEntry {
   specialtyId: string;
   specialtyName: string;
   hospitalId?: string;
+  hospitalName?: string;
+  yearsOfExperience?: number;
   consultationFeeAmount?: number;
 }
 

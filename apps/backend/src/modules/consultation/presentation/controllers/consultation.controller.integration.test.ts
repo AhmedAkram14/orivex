@@ -205,6 +205,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
       (appointment) => appointment.getScheduledAt() >= start && appointment.getScheduledAt() < end,
     );
   }
+  async countByDoctorIds(): Promise<Map<string, number>> {
+    return new Map();
+  }
   async save(appointment: Appointment): Promise<void> {
     this.byId.set(appointment.getId(), appointment);
   }

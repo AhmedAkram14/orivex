@@ -23,6 +23,19 @@ export class PrismaScheduleExceptionRepository implements ScheduleExceptionRepos
     return rows.map(toDomainScheduleException);
   }
 
+  async findByDoctorIdsAndDates(doctorIds: string[], dates: string[]): Promise<ScheduleException[]> {
+    if (doctorIds.length === 0 || dates.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.scheduleException.findMany({
+      where: {
+        doctorId: { in: doctorIds },
+        date: { in: dates.map((date) => new Date(`${date}T00:00:00.000Z`)) },
+      },
+    });
+    return rows.map(toDomainScheduleException);
+  }
+
   async save(exception: ScheduleException): Promise<void> {
     const data = toPersistedScheduleException(exception);
     await this.prisma.scheduleException.upsert({

@@ -14,6 +14,7 @@ import { AddScheduleExceptionUseCase } from './application/use-cases/add-schedul
 import { ConfirmSlotUseCase } from './application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { GetBookableAvailabilityUseCase } from './application/use-cases/get-bookable-availability/get-bookable-availability.use-case.js';
 import { GetDoctorWorkingHoursUseCase } from './application/use-cases/get-doctor-working-hours/get-doctor-working-hours.use-case.js';
+import { GetDoctorsOpenOnDatesUseCase } from './application/use-cases/get-doctors-open-on-dates/get-doctors-open-on-dates.use-case.js';
 import { GetSchedulingRulesUseCase } from './application/use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 import { ListHolidaysUseCase } from './application/use-cases/list-holidays/list-holidays.use-case.js';
 import { ListScheduleExceptionsForDoctorUseCase } from './application/use-cases/list-schedule-exceptions-for-doctor/list-schedule-exceptions-for-doctor.use-case.js';
@@ -133,7 +134,13 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
         DefineAvailabilityWindowUseCase,
       ],
     },
+    {
+      provide: GetDoctorsOpenOnDatesUseCase,
+      useFactory: (workingHoursRepository: WorkingHoursRepository, scheduleExceptionRepository: ScheduleExceptionRepository, holidayRepository: HolidayRepository) =>
+        new GetDoctorsOpenOnDatesUseCase(workingHoursRepository, scheduleExceptionRepository, holidayRepository),
+      inject: [WORKING_HOURS_REPOSITORY, SCHEDULE_EXCEPTION_REPOSITORY, HOLIDAY_REPOSITORY],
+    },
   ],
-  exports: [ReserveSlotUseCase, ReleaseSlotUseCase, ConfirmSlotUseCase, GetSchedulingRulesUseCase],
+  exports: [ReserveSlotUseCase, ReleaseSlotUseCase, ConfirmSlotUseCase, GetSchedulingRulesUseCase, GetDoctorsOpenOnDatesUseCase],
 })
 export class SchedulingModule {}

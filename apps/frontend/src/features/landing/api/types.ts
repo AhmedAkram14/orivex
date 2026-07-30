@@ -12,9 +12,14 @@ export interface PublicDoctor {
   professionalRank?: 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
   specialtyName: string;
   hospitalId?: string;
+  hospitalName?: string;
+  yearsOfExperience?: number;
   consultationFeeAmount?: number;
   averageRating: number | null;
   reviewCount: number;
+  availability: 'today' | 'tomorrow' | null;
+  isTopRated: boolean;
+  isMostBooked: boolean;
 }
 
 /** Matches PublicDoctorListResponseDto exactly. */

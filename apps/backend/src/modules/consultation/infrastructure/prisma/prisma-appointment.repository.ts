@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
+import type { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
 import { ConsultationDomainError } from '../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 
@@ -54,6 +55,18 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       orderBy: { scheduledAt: 'asc' },
     });
     return rows.map(toDomainAppointment);
+  }
+
+  async countByDoctorIds(doctorIds: string[], statuses: AppointmentStatus[]): Promise<Map<string, number>> {
+    if (doctorIds.length === 0) {
+      return new Map();
+    }
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['doctorId'],
+      where: { doctorId: { in: doctorIds }, status: { in: statuses.map(toPrismaAppointmentStatus) } },
+      _count: { _all: true },
+    });
+    return new Map(groups.map((group) => [group.doctorId, group._count._all]));
   }
 
   // Optimistic locking, mirroring AvailabilityWindow's repository: updates

@@ -38,6 +38,7 @@ import { GetConsultationFeedbackForSessionUseCase } from './application/use-case
 import { GetConsultationSessionByAppointmentIdUseCase } from './application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from './application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { GetDoctorRatingAggregateUseCase } from './application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
+import { GetDoctorBookingCountsUseCase } from './application/use-cases/get-doctor-booking-counts/get-doctor-booking-counts.use-case.js';
 import { GetDoctorRatingAggregatesUseCase } from './application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregates.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from './application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from './application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
@@ -302,6 +303,11 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       inject: [CONSULTATION_FEEDBACK_REPOSITORY],
     },
     {
+      provide: GetDoctorBookingCountsUseCase,
+      useFactory: (repository: AppointmentRepository) => new GetDoctorBookingCountsUseCase(repository),
+      inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
       provide: ListConsultationFeedbackForDoctorUseCase,
       useFactory: (repository: ConsultationFeedbackRepository) => new ListConsultationFeedbackForDoctorUseCase(repository),
       inject: [CONSULTATION_FEEDBACK_REPOSITORY],
@@ -337,6 +343,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     GetConsultationFeedbackForSessionUseCase,
     GetDoctorRatingAggregateUseCase,
     GetDoctorRatingAggregatesUseCase,
+    GetDoctorBookingCountsUseCase,
     ListConsultationFeedbackForDoctorUseCase,
     GetFollowUpRecommendationForSessionUseCase,
   ],

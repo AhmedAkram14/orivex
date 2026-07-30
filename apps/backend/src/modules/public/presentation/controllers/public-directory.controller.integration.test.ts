@@ -7,13 +7,22 @@ import request from 'supertest';
 
 import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions.filter.js';
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
+import { GetDoctorBookingCountsUseCase } from '../../../consultation/application/use-cases/get-doctor-booking-counts/get-doctor-booking-counts.use-case.js';
 import { GetDoctorRatingAggregatesUseCase } from '../../../consultation/application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregates.use-case.js';
 import type { ConsultationFeedback } from '../../../consultation/domain/entities/consultation-feedback.entity.js';
+import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationFeedbackRepository, DoctorRatingAggregate } from '../../../consultation/domain/repositories/consultation-feedback.repository.js';
 import { ProfessionalRank } from '../../../doctor/domain/enums/professional-rank.enum.js';
 import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { MedicalSpecialty } from '../../../reference/domain/entities/medical-specialty.entity.js';
 import type { MedicalSpecialtyRepository } from '../../../reference/domain/repositories/medical-specialty.repository.js';
+import { GetDoctorsOpenOnDatesUseCase } from '../../../scheduling/application/use-cases/get-doctors-open-on-dates/get-doctors-open-on-dates.use-case.js';
+import type { Holiday } from '../../../scheduling/domain/entities/holiday.entity.js';
+import type { ScheduleException } from '../../../scheduling/domain/entities/schedule-exception.entity.js';
+import type { WorkingHoursDay } from '../../../scheduling/domain/entities/working-hours-day.entity.js';
+import type { HolidayRepository } from '../../../scheduling/domain/repositories/holiday.repository.js';
+import type { ScheduleExceptionRepository } from '../../../scheduling/domain/repositories/schedule-exception.repository.js';
+import type { WorkingHoursRepository } from '../../../scheduling/domain/repositories/working-hours.repository.js';
 import { PUBLIC_DIRECTORY_QUERY_PORT } from '../../application/ports/tokens.js';
 import type { PublicDirectoryQueryPort, PublicDoctorResult, PublicSpecialtyCount } from '../../application/ports/public-directory-query.port.js';
 import { ListPublicDoctorsUseCase } from '../../application/use-cases/list-public-doctors/list-public-doctors.use-case.js';
@@ -66,6 +75,30 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
   async delete(): Promise<void> {}
 }
 
+class FakeAppointmentRepository implements Partial<AppointmentRepository> {
+  async countByDoctorIds(): Promise<Map<string, number>> {
+    return new Map([['doctor-1', 7]]);
+  }
+}
+
+class FakeWorkingHoursRepository implements Partial<WorkingHoursRepository> {
+  async findByDoctorIds(): Promise<Map<string, WorkingHoursDay[]>> {
+    return new Map();
+  }
+}
+
+class FakeScheduleExceptionRepository implements Partial<ScheduleExceptionRepository> {
+  async findByDoctorIdsAndDates(): Promise<ScheduleException[]> {
+    return [];
+  }
+}
+
+class FakeHolidayRepository implements Partial<HolidayRepository> {
+  async findAll(): Promise<Holiday[]> {
+    return [];
+  }
+}
+
 // Public Landing Page (2026-07-29): confirms both routes are reachable by a
 // completely anonymous caller -- no Authorization header at all, unlike
 // every other directory-style endpoint in the codebase (GET /doctors,
@@ -91,6 +124,8 @@ describe('Public directory controllers (integration)', () => {
             professionalRank: ProfessionalRank.Consultant,
             specialtyId: cardiologyId,
             specialtyName: 'Cardiology',
+            hospitalName: 'Cairo Medical Center',
+            yearsOfExperience: 12,
             consultationFeeAmount: 500,
           },
         ],
@@ -108,6 +143,19 @@ describe('Public directory controllers (integration)', () => {
           useFactory: () => new GetDoctorRatingAggregatesUseCase(new FakeConsultationFeedbackRepository()),
         },
         {
+          provide: GetDoctorBookingCountsUseCase,
+          useFactory: () => new GetDoctorBookingCountsUseCase(new FakeAppointmentRepository() as unknown as AppointmentRepository),
+        },
+        {
+          provide: GetDoctorsOpenOnDatesUseCase,
+          useFactory: () =>
+            new GetDoctorsOpenOnDatesUseCase(
+              new FakeWorkingHoursRepository() as unknown as WorkingHoursRepository,
+              new FakeScheduleExceptionRepository() as unknown as ScheduleExceptionRepository,
+              new FakeHolidayRepository() as unknown as HolidayRepository,
+            ),
+        },
+        {
           provide: ListPublicSpecialtiesUseCase,
           useFactory: (listMedicalSpecialtiesUseCase: ListMedicalSpecialtiesUseCase, port: PublicDirectoryQueryPort) =>
             new ListPublicSpecialtiesUseCase(listMedicalSpecialtiesUseCase, port),
@@ -115,9 +163,13 @@ describe('Public directory controllers (integration)', () => {
         },
         {
           provide: ListPublicDoctorsUseCase,
-          useFactory: (port: PublicDirectoryQueryPort, ratingsUseCase: GetDoctorRatingAggregatesUseCase) =>
-            new ListPublicDoctorsUseCase(port, ratingsUseCase),
-          inject: [PUBLIC_DIRECTORY_QUERY_PORT, GetDoctorRatingAggregatesUseCase],
+          useFactory: (
+            port: PublicDirectoryQueryPort,
+            ratingsUseCase: GetDoctorRatingAggregatesUseCase,
+            bookingCountsUseCase: GetDoctorBookingCountsUseCase,
+            openOnDatesUseCase: GetDoctorsOpenOnDatesUseCase,
+          ) => new ListPublicDoctorsUseCase(port, ratingsUseCase, bookingCountsUseCase, openOnDatesUseCase),
+          inject: [PUBLIC_DIRECTORY_QUERY_PORT, GetDoctorRatingAggregatesUseCase, GetDoctorBookingCountsUseCase, GetDoctorsOpenOnDatesUseCase],
         },
       ],
     }).compile();
@@ -150,5 +202,10 @@ describe('Public directory controllers (integration)', () => {
     assert.equal(doctor.specialtyName, 'Cardiology');
     assert.equal(doctor.averageRating, 4.5);
     assert.equal(doctor.reviewCount, 12);
+    assert.equal(doctor.hospitalName, 'Cairo Medical Center');
+    assert.equal(doctor.yearsOfExperience, 12);
+    assert.equal(doctor.isTopRated, true);
+    assert.equal(doctor.isMostBooked, false);
+    assert.equal(doctor.availability, null);
   });
 });

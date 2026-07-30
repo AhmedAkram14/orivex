@@ -58,6 +58,9 @@ class FakeWorkingHoursRepository implements WorkingHoursRepository {
   async findByDoctorId(doctorId: string): Promise<WorkingHoursDay[]> {
     return this.byDoctorId.get(doctorId) ?? [];
   }
+  async findByDoctorIds(): Promise<Map<string, WorkingHoursDay[]>> {
+    return new Map();
+  }
   async replaceAllForDoctor(doctorId: string, days: WorkingHoursDay[]): Promise<WorkingHoursDay[]> {
     this.byDoctorId.set(doctorId, days);
     return days;
@@ -71,6 +74,9 @@ class FakeScheduleExceptionRepository implements ScheduleExceptionRepository {
   }
   async findByDoctorId(doctorId: string): Promise<ScheduleException[]> {
     return this.items.filter((i) => i.getDoctorId() === doctorId);
+  }
+  async findByDoctorIdsAndDates(): Promise<ScheduleException[]> {
+    return [];
   }
   async save(exception: ScheduleException): Promise<void> {
     this.items.push(exception);

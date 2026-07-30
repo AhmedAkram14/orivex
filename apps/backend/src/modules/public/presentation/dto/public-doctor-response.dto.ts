@@ -7,9 +7,14 @@ export class PublicDoctorResponseDto {
   professionalRank?: ProfessionalRank;
   specialtyName!: string;
   hospitalId?: string;
+  hospitalName?: string;
+  yearsOfExperience?: number;
   consultationFeeAmount?: number;
   averageRating!: number | null;
   reviewCount!: number;
+  availability!: 'today' | 'tomorrow' | null;
+  isTopRated!: boolean;
+  isMostBooked!: boolean;
 
   static fromDomain(doctor: PublicDoctorListing): PublicDoctorResponseDto {
     const dto = new PublicDoctorResponseDto();
@@ -18,9 +23,14 @@ export class PublicDoctorResponseDto {
     dto.professionalRank = doctor.professionalRank;
     dto.specialtyName = doctor.specialtyName;
     dto.hospitalId = doctor.hospitalId;
+    dto.hospitalName = doctor.hospitalName;
+    dto.yearsOfExperience = doctor.yearsOfExperience;
     dto.consultationFeeAmount = doctor.consultationFeeAmount;
     dto.averageRating = doctor.averageRating;
     dto.reviewCount = doctor.reviewCount;
+    dto.availability = doctor.availability;
+    dto.isTopRated = doctor.isTopRated;
+    dto.isMostBooked = doctor.isMostBooked;
     return dto;
   }
 }

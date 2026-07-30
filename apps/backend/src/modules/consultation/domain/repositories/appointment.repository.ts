@@ -1,4 +1,5 @@
 import type { Appointment } from '../entities/appointment.entity.js';
+import type { AppointmentStatus } from '../enums/appointment-status.enum.js';
 
 export interface AppointmentRepository {
   findById(id: string): Promise<Appointment | null>;
@@ -19,6 +20,11 @@ export interface AppointmentRepository {
   // queue) without fetching a doctor's entire appointment history to filter
   // it in memory (Production Readiness Audit finding).
   findByDoctorIdForDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]>;
+  // Batched sibling of the per-doctor finders above -- backs a paginated
+  // directory listing's "how many real bookings does this doctor have"
+  // signal without one query per doctor per page (same N+1-avoidance idiom
+  // as ConsultationFeedbackRepository.getRatingAggregatesForDoctors).
+  countByDoctorIds(doctorIds: string[], statuses: AppointmentStatus[]): Promise<Map<string, number>>;
   // Throws on a stale version (optimistic locking) -- callers must reload
   // and retry rather than treat this as a generic failure.
   save(appointment: Appointment): Promise<void>;

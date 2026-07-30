@@ -29,6 +29,9 @@ class FakeAppointmentRepository implements AppointmentRepository {
       (a) => a.getDoctorId() === doctorId && a.getScheduledAt() >= start && a.getScheduledAt() < end,
     );
   }
+  async countByDoctorIds(): Promise<Map<string, number>> {
+    return new Map();
+  }
   async save(): Promise<void> {}
 }
 

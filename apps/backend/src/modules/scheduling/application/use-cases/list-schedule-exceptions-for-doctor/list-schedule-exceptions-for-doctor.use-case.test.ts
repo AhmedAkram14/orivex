@@ -16,6 +16,9 @@ class FakeScheduleExceptionRepository implements ScheduleExceptionRepository {
   async findByDoctorId(doctorId: string): Promise<ScheduleException[]> {
     return this.items.filter((item) => item.getDoctorId() === doctorId);
   }
+  async findByDoctorIdsAndDates(): Promise<ScheduleException[]> {
+    return [];
+  }
   async save(): Promise<void> {}
   async deleteById(): Promise<void> {}
 }

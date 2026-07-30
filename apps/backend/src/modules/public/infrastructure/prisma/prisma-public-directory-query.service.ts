@@ -45,6 +45,7 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
         include: {
           account: { select: { displayName: true } },
           medicalSpecialty: { select: { name: true } },
+          hospital: { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: filter.limit,
@@ -62,6 +63,8 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
         specialtyId: row.specialtyId,
         specialtyName: row.medicalSpecialty.name,
         hospitalId: row.hospitalId ?? undefined,
+        hospitalName: row.hospital?.name ?? undefined,
+        yearsOfExperience: row.yearsOfExperience ?? undefined,
         consultationFeeAmount: row.consultationFeeAmount ? Number(row.consultationFeeAmount) : undefined,
       })),
     };

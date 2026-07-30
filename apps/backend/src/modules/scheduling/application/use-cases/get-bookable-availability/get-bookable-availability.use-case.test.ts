@@ -11,6 +11,7 @@ import { ConsultationType } from '../../../../doctor/domain/enums/consultation-t
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { Holiday } from '../../../domain/entities/holiday.entity.js';
+import type { ScheduleException } from '../../../domain/entities/schedule-exception.entity.js';
 import { WorkingHoursDay } from '../../../domain/entities/working-hours-day.entity.js';
 import { WeekDay } from '../../../domain/enums/week-day.enum.js';
 import type { HolidayRepository } from '../../../domain/repositories/holiday.repository.js';
@@ -37,6 +38,9 @@ class FakeWorkingHoursRepository implements WorkingHoursRepository {
   async findByDoctorId(): Promise<WorkingHoursDay[]> {
     return this.days;
   }
+  async findByDoctorIds(): Promise<Map<string, WorkingHoursDay[]>> {
+    return new Map();
+  }
   async replaceAllForDoctor(): Promise<WorkingHoursDay[]> {
     return this.days;
   }
@@ -47,6 +51,9 @@ class FakeScheduleExceptionRepository implements ScheduleExceptionRepository {
     return null;
   }
   async findByDoctorId(): Promise<[]> {
+    return [];
+  }
+  async findByDoctorIdsAndDates(): Promise<ScheduleException[]> {
     return [];
   }
   async save(): Promise<void> {}
