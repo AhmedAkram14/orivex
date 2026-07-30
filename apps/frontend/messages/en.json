@@ -74,8 +74,7 @@
         "professor": "Professor"
       },
       "reviewCount": "({count} reviews)",
-      "newDoctor": "New Doctor",
-      "beFirstToReview": "Be the first to review",
+      "noReviewsYet": "No reviews yet",
       "consultationFeeLabel": "Consultation Fee",
       "consultationFee": "{amount}",
       "viewProfile": "View Profile",
