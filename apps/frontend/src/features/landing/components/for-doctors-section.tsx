@@ -22,7 +22,7 @@ export function ForDoctorsSection() {
 
   return (
     <Container id="for-doctors" size="lg" className="scroll-mt-16 py-16">
-      <Card className="rounded-3xl border-border-default p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)] lg:p-12 bg-[#FEFEFE]">
+      <Card className="rounded-3xl border-border-default p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)] lg:p-12">
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 ">
           <div className="flex flex-col gap-4 lg:order-1">
             <span className="flex size-12 items-center justify-center rounded-2xl bg-success-subtle">
