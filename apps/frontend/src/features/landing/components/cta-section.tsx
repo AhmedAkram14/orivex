@@ -18,7 +18,7 @@ export function CtaSection() {
 
   return (
     <Container size="lg" className="py-16">
-      <div className="relative overflow-hidden rounded-3xl border border-border-default bg-secondary-subtle p-8 sm:p-12">
+      <div className="relative overflow-hidden rounded-3xl border border-border-default bg-cta-surface p-8 sm:p-12">
         <div
           className="pointer-events-none absolute start-6 top-6 size-16 opacity-40"
           style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '10px 10px' }}

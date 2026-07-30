@@ -62,6 +62,11 @@
   --canvas-gradient-a: #eaf2ff;
   --canvas-gradient-b: #f5f9ff;
   --canvas-gradient-c: #f8faff;
+
+  /* CTA section's own light-mode surface -- lighter/bluer than the generic
+     --gray-100 secondary-subtle scale, so it stays a dedicated primitive
+     rather than being folded into that scale. */
+  --cta-surface-light: #e9effd;
 }
 
 @theme {
@@ -112,6 +117,8 @@
   --color-neutral-foreground: var(--gray-0);
 
   --color-focus-ring: var(--brand-500);
+
+  --color-cta-surface: var(--cta-surface-light);
 }
 
 /* Plain custom property, not inside @theme -- Tailwind's @theme block

@@ -44,6 +44,7 @@
     --color-danger-subtle: var(--danger-900);
     --color-info-subtle: var(--info-900);
     --color-neutral-subtle: var(--gray-800);
+    --color-cta-surface: var(--gray-800);
   }
 }
 
@@ -70,4 +71,5 @@
   --color-danger-subtle: var(--danger-900);
   --color-info-subtle: var(--info-900);
   --color-neutral-subtle: var(--gray-800);
+  --color-cta-surface: var(--gray-800);
 }
