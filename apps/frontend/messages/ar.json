@@ -74,7 +74,8 @@
         "professor": "أستاذ"
       },
       "reviewCount": "({count} تقييم)",
-      "noReviewsYet": "لا توجد تقييمات بعد",
+      "newDoctor": "طبيب جديد",
+      "beFirstToReview": "كن أول من يقيّم",
       "consultationFeeLabel": "رسوم الاستشارة",
       "consultationFee": "{amount}",
       "viewProfile": "عرض الملف الشخصي",

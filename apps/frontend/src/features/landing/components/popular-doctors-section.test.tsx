@@ -10,12 +10,13 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('PopularDoctorsSection', () => {
-  it('shows the real seeded doctor with an honest "no reviews yet" state and working CTAs', async () => {
+  it('shows the real seeded doctor with an honest "new doctor" state and working CTAs', async () => {
     renderWithProviders(<PopularDoctorsSection />);
 
     expect(await screen.findByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('Cardiology')).toBeInTheDocument();
-    expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+    expect(screen.getByText('New Doctor')).toBeInTheDocument();
+    expect(screen.getByText('Be the first to review')).toBeInTheDocument();
     expect(screen.getByText('12 Years Exp.')).toBeInTheDocument();
     expect(screen.getByText('Independent Practice')).toBeInTheDocument();
     // Reviewless doctor is never tagged "Top Rated"/"Most Booked".

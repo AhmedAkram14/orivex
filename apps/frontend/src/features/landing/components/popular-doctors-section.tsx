@@ -52,23 +52,44 @@ function specialtyBadgeVariant(specialtyName: string): BadgeProps['variant'] {
   return SPECIALTY_BADGE_VARIANTS[Math.abs(hash) % SPECIALTY_BADGE_VARIANTS.length];
 }
 
+function StarRow({ rating }: { rating: number }) {
+  const filled = Math.round(rating);
+  return (
+    <div className="flex items-center gap-0.5" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((position) => (
+        <Icon
+          key={position}
+          icon={Star}
+          size="sm"
+          className={position <= filled ? 'fill-warning text-warning' : 'fill-border-default text-border-default'}
+        />
+      ))}
+    </div>
+  );
+}
+
 function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
   const t = useTranslations('landing.popularDoctors');
 
   return (
-    <Card className="flex h-full flex-col gap-4 p-6">
+    <Card className="group flex h-full flex-col gap-5 rounded-3xl border-border-default p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-[250ms] ease-out hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.1)]">
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Avatar size="lg">
-            <AvatarFallback>{initialsOf(doctor.fullName)}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-1.5">
-            <span className="flex items-center gap-1 text-base font-bold text-text-primary">
-              {doctor.fullName}
-              <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-primary" aria-label={t('verified')} />
+        <div className="flex items-center gap-4">
+          <div className="relative shrink-0">
+            <Avatar size="lg" className="size-[88px] transition-transform duration-[250ms] ease-out group-hover:scale-[1.03]">
+              <AvatarFallback className="text-2xl">{initialsOf(doctor.fullName)}</AvatarFallback>
+            </Avatar>
+            <span className="absolute -bottom-1 -end-1 flex size-6 items-center justify-center rounded-full bg-success ring-2 ring-surface">
+              <Icon icon={ShieldCheck} size="xs" className="text-success-foreground" />
             </span>
-            <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="w-fit gap-1">
-              <Icon icon={Stethoscope} size="xs" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-center gap-1.5 text-2xl font-bold leading-tight text-text-primary">
+              {doctor.fullName}
+              <Icon icon={BadgeCheck} size="md" className="shrink-0 text-primary" label={t('verified')} />
+            </span>
+            <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="w-fit gap-1.5 px-3 py-1 text-sm">
+              <Icon icon={Stethoscope} size="sm" />
               {doctor.specialtyName}
             </Badge>
           </div>
@@ -83,18 +104,21 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
       </div>
 
       {doctor.reviewCount > 0 ? (
-        <div className="flex items-center gap-1.5">
-          <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-          <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
+        <div className="flex items-center gap-2">
+          <StarRow rating={doctor.averageRating ?? 0} />
+          <span className="text-base font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
           <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
         </div>
       ) : (
-        <Text size="sm" tone="tertiary">
-          {t('noReviewsYet')}
-        </Text>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-bold text-primary">{t('newDoctor')}</span>
+          <Text size="sm" tone="tertiary">
+            {t('beFirstToReview')}
+          </Text>
+        </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-tertiary">
+      <div className="flex items-center justify-between gap-2 text-sm text-text-tertiary">
         {doctor.yearsOfExperience !== undefined && (
           <span className="flex items-center gap-1.5">
             <Icon icon={Briefcase} size="xs" />
@@ -106,19 +130,19 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
           {doctor.hospitalName ?? t('independentPractice')}
         </span>
         {doctor.availability && (
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 font-medium text-success">
             <span className="size-2 rounded-full bg-success" aria-hidden="true" />
             {doctor.availability === 'today' ? t('availableToday') : t('availableTomorrow')}
           </span>
         )}
       </div>
 
-      <span className="h-px w-full bg-border-default" aria-hidden="true" />
+      <span className="my-1 h-px w-full bg-border-default" aria-hidden="true" />
 
       {doctor.consultationFeeAmount !== undefined && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-0.5">
           <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
-          <span className="text-base font-bold text-text-primary">{t('consultationFee', { amount: doctor.consultationFeeAmount })}</span>
+          <span className="text-xl font-bold text-text-primary">{t('consultationFee', { amount: doctor.consultationFeeAmount })}</span>
         </div>
       )}
 
@@ -130,7 +154,7 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
           {t('viewProfile')}
           <Icon icon={ArrowRight} size="sm" flipRtl />
         </Link>
-        <Button asChild size="sm" className="flex-1 gap-1.5">
+        <Button asChild size="lg" className="h-12 flex-1 gap-1.5 rounded-xl">
           <Link href={`/patient/appointments/book?doctorId=${doctor.doctorProfileId}`}>
             <Icon icon={CalendarCheck} size="sm" />
             {t('bookAppointment')}
@@ -145,11 +169,15 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
  * Real doctors only, from `GET /public/doctors` -- never hardcoded. Ranked
  * by real rating where one exists (see ListPublicDoctorsUseCase's own
  * comment on the honest, page-local scope of that ranking); a doctor with
- * no reviews yet still appears, just last, with an honest "no reviews yet"
+ * no reviews yet still appears, just last, with an honest "new doctor"
  * label rather than a fabricated rating. The "Top Rated"/"Most Booked"
  * ribbons, years-of-experience, hospital affiliation, and "Available Today/
  * Tomorrow" chip are all real, backend-computed signals (see the same
- * use case) -- never a marketing placeholder.
+ * use case) -- never a marketing placeholder. Avatars stay initials-only
+ * (no photo field exists anywhere in the schema) and the location slot
+ * shows the doctor's real hospital affiliation, or "Independent Practice"
+ * when there isn't one -- never a fabricated city, since no such field
+ * exists either.
  */
 export function PopularDoctorsSection() {
   const t = useTranslations('landing.popularDoctors');
@@ -164,33 +192,53 @@ export function PopularDoctorsSection() {
   ];
 
   return (
-    <Container size="lg" className="flex flex-col gap-8 py-16">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
+    <Container size="lg" className="relative flex flex-col gap-12 py-20 lg:py-28">
+      {/* Decorative dot-grid texture, corners only -- purely ornamental. */}
+      <div
+        className="pointer-events-none absolute -start-4 top-0 hidden size-32 opacity-40 sm:block"
+        style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -end-4 top-0 hidden size-32 opacity-40 sm:block"
+        style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '14px 14px' }}
+        aria-hidden="true"
+      />
+
+      <div className="relative flex flex-col items-center gap-4 text-center">
+        {/* Decorative blurred glow behind the heading -- existing token color only. */}
+        <div
+          className="absolute inset-x-0 top-0 -z-10 mx-auto size-72 rounded-full bg-primary/10 blur-3xl"
+          aria-hidden="true"
+        />
+
+        <Badge variant="primary" className="gap-1.5 px-3.5 py-1.5 text-xs uppercase tracking-wide">
           <Icon icon={ShieldCheck} size="xs" />
           {t('eyebrow')}
         </Badge>
-        <Heading level={1}>{t('title')}</Heading>
-        <Text tone="secondary" className="max-w-xl">
+        <Heading level={1} className="text-4xl font-extrabold sm:text-5xl lg:text-6xl">
+          {t('title')}
+        </Heading>
+        <Text size="lg" tone="secondary" className="max-w-xl">
           {t('description')}
         </Text>
+
+        {!isLoading && doctors.length > 0 && (
+          <div className="end-0 top-0 sm:absolute">
+            <Button asChild variant="outline" className="h-[52px] rounded-full border px-6">
+              <Link href="/patient/doctors">
+                {t('viewAllDoctors')}
+                <Icon icon={ArrowRight} size="sm" flipRtl />
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
 
-      {!isLoading && doctors.length > 0 && (
-        <div className="flex justify-center sm:justify-end">
-          <Button asChild variant="outline" size="sm" className="rounded-full">
-            <Link href="/patient/doctors">
-              {t('viewAllDoctors')}
-              <Icon icon={ArrowRight} size="sm" flipRtl />
-            </Link>
-          </Button>
-        </div>
-      )}
-
       {isLoading && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-56 w-full" />
+            <Skeleton key={index} className="h-72 w-full" />
           ))}
         </div>
       )}
@@ -200,7 +248,7 @@ export function PopularDoctorsSection() {
       )}
 
       {!isLoading && doctors.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {doctors.map((doctor) => (
             <DoctorCard key={doctor.doctorProfileId} doctor={doctor} />
           ))}
@@ -208,14 +256,14 @@ export function PopularDoctorsSection() {
       )}
 
       {!isLoading && doctors.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 rounded-2xl border border-border-default bg-surface px-8 py-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-8 rounded-2xl border border-border-default bg-surface px-8 py-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
           {trustItems.map((item) => (
             <div key={item.title} className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
-                <Icon icon={item.icon} size="md" className="text-primary" />
+              <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
+                <Icon icon={item.icon} size="lg" className="text-primary" />
               </span>
               <div className="flex flex-col text-start">
-                <span className="text-sm font-semibold text-text-primary">{item.title}</span>
+                <span className="text-base font-bold text-text-primary">{item.title}</span>
                 <Text size="sm" tone="tertiary">
                   {item.description}
                 </Text>
