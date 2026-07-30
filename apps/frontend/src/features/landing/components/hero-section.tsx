@@ -37,7 +37,7 @@ export function HeroSection() {
 
   return (
     <Container size="lg" className="pb-20 pt-24 lg:pb-28 lg:pt-28">
-      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
+      <div className="grid grid-cols-1 items-center gap-10 pt-10 lg:grid-cols-2 lg:gap-14">
         <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-start">
           <div className="flex items-center gap-2">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
@@ -48,7 +48,7 @@ export function HeroSection() {
             </Text>
           </div>
 
-          <h1 className="text-balance text-5xl font-bold tracking-tight text-text-primary sm:text-6xl lg:text-7xl">
+          <h1 className="text-balance text-5xl font-bold tracking-tight text-text-primary sm:text-6xl lg:text-6xl">
             {t('headlineLine1')}
             <br />
             <span className="text-primary">{t('headlineLine2')}</span>
@@ -101,13 +101,13 @@ export function HeroSection() {
           )}
         </div>
 
-        <div className="relative flex items-center justify-center pb-10 pe-6">
+        <div className="relative flex items-center justify-center pb-10">
           {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. Less blur/spread than before, closer to the reference's tighter glow. */}
           <div
             className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"
             aria-hidden="true"
           />
-          <div className="relative w-full overflow-hidden rounded-[2rem] shadow-xl">
+          <div className="relative w-full overflow-hidden rounded-[20px] border-2 border-white shadow-xl">
             <Image
               src="/hero-1.png"
               alt={t('imageAlt')}
@@ -118,7 +118,7 @@ export function HeroSection() {
               className="h-auto w-full"
             />
           </div>
-          <div className="absolute -bottom-10 -end-6 w-[58%] max-w-72 drop-shadow-xl sm:w-[52%]">
+          <div className="absolute -bottom-10 -end-6 w-[32%] drop-shadow-xl">
             <Image src="/hero-2.png" alt={t('cardAlt')} width={1124} height={1133} className="h-auto w-full" />
           </div>
         </div>
