@@ -4,13 +4,14 @@ import {
   ArrowRight,
   BadgeCheck,
   Briefcase,
-  Building2,
-  Clock,
+  CalendarCheck,
   Flame,
   Headphones,
   Lock,
+  MapPin,
   ShieldCheck,
   Star,
+  Stethoscope,
   Trophy,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -55,42 +56,36 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
   const t = useTranslations('landing.popularDoctors');
 
   return (
-    <Card className="relative flex h-full flex-col gap-4 p-5">
-      {(doctor.isTopRated || doctor.isMostBooked) && (
-        <Badge
-          variant={doctor.isTopRated ? 'success' : 'warning'}
-          className="absolute end-4 top-4 gap-1"
-        >
-          <Icon icon={doctor.isTopRated ? Trophy : Flame} size="xs" />
-          {doctor.isTopRated ? t('topRated') : t('mostBooked')}
-        </Badge>
-      )}
-
-      <div className="flex items-center gap-3 pe-24">
-        <Avatar size="lg">
-          <AvatarFallback>{initialsOf(doctor.fullName)}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col">
-          <span className="flex items-center gap-1 font-semibold text-text-primary">
-            {doctor.fullName}
-            <Icon icon={BadgeCheck} size="sm" className="text-primary" aria-label={t('verified')} />
-          </span>
-          <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="mt-1 w-fit">
-            {doctor.specialtyName}
-          </Badge>
+    <Card className="flex h-full flex-col gap-4 p-6">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Avatar size="lg">
+            <AvatarFallback>{initialsOf(doctor.fullName)}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-center gap-1 text-base font-bold text-text-primary">
+              {doctor.fullName}
+              <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-primary" aria-label={t('verified')} />
+            </span>
+            <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="w-fit gap-1">
+              <Icon icon={Stethoscope} size="xs" />
+              {doctor.specialtyName}
+            </Badge>
+          </div>
         </div>
+
+        {(doctor.isTopRated || doctor.isMostBooked) && (
+          <Badge variant={doctor.isTopRated ? 'success' : 'warning'} className="shrink-0 gap-1">
+            <Icon icon={doctor.isTopRated ? Trophy : Flame} size="xs" />
+            {doctor.isTopRated ? t('topRated') : t('mostBooked')}
+          </Badge>
+        )}
       </div>
 
-      {doctor.professionalRank && (
-        <Text size="sm" tone="tertiary" className="capitalize">
-          {t(`ranks.${doctor.professionalRank}`)}
-        </Text>
-      )}
-
       {doctor.reviewCount > 0 ? (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-          <span className="text-sm font-medium text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
+          <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
           <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
         </div>
       ) : (
@@ -107,7 +102,7 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
           </span>
         )}
         <span className="flex items-center gap-1.5">
-          <Icon icon={Building2} size="xs" />
+          <Icon icon={MapPin} size="xs" />
           {doctor.hospitalName ?? t('independentPractice')}
         </span>
         {doctor.availability && (
@@ -118,19 +113,26 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
         )}
       </div>
 
+      <span className="h-px w-full bg-border-default" aria-hidden="true" />
+
       {doctor.consultationFeeAmount !== undefined && (
-        <Text size="sm" tone="secondary">
-          {t('consultationFee', { amount: doctor.consultationFeeAmount })}
-        </Text>
+        <div className="flex flex-col">
+          <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
+          <span className="text-base font-bold text-text-primary">{t('consultationFee', { amount: doctor.consultationFeeAmount })}</span>
+        </div>
       )}
 
-      <div className="mt-auto flex gap-2">
-        <Button asChild variant="outline" size="sm" className="flex-1">
-          <Link href={`/patient/doctors/${doctor.doctorProfileId}`}>{t('viewProfile')}</Link>
-        </Button>
-        <Button asChild size="sm" className="flex-1">
+      <div className="mt-auto flex items-center justify-between gap-3">
+        <Link
+          href={`/patient/doctors/${doctor.doctorProfileId}`}
+          className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-text-primary hover:text-primary"
+        >
+          {t('viewProfile')}
+          <Icon icon={ArrowRight} size="sm" flipRtl />
+        </Link>
+        <Button asChild size="sm" className="flex-1 gap-1.5">
           <Link href={`/patient/appointments/book?doctorId=${doctor.doctorProfileId}`}>
-            <Icon icon={Clock} size="sm" />
+            <Icon icon={CalendarCheck} size="sm" />
             {t('bookAppointment')}
           </Link>
         </Button>
@@ -157,7 +159,7 @@ export function PopularDoctorsSection() {
   const trustItems = [
     { icon: ShieldCheck, title: t('trust.verified.title'), description: t('trust.verified.description') },
     { icon: Lock, title: t('trust.secureBooking.title'), description: t('trust.secureBooking.description') },
-    { icon: Clock, title: t('trust.available.title'), description: t('trust.available.description') },
+    { icon: CalendarCheck, title: t('trust.available.title'), description: t('trust.available.description') },
     { icon: Headphones, title: t('trust.support.title'), description: t('trust.support.description') },
   ];
 
