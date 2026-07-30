@@ -22,11 +22,12 @@ import { Container } from '@/shared/ui/container';
  * No "Happy Patients" or "Platform Uptime" style figure is shown; neither
  * is backed by any real, publicly-exposed metric.
  *
- * The illustration itself (`/updated-hero.png`) is a single flattened
- * image -- the call controls, top labels, and menu/fullscreen icons baked
- * into it can only be reframed as a whole (crop + `object-position`), not
- * repositioned individually; there is no way to nudge just the mic button
- * or just the "Live" label independently without a new source asset.
+ * The illustration is two separate flattened images: `/hero-1.png` (the
+ * video-consultation panel -- call controls, labels, and icons all baked
+ * in, so it's rendered at its own native ratio rather than cropped) and
+ * `/hero-2.png` (the floating "Your Health, Our Priority" card, which
+ * already has its own transparent, rounded edges), absolutely positioned
+ * overlapping the main panel's bottom-end corner.
  */
 export function HeroSection() {
   const t = useTranslations('landing.hero');
@@ -100,21 +101,25 @@ export function HeroSection() {
           )}
         </div>
 
-        <div className="relative flex items-center justify-center">
+        <div className="relative flex items-center justify-center pb-10 pe-6">
           {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. Less blur/spread than before, closer to the reference's tighter glow. */}
           <div
             className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"
             aria-hidden="true"
           />
-          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[2rem] shadow-xl">
+          <div className="relative w-full overflow-hidden rounded-[2rem] shadow-xl">
             <Image
-              src="/updated-hero.png"
+              src="/hero-1.png"
               alt={t('imageAlt')}
-              fill
+              width={1600}
+              height={983}
               priority
               sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover object-[35%_center]"
+              className="h-auto w-full"
             />
+          </div>
+          <div className="absolute -bottom-10 -end-6 w-[58%] max-w-72 drop-shadow-xl sm:w-[52%]">
+            <Image src="/hero-2.png" alt={t('cardAlt')} width={1124} height={1133} className="h-auto w-full" />
           </div>
         </div>
       </div>
