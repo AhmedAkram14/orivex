@@ -664,6 +664,8 @@
     },
     "queue": {
       "title": "Patient Queue",
+      "description": "Manage appointment requests and ongoing consultations.",
+      "queueSettings": "Queue settings",
       "currentPatientTitle": "Current patient",
       "noCurrentPatientTitle": "No one in consultation",
       "noCurrentPatientDescription": "The current patient will appear here once a consultation is in progress.",
@@ -672,6 +674,29 @@
       "emptyDescription": "Patients waiting for a consultation will appear here.",
       "waitMinutes": "~{minutes} min wait",
       "loadError": "Couldn't load the patient queue.",
+      "stats": {
+        "pendingApproval": {
+          "title": "Pending approval",
+          "emptySublabel": "No requests waiting",
+          "sublabel": "Awaiting your approval"
+        },
+        "waiting": {
+          "title": "Waiting",
+          "sublabel": "In the waiting queue"
+        },
+        "inConsultation": {
+          "title": "In consultation",
+          "sublabel": "Ongoing now"
+        },
+        "completedToday": {
+          "title": "Completed today",
+          "sublabel": "Consultations done"
+        }
+      },
+      "confidentialBanner": {
+        "title": "All consultations are secure and confidential.",
+        "description": "Your patient's privacy is our priority."
+      },
       "filters": {
         "all": "All"
       },

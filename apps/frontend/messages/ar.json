@@ -664,6 +664,8 @@
     },
     "queue": {
       "title": "قائمة انتظار المرضى",
+      "description": "إدارة طلبات المواعيد والاستشارات الجارية.",
+      "queueSettings": "إعدادات القائمة",
       "currentPatientTitle": "المريض الحالي",
       "noCurrentPatientTitle": "لا يوجد أحد في استشارة",
       "noCurrentPatientDescription": "سيظهر المريض الحالي هنا بمجرد بدء استشارة.",
@@ -672,6 +674,29 @@
       "emptyDescription": "سيظهر هنا المرضى الذين ينتظرون استشارة.",
       "waitMinutes": "انتظار ~{minutes} دقيقة",
       "loadError": "تعذّر تحميل قائمة انتظار المرضى.",
+      "stats": {
+        "pendingApproval": {
+          "title": "بانتظار الموافقة",
+          "emptySublabel": "لا توجد طلبات بانتظار",
+          "sublabel": "بانتظار موافقتك"
+        },
+        "waiting": {
+          "title": "في الانتظار",
+          "sublabel": "في قائمة الانتظار"
+        },
+        "inConsultation": {
+          "title": "في استشارة",
+          "sublabel": "جارية الآن"
+        },
+        "completedToday": {
+          "title": "المكتملة اليوم",
+          "sublabel": "استشارات منتهية"
+        }
+      },
+      "confidentialBanner": {
+        "title": "جميع الاستشارات آمنة وسرّية.",
+        "description": "خصوصية مريضك هي أولويتنا."
+      },
       "filters": {
         "all": "الكل"
       },

@@ -3,7 +3,7 @@ import { WidgetContainer, type WidgetContainerProps } from '@/shared/ui/layout/w
 import { EmptyState } from '@/shared/ui/empty-state';
 
 export interface WaitingQueueProps extends Omit<WidgetContainerProps, 'children' | 'title'> {
-  title: string;
+  title: ReactNode;
   emptyTitle: string;
   emptyDescription?: string;
   /** Pre-keyed `<li>` elements (typically wrapping `PatientQueueCard`), in queue order — same caller-keyed convention as `RecentActivityContainer`. */

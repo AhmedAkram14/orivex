@@ -45,6 +45,20 @@ describe('DoctorQueuePage', () => {
 
     expect(await screen.findByText('No one in consultation')).toBeInTheDocument();
     expect(screen.getByText('No one waiting')).toBeInTheDocument();
+
+    expect(screen.getByText('All consultations are secure and confidential.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Queue settings/ })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/doctor/schedule'),
+    );
+
+    // Real zero-count stats derived from the (empty) queue + pending-approval
+    // responses -- "Waiting"/"In consultation" also label the filter tabs
+    // above, so these assert both instances exist rather than risking an
+    // ambiguous single-match query.
+    expect(screen.getAllByText('Waiting').length).toBe(2);
+    expect(screen.getAllByText('In consultation').length).toBe(2);
+    expect(screen.getByText('Completed today')).toBeInTheDocument();
   });
 
   it('offers both Join video call and Consultation workspace for the current in-consultation patient', async () => {
@@ -126,6 +140,9 @@ describe('DoctorQueuePage', () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByText('No requests waiting')).toBeInTheDocument();
+    // Appears twice now: the pending-approval section's own empty state,
+    // and the stats row's "Pending approval" card sublabel (both honestly
+    // describing the same real zero count).
+    expect((await screen.findAllByText('No requests waiting')).length).toBe(2);
   });
 });

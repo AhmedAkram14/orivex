@@ -4,7 +4,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
 
 export interface WidgetContainerProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
-  title?: string;
+  title?: ReactNode;
   description?: string;
   actions?: ReactNode;
   /** Shows a skeleton in place of `children` — for a widget whose data is still loading, distinct from the widget not existing at all. */
