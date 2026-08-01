@@ -19,11 +19,15 @@ export interface TokenStorage {
   getExpiresAt(): string | null;
   setAccessToken(token: string, expiresAt: string): void;
   clear(): void;
+  /** Fires on every `setAccessToken`/`clear` -- lets a long-lived connection (the realtime socket) know its captured-at-connect-time token is stale and reconnect, instead of silently going deaf after a rotation. */
+  subscribe(listener: () => void): () => void;
 }
 
 export function createMemoryTokenStorage(): TokenStorage {
   let accessToken: string | null = null;
   let expiresAt: string | null = null;
+  const listeners = new Set<() => void>();
+  const notify = () => listeners.forEach((listener) => listener());
 
   return {
     getAccessToken: () => accessToken,
@@ -31,10 +35,16 @@ export function createMemoryTokenStorage(): TokenStorage {
     setAccessToken: (token, expires) => {
       accessToken = token;
       expiresAt = expires;
+      notify();
     },
     clear: () => {
       accessToken = null;
       expiresAt = null;
+      notify();
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
     },
   };
 }

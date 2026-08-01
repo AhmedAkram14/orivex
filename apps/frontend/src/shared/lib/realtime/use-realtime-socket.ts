@@ -49,6 +49,25 @@ export function useRealtimeSocket(): void {
       withCredentials: true,
     });
 
+    // The access token is only captured once, at connect time (`auth`
+    // above) -- socket.io-client's automatic reconnection keeps resending
+    // that same snapshot, so after any token rotation (silent refresh,
+    // etc.) a reconnect silently fails RealtimeGateway's handshake auth
+    // and this client stops receiving `notification.changed` until the
+    // component remounts. Mutating `socket.auth` and forcing an immediate
+    // reconnect whenever the token actually changes keeps the channel
+    // alive across rotations instead of going silently deaf.
+    const unsubscribe = tokenStorage.subscribe(() => {
+      const nextToken = tokenStorage.getAccessToken();
+      if (!nextToken) {
+        return;
+      }
+      socket.auth = { token: nextToken };
+      if (socket.connected) {
+        socket.disconnect().connect();
+      }
+    });
+
     socket.on('notification.changed', () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['doctor-queue'] });
@@ -84,6 +103,7 @@ export function useRealtimeSocket(): void {
     });
 
     return () => {
+      unsubscribe();
       socket.disconnect();
     };
   }, [status, queryClient]);

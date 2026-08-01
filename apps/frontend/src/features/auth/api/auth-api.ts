@@ -19,6 +19,29 @@ import type {
   LoginHistoryEntry,
 } from '@/features/auth/api/types';
 
+// The refresh-token endpoint rotates the token on every real use (Sprint
+// 15's RefreshSessionUseCase) and treats a second presentation of an
+// already-rotated-away token as reuse. Two independent triggers call
+// refreshSession() in this app -- useSilentRefresh's expiry timer and
+// bootstrapSession's cold-start recovery -- and without this guard, two
+// calls landing close together (e.g. a WebSocket notification forcing a
+// session refetch right as the silent-refresh timer also fires) would each
+// send a request; the second one to reach the server presents a token the
+// first has already rotated past, gets a hard failure, and the caller
+// treats that as "no session" -- a real, spurious logout. Coalescing
+// concurrent calls into the one in-flight request/promise removes the race
+// entirely, regardless of how many places end up triggering a refresh.
+let inFlightRefresh: Promise<RefreshSessionResponse> | null = null;
+
+function refreshSession(): Promise<RefreshSessionResponse> {
+  if (!inFlightRefresh) {
+    inFlightRefresh = apiFetch<RefreshSessionResponse>({ method: 'POST', path: AUTH_PATHS.refresh }).finally(() => {
+      inFlightRefresh = null;
+    });
+  }
+  return inFlightRefresh;
+}
+
 /**
  * The only module that talks to `/auth/*`. Every function here is a thin,
  * typed wrapper over `apiFetch` — no business logic, no state, so that
@@ -46,7 +69,7 @@ export const authApi = {
   resendVerification: (request: ResendVerificationRequest) =>
     apiFetch<ResendVerificationResponse>({ method: 'POST', path: AUTH_PATHS.resendVerification, body: request }),
 
-  refreshSession: () => apiFetch<RefreshSessionResponse>({ method: 'POST', path: AUTH_PATHS.refresh }),
+  refreshSession,
 
   /** Silent recovery on app load — resolves to `null` (not a thrown error) when there's no active session. */
   getSession: () => apiFetch<SessionResponse>({ path: AUTH_PATHS.session }),
