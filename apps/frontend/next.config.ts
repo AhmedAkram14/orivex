@@ -12,6 +12,29 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [],
   },
+
+  // Proxies /auth/* through this app's own origin to the backend
+  // (orivex-backend.onrender.com), rather than the browser calling it
+  // cross-site directly. Only /auth/* ever sets/reads the httpOnly
+  // refresh-token cookie (AuthenticationModule) -- everything else
+  // authenticates via the in-memory bearer token and is unaffected by
+  // this. The frontend (orivex-eg.vercel.app) and backend are different
+  // eTLD+1 domains, so that cookie is genuinely cross-site; WebKit (Safari,
+  // and every iOS browser, which is required to use WebKit under Apple's
+  // rules) blocks third-party cookies by default regardless of correct
+  // SameSite=None/Secure attributes, so it never reliably persisted there
+  // -- "sign in again on every refresh," but only on Safari/iOS, never on
+  // desktop Chrome/Firefox/Edge. Routing this one prefix through the
+  // frontend's own origin makes the cookie first-party instead. Applies
+  // in dev too (next dev's server honors rewrites the same way), so local
+  // behavior always matches production.
+  async rewrites() {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, '');
+    if (!apiBaseUrl) {
+      return [];
+    }
+    return [{ source: '/auth/:path*', destination: `${apiBaseUrl}/auth/:path*` }];
+  },
 };
 
 const withNextIntl = createNextIntlPlugin('./src/shared/i18n/request.ts');

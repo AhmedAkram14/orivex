@@ -64,18 +64,40 @@ export function __setAuthHeaderProvider(provider: () => Record<string, string>):
   getAuthHeader = provider;
 }
 
+const AUTH_PATH_PREFIX = '/auth/';
+
+/**
+ * `/auth/*` resolves to a same-origin relative URL in a real browser, so
+ * Next.js's own rewrite proxy (next.config.ts) forwards it to the backend
+ * server-side — see that file's comment for why: it's the one prefix that
+ * sets/reads the httpOnly refresh-token cookie, and WebKit (Safari/iOS)
+ * blocks that cookie outright when it's genuinely cross-site. Every other
+ * path still calls the backend directly; they authenticate via the
+ * in-memory bearer token, not a cookie, so they were never affected.
+ *
+ * In tests there's no real Next.js server applying that rewrite — MSW's
+ * handlers (src/mocks/handlers/auth.ts) are registered against the
+ * absolute `env.apiBaseUrl`, so this keeps hitting that directly there,
+ * unchanged from before.
+ */
+function resolveUrl(path: string): string {
+  if (process.env.NODE_ENV === 'test' || !path.startsWith(AUTH_PATH_PREFIX)) {
+    return `${env.apiBaseUrl}${path}`;
+  }
+  return path;
+}
+
 export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiRequestOptions): Promise<T> {
-  const response = await fetch(`${env.apiBaseUrl}${path}`, {
+  const response = await fetch(resolveUrl(path), {
     method,
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
     body: body === undefined ? undefined : JSON.stringify(body),
     // Required for the httpOnly refresh-token cookie (AuthenticationModule,
-    // apps/backend/src/modules/authentication) to be sent/received: the
-    // frontend (orivex-eg.vercel.app) and backend (orivex-backend.onrender.com)
-    // are different eTLD+1 domains, so this is a genuinely cross-site request
-    // — browsers never attach cookies to one without explicit opt-in, even
-    // same-origin defaults aren't enough. Backend CORS already pairs this
-    // with `credentials: true`.
+    // apps/backend/src/modules/authentication) to be sent/received on the
+    // non-/auth/* paths (still genuinely cross-site) and harmless to keep
+    // on the proxied /auth/* paths (same-origin, where it's just the
+    // default anyway). Backend CORS already pairs this with
+    // `credentials: true`.
     credentials: 'include',
     signal,
   });
