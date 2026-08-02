@@ -19,9 +19,12 @@ import { ConfirmAppointmentCommand } from '../../application/use-cases/confirm-a
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
+import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
+import { DoctorPatientListItemResponseDto } from '../dto/doctor-patient-list-item-response.dto.js';
+import { DoctorReportsSummaryResponseDto } from '../dto/doctor-reports-summary-response.dto.js';
 import { DoctorUpcomingWorkItemResponseDto } from '../dto/doctor-upcoming-work-item-response.dto.js';
 import { PendingApprovalAppointmentResponseDto } from '../dto/pending-approval-appointment-response.dto.js';
 import { QueueEntryResponseDto } from '../dto/queue-entry-response.dto.js';
@@ -46,6 +49,7 @@ export class DoctorAppointmentsController {
     private readonly getSchedulingRulesUseCase: GetSchedulingRulesUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
+    private readonly getDoctorReportsSummaryUseCase: GetDoctorReportsSummaryUseCase,
   ) {}
 
   // Doctor-scoped dashboard counts (Doctor Workspace's "Today's Summary").
@@ -168,6 +172,62 @@ export class DoctorAppointmentsController {
     return envelope(items);
   }
 
+  // Doctor Workspace's "Patients" page -- every distinct patient the doctor
+  // has ever had an appointment with, reusing the same full-history
+  // `listAppointmentsForDoctorUseCase.execute({ doctorId })` call
+  // `getDoctorUpcomingWork` already makes (unbounded, no date filter),
+  // reduced to one row per patient (real visit count + most recent visit),
+  // never a fabricated "seen" patient.
+  @Get('doctor/patients')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorPatients(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<DoctorPatientListItemResponseDto[]>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
+    const items = await this.toPatientListItems(appointments);
+    return envelope(items.sort((a, b) => new Date(b.lastVisitAt).getTime() - new Date(a.lastVisitAt).getTime()));
+  }
+
+  // Doctor Workspace's "Reports" page -- real appointment-status counts +
+  // the doctor's own real rating aggregate. See GetDoctorReportsSummaryUseCase's
+  // own comment for why no day-over-day/time-series figure exists here.
+  @Get('doctor/reports-summary')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorReportsSummary(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<DoctorReportsSummaryResponseDto>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      const empty = new DoctorReportsSummaryResponseDto();
+      empty.totalAppointments = 0;
+      empty.confirmed = 0;
+      empty.completed = 0;
+      empty.cancelled = 0;
+      empty.noShow = 0;
+      empty.averageRating = null;
+      empty.reviewCount = 0;
+      return envelope(empty);
+    }
+
+    const summary = await this.getDoctorReportsSummaryUseCase.execute({ doctorId: doctorProfile.getId() });
+    const dto = new DoctorReportsSummaryResponseDto();
+    dto.totalAppointments = summary.totalAppointments;
+    dto.confirmed = summary.confirmed;
+    dto.completed = summary.completed;
+    dto.cancelled = summary.cancelled;
+    dto.noShow = summary.noShow;
+    dto.averageRating = summary.averageRating;
+    dto.reviewCount = summary.reviewCount;
+    return envelope(dto);
+  }
+
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
   // Requested and stays there until this list surfaces it and the doctor
   // approves it below -- not date-scoped like the Patient Queue above,
@@ -269,6 +329,44 @@ export class DoctorAppointmentsController {
     dto.description = appointment.getReasonForVisit() ?? undefined;
     dto.status = toUpcomingWorkStatus(appointment.getStatus());
     return dto;
+  }
+
+  private async toPatientListItems(appointments: Appointment[]): Promise<DoctorPatientListItemResponseDto[]> {
+    const byPatientId = new Map<string, Appointment[]>();
+    for (const appointment of appointments) {
+      const existing = byPatientId.get(appointment.getPatientId()) ?? [];
+      existing.push(appointment);
+      byPatientId.set(appointment.getPatientId(), existing);
+    }
+
+    const entries = await Promise.all(
+      Array.from(byPatientId.entries()).map(async ([patientId, patientAppointments]) => {
+        const patientProfile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId: patientId });
+        if (!patientProfile) {
+          return null;
+        }
+        const patientAccount: Account | null = await this.getAccountByIdUseCase.execute({
+          accountId: patientProfile.getAccountId(),
+        });
+        if (!patientAccount) {
+          return null;
+        }
+
+        const mostRecent = [...patientAppointments].sort(
+          (a, b) => b.getScheduledAt().getTime() - a.getScheduledAt().getTime(),
+        )[0]!;
+
+        const dto = new DoctorPatientListItemResponseDto();
+        dto.patientProfileId = patientId;
+        dto.patientName = patientAccount.getUserProfile().getDisplayName().toString();
+        dto.visitCount = patientAppointments.length;
+        dto.lastVisitAt = mostRecent.getScheduledAt().toISOString();
+        dto.lastVisitStatus = mostRecent.getStatus();
+        return dto;
+      }),
+    );
+
+    return entries.filter((entry): entry is DoctorPatientListItemResponseDto => entry !== null);
   }
 
   private async toQueueView(appointment: Appointment): Promise<QueueView | null> {

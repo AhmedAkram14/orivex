@@ -25,6 +25,10 @@ export interface AppointmentRepository {
   // signal without one query per doctor per page (same N+1-avoidance idiom
   // as ConsultationFeedbackRepository.getRatingAggregatesForDoctors).
   countByDoctorIds(doctorIds: string[], statuses: AppointmentStatus[]): Promise<Map<string, number>>;
+  // Single-doctor sibling of countByDoctorIds -- backs the doctor's own
+  // Reports page, one query for every real status count at once rather
+  // than a separate count() call per status.
+  countByStatusForDoctor(doctorId: string): Promise<Partial<Record<AppointmentStatus, number>>>;
   // Throws on a stale version (optimistic locking) -- callers must reload
   // and retry rather than treat this as a generic failure.
   save(appointment: Appointment): Promise<void>;

@@ -67,6 +67,7 @@ import type { ConsultationFeedbackRepository, DoctorRatingAggregate } from '../.
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
 import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
+import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { ListConsultationFeedbackForDoctorUseCase } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
 import { SubmitConsultationFeedbackUseCase } from '../../application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
 import { UpdateConsultationFeedbackUseCase } from '../../application/use-cases/update-consultation-feedback/update-consultation-feedback.use-case.js';
@@ -207,6 +208,14 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   }
   async countByDoctorIds(): Promise<Map<string, number>> {
     return new Map();
+  }
+  async countByStatusForDoctor(doctorId: string): Promise<Partial<Record<string, number>>> {
+    const result: Partial<Record<string, number>> = {};
+    for (const appointment of await this.findByDoctorId(doctorId)) {
+      const status = appointment.getStatus();
+      result[status] = (result[status] ?? 0) + 1;
+    }
+    return result;
   }
   async save(appointment: Appointment): Promise<void> {
     this.byId.set(appointment.getId(), appointment);
@@ -555,6 +564,10 @@ describe('Consultation controllers (integration)', () => {
         { provide: UpdateConsultationFeedbackUseCase, useValue: updateConsultationFeedbackUseCase },
         { provide: DeleteConsultationFeedbackUseCase, useValue: deleteConsultationFeedbackUseCase },
         { provide: GetDoctorRatingAggregateUseCase, useValue: new GetDoctorRatingAggregateUseCase(feedbackRepo) },
+        {
+          provide: GetDoctorReportsSummaryUseCase,
+          useValue: new GetDoctorReportsSummaryUseCase(appointmentRepo, new GetDoctorRatingAggregateUseCase(feedbackRepo)),
+        },
         {
           provide: ListConsultationFeedbackForDoctorUseCase,
           useValue: new ListConsultationFeedbackForDoctorUseCase(feedbackRepo),
@@ -988,6 +1001,75 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(entry.status, 'waiting');
     assert.ok(entry.position >= 1);
     assert.ok(typeof entry.estimatedWaitMinutes === 'number');
+  });
+
+  it('GET /appointments/doctor/patients rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/doctor/patients').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/doctor/patients returns an honest empty list for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/patients')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, []);
+  });
+
+  it('GET /appointments/doctor/patients groups every real appointment into one row per distinct patient, with a real visit count and most recent visit', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/patients')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    const entry = response.body.data.find((item: { patientName: string }) => item.patientName === 'Amina Youssef');
+    assert.ok(entry);
+    // Seeded fixtures: todaysConfirmedAppointment (Confirmed, today) +
+    // completedAppointment (Completed, 72h ago) -- same patient, two visits.
+    // >= 2, not exactly 2: this file's appointmentRepo/patient/doctor
+    // fixtures are shared and accumulate across every earlier test in this
+    // suite (booking/confirm/etc.), not just the two seeded directly in
+    // beforeEach -- an exact count would be order-dependent and brittle.
+    assert.ok(entry.visitCount >= 2, `expected at least 2 real visits, got ${entry.visitCount}`);
+    assert.ok(entry.lastVisitAt, 'expected a real lastVisitAt timestamp');
+  });
+
+  it('GET /appointments/doctor/reports-summary rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/doctor/reports-summary').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/doctor/reports-summary returns an honest empty summary for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-summary')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, {
+      totalAppointments: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0,
+      noShow: 0,
+      averageRating: null,
+      reviewCount: 0,
+    });
+  });
+
+  it('GET /appointments/doctor/reports-summary counts real appointments by status and an honest "no reviews yet" rating', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-summary')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    // >=, not ===, for the same reason as the /doctor/patients test above --
+    // shared fixtures accumulate across earlier tests in this suite.
+    assert.ok(response.body.data.confirmed >= 1);
+    assert.ok(response.body.data.completed >= 1);
+    assert.ok(response.body.data.totalAppointments >= response.body.data.confirmed + response.body.data.completed);
+    assert.equal(response.body.data.averageRating, null);
+    assert.equal(response.body.data.reviewCount, 0);
   });
 
   describe('POST /consultations/:id/room-token', () => {

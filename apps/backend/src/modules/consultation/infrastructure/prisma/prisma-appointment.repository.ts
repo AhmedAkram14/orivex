@@ -7,7 +7,7 @@ import { ConsultationDomainError } from '../../domain/exceptions/consultation-do
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 
 import { toDomainAppointment } from './appointment.mapper.js';
-import { toPrismaAppointmentStatus } from './appointment-status.mapper.js';
+import { toDomainAppointmentStatus, toPrismaAppointmentStatus } from './appointment-status.mapper.js';
 import { toPrismaConsultationType } from './consultation-type.mapper.js';
 
 @Injectable()
@@ -67,6 +67,19 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       _count: { _all: true },
     });
     return new Map(groups.map((group) => [group.doctorId, group._count._all]));
+  }
+
+  async countByStatusForDoctor(doctorId: string): Promise<Partial<Record<AppointmentStatus, number>>> {
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['status'],
+      where: { doctorId },
+      _count: { _all: true },
+    });
+    const result: Partial<Record<AppointmentStatus, number>> = {};
+    for (const group of groups) {
+      result[toDomainAppointmentStatus(group.status)] = group._count._all;
+    }
+    return result;
   }
 
   // Optimistic locking, mirroring AvailabilityWindow's repository: updates

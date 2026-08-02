@@ -77,6 +77,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async countByDoctorIds(): Promise<Map<string, number>> {
     return new Map();
   }
+  async countByStatusForDoctor(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
   async save(): Promise<void> {}
 }
 

@@ -52,6 +52,9 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async countByDoctorIds(): Promise<Map<string, number>> {
     return new Map();
   }
+  async countByStatusForDoctor(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
   async save(appointment: Appointment): Promise<void> {
     this.saved.push(appointment);
   }

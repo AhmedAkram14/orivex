@@ -41,6 +41,7 @@ import { GetDoctorRatingAggregateUseCase } from './application/use-cases/get-doc
 import { GetDoctorBookingCountsUseCase } from './application/use-cases/get-doctor-booking-counts/get-doctor-booking-counts.use-case.js';
 import { GetDoctorRatingAggregatesUseCase } from './application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregates.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from './application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
+import { GetDoctorReportsSummaryUseCase } from './application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from './application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from './application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from './application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
@@ -179,6 +180,12 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       provide: ListAppointmentsForDoctorUseCase,
       useFactory: (repository: AppointmentRepository) => new ListAppointmentsForDoctorUseCase(repository),
       inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
+      provide: GetDoctorReportsSummaryUseCase,
+      useFactory: (repository: AppointmentRepository, ratingUseCase: GetDoctorRatingAggregateUseCase) =>
+        new GetDoctorReportsSummaryUseCase(repository, ratingUseCase),
+      inject: [APPOINTMENT_REPOSITORY, GetDoctorRatingAggregateUseCase],
     },
     {
       provide: GetConsultationSessionByIdUseCase,
