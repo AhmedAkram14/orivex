@@ -11,7 +11,7 @@ import type { DoctorProfileRepository } from '../../domain/repositories/doctor-p
 
 import { toDomainDoctorProfile } from './doctor-profile.mapper.js';
 
-const INCLUDE_CHILDREN = { publications: true, awards: true } as const;
+const INCLUDE_CHILDREN = { publications: true, awards: true, workExperience: true } as const;
 
 function isUniqueConstraintViolation(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -78,6 +78,7 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             biography: profile.getBiography() ?? null,
             yearsOfExperience: profile.getYearsOfExperience() ?? null,
             languages: profile.getLanguages(),
+            insuranceProviders: profile.getInsuranceProviders(),
             consultationFeeAmount: profile.getConsultationFeeAmount() ?? null,
             hospitalId: profile.getHospitalId() ?? null,
             specialtyId: profile.getSpecialtyId(),
@@ -90,6 +91,7 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             biography: profile.getBiography() ?? null,
             yearsOfExperience: profile.getYearsOfExperience() ?? null,
             languages: profile.getLanguages(),
+            insuranceProviders: profile.getInsuranceProviders(),
             consultationFeeAmount: profile.getConsultationFeeAmount() ?? null,
             hospitalId: profile.getHospitalId() ?? null,
             specialtyId: profile.getSpecialtyId(),
@@ -116,6 +118,19 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             title: a.getTitle(),
             issuingBody: a.getIssuingBody() ?? null,
             awardedAt: a.getAwardedAt() ?? null,
+          })),
+        }),
+        this.prisma.portfolioWorkExperience.deleteMany({ where: { doctorProfileId: id } }),
+        this.prisma.portfolioWorkExperience.createMany({
+          data: profile.getWorkExperience().map((w) => ({
+            id: w.getId(),
+            doctorProfileId: id,
+            organizationName: w.getOrganizationName(),
+            position: w.getPosition(),
+            professionalRank: w.getProfessionalRank() ?? null,
+            startDate: w.getStartDate(),
+            endDate: w.getEndDate() ?? null,
+            description: w.getDescription() ?? null,
           })),
         }),
       ]);

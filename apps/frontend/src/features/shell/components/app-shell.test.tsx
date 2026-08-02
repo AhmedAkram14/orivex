@@ -46,7 +46,11 @@ describe('AppShell', () => {
     );
 
     expect(screen.getByText('Orivex')).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    // "Dashboard" is inert (an aria-disabled span, not a link) for the
+    // doctor role -- the doctor's own Overview page already serves as its
+    // dashboard, so it never links anywhere for this role.
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });

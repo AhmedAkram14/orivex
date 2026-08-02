@@ -12,11 +12,6 @@ function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function containsActive(item: NavItemConfig, pathname: string): boolean {
-  if (item.href) return isActive(pathname, item.href);
-  return (item.children ?? []).some((child) => containsActive(child, pathname));
-}
-
 /**
  * Renders `NAVIGATION_CONFIG` filtered for the current session's roles and
  * feature flags — the one place that config becomes actual sidebar/
@@ -30,30 +25,41 @@ export function SidebarNav() {
   const { user } = useAuth();
   const pathname = usePathname();
   const isFeatureEnabled = useNavigationFeatureFlags();
-  const items = filterNavigationByAccess(NAVIGATION_CONFIG, user?.roles ?? [], isFeatureEnabled);
+  const userRoles = user?.roles ?? [];
+  const items = filterNavigationByAccess(NAVIGATION_CONFIG, userRoles, isFeatureEnabled);
 
   return (
     <nav aria-label={t('landmarkLabel')} className="flex flex-col gap-1">
       {items.map((item) => (
-        <NavEntry key={item.id} item={item} pathname={pathname} />
+        <NavEntry key={item.id} item={item} pathname={pathname} userRoles={userRoles} />
       ))}
     </nav>
   );
 }
 
-function NavEntry({ item, pathname }: { item: NavItemConfig; pathname: string }) {
+function NavEntry({ item, pathname, userRoles }: { item: NavItemConfig; pathname: string; userRoles: readonly string[] }) {
   const t = useTranslations('shell.nav');
   const label = t(item.labelKey);
 
   if (item.children) {
     return (
-      <NavGroup label={label} icon={item.icon} defaultOpen={containsActive(item, pathname)}>
+      <NavGroup label={label}>
         {item.children.map((child) => (
-          <NavEntry key={child.id} item={child} pathname={pathname} />
+          <NavEntry key={child.id} item={child} pathname={pathname} userRoles={userRoles} />
         ))}
       </NavGroup>
     );
   }
 
-  return <NavItem label={label} icon={item.icon} href={item.href!} active={isActive(pathname, item.href!)} />;
+  const disabled = item.disabledForRoles?.some((role) => userRoles.includes(role)) ?? false;
+
+  return (
+    <NavItem
+      label={label}
+      icon={item.icon}
+      href={item.href!}
+      active={isActive(pathname, item.href!)}
+      disabled={disabled}
+    />
+  );
 }

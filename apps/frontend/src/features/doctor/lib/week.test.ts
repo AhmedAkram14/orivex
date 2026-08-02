@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getNextAvailability, getWeekDayName } from '@/features/doctor/lib/week';
+import { getNextAvailability, getUpcomingAvailabilityDays, getWeekDayName } from '@/features/doctor/lib/week';
 import { isSameDay } from '@/shared/lib/date/week';
 import type { RecurringWeeklySchedule } from '@/features/scheduling/types';
 
@@ -42,5 +42,34 @@ describe('getNextAvailability', () => {
   it('returns null when no working day exists in the next 7 days', () => {
     const result = getNextAvailability([], new Date(2026, 6, 13));
     expect(result).toBeNull();
+  });
+});
+
+describe('getUpcomingAvailabilityDays', () => {
+  const schedule: RecurringWeeklySchedule = [
+    { dayOfWeek: 'sunday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'monday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'tuesday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'wednesday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'thursday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'friday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'saturday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+  ];
+
+  it('returns the next 4 real working days, skipping non-working days', () => {
+    const mondayMorning = new Date(2026, 6, 13, 8, 0); // Monday, before start
+    const result = getUpcomingAvailabilityDays(schedule, mondayMorning, 4);
+    expect(result.map((entry) => entry.day.dayOfWeek)).toEqual(['monday', 'wednesday', 'monday', 'wednesday']);
+  });
+
+  it('returns fewer than count entries when no working day exists at all, never fabricating placeholders', () => {
+    const result = getUpcomingAvailabilityDays([], new Date(2026, 6, 13), 4);
+    expect(result).toEqual([]);
+  });
+
+  it('respects a custom count', () => {
+    const mondayMorning = new Date(2026, 6, 13, 8, 0);
+    const result = getUpcomingAvailabilityDays(schedule, mondayMorning, 2);
+    expect(result).toHaveLength(2);
   });
 });

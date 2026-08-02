@@ -38,6 +38,7 @@ describe('PrismaDoctorProfileRepository', () => {
       doctorProfile: { upsert: noop },
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
+      portfolioWorkExperience: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
         throw buildUniqueConstraintViolation();
       },
@@ -58,6 +59,7 @@ describe('PrismaDoctorProfileRepository', () => {
       doctorProfile: { upsert: noop },
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
+      portfolioWorkExperience: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
         throw buildUniqueConstraintViolation();
       },
@@ -87,6 +89,7 @@ describe('PrismaDoctorProfileRepository', () => {
       doctorProfile: { upsert: noop },
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
+      portfolioWorkExperience: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
         throw buildForeignKeyConstraintViolation('hospitalId');
       },
@@ -108,6 +111,7 @@ describe('PrismaDoctorProfileRepository', () => {
       doctorProfile: { upsert: noop },
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
+      portfolioWorkExperience: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
         throw buildForeignKeyConstraintViolation('specialtyId');
       },
@@ -128,6 +132,7 @@ describe('PrismaDoctorProfileRepository', () => {
       doctorProfile: { upsert: noop },
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
+      portfolioWorkExperience: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
         throw buildForeignKeyConstraintViolation('departmentId');
       },
@@ -151,6 +156,7 @@ describe('PrismaDoctorProfileRepository', () => {
       doctorProfile: { upsert: noop },
       portfolioPublication: { deleteMany: noop, createMany: noop },
       portfolioAward: { deleteMany: noop, createMany: noop },
+      portfolioWorkExperience: { deleteMany: noop, createMany: noop },
       $transaction: async () => {
         throw otherError;
       },

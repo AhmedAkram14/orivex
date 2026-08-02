@@ -469,8 +469,12 @@
     }
   },
   "shell": {
-    "footer": "© {year} Orivex",
+    "footer": "© {year} Orivex. All rights reserved.",
     "openNavigation": "Open navigation",
+    "helpCenter": {
+      "title": "Need help?",
+      "cta": "Visit our Help Center"
+    },
     "commandPalette": {
       "triggerLabel": "Search",
       "shortcutHint": "⌘K",
@@ -495,6 +499,9 @@
       "doctorSchedule": "Schedule",
       "doctorQueue": "Patient Queue",
       "doctorConsultation": "Consultation",
+      "doctorPatients": "Patients",
+      "doctorReports": "Reports",
+      "doctorSettings": "Settings",
       "patientWorkspace": "My Health",
       "patientProfile": "Profile",
       "patientAppointments": "Appointments",
@@ -580,16 +587,18 @@
   "doctor": {
     "dashboard": {
       "title": "Doctor Workspace",
-      "welcome": "Welcome back, {name}.",
+      "welcome": "Welcome back, Dr. {name}.",
       "consultationsToday": "Consultations today",
       "patientsInQueue": "Patients in queue",
       "completedToday": "Completed today",
+      "averageRating": "Average rating",
       "nextAvailableSlot": "Next available slot",
       "noAvailabilityTitle": "No availability configured",
       "today": "Today",
+      "goToQueue": "Go to queue",
       "upcomingWorkTitle": "Upcoming work",
       "upcomingWorkEmptyTitle": "Nothing scheduled yet",
-      "upcomingWorkEmptyDescription": "Your upcoming consultations will appear here once scheduling is available.",
+      "upcomingWorkEmptyDescription": "No appointments scheduled today. Enjoy your free time or update your availability.",
       "summaryLoadError": "Couldn't load today's summary.",
       "upcomingWorkLoadError": "Couldn't load your upcoming work.",
       "availabilityLoadError": "Couldn't load your next available slot.",
@@ -600,6 +609,45 @@
           "completed": "Completed",
           "cancelled": "Cancelled"
         }
+      },
+      "hero": {
+        "consultationsToday": "{count, plural, =0 {No consultations today} one {# consultation today} other {# consultations today}}",
+        "nextPatientIn": "Next patient in {minutes, plural, one {# minute} other {# minutes}}",
+        "noMorePatientsToday": "No more patients today",
+        "noStartableConsultation": "No patient waiting to start",
+        "quickActions": {
+          "startConsultation": "Start Consultation",
+          "viewQueue": "View Patient Queue",
+          "updateSchedule": "Update Schedule",
+          "writePrescription": "Write Prescription"
+        }
+      },
+      "patientQueueMini": {
+        "title": "Patient Queue",
+        "viewFullQueue": "View Full Queue",
+        "loadError": "Couldn't load the patient queue.",
+        "emptyTitle": "No one waiting",
+        "emptyDescription": "Patients waiting for a consultation will appear here as they check in.",
+        "waitingMinutes": "Waiting {minutes, plural, one {# minute} other {# minutes}}",
+        "moreOptions": "More options"
+      },
+      "progress": {
+        "title": "Today's Progress",
+        "completedOfTotal": "{completed} of {total} done",
+        "remaining": "{count, plural, =0 {No consultations remaining today} one {# consultation remaining} other {# consultations remaining}}",
+        "loadError": "Couldn't load today's progress."
+      },
+      "availability": {
+        "title": "Upcoming Availability",
+        "emptyTitle": "No availability configured",
+        "emptyDescription": "Set your working hours so patients can book with you.",
+        "loadError": "Couldn't load your upcoming availability."
+      },
+      "activity": {
+        "title": "Recent Activity",
+        "emptyTitle": "No recent activity",
+        "emptyDescription": "Your recent notifications, like confirmations and prescriptions, will appear here.",
+        "loadError": "Couldn't load recent activity."
       }
     },
     "profile": {
@@ -608,18 +656,77 @@
       "specialty": "Specialty",
       "specialtyPlaceholder": "Select a specialty",
       "professionalInformation": "Professional information",
-      "experience": "Experience",
+      "licenseNumber": "License number",
+      "yearsOfExperienceLabel": "Experience",
       "yearsOfExperience": "{years} years of experience",
+      "hospitalAffiliation": "Hospital / Clinic",
+      "consultationFee": "Consultation fee",
+      "clinicAddress": "Clinic address",
       "languages": "Languages",
+      "insurance": "Insurance",
+      "insuranceEmptyTitle": "No insurance providers on record",
+      "insuranceEmptyDescription": "Add the insurance providers you accept from Edit Profile.",
+      "about": "About",
+      "aboutEmptyTitle": "No biography on record yet",
+      "aboutEmptyDescription": "Add a short biography from Edit Profile so patients know more about you.",
+      "experienceTimelineTitle": "Experience",
+      "experienceEmptyTitle": "No work experience on record yet",
+      "experienceEmptyDescription": "Add your professional work history so patients can see your background.",
+      "addWorkExperience": "Add Work Experience",
+      "experiencePresent": "Present",
+      "experienceDateRange": "{start} – {end}",
       "publications": "Publications",
       "publicationsEmptyTitle": "No publications on record",
+      "publicationsEmptyDescription": "Add your published research or articles from Edit Profile.",
+      "addPublication": "Add Publication",
       "awards": "Awards",
       "awardsEmptyTitle": "No awards on record",
+      "awardsEmptyDescription": "Add any awards or recognitions you've received from Edit Profile.",
+      "addAward": "Add Award",
+      "reviews": "Reviews",
+      "reviewsEmptyTitle": "No written reviews yet.",
+      "reviewsEmptyDescription": "Reviews from your patients will appear here once they leave feedback.",
+      "anonymousPatient": "Patient",
       "contactInformation": "Contact information",
+      "email": "Email",
+      "phone": "Phone",
+      "clinicName": "Clinic",
       "notOnRecord": "Not on record",
       "save": "Save",
       "cancel": "Cancel",
       "loadError": "Couldn't load your profile.",
+      "hero": {
+        "verified": "Verified",
+        "patientsCount": "{count} Patients",
+        "yearsExperience": "{years} Years Experience",
+        "reviewsCount": "{count} Reviews",
+        "availableNow": "Available now",
+        "currentlyUnavailable": "Not available right now",
+        "consultationFee": "{amount} EGP / consultation"
+      },
+      "sidebar": {
+        "doctorSummary": "Doctor Summary",
+        "availability": "Availability",
+        "today": "Today",
+        "nextAvailable": "Next available",
+        "noAvailabilityTitle": "No availability configured",
+        "viewFullSchedule": "View full schedule",
+        "quickActions": "Quick Actions",
+        "manageSchedule": "Manage Schedule",
+        "security": "Security",
+        "profileCompletion": "Profile Completion",
+        "profileCompletionDescription": "Complete your profile to help patients find and trust you.",
+        "missingItemsTitle": "Still missing:"
+      },
+      "completion": {
+        "biography": "Add a biography",
+        "yearsOfExperience": "Add your years of experience",
+        "languages": "Add at least one language",
+        "consultationFeeAmount": "Set your consultation fee",
+        "portfolio": "Add a publication, award, or work experience entry",
+        "insuranceProviders": "Add accepted insurance providers",
+        "licenseExpiryDate": "Add your license expiry date"
+      },
       "languageNames": {
         "en": "English",
         "ar": "Arabic"
@@ -629,9 +736,7 @@
         "biographyTooLong": "Biography must be at most {max} characters.",
         "experienceInvalid": "Enter a valid number of years.",
         "languagesRequired": "Select at least one language."
-      },
-      "reviews": "Reviews",
-      "reviewsEmptyTitle": "No written reviews yet."
+      }
     },
     "schedule": {
       "title": "Schedule",
@@ -767,6 +872,22 @@
         "department": "Department",
         "departmentPlaceholder": "Select a department",
         "languages": "Languages",
+        "insuranceProviders": "Insurance providers",
+        "insuranceProvidersPlaceholder": "e.g. Misr Insurance",
+        "addInsuranceProvider": "Add",
+        "removeInsuranceProvider": "Remove {provider}",
+        "workExperience": "Work experience",
+        "workExperienceEmpty": "No work experience added yet.",
+        "addWorkExperience": "Add Work Experience",
+        "workExperienceOrganization": "Organization",
+        "workExperiencePosition": "Position",
+        "workExperienceRank": "Rank / degree",
+        "workExperienceRankPlaceholder": "Select a rank",
+        "workExperienceStartDate": "Start date",
+        "workExperienceEndDate": "End date",
+        "workExperienceCurrentlyWorkHere": "I currently work here",
+        "workExperienceDescription": "Description",
+        "removeWorkExperience": "Remove work experience entry",
         "createAndContinue": "Create profile and continue",
         "saveAndContinue": "Save and continue",
         "validation": {
@@ -778,7 +899,11 @@
           "biographyTooLong": "Biography must be {max} characters or fewer.",
           "experienceInvalid": "Enter a valid number of years (0-80).",
           "feeInvalid": "Enter a valid fee amount.",
-          "languagesRequired": "Select at least one language."
+          "languagesRequired": "Select at least one language.",
+          "workExperienceOrganizationRequired": "Organization name is required.",
+          "workExperiencePositionRequired": "Position is required.",
+          "workExperienceStartDateRequired": "Start date is required.",
+          "workExperienceEndDateInvalid": "End date must be on or after the start date."
         }
       },
       "documentsStep": {
@@ -824,6 +949,56 @@
         "moreInfoDescription": "We need one more thing from you before we can continue reviewing your application.",
         "editAndResubmit": "Edit and resubmit",
         "suspendedDescription": "Your verification has been suspended. Please contact support for details."
+      }
+    },
+    "patients": {
+      "title": "Patients",
+      "description": "Everyone you have ever had a real appointment with.",
+      "loadError": "Couldn't load your patients.",
+      "emptyTitle": "No patients yet",
+      "emptyDescription": "Patients you've had a real appointment with will appear here.",
+      "columns": {
+        "name": "Name",
+        "visitCount": "Visits",
+        "lastVisit": "Last visit",
+        "lastVisitStatus": "Status"
+      },
+      "status": {
+        "requested": "Waiting doctor approval",
+        "confirmed": "Confirmed",
+        "rescheduled": "Rescheduled",
+        "cancelled": "Cancelled",
+        "no_show": "No-show",
+        "completed": "Completed"
+      }
+    },
+    "reports": {
+      "title": "Reports",
+      "description": "Your real appointment counts and rating, at a glance.",
+      "loadError": "Couldn't load your reports.",
+      "stats": {
+        "totalAppointments": "Total appointments",
+        "completed": "Completed",
+        "cancelledOrNoShow": "Cancelled / no-show",
+        "averageRating": "Average rating",
+        "ratingValue": "{rating} ({count})",
+        "noReviewsYet": "No reviews yet"
+      }
+    },
+    "settingsPage": {
+      "title": "Settings",
+      "description": "Your workspace preferences.",
+      "theme": {
+        "title": "Theme",
+        "description": "Choose how the Doctor Workspace looks on this device."
+      },
+      "language": {
+        "title": "Language",
+        "description": "Choose the language the app is displayed in.",
+        "options": {
+          "en": "English",
+          "ar": "Arabic"
+        }
       }
     }
   },

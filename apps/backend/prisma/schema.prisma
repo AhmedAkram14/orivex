@@ -130,6 +130,14 @@ model DoctorProfile {
   biography                       String?
   yearsOfExperience               Int?
   languages                       String[]
+  // Doctor Profile Redesign (2026-08-02): plain string list of accepted
+  // insurance provider names (e.g. "Misr Insurance, AXA, Allianz"), same
+  // storage convention as `languages` above -- not a relation to the
+  // existing InsuranceProvider reference table, since a doctor's accepted
+  // providers are free-text display data here, not the normalized single-FK
+  // relationship PatientProfile.insuranceProviderId models for a patient's
+  // own coverage.
+  insuranceProviders              String[]
   consultationFeeAmount           Decimal?
   // ORIVEX Roadmap 2.0 Stage 4: optional grouping/org-chart link only, not
   // multi-tenant scoping (true tenant isolation is explicitly deferred, see
@@ -156,6 +164,7 @@ model DoctorProfile {
   updatedAt                       DateTime                 @updatedAt
   publications                    PortfolioPublication[]
   awards                          PortfolioAward[]
+  workExperience                  PortfolioWorkExperience[]
   // VerificationCase no longer relates to DoctorProfile directly (Onboarding
   // Redesign, 2026-07-21 proposal, Stage O.2) -- it references Account via
   // subjectAccountId uniformly for every subject type. A repository join
@@ -281,6 +290,30 @@ model PortfolioAward {
   issuingBody     String?
   awardedAt       DateTime?
   createdAt       DateTime      @default(now())
+
+  @@index([doctorProfileId])
+}
+
+// Doctor Profile Redesign (2026-08-02): work-history timeline backing the
+// Doctor Profile page's "Experience" section -- same child-entity shape as
+// PortfolioPublication/PortfolioAward above (own id, cascade-deleted with
+// the owning profile, replace-the-whole-list save semantics).
+model PortfolioWorkExperience {
+  id               String        @id @default(uuid())
+  doctorProfileId  String
+  doctorProfile    DoctorProfile @relation(fields: [doctorProfileId], references: [id], onDelete: Cascade)
+  organizationName String
+  position         String
+  // Plain string, same storage convention as DoctorProfile.professionalRank
+  // above -- the ProfessionalRank enum validated at the DTO layer, not a
+  // Prisma enum. The doctor's rank *at that position*, deliberately
+  // independent of their current DoctorProfile.professionalRank.
+  professionalRank String?
+  startDate        DateTime
+  // Null means "present" -- an ongoing position.
+  endDate          DateTime?
+  description      String?
+  createdAt        DateTime      @default(now())
 
   @@index([doctorProfileId])
 }

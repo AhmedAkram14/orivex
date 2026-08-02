@@ -17,8 +17,10 @@ function buildProfile(overrides: Partial<DoctorProfile> = {}): DoctorProfile {
     licenseNumber: 'LIC-2010-4471',
     specialtyId: 'specialty-cardiology',
     languages: ['en'],
+    insuranceProviders: [],
     publications: [],
     awards: [],
+    workExperience: [],
     createdAt: '2020-01-15T00:00:00.000Z',
     updatedAt: '2020-01-15T00:00:00.000Z',
     ...overrides,
@@ -59,5 +61,54 @@ describe('DoctorProfileView', () => {
 
     expect(await screen.findByText('5.0')).toBeInTheDocument();
     expect(screen.getByText('Very thorough and kind.')).toBeInTheDocument();
+  });
+
+  it('renders the real workExperience timeline and insuranceProviders, with honest empty states when both are absent', async () => {
+    renderWithProviders(
+      <DoctorProfileView
+        profile={buildProfile({
+          insuranceProviders: ['Misr Insurance', 'AXA'],
+          workExperience: [
+            {
+              id: 'work-1',
+              organizationName: 'Cairo University Hospitals',
+              position: 'Consultant Cardiologist',
+              startDate: '2021-03-01T00:00:00.000Z',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(await screen.findByText('Consultant Cardiologist')).toBeInTheDocument();
+    expect(screen.getByText('Cairo University Hospitals')).toBeInTheDocument();
+    expect(screen.getByText('Misr Insurance')).toBeInTheDocument();
+    expect(screen.getByText('AXA')).toBeInTheDocument();
+  });
+
+  it('renders honest empty states for experience/insurance/publications/awards when the profile has none', async () => {
+    renderWithProviders(<DoctorProfileView profile={buildProfile()} />);
+
+    expect(await screen.findByText('No work experience on record yet')).toBeInTheDocument();
+    expect(screen.getByText('No insurance providers on record')).toBeInTheDocument();
+    expect(screen.getByText('No publications on record')).toBeInTheDocument();
+    expect(screen.getByText('No awards on record')).toBeInTheDocument();
+  });
+
+  it('omits every workspace-only affordance (Edit, Quick Actions, Profile Completion) in the public/patient-facing variant', async () => {
+    renderWithProviders(<DoctorProfileView profile={buildProfile()} variant="public" />);
+
+    await screen.findByText('Contact information');
+    expect(screen.queryByText('Edit profile')).not.toBeInTheDocument();
+    expect(screen.queryByText('Quick Actions')).not.toBeInTheDocument();
+    expect(screen.queryByText('Profile Completion')).not.toBeInTheDocument();
+    expect(screen.queryByText('Availability')).not.toBeInTheDocument();
+  });
+
+  it('shows the workspace sidebar (Quick Actions, Profile Completion) when an onEdit handler is provided', async () => {
+    renderWithProviders(<DoctorProfileView profile={buildProfile()} onEdit={() => {}} />);
+
+    expect(await screen.findByText('Quick Actions')).toBeInTheDocument();
+    expect(screen.getByText('Profile Completion')).toBeInTheDocument();
   });
 });

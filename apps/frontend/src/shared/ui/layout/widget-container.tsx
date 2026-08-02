@@ -9,6 +9,8 @@ export interface WidgetContainerProps extends Omit<HTMLAttributes<HTMLDivElement
   actions?: ReactNode;
   /** Shows a skeleton in place of `children` — for a widget whose data is still loading, distinct from the widget not existing at all. */
   loading?: boolean;
+  /** Optional extra classes for the content slot — e.g. `overflow-y-auto` when the widget itself is given a fixed `className` height and needs its content, not the whole card, to scroll. Additive; omitted default behavior is unchanged. */
+  contentClassName?: string;
 }
 
 /** The card shell every dashboard widget (a grid cell inside `DashboardGrid`) renders as its root — title/description/actions header plus a content slot, with a built-in loading skeleton so widgets don't each reinvent one. Distinct from `Section` (a page-level sub-region, not grid-cell-shaped) and from `Card` itself (generic; this is the dashboard-specific composition of it). */
@@ -18,6 +20,7 @@ export function WidgetContainer({
   actions,
   loading = false,
   className,
+  contentClassName,
   children,
   ...props
 }: WidgetContainerProps) {
@@ -32,7 +35,7 @@ export function WidgetContainer({
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </CardHeader>
       )}
-      <CardContent className="flex-1">
+      <CardContent className={cn('flex-1', contentClassName)}>
         {loading ? (
           <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
             <Skeleton className="h-4 w-3/4" />

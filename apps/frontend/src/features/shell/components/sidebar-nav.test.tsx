@@ -38,6 +38,11 @@ const superAdminState: AuthState = {
   user: { id: '2', email: 'admin@orivex.dev', fullName: 'Ada Admin', roles: ['super_admin'] },
 };
 
+const doctorState: AuthState = {
+  status: 'authenticated',
+  user: { id: '3', email: 'doctor@orivex.dev', fullName: 'Dr. Sarah Ahmed', roles: ['doctor'] },
+};
+
 describe('SidebarNav', () => {
   it('always shows Dashboard and Security, the two unrestricted destinations', () => {
     renderSidebar(patientState);
@@ -47,22 +52,22 @@ describe('SidebarNav', () => {
 
   it('hides the still-feature-flag-gated Clinical group for every role, since its flags default off', () => {
     renderSidebar(superAdminState);
-    expect(screen.queryByRole('button', { name: 'Clinical' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Clinical')).not.toBeInTheDocument();
   });
 
   it('shows the Administration group for a super_admin now that nav.adminUsers (Stage 4) defaults on', () => {
     renderSidebar(superAdminState);
-    expect(screen.getByRole('button', { name: 'Administration' })).toBeInTheDocument();
+    expect(screen.getByText('Administration')).toBeInTheDocument();
   });
 
   it('shows the new Admin Workspace group for a super_admin', () => {
     renderSidebar(superAdminState);
-    expect(screen.getByRole('button', { name: 'Admin Workspace' })).toBeInTheDocument();
+    expect(screen.getByText('Admin Workspace')).toBeInTheDocument();
   });
 
   it('hides the Admin Workspace group for a patient', () => {
     renderSidebar(patientState);
-    expect(screen.queryByRole('button', { name: 'Admin Workspace' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Admin Workspace')).not.toBeInTheDocument();
   });
 
   it('marks the item matching the current route as active', () => {
@@ -70,5 +75,20 @@ describe('SidebarNav', () => {
     renderSidebar(patientState);
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Security' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('renders Dashboard as inert (not a link) for a doctor, since Overview already is their real dashboard', () => {
+    renderSidebar(doctorState);
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.getByText('Dashboard').closest('[aria-disabled="true"]')).toBeInTheDocument();
+    // Overview (the doctor's own real dashboard) stays a normal, real link.
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
+  });
+
+  it('shows the new Patients/Reports/Settings doctor-workspace links for a doctor', () => {
+    renderSidebar(doctorState);
+    expect(screen.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', expect.stringContaining('/doctor/patients'));
+    expect(screen.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', expect.stringContaining('/doctor/reports'));
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', expect.stringContaining('/doctor/settings'));
   });
 });

@@ -13,3 +13,6 @@ export const doctorVerificationsKeys = createQueryKeyFactory('doctor-verificatio
 export const doctorDirectoryKeys = createQueryKeyFactory('doctor-directory');
 // Onboarding Redesign (2026-07-21 proposal, Stage O.6).
 export const doctorDepartmentsKeys = createQueryKeyFactory('doctor-departments');
+// Doctor Workspace dashboard redesign.
+export const doctorPatientsKeys = createQueryKeyFactory('doctor-patients');
+export const doctorReportsSummaryKeys = createQueryKeyFactory('doctor-reports-summary');

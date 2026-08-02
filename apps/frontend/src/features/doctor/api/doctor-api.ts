@@ -5,8 +5,10 @@ import type {
   DepartmentOption,
   DoctorDashboardSummary,
   DoctorDirectoryResult,
+  DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
+  DoctorReportsSummary,
   HospitalOption,
   ListDoctorDirectoryParams,
   PendingApprovalAppointment,
@@ -56,6 +58,11 @@ export const doctorApi = {
 
   approveAppointment: (appointmentId: string) =>
     apiFetch<ApprovedAppointment>({ method: 'PATCH', path: DOCTOR_PATHS.approveAppointment(appointmentId) }),
+
+  // Doctor Workspace dashboard redesign's Patients/Reports pages.
+  getPatients: () => apiFetch<DoctorPatientListItem[]>({ path: DOCTOR_PATHS.patients }),
+
+  getReportsSummary: () => apiFetch<DoctorReportsSummary>({ path: DOCTOR_PATHS.reportsSummary }),
 
   // Doctor Onboarding (Phase 4 continuation) -- real backend endpoints,
   // reused as-is (DoctorProfileController's POST /doctors,

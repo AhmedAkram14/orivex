@@ -125,6 +125,30 @@ describe('UpdateDoctorProfileUseCase', () => {
     assert.deepEqual(updated.getLicenseExpiryDate(), new Date('2030-01-01'));
   });
 
+  it('replaces insuranceProviders and workExperience wholesale (Doctor Profile Redesign)', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({
+        doctorProfileId: profile.getId(),
+        insuranceProviders: ['Misr Insurance', 'AXA'],
+        workExperience: [
+          {
+            organizationName: 'Cairo Medical Center',
+            position: 'Consultant',
+            startDate: new Date('2021-01-01'),
+          },
+        ],
+      }),
+    );
+
+    assert.deepEqual(updated.getInsuranceProviders(), ['Misr Insurance', 'AXA']);
+    assert.equal(updated.getWorkExperience().length, 1);
+    assert.equal(updated.getWorkExperience()[0].getOrganizationName(), 'Cairo Medical Center');
+  });
+
   it('sets departmentId together with hospitalId in the same update', async () => {
     const profile = buildProfile();
     const repo = new FakeDoctorProfileRepository(profile);

@@ -16,6 +16,16 @@ interface AwardView {
   awardedAt?: string;
 }
 
+interface WorkExperienceView {
+  id: string;
+  organizationName: string;
+  position: string;
+  professionalRank?: ProfessionalRank;
+  startDate: string;
+  endDate?: string;
+  description?: string;
+}
+
 // Composes DoctorModule's own DoctorProfile with IdentityModule's Account
 // (fullName/email/phoneNumber live on Account.userProfile, not duplicated
 // here — module-to-module composition at the presentation layer, not a
@@ -31,10 +41,12 @@ export class DoctorProfileResponseDto {
   biography?: string;
   yearsOfExperience?: number;
   languages!: string[];
+  insuranceProviders!: string[];
   consultationFeeAmount?: number;
   hospitalId?: string;
   publications!: PublicationView[];
   awards!: AwardView[];
+  workExperience!: WorkExperienceView[];
   createdAt!: string;
   updatedAt!: string;
   specialtyId!: string;
@@ -55,6 +67,7 @@ export class DoctorProfileResponseDto {
     dto.biography = profile.getBiography();
     dto.yearsOfExperience = profile.getYearsOfExperience();
     dto.languages = profile.getLanguages();
+    dto.insuranceProviders = profile.getInsuranceProviders();
     dto.consultationFeeAmount = profile.getConsultationFeeAmount();
     dto.hospitalId = profile.getHospitalId();
     dto.publications = profile.getPublications().map((p) => ({
@@ -68,6 +81,15 @@ export class DoctorProfileResponseDto {
       title: a.getTitle(),
       issuingBody: a.getIssuingBody(),
       awardedAt: a.getAwardedAt()?.toISOString(),
+    }));
+    dto.workExperience = profile.getWorkExperience().map((w) => ({
+      id: w.getId(),
+      organizationName: w.getOrganizationName(),
+      position: w.getPosition(),
+      professionalRank: w.getProfessionalRank(),
+      startDate: w.getStartDate().toISOString(),
+      endDate: w.getEndDate()?.toISOString(),
+      description: w.getDescription(),
     }));
     dto.createdAt = profile.getCreatedAt().toISOString();
     dto.updatedAt = profile.getUpdatedAt().toISOString();

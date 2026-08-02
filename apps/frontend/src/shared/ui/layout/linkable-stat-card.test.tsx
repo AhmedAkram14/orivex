@@ -19,4 +19,11 @@ describe('LinkableStatCard', () => {
     renderWithProviders(<LinkableStatCard icon={Users} label="Patients in queue" value="3" />);
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
+
+  it('applies a custom iconClassName when provided, without changing default behavior otherwise', () => {
+    const { container } = renderWithProviders(
+      <LinkableStatCard icon={Users} label="Patients in queue" value="3" iconClassName="bg-warning-subtle text-warning" />,
+    );
+    expect(container.querySelector('.bg-warning-subtle.text-warning')).toBeInTheDocument();
+  });
 });

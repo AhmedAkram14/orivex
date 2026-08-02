@@ -1,8 +1,10 @@
 import {
+  BarChart3,
   Building2,
   CalendarDays,
   CalendarRange,
   ClipboardPlus,
+  Contact,
   FileText,
   Flag,
   HeartPulse,
@@ -11,6 +13,7 @@ import {
   Pill,
   Receipt,
   Search,
+  Settings,
   ShieldAlert,
   ShieldCheck,
   Stethoscope,
@@ -42,6 +45,8 @@ export interface NavItemConfig {
    * until their flag is flipped on.
    */
   featureFlag?: string;
+  /** Renders as inert (no navigation) for any role in this list -- for a real destination that just isn't the right link from that role's own view (e.g. a role with its own dedicated Overview page doesn't need a second, generic "Dashboard" link to the same idea). Never hides the item; `roles`/`permission`/`featureFlag` above are what control visibility. */
+  disabledForRoles?: Role[];
   children?: NavItemConfig[];
 }
 
@@ -57,6 +62,11 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
     labelKey: 'dashboard',
     icon: LayoutDashboard,
     href: '/dashboard',
+    // The doctor role has its own real dashboard (Doctor Workspace's
+    // Overview, /doctor) -- this generic link would just be a second,
+    // redundant path to the same idea, so it's shown but inert for that
+    // role rather than a real navigation choice.
+    disabledForRoles: ['doctor'],
   },
   {
     id: 'doctor-workspace',
@@ -97,6 +107,27 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'doctorConsultation',
         icon: ClipboardPlus,
         href: '/doctor/consultation',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-patients',
+        labelKey: 'doctorPatients',
+        icon: Contact,
+        href: '/doctor/patients',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-reports',
+        labelKey: 'doctorReports',
+        icon: BarChart3,
+        href: '/doctor/reports',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-settings',
+        labelKey: 'doctorSettings',
+        icon: Settings,
+        href: '/doctor/settings',
         roles: ['doctor'],
       },
     ],

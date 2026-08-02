@@ -7,6 +7,7 @@ import type { ProfessionalRank } from '../enums/professional-rank.enum.js';
 
 import { PortfolioAward, type PortfolioAwardProps } from './portfolio-award.entity.js';
 import { PortfolioPublication, type PortfolioPublicationProps } from './portfolio-publication.entity.js';
+import { PortfolioWorkExperience, type PortfolioWorkExperienceProps } from './portfolio-work-experience.entity.js';
 
 export interface RegisterDoctorProfileProps {
   accountId: string;
@@ -14,6 +15,10 @@ export interface RegisterDoctorProfileProps {
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
+  // Doctor Profile Redesign (2026-08-02): a plain string list, same shape/
+  // storage convention as `languages` -- provider names have no sub-fields
+  // of their own, unlike the Experience timeline below.
+  insuranceProviders?: string[];
   consultationFeeAmount?: number;
   // Doctor Onboarding (Phase 4 continuation): optional hospital affiliation,
   // reusing the column Stage 4 already added to the Hospital org-chart --
@@ -21,6 +26,11 @@ export interface RegisterDoctorProfileProps {
   hospitalId?: string;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
+  // Doctor Profile Redesign (2026-08-02): work-history timeline backing the
+  // reference design's "Experience" section -- structurally identical to
+  // publications/awards (own child entity, replace-the-whole-list update
+  // semantics).
+  workExperience?: PortfolioWorkExperienceProps[];
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
   // a doctor's specialty -- the transitional free-text `specialty` field
   // (Stage O.3-O.8) is gone; specialtyId is now required, matching the
@@ -37,10 +47,12 @@ export interface UpdateDoctorProfileProps {
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
+  insuranceProviders?: string[];
   consultationFeeAmount?: number | null;
   hospitalId?: string | null;
   publications?: PortfolioPublicationProps[];
   awards?: PortfolioAwardProps[];
+  workExperience?: PortfolioWorkExperienceProps[];
   // Never nullable -- a doctor profile always has a specialty, this only
   // ever changes which one.
   specialtyId?: string;
@@ -56,10 +68,12 @@ export interface ReconstituteDoctorProfileProps {
   biography?: string;
   yearsOfExperience?: number;
   languages: string[];
+  insuranceProviders?: string[];
   consultationFeeAmount?: number;
   hospitalId?: string;
   publications: PortfolioPublication[];
   awards: PortfolioAward[];
+  workExperience?: PortfolioWorkExperience[];
   createdAt: Date;
   updatedAt: Date;
   specialtyId: string;
@@ -84,10 +98,12 @@ export class DoctorProfile {
     private biography: string | undefined,
     private yearsOfExperience: number | undefined,
     private languages: string[],
+    private insuranceProviders: string[],
     private consultationFeeAmount: number | undefined,
     private hospitalId: string | undefined,
     private publications: PortfolioPublication[],
     private awards: PortfolioAward[],
+    private workExperience: PortfolioWorkExperience[],
     private readonly createdAt: Date,
     private updatedAt: Date,
     private specialtyId: string,
@@ -110,10 +126,12 @@ export class DoctorProfile {
       props.biography?.trim(),
       props.yearsOfExperience,
       props.languages ?? [],
+      props.insuranceProviders ?? [],
       props.consultationFeeAmount,
       props.hospitalId,
       (props.publications ?? []).map((p) => PortfolioPublication.create(p)),
       (props.awards ?? []).map((a) => PortfolioAward.create(a)),
+      (props.workExperience ?? []).map((w) => PortfolioWorkExperience.create(w)),
       now,
       now,
       props.specialtyId,
@@ -134,10 +152,12 @@ export class DoctorProfile {
       props.biography,
       props.yearsOfExperience,
       props.languages,
+      props.insuranceProviders ?? [],
       props.consultationFeeAmount,
       props.hospitalId,
       props.publications,
       props.awards,
+      props.workExperience ?? [],
       props.createdAt,
       props.updatedAt,
       props.specialtyId,
@@ -161,6 +181,9 @@ export class DoctorProfile {
     if (props.languages !== undefined) {
       this.languages = props.languages;
     }
+    if (props.insuranceProviders !== undefined) {
+      this.insuranceProviders = props.insuranceProviders;
+    }
     if (props.consultationFeeAmount !== undefined) {
       DoctorProfile.validateConsultationFee(props.consultationFeeAmount ?? undefined);
       this.consultationFeeAmount = props.consultationFeeAmount ?? undefined;
@@ -177,6 +200,9 @@ export class DoctorProfile {
     }
     if (props.awards !== undefined) {
       this.awards = props.awards.map((a) => PortfolioAward.create(a));
+    }
+    if (props.workExperience !== undefined) {
+      this.workExperience = props.workExperience.map((w) => PortfolioWorkExperience.create(w));
     }
     if (props.professionalRank !== undefined) {
       this.professionalRank = props.professionalRank ?? undefined;
@@ -242,6 +268,10 @@ export class DoctorProfile {
     return [...this.languages];
   }
 
+  getInsuranceProviders(): string[] {
+    return [...this.insuranceProviders];
+  }
+
   getConsultationFeeAmount(): number | undefined {
     return this.consultationFeeAmount;
   }
@@ -272,6 +302,10 @@ export class DoctorProfile {
 
   getAwards(): PortfolioAward[] {
     return [...this.awards];
+  }
+
+  getWorkExperience(): PortfolioWorkExperience[] {
+    return [...this.workExperience];
   }
 
   getCreatedAt(): Date {

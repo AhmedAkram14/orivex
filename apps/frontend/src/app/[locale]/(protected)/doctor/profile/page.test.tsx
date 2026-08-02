@@ -45,7 +45,10 @@ describe('DoctorProfilePage', () => {
   it('shows the profile in view mode with every required section', async () => {
     renderPage();
 
-    expect(await screen.findByText('Dr. Sarah Ahmed')).toBeInTheDocument();
+    // The redesigned hero and the sidebar's Doctor Summary card both render
+    // the doctor's real name, so this asserts at least one instance rather
+    // than a single unique match.
+    expect((await screen.findAllByText('Dr. Sarah Ahmed')).length).toBeGreaterThan(0);
     expect(screen.getByText('Professional information')).toBeInTheDocument();
     expect(screen.getByText('Publications')).toBeInTheDocument();
     expect(screen.getByText('Awards')).toBeInTheDocument();
@@ -54,9 +57,12 @@ describe('DoctorProfilePage', () => {
 
   it('toggles to edit mode and back to view mode on cancel', async () => {
     renderPage();
-    await screen.findByText('Dr. Sarah Ahmed');
+    await screen.findAllByText('Dr. Sarah Ahmed');
 
-    await userEvent.click(screen.getByRole('button', { name: /Edit profile/ }));
+    // The redesigned view's Edit affordance now lives in the hero and the
+    // sidebar's Quick Actions card rather than the page header -- either one
+    // opens the same edit mode, so this clicks the first match.
+    await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
     expect(screen.getByLabelText('Professional information')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));

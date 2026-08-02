@@ -35,6 +35,31 @@ class PortfolioAwardDto {
   issuingBody?: string;
 }
 
+class PortfolioWorkExperienceDto {
+  @IsString()
+  @IsNotEmpty()
+  organizationName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  position!: string;
+
+  @IsOptional()
+  @IsEnum(ProfessionalRank)
+  professionalRank?: ProfessionalRank;
+
+  @IsDateString()
+  startDate!: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
 // accountId is intentionally not a client-supplied field -- the controller
 // derives it from the authenticated caller's JWT (CurrentUser), so a doctor
 // can only ever register a profile for their own account.
@@ -56,6 +81,13 @@ export class RegisterDoctorProfileRequestDto {
   @IsArray()
   @IsString({ each: true })
   languages?: string[];
+
+  // Doctor Profile Redesign (2026-08-02): plain string list, same validation
+  // shape as `languages` above.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  insuranceProviders?: string[];
 
   @IsOptional()
   @IsNumber()
@@ -79,6 +111,14 @@ export class RegisterDoctorProfileRequestDto {
   @ValidateNested({ each: true })
   @Type(() => PortfolioAwardDto)
   awards?: PortfolioAwardDto[];
+
+  // Doctor Profile Redesign (2026-08-02): work-history timeline backing the
+  // Doctor Profile page's "Experience" section.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PortfolioWorkExperienceDto)
+  workExperience?: PortfolioWorkExperienceDto[];
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
   // a doctor's specialty now that the transitional free-text `specialty`

@@ -38,7 +38,7 @@ export default function PatientDoctorProfilePage() {
         {!isLoading && !notFound && error && <Alert variant="danger">{t('loadError')}</Alert>}
         {profile && (
           <>
-            <DoctorProfileView profile={profile} />
+            <DoctorProfileView profile={profile} variant="public" />
             <Button asChild>
               <Link href={`/patient/appointments/book?doctorId=${profile.id}`}>{t('bookAppointment')}</Link>
             </Button>

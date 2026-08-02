@@ -18,6 +18,11 @@ export const DOCTOR_PATHS = {
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
   // Requested and waits here until the doctor approves it.
   pendingApproval: '/appointments/doctor/pending-approval',
+  // Doctor Workspace dashboard redesign: real distinct-patient list and
+  // real appointment-status/rating summary (ConsultationModule's
+  // AppointmentController).
+  patients: '/appointments/doctor/patients',
+  reportsSummary: '/appointments/doctor/reports-summary',
   approveAppointment: (appointmentId: string) => `/appointments/${appointmentId}/approve`,
   // Doctor Onboarding (Phase 4 continuation) -- the same DoctorProfileController
   // real backend routes, reused as-is: POST /doctors (register), and the

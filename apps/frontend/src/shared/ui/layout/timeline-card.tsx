@@ -12,6 +12,10 @@ export interface TimelineCardProps {
   status?: TimelineCardStatus;
   statusLabel?: ReactNode;
   className?: string;
+  /** Renders before the time/title column — e.g. an avatar. Additive; omitted keeps the existing layout unchanged. */
+  leading?: ReactNode;
+  /** Renders at the end of the row — e.g. a "Start" button. Additive; omitted keeps the existing layout unchanged. */
+  action?: ReactNode;
 }
 
 const badgeVariantByStatus: Record<TimelineCardStatus, 'info' | 'warning' | 'success' | 'neutral'> = {
@@ -29,9 +33,19 @@ const badgeVariantByStatus: Record<TimelineCardStatus, 'info' | 'warning' | 'suc
  * (e.g. a future "Upcoming Work Area") supplies real, caller-keyed items —
  * this component itself holds no state or data-fetching.
  */
-export function TimelineCard({ time, title, description, status, statusLabel, className }: TimelineCardProps) {
+export function TimelineCard({
+  time,
+  title,
+  description,
+  status,
+  statusLabel,
+  className,
+  leading,
+  action,
+}: TimelineCardProps) {
   return (
     <div className={cn('flex items-start gap-3', className)}>
+      {leading}
       <p className="w-16 shrink-0 pt-0.5 text-sm font-medium text-text-secondary">{time}</p>
       <div className="flex flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
@@ -40,6 +54,7 @@ export function TimelineCard({ time, title, description, status, statusLabel, cl
         </div>
         {description && <p className="text-sm text-text-secondary">{description}</p>}
       </div>
+      {action}
     </div>
   );
 }

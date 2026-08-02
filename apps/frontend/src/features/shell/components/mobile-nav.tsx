@@ -3,6 +3,7 @@
 import { Menu } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { HelpCenterCard } from '@/features/shell/components/help-center-card';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
@@ -28,6 +29,10 @@ export function MobileNav() {
           {tCommon('appName')}
         </Drawer.Title>
         <SidebarNav />
+        <div className="mt-auto flex flex-col gap-3 border-t border-border-default pt-3">
+          <HelpCenterCard />
+          <p className="px-2 text-xs text-text-tertiary">{t('footer', { year: new Date().getFullYear() })}</p>
+        </div>
       </Drawer.Content>
     </Drawer>
   );

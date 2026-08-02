@@ -31,7 +31,48 @@ const doctorState: AuthState = {
 };
 
 describe('DoctorQueuePage', () => {
-  it('shows honest empty states for both the current patient and the waiting queue', async () => {
+  it("shows the seeded busy queue's current patient and waiting list", async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={doctorState}>
+            <DoctorQueuePage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    // `doctor-store.ts`'s seeded busy-practice-day queue (not a real
+    // clinical record): one patient in consultation, four waiting.
+    expect(await screen.findByText('Nourhan Abdel Aziz')).toBeInTheDocument();
+    expect(screen.getByText('Karim Mostafa')).toBeInTheDocument();
+
+    expect(screen.getByText('All consultations are secure and confidential.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Queue settings/ })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/doctor/schedule'),
+    );
+
+    // Real non-zero stats derived from the seeded queue + pending-approval
+    // responses -- "Waiting"/"In consultation" also label the filter tab and
+    // the stats-row card title, on top of one status badge per matching
+    // queue entry (4 waiting entries, 1 in-consultation entry), so these
+    // assert the full expected count rather than risking an ambiguous
+    // single-match query.
+    expect(screen.getAllByText('Waiting').length).toBe(6);
+    expect(screen.getAllByText('In consultation').length).toBe(3);
+    expect(screen.getByText('Completed today')).toBeInTheDocument();
+  });
+
+  it('still renders the honest empty states when a real doctor genuinely has no one in consultation or waiting', async () => {
+    // Overrides the queue endpoint back to an honest `[]` for this one test
+    // -- proving the real empty-state rendering path (distinct from the
+    // busy demo seed above) still works.
+    server.use(
+      http.get(`${env.apiBaseUrl}/appointments/doctor/queue`, () => HttpResponse.json({ data: [] })),
+    );
+
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
@@ -45,20 +86,6 @@ describe('DoctorQueuePage', () => {
 
     expect(await screen.findByText('No one in consultation')).toBeInTheDocument();
     expect(screen.getByText('No one waiting')).toBeInTheDocument();
-
-    expect(screen.getByText('All consultations are secure and confidential.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Queue settings/ })).toHaveAttribute(
-      'href',
-      expect.stringContaining('/doctor/schedule'),
-    );
-
-    // Real zero-count stats derived from the (empty) queue + pending-approval
-    // responses -- "Waiting"/"In consultation" also label the filter tabs
-    // above, so these assert both instances exist rather than risking an
-    // ambiguous single-match query.
-    expect(screen.getAllByText('Waiting').length).toBe(2);
-    expect(screen.getAllByText('In consultation').length).toBe(2);
-    expect(screen.getByText('Completed today')).toBeInTheDocument();
   });
 
   it('offers both Join video call and Consultation workspace for the current in-consultation patient', async () => {

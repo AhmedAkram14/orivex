@@ -35,6 +35,31 @@ class PortfolioAwardDto {
   issuingBody?: string;
 }
 
+class PortfolioWorkExperienceDto {
+  @IsString()
+  @IsNotEmpty()
+  organizationName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  position!: string;
+
+  @IsOptional()
+  @IsEnum(ProfessionalRank)
+  professionalRank?: ProfessionalRank;
+
+  @IsDateString()
+  startDate!: string;
+
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
 export class UpdateDoctorProfileRequestDto {
   @IsOptional()
   @IsString()
@@ -49,6 +74,13 @@ export class UpdateDoctorProfileRequestDto {
   @IsArray()
   @IsString({ each: true })
   languages?: string[];
+
+  // Doctor Profile Redesign (2026-08-02): plain string list, same validation
+  // shape as `languages` above.
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  insuranceProviders?: string[];
 
   @IsOptional()
   @IsNumber()
@@ -72,6 +104,14 @@ export class UpdateDoctorProfileRequestDto {
   @ValidateNested({ each: true })
   @Type(() => PortfolioAwardDto)
   awards?: PortfolioAwardDto[];
+
+  // Doctor Profile Redesign (2026-08-02): work-history timeline backing the
+  // Doctor Profile page's "Experience" section.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PortfolioWorkExperienceDto)
+  workExperience?: PortfolioWorkExperienceDto[];
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.3).
   @IsOptional()

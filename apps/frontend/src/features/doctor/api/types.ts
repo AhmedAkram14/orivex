@@ -50,6 +50,25 @@ export interface DoctorAward {
 }
 
 /**
+ * Doctor Profile Redesign (2026-08-02): matches DoctorModule's real
+ * `WorkExperienceView` exactly -- a work-history timeline entry backing the
+ * Doctor Profile page's "Experience" section. `endDate` undefined means an
+ * ongoing position ("present"), never a placeholder date.
+ */
+export interface DoctorWorkExperience {
+  id: string;
+  organizationName: string;
+  position: string;
+  /** The doctor's rank/degree at that position (e.g. "consultant") -- independent of the profile's current `professionalRank` below, since a past rank often differs from today's. */
+  professionalRank?: ProfessionalRank;
+  /** ISO date. */
+  startDate: string;
+  /** ISO date. Undefined means this is the doctor's current position. */
+  endDate?: string;
+  description?: string;
+}
+
+/**
  * Matches DoctorModule's real `DoctorProfileResponseDto` exactly.
  * `fullName`/`email`/`phoneNumber` are composed from the owning Account
  * (Identity has no update-profile endpoint yet, so they're read-only here,
@@ -71,6 +90,8 @@ export interface DoctorProfile {
   biography?: string;
   yearsOfExperience?: number;
   languages: string[];
+  /** Doctor Profile Redesign (2026-08-02): plain string list, same shape/validation as `languages`. */
+  insuranceProviders: string[];
   consultationFeeAmount?: number;
   /** Doctor Onboarding (Phase 4 continuation) -- optional hospital affiliation. */
   hospitalId?: string;
@@ -82,6 +103,8 @@ export interface DoctorProfile {
   departmentId?: string;
   publications: DoctorPublication[];
   awards: DoctorAward[];
+  /** Doctor Profile Redesign (2026-08-02): real work-history timeline. */
+  workExperience: DoctorWorkExperience[];
   createdAt: string;
   updatedAt: string;
 }
@@ -100,11 +123,22 @@ export interface RegisterDoctorProfileRequest {
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
+  /** Doctor Profile Redesign (2026-08-02): same shape/validation as `languages`. */
+  insuranceProviders?: string[];
   consultationFeeAmount?: number;
   hospitalId?: string;
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: string;
   departmentId?: string;
+  /** No `id` -- the backend's register DTO only accepts these fields per entry (`PortfolioWorkExperienceDto`). */
+  workExperience?: {
+    organizationName: string;
+    position: string;
+    professionalRank?: ProfessionalRank;
+    startDate: string;
+    endDate?: string;
+    description?: string;
+  }[];
 }
 
 /**
@@ -121,6 +155,8 @@ export interface DoctorProfileUpdateRequest {
   biography?: string;
   yearsOfExperience?: number;
   languages?: string[];
+  /** Doctor Profile Redesign (2026-08-02): same shape/validation as `languages`. */
+  insuranceProviders?: string[];
   consultationFeeAmount?: number;
   /** Doctor Onboarding (Phase 4 continuation) -- optional hospital affiliation. */
   hospitalId?: string;
@@ -131,6 +167,15 @@ export interface DoctorProfileUpdateRequest {
   publications?: { title: string; reference?: string }[];
   /** No `id`/`awardedAt` — the backend's update DTO only accepts `title`/`issuingBody` per entry. */
   awards?: { title: string; issuingBody?: string }[];
+  /** No `id` -- the backend's update DTO only accepts these fields per entry (`PortfolioWorkExperienceDto`). */
+  workExperience?: {
+    organizationName: string;
+    position: string;
+    professionalRank?: ProfessionalRank;
+    startDate: string;
+    endDate?: string;
+    description?: string;
+  }[];
 }
 
 /** Doctor Onboarding (Phase 4 continuation): matches AdministrationModule's real HospitalResponseDto exactly (as returned by the public /hospitals directory). */
@@ -226,4 +271,27 @@ export interface PendingApprovalAppointment {
 export interface ApprovedAppointment {
   id: string;
   status: string;
+}
+
+/** Matches DoctorAppointmentsController's real DoctorPatientListItemResponseDto exactly -- one row per distinct patient the doctor has ever had a real appointment with. */
+export interface DoctorPatientListItem {
+  patientProfileId: string;
+  patientName: string;
+  visitCount: number;
+  /** ISO timestamp of the most recent visit. */
+  lastVisitAt: string;
+  lastVisitStatus: AppointmentStatus;
+}
+
+export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
+
+/** Matches DoctorAppointmentsController's real DoctorReportsSummaryResponseDto exactly -- real appointment-status counts + the doctor's own real rating aggregate. No day-over-day/trend field: there's no historical snapshot to diff against. */
+export interface DoctorReportsSummary {
+  totalAppointments: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+  averageRating: number | null;
+  reviewCount: number;
 }

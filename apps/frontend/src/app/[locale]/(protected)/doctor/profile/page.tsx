@@ -1,6 +1,5 @@
 'use client';
 
-import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
@@ -8,9 +7,7 @@ import { DoctorProfileForm } from '@/features/doctor/components/profile/doctor-p
 import { DoctorProfileView } from '@/features/doctor/components/profile/doctor-profile-view';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { RequireRole } from '@/shared/auth/require-role';
-import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Page } from '@/shared/ui/layout/page';
@@ -18,10 +15,13 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 /**
  * The Doctor Profile page — View mode by default, toggles to the Edit
- * architecture (`DoctorProfileForm`) via the header action. `DoctorProfileView`
- * doubles as the Read-only mode (see that component's own comment):
- * there is no separate read-only variant, just this page never rendering
- * the Edit action for a viewer without access.
+ * architecture (`DoctorProfileForm`) via `DoctorProfileView`'s own Quick
+ * Actions "Edit Profile" tile (the redesigned view's `onEdit` prop) rather
+ * than a header action now that the hero itself carries an Edit affordance
+ * too. `DoctorProfileView` doubles as the patient-facing read-only variant
+ * (see that component's own comment): there is no separate read-only
+ * component to keep in sync, just `variant="public"` there omitting every
+ * workspace-only affordance.
  */
 export default function DoctorProfilePage() {
   const t = useTranslations('doctor.profile');
@@ -31,18 +31,7 @@ export default function DoctorProfilePage() {
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader
-          breadcrumbs={<AppBreadcrumbs />}
-          title={t('title')}
-          actions={
-            profile && mode === 'view' ? (
-              <Button variant="outline" onClick={() => setMode('edit')}>
-                <Icon icon={Pencil} size="sm" className="me-2" />
-                {t('editProfile')}
-              </Button>
-            ) : undefined
-          }
-        />
+        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
 
         {isLoading && (
           <Card>
@@ -60,7 +49,7 @@ export default function DoctorProfilePage() {
             than throwing, so that anomaly has to be checked explicitly. */}
         {(isError || (!isLoading && !profile)) && <Alert variant="danger">{t('loadError')}</Alert>}
 
-        {profile && mode === 'view' && <DoctorProfileView profile={profile} />}
+        {profile && mode === 'view' && <DoctorProfileView profile={profile} onEdit={() => setMode('edit')} />}
         {profile && mode === 'edit' && (
           <DoctorProfileForm profile={profile} onSaved={() => setMode('view')} onCancel={() => setMode('view')} />
         )}

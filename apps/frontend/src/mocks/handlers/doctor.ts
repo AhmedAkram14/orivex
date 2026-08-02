@@ -10,8 +10,10 @@ import {
   getDashboardSummary,
   getDoctorByAccountId,
   getDoctorById,
+  getPatients,
   getProfile,
   getQueue,
+  getReportsSummary,
   getUpcomingWork,
   listDoctors,
   listVerifications,
@@ -42,6 +44,14 @@ export const doctorHandlers = [
   }),
 
   http.get(`${base()}${DOCTOR_PATHS.queue}`, () => HttpResponse.json({ data: getQueue() })),
+
+  // Doctor Workspace dashboard redesign: real distinct-patient list and real
+  // appointment-status/rating summary (ConsultationModule's
+  // AppointmentController) -- these mocks exist purely to keep the frontend
+  // test suite deterministic, matching `getDashboardSummary()`'s precedent.
+  http.get(`${base()}${DOCTOR_PATHS.patients}`, () => HttpResponse.json({ data: getPatients() })),
+
+  http.get(`${base()}${DOCTOR_PATHS.reportsSummary}`, () => HttpResponse.json({ data: getReportsSummary() })),
 
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
   // Requested and waits here until the doctor approves it.

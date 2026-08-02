@@ -1,5 +1,4 @@
 import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { LayoutDashboard } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 import { renderWithProviders } from '@/shared/test/render-with-providers';
@@ -15,34 +14,25 @@ describe('NavItem', () => {
     renderWithProviders(<NavItem label="Dashboard" icon={LayoutDashboard} href="/dashboard" />);
     expect(screen.getByRole('link', { name: 'Dashboard' })).not.toHaveAttribute('aria-current');
   });
+
+  it('renders as an inert, non-navigating element when disabled', () => {
+    renderWithProviders(<NavItem label="Dashboard" icon={LayoutDashboard} href="/dashboard" disabled />);
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    const item = screen.getByText('Dashboard');
+    expect(item.closest('[aria-disabled="true"]')).toBeInTheDocument();
+  });
 });
 
 describe('NavGroup', () => {
-  it('starts collapsed by default and expands on click, toggling aria-expanded', async () => {
+  it('renders a plain, always-visible heading with its children -- no collapse/expand', () => {
     renderWithProviders(
-      <NavGroup label="Clinical" icon={LayoutDashboard}>
+      <NavGroup label="Clinical">
         <NavItem label="Patients" icon={LayoutDashboard} href="/patients" />
       </NavGroup>,
     );
 
-    const trigger = screen.getByRole('button', { name: 'Clinical' });
-    expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('link', { name: 'Patients' })).not.toBeInTheDocument();
-
-    await userEvent.click(trigger);
-
-    expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: 'Patients' })).toBeInTheDocument();
-  });
-
-  it('starts expanded when defaultOpen is true', () => {
-    renderWithProviders(
-      <NavGroup label="Clinical" icon={LayoutDashboard} defaultOpen>
-        <NavItem label="Patients" icon={LayoutDashboard} href="/patients" />
-      </NavGroup>,
-    );
-
-    expect(screen.getByRole('button', { name: 'Clinical' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Clinical')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clinical' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Patients' })).toBeInTheDocument();
   });
 });

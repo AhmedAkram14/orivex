@@ -13,18 +13,9 @@ export const Active: StoryObj = {
   render: () => <NavItem label="Dashboard" icon={LayoutDashboard} href="#" active />,
 };
 
-export const CollapsedGroup: StoryObj = {
+export const Group: StoryObj = {
   render: () => (
-    <NavGroup label="Clinical" icon={Users}>
-      <NavItem label="Patients" icon={Users} href="#" />
-      <NavItem label="Appointments" icon={Users} href="#" />
-    </NavGroup>
-  ),
-};
-
-export const ExpandedGroup: StoryObj = {
-  render: () => (
-    <NavGroup label="Clinical" icon={Users} defaultOpen>
+    <NavGroup label="Clinical">
       <NavItem label="Patients" icon={Users} href="#" active />
       <NavItem label="Appointments" icon={Users} href="#" />
     </NavGroup>

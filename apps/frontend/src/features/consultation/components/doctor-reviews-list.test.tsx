@@ -15,6 +15,18 @@ afterAll(() => server.close());
 
 describe('DoctorReviewsList', () => {
   it('shows an empty state when there are no written reviews', async () => {
+    // Doctor Profile Redesign (2026-08-02): `consultation-store.ts`'s default
+    // handler now seeds a few realistic reviews for this same doctor id (so
+    // the redesigned Profile page has real content to render in dev), so this
+    // "genuinely zero reviews" case is exercised the same way
+    // `DoctorDashboardPage.test.tsx` proves its own empty-state path -- by
+    // overriding the handler back to an empty result for this one test.
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({ data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0 } }),
+      ),
+    );
+
     renderWithProviders(<DoctorReviewsList doctorProfileId={DOCTOR_PROFILE_ID} />);
 
     expect(await screen.findByText('No written reviews yet.')).toBeInTheDocument();

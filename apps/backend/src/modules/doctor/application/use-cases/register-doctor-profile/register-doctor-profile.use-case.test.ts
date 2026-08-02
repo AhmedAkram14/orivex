@@ -141,6 +141,42 @@ describe('RegisterDoctorProfileUseCase', () => {
     assert.equal(profile.getDepartmentId(), '66666666-6666-4666-8666-666666666666');
   });
 
+  it('registers with insuranceProviders and workExperience (Doctor Profile Redesign)', async () => {
+    const profile = await useCase.execute(
+      new RegisterDoctorProfileCommand({
+        accountId: account.getId().toString(),
+        licenseNumber: 'LIC-123',
+        specialtyId: SPECIALTY_ID,
+        insuranceProviders: ['Misr Insurance', 'AXA', 'Allianz'],
+        workExperience: [
+          {
+            organizationName: 'Cairo Medical Center',
+            position: 'Consultant Orthopedic Surgeon',
+            startDate: new Date('2021-01-01'),
+          },
+        ],
+      }),
+    );
+
+    assert.deepEqual(profile.getInsuranceProviders(), ['Misr Insurance', 'AXA', 'Allianz']);
+    assert.equal(profile.getWorkExperience().length, 1);
+    assert.equal(profile.getWorkExperience()[0].getOrganizationName(), 'Cairo Medical Center');
+    assert.equal(profile.getWorkExperience()[0].getEndDate(), undefined);
+  });
+
+  it('registers with no insuranceProviders/workExperience when omitted', async () => {
+    const profile = await useCase.execute(
+      new RegisterDoctorProfileCommand({
+        accountId: account.getId().toString(),
+        licenseNumber: 'LIC-123',
+        specialtyId: SPECIALTY_ID,
+      }),
+    );
+
+    assert.deepEqual(profile.getInsuranceProviders(), []);
+    assert.deepEqual(profile.getWorkExperience(), []);
+  });
+
   it('throws NotFoundError when the account does not exist', async () => {
     const useCaseWithMissingAccount = new RegisterDoctorProfileUseCase(
       doctorRepo,

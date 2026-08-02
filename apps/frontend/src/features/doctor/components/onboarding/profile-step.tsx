@@ -1,8 +1,10 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useState } from 'react';
+import { useFieldArray, useForm } from 'react-hook-form';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { useDepartmentsList } from '@/features/doctor/hooks/use-departments-list';
 import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
@@ -14,13 +16,18 @@ import {
 } from '@/features/doctor/schemas/onboarding.schema';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { ApiError } from '@/shared/lib/api/client';
+import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
+import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { Section } from '@/shared/ui/layout/section';
 import { Textarea } from '@/shared/ui/textarea';
+
+const MAX_WORK_EXPERIENCE_ENTRIES = 10;
 
 const SUPPORTED_LANGUAGES = ['en', 'ar'] as const;
 const PROFESSIONAL_RANKS = ['resident', 'registrar', 'specialist', 'consultant', 'professor'] as const;
@@ -57,6 +64,7 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
   const updateProfile = useUpdateDoctorProfile();
   const isEditing = Boolean(profile);
   const mutation = isEditing ? updateProfile : registerProfile;
+  const [insuranceDraft, setInsuranceDraft] = useState('');
 
   const form = useForm<OnboardingProfileFormValues>({
     resolver: zodResolver(createOnboardingProfileSchema(tValidation)),
@@ -66,16 +74,27 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
       biography: profile?.biography,
       yearsOfExperience: profile?.yearsOfExperience,
       languages: profile?.languages ?? [],
+      insuranceProviders: profile?.insuranceProviders ?? [],
       consultationFeeAmount: profile?.consultationFeeAmount,
       hospitalId: profile?.hospitalId,
       professionalRank: profile?.professionalRank,
       licenseExpiryDate: profile?.licenseExpiryDate?.slice(0, 10) ?? '',
       departmentId: profile?.departmentId,
+      workExperience:
+        profile?.workExperience.map((entry) => ({
+          organizationName: entry.organizationName,
+          position: entry.position,
+          professionalRank: entry.professionalRank,
+          startDate: entry.startDate.slice(0, 10),
+          endDate: entry.endDate?.slice(0, 10),
+          description: entry.description,
+        })) ?? [],
     },
   });
 
   const selectedHospitalId = form.watch('hospitalId');
   const { data: departments, isLoading: departmentsLoading } = useDepartmentsList(selectedHospitalId);
+  const workExperience = useFieldArray({ control: form.control, name: 'workExperience' });
 
   async function onSubmit(values: OnboardingProfileFormValues) {
     try {
@@ -314,6 +333,215 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="insuranceProviders"
+          render={({ field }) => {
+            const providers = field.value ?? [];
+            function addProvider() {
+              const trimmed = insuranceDraft.trim();
+              if (!trimmed || providers.includes(trimmed)) return;
+              field.onChange([...providers, trimmed]);
+              setInsuranceDraft('');
+            }
+            return (
+              <FormItem>
+                <FormLabel>{t('insuranceProviders')}</FormLabel>
+                <FormControl>
+                  <div className="flex flex-col gap-2">
+                    {providers.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {providers.map((provider) => (
+                          <Badge key={provider} variant="neutral" className="gap-1.5">
+                            {provider}
+                            <button
+                              type="button"
+                              aria-label={t('removeInsuranceProvider', { provider })}
+                              onClick={() => field.onChange(providers.filter((value) => value !== provider))}
+                            >
+                              <Icon icon={X} size="xs" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        value={insuranceDraft}
+                        onChange={(event) => setInsuranceDraft(event.target.value)}
+                        placeholder={t('insuranceProvidersPlaceholder')}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            addProvider();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" onClick={addProvider}>
+                        {t('addInsuranceProvider')}
+                      </Button>
+                    </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
+        />
+
+        <Section
+          title={t('workExperience')}
+          actions={
+            workExperience.fields.length < MAX_WORK_EXPERIENCE_ENTRIES ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  workExperience.append({
+                    organizationName: '',
+                    position: '',
+                    professionalRank: undefined,
+                    startDate: '',
+                    endDate: undefined,
+                    description: '',
+                  })
+                }
+              >
+                <Icon icon={Plus} size="sm" className="me-2" />
+                {t('addWorkExperience')}
+              </Button>
+            ) : undefined
+          }
+        >
+          {workExperience.fields.length === 0 ? (
+            <p className="text-sm text-text-secondary">{t('workExperienceEmpty')}</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {workExperience.fields.map((entryField, index) => {
+                const isCurrent = !form.watch(`workExperience.${index}.endDate`);
+                return (
+                  <div key={entryField.id} className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-1 flex-col gap-3">
+                        <FormField
+                          control={form.control}
+                          name={`workExperience.${index}.organizationName`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('workExperienceOrganization')}</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`workExperience.${index}.position`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('workExperiencePosition')}</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`workExperience.${index}.professionalRank`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('workExperienceRank')}</FormLabel>
+                              <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={t('workExperienceRankPlaceholder')} />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {PROFESSIONAL_RANKS.map((rank) => (
+                                    <SelectItem key={rank} value={rank}>
+                                      {tRanks(rank)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`workExperience.${index}.startDate`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('workExperienceStartDate')}</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <label className="flex items-center gap-2 text-sm text-text-secondary">
+                          <Checkbox
+                            checked={isCurrent}
+                            onCheckedChange={(checked) => {
+                              form.setValue(`workExperience.${index}.endDate`, checked ? undefined : '');
+                            }}
+                          />
+                          {t('workExperienceCurrentlyWorkHere')}
+                        </label>
+                        {!isCurrent && (
+                          <FormField
+                            control={form.control}
+                            name={`workExperience.${index}.endDate`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('workExperienceEndDate')}</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} value={field.value ?? ''} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                        <FormField
+                          control={form.control}
+                          name={`workExperience.${index}.description`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('workExperienceDescription')}</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} value={field.value ?? ''} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t('removeWorkExperience')}
+                        onClick={() => workExperience.remove(index)}
+                      >
+                        <Icon icon={Trash2} size="sm" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
 
         <Button type="submit" loading={mutation.isPending}>
           {isEditing ? t('saveAndContinue') : t('createAndContinue')}

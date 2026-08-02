@@ -29,6 +29,49 @@ const diagnosesBySessionId = new Map<string, DiagnosisNode[]>();
 
 const DOCTOR_ID = 'doctor-profile-1';
 
+/**
+ * Doctor Profile Redesign (2026-08-02): a handful of realistic, anonymized
+ * reviews for the seeded demo doctor so the redesigned Profile page's
+ * Reviews section has real content to render in dev/tests -- same
+ * "populate mock/dev fixtures only" precedent as `doctor-store.ts`'s
+ * `seedProfile()`. No patient identity here (never invented): `feedback`
+ * mirrors the real `ConsultationFeedbackResponseDto` exactly (rating,
+ * comment, createdAt only).
+ */
+function seedFeedback(): ConsultationFeedback[] {
+  const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+  return [
+    {
+      id: 'feedback-seed-1',
+      consultationSessionId: 'session-seed-1',
+      doctorId: DOCTOR_ID,
+      rating: 5,
+      comment: 'Very thorough and took the time to explain my treatment options clearly.',
+      createdAt: daysAgo(6),
+    },
+    {
+      id: 'feedback-seed-2',
+      consultationSessionId: 'session-seed-2',
+      doctorId: DOCTOR_ID,
+      rating: 5,
+      comment: 'Excellent bedside manner and followed up promptly after my test results came in.',
+      createdAt: daysAgo(15),
+    },
+    {
+      id: 'feedback-seed-3',
+      consultationSessionId: 'session-seed-3',
+      doctorId: DOCTOR_ID,
+      rating: 4,
+      comment: 'Good consultation overall, though the wait time was a bit longer than expected.',
+      createdAt: daysAgo(29),
+    },
+  ];
+}
+
+for (const feedback of seedFeedback()) {
+  feedbackBySessionId.set(feedback.consultationSessionId, feedback);
+}
+
 function findAppointmentBySessionId(consultationSessionId: string) {
   return getAppointments().find((appointment) => appointment.consultationSessionId === consultationSessionId);
 }
@@ -196,6 +239,18 @@ export function getDoctorReviews(doctorProfileId: string, page: number, limit: n
   return { reviews: reviews.slice(start, start + limit), total: reviewCount, page, limit, averageRating, reviewCount };
 }
 
+/**
+ * Test-only: empties the feedback/reviews store without reseeding --
+ * for a test that needs to prove the genuine "zero reviews" case still
+ * renders honestly (e.g. `PopularDoctorsSection`'s handler reads this store
+ * directly rather than through the `/doctors/:id/reviews` HTTP route, so an
+ * MSW handler override alone can't simulate "no reviews" for it). Never
+ * called from application code.
+ */
+export function clearFeedbackForTests(): void {
+  feedbackBySessionId.clear();
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetConsultationStore(): void {
   sessions.clear();
@@ -203,4 +258,7 @@ export function resetConsultationStore(): void {
   followUpBySessionId.clear();
   notesBySessionId.clear();
   diagnosesBySessionId.clear();
+  for (const feedback of seedFeedback()) {
+    feedbackBySessionId.set(feedback.consultationSessionId, feedback);
+  }
 }

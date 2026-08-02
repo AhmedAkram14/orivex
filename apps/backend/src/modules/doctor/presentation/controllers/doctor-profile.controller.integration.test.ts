@@ -406,6 +406,59 @@ describe('DoctorProfileController (integration)', () => {
     assert.equal(response.body.data.fullName, 'Nourhan Adel');
   });
 
+  // Doctor Profile Redesign (2026-08-02): insuranceProviders/workExperience
+  // must actually persist and round-trip through the real API, not just be
+  // accepted and dropped.
+  it('PATCH /doctors/me persists insuranceProviders and workExperience and returns them in the response', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/doctors/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({
+        insuranceProviders: ['Misr Insurance', 'AXA', 'Allianz'],
+        workExperience: [
+          {
+            organizationName: 'Cairo Medical Center',
+            position: 'Consultant Orthopedic Surgeon',
+            startDate: '2021-01-01',
+            description: 'Led the orthopedic surgery department.',
+          },
+          {
+            organizationName: 'Alexandria General Hospital',
+            position: 'Resident',
+            startDate: '2015-01-01',
+            endDate: '2020-12-31',
+          },
+        ],
+      })
+      .expect(200);
+
+    assert.deepEqual(response.body.data.insuranceProviders, ['Misr Insurance', 'AXA', 'Allianz']);
+    assert.equal(response.body.data.workExperience.length, 2);
+    assert.equal(response.body.data.workExperience[0].organizationName, 'Cairo Medical Center');
+    assert.equal(response.body.data.workExperience[0].position, 'Consultant Orthopedic Surgeon');
+    assert.ok(response.body.data.workExperience[0].id);
+    assert.equal(response.body.data.workExperience[0].endDate, undefined);
+    assert.equal(response.body.data.workExperience[1].endDate, new Date('2020-12-31').toISOString());
+
+    const fetched = await request(app.getHttpServer())
+      .get('/doctors/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(fetched.body.data.insuranceProviders, ['Misr Insurance', 'AXA', 'Allianz']);
+    assert.equal(fetched.body.data.workExperience.length, 2);
+  });
+
+  it('PATCH /doctors/me rejects a workExperience entry missing its required organizationName', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/doctors/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ workExperience: [{ position: 'Resident', startDate: '2015-01-01' }] })
+      .expect(400);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
   it('PATCH /doctors/me returns 404 when no profile is registered for the account', async () => {
     const response = await request(app.getHttpServer())
       .patch('/doctors/me')

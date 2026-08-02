@@ -43,3 +43,33 @@ export function getNextAvailability(schedule: RecurringWeeklySchedule, now: Date
   }
   return null;
 }
+
+/**
+ * The next `count` upcoming working days from `now` (today included, same
+ * "today only counts if its hours haven't already ended" rule as
+ * `getNextAvailability`) — scans forward day by day, skipping any date with
+ * no recurring availability, so returned dates are real working days but
+ * not necessarily consecutive calendar days. Scans at most 60 days forward
+ * before giving up (an all-`isWorkingDay: false` schedule would otherwise
+ * loop forever); returns fewer than `count` entries in that honest case
+ * rather than fabricating placeholder dates.
+ */
+export function getUpcomingAvailabilityDays(
+  schedule: RecurringWeeklySchedule,
+  now: Date,
+  count = 4,
+): NextAvailability[] {
+  const results: NextAvailability[] = [];
+  const maxScanDays = 60;
+
+  for (let offset = 0; offset < maxScanDays && results.length < count; offset += 1) {
+    const date = addDays(now, offset);
+    const weekday = getWeekDayName(date);
+    const day = schedule.find((entry) => entry.dayOfWeek === weekday);
+    if (!day || !day.isWorkingDay) continue;
+    if (offset === 0 && now.getHours() * 60 + now.getMinutes() >= toMinutes(day.hours.end)) continue;
+    results.push({ date, day });
+  }
+
+  return results;
+}
