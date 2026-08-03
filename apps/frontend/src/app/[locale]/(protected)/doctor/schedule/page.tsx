@@ -259,7 +259,7 @@ export default function DoctorSchedulePage() {
         )}
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
             <Section
               title={t('workingHoursTitle')}
               actions={
@@ -300,7 +300,7 @@ export default function DoctorSchedulePage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <WidgetContainer title={t('weeklySummaryTitle')} loading={isLoading}>
               {schedule && (
                 <div className="flex flex-col items-center gap-3">
@@ -376,7 +376,7 @@ export default function DoctorSchedulePage() {
               </div>
             </WidgetContainer>
 
-            <WidgetContainer>
+            <WidgetContainer contentClassName="pt-6">
               <div className="flex items-start gap-3">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary">
                   <Icon icon={Lightbulb} size="md" />

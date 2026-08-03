@@ -190,23 +190,36 @@ function seedQueue(): QueueEntry[] {
  * a real *prior* encounter instead, since today's visit hasn't happened
  * yet).
  */
+function emailFor(name: string): string {
+  return `${name.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`;
+}
+
 function seedPatients(): DoctorPatientListItem[] {
   const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+  const daysFromNow = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
   const work = seedUpcomingWork();
-  return [
-    { patientProfileId: 'patient-1', patientName: SEEDED_PATIENT_NAMES[0], visitCount: 6, lastVisitAt: work[0].scheduledAt, lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-2', patientName: SEEDED_PATIENT_NAMES[1], visitCount: 3, lastVisitAt: work[1].scheduledAt, lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-3', patientName: SEEDED_PATIENT_NAMES[2], visitCount: 9, lastVisitAt: work[2].scheduledAt, lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-4', patientName: SEEDED_PATIENT_NAMES[3], visitCount: 2, lastVisitAt: work[3].scheduledAt, lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-5', patientName: SEEDED_PATIENT_NAMES[4], visitCount: 5, lastVisitAt: daysAgo(18), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-6', patientName: SEEDED_PATIENT_NAMES[5], visitCount: 2, lastVisitAt: daysAgo(32), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-7', patientName: SEEDED_PATIENT_NAMES[6], visitCount: 4, lastVisitAt: daysAgo(10), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-8', patientName: SEEDED_PATIENT_NAMES[7], visitCount: 1, lastVisitAt: daysAgo(60), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-9', patientName: SEEDED_PATIENT_NAMES[8], visitCount: 7, lastVisitAt: daysAgo(14), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-10', patientName: SEEDED_PATIENT_NAMES[9], visitCount: 3, lastVisitAt: daysAgo(25), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-11', patientName: SEEDED_PATIENT_NAMES[10], visitCount: 4, lastVisitAt: daysAgo(40), lastVisitStatus: 'completed' },
-    { patientProfileId: 'patient-12', patientName: SEEDED_PATIENT_NAMES[11], visitCount: 6, lastVisitAt: daysAgo(7), lastVisitStatus: 'completed' },
+  const base = [
+    { patientProfileId: 'patient-1', patientName: SEEDED_PATIENT_NAMES[0], visitCount: 6, lastVisitAt: work[0].scheduledAt, lastVisitStatus: 'completed' as const, nextAppointmentAt: daysFromNow(11) },
+    { patientProfileId: 'patient-2', patientName: SEEDED_PATIENT_NAMES[1], visitCount: 3, lastVisitAt: work[1].scheduledAt, lastVisitStatus: 'completed' as const, nextAppointmentAt: daysFromNow(7) },
+    { patientProfileId: 'patient-3', patientName: SEEDED_PATIENT_NAMES[2], visitCount: 9, lastVisitAt: work[2].scheduledAt, lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-4', patientName: SEEDED_PATIENT_NAMES[3], visitCount: 2, lastVisitAt: work[3].scheduledAt, lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-5', patientName: SEEDED_PATIENT_NAMES[4], visitCount: 5, lastVisitAt: daysAgo(18), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-6', patientName: SEEDED_PATIENT_NAMES[5], visitCount: 2, lastVisitAt: daysAgo(32), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-7', patientName: SEEDED_PATIENT_NAMES[6], visitCount: 4, lastVisitAt: daysAgo(10), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-8', patientName: SEEDED_PATIENT_NAMES[7], visitCount: 1, lastVisitAt: daysAgo(120), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-9', patientName: SEEDED_PATIENT_NAMES[8], visitCount: 7, lastVisitAt: daysAgo(14), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-10', patientName: SEEDED_PATIENT_NAMES[9], visitCount: 3, lastVisitAt: daysAgo(25), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-11', patientName: SEEDED_PATIENT_NAMES[10], visitCount: 4, lastVisitAt: daysAgo(40), lastVisitStatus: 'completed' as const },
+    { patientProfileId: 'patient-12', patientName: SEEDED_PATIENT_NAMES[11], visitCount: 6, lastVisitAt: daysAgo(7), lastVisitStatus: 'completed' as const },
   ];
+  const genders: Array<'male' | 'female'> = ['male', 'female'];
+  return base.map((patient, index) => ({
+    ...patient,
+    email: emailFor(patient.patientName),
+    phoneNumber: `+20 10${(index + 1).toString().padStart(2, '0')} 000 0000`,
+    dateOfBirth: new Date(1975 + index * 3, index % 12, 10).toISOString(),
+    gender: genders[index % genders.length],
+  }));
 }
 
 /**

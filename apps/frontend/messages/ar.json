@@ -995,15 +995,57 @@
     },
     "patients": {
       "title": "المرضى",
-      "description": "كل من أجريت له موعدًا فعليًا على الإطلاق.",
+      "description": "إدارة ومراجعة كل من عالجته.",
       "loadError": "تعذّر تحميل قائمة مرضاك.",
       "emptyTitle": "لا يوجد مرضى بعد",
       "emptyDescription": "سيظهر هنا المرضى الذين أجريت لهم موعدًا فعليًا.",
+      "noResultsTitle": "لا يوجد مرضى مطابقون",
+      "noResultsDescription": "جرّب كلمة بحث أو فلترًا مختلفًا.",
+      "kpis": {
+        "totalPatients": "إجمالي المرضى",
+        "totalPatientsHelper": "منذ البداية",
+        "activePatients": "المرضى النشطون",
+        "activePatientsHelper": "لديهم موعد قادم",
+        "thisMonth": "هذا الشهر",
+        "thisMonthHelper": "تمت رؤيتهم هذا الشهر",
+        "thisWeek": "هذا الأسبوع",
+        "thisWeekHelper": "تمت رؤيتهم هذا الأسبوع",
+        "averageRating": "متوسط التقييم",
+        "noRatingsYet": "لا توجد تقييمات بعد"
+      },
+      "searchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد الإلكتروني...",
+      "filterType": {
+        "all": "كل المرضى",
+        "new": "مرضى جدد",
+        "returning": "مرضى عائدون"
+      },
+      "filterStatus": {
+        "all": "كل الحالات"
+      },
+      "sortLastVisit": {
+        "newest": "آخر زيارة (الأحدث)",
+        "oldest": "آخر زيارة (الأقدم)"
+      },
+      "returning": "عائد",
+      "noUpcoming": "لا يوجد قادم",
       "columns": {
-        "name": "الاسم",
+        "name": "المريض",
+        "ageGender": "العمر / الجنس",
         "visitCount": "عدد الزيارات",
         "lastVisit": "آخر زيارة",
-        "lastVisitStatus": "الحالة"
+        "lastVisitStatus": "الحالة",
+        "nextAppointment": "الموعد القادم",
+        "patientStatus": "الحالة"
+      },
+      "gender": {
+        "male": "ذكر",
+        "female": "أنثى",
+        "other": "آخر"
+      },
+      "patientStatus": {
+        "active": "نشط",
+        "completed": "مكتمل",
+        "inactive": "غير نشط"
       },
       "status": {
         "requested": "بانتظار موافقة الطبيب",
@@ -1012,7 +1054,9 @@
         "cancelled": "ملغى",
         "no_show": "لم يحضر",
         "completed": "مكتمل"
-      }
+      },
+      "showingRange": "عرض {from}-{to} من {total} مريض",
+      "perPage": "{count} / صفحة"
     },
     "reports": {
       "title": "التقارير",

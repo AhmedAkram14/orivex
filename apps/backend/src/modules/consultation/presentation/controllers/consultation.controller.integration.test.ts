@@ -1033,6 +1033,8 @@ describe('Consultation controllers (integration)', () => {
     // beforeEach -- an exact count would be order-dependent and brittle.
     assert.ok(entry.visitCount >= 2, `expected at least 2 real visits, got ${entry.visitCount}`);
     assert.ok(entry.lastVisitAt, 'expected a real lastVisitAt timestamp');
+    // Patients page redesign: real Account fields, not fabricated.
+    assert.ok(entry.email, 'expected the patient account email to be populated');
   });
 
   it('GET /appointments/doctor/reports-summary rejects a request with no bearer token', async () => {

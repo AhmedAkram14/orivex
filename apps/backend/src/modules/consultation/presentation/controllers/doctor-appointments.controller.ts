@@ -355,13 +355,24 @@ export class DoctorAppointmentsController {
         const mostRecent = [...patientAppointments].sort(
           (a, b) => b.getScheduledAt().getTime() - a.getScheduledAt().getTime(),
         )[0]!;
+        const now = new Date();
+        const upcomingStatuses = new Set([AppointmentStatus.Requested, AppointmentStatus.Confirmed, AppointmentStatus.Rescheduled]);
+        const nextAppointment = [...patientAppointments]
+          .filter((appointment) => appointment.getScheduledAt() > now && upcomingStatuses.has(appointment.getStatus()))
+          .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime())[0];
 
+        const userProfile = patientAccount.getUserProfile();
         const dto = new DoctorPatientListItemResponseDto();
         dto.patientProfileId = patientId;
-        dto.patientName = patientAccount.getUserProfile().getDisplayName().toString();
+        dto.patientName = userProfile.getDisplayName().toString();
+        dto.email = patientAccount.getEmail().toString();
+        dto.phoneNumber = userProfile.getPhoneNumber();
+        dto.dateOfBirth = userProfile.getDateOfBirth()?.toISOString();
+        dto.gender = userProfile.getGender();
         dto.visitCount = patientAppointments.length;
         dto.lastVisitAt = mostRecent.getScheduledAt().toISOString();
         dto.lastVisitStatus = mostRecent.getStatus();
+        dto.nextAppointmentAt = nextAppointment?.getScheduledAt().toISOString();
         return dto;
       }),
     );

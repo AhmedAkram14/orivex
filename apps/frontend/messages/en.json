@@ -995,15 +995,57 @@
     },
     "patients": {
       "title": "Patients",
-      "description": "Everyone you have ever had a real appointment with.",
+      "description": "Manage and review everyone you've treated.",
       "loadError": "Couldn't load your patients.",
       "emptyTitle": "No patients yet",
       "emptyDescription": "Patients you've had a real appointment with will appear here.",
+      "noResultsTitle": "No matching patients",
+      "noResultsDescription": "Try a different search term or filter.",
+      "kpis": {
+        "totalPatients": "Total Patients",
+        "totalPatientsHelper": "All time",
+        "activePatients": "Active Patients",
+        "activePatientsHelper": "Have an upcoming visit",
+        "thisMonth": "This Month",
+        "thisMonthHelper": "Seen this month",
+        "thisWeek": "This Week",
+        "thisWeekHelper": "Seen this week",
+        "averageRating": "Average Rating",
+        "noRatingsYet": "No ratings yet"
+      },
+      "searchPlaceholder": "Search by name, phone, or email...",
+      "filterType": {
+        "all": "All Patients",
+        "new": "New Patients",
+        "returning": "Returning Patients"
+      },
+      "filterStatus": {
+        "all": "All Status"
+      },
+      "sortLastVisit": {
+        "newest": "Last Visit (Newest)",
+        "oldest": "Last Visit (Oldest)"
+      },
+      "returning": "Returning",
+      "noUpcoming": "No upcoming",
       "columns": {
-        "name": "Name",
+        "name": "Patient",
+        "ageGender": "Age / Gender",
         "visitCount": "Visits",
-        "lastVisit": "Last visit",
-        "lastVisitStatus": "Status"
+        "lastVisit": "Last Visit",
+        "lastVisitStatus": "Status",
+        "nextAppointment": "Next Appointment",
+        "patientStatus": "Status"
+      },
+      "gender": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "patientStatus": {
+        "active": "Active",
+        "completed": "Completed",
+        "inactive": "Inactive"
       },
       "status": {
         "requested": "Waiting doctor approval",
@@ -1012,7 +1054,9 @@
         "cancelled": "Cancelled",
         "no_show": "No-show",
         "completed": "Completed"
-      }
+      },
+      "showingRange": "Showing {from}-{to} of {total} patients",
+      "perPage": "{count} / page"
     },
     "reports": {
       "title": "Reports",

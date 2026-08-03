@@ -273,14 +273,21 @@ export interface ApprovedAppointment {
   status: string;
 }
 
-/** Matches DoctorAppointmentsController's real DoctorPatientListItemResponseDto exactly -- one row per distinct patient the doctor has ever had a real appointment with. */
+/** Matches DoctorAppointmentsController's real DoctorPatientListItemResponseDto exactly -- one row per distinct patient the doctor has ever had a real appointment with. No "last diagnosis" field: that lives in ClinicalModule, which the backend endpoint can't reach without a circular module dependency (see the DTO's own comment). */
 export interface DoctorPatientListItem {
   patientProfileId: string;
   patientName: string;
+  email: string;
+  phoneNumber?: string;
+  /** ISO date string. */
+  dateOfBirth?: string;
+  gender?: string;
   visitCount: number;
   /** ISO timestamp of the most recent visit. */
   lastVisitAt: string;
   lastVisitStatus: AppointmentStatus;
+  /** ISO timestamp of the soonest still-upcoming appointment, if any. */
+  nextAppointmentAt?: string;
 }
 
 export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
