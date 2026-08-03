@@ -20,6 +20,7 @@ import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-a
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
+import { GetFollowUpRecommendationForSessionUseCase } from '../../application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
@@ -50,6 +51,7 @@ export class DoctorAppointmentsController {
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private readonly getDoctorReportsSummaryUseCase: GetDoctorReportsSummaryUseCase,
+    private readonly getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
   ) {}
 
   // Doctor-scoped dashboard counts (Doctor Workspace's "Today's Summary").
@@ -361,6 +363,24 @@ export class DoctorAppointmentsController {
           .filter((appointment) => appointment.getScheduledAt() > now && upcomingStatuses.has(appointment.getStatus()))
           .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime())[0];
 
+        // "Follow up" status (Patients page redesign): real, not guessed --
+        // reuses ClinicalModule's own RecommendFollowUpUseCase output
+        // (FollowUpRecommendationRepository, already exported from this
+        // same ConsultationModule) rather than inventing a new signal. Only
+        // checked when there's no upcoming appointment already, since a
+        // booked follow-up visit is just "Active" again once it's on the
+        // calendar.
+        let hasFollowUpRecommendation = false;
+        if (!nextAppointment && mostRecent.getStatus() === AppointmentStatus.Completed) {
+          const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({ appointmentId: mostRecent.getId() });
+          if (session) {
+            const followUp = await this.getFollowUpRecommendationForSessionUseCase.execute({
+              consultationSessionId: session.getId(),
+            });
+            hasFollowUpRecommendation = followUp !== null;
+          }
+        }
+
         const userProfile = patientAccount.getUserProfile();
         const dto = new DoctorPatientListItemResponseDto();
         dto.patientProfileId = patientId;
@@ -373,6 +393,7 @@ export class DoctorAppointmentsController {
         dto.lastVisitAt = mostRecent.getScheduledAt().toISOString();
         dto.lastVisitStatus = mostRecent.getStatus();
         dto.nextAppointmentAt = nextAppointment?.getScheduledAt().toISOString();
+        dto.hasFollowUpRecommendation = hasFollowUpRecommendation;
         return dto;
       }),
     );

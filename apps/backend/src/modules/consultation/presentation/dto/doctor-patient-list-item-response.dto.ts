@@ -27,4 +27,9 @@ export class DoctorPatientListItemResponseDto {
   lastVisitAt!: string;
   lastVisitStatus!: AppointmentStatus;
   nextAppointmentAt?: string;
+  // Real -- reuses ClinicalModule's own FollowUpRecommendation (via
+  // GetFollowUpRecommendationForSessionUseCase), never a guessed status.
+  // Only meaningful when nextAppointmentAt is absent and lastVisitStatus is
+  // Completed; see DoctorAppointmentsController.toPatientListItems.
+  hasFollowUpRecommendation!: boolean;
 }

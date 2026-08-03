@@ -1035,7 +1035,8 @@
         "lastVisit": "Last Visit",
         "lastVisitStatus": "Status",
         "nextAppointment": "Next Appointment",
-        "patientStatus": "Status"
+        "patientStatus": "Status",
+        "actions": "Actions"
       },
       "gender": {
         "male": "Male",
@@ -1044,8 +1045,16 @@
       },
       "patientStatus": {
         "active": "Active",
+        "follow_up": "Follow up",
         "completed": "Completed",
         "inactive": "Inactive"
+      },
+      "actions": {
+        "view": "View patient",
+        "notes": "Clinical notes",
+        "message": "Message patient",
+        "more": "More actions",
+        "comingSoon": "Coming soon"
       },
       "status": {
         "requested": "Waiting doctor approval",

@@ -203,7 +203,9 @@ function seedPatients(): DoctorPatientListItem[] {
     { patientProfileId: 'patient-2', patientName: SEEDED_PATIENT_NAMES[1], visitCount: 3, lastVisitAt: work[1].scheduledAt, lastVisitStatus: 'completed' as const, nextAppointmentAt: daysFromNow(7) },
     { patientProfileId: 'patient-3', patientName: SEEDED_PATIENT_NAMES[2], visitCount: 9, lastVisitAt: work[2].scheduledAt, lastVisitStatus: 'completed' as const },
     { patientProfileId: 'patient-4', patientName: SEEDED_PATIENT_NAMES[3], visitCount: 2, lastVisitAt: work[3].scheduledAt, lastVisitStatus: 'completed' as const },
-    { patientProfileId: 'patient-5', patientName: SEEDED_PATIENT_NAMES[4], visitCount: 5, lastVisitAt: daysAgo(18), lastVisitStatus: 'completed' as const },
+    // Seeded with a real (mocked) follow-up recommendation, no upcoming
+    // appointment booked yet -- exercises the "Follow up" status.
+    { patientProfileId: 'patient-5', patientName: SEEDED_PATIENT_NAMES[4], visitCount: 5, lastVisitAt: daysAgo(18), lastVisitStatus: 'completed' as const, hasFollowUpRecommendation: true },
     { patientProfileId: 'patient-6', patientName: SEEDED_PATIENT_NAMES[5], visitCount: 2, lastVisitAt: daysAgo(32), lastVisitStatus: 'completed' as const },
     { patientProfileId: 'patient-7', patientName: SEEDED_PATIENT_NAMES[6], visitCount: 4, lastVisitAt: daysAgo(10), lastVisitStatus: 'completed' as const },
     { patientProfileId: 'patient-8', patientName: SEEDED_PATIENT_NAMES[7], visitCount: 1, lastVisitAt: daysAgo(120), lastVisitStatus: 'completed' as const },
@@ -219,6 +221,7 @@ function seedPatients(): DoctorPatientListItem[] {
     phoneNumber: `+20 10${(index + 1).toString().padStart(2, '0')} 000 0000`,
     dateOfBirth: new Date(1975 + index * 3, index % 12, 10).toISOString(),
     gender: genders[index % genders.length],
+    hasFollowUpRecommendation: (patient as { hasFollowUpRecommendation?: boolean }).hasFollowUpRecommendation ?? false,
   }));
 }
 

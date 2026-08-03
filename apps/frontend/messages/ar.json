@@ -1035,7 +1035,8 @@
         "lastVisit": "آخر زيارة",
         "lastVisitStatus": "الحالة",
         "nextAppointment": "الموعد القادم",
-        "patientStatus": "الحالة"
+        "patientStatus": "الحالة",
+        "actions": "إجراءات"
       },
       "gender": {
         "male": "ذكر",
@@ -1044,8 +1045,16 @@
       },
       "patientStatus": {
         "active": "نشط",
+        "follow_up": "متابعة",
         "completed": "مكتمل",
         "inactive": "غير نشط"
+      },
+      "actions": {
+        "view": "عرض المريض",
+        "notes": "الملاحظات السريرية",
+        "message": "مراسلة المريض",
+        "more": "إجراءات أخرى",
+        "comingSoon": "قريبًا"
       },
       "status": {
         "requested": "بانتظار موافقة الطبيب",

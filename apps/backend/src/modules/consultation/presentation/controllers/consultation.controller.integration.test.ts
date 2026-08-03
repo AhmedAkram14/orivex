@@ -68,6 +68,7 @@ import type { ConsultationSessionRepository } from '../../domain/repositories/co
 import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
+import { GetFollowUpRecommendationForSessionUseCase } from '../../application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import { ListConsultationFeedbackForDoctorUseCase } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
 import { SubmitConsultationFeedbackUseCase } from '../../application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
 import { UpdateConsultationFeedbackUseCase } from '../../application/use-cases/update-consultation-feedback/update-consultation-feedback.use-case.js';
@@ -586,6 +587,13 @@ describe('Consultation controllers (integration)', () => {
         { provide: ListAppointmentsForPatientUseCase, useValue: listAppointmentsForPatientUseCase },
         { provide: ListAppointmentsForPatientPageUseCase, useValue: listAppointmentsForPatientPageUseCase },
         { provide: ListAppointmentsForDoctorUseCase, useValue: listAppointmentsForDoctorUseCase },
+        {
+          // Patients page redesign's "Follow up" status -- no follow-up
+          // recommendation is seeded in this suite's fixtures, so an
+          // honest `null` (never recommended) is the correct fake here.
+          provide: GetFollowUpRecommendationForSessionUseCase,
+          useValue: { execute: async () => null },
+        },
         {
           provide: GetConsultationSessionByAppointmentIdUseCase,
           useValue: new GetConsultationSessionByAppointmentIdUseCase(sessionRepo),

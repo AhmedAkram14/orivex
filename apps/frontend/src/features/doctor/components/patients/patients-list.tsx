@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarCheck, CalendarRange, Search, Star, UserCheck, Users } from 'lucide-react';
+import { Calendar, Eye, FileText, MessageSquare, MoreVertical, Search, Star, TrendingUp, UserCheck, Users } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
@@ -28,24 +28,25 @@ const badgeVariantByStatus: Record<AppointmentStatus, 'neutral' | 'primary' | 's
 };
 
 type PatientType = 'all' | 'new' | 'returning';
-type PatientStatus = 'all' | 'active' | 'completed' | 'inactive';
+type PatientStatus = 'all' | 'active' | 'follow_up' | 'completed' | 'inactive';
 type LastVisitSort = 'newest' | 'oldest';
 
 const PAGE_SIZE = 5;
 const INACTIVE_AFTER_DAYS = 90;
 
 /**
- * A real, non-fabricated status derived from the same real fields every
- * other column already shows -- never a stored, separately-editable value.
- * 'active': has a real upcoming appointment. 'completed': the most recent
- * visit finished with nothing else booked. 'inactive': no visit in the last
- * 90 days and nothing booked. There is deliberately no distinct "Follow up"
- * state (unlike the reference design) -- this data model has no reliable
- * signal to tell "a booked follow-up" apart from "just another upcoming
- * visit" without guessing.
+ * A real, non-fabricated status derived from real fields only -- never a
+ * stored, separately-editable value. 'active': has a real upcoming
+ * appointment. 'follow_up': the last visit finished with a real follow-up
+ * recommendation on record (ClinicalModule's `FollowUpRecommendation`,
+ * reused via `hasFollowUpRecommendation`) but nothing booked yet --
+ * becomes 'active' again the moment that follow-up is actually scheduled.
+ * 'completed': finished with no follow-up recommended and nothing booked.
+ * 'inactive': no visit in the last 90 days and nothing booked.
  */
 function derivePatientStatus(patient: DoctorPatientListItem, now: Date): Exclude<PatientStatus, 'all'> {
   if (patient.nextAppointmentAt) return 'active';
+  if (patient.hasFollowUpRecommendation) return 'follow_up';
   const daysSinceLastVisit = (now.getTime() - new Date(patient.lastVisitAt).getTime()) / (1000 * 60 * 60 * 24);
   if (patient.lastVisitStatus === 'completed' && daysSinceLastVisit <= INACTIVE_AFTER_DAYS) return 'completed';
   return 'inactive';
@@ -66,10 +67,11 @@ function initialsFor(name: string): string {
   return (first + last).toUpperCase();
 }
 
-const patientStatusBadgeVariant: Record<Exclude<PatientStatus, 'all'>, 'success' | 'primary' | 'neutral'> = {
+const patientStatusBadgeVariant: Record<Exclude<PatientStatus, 'all'>, 'success' | 'primary' | 'neutral' | 'warning'> = {
   active: 'success',
-  completed: 'primary',
-  inactive: 'neutral',
+  follow_up: 'primary',
+  completed: 'neutral',
+  inactive: 'warning',
 };
 
 /**
@@ -77,8 +79,11 @@ const patientStatusBadgeVariant: Record<Exclude<PatientStatus, 'all'>, 'success'
  * from `GET /appointments/doctor/patients` (every patient this doctor has
  * ever had a real appointment with, grouped server-side). Search/filter/
  * sort/pagination are all real, client-side operations over that same real
- * list -- no fabricated page of data. No drill-through to a per-patient
- * detail page and no row actions: neither exists yet, so none are shown.
+ * list -- no fabricated page of data. The row Actions icons (view/notes/
+ * message/more) are shown to match the reference design but are inert --
+ * there is no per-patient detail page, clinical-notes viewer, or messaging
+ * feature yet, so each is `aria-disabled` with a "coming soon" tooltip
+ * rather than pretending to work.
  */
 export function PatientsList() {
   const t = useTranslations('doctor.patients');
@@ -156,15 +161,40 @@ export function PatientsList() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <LinkableStatCard icon={Users} label={t('kpis.totalPatients')} value={String(kpis.total)} helperText={t('kpis.totalPatientsHelper')} />
-        <LinkableStatCard icon={UserCheck} label={t('kpis.activePatients')} value={String(kpis.active)} helperText={t('kpis.activePatientsHelper')} />
-        <LinkableStatCard icon={CalendarRange} label={t('kpis.thisMonth')} value={String(kpis.thisMonth)} helperText={t('kpis.thisMonthHelper')} />
-        <LinkableStatCard icon={CalendarCheck} label={t('kpis.thisWeek')} value={String(kpis.thisWeek)} helperText={t('kpis.thisWeekHelper')} />
+        <LinkableStatCard
+          icon={Users}
+          label={t('kpis.totalPatients')}
+          value={String(kpis.total)}
+          helperText={t('kpis.totalPatientsHelper')}
+          iconClassName="bg-info-subtle text-info"
+        />
+        <LinkableStatCard
+          icon={UserCheck}
+          label={t('kpis.activePatients')}
+          value={String(kpis.active)}
+          helperText={t('kpis.activePatientsHelper')}
+          iconClassName="bg-success-subtle text-success"
+        />
+        <LinkableStatCard
+          icon={Calendar}
+          label={t('kpis.thisMonth')}
+          value={String(kpis.thisMonth)}
+          helperText={t('kpis.thisMonthHelper')}
+          iconClassName="bg-purple-50 text-purple-600"
+        />
+        <LinkableStatCard
+          icon={TrendingUp}
+          label={t('kpis.thisWeek')}
+          value={String(kpis.thisWeek)}
+          helperText={t('kpis.thisWeekHelper')}
+          iconClassName="bg-warning-subtle text-warning"
+        />
         <LinkableStatCard
           icon={Star}
           label={t('kpis.averageRating')}
           value={reportsSummary?.averageRating != null ? reportsSummary.averageRating.toFixed(1) : '—'}
           helperText={reportsSummary?.averageRating == null ? t('kpis.noRatingsYet') : undefined}
+          iconClassName="bg-teal-50 text-teal-600"
         />
       </div>
 
@@ -198,6 +228,7 @@ export function PatientsList() {
           <SelectContent>
             <SelectItem value="all">{t('filterStatus.all')}</SelectItem>
             <SelectItem value="active">{tPatientStatus('active')}</SelectItem>
+            <SelectItem value="follow_up">{tPatientStatus('follow_up')}</SelectItem>
             <SelectItem value="completed">{tPatientStatus('completed')}</SelectItem>
             <SelectItem value="inactive">{tPatientStatus('inactive')}</SelectItem>
           </SelectContent>
@@ -227,6 +258,7 @@ export function PatientsList() {
                   <th className="px-4 py-3 text-start font-medium">{t('columns.lastVisit')}</th>
                   <th className="px-4 py-3 text-start font-medium">{t('columns.nextAppointment')}</th>
                   <th className="px-4 py-3 text-start font-medium">{t('columns.patientStatus')}</th>
+                  <th className="px-4 py-3 text-start font-medium">{t('columns.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,6 +305,26 @@ export function PatientsList() {
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          {[
+                            { icon: Eye, label: t('actions.view') },
+                            { icon: FileText, label: t('actions.notes') },
+                            { icon: MessageSquare, label: t('actions.message') },
+                            { icon: MoreVertical, label: t('actions.more') },
+                          ].map(({ icon, label }) => (
+                            <span
+                              key={label}
+                              role="button"
+                              aria-disabled="true"
+                              title={t('actions.comingSoon')}
+                              className="flex size-7 cursor-not-allowed items-center justify-center rounded-md text-text-tertiary opacity-(--opacity-disabled)"
+                            >
+                              <Icon icon={icon} size="sm" label={label} />
+                            </span>
+                          ))}
+                        </div>
                       </td>
                     </tr>
                   );

@@ -288,6 +288,8 @@ export interface DoctorPatientListItem {
   lastVisitStatus: AppointmentStatus;
   /** ISO timestamp of the soonest still-upcoming appointment, if any. */
   nextAppointmentAt?: string;
+  /** Real -- reuses ClinicalModule's own FollowUpRecommendation, only meaningful when there's no nextAppointmentAt yet. */
+  hasFollowUpRecommendation: boolean;
 }
 
 export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
