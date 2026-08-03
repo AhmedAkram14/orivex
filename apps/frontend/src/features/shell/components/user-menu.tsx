@@ -29,10 +29,12 @@ function initialsFor(fullName: string): string {
 export interface UserMenuProps {
   /** Additive, default false (every existing caller's rendered trigger is unchanged) -- shows the account's name and a chevron next to the avatar, for contexts outside the dashboard Topbar (e.g. the Journey screen's own minimal header) where the plain icon-only trigger would look unlabeled. */
   showName?: boolean;
+  /** Optional second line under the name (e.g. a doctor's specialty) -- only meaningful when `showName` is true. Omitted renders a single-line name, unchanged from before this prop existed. Never fabricated: callers only pass a subtitle they've resolved from real data. */
+  subtitle?: string;
 }
 
 /** The Topbar's trailing avatar + dropdown — account identity, theme selection, Security Center shortcut, and sign out. Every label routes through `shell.userMenu`; nothing here assumes a specific role. */
-export function UserMenu({ showName = false }: UserMenuProps = {}) {
+export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
   const t = useTranslations('shell.userMenu');
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -49,7 +51,10 @@ export function UserMenu({ showName = false }: UserMenuProps = {}) {
         </Avatar>
         {showName && (
           <>
-            <span className="text-sm font-medium text-text-primary">{user.fullName}</span>
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-sm font-medium text-text-primary">{user.fullName}</span>
+              {subtitle && <span className="text-xs text-text-tertiary">{subtitle}</span>}
+            </span>
             <Icon icon={ChevronDown} size="sm" className="text-text-tertiary" />
           </>
         )}

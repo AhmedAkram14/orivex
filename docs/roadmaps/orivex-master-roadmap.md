@@ -138,7 +138,7 @@ Phase 14 — Notifications: 55% (Stage 3, completed 2026-07-19: In-app delivery,
 Phase 15 — Files & Media: 55% (Upload/Images/PDF/S3 Storage real via `MediaAsset`; Videos/Audio/DICOM/Virus Scan/Compression/Preview not evidenced as distinct capabilities)
 Phase 16 — Real-time: 0% (no WebSocket/socket.io dependency anywhere)
 Phase 17 — Search: 0% (no module)
-Phase 18 — Reporting: 0% (no module)
+Phase 18 — Reporting: 45% (Stage 9, completed 2026-08-03: a real `ReportingModule` with 9 endpoints under `/admin/analytics/*`, a real `/admin/analytics` dashboard -- Dashboard KPIs, Appointment/Doctor/Patient/Payment/Telemedicine/Verification/Notification analytics, filters, Compare Periods, Live Refresh, CSV export, all real and reachable; see the Stage 9 Completion Note below. Financial Reports/Operational Reports/Doctor Performance/Hospital Analytics/Patient Analytics are covered at the level this stage built; Export PDF/Excel are explicitly deferred, not built)
 Phase 19 — Super Admin: 15% (Stage 4, completed 2026-07-20: a real `Hospital`/`Department` model exists and a real `/admin` route tree is reachable; Feature Flags has a genuine read-only visibility screen (`/admin/feature-flags`) over already-real env-driven configuration; Audit has a real per-account security-event lookup (`/admin/accounts/:id/security-events`), not yet a global cross-account feed -- see Stage 4 Completion Note's limitations; Multi Hospital/Tenant Management/Subscription Plans/Billing/Impersonation remain 0%, explicitly deferred per this program's own "true multi-tenant SaaS is a future architecture discussion" decision)
 Phase 20 — Mobile Ready: 0% (no manifest/service worker/PWA plugin)
 Phase 21 — Integrations: 10% (Stripe real; Google Calendar/Outlook/Zoom/LiveKit/Twilio/Firebase/Cloudinary/OpenAI/Claude/Paymob/WhatsApp Cloud API/SendGrid all absent)
@@ -566,6 +566,118 @@ build are all green; the full onboarding/approval/rejection-and-
 resubmission/unauthorized-access flows are exercised by real tests
 against real (not fabricated) state transitions; every scoping decision
 above is disclosed rather than silently narrowed.
+
+✅ READY FOR MANUAL VERIFICATION
+===============================================================
+
+===============================================================
+STAGE 9 COMPLETION NOTE — 2026-08-03 (Reporting & Analytics)
+===============================================================
+
+What was built, evidence-based:
+- `ReportingModule` (`apps/backend/src/modules/reporting/`) -- a new,
+  read-only CQRS module with **no domain layer** (nothing is created or
+  mutated; every response is a fresh read projection) and **zero Prisma
+  schema changes** -- every metric is computed via `groupBy`/`aggregate`/
+  `$queryRaw` over existing tables. Mirrors `DoctorModule`'s own
+  `PrismaDoctorDirectoryQueryService` precedent: a dedicated read-only
+  query service per concern, reading Prisma directly rather than reaching
+  through another module's write-repo (none of which are exported for
+  cross-module DI). Genuine reuse where it existed: doctor ratings go
+  through `ConsultationModule`'s already-exported, already-batched
+  `GetDoctorRatingAggregatesUseCase` rather than being re-derived; role
+  counts reuse `IdentityModule`'s `ListAccountsUseCase`, the exact pattern
+  `GetPlatformKpisUseCase` (AdministrationModule) already established --
+  that use case's own code comment explicitly named this module as the
+  deferred home for appointment-count/revenue KPIs.
+- 9 real endpoints under `/admin/analytics/*` (`kpis`, `appointments`,
+  `doctors`, `patients`, `payments`, `telemedicine`, `verification`,
+  `notifications`, `export`), all `@Roles(SuperAdmin)`, mirroring
+  `AdministrationController` exactly.
+- A real `/admin/analytics` dashboard: KPI grid (14 tiles), Appointment
+  analytics (completion/cancellation/no-show rate, a real time-series
+  chart, peak-hours bar chart), a reusable Doctor Leaderboard (one table,
+  4 sort modes -- Top Revenue/Rated/Consultations/Patients, not 4 separate
+  tables), Patient analytics (new/returning/active/verified counts, real
+  gender/age distribution with an honest "unknown" bucket, most-active
+  list), Payment analytics (revenue, Compare Periods growth %,
+  successful/failed/refunds), Telemedicine and Verification and
+  Notification analytics. Filters (date range, doctor ID, specialty,
+  consultation type, payment status, verification status), Compare
+  Periods (a toggle computing the immediately-preceding window of equal
+  duration), Live Refresh (off/30s/60s/300s via TanStack Query's own
+  `refetchInterval`), and CSV export (one endpoint per section, zero new
+  dependency -- a pure string-building formatter) are all real and shared
+  across every panel, not reinvented per section.
+- New shared chart primitives (`shared/ui/charts/`): `LineChart`,
+  `BarChart`, `AreaChart`, `PieChart` (donut via `innerRadius`),
+  `ChartSkeleton` -- Recharts (first charting library in the repo, user-
+  approved) wrapped in this app's own themed containers, colored via the
+  design system's existing CSS custom properties
+  (`--color-primary/info/success/warning/danger`), not new hardcoded hex
+  values. The previously-empty `ChartContainer` shell is still the card
+  wrapper; no second competing container was created.
+- User preferences (last filters, Compare Periods toggle, refresh
+  interval) persist to `localStorage` only (`orivex-admin-analytics-
+  preferences`), the same pattern `recent-searches.ts`/`theme-provider.tsx`
+  already use -- no new backend storage was introduced for this.
+- Each analytics panel is `next/dynamic`-imported with `ssr:false` so its
+  Recharts bundle only loads once that section is on the page, not in the
+  initial bundle.
+- Tests: 36 new backend tests (use-case unit tests incl. zero-division-
+  safe rate/average calculations, leaderboard sort behavior, CSV formatter,
+  the previous-period date-window helper, plus a 13-case controller
+  integration test covering every route's auth/role guard and the CSV
+  export's headers/content-type) -- full backend suite 976/976 green,
+  backend build/lint clean. 15 new frontend tests (hooks, components,
+  localStorage persistence, the export-download flow) -- full frontend
+  suite 396/396 green, frontend build/lint/typecheck clean; production
+  build succeeded with `/admin/analytics` present in both locales'
+  static output.
+
+Explicitly NOT done this stage (honest, not glossed over):
+- **Average Response Time** (dashboard KPI), **average join delay**,
+  **connection success rate**, and **missed calls** (Telemedicine) are
+  not shown anywhere -- no column in the schema models a doctor's
+  accept/response latency, and `SessionConnectionLog.note` is free-text,
+  not structured connection-event data. Rather than parsing text to
+  fabricate these, the relevant DTOs simply omit the fields, with the
+  reasoning recorded in code comments on the query services/ports.
+- **Reminder Success/Failures** (Notification analytics) is not shown --
+  the BullMQ reminder worker only logs failures via Pino today; nothing
+  is persisted. Fixing that is worker/infra scope, out of bounds for a
+  read-only reporting module and out of this stage's own remit (see the
+  explicit "no other roadmap phase" instruction this stage was built
+  under).
+- Drill-down is real but partial: every KPI/table row links to the real
+  underlying admin page (`/admin/users`, `/admin/verification-queue`)
+  where one exists, but **unfiltered** -- neither page reads a query-
+  string filter today, so no filtered deep-link was fabricated. Doctor,
+  Appointment, Payment, and Telemedicine analytics have no dedicated
+  admin list/detail screen at all yet to drill into beyond this
+  dashboard's own panels.
+- The Doctor filter is a plain ID text field, not a searchable picker --
+  no admin-facing endpoint exists yet that lists doctors keyed by their
+  `DoctorProfile` id (the Users table exposes `Account` ids instead).
+- No caching layer: every analytics query runs uncached against existing
+  DB indexes and efficient `groupBy`/`aggregate` queries (never fetch-all-
+  reduce-in-JS) -- `REDIS_URL` is only wired to BullMQ in this codebase,
+  no cache port/adapter exists anywhere to reuse.
+- Export is CSV only, per the approved decision -- no Excel (`exceljs`)
+  or PDF (`pdfkit`) dependency was added; the export use case is
+  structured per-section so either could be added later without rework.
+- Gender/age distribution surface an explicit "unknown" bucket rather
+  than hiding sparse data -- `Account.gender`/`dateOfBirth` are optional
+  fields, and the real population rate was not separately audited this
+  stage (disclosed as a known gap, not silently assumed to be complete).
+
+Decision: Stage 9 (Reporting & Analytics) is verified against every
+criterion checkable in this sandbox -- backend build/lint/976 tests,
+frontend lint/typecheck/396 tests, and the frontend production build are
+all green; every new route was exercised by a real integration test; every
+scoping/limitation decision above is disclosed rather than silently
+narrowed. Per this stage's own explicit instruction, no other roadmap
+phase was started after this one.
 
 ✅ READY FOR MANUAL VERIFICATION
 ===============================================================

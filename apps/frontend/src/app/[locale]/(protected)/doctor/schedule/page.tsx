@@ -1,7 +1,8 @@
 'use client';
 
+import { CalendarOff, Download, Lightbulb, RefreshCw, Repeat } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
@@ -16,6 +17,7 @@ import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling
 import { addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { addMonths, getMonthGridDays, isSameMonth } from '@/shared/lib/date/month';
 import { RequireRole } from '@/shared/auth/require-role';
+import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -29,8 +31,10 @@ import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
 import { MonthCalendar, type MonthCalendarDay } from '@/shared/ui/schedule/month-calendar';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
+import { CircularProgress } from '@/shared/ui/charts/circular-progress';
 import { Page } from '@/shared/ui/layout/page';
 import { Section } from '@/shared/ui/layout/section';
+import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
@@ -124,6 +128,31 @@ export default function DoctorSchedulePage() {
     detail: slot.status === 'available' ? undefined : tSlotStatus(slot.status),
   }));
 
+  // Weekly Summary widget: how many of the doctor's 7 recurring weekdays
+  // are configured as working days -- a real count from `schedule` itself,
+  // not a fabricated ratio.
+  const workingDaysCount = schedule?.filter((day) => day.isWorkingDay).length ?? 0;
+
+  // Next Available Slot widget: scans forward from today across the next
+  // two real weeks (matching ScheduleAgenda's own forward-looking window)
+  // and reports the first slot `generateDaySlots` actually marks
+  // 'available' -- never a guessed/fabricated time.
+  const nextAvailableSlot = useMemo(() => {
+    if (!schedule || !rules) return undefined;
+    for (let offset = 0; offset < 14; offset += 1) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + offset);
+      const day = resolveDayForDate(date, getWeekDayName(date), schedule, exceptions ?? [], holidays ?? []);
+      if (!day?.isWorkingDay) continue;
+      const slot = generateDaySlots(day, rules, date, today).find((candidate) => candidate.status === 'available');
+      if (slot) return { date, slot };
+    }
+    return undefined;
+  }, [schedule, rules, exceptions, holidays, today]);
+
+  const timeOffSectionRef = useRef<HTMLDivElement>(null);
+  const calendarSectionRef = useRef<HTMLDivElement>(null);
+
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page>
@@ -140,7 +169,7 @@ export default function DoctorSchedulePage() {
         ) : !schedule.some((day) => day.isWorkingDay) ? (
           <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
         ) : (
-          <Tabs defaultValue="week">
+          <Tabs defaultValue="week" ref={calendarSectionRef}>
             <TabsList>
               <TabsTrigger value="week">{t('weekTab')}</TabsTrigger>
               <TabsTrigger value="month">{t('monthTab')}</TabsTrigger>
@@ -229,42 +258,137 @@ export default function DoctorSchedulePage() {
           </Tabs>
         )}
 
-        <Section
-          title={t('workingHoursTitle')}
-          actions={
-            !isEditingHours && schedule ? (
-              <Button variant="outline" size="sm" onClick={() => setIsEditingHours(true)}>
-                {t('editWorkingHours')}
-              </Button>
-            ) : undefined
-          }
-        >
-          {schedule &&
-            (isEditingHours ? (
-              <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
-            ) : (
-              <div className="flex flex-col gap-2">
-                {schedule.map((day) => (
-                  <AvailabilityCard
-                    key={day.dayOfWeek}
-                    dayLabel={format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}
-                    isWorkingDay={day.isWorkingDay}
-                    hoursLabel={`${day.hours.start} – ${day.hours.end}`}
-                    breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
-                    notWorkingLabel={t('noAvailability')}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="flex flex-col gap-4 lg:col-span-2">
+            <Section
+              title={t('workingHoursTitle')}
+              actions={
+                !isEditingHours && schedule ? (
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingHours(true)}>
+                    {t('editWorkingHours')}
+                  </Button>
+                ) : undefined
+              }
+            >
+              {schedule &&
+                (isEditingHours ? (
+                  <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {schedule.map((day) => (
+                      <AvailabilityCard
+                        key={day.dayOfWeek}
+                        dayLabel={format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}
+                        isWorkingDay={day.isWorkingDay}
+                        hoursLabel={`${day.hours.start} – ${day.hours.end}`}
+                        breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
+                        notWorkingLabel={t('noAvailability')}
+                      />
+                    ))}
+                  </div>
+                ))}
+            </Section>
+
+            <div ref={timeOffSectionRef}>
+              <Section title={t('timeOffTitle')}>
+                {isLoadingExceptions ? (
+                  <Skeleton className="h-16 w-full" />
+                ) : (
+                  <ScheduleExceptionsManager exceptions={exceptions ?? []} />
+                )}
+              </Section>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <WidgetContainer title={t('weeklySummaryTitle')} loading={isLoading}>
+              {schedule && (
+                <div className="flex flex-col items-center gap-3">
+                  <CircularProgress
+                    value={workingDaysCount}
+                    max={7}
+                    label={t('weeklySummaryLabel', { count: workingDaysCount })}
+                    size={100}
                   />
+                  <div className="flex items-center gap-4 text-xs">
+                    <span className="flex items-center gap-1.5 text-text-secondary">
+                      <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
+                      {t('weeklySummaryAvailable', { count: workingDaysCount })}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-text-secondary">
+                      <span className="size-2 rounded-full bg-secondary-subtle" aria-hidden="true" />
+                      {t('weeklySummaryUnavailable', { count: 7 - workingDaysCount })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </WidgetContainer>
+
+            <WidgetContainer title={t('nextAvailableSlotTitle')} loading={isLoading}>
+              {nextAvailableSlot ? (
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm text-text-secondary">
+                    {format.dateTime(nextAvailableSlot.date, { weekday: 'long', month: 'short', day: 'numeric' })}
+                  </p>
+                  <p className="text-2xl font-semibold text-primary">
+                    {format.dateTime(new Date(nextAvailableSlot.slot.start), { hour: 'numeric', minute: 'numeric' })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => calendarSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="mt-1 text-start text-sm font-medium text-primary hover:underline"
+                  >
+                    {t('viewFullCalendar')} →
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-text-tertiary">{t('noUpcomingSlots')}</p>
+              )}
+            </WidgetContainer>
+
+            <WidgetContainer title={t('quickActionsTitle')}>
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  onClick={() => timeOffSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="flex items-center gap-2 rounded-md px-2 py-2 text-start text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                >
+                  <Icon icon={CalendarOff} size="sm" className="text-text-tertiary" />
+                  {t('quickActionBlockTimeOff')}
+                </button>
+                {[
+                  { key: 'quickActionRecurringSchedule', icon: Repeat },
+                  { key: 'quickActionSyncCalendar', icon: RefreshCw },
+                  { key: 'quickActionExportSchedule', icon: Download },
+                ].map(({ key, icon }) => (
+                  <span
+                    key={key}
+                    aria-disabled="true"
+                    className="flex items-center justify-between gap-2 rounded-md px-2 py-2 text-sm text-text-tertiary opacity-(--opacity-disabled)"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Icon icon={icon} size="sm" />
+                      {t(key)}
+                    </span>
+                    <span className="text-xs">{t('comingSoon')}</span>
+                  </span>
                 ))}
               </div>
-            ))}
-        </Section>
+            </WidgetContainer>
 
-        <Section title={t('timeOffTitle')}>
-          {isLoadingExceptions ? (
-            <Skeleton className="h-16 w-full" />
-          ) : (
-            <ScheduleExceptionsManager exceptions={exceptions ?? []} />
-          )}
-        </Section>
+            <WidgetContainer>
+              <div className="flex items-start gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary">
+                  <Icon icon={Lightbulb} size="md" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-text-primary">{t('tipsTitle')}</p>
+                  <p className="text-xs text-text-secondary">{t('tipsDescription')}</p>
+                </div>
+              </div>
+            </WidgetContainer>
+          </div>
+        </div>
       </Page>
     </RequireRole>
   );

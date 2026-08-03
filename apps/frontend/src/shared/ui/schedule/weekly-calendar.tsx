@@ -32,7 +32,7 @@ export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCal
             <span
               className={cn(
                 'flex size-7 items-center justify-center rounded-full text-sm font-medium',
-                day.isToday ? 'bg-primary text-primary-foreground' : 'text-text-primary',
+                day.isToday || day.isSelected ? 'bg-primary text-primary-foreground' : 'text-text-primary',
               )}
             >
               {day.dateLabel}
@@ -45,8 +45,8 @@ export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCal
           <div
             key={day.id}
             className={cn(
-              'flex flex-col gap-2 rounded-lg border p-2',
-              day.isSelected ? 'border-primary' : 'border-border-default',
+              'flex flex-col gap-2 rounded-lg border p-2 transition-colors duration-(--duration-fast)',
+              day.isSelected ? 'border-primary bg-primary-subtle' : 'border-border-default',
             )}
           >
             {day.onSelect ? (

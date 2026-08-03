@@ -8,6 +8,9 @@ import { MobileNav } from '@/features/shell/components/mobile-nav';
 import { NotificationBell } from '@/features/shell/components/notification-bell';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
 import { UserMenu } from '@/features/shell/components/user-menu';
+import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
+import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
 import { useRealtimeSocket } from '@/shared/lib/realtime/use-realtime-socket';
 import { Content } from '@/shared/ui/layout/content';
@@ -29,6 +32,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tCommon = useTranslations('common');
   useRealtimeSocket();
 
+  const { user } = useAuth();
+  const isDoctor = user?.roles.includes('doctor') ?? false;
+  const { data: doctorProfile } = useDoctorProfile({ enabled: isDoctor });
+  const { data: specialties } = useSpecialtiesList();
+  const specialtyName = doctorProfile
+    ? specialties?.find((specialty) => specialty.id === doctorProfile.specialtyId)?.name
+    : undefined;
+
   return (
     <div className="flex h-screen flex-col">
       <Topbar>
@@ -40,7 +51,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="ms-auto flex items-center gap-2">
           <CommandPalette />
           <NotificationBell />
-          <UserMenu />
+          <UserMenu showName subtitle={specialtyName} />
         </div>
       </Topbar>
       <div className="flex flex-1 overflow-hidden">

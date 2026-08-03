@@ -24,9 +24,10 @@ async function getProfileOrNull() {
   }
 }
 
-export function useDoctorProfile() {
+export function useDoctorProfile(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: doctorProfileKeys.detail('current'),
     queryFn: getProfileOrNull,
+    enabled: options.enabled,
   });
 }
