@@ -679,10 +679,18 @@
       "publicationsEmptyTitle": "No publications on record",
       "publicationsEmptyDescription": "Add your published research or articles from Edit Profile.",
       "addPublication": "Add Publication",
+      "publicationsFormEmpty": "No publications added yet.",
+      "publicationTitle": "Title",
+      "publicationReference": "Reference (optional)",
+      "removePublication": "Remove publication entry",
       "awards": "Awards",
       "awardsEmptyTitle": "No awards on record",
       "awardsEmptyDescription": "Add any awards or recognitions you've received from Edit Profile.",
       "addAward": "Add Award",
+      "awardsFormEmpty": "No awards added yet.",
+      "awardTitle": "Title",
+      "awardIssuingBody": "Issuing body (optional)",
+      "removeAward": "Remove award entry",
       "reviews": "Reviews",
       "reviewsEmptyTitle": "No written reviews yet.",
       "reviewsEmptyDescription": "Reviews from your patients will appear here once they leave feedback.",
@@ -735,7 +743,13 @@
         "specialtyRequired": "Enter your specialty.",
         "biographyTooLong": "Biography must be at most {max} characters.",
         "experienceInvalid": "Enter a valid number of years.",
-        "languagesRequired": "Select at least one language."
+        "languagesRequired": "Select at least one language.",
+        "workExperienceOrganizationRequired": "Enter the organization or hospital name.",
+        "workExperiencePositionRequired": "Enter the position.",
+        "workExperienceStartDateRequired": "Enter a start date.",
+        "workExperienceEndDateInvalid": "End date must not be before the start date.",
+        "publicationTitleRequired": "Enter a title.",
+        "awardTitleRequired": "Enter a title."
       }
     },
     "schedule": {
@@ -836,8 +850,20 @@
         "history": "History"
       },
       "sectionEmptyDescription": "This section will be available once the Consultation module is built.",
+      "moduleReady": "Module ready",
+      "overviewDescription": "Patient details, vitals and clinical notes in one place.",
+      "selectPatientTitle": "Select a patient to view details",
+      "selectPatientDescription": "Choose a patient from the queue or search to start the consultation.",
+      "openPatientQueue": "Open Patient Queue",
       "patientPanelTitle": "Patient information",
-      "patientPanelDescription": "Patient details will appear here once the Patient module is built."
+      "patientPanelDescription": "Patient details will appear here once the Patient module is built.",
+      "patientPanelHint": "Select a patient to load their information",
+      "patientFields": {
+        "name": "Name",
+        "age": "Age",
+        "phone": "Phone",
+        "email": "Email"
+      }
     },
     "onboarding": {
       "title": "Become a Doctor",
@@ -1353,15 +1379,44 @@
     }
   },
   "journey": {
-    "title": "Welcome to ORIVEX. What brings you here?",
-    "description": "Choose how you'd like to use ORIVEX -- you can always do the other thing later.",
-    "patientCardTitle": "Book appointments",
-    "patientCardDescription": "Find a doctor, book a consultation, and manage your health records.",
-    "patientCardAction": "Continue as a patient",
-    "doctorCardTitle": "Practice as a Doctor",
-    "doctorCardDescription": "Set up your professional profile and start seeing patients once verified.",
-    "doctorCardAction": "Apply as a doctor",
+    "eyebrow": "Welcome to ORIVEX",
+    "title": "How would you like to use ORIVEX?",
+    "description": "We personalize your experience based on your role. You can switch roles anytime from your account settings.",
+    "needHelp": "Need help?",
+    "contactSupport": "Contact support",
+    "patientCardTitle": "I'm a Patient",
+    "patientCardDescription": "Find trusted doctors, book appointments, and manage your health with ease.",
+    "patientCardAction": "Continue as a Patient",
+    "doctorCardTitle": "I'm a Doctor",
+    "doctorCardDescription": "Set up your professional profile and start growing your practice online.",
+    "doctorCardAction": "Apply as a Doctor",
     "choosePatientError": "Something went wrong setting up your account. Please try again.",
+    "features": {
+      "browseDoctors": "Browse verified doctors",
+      "bookAppointments": "Book appointments",
+      "videoConsultations": "Video consultations",
+      "digitalPrescriptions": "Digital prescriptions",
+      "healthRecords": "Health records",
+      "labResults": "Lab results & reports",
+      "manageAppointments": "Manage appointments",
+      "patientManagement": "Patient management",
+      "reportsInsights": "Reports & insights",
+      "growPractice": "Grow your practice"
+    },
+    "trust": {
+      "dataSecurity": {
+        "title": "Your data stays protected",
+        "description": "Encrypted in transit and at rest"
+      },
+      "accessControl": {
+        "title": "Role-based access",
+        "description": "Only authorized staff can view records"
+      },
+      "builtForHealthcare": {
+        "title": "Built for patients and doctors",
+        "description": "Join ORIVEX today"
+      }
+    },
     "intake": {
       "title": "Complete your profile",
       "description": "Before you reach your dashboard, we need some basic and medical information about you.",

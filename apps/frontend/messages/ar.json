@@ -679,10 +679,18 @@
       "publicationsEmptyTitle": "لا توجد منشورات مسجلة",
       "publicationsEmptyDescription": "أضف أبحاثك أو مقالاتك المنشورة من خلال تعديل الملف الشخصي.",
       "addPublication": "إضافة منشور",
+      "publicationsFormEmpty": "لم تتم إضافة أي منشورات بعد.",
+      "publicationTitle": "العنوان",
+      "publicationReference": "المرجع (اختياري)",
+      "removePublication": "حذف المنشور",
       "awards": "الجوائز",
       "awardsEmptyTitle": "لا توجد جوائز مسجلة",
       "awardsEmptyDescription": "أضف أي جوائز أو تكريمات حصلت عليها من خلال تعديل الملف الشخصي.",
       "addAward": "إضافة جائزة",
+      "awardsFormEmpty": "لم تتم إضافة أي جوائز بعد.",
+      "awardTitle": "العنوان",
+      "awardIssuingBody": "الجهة المانحة (اختياري)",
+      "removeAward": "حذف الجائزة",
       "reviews": "التقييمات",
       "reviewsEmptyTitle": "لا توجد تقييمات مكتوبة بعد.",
       "reviewsEmptyDescription": "ستظهر هنا تقييمات مرضاك بمجرد أن يتركوا آراءهم.",
@@ -735,7 +743,13 @@
         "specialtyRequired": "أدخل تخصصك.",
         "biographyTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
         "experienceInvalid": "أدخل عددًا صحيحًا من السنوات.",
-        "languagesRequired": "اختر لغة واحدة على الأقل."
+        "languagesRequired": "اختر لغة واحدة على الأقل.",
+        "workExperienceOrganizationRequired": "أدخل اسم الجهة أو المستشفى.",
+        "workExperiencePositionRequired": "أدخل المنصب.",
+        "workExperienceStartDateRequired": "أدخل تاريخ البدء.",
+        "workExperienceEndDateInvalid": "يجب ألا يكون تاريخ الانتهاء قبل تاريخ البدء.",
+        "publicationTitleRequired": "أدخل عنوانًا.",
+        "awardTitleRequired": "أدخل عنوانًا."
       }
     },
     "schedule": {
@@ -836,8 +850,20 @@
         "history": "السجل"
       },
       "sectionEmptyDescription": "سيتوفر هذا القسم بمجرد إنشاء وحدة الاستشارة.",
+      "moduleReady": "الوحدة جاهزة",
+      "overviewDescription": "تفاصيل المريض والعلامات الحيوية والملاحظات السريرية في مكان واحد.",
+      "selectPatientTitle": "اختر مريضًا لعرض التفاصيل",
+      "selectPatientDescription": "اختر مريضًا من قائمة الانتظار أو ابحث لبدء الاستشارة.",
+      "openPatientQueue": "فتح قائمة انتظار المرضى",
       "patientPanelTitle": "معلومات المريض",
-      "patientPanelDescription": "ستظهر تفاصيل المريض هنا بمجرد إنشاء وحدة المرضى."
+      "patientPanelDescription": "ستظهر تفاصيل المريض هنا بمجرد إنشاء وحدة المرضى.",
+      "patientPanelHint": "اختر مريضًا لتحميل معلوماته",
+      "patientFields": {
+        "name": "الاسم",
+        "age": "العمر",
+        "phone": "الهاتف",
+        "email": "البريد الإلكتروني"
+      }
     },
     "onboarding": {
       "title": "كن طبيبًا",
@@ -1353,15 +1379,44 @@
     }
   },
   "journey": {
-    "title": "أهلاً بك في أوريفكس. ما الذي جاء بك اليوم؟",
-    "description": "اختر الطريقة التي تريد بها استخدام أوريفكس -- يمكنك دائمًا القيام بالأمر الآخر لاحقًا.",
-    "patientCardTitle": "حجز المواعيد",
-    "patientCardDescription": "ابحث عن طبيب واحجز استشارة وأدر سجلاتك الصحية.",
+    "eyebrow": "مرحبًا بك في أوريفكس",
+    "title": "كيف تريد استخدام أوريفكس؟",
+    "description": "نخصص تجربتك بناءً على دورك. يمكنك تغيير دورك في أي وقت من إعدادات حسابك.",
+    "needHelp": "تحتاج مساعدة؟",
+    "contactSupport": "تواصل مع الدعم",
+    "patientCardTitle": "أنا مريض",
+    "patientCardDescription": "ابحث عن أطباء موثوقين واحجز المواعيد وأدر صحتك بسهولة.",
     "patientCardAction": "المتابعة كمريض",
-    "doctorCardTitle": "الممارسة كطبيب",
-    "doctorCardDescription": "أنشئ ملفك المهني وابدأ باستقبال المرضى بمجرد التحقق من هويتك.",
+    "doctorCardTitle": "أنا طبيب",
+    "doctorCardDescription": "أنشئ ملفك المهني وابدأ بتنمية ممارستك الطبية عبر الإنترنت.",
     "doctorCardAction": "التقديم كطبيب",
     "choosePatientError": "حدث خطأ أثناء إعداد حسابك. يرجى المحاولة مرة أخرى.",
+    "features": {
+      "browseDoctors": "تصفح أطباء موثقين",
+      "bookAppointments": "حجز المواعيد",
+      "videoConsultations": "استشارات فيديو",
+      "digitalPrescriptions": "روشتات إلكترونية",
+      "healthRecords": "السجلات الصحية",
+      "labResults": "نتائج التحاليل والتقارير",
+      "manageAppointments": "إدارة المواعيد",
+      "patientManagement": "إدارة المرضى",
+      "reportsInsights": "التقارير والإحصائيات",
+      "growPractice": "نمِّ ممارستك الطبية"
+    },
+    "trust": {
+      "dataSecurity": {
+        "title": "بياناتك محمية دائمًا",
+        "description": "مشفّرة أثناء النقل والتخزين"
+      },
+      "accessControl": {
+        "title": "صلاحيات وصول محددة",
+        "description": "الموظفون المخوّلون فقط يمكنهم رؤية السجلات"
+      },
+      "builtForHealthcare": {
+        "title": "مصمم للمرضى والأطباء",
+        "description": "انضم إلى أوريفكس اليوم"
+      }
+    },
     "intake": {
       "title": "أكمل ملفك الشخصي",
       "description": "قبل أن تصل إلى لوحتك، نحتاج بعض المعلومات الأساسية والطبية عنك.",

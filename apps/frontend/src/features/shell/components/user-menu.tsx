@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
+import { ChevronDown, LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLogout } from '@/features/auth/hooks/use-logout';
 import { useAuth } from '@/shared/auth/auth-context';
@@ -26,8 +26,13 @@ function initialsFor(fullName: string): string {
   return (first + last).toUpperCase();
 }
 
+export interface UserMenuProps {
+  /** Additive, default false (every existing caller's rendered trigger is unchanged) -- shows the account's name and a chevron next to the avatar, for contexts outside the dashboard Topbar (e.g. the Journey screen's own minimal header) where the plain icon-only trigger would look unlabeled. */
+  showName?: boolean;
+}
+
 /** The Topbar's trailing avatar + dropdown — account identity, theme selection, Security Center shortcut, and sign out. Every label routes through `shell.userMenu`; nothing here assumes a specific role. */
-export function UserMenu() {
+export function UserMenu({ showName = false }: UserMenuProps = {}) {
   const t = useTranslations('shell.userMenu');
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -38,10 +43,16 @@ export function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
+      <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
         <Avatar size="sm">
           <AvatarFallback>{initialsFor(user.fullName)}</AvatarFallback>
         </Avatar>
+        {showName && (
+          <>
+            <span className="text-sm font-medium text-text-primary">{user.fullName}</span>
+            <Icon icon={ChevronDown} size="sm" className="text-text-tertiary" />
+          </>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>

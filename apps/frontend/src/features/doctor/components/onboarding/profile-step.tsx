@@ -420,7 +420,12 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
           ) : (
             <div className="flex flex-col gap-4">
               {workExperience.fields.map((entryField, index) => {
-                const isCurrent = !form.watch(`workExperience.${index}.endDate`);
+                // Deliberately `=== undefined`, not a truthiness check --
+                // unchecking sets endDate to '' (a placeholder so the date
+                // input has a defined, editable value), and '' is falsy in
+                // JS, so `!watchedValue` would immediately flip back to
+                // "currently work here" the instant the box was unchecked.
+                const isCurrent = form.watch(`workExperience.${index}.endDate`) === undefined;
                 return (
                   <div key={entryField.id} className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
                     <div className="flex items-start justify-between gap-2">
