@@ -1,6 +1,5 @@
 'use client';
 
-import { Pencil } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
@@ -10,9 +9,7 @@ import { usePatientProfile } from '@/features/patient/hooks/use-patient-profile'
 import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { RequireRole } from '@/shared/auth/require-role';
-import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
-import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Page } from '@/shared/ui/layout/page';
@@ -20,7 +17,7 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 /**
  * The Patient Profile page — View mode by default, toggles to the Edit
- * architecture (`PatientProfileForm`) via the header action. Mirrors the
+ * architecture (`PatientProfileForm`) via a card-level action. Mirrors the
  * Doctor Profile page's View/Edit toggle pattern exactly.
  */
 export default function PatientProfilePage() {
@@ -32,18 +29,7 @@ export default function PatientProfilePage() {
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader
-          breadcrumbs={<AppBreadcrumbs />}
-          title={t('title')}
-          actions={
-            profile && mode === 'view' ? (
-              <Button variant="outline" onClick={() => setMode('edit')}>
-                <Icon icon={Pencil} size="sm" className="me-2" />
-                {t('editProfile')}
-              </Button>
-            ) : undefined
-          }
-        />
+        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} description={t('subtitle')} />
 
         {isLoading && (
           <Card>
@@ -57,7 +43,7 @@ export default function PatientProfilePage() {
 
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
-        {profile && mode === 'view' && <PatientProfileView profile={profile} />}
+        {profile && mode === 'view' && <PatientProfileView profile={profile} onEdit={() => setMode('edit')} />}
         {profile && mode === 'edit' && (
           <div className="flex flex-col gap-6">
             <PersonalInfoStep account={account} onSaved={() => {}} />

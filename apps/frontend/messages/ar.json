@@ -408,7 +408,13 @@
     "unauthorized": {
       "title": "يلزم تسجيل الدخول",
       "description": "تحتاج إلى تسجيل الدخول للوصول إلى هذه الصفحة.",
-      "signIn": "تسجيل الدخول"
+      "signIn": "تسجيل الدخول",
+      "trust": {
+        "secureTitle": "آمن وخاص",
+        "secureDescription": "بياناتك مشفرة ومحمية",
+        "trustedTitle": "موثوق به من الأطباء",
+        "trustedDescription": "انضم إلى آلاف المتخصصين في الرعاية الصحية"
+      }
     },
     "forbidden": {
       "title": "الوصول مقيّد",
@@ -1156,8 +1162,18 @@
     },
     "profile": {
       "title": "الملف الشخصي",
+      "subtitle": "إدارة معلوماتك الشخصية وتفاصيلك الصحية.",
       "editProfile": "تعديل الملف الشخصي",
+      "edit": "تعديل",
+      "tabs": {
+        "personalInfo": "المعلومات الشخصية",
+        "emergencyContacts": "جهات اتصال الطوارئ",
+        "insurance": "التأمين",
+        "settings": "الإعدادات"
+      },
       "personalInformation": "المعلومات الشخصية",
+      "dateOfBirth": "تاريخ الميلاد",
+      "ageYearsOld": "{age} سنة",
       "phone": "الهاتف",
       "gender": "الجنس",
       "genderOptions": {
@@ -1197,9 +1213,15 @@
       "insuranceProviderPlaceholder": "اختر شركة تأمين",
       "insuranceUnavailableTitle": "لا توجد شركة تأمين مسجلة",
       "insuranceUnavailableDescription": "أضف شركة تأمين من تعديل الملف الشخصي.",
+      "insuranceSelfPay": "دفع ذاتي / بدون تأمين",
+      "insuranceEmptyBody": "لم تُضِف أي معلومات تأمين بعد. أضف تفاصيل التأمين لتسهيل مواعيدك وزياراتك.",
+      "addInsurance": "إضافة تأمين",
       "settings": "الإعدادات",
       "settingsComingSoonTitle": "المزيد من الإعدادات قريبًا",
       "settingsComingSoonDescription": "ستظهر تفضيلات الإشعارات والخصوصية هنا في تحديث مستقبلي.",
+      "learnMore": "معرفة المزيد",
+      "privacyTitle": "صحتك، خصوصيتك",
+      "privacyDescription": "نحن ملتزمون بالحفاظ على أمان معلوماتك وخصوصيتها.",
       "save": "حفظ",
       "cancel": "إلغاء",
       "loadError": "تعذّر تحميل ملفك الشخصي.",

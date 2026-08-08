@@ -47,10 +47,9 @@ describe('PatientProfilePage', () => {
 
     expect(await screen.findByText('Amina Youssef')).toBeInTheDocument();
     expect(screen.getByText('Personal information')).toBeInTheDocument();
-    expect(screen.getByText('Medical information')).toBeInTheDocument();
     expect(screen.getByText('Emergency contacts')).toBeInTheDocument();
-    expect(screen.getByText('Insurance')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Insurance' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
   });
 
   it('shows the seeded medical info and an honest "no insurance on record" state', async () => {
@@ -59,14 +58,14 @@ describe('PatientProfilePage', () => {
 
     expect(screen.getByText('Penicillin')).toBeInTheDocument();
     expect(screen.getByText('No chronic conditions on record')).toBeInTheDocument();
-    expect(screen.getByText('No insurance provider on record')).toBeInTheDocument();
+    expect(screen.getByText('Self-pay / No Insurance')).toBeInTheDocument();
   });
 
   it('toggles to edit mode and back to view mode on cancel', async () => {
     renderPage();
     await screen.findByText('Amina Youssef');
 
-    await userEvent.click(screen.getByRole('button', { name: /Edit profile/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByLabelText('Date of birth')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));

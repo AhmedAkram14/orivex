@@ -408,7 +408,13 @@
     "unauthorized": {
       "title": "Sign in required",
       "description": "You need to sign in to access this page.",
-      "signIn": "Sign in"
+      "signIn": "Sign in",
+      "trust": {
+        "secureTitle": "Secure & Private",
+        "secureDescription": "Your data is encrypted and protected",
+        "trustedTitle": "Trusted by Doctors",
+        "trustedDescription": "Join thousands of healthcare professionals"
+      }
     },
     "forbidden": {
       "title": "Access restricted",
@@ -1156,8 +1162,18 @@
     },
     "profile": {
       "title": "Profile",
+      "subtitle": "Manage your personal information and health details.",
       "editProfile": "Edit profile",
+      "edit": "Edit",
+      "tabs": {
+        "personalInfo": "Personal Info",
+        "emergencyContacts": "Emergency Contacts",
+        "insurance": "Insurance",
+        "settings": "Settings"
+      },
       "personalInformation": "Personal information",
+      "dateOfBirth": "Date of birth",
+      "ageYearsOld": "{age} years old",
       "phone": "Phone",
       "gender": "Gender",
       "genderOptions": {
@@ -1197,9 +1213,15 @@
       "insuranceProviderPlaceholder": "Select an insurance provider",
       "insuranceUnavailableTitle": "No insurance provider on record",
       "insuranceUnavailableDescription": "Add an insurance provider from Edit profile.",
+      "insuranceSelfPay": "Self-pay / No Insurance",
+      "insuranceEmptyBody": "You have not added any insurance information. Add insurance details to make your appointments and visits easier.",
+      "addInsurance": "Add Insurance",
       "settings": "Settings",
       "settingsComingSoonTitle": "More settings coming soon",
       "settingsComingSoonDescription": "Notification and privacy preferences will appear here in a future update.",
+      "learnMore": "Learn more",
+      "privacyTitle": "Your health, your privacy",
+      "privacyDescription": "We are committed to keeping your information secure and private.",
       "save": "Save",
       "cancel": "Cancel",
       "loadError": "Couldn't load your profile.",
