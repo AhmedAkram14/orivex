@@ -8,7 +8,11 @@
       "en": "English",
       "ar": "العربية"
     },
-    "backToTop": "العودة إلى الأعلى"
+    "backToTop": "العودة إلى الأعلى",
+    "appLoading": {
+      "title": "نجهّز تجربتك الصحية",
+      "subtitle": "لحظة من فضلك..."
+    }
   },
   "landing": {
     "nav": {
@@ -1144,6 +1148,9 @@
       "description": "ابحث عن طبيب حسب التخصص واحجز موعدًا عندما تكون جاهزًا.",
       "searchLabel": "البحث حسب التخصص",
       "searchPlaceholder": "ابحث حسب التخصص...",
+      "allSpecialties": "جميع التخصصات",
+      "allLocations": "جميع المواقع",
+      "filters": "عوامل التصفية",
       "loadError": "تعذّر تحميل دليل الأطباء.",
       "emptyTitle": "لا يوجد أطباء",
       "emptyDescription": "جرّب تخصصًا آخر أو تحقق لاحقًا.",
@@ -1152,7 +1159,10 @@
       "profileTitle": "الملف الشخصي للطبيب",
       "profileNotFoundTitle": "لم يتم العثور على ملف الطبيب",
       "profileNotFoundDescription": "ربما تمت إزالة ملف الطبيب هذا.",
-      "bookAppointment": "حجز موعد"
+      "viewProfile": "عرض الملف الشخصي",
+      "bookAppointment": "حجز موعد",
+      "privacyTitle": "صحتك، خصوصيتك",
+      "privacyDescription": "نحن ملتزمون بالحفاظ على أمان معلوماتك وخصوصيتها."
     },
     "specialties": {
       "title": "تصفح التخصصات",

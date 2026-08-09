@@ -8,7 +8,11 @@
       "en": "English",
       "ar": "Arabic"
     },
-    "backToTop": "Back to top"
+    "backToTop": "Back to top",
+    "appLoading": {
+      "title": "Preparing your healthcare experience",
+      "subtitle": "Just a moment..."
+    }
   },
   "landing": {
     "nav": {
@@ -1144,6 +1148,9 @@
       "description": "Find a doctor by specialty and book an appointment when you're ready.",
       "searchLabel": "Search by specialty",
       "searchPlaceholder": "Search by specialty...",
+      "allSpecialties": "All Specialties",
+      "allLocations": "All Locations",
+      "filters": "Filters",
       "loadError": "Couldn't load the doctor directory.",
       "emptyTitle": "No doctors found",
       "emptyDescription": "Try a different specialty or check back later.",
@@ -1152,7 +1159,10 @@
       "profileTitle": "Doctor Profile",
       "profileNotFoundTitle": "Doctor profile not found",
       "profileNotFoundDescription": "This doctor profile may have been removed.",
-      "bookAppointment": "Book appointment"
+      "viewProfile": "View Profile",
+      "bookAppointment": "Book appointment",
+      "privacyTitle": "Your health, your privacy",
+      "privacyDescription": "We are committed to keeping your information secure and private."
     },
     "specialties": {
       "title": "Browse Specialties",

@@ -34,6 +34,37 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-decelerate: cubic-bezier(0, 0, 0, 1);
   --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
+  /* AppLoadingScreen's own two decorative loops (brand glow + traveling
+     loading bar) — kept as named tokens rather than inline Tailwind
+     arbitrary values so both consumers (component + its
+     prefers-reduced-motion override below) reference the same names. */
+  --animate-glow-pulse: glow-pulse 3.2s var(--ease-standard) infinite;
+  --animate-loading-bar: loading-bar 1.3s var(--ease-standard) infinite;
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes loading-bar {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scaleY(0.55);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 
 :root {
@@ -76,5 +107,10 @@
     --duration-fast: 0ms;
     --duration-base: 0ms;
     --duration-slow: 0ms;
+  }
+
+  .animate-glow-pulse,
+  .animate-loading-bar {
+    animation: none;
   }
 }

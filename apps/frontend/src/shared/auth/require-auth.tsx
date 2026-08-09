@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/shared/auth/auth-context';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
-import { LoadingState } from '@/shared/ui/loading-state';
+import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
 
 export interface RequireAuthProps {
   children: ReactNode;
@@ -39,7 +39,7 @@ export function RequireAuth({ children, redirectTo }: RequireAuthProps) {
   }, [status, redirectTo, router, pathname, searchParams]);
 
   if (status !== 'authenticated') {
-    return <LoadingState label="Checking your session" />;
+    return <AppLoadingScreen />;
   }
 
   return children;

@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/shared/auth/auth-context';
 import { useRouter } from '@/shared/i18n/navigation';
-import { LoadingState } from '@/shared/ui/loading-state';
+import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
 
 /**
  * Guest Routes — login, register, forgot/reset password, verify/check
@@ -24,7 +24,7 @@ export default function GuestLayout({ children }: { children: ReactNode }) {
   }, [status, router]);
 
   if (status === 'authenticated') {
-    return <LoadingState />;
+    return <AppLoadingScreen />;
   }
 
   return children;

@@ -1,6 +1,6 @@
-import { LoadingState } from '@/shared/ui/loading-state';
+import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
 
-/** Next.js's automatic Suspense boundary for this segment — shown during route navigation, built on Phase 1's LoadingState rather than a bespoke spinner. */
+/** Next.js's automatic Suspense boundary for this segment — shown during route navigation, before any layout chrome has mounted, so it gets the full-viewport branded splash rather than the in-shell `LoadingState`. */
 export default function Loading() {
-  return <LoadingState />;
+  return <AppLoadingScreen />;
 }
