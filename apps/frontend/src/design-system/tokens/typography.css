@@ -1,22 +1,18 @@
 /*
  * Typography tokens.
  *
- * Latin still uses a cross-platform system-font stack — no vendor/licensing
- * decision has been made for it yet (roadmap Section 1.2 pattern: don't pick
- * a vendor from inside a token file). Arabic now commits to Noto Naskh
- * Arabic, self-hosted via `next/font/google` in `[locale]/layout.tsx` (see
- * `--font-noto-naskh-arabic`, set there as a CSS variable) — the system
- * fonts that used to be first choice stay as the fallback for the brief
- * window before the webfont loads, or if it fails to load at all. Swapping
- * either script's typeface later is a one-line change here, not a component
- * rewrite, since every typography primitive consumes `--font-sans-latin` /
- * `--font-sans-arabic`, never a hardcoded family name.
+ * Font families use cross-platform system-font stacks for both scripts
+ * rather than an external webfont — no vendor/licensing decision has been
+ * made yet (roadmap Section 1.2 pattern: don't pick a vendor from inside a
+ * token file). Swapping to a brand typeface later is a one-line change here,
+ * not a component rewrite, since every typography primitive consumes
+ * `--font-sans-latin` / `--font-sans-arabic`, never a hardcoded family name.
  */
 
 :root {
   --font-sans-latin:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-sans-arabic: var(--font-noto-naskh-arabic), 'Segoe UI', Tahoma, 'Geeza Pro', sans-serif;
+  --font-sans-arabic: 'Segoe UI', Tahoma, 'Geeza Pro', 'Noto Naskh Arabic', sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', monospace;
 }
