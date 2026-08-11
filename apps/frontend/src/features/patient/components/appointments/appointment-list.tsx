@@ -13,10 +13,12 @@ export interface AppointmentListProps {
   appointments: Appointment[];
   emptyTitle: string;
   emptyDescription: string;
+  /** The `?consultationSessionId=` a "Consultation completed" notification deep-links with -- the matching completed appointment's `ConsultationOutcomeAction` auto-opens its summary dialog on mount. Undefined for a normal page visit. */
+  autoOpenConsultationSessionId?: string;
 }
 
 /** Renders a list of `AppointmentCard`s from real `Appointment` data — the shared rendering both the Upcoming and History tabs use, so formatting/translation logic lives in exactly one place. */
-export function AppointmentList({ appointments, emptyTitle, emptyDescription }: AppointmentListProps) {
+export function AppointmentList({ appointments, emptyTitle, emptyDescription, autoOpenConsultationSessionId }: AppointmentListProps) {
   const tStatus = useTranslations('patient.appointments.status');
   const tConsultationType = useTranslations('patient.appointments.consultationType');
   const format = useFormatter();
@@ -55,7 +57,10 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription }: 
               ) : appointment.status === 'confirmed' && appointment.consultationSessionId ? (
                 <JoinCallAction consultationSessionId={appointment.consultationSessionId} />
               ) : appointment.status === 'completed' && appointment.consultationSessionId ? (
-                <ConsultationOutcomeAction consultationSessionId={appointment.consultationSessionId} />
+                <ConsultationOutcomeAction
+                  consultationSessionId={appointment.consultationSessionId}
+                  autoOpen={appointment.consultationSessionId === autoOpenConsultationSessionId}
+                />
               ) : undefined
             }
           />

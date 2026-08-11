@@ -1,7 +1,7 @@
 'use client';
 
 import { Star } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useConsultationSummary } from '@/features/consultation/hooks/use-consultation-summary';
 import { RateConsultationForm } from '@/features/consultation/components/rate-consultation-form';
@@ -21,6 +21,8 @@ const RATING_DISPLAY_VALUES = [1, 2, 3, 4, 5] as const;
 
 export interface ConsultationOutcomeActionProps {
   consultationSessionId: string;
+  /** Additive, default false (every existing caller's behavior is unchanged) -- opens the dialog immediately on mount, for the "Consultation completed" notification's deep link (`?consultationSessionId=`) landing a patient straight on this specific summary instead of the bare appointments list. */
+  autoOpen?: boolean;
 }
 
 function formatDuration(startedAt: string | null, closedAt: string | null): string | null {
@@ -83,13 +85,19 @@ function SubmittedRatingView({ feedback, onEdit, consultationSessionId, doctorPr
  * GET /patients/me/medical-records, so there's no boundary being crossed
  * here (see GetConsultationSummaryUseCase's own comment).
  */
-export function ConsultationOutcomeAction({ consultationSessionId }: ConsultationOutcomeActionProps) {
+export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = false }: ConsultationOutcomeActionProps) {
   const t = useTranslations('consultation.outcome');
   const format = useFormatter();
   const [open, setOpen] = useState(false);
   const [isEditingRating, setIsEditingRating] = useState(false);
   const { data: summary, isLoading, isError } = useConsultationSummary(open ? consultationSessionId : undefined);
   const { data: doctor } = useDoctorById(summary?.appointment.doctorId ?? '');
+
+  // Only ever reacts to `autoOpen` going true (a notification deep link) --
+  // never re-forces the dialog open again after the patient closes it.
+  useEffect(() => {
+    if (autoOpen) setOpen(true);
+  }, [autoOpen]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

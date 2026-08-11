@@ -75,7 +75,12 @@ export class NotifyConsultationCompletedHandler {
         accountId: patient.getAccountId(),
         title: 'Consultation completed',
         description,
-        actionUrl: '/patient/appointments',
+        // Deep-links straight to this specific consultation's summary
+        // dialog (real consultationSessionId, the same one AppointmentList
+        // already keys ConsultationOutcomeAction off of) rather than
+        // dropping the patient on the bare appointments list to go find it
+        // themselves.
+        actionUrl: `/patient/appointments?consultationSessionId=${event.consultationSessionId}`,
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

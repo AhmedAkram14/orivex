@@ -157,7 +157,7 @@ function buildHandler(props: {
 }
 
 describe('NotifyConsultationCompletedHandler', () => {
-  it("notifies the patient's own account with a link to their appointments, where they can rate the visit", async () => {
+  it("notifies the patient's own account with a deep link to this consultation's summary dialog, where they can rate the visit", async () => {
     const { appointment, session } = buildCompletedSession();
     const patient = PatientProfile.reconstitute({
       id: appointment.getPatientId(),
@@ -175,7 +175,7 @@ describe('NotifyConsultationCompletedHandler', () => {
     const notification = notificationRepo.saved[0];
     assert.equal(notification.getAccountId(), patient.getAccountId());
     assert.equal(notification.getTitle(), 'Consultation completed');
-    assert.equal(notification.getActionUrl(), '/patient/appointments');
+    assert.equal(notification.getActionUrl(), `/patient/appointments?consultationSessionId=${session.getId()}`);
     assert.equal(logger.errors.length, 0);
   });
 

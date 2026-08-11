@@ -57,6 +57,17 @@ describe('ConsultationOutcomeAction', () => {
     expect(screen.getByText('Rate your consultation')).toBeInTheDocument();
   });
 
+  it('opens the dialog immediately when autoOpen is true, without a click -- the "Consultation completed" notification deep link', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/consultations/:id/summary`, () => HttpResponse.json({ data: completedSummary() })),
+    );
+
+    renderWithProviders(<ConsultationOutcomeAction consultationSessionId={SESSION_ID} autoOpen />);
+
+    expect(await screen.findByText('Dr. Sarah Ahmed')).toBeInTheDocument();
+    expect(screen.getByText('Consultation summary')).toBeInTheDocument();
+  });
+
   it('shows the already-submitted rating instead of the form once feedback exists', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}/consultations/:id/summary`, () =>
