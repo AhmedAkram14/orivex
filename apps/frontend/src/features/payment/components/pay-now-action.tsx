@@ -8,7 +8,7 @@ import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 
 export interface PayNowActionProps {
-  consultationSessionId: string;
+  appointmentId: string;
   amount: Money;
 }
 
@@ -19,7 +19,7 @@ export interface PayNowActionProps {
  * charge succeeds (the appointment list refetches via the same
  * cache-invalidation `useInitiateCharge` already wires up).
  */
-export function PayNowAction({ consultationSessionId, amount }: PayNowActionProps) {
+export function PayNowAction({ appointmentId, amount }: PayNowActionProps) {
   const t = useTranslations('payment');
   const [open, setOpen] = useState(false);
 
@@ -32,7 +32,7 @@ export function PayNowAction({ consultationSessionId, amount }: PayNowActionProp
         <DialogHeader>
           <DialogTitle>{t('formLabel')}</DialogTitle>
         </DialogHeader>
-        <PayNowForm consultationSessionId={consultationSessionId} amount={amount} onPaid={() => setOpen(false)} />
+        <PayNowForm appointmentId={appointmentId} amount={amount} onPaid={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );

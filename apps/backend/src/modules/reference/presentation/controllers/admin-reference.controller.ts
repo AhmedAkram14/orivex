@@ -68,7 +68,7 @@ export class AdminReferenceController {
   ): Promise<ResponseEnvelope<MedicalSpecialtyResponseDto>> {
     try {
       const specialty = await this.createMedicalSpecialtyUseCase.execute(
-        new CreateMedicalSpecialtyCommand({ name: body.name }),
+        new CreateMedicalSpecialtyCommand({ name: body.name, nameAr: body.nameAr }),
       );
       return envelope(MedicalSpecialtyResponseDto.fromDomain(specialty));
     } catch (error) {
@@ -83,7 +83,12 @@ export class AdminReferenceController {
   ): Promise<ResponseEnvelope<MedicalSpecialtyResponseDto>> {
     try {
       const specialty = await this.updateMedicalSpecialtyUseCase.execute(
-        new UpdateMedicalSpecialtyCommand({ medicalSpecialtyId: id, name: body.name, isActive: body.isActive }),
+        new UpdateMedicalSpecialtyCommand({
+          medicalSpecialtyId: id,
+          name: body.name,
+          nameAr: body.nameAr,
+          isActive: body.isActive,
+        }),
       );
       return envelope(MedicalSpecialtyResponseDto.fromDomain(specialty));
     } catch (error) {

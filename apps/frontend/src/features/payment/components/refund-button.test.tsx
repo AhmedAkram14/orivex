@@ -18,6 +18,7 @@ describe('RefundButton', () => {
   it('refunds the payment and shows a success alert', async () => {
     seedTransaction({
       id: 'payment-1',
+      appointmentId: 'appointment-1',
       consultationSessionId: null,
       amount: { amount: 500, currency: 'EGP' },
       status: 'succeeded',

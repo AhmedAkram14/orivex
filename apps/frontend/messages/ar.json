@@ -776,6 +776,7 @@
       "monthTab": "شهر",
       "dayTab": "يوم",
       "agendaTab": "جدول الأعمال",
+      "upcomingSlotsTab": "المواعيد القادمة",
       "workingHoursTitle": "الأوقات المتاحة",
       "editWorkingHours": "تعديل الأوقات المتاحة",
       "timeOffTitle": "الإجازات",
@@ -805,7 +806,27 @@
       "quickActionExportSchedule": "تصدير الجدول",
       "comingSoon": "قريبًا",
       "tipsTitle": "نصائح",
-      "tipsDescription": "حافظ على تحديث جدولك لمساعدة المرضى على إيجاد أوقات المواعيد المتاحة بسهولة."
+      "tipsDescription": "حافظ على تحديث جدولك لمساعدة المرضى على إيجاد أوقات المواعيد المتاحة بسهولة.",
+      "upcomingSlots": {
+        "today": "اليوم",
+        "free": "مجاني",
+        "loadError": "تعذّر تحميل مواعيدك القادمة.",
+        "emptyTitle": "لا توجد مواعيد قادمة",
+        "emptyDescription": "ستظهر هنا الأوقات المُنشأة من ساعات عملك بمجرد جدولتها.",
+        "edit": "تعديل السعر",
+        "editDialogTitle": "تعديل السعر — {time}",
+        "pricingTypeFree": "مجاني",
+        "pricingTypePaid": "مدفوع",
+        "feeAmountLabel": "رسوم الاستشارة",
+        "feeCurrencyLabel": "عملة الرسوم",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "status": {
+          "open": "متاح",
+          "held": "قيد الانتظار",
+          "booked": "محجوز"
+        }
+      }
     },
     "queue": {
       "title": "قائمة انتظار المرضى",
@@ -1111,6 +1132,28 @@
     "dashboard": {
       "title": "صحتي",
       "welcome": "مرحبًا بعودتك، {name}.",
+      "greeting": {
+        "morning": "صباح الخير، {name} 👋",
+        "afternoon": "مساء الخير، {name} 👋",
+        "evening": "مساء الخير، {name} 👋"
+      },
+      "welcomeSubtitle": "إليك ما يحدث بشأن صحتك اليوم.",
+      "today": "اليوم",
+      "tomorrow": "غدًا",
+      "videoConsultation": "استشارة بالفيديو",
+      "nextAppointmentEyebrow": "الموعد القادم",
+      "nextAppointmentEmptyTitle": "لا توجد مواعيد قادمة",
+      "nextAppointmentEmptyDescription": "ابحث عن طبيب واحجز استشارتك القادمة.",
+      "nextAppointmentLoadError": "تعذّر تحميل موعدك القادم.",
+      "browseDoctorsAction": "تصفح الأطباء",
+      "viewAppointmentAction": "عرض الموعد",
+      "viewAllAppointments": "عرض جميع المواعيد",
+      "viewPrescriptionsAction": "عرض الوصفات",
+      "viewDetailsAction": "عرض التفاصيل",
+      "recentMedicalRecordsTitle": "أحدث السجلات الطبية",
+      "recentMedicalRecordsEmptyTitle": "لا توجد سجلات طبية بعد",
+      "recentMedicalRecordsEmptyDescription": "ستظهر هنا الزيارات والحالات التي يسجلها فريق رعايتك.",
+      "viewAllRecords": "عرض جميع السجلات",
       "upcomingAppointments": {
         "status": {
           "upcoming": "قادم"
@@ -1133,7 +1176,18 @@
       "upcomingAppointmentsLoadError": "تعذّر تحميل مواعيدك القادمة.",
       "activePrescriptionsLoadError": "تعذّر تحميل وصفاتك النشطة.",
       "prescribedBy": "بواسطة {name}",
+      "activity": {
+        "title": "النشاط الأخير",
+        "emptyTitle": "لا يوجد نشاط حديث",
+        "emptyDescription": "ستظهر هنا إشعاراتك الأخيرة، مثل التأكيدات والوصفات الطبية.",
+        "loadError": "تعذّر تحميل النشاط الأخير."
+      },
+      "becomeADoctor": {
+        "title": "هل تريد الممارسة على أوريفكس؟",
+        "action": "كن طبيبًا"
+      },
       "quickActions": {
+        "bookAppointment": "حجز موعد",
         "viewProfile": "عرض الملف الشخصي",
         "viewAppointments": "عرض المواعيد",
         "browseDoctors": "تصفح الأطباء",
@@ -1440,12 +1494,19 @@
       "endTimeLabel": "وقت انتهاء {day}",
       "breakStartLabel": "وقت بدء الاستراحة {number}",
       "breakEndLabel": "وقت انتهاء الاستراحة {number}",
+      "defaultPricingLabel": "السعر الافتراضي للمواعيد المُنشأة من هذا الجدول",
+      "pricingTypeLabel": "سعر {day}",
+      "pricingTypeFree": "مجاني",
+      "pricingTypePaid": "مدفوع",
+      "feeAmountLabel": "رسوم استشارة {day}",
+      "feeCurrencyLabel": "عملة رسوم {day}",
       "validation": {
         "invalidTime": "أدخل وقتًا صحيحًا (س:د).",
         "endAfterStart": "يجب أن يكون وقت الانتهاء بعد وقت البدء.",
         "breakOutsideHours": "يجب أن تقع الاستراحة ضمن ساعات العمل.",
         "breaksOverlap": "لا يمكن أن تتداخل فترات الاستراحة.",
-        "tooManyBreaks": "يمكنك إضافة حتى {max} استراحات في اليوم."
+        "tooManyBreaks": "يمكنك إضافة حتى {max} استراحات في اليوم.",
+        "feeAmountRequired": "أدخل قيمة الرسوم للاستشارة المدفوعة."
       }
     },
     "timeOff": {
@@ -1476,7 +1537,17 @@
       "loadError": "تعذّر تحميل المواعيد المتاحة لهذا التاريخ.",
       "bookingFailed": "تعذّر تأكيد هذا الحجز. يرجى المحاولة مرة أخرى.",
       "noSlotsTitle": "لا توجد مواعيد متاحة في هذا التاريخ",
-      "noSlotsDescription": "جرّب تاريخًا آخر."
+      "noSlotsDescription": "جرّب تاريخًا آخر.",
+      "priceFree": "مجاني",
+      "total": "الإجمالي",
+      "slotNoLongerAvailable": "لم يعد هذا الموعد متاحًا. يرجى اختيار وقت آخر.",
+      "consultationType": {
+        "free": "استشارة مجانية",
+        "paid": "استشارة مدفوعة"
+      },
+      "paymentStepTitle": "أكمل الدفع لتأكيد حجزك",
+      "paymentStepDescription": "تم حجز موعدك. أكمل الدفع الآن لتأكيد هذا الموعد.",
+      "viewAppointments": "عرض مواعيدي"
     }
   },
   "journey": {

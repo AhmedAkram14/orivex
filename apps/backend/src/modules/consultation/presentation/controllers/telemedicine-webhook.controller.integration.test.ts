@@ -10,9 +10,14 @@ import { AccessToken } from 'livekit-server-sdk';
 
 import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions.filter.js';
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
+import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import { ConsultationCompletionReason } from '../../domain/enums/consultation-completion-reason.enum.js';
+import { ConsultationState } from '../../domain/enums/consultation-state.enum.js';
+import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
+import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
+import { GetConsultationSessionByIdUseCase } from '../../application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { RecordSessionConnectionLogUseCase } from '../../application/use-cases/record-session-connection-log/record-session-connection-log.use-case.js';
 
 import { TelemedicineWebhookController } from './telemedicine-webhook.controller.js';
@@ -36,6 +41,42 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
     this.saved.push(session);
     this.byId.set(session.getId(), session);
   }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
+}
+
+class NoopDispatcher {
+  async dispatch(): Promise<void> {}
+  subscribe(): void {}
+}
+
+class FakeAppointmentRepository implements AppointmentRepository {
+  async findById(): Promise<Appointment | null> {
+    return null;
+  }
+  async findByPatientId(): Promise<Appointment[]> {
+    return [];
+  }
+  async findByPatientIdPage(): Promise<Appointment[]> {
+    return [];
+  }
+  async countByPatientId(): Promise<number> {
+    return 0;
+  }
+  async findByDoctorId(): Promise<Appointment[]> {
+    return [];
+  }
+  async findByDoctorIdForDateRange(): Promise<Appointment[]> {
+    return [];
+  }
+  async countByDoctorIds(): Promise<Map<string, number>> {
+    return new Map();
+  }
+  async countByStatusForDoctor(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
+  async save(): Promise<void> {}
 }
 
 function signedWebhookRequest(
@@ -74,6 +115,11 @@ async function buildApp(options: {
       PinoLoggerService,
       { provide: ConfigService, useValue: configService },
       { provide: RecordSessionConnectionLogUseCase, useValue: new RecordSessionConnectionLogUseCase(repository) },
+      { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(repository) },
+      {
+        provide: CloseConsultationUseCase,
+        useValue: new CloseConsultationUseCase(repository, new FakeAppointmentRepository(), new NoopDispatcher()),
+      },
     ],
   }).compile();
 
@@ -267,6 +313,79 @@ describe('TelemedicineWebhookController (integration)', () => {
 
       assert.equal(session.getConnectionLogs().length, 0);
       assert.equal(repository.saved.length, 0);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('closes an InProgress session as Completed on room_finished', async () => {
+    const repository = new FakeConsultationSessionRepository();
+    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+    session.start();
+    repository.seed(session);
+    const { app } = await buildApp({ repository });
+    try {
+      const { body, authHeader } = signedWebhookRequest({
+        event: 'room_finished',
+        room: { name: `consultation-${session.getId()}` },
+      });
+      const response = await request(app.getHttpServer())
+        .post('/telemedicine/webhook')
+        .set('Content-Type', 'application/json')
+        .set('Authorization', await authHeader)
+        .send(body)
+        .expect(200);
+
+      assert.deepEqual(response.body, { received: true });
+      assert.equal(session.getState(), ConsultationState.Closed);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('closes a WaitingRoom session as InterruptedTechnical on room_finished', async () => {
+    const repository = new FakeConsultationSessionRepository();
+    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+    repository.seed(session);
+    const { app } = await buildApp({ repository });
+    try {
+      const { body, authHeader } = signedWebhookRequest({
+        event: 'room_finished',
+        room: { name: `consultation-${session.getId()}` },
+      });
+      await request(app.getHttpServer())
+        .post('/telemedicine/webhook')
+        .set('Content-Type', 'application/json')
+        .set('Authorization', await authHeader)
+        .send(body)
+        .expect(200);
+
+      assert.equal(session.getState(), ConsultationState.Closed);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('does not error when room_finished arrives for an already-Closed session (concurrent close)', async () => {
+    const repository = new FakeConsultationSessionRepository();
+    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+    session.start();
+    session.close(ConsultationCompletionReason.Completed);
+    repository.seed(session);
+    const { app } = await buildApp({ repository });
+    try {
+      const { body, authHeader } = signedWebhookRequest({
+        event: 'room_finished',
+        room: { name: `consultation-${session.getId()}` },
+      });
+      const response = await request(app.getHttpServer())
+        .post('/telemedicine/webhook')
+        .set('Content-Type', 'application/json')
+        .set('Authorization', await authHeader)
+        .send(body)
+        .expect(200);
+
+      assert.deepEqual(response.body, { received: true });
     } finally {
       await app.close();
     }

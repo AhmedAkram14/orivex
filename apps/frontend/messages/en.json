@@ -776,6 +776,7 @@
       "monthTab": "Month",
       "dayTab": "Day",
       "agendaTab": "Agenda",
+      "upcomingSlotsTab": "Upcoming Slots",
       "workingHoursTitle": "Available hours",
       "editWorkingHours": "Edit available hours",
       "timeOffTitle": "Time off",
@@ -805,7 +806,27 @@
       "quickActionExportSchedule": "Export Schedule",
       "comingSoon": "Soon",
       "tipsTitle": "Tips",
-      "tipsDescription": "Keep your schedule updated to help patients find available appointment times easily."
+      "tipsDescription": "Keep your schedule updated to help patients find available appointment times easily.",
+      "upcomingSlots": {
+        "today": "Today",
+        "free": "FREE",
+        "loadError": "Couldn't load your upcoming slots.",
+        "emptyTitle": "No upcoming slots",
+        "emptyDescription": "Slots generated from your working hours will appear here once you have some scheduled.",
+        "edit": "Edit pricing",
+        "editDialogTitle": "Edit pricing — {time}",
+        "pricingTypeFree": "Free",
+        "pricingTypePaid": "Paid",
+        "feeAmountLabel": "Consultation fee",
+        "feeCurrencyLabel": "Fee currency",
+        "cancel": "Cancel",
+        "save": "Save",
+        "status": {
+          "open": "Available",
+          "held": "Pending",
+          "booked": "Booked"
+        }
+      }
     },
     "queue": {
       "title": "Patient Queue",
@@ -1111,6 +1132,28 @@
     "dashboard": {
       "title": "My Health",
       "welcome": "Welcome back, {name}.",
+      "greeting": {
+        "morning": "Good morning, {name} 👋",
+        "afternoon": "Good afternoon, {name} 👋",
+        "evening": "Good evening, {name} 👋"
+      },
+      "welcomeSubtitle": "Here's what's happening with your health today.",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "videoConsultation": "Video consultation",
+      "nextAppointmentEyebrow": "Next appointment",
+      "nextAppointmentEmptyTitle": "No upcoming appointments",
+      "nextAppointmentEmptyDescription": "Find a doctor and book your next consultation.",
+      "nextAppointmentLoadError": "Couldn't load your next appointment.",
+      "browseDoctorsAction": "Browse doctors",
+      "viewAppointmentAction": "View appointment",
+      "viewAllAppointments": "View all appointments",
+      "viewPrescriptionsAction": "View prescriptions",
+      "viewDetailsAction": "View details",
+      "recentMedicalRecordsTitle": "Recent medical records",
+      "recentMedicalRecordsEmptyTitle": "No medical records yet",
+      "recentMedicalRecordsEmptyDescription": "Visits and conditions recorded by your care team will appear here.",
+      "viewAllRecords": "View all records",
       "upcomingAppointments": {
         "status": {
           "upcoming": "Upcoming"
@@ -1133,7 +1176,18 @@
       "upcomingAppointmentsLoadError": "Couldn't load your upcoming appointments.",
       "activePrescriptionsLoadError": "Couldn't load your active prescriptions.",
       "prescribedBy": "Prescribed by {name}",
+      "activity": {
+        "title": "Recent activity",
+        "emptyTitle": "No recent activity",
+        "emptyDescription": "Your recent notifications, like confirmations and prescriptions, will appear here.",
+        "loadError": "Couldn't load recent activity."
+      },
+      "becomeADoctor": {
+        "title": "Want to practice on Orivex?",
+        "action": "Become a Doctor"
+      },
       "quickActions": {
+        "bookAppointment": "Book appointment",
         "viewProfile": "View profile",
         "viewAppointments": "View appointments",
         "browseDoctors": "Browse doctors",
@@ -1440,12 +1494,19 @@
       "endTimeLabel": "{day} end time",
       "breakStartLabel": "Break {number} start time",
       "breakEndLabel": "Break {number} end time",
+      "defaultPricingLabel": "Default pricing for slots generated from this schedule",
+      "pricingTypeLabel": "{day} pricing",
+      "pricingTypeFree": "Free",
+      "pricingTypePaid": "Paid",
+      "feeAmountLabel": "{day} consultation fee",
+      "feeCurrencyLabel": "{day} fee currency",
       "validation": {
         "invalidTime": "Enter a valid time (HH:mm).",
         "endAfterStart": "End time must be after the start time.",
         "breakOutsideHours": "A break must fall within the working hours.",
         "breaksOverlap": "Breaks cannot overlap each other.",
-        "tooManyBreaks": "You can add up to {max} breaks per day."
+        "tooManyBreaks": "You can add up to {max} breaks per day.",
+        "feeAmountRequired": "Enter a fee amount for a paid consultation."
       }
     },
     "timeOff": {
@@ -1476,7 +1537,17 @@
       "loadError": "Couldn't load available times for this date.",
       "bookingFailed": "Couldn't confirm this booking. Please try again.",
       "noSlotsTitle": "No slots available on this date",
-      "noSlotsDescription": "Try another date."
+      "noSlotsDescription": "Try another date.",
+      "priceFree": "FREE",
+      "total": "Total",
+      "slotNoLongerAvailable": "This slot is no longer available. Please choose another time.",
+      "consultationType": {
+        "free": "Free consultation",
+        "paid": "Paid consultation"
+      },
+      "paymentStepTitle": "Complete payment to confirm your booking",
+      "paymentStepDescription": "Your slot is reserved. Complete payment now to confirm this appointment.",
+      "viewAppointments": "View my appointments"
     }
   },
   "journey": {

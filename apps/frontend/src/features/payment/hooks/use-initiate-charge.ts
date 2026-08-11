@@ -14,13 +14,18 @@ export interface InitiateChargeInput {
 }
 
 /**
- * A stable idempotencyKey per consultationSessionId, generated once and
- * reused across every retry of the same "click Pay" action -- a network
- * timeout retry then safely replays the original outcome instead of
- * risking a double charge (matches the backend's own idempotency-key
- * contract, InitiateChargeUseCase).
+ * A stable idempotencyKey per appointmentId, generated once and reused
+ * across every retry of the same "click Pay" action -- a network timeout
+ * retry then safely replays the original outcome instead of risking a
+ * double charge (matches the backend's own idempotency-key contract,
+ * InitiateChargeUseCase).
+ *
+ * Consultation Pricing Lifecycle Completion (pay-then-confirm): charges
+ * against the Appointment directly, not a ConsultationSession -- no session
+ * exists yet at charge time (pay-then-confirm; one is only opened once this
+ * charge succeeds).
  */
-export function useInitiateCharge(consultationSessionId: string) {
+export function useInitiateCharge(appointmentId: string) {
   const queryClient = useQueryClient();
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
 
@@ -28,7 +33,7 @@ export function useInitiateCharge(consultationSessionId: string) {
     mutationFn: (input: InitiateChargeInput) =>
       paymentApi.initiateCharge({
         idempotencyKey: idempotencyKeyRef.current,
-        consultationSessionId,
+        appointmentId,
         amount: input.amount,
         paymentMethod: input.paymentMethod,
         paymentMethodToken: input.paymentMethodToken,

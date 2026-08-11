@@ -24,17 +24,29 @@ export function getByConsultationSessionId(consultationSessionId: string): Payme
   return transactions.find((t) => t.consultationSessionId === consultationSessionId) ?? null;
 }
 
+/**
+ * Consultation Pricing Lifecycle Completion (pay-then-confirm): keyed by
+ * appointmentId, not consultationSessionId -- no session exists yet at
+ * charge time. `consultationSessionId` is set separately, mirroring the
+ * real backend's `attachConsultationSessionId()` once confirmation opens
+ * one (see `handlers/payment.ts`'s call into `confirmAppointmentAfterPayment`).
+ */
 export function createCharge(request: InitiateChargeRequest): PaymentTransaction {
   counter += 1;
   const transaction: PaymentTransaction = {
     id: `payment-mock-${counter}`,
-    consultationSessionId: request.consultationSessionId,
+    appointmentId: request.appointmentId,
+    consultationSessionId: null,
     amount: request.amount,
     status: 'succeeded',
     createdAt: new Date().toISOString(),
   };
   transactions = [...transactions, transaction];
   return transaction;
+}
+
+export function attachConsultationSessionId(paymentTransactionId: string, consultationSessionId: string): void {
+  transactions = transactions.map((t) => (t.id === paymentTransactionId ? { ...t, consultationSessionId } : t));
 }
 
 export type RefundResult =

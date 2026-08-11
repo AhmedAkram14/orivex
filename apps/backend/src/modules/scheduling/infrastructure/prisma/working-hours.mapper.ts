@@ -2,6 +2,7 @@ import type { Prisma, WorkingHoursDay as PrismaWorkingHoursDayRow } from '@prism
 
 import { WorkingHoursDay, type TimeRangeProps } from '../../domain/entities/working-hours-day.entity.js';
 
+import { toDomainConsultationPricing, toPersistedConsultationPricing } from './consultation-pricing.mapper.js';
 import { toDomainWeekDay, toPrismaWeekDay } from './week-day.mapper.js';
 
 function parseBreaks(value: unknown): TimeRangeProps[] {
@@ -26,6 +27,7 @@ export function toDomainWorkingHoursDay(row: PrismaWorkingHoursDayRow): WorkingH
     isWorkingDay: row.isWorkingDay,
     hours: { start: row.startTime, end: row.endTime },
     breaks: parseBreaks(row.breaks),
+    pricing: toDomainConsultationPricing(row),
     updatedAt: row.updatedAt,
   });
 }
@@ -43,5 +45,6 @@ export function toPersistedWorkingHoursDay(day: WorkingHoursDay) {
     // (Prisma's type only rejects it because it can't statically prove the
     // array elements are JSON-safe; TimeRangeProps always is).
     breaks: day.getBreaks() as unknown as Prisma.InputJsonValue,
+    ...toPersistedConsultationPricing(day.getPricing()),
   };
 }

@@ -1,10 +1,13 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/shared/test/render-with-providers';
+import { PATIENT_PATHS } from '@/features/patient/api/paths';
+import { env } from '@/shared/lib/env';
 import { server } from '@/mocks/server';
 import { setPatientVerified } from '@/mocks/patient-store';
-import { addDoctorException, resetSchedulingStore } from '@/mocks/scheduling-store';
+import { addDoctorException, getDoctorAvailability, resetSchedulingStore, updateDoctorAvailability } from '@/mocks/scheduling-store';
 
 import { BookingFlow } from './booking-flow';
 
@@ -43,6 +46,16 @@ function findSlotButton() {
     .find((button) => !excludedNames.includes(button.getAttribute('aria-label') ?? button.textContent ?? ''));
 }
 
+/** Forces every working day's default pricing to Free -- the seeded demo doctor otherwise defaults to Paid (500 EGP), which the Paid-path tests rely on. */
+function makeAllDaysFree(): void {
+  updateDoctorAvailability(
+    getDoctorAvailability().map((day) => ({
+      ...day,
+      pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null },
+    })),
+  );
+}
+
 describe('BookingFlow', () => {
   // Onboarding Redesign integration-gap closure (2026-07-25): every slot
   // rendered here comes from the real, MSW-backed
@@ -52,7 +65,12 @@ describe('BookingFlow', () => {
   // least one bookable slot regardless of which real weekday this suite
   // happens to run on, without faking the system clock (which would also
   // have to fool MSW's own async request handling).
-  it('books a real slot end to end and redirects to Patient Appointments', async () => {
+  // A Free booking still has nothing to wait on after confirming (no doctor
+  // approval step blocks the redirect, no payment step) -- forces Free
+  // pricing since the seeded demo doctor otherwise defaults to Paid, which
+  // the dedicated Paid-path test below covers instead.
+  it('books a real Free slot end to end and redirects to Patient Appointments', async () => {
+    makeAllDaysFree();
     addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
     setPatientVerified(true);
     renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
@@ -68,6 +86,31 @@ describe('BookingFlow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
 
     await vi.waitFor(() => expect(pushMock).toHaveBeenCalledWith('/en/patient/appointments'));
+  });
+
+  // Consultation Pricing Lifecycle Completion (pay-then-confirm): a Paid
+  // booking must NOT redirect immediately after confirming -- it lands
+  // Requested, unconfirmed, and the patient must pay before the appointment
+  // becomes usable. This asserts the inline payment step blocks the
+  // redirect (Stripe itself isn't mocked in this file, so the form's own
+  // honest "not configured" fallback renders -- proving the gate is real
+  // without needing a full Stripe mock just to prove no premature redirect
+  // happened).
+  it("shows the inline payment step for a Paid slot instead of redirecting immediately", async () => {
+    addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
+    setPatientVerified(true);
+    renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
+
+    const slotButton = await vi.waitFor(() => {
+      const slot = findSlotButton();
+      if (!slot) throw new Error('no slot yet');
+      return slot;
+    });
+    await userEvent.click(slotButton);
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
+
+    expect(await screen.findByText('Complete payment to confirm your booking')).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it('shows the identity-verification gate instead of confirming when the patient is unverified', async () => {
@@ -96,5 +139,60 @@ describe('BookingFlow', () => {
     expect(await screen.findByText('No slots available on this date')).toBeInTheDocument();
     expect(screen.getByText('Try another date.')).toBeInTheDocument();
     expect(findSlotButton()).toBeUndefined();
+  });
+
+  // Consultation Pricing Redesign: the backend is the sole source of truth
+  // for a slot's price -- this asserts the real (mocked) price/consultation
+  // type the backend returned actually reaches the screen, both on the slot
+  // grid itself and again on the confirmation summary, never a
+  // frontend-computed guess.
+  it("shows the slot's real backend-supplied price on the grid and again on the confirmation summary", async () => {
+    addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
+    setPatientVerified(true);
+    renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
+
+    const slotButton = await vi.waitFor(() => {
+      const slot = findSlotButton();
+      if (!slot) throw new Error('no slot yet');
+      return slot;
+    });
+    // The seeded demo doctor's working days default to a real Paid price
+    // (500 EGP) -- the grid cell shows it directly, not hidden behind hover.
+    expect(slotButton.textContent).toMatch(/EGP|FREE/);
+    await userEvent.click(slotButton);
+
+    expect(await screen.findByText('Total')).toBeInTheDocument();
+    expect(screen.getByText(/Paid consultation|Free consultation/)).toBeInTheDocument();
+  });
+
+  // Requirement: a slot that became unavailable between the patient viewing
+  // it and confirming (someone else booked it first, a real 409 conflict)
+  // must never silently succeed or crash -- it shows an honest message and
+  // lets the patient go back to a freshly refetched grid, never retrying
+  // against the same stale slot.
+  it('shows a friendly message and offers to go back when the selected slot was booked by someone else first', async () => {
+    addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
+    setPatientVerified(true);
+    server.use(
+      http.post(`${env.apiBaseUrl}${PATIENT_PATHS.createAppointment}`, () =>
+        HttpResponse.json(
+          { error: { code: 'CONFLICT', message: 'no longer available', requestId: 'test', timestamp: new Date().toISOString() } },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
+
+    const slotButton = await vi.waitFor(() => {
+      const slot = findSlotButton();
+      if (!slot) throw new Error('no slot yet');
+      return slot;
+    });
+    await userEvent.click(slotButton);
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
+
+    expect(await screen.findByText('This slot is no longer available. Please choose another time.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm booking' })).not.toBeInTheDocument();
   });
 });

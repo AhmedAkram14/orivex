@@ -10,6 +10,7 @@ import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
+import { toConsultationModulePricing } from '../../mappers/to-consultation-pricing.js';
 
 import type { BookAppointmentCommand } from './book-appointment.command.js';
 
@@ -62,19 +63,19 @@ export class BookAppointmentUseCase {
     if (window.getDoctorId() !== command.doctorId) {
       throw new ConsultationDomainError('This availability window does not belong to the requested doctor.');
     }
-    if ((window.getConsultationType() as string) !== (command.consultationType as string)) {
-      throw new ConsultationDomainError(
-        "This availability window's offered consultation type does not match the request.",
-      );
-    }
 
     await this.reserveSlotUseCase.execute(new ReserveSlotCommand({ availabilityWindowId: command.availabilityWindowId }));
 
+    // Consultation Pricing Redesign: the window's own pricing is snapshotted
+    // onto the Appointment here, at booking time -- the one and only moment
+    // it's copied. A later reprice of the window (impossible anyway once
+    // Held, but still) can never retroactively change what this specific
+    // appointment was agreed to cost.
     const appointment = Appointment.request({
       patientId: command.patientId,
       doctorId: command.doctorId,
       availabilityWindowId: command.availabilityWindowId,
-      consultationType: command.consultationType,
+      pricing: toConsultationModulePricing(window.getPricing()),
       scheduledAt: window.getStartTime(),
       reasonForVisit: command.reasonForVisit,
     });

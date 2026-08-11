@@ -8,6 +8,12 @@ export class UpdateMedicalSpecialtyRequestDto {
   name?: string;
 
   @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  nameAr?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }

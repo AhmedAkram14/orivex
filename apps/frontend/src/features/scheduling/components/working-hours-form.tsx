@@ -11,6 +11,7 @@ import { ApiError } from '@/shared/lib/api/client';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { FilterTabs } from '@/shared/ui/filter-tabs';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
@@ -75,6 +76,80 @@ function DayBreaks({ control, dayIndex }: { control: Control<WorkingHoursFormVal
   );
 }
 
+/**
+ * Consultation Pricing Redesign: this weekday's default price -- every
+ * `AvailabilityWindow` generated from it inherits this unless the doctor
+ * later overrides one individually (Upcoming Slots). Free/Paid is a
+ * `FilterTabs` (not a `Switch`, unlike the working-day toggle) since these
+ * are two named choices, not an on/off state.
+ */
+function DayPricing({ control, dayIndex, dayOfWeek }: { control: Control<WorkingHoursFormValues>; dayIndex: number; dayOfWeek: string }) {
+  const t = useTranslations('scheduling.availability');
+  const tDay = useTranslations('scheduling.weekDays');
+  const pricingType = useWatch({ control, name: `days.${dayIndex}.pricing.pricingType` });
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border-default pt-3">
+      <p className="text-xs font-medium text-text-tertiary">{t('defaultPricingLabel')}</p>
+      <FormField
+        control={control}
+        name={`days.${dayIndex}.pricing.pricingType`}
+        render={({ field }) => (
+          <FilterTabs
+            value={field.value}
+            onChange={field.onChange}
+            options={[
+              { value: 'free', label: t('pricingTypeFree') },
+              { value: 'paid', label: t('pricingTypePaid') },
+            ]}
+          />
+        )}
+      />
+      {pricingType === 'paid' && (
+        <div className="flex items-center gap-2">
+          <FormField
+            control={control}
+            name={`days.${dayIndex}.pricing.feeAmount`}
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    aria-label={t('feeAmountLabel', { day: tDay(dayOfWeek) })}
+                    value={field.value ?? ''}
+                    onChange={(event) => field.onChange(event.target.value === '' ? null : Number(event.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={control}
+            name={`days.${dayIndex}.pricing.feeCurrency`}
+            render={({ field }) => (
+              <FormItem className="w-24">
+                <FormControl>
+                  <Input
+                    type="text"
+                    maxLength={3}
+                    aria-label={t('feeCurrencyLabel', { day: tDay(dayOfWeek) })}
+                    value={field.value ?? ''}
+                    onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DayRow({
   control,
   dayIndex,
@@ -135,6 +210,7 @@ function DayRow({
               )}
             />
           </div>
+          <DayPricing control={control} dayIndex={dayIndex} dayOfWeek={dayOfWeek} />
           <DayBreaks control={control} dayIndex={dayIndex} />
         </>
       )}
@@ -161,7 +237,18 @@ export function WorkingHoursForm({ schedule, onSaved }: WorkingHoursFormProps) {
 
   async function onSubmit(values: WorkingHoursFormValues) {
     try {
-      await updateAvailability.mutateAsync(values.days as RecurringWeeklySchedule);
+      // A day switched from Paid back to Free only hides its fee inputs --
+      // their stale RHF values aren't cleared automatically. Normalize here
+      // so the wire payload is never internally inconsistent (Free with a
+      // leftover fee), matching `SlotPricingDialog`'s own submit shape.
+      const days: RecurringWeeklySchedule = values.days.map((day) => ({
+        ...day,
+        pricing:
+          day.pricing.pricingType === 'free'
+            ? { pricingType: 'free', feeAmount: null, feeCurrency: null }
+            : day.pricing,
+      })) as RecurringWeeklySchedule;
+      await updateAvailability.mutateAsync(days);
       onSaved();
     } catch {
       // Inline error rendered below from `updateAvailability.error`.

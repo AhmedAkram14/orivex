@@ -4,6 +4,7 @@ import type { PublicDirectoryQueryPort } from '../../ports/public-directory-quer
 export interface PublicSpecialty {
   id: string;
   name: string;
+  nameAr?: string;
   doctorCount: number;
 }
 
@@ -30,6 +31,7 @@ export class ListPublicSpecialtiesUseCase {
       .map((specialty) => ({
         id: specialty.getId(),
         name: specialty.getName(),
+        nameAr: specialty.getNameAr(),
         doctorCount: countBySpecialtyId.get(specialty.getId()) ?? 0,
       }))
       .sort((a, b) => b.doctorCount - a.doctorCount);

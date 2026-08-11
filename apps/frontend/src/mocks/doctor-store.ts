@@ -62,9 +62,28 @@ const SEEDED_PATIENT_NAMES = [
   'Tarek Youssef',
 ] as const;
 
-/** Minutes offset from "now" at seed time -> an ISO timestamp, same calendar day for any reasonable business-hours run. */
+/**
+ * Minutes offset from "now" at seed time -> an ISO timestamp. Snapped onto
+ * today's actual calendar date whenever the raw offset would have wrapped
+ * across a midnight boundary (e.g. "3 hours ago" computed at 01:00 lands on
+ * *yesterday* otherwise) -- `TodaysSchedule`'s real same-calendar-day filter
+ * would silently drop that item, which is exactly what happened: this seed
+ * flaked right around midnight before this guard existed. Keeps the same
+ * time-of-day, just forces the date part onto today, so every seeded item
+ * survives the real "today" filter no matter what wall-clock time the dev
+ * server or test suite actually runs at.
+ */
 function offsetFromNow(minutes: number): string {
-  return new Date(Date.now() + minutes * 60_000).toISOString();
+  const target = new Date(Date.now() + minutes * 60_000);
+  const now = new Date();
+  if (
+    target.getFullYear() !== now.getFullYear() ||
+    target.getMonth() !== now.getMonth() ||
+    target.getDate() !== now.getDate()
+  ) {
+    target.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
+  }
+  return target.toISOString();
 }
 
 function seedSummary(): DoctorDashboardSummary {

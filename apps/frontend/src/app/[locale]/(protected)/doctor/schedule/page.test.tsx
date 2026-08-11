@@ -109,6 +109,21 @@ describe('DoctorSchedulePage', () => {
     expect(mondayRow).toHaveTextContent('Not available');
   });
 
+  it("shows each working day's default price in the read-only summary, and reflects a saved pricing change", async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    // The seeded demo doctor's working days default to Paid 500 EGP.
+    expect(screen.getAllByText(/EGP/).length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit available hours' }));
+    const freeTabs = screen.getAllByRole('tab', { name: 'Free' });
+    await userEvent.click(freeTabs[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByText('FREE')).toBeInTheDocument();
+  });
+
   it('renders the honest-empty time-off manager', async () => {
     renderPage();
     expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();

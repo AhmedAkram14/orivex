@@ -5,3 +5,4 @@ export const doctorAvailabilityKeys = createQueryKeyFactory('scheduling-doctor-a
 export const doctorExceptionsKeys = createQueryKeyFactory('scheduling-doctor-exceptions');
 export const holidaysKeys = createQueryKeyFactory('scheduling-holidays');
 export const availabilityWindowsKeys = createQueryKeyFactory('scheduling-availability-windows');
+export const upcomingSlotsKeys = createQueryKeyFactory('scheduling-upcoming-slots');

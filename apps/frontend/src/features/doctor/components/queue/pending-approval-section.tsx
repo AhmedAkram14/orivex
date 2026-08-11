@@ -12,11 +12,14 @@ import { Section } from '@/shared/ui/layout/section';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 /**
- * Doctor-approval-workflow fix: every booking (Free or Paid) now lands
- * Requested and waits here until the doctor approves it -- this is the
- * doctor's own cue (also notified via NotifyDoctorOfAppointmentRequestedHandler)
- * that someone new is waiting, and the single place they act on it. Approving
- * moves the appointment into the real Patient Queue below (Confirmed +
+ * Consultation Pricing Lifecycle Completion (pay-then-confirm): only Free
+ * bookings land here -- a Paid booking confirms automatically once the
+ * patient's payment succeeds, never waiting on doctor approval at all (the
+ * backend's own `getPendingApproval` filters Paid appointments out
+ * entirely). This is the doctor's own cue (also notified via
+ * NotifyDoctorOfAppointmentRequestedHandler) that a Free booking is
+ * waiting, and the single place they act on it. Approving moves the
+ * appointment into the real Patient Queue below (Confirmed +
  * ConsultationSession opened), it never appears in both lists at once.
  */
 export function PendingApprovalSection() {

@@ -7,14 +7,25 @@ export function createWorkingHoursSchema(t: (key: string, values?: Record<string
   const timeOfDay = z.string().regex(TIME_PATTERN, t('invalidTime'));
   const timeRange = z.object({ start: timeOfDay, end: timeOfDay });
 
+  const pricing = z.object({
+    pricingType: z.enum(['free', 'paid']),
+    feeAmount: z.number().nullable().optional(),
+    feeCurrency: z.string().nullable().optional(),
+  });
+
   const day = z
     .object({
       dayOfWeek: z.enum(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']),
       isWorkingDay: z.boolean(),
       hours: timeRange,
       breaks: z.array(timeRange).max(5, t('tooManyBreaks', { max: 5 })),
+      pricing,
     })
     .superRefine((value, ctx) => {
+      if (value.pricing.pricingType === 'paid' && !(typeof value.pricing.feeAmount === 'number' && value.pricing.feeAmount > 0)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: t('feeAmountRequired'), path: ['pricing', 'feeAmount'] });
+      }
+
       if (!value.isWorkingDay) return;
 
       if (value.hours.start >= value.hours.end) {

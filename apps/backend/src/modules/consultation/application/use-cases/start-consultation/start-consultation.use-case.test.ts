@@ -21,6 +21,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
   async save(session: ConsultationSession): Promise<void> {
     this.saved.push(session);
   }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 class NoopDispatcher {

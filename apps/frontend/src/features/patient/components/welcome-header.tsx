@@ -1,18 +1,27 @@
 'use client';
 
+import { CalendarDays } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useAuth } from '@/shared/auth/auth-context';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { Card, CardContent } from '@/shared/ui/card';
+import { Icon } from '@/shared/icons/icon';
 
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
+function firstNameOf(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] ?? fullName;
 }
 
-/** The Patient Portal's greeting banner — avatar, name, and today's date. Reads the session directly (`useAuth`) rather than accepting a `user` prop, since it only ever renders inside the authenticated Patient Portal. Mirrors the Doctor Workspace's `WelcomeHeader` exactly. */
+function greetingPeriod(hour: number): 'morning' | 'afternoon' | 'evening' {
+  if (hour < 12) return 'morning';
+  if (hour < 18) return 'afternoon';
+  return 'evening';
+}
+
+/**
+ * The Patient Portal's compact greeting bar — a time-of-day greeting, a
+ * one-line subtitle, and today's date. Deliberately not a `Card` (no
+ * avatar, no border, no padding box): the redesigned dashboard's hierarchy
+ * reserves that visual weight for the Next Appointment hero below, so this
+ * only has to establish context in as little vertical space as possible.
+ */
 export function WelcomeHeader() {
   const t = useTranslations('patient.dashboard');
   const format = useFormatter();
@@ -20,19 +29,18 @@ export function WelcomeHeader() {
 
   if (!user) return null;
 
+  const now = new Date();
+
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 p-6">
-        <Avatar size="lg">
-          <AvatarFallback>{initialsFor(user.fullName)}</AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col gap-1">
-          <p className="text-lg font-semibold text-text-primary">{t('welcome', { name: user.fullName })}</p>
-          <p className="text-sm text-text-secondary">
-            {format.dateTime(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-1">
+      <p className="text-xl font-semibold text-text-primary">
+        {t(`greeting.${greetingPeriod(now.getHours())}`, { name: firstNameOf(user.fullName) })}
+      </p>
+      <p className="text-sm text-text-secondary">{t('welcomeSubtitle')}</p>
+      <div className="mt-1 flex items-center gap-1.5 text-sm text-text-tertiary">
+        <Icon icon={CalendarDays} size="sm" />
+        {format.dateTime(now, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      </div>
+    </div>
   );
 }

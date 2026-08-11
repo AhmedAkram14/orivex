@@ -1,9 +1,11 @@
 import type {
   AvailabilityWindowData,
+  ConsultationPricing,
   Holiday,
   RecurringWeeklySchedule,
   ScheduleException,
   SchedulingRules,
+  UpdateAvailabilityWindowPricingRequest,
   WeekDay,
 } from '@/features/scheduling/types';
 import { getWeekDayName } from '@/features/doctor/lib/week';
@@ -30,6 +32,8 @@ function seedRules(): SchedulingRules {
   };
 }
 
+const FREE_PRICING: ConsultationPricing = { pricingType: 'free', feeAmount: null, feeCurrency: null };
+
 /**
  * The doctor's recurring weekly availability — a real backend endpoint
  * (SchedulingModule's GET/PATCH `/scheduling/doctor-availability`); this
@@ -37,6 +41,11 @@ function seedRules(): SchedulingRules {
  * reasoning as `seedRules()`. Mirrors `doctor-store.ts`'s former
  * `seedAvailability()` reality (Sun–Thu, 9–5) at the real minute-granularity
  * shape, plus a lunch break on each working day.
+ *
+ * Consultation Pricing Redesign: each working day defaults to a real Paid
+ * price (500 EGP) -- an honest default matching the demo doctor's own
+ * former `consultationFeeAmount`, not a silent Free everywhere that would
+ * make the whole pricing feature invisible in the mock environment.
  */
 function seedDoctorAvailability(): RecurringWeeklySchedule {
   const allDays: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -48,6 +57,9 @@ function seedDoctorAvailability(): RecurringWeeklySchedule {
       isWorkingDay,
       hours: { start: '09:00', end: '17:00' },
       breaks: isWorkingDay ? [{ start: '13:00', end: '14:00' }] : [],
+      pricing: isWorkingDay
+        ? ({ pricingType: 'paid', feeAmount: 500, feeCurrency: 'EGP' } satisfies ConsultationPricing)
+        : FREE_PRICING,
     };
   });
 }
@@ -89,6 +101,17 @@ let holidays: Holiday[] = seedHolidays();
 // as available, the same "a booked slot simply doesn't come back" contract
 // the real GetBookableAvailabilityUseCase guarantees.
 const bookedAvailabilityWindowIds = new Set<string>();
+// Consultation Pricing Redesign: per-slot pricing overrides -- mirrors the
+// real backend's `AvailabilityWindow.pricing` (set once at generation time
+// from the template's default, individually overridable while still
+// `open`). Windows themselves are never persisted in this mock (generated
+// fresh on every read from `doctorAvailability`, same as before); only the
+// override survives, keyed by the same `${doctorId}::${isoStart}` id every
+// other window-scoped mock function already uses.
+const slotPricingOverrides = new Map<string, ConsultationPricing>();
+// How far into the future "Upcoming Slots" looks -- mirrors the real
+// `SchedulingController.getUpcomingSlots()`'s own fixed 60-day window.
+const UPCOMING_SLOTS_WINDOW_DAYS = 60;
 
 export function getSchedulingRules(): SchedulingRules {
   return rules;
@@ -122,22 +145,38 @@ export function getHolidays(): Holiday[] {
 }
 
 /**
+ * Consultation Pricing Redesign: resolves one window's real price -- an
+ * individual override if one has been set (`updateUpcomingSlotPricing`),
+ * else the generating weekday's own template default. The one place this
+ * mock decides a slot's price, shared by both `getAvailabilityWindows`
+ * (patient-facing) and `bookAppointment` (patient-store.ts) so a booking
+ * always charges exactly what the patient was shown.
+ */
+export function resolveWindowPricing(doctorId: string, isoStart: string): ConsultationPricing {
+  const id = `${doctorId}::${isoStart}`;
+  const override = slotPricingOverrides.get(id);
+  if (override) return override;
+
+  const start = new Date(isoStart);
+  const weekday = getWeekDayName(start);
+  const day = resolveDayForDate(start, weekday, doctorAvailability, doctorExceptions, holidays);
+  return day.pricing;
+}
+
+/**
  * Onboarding Redesign integration-gap closure (2026-07-25): mocks the real
  * `GET /doctors/:id/availability-windows` contract -- reuses the same pure,
  * already-tested slot-generation utils (`resolveDayForDate`/
  * `generateDaySlots`) that used to live inside `BookingFlow` itself, now
  * relocated here since this is test/mock infrastructure, not the
  * production path (the production path gets its slots from the real
- * backend). `consultationType` is derived from the seeded demo doctor's own
- * `consultationFeeAmount` (Stage O.7's precedent for deriving it), not a
- * per-request choice.
+ * backend).
+ *
+ * Consultation Pricing Redesign: `consultationType`/`feeAmount`/
+ * `feeCurrency` are each window's own real, per-slot price
+ * (`resolveWindowPricing`) -- never a fixed per-doctor value.
  */
-export function getAvailabilityWindows(
-  doctorId: string,
-  from: string,
-  to: string,
-  consultationType: 'free' | 'paid',
-): AvailabilityWindowData[] {
+export function getAvailabilityWindows(doctorId: string, from: string, to: string): AvailabilityWindowData[] {
   const fromDate = new Date(from);
   const toDate = new Date(to);
   const windows: AvailabilityWindowData[] = [];
@@ -151,11 +190,72 @@ export function getAvailabilityWindows(
       if (slot.status !== 'available') continue;
       const id = `${doctorId}::${slot.start}`;
       if (bookedAvailabilityWindowIds.has(id)) continue;
-      windows.push({ id, doctorId, startTime: slot.start, endTime: slot.end, consultationType, status: 'open' });
+      const pricing = resolveWindowPricing(doctorId, slot.start);
+      windows.push({
+        id,
+        doctorId,
+        startTime: slot.start,
+        endTime: slot.end,
+        consultationType: pricing.pricingType,
+        feeAmount: pricing.feeAmount,
+        feeCurrency: pricing.feeCurrency,
+        status: 'open',
+      });
     }
   }
 
   return windows;
+}
+
+/**
+ * Consultation Pricing Redesign: mocks `GET /scheduling/upcoming-slots` --
+ * every generated, still-`open` window for the doctor across the next
+ * `UPCOMING_SLOTS_WINDOW_DAYS` days. Reuses `getAvailabilityWindows`'s own
+ * generation/pricing logic (this mock has no separate persisted window
+ * table to query) rather than re-deriving it.
+ */
+export function getUpcomingSlots(doctorId: string): AvailabilityWindowData[] {
+  const from = new Date();
+  const to = addDays(from, UPCOMING_SLOTS_WINDOW_DAYS);
+  return getAvailabilityWindows(doctorId, from.toISOString(), to.toISOString());
+}
+
+/**
+ * Consultation Pricing Redesign: mocks
+ * `PATCH /scheduling/upcoming-slots/:id/pricing` -- the per-slot override.
+ * Mirrors the real `UpdateAvailabilityWindowPricingUseCase`'s Open-only
+ * guard: throws once the window has been booked, same "never leak
+ * existence" 404 the real ownership check would produce for a doctor
+ * probing an unrelated window id (this mock has only one doctor, so the
+ * ownership half of that check never applies).
+ */
+export function updateUpcomingSlotPricing(
+  doctorId: string,
+  availabilityWindowId: string,
+  request: UpdateAvailabilityWindowPricingRequest,
+): AvailabilityWindowData {
+  if (bookedAvailabilityWindowIds.has(availabilityWindowId)) {
+    throw new Error(`AvailabilityWindow "${availabilityWindowId}" not found.`);
+  }
+
+  const isoStart = availabilityWindowId.split('::')[1];
+  const isoEnd = new Date(new Date(isoStart).getTime() + rules.slotDurationMinutes * 60_000).toISOString();
+  const pricing: ConsultationPricing =
+    request.pricingType === 'free'
+      ? FREE_PRICING
+      : { pricingType: 'paid', feeAmount: request.feeAmount ?? 0, feeCurrency: request.feeCurrency ?? 'EGP' };
+  slotPricingOverrides.set(availabilityWindowId, pricing);
+
+  return {
+    id: availabilityWindowId,
+    doctorId,
+    startTime: isoStart,
+    endTime: isoEnd,
+    consultationType: pricing.pricingType,
+    feeAmount: pricing.feeAmount,
+    feeCurrency: pricing.feeCurrency,
+    status: 'open',
+  };
 }
 
 export function markAvailabilityWindowBooked(availabilityWindowId: string): void {
@@ -173,4 +273,5 @@ export function resetSchedulingStore(): void {
   doctorExceptions = seedDoctorExceptions();
   holidays = seedHolidays();
   bookedAvailabilityWindowIds.clear();
+  slotPricingOverrides.clear();
 }

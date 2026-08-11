@@ -14,18 +14,22 @@ export class UpcomingAppointmentPreviewResponseDto {
   scheduledAt!: string;
   doctorName!: string;
   specialization!: string;
+  /** Localization fix: the Arabic specialty name, null until an admin has translated it -- the frontend picks whichever matches the caller's locale. */
+  specializationAr!: string | null;
   status!: 'upcoming';
 
   static fromDomain(
     appointment: Appointment,
     doctorAccount: Account,
     specialization: string,
+    specializationAr: string | null = null,
   ): UpcomingAppointmentPreviewResponseDto {
     const dto = new UpcomingAppointmentPreviewResponseDto();
     dto.id = appointment.getId();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.doctorName = doctorAccount.getUserProfile().getDisplayName().toString();
     dto.specialization = specialization;
+    dto.specializationAr = specializationAr;
     dto.status = 'upcoming';
     return dto;
   }

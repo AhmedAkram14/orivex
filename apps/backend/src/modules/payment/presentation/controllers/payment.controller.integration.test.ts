@@ -19,15 +19,16 @@ import { GetAppointmentByIdUseCase } from '../../../consultation/application/use
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../consultation/domain/entities/consultation-session.entity.js';
-import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
+import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as ConsultationMoney } from '../../../consultation/domain/value-objects/money.value-object.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
-import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { AvailabilityWindow } from '../../../doctor/domain/entities/availability-window.entity.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
-import { ConsultationType as DoctorConsultationType } from '../../../doctor/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing as DoctorConsultationPricing } from '../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as DoctorMoney } from '../../../doctor/domain/value-objects/money.value-object.js';
 import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
@@ -120,15 +121,26 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async save(): Promise<void> {}
 }
 
+// Stateful (unlike the other in-memory fakes in this file) -- unlike the
+// old consultationSessionId-keyed charge flow, a ConsultationSession no
+// longer exists before a charge succeeds (pay-then-confirm); it's
+// ConfirmAppointmentUseCase (called from inside InitiateChargeUseCase) that
+// creates and saves one for the first time. Tests that need a session with
+// no payment transaction attached to it seed one directly via save().
 class InMemoryConsultationSessionRepository implements ConsultationSessionRepository {
-  constructor(private readonly session: ConsultationSession) {}
+  private readonly byId = new Map<string, ConsultationSession>();
   async findById(id: string): Promise<ConsultationSession | null> {
-    return this.session.getId() === id ? this.session : null;
+    return this.byId.get(id) ?? null;
   }
-  async findByAppointmentId(): Promise<ConsultationSession | null> {
-    return null;
+  async findByAppointmentId(appointmentId: string): Promise<ConsultationSession | null> {
+    return Array.from(this.byId.values()).find((session) => session.getAppointmentId() === appointmentId) ?? null;
   }
-  async save(): Promise<void> {}
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
+  async save(session: ConsultationSession): Promise<void> {
+    this.byId.set(session.getId(), session);
+  }
 }
 
 class InMemoryAvailabilityWindowRepository implements AvailabilityWindowRepository {
@@ -175,6 +187,9 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByConsultationSessionId(consultationSessionId: string): Promise<PaymentTransaction | null> {
     return Array.from(this.byId.values()).find((t) => t.getConsultationSessionId() === consultationSessionId) ?? null;
   }
+  async findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null> {
+    return Array.from(this.byId.values()).find((t) => t.getAppointmentId() === appointmentId) ?? null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.byId.set(transaction.getId(), transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);
@@ -204,12 +219,14 @@ class NoopDomainEventDispatcher {
   subscribe(): void {}
 }
 
-async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplication; sessionId: string }> {
+async function buildApp(
+  gatewaySucceeds: boolean,
+): Promise<{ app: INestApplication; appointmentId: string; sessionRepo: InMemoryConsultationSessionRepository }> {
   const window = AvailabilityWindow.define({
     doctorId: '33333333-3333-4333-8333-333333333333',
     startTime: new Date(Date.now() + 60 * 60_000),
     endTime: new Date(Date.now() + 90 * 60_000),
-    consultationType: DoctorConsultationType.Paid,
+    pricing: DoctorConsultationPricing.paid(DoctorMoney.create(500, 'EGP')),
   });
   window.hold();
   const patient = PatientProfile.reconstitute({
@@ -224,10 +241,9 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
     patientId: patient.getId(),
     doctorId: '33333333-3333-4333-8333-333333333333',
     availabilityWindowId: window.getId(),
-    consultationType: ConsultationType.Paid,
+    pricing: ConsultationPricing.paid(ConsultationMoney.create(500, 'EGP')),
     scheduledAt: window.getStartTime(),
   });
-  const session = ConsultationSession.open(appointment.getId());
   const doctor = DoctorProfile.reconstitute({
     id: appointment.getDoctorId(),
     accountId: '44444444-4444-4444-8444-444444444444',
@@ -255,7 +271,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
 
   const availabilityWindowRepo = new InMemoryAvailabilityWindowRepository(window);
   const appointmentRepo = new InMemoryAppointmentRepository(appointment);
-  const sessionRepo = new InMemoryConsultationSessionRepository(session);
+  const sessionRepo = new InMemoryConsultationSessionRepository();
   const doctorProfileRepo = new InMemoryDoctorProfileRepository(doctor, otherDoctor);
   const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
@@ -281,9 +297,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
   const initiateChargeUseCase = new InitiateChargeUseCase(
     paymentTransactionRepo,
     new NoopDomainEventDispatcher(),
-    new GetConsultationSessionByIdUseCase(sessionRepo),
     new GetAppointmentByIdUseCase(appointmentRepo),
-    new GetDoctorProfileByIdUseCase(doctorProfileRepo),
     confirmAppointmentUseCase,
     gateway,
   );
@@ -336,18 +350,18 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{ app: INestApplicati
   app.useGlobalFilters(new AllExceptionsFilter(moduleRef.get(PinoLoggerService)));
   await app.init();
 
-  return { app, sessionId: session.getId() };
+  return { app, appointmentId: appointment.getId(), sessionRepo };
 }
 
 describe('PaymentController (integration)', () => {
   it('POST /payments rejects a request with no bearer token', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .send({
           idempotencyKey: 'idem-no-token',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
         })
@@ -360,12 +374,12 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments rejects a request missing the idempotencyKey with 400', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
-        .send({ consultationSessionId: sessionId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
+        .send({ appointmentId, amount: { amount: 500, currency: 'EGP' }, paymentMethod: 'card' })
         .expect(400);
 
       assert.equal(response.body.error.code, 'VALIDATION_FAILED');
@@ -378,14 +392,14 @@ describe('PaymentController (integration)', () => {
   // boundary itself -- a direct API call is blocked with 403 before the
   // handler's own session-ownership check ever runs.
   it('returns 403 IDENTITY_VERIFICATION_REQUIRED for an unverified patient', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${UNVERIFIED_PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-unverified',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
           paymentMethodToken: 'pm_test_card',
@@ -399,14 +413,14 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments rejects a patient who was not treated in this consultation', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${OTHER_PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-wrong-patient',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
           paymentMethodToken: 'pm_test_card',
@@ -420,14 +434,14 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments succeeds and returns a Succeeded transaction', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-succeeds',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
           paymentMethodToken: 'pm_test_card',
@@ -442,11 +456,11 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments replays the original outcome instead of double-charging when the request is retried with the same idempotencyKey', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const body = {
         idempotencyKey: 'idem-retry',
-        consultationSessionId: sessionId,
+        appointmentId,
         amount: { amount: 500, currency: 'EGP' },
         paymentMethod: 'card',
         paymentMethodToken: 'pm_test_card',
@@ -472,14 +486,14 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments returns 409 when the same idempotencyKey is reused with a different request', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-conflict',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
           paymentMethodToken: 'pm_test_card',
@@ -491,7 +505,7 @@ describe('PaymentController (integration)', () => {
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-conflict',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'mobile_wallet',
           paymentMethodToken: 'pm_test_card',
@@ -505,14 +519,14 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments returns 402 when the gateway declines', async () => {
-    const { app, sessionId } = await buildApp(false);
+    const { app, appointmentId } = await buildApp(false);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-declined',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
           paymentMethodToken: 'pm_test_card',
@@ -525,15 +539,15 @@ describe('PaymentController (integration)', () => {
     }
   });
 
-  it('POST /payments returns 404 for an unknown consultationSessionId', async () => {
+  it('POST /payments returns 404 for an unknown appointmentId', async () => {
     const { app } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
-          idempotencyKey: 'idem-unknown-session',
-          consultationSessionId: '99999999-9999-4999-8999-999999999999',
+          idempotencyKey: 'idem-unknown-appointment',
+          appointmentId: '99999999-9999-4999-8999-999999999999',
           amount: { amount: 500, currency: 'EGP' },
           paymentMethod: 'card',
           paymentMethodToken: 'pm_test_card',
@@ -547,14 +561,14 @@ describe('PaymentController (integration)', () => {
   });
 
   it('POST /payments rejects an invalid amount with 400', async () => {
-    const { app, sessionId } = await buildApp(true);
+    const { app, appointmentId } = await buildApp(true);
     try {
       const response = await request(app.getHttpServer())
         .post('/payments')
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .send({
           idempotencyKey: 'idem-invalid-amount',
-          consultationSessionId: sessionId,
+          appointmentId,
           amount: { amount: -5, currency: 'EGP' },
           paymentMethod: 'card',
         })
@@ -568,14 +582,14 @@ describe('PaymentController (integration)', () => {
 
   describe('GET /payments/:id', () => {
     it('rejects a request with no bearer token', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-get-no-token',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -618,14 +632,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('lets the owning patient fetch their own transaction', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-get-owner-patient',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -645,14 +659,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('lets the treating doctor fetch the same transaction', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-get-owner-doctor',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -671,14 +685,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('returns 404 (never leaking existence) for a patient who does not own the transaction', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-get-non-owner-patient',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -697,14 +711,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('returns 404 (never leaking existence) for a doctor who did not treat this patient', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-get-non-owner-doctor',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -725,14 +739,14 @@ describe('PaymentController (integration)', () => {
 
   describe('POST /payments/:id/refund', () => {
     it('rejects a request with no bearer token', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-refund-no-token',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -747,14 +761,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('forbids a patient from calling the doctor-only refund route (403)', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-refund-forbidden-role',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -801,14 +815,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('returns 404 (never leaking existence) when a doctor who did not treat this patient tries to refund', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-refund-non-owner-doctor',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -827,14 +841,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('lets the treating doctor refund a succeeded transaction', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-refund-success',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -853,14 +867,14 @@ describe('PaymentController (integration)', () => {
     });
 
     it('returns 422 (VALIDATION_FAILED) when refunding an already-refunded transaction', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-refund-twice',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
@@ -884,12 +898,25 @@ describe('PaymentController (integration)', () => {
     });
   });
 
+  // Consultation Pricing Lifecycle Completion: no ConsultationSession
+  // exists before a charge succeeds (pay-then-confirm), so this describe
+  // block's fixtures diverge per test -- most tests here need only *a*
+  // session that references the correct appointment/doctor pairing (seeded
+  // directly via sessionRepo, bypassing the charge flow entirely, since
+  // these are guard/negative-path tests unrelated to charging), while the
+  // "lets the treating doctor discover the transaction" test needs the
+  // *real* session id ConfirmAppointmentUseCase created as a side effect of
+  // an actual successful charge, read back off the charge response's own
+  // consultationSessionId field.
   describe('GET /payments/by-consultation-session/:consultationSessionId', () => {
     it('rejects a request with no bearer token', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId, sessionRepo } = await buildApp(true);
       try {
+        const session = ConsultationSession.open(appointmentId);
+        await sessionRepo.save(session);
+
         const response = await request(app.getHttpServer())
-          .get(`/payments/by-consultation-session/${sessionId}`)
+          .get(`/payments/by-consultation-session/${session.getId()}`)
           .expect(401);
         assert.equal(response.body.error.code, 'UNAUTHORIZED');
       } finally {
@@ -898,10 +925,13 @@ describe('PaymentController (integration)', () => {
     });
 
     it('forbids a patient from calling the doctor-only route (403)', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId, sessionRepo } = await buildApp(true);
       try {
+        const session = ConsultationSession.open(appointmentId);
+        await sessionRepo.save(session);
+
         const response = await request(app.getHttpServer())
-          .get(`/payments/by-consultation-session/${sessionId}`)
+          .get(`/payments/by-consultation-session/${session.getId()}`)
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .expect(403);
         assert.equal(response.body.error.code, 'FORBIDDEN');
@@ -937,10 +967,13 @@ describe('PaymentController (integration)', () => {
     });
 
     it('returns 404 (never leaking existence) for a doctor who did not treat this patient', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId, sessionRepo } = await buildApp(true);
       try {
+        const session = ConsultationSession.open(appointmentId);
+        await sessionRepo.save(session);
+
         const response = await request(app.getHttpServer())
-          .get(`/payments/by-consultation-session/${sessionId}`)
+          .get(`/payments/by-consultation-session/${session.getId()}`)
           .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
           .expect(404);
         assert.equal(response.body.error.code, 'NOT_FOUND');
@@ -950,10 +983,13 @@ describe('PaymentController (integration)', () => {
     });
 
     it('returns null data when the session has no payment transaction yet', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId, sessionRepo } = await buildApp(true);
       try {
+        const session = ConsultationSession.open(appointmentId);
+        await sessionRepo.save(session);
+
         const response = await request(app.getHttpServer())
-          .get(`/payments/by-consultation-session/${sessionId}`)
+          .get(`/payments/by-consultation-session/${session.getId()}`)
           .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
           .expect(200);
         assert.equal(response.body.data, null);
@@ -963,19 +999,25 @@ describe('PaymentController (integration)', () => {
     });
 
     it('lets the treating doctor discover the transaction for their session', async () => {
-      const { app, sessionId } = await buildApp(true);
+      const { app, appointmentId } = await buildApp(true);
       try {
         const charge = await request(app.getHttpServer())
           .post('/payments')
           .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
           .send({
             idempotencyKey: 'idem-by-session-lookup',
-            consultationSessionId: sessionId,
+            appointmentId,
             amount: { amount: 500, currency: 'EGP' },
             paymentMethod: 'card',
             paymentMethodToken: 'pm_test_card',
           })
           .expect(201);
+
+        // The real session id ConfirmAppointmentUseCase created and
+        // attached as a side effect of the charge succeeding -- not a
+        // pre-seeded fixture id, since no session exists before a charge.
+        const sessionId = charge.body.data.consultationSessionId;
+        assert.ok(sessionId, 'a successful charge must attach a consultationSessionId');
 
         const response = await request(app.getHttpServer())
           .get(`/payments/by-consultation-session/${sessionId}`)

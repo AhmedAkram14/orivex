@@ -2,6 +2,8 @@
 export interface PublicSpecialty {
   id: string;
   name: string;
+  /** The Arabic name -- null until an admin has translated this specialty. */
+  nameAr: string | null;
   doctorCount: number;
 }
 
@@ -11,6 +13,8 @@ export interface PublicDoctor {
   fullName: string;
   professionalRank?: 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
   specialtyName: string;
+  /** The Arabic specialty name -- null until an admin has translated it. */
+  specialtyNameAr: string | null;
   hospitalId?: string;
   hospitalName?: string;
   yearsOfExperience?: number;

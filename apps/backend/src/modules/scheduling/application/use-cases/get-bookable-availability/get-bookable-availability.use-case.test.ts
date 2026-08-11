@@ -7,9 +7,10 @@ import { ListAvailabilityWindowsForDoctorUseCase } from '../../../../doctor/appl
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
 import { AvailabilityWindowStatus } from '../../../../doctor/domain/enums/availability-window-status.enum.js';
-import { ConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
+import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
 import { Holiday } from '../../../domain/entities/holiday.entity.js';
 import type { ScheduleException } from '../../../domain/entities/schedule-exception.entity.js';
 import { WorkingHoursDay } from '../../../domain/entities/working-hours-day.entity.js';
@@ -17,6 +18,8 @@ import { WeekDay } from '../../../domain/enums/week-day.enum.js';
 import type { HolidayRepository } from '../../../domain/repositories/holiday.repository.js';
 import type { ScheduleExceptionRepository } from '../../../domain/repositories/schedule-exception.repository.js';
 import type { WorkingHoursRepository } from '../../../domain/repositories/working-hours.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
+import { Money } from '../../../domain/value-objects/money.value-object.js';
 import { generateCandidateSlotsForDate, resolveEffectiveDay } from '../../services/generate-bookable-slots.js';
 import { GetDoctorWorkingHoursUseCase } from '../get-doctor-working-hours/get-doctor-working-hours.use-case.js';
 import { GetSchedulingRulesUseCase } from '../get-scheduling-rules/get-scheduling-rules.use-case.js';
@@ -201,19 +204,22 @@ describe('GetBookableAvailabilityUseCase', () => {
     assert.ok(result.every((w) => w.getDoctorId() === DOCTOR_ID));
   });
 
-  it('derives Paid consultationType from a set consultationFeeAmount, Free otherwise', async () => {
+  it('derives Paid pricing from the WorkingHoursDay\'s pricing, Free otherwise', async () => {
     const monday = nextMonday();
     const range = { from: monday, to: new Date(monday.getTime() + 86_400_000) };
 
-    const freeResult = await buildUseCase({ doctorProfile: buildDoctorProfile(undefined) }).execute(
+    const freeResult = await buildUseCase({ workingDays: buildFullWeek(buildWorkingDay()) }).execute(
       new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, ...range }),
     );
-    assert.ok(freeResult.every((w) => w.getConsultationType() === ConsultationType.Free));
+    assert.ok(freeResult.every((w) => w.getPricing().getPricingType() === DoctorConsultationType.Free));
 
-    const paidResult = await buildUseCase({ doctorProfile: buildDoctorProfile(500) }).execute(
-      new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, ...range }),
-    );
-    assert.ok(paidResult.every((w) => w.getConsultationType() === ConsultationType.Paid));
+    const paidResult = await buildUseCase({
+      workingDays: buildFullWeek(
+        buildWorkingDay({ pricing: ConsultationPricing.paid(Money.create(500, 'EGP')) }),
+      ),
+    }).execute(new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, ...range }));
+    assert.ok(paidResult.every((w) => w.getPricing().getPricingType() === DoctorConsultationType.Paid));
+    assert.ok(paidResult.every((w) => w.getPricing().getFee()?.getAmount() === 500));
   });
 
   // A working window shrunk to exactly one 30-minute slot (09:00-09:30) --
@@ -228,7 +234,7 @@ describe('GetBookableAvailabilityUseCase', () => {
       doctorId: DOCTOR_ID,
       startTime: new Date(monday.getTime() + 9 * 60 * 60_000),
       endTime: new Date(monday.getTime() + 9.5 * 60 * 60_000),
-      consultationType: ConsultationType.Free,
+      pricing: DoctorConsultationPricing.free(),
     });
     repo.seed(existing);
 
@@ -248,7 +254,7 @@ describe('GetBookableAvailabilityUseCase', () => {
       doctorId: DOCTOR_ID,
       startTime: new Date(monday.getTime() + 9 * 60 * 60_000),
       endTime: new Date(monday.getTime() + 9.5 * 60 * 60_000),
-      consultationType: ConsultationType.Free,
+      pricing: DoctorConsultationPricing.free(),
     });
     booked.hold();
     booked.confirm();
@@ -270,7 +276,7 @@ describe('GetBookableAvailabilityUseCase', () => {
       doctorId: DOCTOR_ID,
       startTime: new Date(monday.getTime() + 9 * 60 * 60_000),
       endTime: new Date(monday.getTime() + 9.5 * 60 * 60_000),
-      consultationType: ConsultationType.Free,
+      pricing: DoctorConsultationPricing.free(),
     });
     held.hold(new Date(Date.now() - 60 * 60_000), 15); // held an hour ago, 15-minute hold -- long expired.
     repo.seed(held);

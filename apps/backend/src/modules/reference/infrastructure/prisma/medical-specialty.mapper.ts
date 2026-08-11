@@ -6,6 +6,7 @@ export function toDomainMedicalSpecialty(row: PrismaMedicalSpecialtyRow): Medica
   return MedicalSpecialty.reconstitute({
     id: row.id,
     name: row.name,
+    nameAr: row.nameAr ?? undefined,
     isActive: row.isActive,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

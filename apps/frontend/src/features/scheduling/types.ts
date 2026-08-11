@@ -22,12 +22,28 @@ export interface TimeRange {
   end: TimeOfDay;
 }
 
+export type PricingType = 'free' | 'paid';
+
+/**
+ * Consultation Pricing Redesign: matches SchedulingModule's/DoctorModule's
+ * real `ConsultationPricing` value object exactly (flattened over the
+ * wire) — `feeAmount`/`feeCurrency` are `null` for Free, real for Paid.
+ * Never computed client-side; always exactly what the backend returned.
+ */
+export interface ConsultationPricing {
+  pricingType: PricingType;
+  feeAmount: number | null;
+  feeCurrency: string | null;
+}
+
 /** One day's recurring working hours plus its own breaks (e.g. lunch) — the building block a `RecurringWeeklySchedule` has exactly one of per `WeekDay`. */
 export interface WorkingHoursDay {
   dayOfWeek: WeekDay;
   isWorkingDay: boolean;
   hours: TimeRange;
   breaks: TimeRange[];
+  /** Consultation Pricing Redesign: this weekday's default price — every `AvailabilityWindow` generated from it inherits this unless individually overridden (see `AvailabilityWindowData`). */
+  pricing: ConsultationPricing;
 }
 
 /** Always exactly 7 entries, one per `WeekDay` — a doctor's standing weekly template before any date-specific exception is applied. */
@@ -102,7 +118,23 @@ export interface AvailabilityWindowData {
   /** ISO timestamp. */
   endTime: string;
   consultationType: ConsultationType;
+  /**
+   * Consultation Pricing Redesign: this window's own real price — inherited
+   * from its working-hours-template default at generation time, or
+   * individually overridden since (`updateUpcomingSlotPricing`). `null` for
+   * Free. The backend's `AvailabilityWindowResponseDto` is the source of
+   * truth; never derive this from `consultationType` or any other field.
+   */
+  feeAmount: number | null;
+  feeCurrency: string | null;
   status: 'open' | 'held' | 'booked';
+}
+
+/** `PATCH /scheduling/upcoming-slots/:id/pricing` request body — the per-slot override, only valid while the window is still `open`. */
+export interface UpdateAvailabilityWindowPricingRequest {
+  pricingType: PricingType;
+  feeAmount?: number;
+  feeCurrency?: string;
 }
 
 /**

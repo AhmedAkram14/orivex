@@ -1,49 +1,80 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
-import { usePatientUpcomingAppointments } from '@/features/patient/hooks/use-patient-upcoming-appointments';
-import type { UpcomingAppointmentPreview } from '@/features/patient/api/types';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
+import type { AppointmentStatus } from '@/features/patient/api/types';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
+import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
+import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { TimelineCard } from '@/shared/ui/layout/timeline-card';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
-function StatusLabel({ status }: { status: UpcomingAppointmentPreview['status'] }) {
-  const t = useTranslations('patient.dashboard.upcomingAppointments.status');
-  return <>{t(status)}</>;
-}
+// Matches PatientAppointmentsPage's own UPCOMING_STATUSES exactly.
+const UPCOMING_STATUSES: AppointmentStatus[] = ['requested', 'confirmed', 'rescheduled'];
+const MAX_ITEMS = 5;
 
-/** The Patient Portal's "Upcoming Appointments" widget — real (mocked) upcoming appointments rendered as `TimelineCard`s, with a built-in loading/empty state. Empty today since no Scheduling module is wired into the frontend yet — an honest empty state, not a fabricated schedule. Mirrors the Doctor Workspace's `UpcomingWorkArea`. */
+/**
+ * The redesigned "My Health" dashboard's "Upcoming appointments" widget —
+ * real `GET /appointments/me` data (the same source `/patient/appointments`
+ * itself renders), the soonest few only, with a "View all appointments"
+ * link to the full page rather than duplicating its calendar/tabs
+ * architecture here.
+ */
 export function UpcomingAppointmentsWidget() {
   const t = useTranslations('patient.dashboard');
+  const tStatus = useTranslations('patient.appointments.status');
+  const tConsultationType = useTranslations('patient.appointments.consultationType');
   const format = useFormatter();
-  const { data: items, isLoading, isError } = usePatientUpcomingAppointments();
+  const locale = useLocale();
+  const { data: appointments, isLoading, isError } = usePatientAppointments();
+
+  const upcoming = [...(appointments ?? [])]
+    .filter((appointment) => UPCOMING_STATUSES.includes(appointment.status))
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .slice(0, MAX_ITEMS);
 
   return (
-    <WidgetContainer title={t('upcomingAppointmentsTitle')}>
+    <WidgetContainer
+      title={t('upcomingAppointmentsTitle')}
+      actions={
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/patient/appointments">{t('viewAllAppointments')}</Link>
+        </Button>
+      }
+    >
       {isError ? (
         <Alert variant="danger">{t('upcomingAppointmentsLoadError')}</Alert>
       ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
         </div>
-      ) : items && items.length > 0 ? (
-        <ul className="flex flex-col gap-4">
-          {items.map((item) => (
-            <li key={item.id}>
-              <TimelineCard
-                time={format.dateTime(new Date(item.scheduledAt), { hour: 'numeric', minute: 'numeric' })}
-                title={`${item.doctorName} — ${item.specialization}`}
-                status={item.status}
-                statusLabel={<StatusLabel status={item.status} />}
+      ) : upcoming.length > 0 ? (
+        <ul className="flex flex-col gap-3">
+          {upcoming.map((appointment) => (
+            <li key={appointment.id}>
+              <AppointmentCard
+                scheduledAtLabel={format.dateTime(new Date(appointment.scheduledAt), {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: 'numeric',
+                })}
+                counterpartyName={appointment.doctorName}
+                counterpartyDetail={pickLocalizedName(appointment.specialization, appointment.specializationAr, locale)}
+                status={appointment.status}
+                statusLabel={tStatus(appointment.status)}
+                consultationTypeLabel={tConsultationType(appointment.consultationType)}
               />
             </li>
           ))}
         </ul>
       ) : (
         <EmptyState
+          className="py-6"
           title={t('upcomingAppointmentsEmptyTitle')}
           description={t('upcomingAppointmentsEmptyDescription')}
         />

@@ -10,6 +10,8 @@ import { AvailabilityWindow } from '../../../../doctor/domain/entities/availabil
 import type { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
+import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as DoctorMoney } from '../../../../doctor/domain/value-objects/money.value-object.js';
 import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { GetPatientProfileByIdUseCase } from '../../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import type { PatientProfile } from '../../../../patient/domain/entities/patient-profile.entity.js';
@@ -18,7 +20,6 @@ import { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases
 import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import type { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 
@@ -107,11 +108,15 @@ class NoopDispatcher {
 
 function buildWindow(consultationType: DoctorConsultationType = DoctorConsultationType.Free): AvailabilityWindow {
   const startTime = new Date(Date.now() + 60 * 60_000);
+  const pricing =
+    consultationType === DoctorConsultationType.Paid
+      ? DoctorConsultationPricing.paid(DoctorMoney.create(500, 'EGP'))
+      : DoctorConsultationPricing.free();
   return AvailabilityWindow.define({
     doctorId: '22222222-2222-4222-8222-222222222222',
     startTime,
     endTime: new Date(startTime.getTime() + 30 * 60_000),
-    consultationType,
+    pricing,
   });
 }
 
@@ -151,7 +156,6 @@ describe('BookAppointmentUseCase', () => {
         patientId: '11111111-1111-4111-8111-111111111111',
         doctorId: '22222222-2222-4222-8222-222222222222',
         availabilityWindowId: window.getId(),
-        consultationType: ConsultationType.Free,
       }),
     );
 
@@ -169,7 +173,6 @@ describe('BookAppointmentUseCase', () => {
         patientId: '11111111-1111-4111-8111-111111111111',
         doctorId: '22222222-2222-4222-8222-222222222222',
         availabilityWindowId: window.getId(),
-        consultationType: ConsultationType.Paid,
       }),
     );
 
@@ -188,7 +191,6 @@ describe('BookAppointmentUseCase', () => {
             patientId: '99999999-9999-4999-8999-999999999999',
             doctorId: '22222222-2222-4222-8222-222222222222',
             availabilityWindowId: window.getId(),
-            consultationType: ConsultationType.Free,
           }),
         ),
       NotFoundError,
@@ -205,14 +207,18 @@ describe('BookAppointmentUseCase', () => {
             patientId: '11111111-1111-4111-8111-111111111111',
             doctorId: '22222222-2222-4222-8222-222222222222',
             availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-            consultationType: ConsultationType.Free,
           }),
         ),
       NotFoundError,
     );
   });
 
-  it('throws ConsultationDomainError when consultationType does not match the window', async () => {
+  // Consultation Pricing Redesign: the client no longer asserts a
+  // consultationType that could mismatch the window's own pricing (pricing
+  // is now always snapshotted straight from the window, never client-
+  // supplied), so the equivalent "the request doesn't line up with this
+  // window" guard that remains is the doctor-ownership check.
+  it('throws ConsultationDomainError when the window does not belong to the requested doctor', async () => {
     const window = buildWindow(DoctorConsultationType.Paid);
     const useCase = buildUseCase({ appointmentRepo: new FakeAppointmentRepository(), window });
 
@@ -221,9 +227,8 @@ describe('BookAppointmentUseCase', () => {
         useCase.execute(
           new BookAppointmentCommand({
             patientId: '11111111-1111-4111-8111-111111111111',
-            doctorId: '22222222-2222-4222-8222-222222222222',
+            doctorId: '99999999-9999-4999-8999-999999999999',
             availabilityWindowId: window.getId(),
-            consultationType: ConsultationType.Free,
           }),
         ),
       ConsultationDomainError,
@@ -251,7 +256,6 @@ describe('BookAppointmentUseCase', () => {
           patientId: '11111111-1111-4111-8111-111111111111',
           doctorId: '22222222-2222-4222-8222-222222222222',
           availabilityWindowId: window.getId(),
-          consultationType: ConsultationType.Free,
         }),
       ),
     );

@@ -10,6 +10,14 @@ import { Money } from '../value-objects/money.value-object.js';
 
 export interface InitiateTransactionProps {
   idempotencyKey: string;
+  // Consultation Pricing Lifecycle Completion: the charge is now initiated
+  // against the Appointment directly (pay-then-confirm) -- no
+  // ConsultationSession exists yet at charge time, since a session is only
+  // ever opened by ConfirmAppointmentUseCase, which this charge itself
+  // triggers on success. appointmentId is therefore the real join key from
+  // the moment a transaction is created; consultationSessionId is attached
+  // afterward, once confirmation opens one.
+  appointmentId: string;
   consultationSessionId?: string;
   patientId: string;
   doctorId: string;
@@ -20,6 +28,7 @@ export interface InitiateTransactionProps {
 export interface ReconstituteTransactionProps {
   id: string;
   idempotencyKey: string;
+  appointmentId: string;
   consultationSessionId?: string;
   patientId: string;
   doctorId: string;
@@ -42,7 +51,8 @@ export class PaymentTransaction {
   private constructor(
     private readonly id: string,
     private readonly idempotencyKey: string,
-    private readonly consultationSessionId: string | undefined,
+    private readonly appointmentId: string,
+    private consultationSessionId: string | undefined,
     private readonly patientId: string,
     private readonly doctorId: string,
     private readonly amount: Money,
@@ -58,6 +68,7 @@ export class PaymentTransaction {
     return new PaymentTransaction(
       randomUUID(),
       props.idempotencyKey,
+      props.appointmentId,
       props.consultationSessionId,
       props.patientId,
       props.doctorId,
@@ -74,6 +85,7 @@ export class PaymentTransaction {
     return new PaymentTransaction(
       props.id,
       props.idempotencyKey,
+      props.appointmentId,
       props.consultationSessionId,
       props.patientId,
       props.doctorId,
@@ -92,6 +104,16 @@ export class PaymentTransaction {
   // any time before a terminal state; not itself a state transition.
   attachExternalReference(reference: string): void {
     this.externalReference = reference;
+    this.updatedAt = new Date();
+  }
+
+  // Set once ConfirmAppointmentUseCase opens (or reuses) a
+  // ConsultationSession for this transaction's appointment, right after a
+  // successful charge -- lets the doctor-facing "look up by consultation
+  // session" route find this transaction, without requiring one to exist at
+  // charge time (it doesn't; see InitiateTransactionProps).
+  attachConsultationSessionId(consultationSessionId: string): void {
+    this.consultationSessionId = consultationSessionId;
     this.updatedAt = new Date();
   }
 
@@ -150,6 +172,10 @@ export class PaymentTransaction {
 
   getIdempotencyKey(): string {
     return this.idempotencyKey;
+  }
+
+  getAppointmentId(): string {
+    return this.appointmentId;
   }
 
   getConsultationSessionId(): string | undefined {

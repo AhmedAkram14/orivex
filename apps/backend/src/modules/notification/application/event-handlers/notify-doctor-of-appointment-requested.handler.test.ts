@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
-import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -136,7 +136,7 @@ describe('NotifyDoctorOfAppointmentRequestedHandler', () => {
       patientId: patientProfile.getId(),
       doctorId: doctorProfile.getId(),
       availabilityWindowId: '22222222-2222-4222-8222-222222222222',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 24 * 60 * 60_000),
     });
 

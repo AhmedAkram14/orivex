@@ -41,7 +41,7 @@ export class DefineAvailabilityWindowUseCase {
       doctorId: command.doctorId,
       startTime: command.startTime,
       endTime: command.endTime,
-      consultationType: command.consultationType,
+      pricing: command.pricing,
     });
 
     await this.availabilityWindowRepository.save(window);

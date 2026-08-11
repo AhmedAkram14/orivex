@@ -15,7 +15,7 @@ export class UpdateMedicalSpecialtyUseCase {
       throw new NotFoundError(`Medical specialty "${command.medicalSpecialtyId}" not found.`);
     }
 
-    specialty.update({ name: command.name, isActive: command.isActive });
+    specialty.update({ name: command.name, nameAr: command.nameAr, isActive: command.isActive });
     await this.medicalSpecialtyRepository.save(specialty);
 
     return specialty;

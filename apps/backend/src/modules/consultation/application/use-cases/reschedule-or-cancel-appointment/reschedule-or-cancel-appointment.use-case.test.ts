@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import { ConfirmAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
@@ -9,16 +10,19 @@ import { ReserveAvailabilityWindowUseCase } from '../../../../doctor/application
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
+import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as DoctorMoney } from '../../../../doctor/domain/value-objects/money.value-object.js';
 import { ConfirmSlotUseCase } from '../../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
+import { AppointmentCancelledEvent } from '../../../domain/events/appointment-cancelled.event.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import type { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 import { ConfirmAppointmentUseCase } from '../confirm-appointment/confirm-appointment.use-case.js';
 
 import { RescheduleOrCancelAppointmentCommand } from './reschedule-or-cancel-appointment.command.js';
@@ -73,6 +77,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
     return null;
   }
   async save(): Promise<void> {}
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 class NoopDispatcher {
@@ -81,20 +88,37 @@ class NoopDispatcher {
   subscribe(): void {}
 }
 
+class RecordingDispatcher implements DomainEventDispatcher {
+  public readonly dispatched: import('../../../../../shared/domain/domain-event.js').DomainEvent[] = [];
+  async dispatch(events: import('../../../../../shared/domain/domain-event.js').DomainEvent[]): Promise<void> {
+    this.dispatched.push(...events);
+  }
+
+  subscribe(): void {}
+}
+
 function buildOpenWindow(consultationType: DoctorConsultationType = DoctorConsultationType.Free): AvailabilityWindow {
   const startTime = new Date(Date.now() + 60 * 60_000);
+  const pricing =
+    consultationType === DoctorConsultationType.Paid
+      ? DoctorConsultationPricing.paid(DoctorMoney.create(500, 'EGP'))
+      : DoctorConsultationPricing.free();
   return AvailabilityWindow.define({
     doctorId: '22222222-2222-4222-8222-222222222222',
     startTime,
     endTime: new Date(startTime.getTime() + 30 * 60_000),
-    consultationType,
+    pricing,
   });
 }
 
-function buildUseCase(availabilityWindowRepo: AvailabilityWindowRepository, appointmentRepo: FakeAppointmentRepository) {
+function buildUseCase(
+  availabilityWindowRepo: AvailabilityWindowRepository,
+  appointmentRepo: FakeAppointmentRepository,
+  dispatcher: DomainEventDispatcher = new NoopDispatcher(),
+) {
   return new RescheduleOrCancelAppointmentUseCase(
     appointmentRepo,
-    new NoopDispatcher(),
+    dispatcher,
     new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
     new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
     new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
@@ -137,7 +161,7 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
       patientId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
       availabilityWindowId: window.getId(),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: window.getStartTime(),
     });
     const appointmentRepo = new FakeAppointmentRepository();
@@ -165,7 +189,7 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
       patientId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
       availabilityWindowId: oldWindow.getId(),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: oldWindow.getStartTime(),
     });
     const appointmentRepo = new FakeAppointmentRepository();
@@ -197,7 +221,7 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
       patientId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
       availabilityWindowId: window.getId(),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: window.getStartTime(),
     });
     const appointmentRepo = new FakeAppointmentRepository();
@@ -225,7 +249,7 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
       patientId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
       availabilityWindowId: oldWindow.getId(),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: oldWindow.getStartTime(),
     });
     const appointmentRepo = new FakeAppointmentRepository();
@@ -245,6 +269,39 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
 
     const releasedNewWindow = await windowRepo.findById(newWindow.getId());
     assert.equal(releasedNewWindow?.getStatus(), 'open');
+  });
+
+  it('passes an explicit cancelledByRole through to AppointmentCancelledEvent', async () => {
+    const window = buildOpenWindow();
+    window.hold();
+    const windowRepo = new InMemoryAvailabilityWindowRepository();
+    windowRepo.seed(window);
+
+    const appointment = Appointment.request({
+      patientId: '11111111-1111-4111-8111-111111111111',
+      doctorId: '22222222-2222-4222-8222-222222222222',
+      availabilityWindowId: window.getId(),
+      pricing: ConsultationPricing.free(),
+      scheduledAt: window.getStartTime(),
+    });
+    const appointmentRepo = new FakeAppointmentRepository();
+    appointmentRepo.seed(appointment);
+    const dispatcher = new RecordingDispatcher();
+    const useCase = buildUseCase(windowRepo, appointmentRepo, dispatcher);
+
+    await useCase.execute(
+      new RescheduleOrCancelAppointmentCommand({
+        appointmentId: appointment.getId(),
+        action: 'cancel',
+        cancelledByRole: 'doctor',
+      }),
+    );
+
+    const cancelledEvent = dispatcher.dispatched.find(
+      (event): event is AppointmentCancelledEvent => event instanceof AppointmentCancelledEvent,
+    );
+    assert.ok(cancelledEvent, 'AppointmentCancelledEvent must be dispatched');
+    assert.equal(cancelledEvent.cancelledBy, 'doctor');
   });
 
   it('throws NotFoundError when the appointment does not exist', async () => {

@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../consultation/domain/entities/consultation-session.entity.js';
-import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
@@ -55,6 +55,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
   }
   async findByAppointmentId(): Promise<ConsultationSession | null> {
     return null;
+  }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
   }
   async save(): Promise<void> {}
 }
@@ -119,7 +122,7 @@ describe('NotifyOfConsultationInterruptedHandler', () => {
       patientId: patient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: '44444444-4444-4444-8444-444444444444',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 24 * 60 * 60_000),
     });
     const session = ConsultationSession.open(appointment.getId());

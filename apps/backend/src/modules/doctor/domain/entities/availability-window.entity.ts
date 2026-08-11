@@ -5,7 +5,7 @@ import { AvailabilityChangedEvent } from '../events/availability-changed.event.j
 import { AvailabilityWindowConflictError } from '../exceptions/availability-window-conflict.error.js';
 import { DoctorDomainError } from '../exceptions/doctor-domain.error.js';
 import { AvailabilityWindowStatus } from '../enums/availability-window-status.enum.js';
-import type { ConsultationType } from '../enums/consultation-type.enum.js';
+import type { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 
 const DEFAULT_HOLD_MINUTES = 15;
 
@@ -13,7 +13,7 @@ export interface DefineAvailabilityWindowProps {
   doctorId: string;
   startTime: Date;
   endTime: Date;
-  consultationType: ConsultationType;
+  pricing: ConsultationPricing;
 }
 
 export interface ReconstituteAvailabilityWindowProps {
@@ -21,7 +21,7 @@ export interface ReconstituteAvailabilityWindowProps {
   doctorId: string;
   startTime: Date;
   endTime: Date;
-  consultationType: ConsultationType;
+  pricing: ConsultationPricing;
   status: AvailabilityWindowStatus;
   holdExpiresAt?: Date;
   version: number;
@@ -46,7 +46,7 @@ export class AvailabilityWindow {
     private readonly doctorId: string,
     private readonly startTime: Date,
     private readonly endTime: Date,
-    private readonly consultationType: ConsultationType,
+    private pricing: ConsultationPricing,
     private status: AvailabilityWindowStatus,
     private holdExpiresAt: Date | undefined,
     private readonly version: number,
@@ -68,7 +68,7 @@ export class AvailabilityWindow {
       props.doctorId,
       props.startTime,
       props.endTime,
-      props.consultationType,
+      props.pricing,
       AvailabilityWindowStatus.Open,
       undefined,
       1,
@@ -86,7 +86,7 @@ export class AvailabilityWindow {
       props.doctorId,
       props.startTime,
       props.endTime,
-      props.consultationType,
+      props.pricing,
       props.status,
       props.holdExpiresAt,
       props.version,
@@ -143,6 +143,25 @@ export class AvailabilityWindow {
     this.record(new AvailabilityChangedEvent(this.id));
   }
 
+  // Consultation Pricing Redesign: per-slot pricing override. A doctor may
+  // reprice (or flip Free/Paid on) any individual generated-but-not-yet-
+  // booked window without touching the recurring template it came from --
+  // only while genuinely still Open, mirroring hold()/release()/confirm()'s
+  // own status-guard style. Once Held (a patient is mid-booking) or Booked,
+  // the price is frozen -- Appointment snapshots it at booking time anyway,
+  // so this guard exists to prevent a confusing mid-transaction price
+  // change, not to protect data that's already immutable elsewhere.
+  updatePricing(newPricing: ConsultationPricing, now: Date = new Date()): void {
+    if (this.status !== AvailabilityWindowStatus.Open) {
+      throw new AvailabilityWindowConflictError(
+        `AvailabilityWindow "${this.id}" can only be repriced while Open (current status: ${this.status}).`,
+      );
+    }
+    this.pricing = newPricing;
+    this.updatedAt = now;
+    this.record(new AvailabilityChangedEvent(this.id));
+  }
+
   isHoldExpired(now: Date = new Date()): boolean {
     return this.holdExpiresAt !== undefined && this.holdExpiresAt.getTime() < now.getTime();
   }
@@ -163,8 +182,8 @@ export class AvailabilityWindow {
     return this.endTime;
   }
 
-  getConsultationType(): ConsultationType {
-    return this.consultationType;
+  getPricing(): ConsultationPricing {
+    return this.pricing;
   }
 
   getStatus(): AvailabilityWindowStatus {

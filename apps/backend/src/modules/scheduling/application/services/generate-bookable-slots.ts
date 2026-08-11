@@ -4,6 +4,7 @@ import type { TimeRangeProps } from '../../domain/entities/working-hours-day.ent
 import type { WorkingHoursDay } from '../../domain/entities/working-hours-day.entity.js';
 import { ScheduleExceptionType } from '../../domain/enums/schedule-exception-type.enum.js';
 import { ALL_WEEK_DAYS, type WeekDay } from '../../domain/enums/week-day.enum.js';
+import { ConsultationPricing } from '../../domain/value-objects/consultation-pricing.value-object.js';
 import type { SchedulingRules } from '../use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 
 /**
@@ -51,6 +52,12 @@ export interface EffectiveDay {
   isWorkingDay: boolean;
   hours: TimeRangeProps;
   breaks: TimeRangeProps[];
+  // Consultation Pricing Redesign: the recurring template's own per-weekday
+  // default price -- stamped onto every AvailabilityWindow
+  // GetBookableAvailabilityUseCase materializes for this date. Exceptions/
+  // holidays don't override pricing (yet) -- only availability -- per the
+  // approved design's explicitly-deferred "holiday pricing" fast-follow.
+  pricing: ConsultationPricing;
 }
 
 /**
@@ -67,9 +74,19 @@ export function resolveEffectiveDay(
 ): EffectiveDay {
   const weekday = WEEKDAY_BY_INDEX[date.getUTCDay()];
   const recurring = workingDays.find((day) => day.getDayOfWeek() === weekday);
-  const fallback: EffectiveDay = { isWorkingDay: false, hours: { start: '00:00', end: '00:00' }, breaks: [] };
+  const fallback: EffectiveDay = {
+    isWorkingDay: false,
+    hours: { start: '00:00', end: '00:00' },
+    breaks: [],
+    pricing: ConsultationPricing.free(),
+  };
   const base: EffectiveDay = recurring
-    ? { isWorkingDay: recurring.getIsWorkingDay(), hours: recurring.getHours(), breaks: recurring.getBreaks() }
+    ? {
+        isWorkingDay: recurring.getIsWorkingDay(),
+        hours: recurring.getHours(),
+        breaks: recurring.getBreaks(),
+        pricing: recurring.getPricing(),
+      }
     : fallback;
 
   const dateKey = toDateKey(date);

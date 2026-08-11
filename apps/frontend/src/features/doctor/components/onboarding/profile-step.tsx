@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import type { DoctorProfile } from '@/features/doctor/api/types';
@@ -16,6 +16,7 @@ import {
 } from '@/features/doctor/schemas/onboarding.schema';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { ApiError } from '@/shared/lib/api/client';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
@@ -55,6 +56,7 @@ export interface ProfileStepProps {
  */
 export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
   const t = useTranslations('doctor.onboarding.profileStep');
+  const locale = useLocale();
   const tValidation = useTranslations('doctor.onboarding.profileStep.validation');
   const tLanguages = useTranslations('doctor.profile.languageNames');
   const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
@@ -151,7 +153,7 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
                 <SelectContent>
                   {(specialties ?? []).map((specialty) => (
                     <SelectItem key={specialty.id} value={specialty.id}>
-                      {specialty.name}
+                      {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>

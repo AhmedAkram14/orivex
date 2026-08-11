@@ -63,11 +63,11 @@ export class PaymentController {
     @Body() body: InitiateChargeRequestDto,
   ): Promise<ResponseEnvelope<PaymentTransactionResponseDto>> {
     try {
-      await this.ensureSessionOwnedByCaller(body.consultationSessionId, user);
+      await this.ensureAppointmentOwnedByCaller(body.appointmentId, user);
       const transaction = await this.initiateChargeUseCase.execute(
         new InitiateChargeCommand({
           idempotencyKey: body.idempotencyKey,
-          consultationSessionId: body.consultationSessionId,
+          appointmentId: body.appointmentId,
           amount: body.amount.amount,
           currency: body.amount.currency,
           paymentMethod: body.paymentMethod,
@@ -140,15 +140,13 @@ export class PaymentController {
     }
   }
 
-  private async ensureSessionOwnedByCaller(consultationSessionId: string, user: AccessTokenClaims): Promise<void> {
-    const session = await this.getConsultationSessionByIdUseCase.execute({ consultationSessionId });
-    if (!session) {
-      throw new NotFoundError(`ConsultationSession "${consultationSessionId}" not found.`);
-    }
-    const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: session.getAppointmentId() });
+  private async ensureAppointmentOwnedByCaller(appointmentId: string, user: AccessTokenClaims): Promise<void> {
+    const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId });
     const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });
     if (!appointment || !patientProfile || appointment.getPatientId() !== patientProfile.getId()) {
-      throw new NotFoundError(`ConsultationSession "${consultationSessionId}" not found.`);
+      // 404, not 403 -- never confirms to a caller whether an appointment
+      // id belonging to someone else exists at all.
+      throw new NotFoundError(`Appointment "${appointmentId}" not found.`);
     }
   }
 

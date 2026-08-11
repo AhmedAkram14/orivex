@@ -1,5 +1,6 @@
 import { SchedulingDomainError } from '../exceptions/scheduling-domain.error.js';
 import type { WeekDay } from '../enums/week-day.enum.js';
+import { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -14,6 +15,11 @@ export interface CreateWorkingHoursDayProps {
   isWorkingDay: boolean;
   hours: TimeRangeProps;
   breaks: TimeRangeProps[];
+  // Consultation Pricing Redesign: the default price every AvailabilityWindow
+  // generated for this weekday inherits. Defaults to Free when omitted (a
+  // doctor who hasn't configured pricing yet offers free slots, never an
+  // unset/undefined charge).
+  pricing?: ConsultationPricing;
 }
 
 export interface ReconstituteWorkingHoursDayProps {
@@ -23,6 +29,7 @@ export interface ReconstituteWorkingHoursDayProps {
   isWorkingDay: boolean;
   hours: TimeRangeProps;
   breaks: TimeRangeProps[];
+  pricing: ConsultationPricing;
   updatedAt: Date;
 }
 
@@ -48,6 +55,7 @@ export class WorkingHoursDay {
     private isWorkingDay: boolean,
     private hours: TimeRangeProps,
     private breaks: TimeRangeProps[],
+    private pricing: ConsultationPricing,
     private readonly updatedAt: Date,
   ) {}
 
@@ -59,7 +67,16 @@ export class WorkingHoursDay {
       }
     }
 
-    return new WorkingHoursDay(id, props.doctorId, props.dayOfWeek, props.isWorkingDay, props.hours, props.breaks, new Date());
+    return new WorkingHoursDay(
+      id,
+      props.doctorId,
+      props.dayOfWeek,
+      props.isWorkingDay,
+      props.hours,
+      props.breaks,
+      props.pricing ?? ConsultationPricing.free(),
+      new Date(),
+    );
   }
 
   static reconstitute(props: ReconstituteWorkingHoursDayProps): WorkingHoursDay {
@@ -70,6 +87,7 @@ export class WorkingHoursDay {
       props.isWorkingDay,
       props.hours,
       props.breaks,
+      props.pricing,
       props.updatedAt,
     );
   }
@@ -96,6 +114,10 @@ export class WorkingHoursDay {
 
   getBreaks(): TimeRangeProps[] {
     return this.breaks;
+  }
+
+  getPricing(): ConsultationPricing {
+    return this.pricing;
   }
 
   getUpdatedAt(): Date {

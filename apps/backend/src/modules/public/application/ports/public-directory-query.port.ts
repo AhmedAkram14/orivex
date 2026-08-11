@@ -17,6 +17,7 @@ export interface PublicDoctorEntry {
   professionalRank?: ProfessionalRank;
   specialtyId: string;
   specialtyName: string;
+  specialtyNameAr?: string;
   hospitalId?: string;
   hospitalName?: string;
   yearsOfExperience?: number;

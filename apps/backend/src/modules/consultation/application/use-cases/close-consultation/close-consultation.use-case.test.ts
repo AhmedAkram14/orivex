@@ -6,10 +6,10 @@ import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
 import { ConsultationCompletionReason } from '../../../domain/enums/consultation-completion-reason.enum.js';
 import { ConsultationState } from '../../../domain/enums/consultation-state.enum.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 import { CloseConsultationCommand } from './close-consultation.command.js';
 import { CloseConsultationUseCase } from './close-consultation.use-case.js';
@@ -25,6 +25,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
   }
   async save(session: ConsultationSession): Promise<void> {
     this.saved.push(session);
+  }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
   }
 }
 
@@ -71,7 +74,7 @@ function buildConfirmedAppointment(): Appointment {
     patientId: '11111111-1111-4111-8111-111111111111',
     doctorId: '22222222-2222-4222-8222-222222222222',
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-    consultationType: ConsultationType.Free,
+    pricing: ConsultationPricing.free(),
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
   appointment.confirm();

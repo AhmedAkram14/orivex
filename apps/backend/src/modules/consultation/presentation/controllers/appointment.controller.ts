@@ -64,9 +64,11 @@ export class AppointmentController {
   // longer carries its own free-text specialty name -- resolved here, once
   // per request (ReferenceModule's own specialty list is small), never
   // per-appointment.
-  private async resolveSpecialtyNames(): Promise<Map<string, string>> {
+  private async resolveSpecialtyNames(): Promise<Map<string, { name: string; nameAr: string | null }>> {
     const specialties = await this.listMedicalSpecialtiesUseCase.execute();
-    return new Map(specialties.map((specialty) => [specialty.getId(), specialty.getName()]));
+    return new Map(
+      specialties.map((specialty) => [specialty.getId(), { name: specialty.getName(), nameAr: specialty.getNameAr() ?? null }]),
+    );
   }
 
   @Post()
@@ -92,7 +94,6 @@ export class AppointmentController {
           patientId: patientProfile.getId(),
           doctorId: body.doctorId,
           availabilityWindowId: body.availabilityWindowId,
-          consultationType: body.consultationType,
           reasonForVisit: body.reasonForVisit,
         }),
       );
@@ -154,6 +155,7 @@ export class AppointmentController {
           appointmentId: id,
           action: body.action,
           newAvailabilityWindowId: body.newAvailabilityWindowId,
+          cancelledByRole: user.role === AccountRole.Doctor ? 'doctor' : 'patient',
         }),
       );
       return envelope(AppointmentResponseDto.fromDomain(appointment));
@@ -176,7 +178,7 @@ export class AppointmentController {
 
   private async toListItem(
     appointment: Appointment,
-    specialtyNames: Map<string, string>,
+    specialtyNames: Map<string, { name: string; nameAr: string | null }>,
   ): Promise<AppointmentListItemResponseDto | null> {
     const doctorProfile: DoctorProfile | null = await this.getDoctorProfileByIdUseCase.execute({
       doctorProfileId: appointment.getDoctorId(),
@@ -193,13 +195,14 @@ export class AppointmentController {
     const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
       appointmentId: appointment.getId(),
     });
-    const specialization = specialtyNames.get(doctorProfile.getSpecialtyId()) ?? 'Unknown specialty';
+    const specialty = specialtyNames.get(doctorProfile.getSpecialtyId());
+    const specialization = specialty?.name ?? 'Unknown specialty';
     return AppointmentListItemResponseDto.fromDomain(
       appointment,
-      doctorProfile,
       doctorAccount,
       session?.getId() ?? null,
       specialization,
+      specialty?.nameAr ?? null,
     );
   }
 }

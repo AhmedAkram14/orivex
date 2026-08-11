@@ -32,6 +32,7 @@ export class UpdateDoctorWorkingHoursUseCase {
         isWorkingDay: day.isWorkingDay,
         hours: day.hours,
         breaks: day.breaks,
+        pricing: day.pricing,
       }),
     );
 

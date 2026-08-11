@@ -10,6 +10,10 @@ export function toDomainPaymentTransaction(row: PrismaPaymentTransactionRow): Pa
   return PaymentTransaction.reconstitute({
     id: row.id,
     idempotencyKey: row.idempotencyKey,
+    // Nullable only for rows created before this column existed (see the
+    // migration) -- every row created by the current InitiateChargeUseCase
+    // always sets it, so this fallback is legacy-data-only.
+    appointmentId: row.appointmentId ?? '',
     consultationSessionId: row.consultationSessionId ?? undefined,
     patientId: row.patientId,
     doctorId: row.doctorId,

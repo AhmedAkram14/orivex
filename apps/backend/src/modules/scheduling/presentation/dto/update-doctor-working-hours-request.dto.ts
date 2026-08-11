@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsString, Matches, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsPositive, IsString, Matches, ValidateNested } from 'class-validator';
 
 import { ALL_WEEK_DAYS } from '../../domain/enums/week-day.enum.js';
 
@@ -13,6 +13,23 @@ class TimeRangeRequestDto {
   @IsString()
   @Matches(TIME_PATTERN, { message: 'end must be "HH:mm".' })
   end!: string;
+}
+
+// Consultation Pricing Redesign: the recurring template's own per-weekday
+// default price. Omitted (or pricingType 'free') -- this weekday's
+// generated slots are free, matching the entity's own default.
+export class PricingRequestDto {
+  @IsIn(['free', 'paid'])
+  pricingType!: 'free' | 'paid';
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  feeAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  feeCurrency?: string;
 }
 
 // PATCH /scheduling/doctor-availability body is a bare JSON array (the
@@ -36,4 +53,9 @@ export class WorkingHoursDayRequestDto {
   @ValidateNested({ each: true })
   @Type(() => TimeRangeRequestDto)
   breaks!: TimeRangeRequestDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PricingRequestDto)
+  pricing?: PricingRequestDto;
 }

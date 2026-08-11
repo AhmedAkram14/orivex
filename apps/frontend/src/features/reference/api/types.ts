@@ -2,6 +2,8 @@
 export interface MedicalSpecialty {
   id: string;
   name: string;
+  /** The Arabic name -- null until an admin has translated this specialty. */
+  nameAr: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

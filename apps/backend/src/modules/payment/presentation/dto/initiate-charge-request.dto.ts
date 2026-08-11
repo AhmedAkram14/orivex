@@ -10,6 +10,10 @@ import { MoneyDto } from './money.dto.js';
 // UUID minted once per "user clicks Pay" action, reused verbatim on any
 // automatic retry of that same click) that makes this endpoint safely
 // retryable without risking a double charge.
+//
+// Consultation Pricing Lifecycle Completion: keyed by appointmentId, not
+// consultationSessionId -- no session exists yet at charge time
+// (pay-then-confirm; a session is only opened once this charge succeeds).
 export class InitiateChargeRequestDto {
   @IsString()
   @IsNotEmpty()
@@ -17,7 +21,7 @@ export class InitiateChargeRequestDto {
   idempotencyKey!: string;
 
   @IsUUID()
-  consultationSessionId!: string;
+  appointmentId!: string;
 
   @ValidateNested()
   @Type(() => MoneyDto)

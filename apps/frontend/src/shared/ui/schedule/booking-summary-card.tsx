@@ -13,6 +13,12 @@ export interface BookingSummaryCardProps {
   timezoneLabel: string;
   status: BookingSummaryStatus;
   statusLabel: ReactNode;
+  /** Consultation Pricing Redesign: e.g. "Paid consultation" — omitted entirely when the caller has no consultation-type fact to show. */
+  consultationTypeLabel?: ReactNode;
+  /** Consultation Pricing Redesign: e.g. "Total" — the caption for `priceLabel`. Required whenever `priceLabel` is passed. */
+  totalCaption?: ReactNode;
+  /** Consultation Pricing Redesign: the real backend-supplied price for this booking, pre-formatted (e.g. "FREE" or "500 EGP") — never computed here. */
+  priceLabel?: ReactNode;
   actions?: ReactNode;
 }
 
@@ -31,6 +37,9 @@ export function BookingSummaryCard({
   timezoneLabel,
   status,
   statusLabel,
+  consultationTypeLabel,
+  totalCaption,
+  priceLabel,
   actions,
 }: BookingSummaryCardProps) {
   return (
@@ -50,6 +59,17 @@ export function BookingSummaryCard({
           <div className="flex items-center justify-between">
             <dt className="text-text-tertiary">{timezoneLabel}</dt>
           </div>
+          {consultationTypeLabel && (
+            <div className="flex items-center justify-between">
+              <dt className="text-text-tertiary">{consultationTypeLabel}</dt>
+            </div>
+          )}
+          {priceLabel && (
+            <div className="flex items-center justify-between border-t border-border-default pt-2">
+              <dt className="font-medium text-text-primary">{totalCaption}</dt>
+              <dd className="font-semibold text-text-primary">{priceLabel}</dd>
+            </div>
+          )}
         </dl>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </CardContent>

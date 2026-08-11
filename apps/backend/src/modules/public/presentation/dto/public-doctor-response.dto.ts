@@ -6,6 +6,7 @@ export class PublicDoctorResponseDto {
   fullName!: string;
   professionalRank?: ProfessionalRank;
   specialtyName!: string;
+  specialtyNameAr!: string | null;
   hospitalId?: string;
   hospitalName?: string;
   yearsOfExperience?: number;
@@ -22,6 +23,7 @@ export class PublicDoctorResponseDto {
     dto.fullName = doctor.fullName;
     dto.professionalRank = doctor.professionalRank;
     dto.specialtyName = doctor.specialtyName;
+    dto.specialtyNameAr = doctor.specialtyNameAr ?? null;
     dto.hospitalId = doctor.hospitalId;
     dto.hospitalName = doctor.hospitalName;
     dto.yearsOfExperience = doctor.yearsOfExperience;

@@ -3,11 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { IdentityVerificationGate } from '@/features/patient/components/identity-verification/identity-verification-gate';
+import { PayNowForm } from '@/features/payment/components/pay-now-form';
 import { SHARED_ERROR_CODES } from '@/shared/lib/api/error-codes';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
 import { useBookAppointment } from '@/features/patient/hooks/use-book-appointment';
+import type { BookedAppointment } from '@/features/patient/api/types';
 import type { AvailabilityWindowData } from '@/features/scheduling/types';
+import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { addDays, isSameDay } from '@/shared/lib/date/week';
 import { ApiError } from '@/shared/lib/api/client';
@@ -23,7 +26,7 @@ export interface BookingFlowProps {
   doctorId: string;
 }
 
-type Step = 'select' | 'summary';
+type Step = 'select' | 'summary' | 'payment';
 
 /**
  * Onboarding Redesign integration-gap closure (2026-07-25): the real
@@ -48,6 +51,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const today = useMemo(() => new Date(), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedWindow, setSelectedWindow] = useState<AvailabilityWindowData | null>(null);
+  const [bookedAppointment, setBookedAppointment] = useState<BookedAppointment | null>(null);
   const [step, setStep] = useState<Step>('select');
 
   const rangeStart = useMemo(() => {
@@ -91,28 +95,63 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     };
   }
 
+  // Slot conflict (409) -- someone else booked it, or it otherwise stopped
+  // being Open, between the grid loading and confirm being pressed. The
+  // grid has already been invalidated (useBookAppointment's onError), so
+  // going back re-renders against fresh data instead of the stale slot.
+  const isConflictError = bookAppointment.error instanceof ApiError && bookAppointment.error.status === 409;
+
+  // Consultation Pricing Lifecycle Completion (pay-then-confirm): a Paid
+  // booking lands Requested and is NOT confirmed by this call -- the
+  // patient must pay next (this component's own 'payment' step) before the
+  // appointment becomes usable. A Free booking still goes straight to the
+  // doctor-approval queue (unchanged), so it redirects immediately just
+  // like before.
   async function handleConfirm() {
     if (!selectedWindow) return;
     try {
-      await bookAppointment.mutateAsync({
+      const appointment = await bookAppointment.mutateAsync({
         doctorId,
         availabilityWindowId: selectedWindow.id,
-        consultationType: selectedWindow.consultationType,
       });
-      router.push('/patient/appointments');
+      if (appointment.consultationType === 'paid' && appointment.feeAmount !== null && appointment.feeCurrency !== null) {
+        setBookedAppointment(appointment);
+        setStep('payment');
+      } else {
+        router.push('/patient/appointments');
+      }
     } catch {
       // Inline error rendered below from bookAppointment.error, or the gate
       // above if it's the identity-verification case.
     }
   }
 
+  if (step === 'payment' && bookedAppointment && bookedAppointment.feeAmount !== null && bookedAppointment.feeCurrency !== null) {
+    return (
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-text-primary">{t('paymentStepTitle')}</h2>
+        <p className="text-sm text-text-secondary">{t('paymentStepDescription')}</p>
+        <PayNowForm
+          appointmentId={bookedAppointment.id}
+          amount={{ amount: bookedAppointment.feeAmount, currency: bookedAppointment.feeCurrency }}
+          onPaid={() => router.push('/patient/appointments')}
+        />
+      </div>
+    );
+  }
+
   if (step === 'summary' && selectedWindow) {
     const summary = summaryFor(selectedWindow);
+    const priceLabel = formatConsultationPrice(selectedWindow, locale, t('priceFree'));
     return (
       <div className="flex flex-col gap-3">
         {bookAppointment.isError && !gateError && (
           <Alert variant="danger" role="alert">
-            {bookAppointment.error instanceof ApiError ? bookAppointment.error.message : t('bookingFailed')}
+            {isConflictError
+              ? t('slotNoLongerAvailable')
+              : bookAppointment.error instanceof ApiError
+                ? bookAppointment.error.message
+                : t('bookingFailed')}
           </Alert>
         )}
         <BookingSummaryCard
@@ -122,15 +161,30 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
           timezoneLabel={timezoneLabel}
           status="pending"
           statusLabel={t('review')}
+          consultationTypeLabel={t(`consultationType.${selectedWindow.consultationType}`)}
+          totalCaption={t('total')}
+          priceLabel={priceLabel}
           actions={
-            <>
-              <Button loading={bookAppointment.isPending} onClick={handleConfirm}>
-                {t('confirm')}
-              </Button>
-              <Button variant="outline" onClick={() => setStep('select')}>
+            isConflictError ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedWindow(null);
+                  setStep('select');
+                }}
+              >
                 {t('back')}
               </Button>
-            </>
+            ) : (
+              <>
+                <Button loading={bookAppointment.isPending} onClick={handleConfirm}>
+                  {t('confirm')}
+                </Button>
+                <Button variant="outline" onClick={() => setStep('select')}>
+                  {t('back')}
+                </Button>
+              </>
+            )
           }
         />
       </div>
@@ -141,6 +195,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     id: window.id,
     timeLabel: format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' }),
     status: 'available',
+    label: formatConsultationPrice(window, locale, t('priceFree')),
     onSelect: () => {
       setSelectedWindow(window);
       setStep('summary');

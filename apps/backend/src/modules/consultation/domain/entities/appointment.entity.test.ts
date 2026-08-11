@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
-import { ConsultationType } from '../enums/consultation-type.enum.js';
+import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
+import { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 
 import { Appointment } from './appointment.entity.js';
 
@@ -13,7 +14,7 @@ function requestAppointment(): Appointment {
     patientId: '11111111-1111-4111-8111-111111111111',
     doctorId: '22222222-2222-4222-8222-222222222222',
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-    consultationType: ConsultationType.Free,
+    pricing: ConsultationPricing.free(),
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
 }
@@ -52,14 +53,27 @@ describe('Appointment', () => {
 
   it('cancels a Requested or Confirmed appointment', () => {
     const appointment = requestAppointment();
-    appointment.cancel();
+    appointment.cancel('patient');
     assert.equal(appointment.getStatus(), AppointmentStatus.Cancelled);
   });
 
   it('rejects cancelling a terminal appointment', () => {
     const appointment = requestAppointment();
-    appointment.cancel();
-    assert.throws(() => appointment.cancel(), ConsultationDomainError);
+    appointment.cancel('patient');
+    assert.throws(() => appointment.cancel('patient'), ConsultationDomainError);
+  });
+
+  it('cancel() raises AppointmentCancelledEvent carrying the appointment id and cancelledBy', () => {
+    const appointment = requestAppointment();
+    appointment.releaseDomainEvents(); // clears AppointmentBooked -- cancel() is a separate transaction in real usage
+
+    appointment.cancel('doctor');
+
+    const events = appointment.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof AppointmentCancelledEvent);
+    assert.equal((events[0] as AppointmentCancelledEvent).appointmentId, appointment.getId());
+    assert.equal((events[0] as AppointmentCancelledEvent).cancelledBy, 'doctor');
   });
 
   it('marks an appointment as Rescheduled', () => {

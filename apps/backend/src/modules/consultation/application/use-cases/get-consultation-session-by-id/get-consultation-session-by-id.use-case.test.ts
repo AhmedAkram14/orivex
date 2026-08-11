@@ -15,6 +15,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
     return null;
   }
   async save(): Promise<void> {}
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 describe('GetConsultationSessionByIdUseCase', () => {

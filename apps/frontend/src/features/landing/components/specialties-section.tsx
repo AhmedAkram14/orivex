@@ -16,12 +16,13 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
 import type { PublicSpecialty } from '@/features/landing/api/types';
 import { Heading, Text } from '@/design-system/typography';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
 import { Icon } from '@/shared/icons/icon';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Link } from '@/shared/i18n/navigation';
 import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
@@ -84,6 +85,7 @@ function styleFor(specialty: PublicSpecialty) {
 
 function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
   const t = useTranslations('landing.specialties');
+  const locale = useLocale();
   const style = styleFor(specialty);
   const accent = ACCENTS[style.accent];
 
@@ -98,7 +100,7 @@ function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
         <div className={cn('flex size-14 items-center justify-center rounded-full', accent.iconBg)}>
           <Icon icon={style.icon} size="lg" className={accent.icon} />
         </div>
-        <Heading level={4}>{specialty.name}</Heading>
+        <Heading level={4}>{pickLocalizedName(specialty.name, specialty.nameAr, locale)}</Heading>
         <Text size="sm" tone="secondary">
           {t(`categories.${style.key}`)}
         </Text>

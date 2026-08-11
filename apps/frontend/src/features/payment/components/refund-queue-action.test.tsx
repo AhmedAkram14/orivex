@@ -17,6 +17,7 @@ afterAll(() => server.close());
 function buildTransaction(overrides: Partial<PaymentTransaction> = {}): PaymentTransaction {
   return {
     id: 'payment-1',
+    appointmentId: 'appointment-1',
     consultationSessionId: 'session-1',
     amount: { amount: 500, currency: 'EGP' },
     status: 'succeeded',

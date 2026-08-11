@@ -1,10 +1,14 @@
 import type { WeekDay } from '../../../domain/enums/week-day.enum.js';
+import type { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 export interface WorkingHoursDayInput {
   dayOfWeek: WeekDay;
   isWorkingDay: boolean;
   hours: { start: string; end: string };
   breaks: { start: string; end: string }[];
+  // Consultation Pricing Redesign: this weekday's default price. Omitted
+  // -> Free, matching WorkingHoursDay.create()'s own default.
+  pricing?: ConsultationPricing;
 }
 
 export class UpdateDoctorWorkingHoursCommand {

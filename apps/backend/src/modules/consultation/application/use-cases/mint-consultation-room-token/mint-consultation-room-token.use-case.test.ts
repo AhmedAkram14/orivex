@@ -24,6 +24,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
     return null;
   }
   async save(): Promise<void> {}
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 class FakeRoomTokenGenerator implements RoomTokenGeneratorPort {

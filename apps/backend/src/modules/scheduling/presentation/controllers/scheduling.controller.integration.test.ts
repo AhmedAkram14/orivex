@@ -7,6 +7,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
 import { AllExceptionsFilter } from '../../../../platform/filters/all-exceptions.filter.js';
+import type { DomainEventDispatcher } from '../../../../shared/domain/domain-event-dispatcher.js';
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import { createValidationException } from '../../../../platform/validation/validation-exception-factory.js';
 import type { AccessTokenClaims, JwtSignerPort } from '../../../authentication/application/ports/jwt-signer.port.js';
@@ -14,9 +15,15 @@ import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js'
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { ListAvailabilityWindowsForDoctorUseCase } from '../../../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
+import { UpdateAvailabilityWindowPricingUseCase } from '../../../doctor/application/use-cases/update-availability-window-pricing/update-availability-window-pricing.use-case.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
+import type { AvailabilityWindow } from '../../../doctor/domain/entities/availability-window.entity.js';
+import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { DOMAIN_EVENT_DISPATCHER } from '../../../../shared/domain/tokens.js';
+import { AVAILABILITY_WINDOW_REPOSITORY } from '../../../doctor/application/ports/tokens.js';
 import { HOLIDAY_REPOSITORY, SCHEDULE_EXCEPTION_REPOSITORY, WORKING_HOURS_REPOSITORY } from '../../application/ports/tokens.js';
 import { AddScheduleExceptionUseCase } from '../../application/use-cases/add-schedule-exception/add-schedule-exception.use-case.js';
 import { GetDoctorWorkingHoursUseCase } from '../../application/use-cases/get-doctor-working-hours/get-doctor-working-hours.use-case.js';
@@ -87,6 +94,29 @@ class FakeScheduleExceptionRepository implements ScheduleExceptionRepository {
   }
 }
 
+class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
+  private readonly byId = new Map<string, AvailabilityWindow>();
+  async findById(id: string): Promise<AvailabilityWindow | null> {
+    return this.byId.get(id) ?? null;
+  }
+  async findOverlapping(): Promise<AvailabilityWindow[]> {
+    return [];
+  }
+  async findByDoctorAndRange(doctorId: string): Promise<AvailabilityWindow[]> {
+    return [...this.byId.values()].filter((window) => window.getDoctorId() === doctorId);
+  }
+  async save(window: AvailabilityWindow): Promise<void> {
+    this.byId.set(window.getId(), window);
+  }
+}
+
+class NoopDomainEventDispatcher {
+  async dispatch(): Promise<void> {
+    // intentionally empty
+  }
+  subscribe(): void {}
+}
+
 class FakeHolidayRepository implements HolidayRepository {
   async findAll(): Promise<Holiday[]> {
     return [Holiday.reconstitute({ id: 'holiday-1', date: '2026-01-07', name: 'Coptic Christmas Day' })];
@@ -127,6 +157,7 @@ describe('SchedulingController (integration)', () => {
     const workingHoursRepository = new FakeWorkingHoursRepository();
     const scheduleExceptionRepository = new FakeScheduleExceptionRepository();
     const holidayRepository = new FakeHolidayRepository();
+    const availabilityWindowRepository = new FakeAvailabilityWindowRepository();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [SchedulingController],
@@ -139,9 +170,22 @@ describe('SchedulingController (integration)', () => {
         { provide: WORKING_HOURS_REPOSITORY, useValue: workingHoursRepository },
         { provide: SCHEDULE_EXCEPTION_REPOSITORY, useValue: scheduleExceptionRepository },
         { provide: HOLIDAY_REPOSITORY, useValue: holidayRepository },
+        { provide: AVAILABILITY_WINDOW_REPOSITORY, useValue: availabilityWindowRepository },
+        { provide: DOMAIN_EVENT_DISPATCHER, useClass: NoopDomainEventDispatcher },
         {
           provide: GetDoctorProfileByAccountIdUseCase,
           useFactory: () => new GetDoctorProfileByAccountIdUseCase(doctorProfileRepository),
+        },
+        {
+          provide: ListAvailabilityWindowsForDoctorUseCase,
+          useFactory: (repo: AvailabilityWindowRepository) => new ListAvailabilityWindowsForDoctorUseCase(repo),
+          inject: [AVAILABILITY_WINDOW_REPOSITORY],
+        },
+        {
+          provide: UpdateAvailabilityWindowPricingUseCase,
+          useFactory: (repo: AvailabilityWindowRepository, dispatcher: DomainEventDispatcher) =>
+            new UpdateAvailabilityWindowPricingUseCase(repo, dispatcher),
+          inject: [AVAILABILITY_WINDOW_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
         },
         {
           provide: GetDoctorWorkingHoursUseCase,

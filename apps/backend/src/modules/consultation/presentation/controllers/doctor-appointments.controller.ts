@@ -15,6 +15,7 @@ import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
+import { ConsultationDomainError } from '../../domain/exceptions/consultation-domain.error.js';
 import { ConfirmAppointmentCommand } from '../../application/use-cases/confirm-appointment/confirm-appointment.command.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
@@ -246,21 +247,25 @@ export class DoctorAppointmentsController {
     }
 
     const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
+    // Consultation Pricing Lifecycle Completion: Paid appointments no
+    // longer wait on doctor approval at all -- they confirm automatically
+    // once the patient's payment succeeds (InitiateChargeUseCase). A Paid
+    // appointment sitting Requested simply means the patient hasn't paid
+    // yet, which is nothing for the doctor to act on here.
     const pending = appointments
-      .filter((appointment) => appointment.getStatus() === AppointmentStatus.Requested)
+      .filter((appointment) => appointment.getStatus() === AppointmentStatus.Requested && appointment.getPricing().isFree())
       .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime());
 
     const items = await Promise.all(pending.map((appointment) => this.toPendingApprovalItem(appointment)));
     return envelope(items.filter((item): item is PendingApprovalAppointmentResponseDto => item !== null));
   }
 
-  // Doctor-approval-workflow fix: the doctor's explicit approval action --
-  // every booking (Free or Paid) now waits here before it's Confirmed and
-  // enters the real queue (supersedes the removed "auto-confirm" behavior).
-  // Reuses ConfirmAppointmentUseCase unchanged (the same use case a
-  // successful Paid charge would call once PaymentModule's Stripe
-  // integration is real) -- confirming is confirming, regardless of what
-  // triggered it.
+  // Doctor-approval-workflow: the doctor's explicit approval action for
+  // Free bookings only -- Paid bookings confirm automatically once payment
+  // succeeds (Consultation Pricing Lifecycle Completion: pay-then-confirm,
+  // InitiateChargeUseCase calls this same ConfirmAppointmentUseCase itself
+  // on a successful charge). A doctor can never manually approve a Paid
+  // appointment into existence without a real payment behind it.
   @Patch(':id/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(AccountRole.Doctor)
@@ -278,6 +283,11 @@ export class DoctorAppointmentsController {
         // 404, not 403 -- never confirms to a caller whether an appointment
         // id belonging to someone else's queue exists at all.
         throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
+      if (!existing.getPricing().isFree()) {
+        throw new ConsultationDomainError(
+          'Paid appointments cannot be manually approved; they confirm automatically once the patient completes payment.',
+        );
       }
 
       const result = await this.confirmAppointmentUseCase.execute(new ConfirmAppointmentCommand({ appointmentId: id }));
@@ -306,7 +316,7 @@ export class DoctorAppointmentsController {
     dto.patientName = patientAccount.getUserProfile().getDisplayName().toString();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.reasonForVisit = appointment.getReasonForVisit() ?? undefined;
-    dto.consultationType = appointment.getConsultationType();
+    dto.consultationType = appointment.getPricing().getPricingType();
     return dto;
   }
 

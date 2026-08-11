@@ -14,6 +14,7 @@ const workingDay: WorkingHoursDay = {
   isWorkingDay: true,
   hours: { start: '09:00', end: '17:00' },
   breaks: [{ start: '13:00', end: '14:00' }],
+  pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null },
 };
 
 const targetDate = new Date(2026, 6, 20, 0, 0, 0, 0);

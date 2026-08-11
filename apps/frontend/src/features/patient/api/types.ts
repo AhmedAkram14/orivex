@@ -29,6 +29,8 @@ export interface UpcomingAppointmentPreview {
   scheduledAt: string;
   doctorName: string;
   specialization: string;
+  /** The Arabic specialty name -- null until an admin has translated it. */
+  specializationAr: string | null;
   status: UpcomingAppointmentPreviewStatus;
 }
 
@@ -154,6 +156,8 @@ export interface Appointment {
   scheduledAt: string;
   doctorName: string;
   specialization: string;
+  /** The Arabic specialty name -- null until an admin has translated it. */
+  specializationAr: string | null;
   status: AppointmentStatus;
   consultationType: ConsultationType;
   reasonForVisit?: string;
@@ -176,22 +180,29 @@ export type AppointmentsResponse = Appointment[];
  * Onboarding Redesign integration-gap closure (2026-07-25): the real
  * `POST /appointments` request shape (ConsultationModule's
  * `BookAppointmentRequestDto`) -- `availabilityWindowId` is the only slot
- * reference, never a raw start/end time (the backend re-validates the
- * window's own doctor/consultationType regardless of what's sent here).
+ * reference, never a raw start/end time.
+ *
+ * Consultation Pricing Redesign: no longer carries `consultationType` --
+ * the backend dropped it from `BookAppointmentRequestDto` entirely (pricing
+ * is inherent to the `AvailabilityWindow` being booked, never asserted by
+ * the client, and the global `forbidNonWhitelisted` ValidationPipe now
+ * rejects the field outright if sent).
  */
 export interface BookAppointmentRequest {
   doctorId: string;
   availabilityWindowId: string;
-  consultationType: ConsultationType;
   reasonForVisit?: string;
 }
 
 /**
  * The real `POST /appointments` response shape (ConsultationModule's
  * `AppointmentResponseDto`) -- deliberately leaner than `Appointment` above
- * (no `doctorName`/`specialization`/`feeAmount`, which that type composes
- * from a joined doctor lookup `GET /appointments/me` does server-side, not
- * this create response).
+ * (no `doctorName`/`specialization`, which that type composes from a joined
+ * doctor lookup `GET /appointments/me` does server-side, not this create
+ * response). `feeAmount`/`feeCurrency` are this appointment's own
+ * snapshotted price (Consultation Pricing Redesign) -- flat fields, matching
+ * `AppointmentResponseDto` exactly (distinct from `Appointment.feeAmount`
+ * above, which composes them into a nested object for that list endpoint).
  */
 export interface BookedAppointment {
   id: string;
@@ -199,6 +210,8 @@ export interface BookedAppointment {
   doctorId: string;
   availabilityWindowId: string;
   consultationType: ConsultationType;
+  feeAmount: number | null;
+  feeCurrency: string | null;
   status: AppointmentStatus;
   /** ISO timestamp. */
   scheduledAt: string;

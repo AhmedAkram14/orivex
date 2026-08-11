@@ -10,15 +10,21 @@ export interface Money {
 /** Matches apps/backend/.../payment-transaction-response.dto.ts exactly. */
 export interface PaymentTransaction {
   id: string;
+  appointmentId: string;
   consultationSessionId: string | null;
   amount: Money;
   status: PaymentStatus;
   createdAt: string;
 }
 
+/**
+ * Consultation Pricing Lifecycle Completion (pay-then-confirm): keyed by
+ * appointmentId, not consultationSessionId -- no ConsultationSession exists
+ * yet at charge time (one is only opened once this charge succeeds).
+ */
 export interface InitiateChargeRequest {
   idempotencyKey: string;
-  consultationSessionId: string;
+  appointmentId: string;
   amount: Money;
   paymentMethod: PaymentMethod;
   /** A Stripe payment-method id from Stripe Elements -- never a raw card number. */

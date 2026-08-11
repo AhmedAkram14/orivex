@@ -28,6 +28,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByConsultationSessionId(): Promise<PaymentTransaction | null> {
     return null;
   }
+  async findByAppointmentId(): Promise<PaymentTransaction | null> {
+    return null;
+  }
   async save(): Promise<void> {}
 }
 
@@ -73,6 +76,7 @@ function buildRefundedTransaction(patientId: string): PaymentTransaction {
     idempotencyKey: 'idem-1',
     patientId,
     doctorId: '33333333-3333-4333-8333-333333333333',
+    appointmentId: '99999999-9999-4999-8999-999999999999',
     amount: Money.create(500, 'EGP'),
     paymentMethod: PaymentMethod.Card,
   });

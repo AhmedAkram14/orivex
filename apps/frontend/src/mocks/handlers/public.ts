@@ -69,6 +69,7 @@ export const publicHandlers = [
       .map((specialty) => ({
         id: specialty.id,
         name: specialty.name,
+        nameAr: specialty.nameAr,
         doctorCount: countBySpecialtyId.get(specialty.id) ?? 0,
       }))
       .sort((a, b) => b.doctorCount - a.doctorCount);
@@ -83,14 +84,15 @@ export const publicHandlers = [
     const limit = Number(url.searchParams.get('limit') ?? '20');
 
     const { doctors, total } = listDoctors({ specialtyId, page, limit });
-    const specialtiesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty.name]));
+    const specialtiesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty]));
 
     const mapped = doctors.map((doctor) => {
       const { averageRating, reviewCount } = getDoctorReviews(doctor.doctorProfileId, 1, 1);
       return {
         doctorProfileId: doctor.doctorProfileId,
         fullName: doctor.displayName,
-        specialtyName: specialtiesById.get(doctor.specialtyId) ?? '',
+        specialtyName: specialtiesById.get(doctor.specialtyId)?.name ?? '',
+        specialtyNameAr: specialtiesById.get(doctor.specialtyId)?.nameAr ?? null,
         hospitalId: doctor.hospitalId,
         // No hospital-name mock store exists -- an unaffiliated doctor stays
         // unaffiliated here too, same "Independent Practice" fallback the

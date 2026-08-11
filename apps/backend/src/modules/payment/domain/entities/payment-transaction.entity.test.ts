@@ -11,6 +11,7 @@ import { PaymentTransaction } from './payment-transaction.entity.js';
 function initiateTransaction(): PaymentTransaction {
   return PaymentTransaction.initiate({
     idempotencyKey: 'idem-key-1',
+    appointmentId: '99999999-9999-4999-8999-999999999999',
     consultationSessionId: '11111111-1111-4111-8111-111111111111',
     patientId: '22222222-2222-4222-8222-222222222222',
     doctorId: '33333333-3333-4333-8333-333333333333',
@@ -86,6 +87,24 @@ describe('PaymentTransaction', () => {
     transaction.attachExternalReference('pi_test_456');
 
     assert.equal(transaction.getExternalReference(), 'pi_test_456');
+    assert.equal(transaction.getStatus(), PaymentStatus.Initiated);
+  });
+
+  it('getAppointmentId returns the appointmentId a charge was initiated against', () => {
+    const transaction = initiateTransaction();
+    assert.equal(transaction.getAppointmentId(), '99999999-9999-4999-8999-999999999999');
+  });
+
+  // Consultation Pricing Lifecycle Completion: no ConsultationSession exists
+  // yet at charge time (pay-then-confirm) -- ConfirmAppointmentUseCase
+  // attaches one after the fact, once confirmation opens (or reuses) it.
+  it('attachConsultationSessionId records the session id, once opened, without changing status', () => {
+    const transaction = initiateTransaction();
+    assert.equal(transaction.getConsultationSessionId(), '11111111-1111-4111-8111-111111111111');
+
+    transaction.attachConsultationSessionId('44444444-4444-4444-8444-444444444444');
+
+    assert.equal(transaction.getConsultationSessionId(), '44444444-4444-4444-8444-444444444444');
     assert.equal(transaction.getStatus(), PaymentStatus.Initiated);
   });
 

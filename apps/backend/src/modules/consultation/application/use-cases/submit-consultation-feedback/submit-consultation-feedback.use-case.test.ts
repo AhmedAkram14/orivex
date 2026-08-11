@@ -9,10 +9,10 @@ import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { ConsultationFeedback } from '../../../domain/entities/consultation-feedback.entity.js';
 import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import { ConsultationCompletionReason } from '../../../domain/enums/consultation-completion-reason.enum.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import type { ConsultationFeedbackRepository, DoctorRatingAggregate } from '../../../domain/repositories/consultation-feedback.repository.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 import { SubmitConsultationFeedbackCommand } from './submit-consultation-feedback.command.js';
 import { SubmitConsultationFeedbackUseCase } from './submit-consultation-feedback.use-case.js';
@@ -58,6 +58,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
     return this.session;
   }
   async save(): Promise<void> {}
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 class FakeAppointmentRepository implements AppointmentRepository {
@@ -110,7 +113,7 @@ function buildCompletedSession(): { appointment: Appointment; session: Consultat
     patientId: PATIENT_ID,
     doctorId: DOCTOR_ID,
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-    consultationType: ConsultationType.Free,
+    pricing: ConsultationPricing.free(),
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
   appointment.confirm();
@@ -172,7 +175,7 @@ describe('SubmitConsultationFeedbackUseCase', () => {
       patientId: PATIENT_ID,
       doctorId: DOCTOR_ID,
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     appointment.confirm();
@@ -207,7 +210,7 @@ describe('SubmitConsultationFeedbackUseCase', () => {
       patientId: PATIENT_ID,
       doctorId: DOCTOR_ID,
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     appointment.confirm();

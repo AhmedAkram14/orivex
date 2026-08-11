@@ -4,9 +4,10 @@ import { describe, it } from 'node:test';
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
 import { AvailabilityWindowStatus } from '../../../domain/enums/availability-window-status.enum.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
+import { Money } from '../../../domain/value-objects/money.value-object.js';
 
 import { ConfirmAvailabilityWindowCommand } from './confirm-availability-window.command.js';
 import { ConfirmAvailabilityWindowUseCase } from './confirm-availability-window.use-case.js';
@@ -40,7 +41,7 @@ function buildHeldWindow(): AvailabilityWindow {
     doctorId: '11111111-1111-4111-8111-111111111111',
     startTime,
     endTime: new Date(startTime.getTime() + 30 * 60_000),
-    consultationType: ConsultationType.Paid,
+    pricing: ConsultationPricing.paid(Money.create(500, 'EGP')),
   });
   window.hold();
   return window;
@@ -74,7 +75,7 @@ describe('ConfirmAvailabilityWindowUseCase', () => {
       doctorId: '11111111-1111-4111-8111-111111111111',
       startTime,
       endTime: new Date(startTime.getTime() + 30 * 60_000),
-      consultationType: ConsultationType.Paid,
+      pricing: ConsultationPricing.paid(Money.create(500, 'EGP')),
     });
     window.hold(new Date(Date.now() - 20 * 60_000), 15);
     const repo = new FakeAvailabilityWindowRepository(window);

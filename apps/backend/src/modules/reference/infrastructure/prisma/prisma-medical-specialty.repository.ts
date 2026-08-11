@@ -30,6 +30,7 @@ export class PrismaMedicalSpecialtyRepository implements MedicalSpecialtyReposit
     const data = {
       id: specialty.getId(),
       name: specialty.getName(),
+      nameAr: specialty.getNameAr() ?? null,
       isActive: specialty.getIsActive(),
     };
 

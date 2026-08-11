@@ -1,9 +1,10 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import type { AnalyticsPreferences, RefreshInterval } from '@/features/reporting/lib/analytics-preferences';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
@@ -36,6 +37,7 @@ const REFRESH_OPTIONS: RefreshInterval[] = ['off', 30, 60, 300];
  */
 export function AnalyticsFiltersBar({ preferences, onChange }: AnalyticsFiltersBarProps) {
   const t = useTranslations('admin.analytics.filters');
+  const locale = useLocale();
   const { data: specialties } = useSpecialtiesList();
 
   return (
@@ -83,7 +85,7 @@ export function AnalyticsFiltersBar({ preferences, onChange }: AnalyticsFiltersB
             <SelectItem value="all">{t('specialtyAll')}</SelectItem>
             {specialties?.map((specialty) => (
               <SelectItem key={specialty.id} value={specialty.id}>
-                {specialty.name}
+                {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
               </SelectItem>
             ))}
           </SelectContent>

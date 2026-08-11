@@ -52,8 +52,20 @@ describe('ConsultationSession', () => {
     assert.equal(session.getCompletionReason(), ConsultationCompletionReason.InterruptedTechnical);
   });
 
-  it('rejects closing a session that is not InProgress', () => {
+  it('closes a WaitingRoom session too (e.g. LiveKit room_finished before InProgress)', () => {
     const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+
+    session.close(ConsultationCompletionReason.InterruptedTechnical);
+
+    assert.equal(session.getState(), ConsultationState.Closed);
+    assert.equal(session.getCompletionReason(), ConsultationCompletionReason.InterruptedTechnical);
+  });
+
+  it('rejects closing an already-Closed session', () => {
+    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+    session.start();
+    session.close(ConsultationCompletionReason.Completed);
+
     assert.throws(() => session.close(ConsultationCompletionReason.Completed), ConsultationDomainError);
   });
 

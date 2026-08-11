@@ -5,12 +5,14 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
+import { UpcomingSlotsPanel } from '@/features/scheduling/components/upcoming-slots-panel';
 import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
 import { ScheduleExceptionsManager } from '@/features/scheduling/components/schedule-exceptions-manager';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
 import { useHolidays } from '@/features/scheduling/hooks/use-holidays';
 import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-rules';
+import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
@@ -175,6 +177,7 @@ export default function DoctorSchedulePage() {
               <TabsTrigger value="month">{t('monthTab')}</TabsTrigger>
               <TabsTrigger value="day">{t('dayTab')}</TabsTrigger>
               <TabsTrigger value="agenda">{t('agendaTab')}</TabsTrigger>
+              <TabsTrigger value="upcoming-slots">{t('upcomingSlotsTab')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="week">
@@ -255,6 +258,10 @@ export default function DoctorSchedulePage() {
                 />
               )}
             </TabsContent>
+
+            <TabsContent value="upcoming-slots">
+              <UpcomingSlotsPanel />
+            </TabsContent>
           </Tabs>
         )}
 
@@ -282,6 +289,15 @@ export default function DoctorSchedulePage() {
                         isWorkingDay={day.isWorkingDay}
                         hoursLabel={`${day.hours.start} – ${day.hours.end}`}
                         breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
+                        priceLabel={formatConsultationPrice(
+                          {
+                            consultationType: day.pricing.pricingType,
+                            feeAmount: day.pricing.feeAmount,
+                            feeCurrency: day.pricing.feeCurrency,
+                          },
+                          locale,
+                          t('upcomingSlots.free'),
+                        )}
                         notWorkingLabel={t('noAvailability')}
                       />
                     ))}

@@ -24,7 +24,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { DoctorReviewsList } from '@/features/consultation/components/doctor-reviews-list';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
@@ -35,6 +35,7 @@ import { useMyVerifications } from '@/features/doctor/hooks/use-my-verifications
 import { computeProfileCompletion, type ProfileCompletionField } from '@/features/doctor/lib/profile-completion';
 import { getNextAvailability, isSameDay } from '@/features/doctor/lib/week';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
 import { Link } from '@/shared/i18n/navigation';
@@ -145,6 +146,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
   const t = useTranslations('doctor.profile');
   const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
   const format = useFormatter();
+  const locale = useLocale();
   const isWorkspace = variant === 'workspace';
 
   const { data: specialties } = useSpecialtiesList();
@@ -154,7 +156,10 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
   const { data: availability, isLoading: availabilityLoading } = useDoctorAvailability(isWorkspace);
   const { data: verifications } = useMyVerifications(isWorkspace ? profile.id : undefined);
 
-  const specialtyName = specialties?.find((specialty) => specialty.id === profile.specialtyId)?.name ?? t('notOnRecord');
+  const matchedSpecialty = specialties?.find((specialty) => specialty.id === profile.specialtyId);
+  const specialtyName = matchedSpecialty
+    ? pickLocalizedName(matchedSpecialty.name, matchedSpecialty.nameAr, locale)
+    : t('notOnRecord');
   const hospital = hospitals?.find((option) => option.id === profile.hospitalId);
 
   const isVerified = (verifications ?? []).some((verification) => verification.status === 'approved');

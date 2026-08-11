@@ -36,6 +36,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByConsultationSessionId(): Promise<PaymentTransaction | null> {
     return null;
   }
+  async findByAppointmentId(): Promise<PaymentTransaction | null> {
+    return null;
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.saved.push(transaction);
   }
@@ -69,6 +72,7 @@ class RecordingDispatcher {
 function buildSucceededTransaction(externalReference = 'pi_test_123'): PaymentTransaction {
   const transaction = PaymentTransaction.initiate({
     idempotencyKey: 'idem-key-refund-1',
+    appointmentId: '99999999-9999-4999-8999-999999999999',
     consultationSessionId: '11111111-1111-4111-8111-111111111111',
     patientId: '22222222-2222-4222-8222-222222222222',
     doctorId: '33333333-3333-4333-8333-333333333333',
@@ -131,6 +135,7 @@ describe('RefundPaymentUseCase', () => {
   it('rejects refunding an Initiated (never-succeeded) transaction, never calling the gateway', async () => {
     const transaction = PaymentTransaction.initiate({
       idempotencyKey: 'idem-key-refund-2',
+      appointmentId: '99999999-9999-4999-8999-999999999999',
       consultationSessionId: '11111111-1111-4111-8111-111111111111',
       patientId: '22222222-2222-4222-8222-222222222222',
       doctorId: '33333333-3333-4333-8333-333333333333',

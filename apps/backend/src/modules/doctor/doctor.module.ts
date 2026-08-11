@@ -25,6 +25,7 @@ import { ListDoctorDirectoryUseCase } from './application/use-cases/list-doctor-
 import { RegisterDoctorProfileUseCase } from './application/use-cases/register-doctor-profile/register-doctor-profile.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from './application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from './application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
+import { UpdateAvailabilityWindowPricingUseCase } from './application/use-cases/update-availability-window-pricing/update-availability-window-pricing.use-case.js';
 import { UpdateDoctorProfileUseCase } from './application/use-cases/update-doctor-profile/update-doctor-profile.use-case.js';
 import type { AvailabilityWindowRepository } from './domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from './domain/repositories/doctor-profile.repository.js';
@@ -96,6 +97,12 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
       inject: [DOCTOR_PROFILE_REPOSITORY, AVAILABILITY_WINDOW_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
     {
+      provide: UpdateAvailabilityWindowPricingUseCase,
+      useFactory: (repository: AvailabilityWindowRepository, eventDispatcher: DomainEventDispatcher) =>
+        new UpdateAvailabilityWindowPricingUseCase(repository, eventDispatcher),
+      inject: [AVAILABILITY_WINDOW_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
       provide: ReserveAvailabilityWindowUseCase,
       useFactory: (repository: AvailabilityWindowRepository, eventDispatcher: DomainEventDispatcher) =>
         new ReserveAvailabilityWindowUseCase(repository, eventDispatcher),
@@ -156,6 +163,7 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
     GetDoctorProfileByAccountIdUseCase,
     UpdateDoctorProfileUseCase,
     DefineAvailabilityWindowUseCase,
+    UpdateAvailabilityWindowPricingUseCase,
     ReserveAvailabilityWindowUseCase,
     ReleaseAvailabilityWindowUseCase,
     ConfirmAvailabilityWindowUseCase,

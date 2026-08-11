@@ -17,7 +17,7 @@ import type { VerificationCase } from '@/shared/verification/types';
 import type { VerificationCase as AdminVerificationCase } from '@/features/admin/api/types';
 import { getDoctorById } from '@/mocks/doctor-store';
 import { listSpecialties } from '@/mocks/reference-store';
-import { markAvailabilityWindowBooked } from '@/mocks/scheduling-store';
+import { isAvailabilityWindowBooked, markAvailabilityWindowBooked, resolveWindowPricing } from '@/mocks/scheduling-store';
 import {
   findAllVerificationCasesBySubject,
   decideVerificationCase,
@@ -235,6 +235,7 @@ export function seedCompletedAppointment(consultationSessionId: string, doctor: 
       scheduledAt: new Date().toISOString(),
       doctorName: doctor.name,
       specialization: doctor.specialty,
+      specializationAr: null,
       status: 'completed',
       consultationType: 'paid',
       reasonForVisit: undefined,
@@ -256,11 +257,25 @@ export function seedCompletedAppointment(consultationSessionId: string, doctor: 
  * encoded in its own id (`${doctorId}::${isoStart}`, see
  * `scheduling-store.ts`'s `getAvailabilityWindows`) -- this mock has no
  * separate window table to look it up in.
+ *
+ * Consultation Pricing Redesign: the appointment's price is the window's
+ * own real price (`resolveWindowPricing`, snapshotted at booking time,
+ * mirroring the real `Appointment.request()`'s own snapshot-not-live-read
+ * behavior) -- never a client-supplied `consultationType` (the request no
+ * longer carries one) or the doctor's profile-level fee. Throws if the
+ * window is already booked (mirrors the real backend's 409
+ * `AvailabilityWindowConflictError`) -- the handler (`patient.ts`) maps this
+ * to the same status.
  */
 export function bookAppointment(request: BookAppointmentRequest): BookedAppointment {
+  if (isAvailabilityWindowBooked(request.availabilityWindowId)) {
+    throw new Error(`AvailabilityWindow "${request.availabilityWindowId}" is no longer available.`);
+  }
+
   const doctor = getDoctorById(request.doctorId);
   const scheduledAt = request.availabilityWindowId.split('::')[1] ?? new Date().toISOString();
-  const isPaid = request.consultationType === 'paid';
+  const pricing = resolveWindowPricing(request.doctorId, scheduledAt);
+  const isPaid = pricing.pricingType === 'paid';
   const id = `appointment-${Date.now()}`;
 
   markAvailabilityWindowBooked(request.availabilityWindowId);
@@ -269,17 +284,19 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
   // Requested with no session yet -- both wait for the doctor's explicit
   // approval (mirrors BookAppointmentUseCase's real removal of its own
   // former auto-confirm-both workaround).
+  const matchedSpecialty = doctor && listSpecialties().find((specialty) => specialty.id === doctor.specialtyId);
   const listItem: Appointment = {
     id,
     scheduledAt,
     doctorName: doctor?.fullName ?? 'Doctor',
-    specialization: (doctor && listSpecialties().find((specialty) => specialty.id === doctor.specialtyId)?.name) ?? '',
+    specialization: matchedSpecialty?.name ?? '',
+    specializationAr: matchedSpecialty?.nameAr ?? null,
     status: 'requested',
-    consultationType: request.consultationType,
+    consultationType: pricing.pricingType,
     reasonForVisit: request.reasonForVisit,
     consultationSessionId: null,
     paymentRequired: isPaid,
-    feeAmount: isPaid && doctor?.consultationFeeAmount !== undefined ? { amount: doctor.consultationFeeAmount, currency: 'EGP' } : null,
+    feeAmount: isPaid && pricing.feeAmount !== null && pricing.feeCurrency !== null ? { amount: pricing.feeAmount, currency: pricing.feeCurrency } : null,
   };
   appointments = [listItem, ...appointments];
 
@@ -288,7 +305,9 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
     patientId: 'patient-profile-1',
     doctorId: request.doctorId,
     availabilityWindowId: request.availabilityWindowId,
-    consultationType: request.consultationType,
+    consultationType: pricing.pricingType,
+    feeAmount: pricing.feeAmount,
+    feeCurrency: pricing.feeCurrency,
     status: listItem.status,
     scheduledAt,
     reasonForVisit: request.reasonForVisit ?? null,
@@ -296,7 +315,14 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
   };
 }
 
-/** Doctor-approval-workflow fix: the doctor's own "Pending approval" list. */
+/**
+ * Consultation Pricing Lifecycle Completion (pay-then-confirm): Paid
+ * appointments no longer wait on doctor approval at all -- they confirm
+ * automatically once payment succeeds (`confirmAppointmentAfterPayment`
+ * below). A Paid appointment sitting `requested` just means the patient
+ * hasn't paid yet, nothing for the doctor to act on here (mirrors the real
+ * `DoctorAppointmentsController.getPendingApproval`'s own filter).
+ */
 export function getPendingApprovalAppointments(): {
   id: string;
   patientName: string;
@@ -305,7 +331,7 @@ export function getPendingApprovalAppointments(): {
   consultationType: 'free' | 'paid';
 }[] {
   return appointments
-    .filter((appointment) => appointment.status === 'requested')
+    .filter((appointment) => appointment.status === 'requested' && appointment.consultationType === 'free')
     .map((appointment) => ({
       id: appointment.id,
       patientName: 'Amina Youssef',
@@ -315,8 +341,11 @@ export function getPendingApprovalAppointments(): {
     }));
 }
 
-/** Doctor-approval-workflow fix: approving mints the session and moves the appointment into the real (Confirmed) queue. */
-export function approveAppointment(appointmentId: string): { id: string; status: string } {
+export function getAppointmentById(appointmentId: string): Appointment | undefined {
+  return appointments.find((entry) => entry.id === appointmentId);
+}
+
+function confirmAppointment(appointmentId: string): { id: string; status: string } {
   const appointment = appointments.find((entry) => entry.id === appointmentId);
   if (!appointment) {
     throw new Error(`Appointment "${appointmentId}" not found.`);
@@ -324,6 +353,16 @@ export function approveAppointment(appointmentId: string): { id: string; status:
   appointment.status = 'confirmed';
   appointment.consultationSessionId = `session-${appointmentId}`;
   return { id: appointment.id, status: appointment.status };
+}
+
+/** Doctor-approval-workflow fix: approving (Free appointments only) mints the session and moves the appointment into the real (Confirmed) queue. */
+export function approveAppointment(appointmentId: string): { id: string; status: string } {
+  return confirmAppointment(appointmentId);
+}
+
+/** Consultation Pricing Lifecycle Completion: mirrors the real InitiateChargeUseCase's own confirm-on-success call. */
+export function confirmAppointmentAfterPayment(appointmentId: string): { id: string; status: string } {
+  return confirmAppointment(appointmentId);
 }
 
 export function getMedicalRecords(): MedicalRecordEntry[] {

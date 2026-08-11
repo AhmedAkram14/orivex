@@ -3,7 +3,13 @@ import { resolveDayForDate } from './resolve-day';
 import type { Holiday, RecurringWeeklySchedule, ScheduleException } from '../types';
 
 const schedule: RecurringWeeklySchedule = [
-  { dayOfWeek: 'monday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+  {
+    dayOfWeek: 'monday',
+    isWorkingDay: true,
+    hours: { start: '09:00', end: '17:00' },
+    breaks: [],
+    pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null },
+  },
 ];
 
 const monday = new Date(2026, 6, 13); // a Monday

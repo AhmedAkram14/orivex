@@ -3,20 +3,24 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 import type { EnvConfig } from '../../core/configuration/env.schema.js';
+import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { ConfirmAppointmentUseCase } from '../consultation/application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
-import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
-import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
 import { PatientModule } from '../patient/patient.module.js';
 import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 
 import type { PaymentGatewayPort } from './application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
+import {
+  AutoRefundOnDoctorCancellationHandler,
+  type AppointmentCancelledEventPayload,
+} from './application/event-handlers/auto-refund-on-doctor-cancellation.handler.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from './application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
@@ -29,17 +33,19 @@ import { PrismaPaymentTransactionRepository } from './infrastructure/prisma/pris
 import { PaymentWebhookController } from './presentation/controllers/payment-webhook.controller.js';
 import { PaymentController } from './presentation/controllers/payment.controller.js';
 
-// Imports ConsultationModule and DoctorModule to consume their own
-// exported use cases (module-to-module calls only through a published
-// interface, never another module's repository — docs/10-backend-
-// architecture.md Section 11). DoctorModule is a read-only addition
-// (GetDoctorProfileByIdUseCase, used only to validate a charge amount
-// against the doctor's own consultationFeeAmount) -- docs/10-backend-
-// architecture.md's dependency table only forbids PaymentModule from
-// depending on ClinicalModule; it does not forbid this read, and the same
-// read-only-query-through-a-published-use-case pattern is already used by
-// ConsultationModule and ClinicalModule for the same DoctorModule.
-// Neither module imports PaymentModule back -- no circular imports, no
+// Imports ConsultationModule to consume its own exported use cases
+// (module-to-module calls only through a published interface, never
+// another module's repository — docs/10-backend-architecture.md Section
+// 11). Consultation Pricing Redesign: InitiateChargeUseCase itself no
+// longer depends on DoctorModule -- it used to load DoctorProfile solely to
+// validate a charge amount against consultationFeeAmount; that validation
+// now reads the Appointment's own frozen pricing snapshot (already
+// available via GetAppointmentByIdUseCase below). DoctorModule is still
+// imported at the module level, though: PaymentController itself (not
+// InitiateChargeUseCase) needs GetDoctorProfileByAccountIdUseCase for its
+// doctor-facing routes (getByConsultationSessionId, refund ownership
+// checks) -- a real, separate dependency this module always had. None of
+// these modules import PaymentModule back -- no circular imports, no
 // forwardRef().
 //
 // PAYMENT_GATEWAY binds StripePaymentGatewayAdapter when STRIPE_SECRET_KEY
@@ -79,30 +85,12 @@ import { PaymentController } from './presentation/controllers/payment.controller
       useFactory: (
         repository: PaymentTransactionRepository,
         eventDispatcher: DomainEventDispatcher,
-        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
-        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         confirmAppointmentUseCase: ConfirmAppointmentUseCase,
         paymentGateway: PaymentGatewayPort,
       ) =>
-        new InitiateChargeUseCase(
-          repository,
-          eventDispatcher,
-          getConsultationSessionByIdUseCase,
-          getAppointmentByIdUseCase,
-          getDoctorProfileByIdUseCase,
-          confirmAppointmentUseCase,
-          paymentGateway,
-        ),
-      inject: [
-        PAYMENT_TRANSACTION_REPOSITORY,
-        DOMAIN_EVENT_DISPATCHER,
-        GetConsultationSessionByIdUseCase,
-        GetAppointmentByIdUseCase,
-        GetDoctorProfileByIdUseCase,
-        ConfirmAppointmentUseCase,
-        PAYMENT_GATEWAY,
-      ],
+        new InitiateChargeUseCase(repository, eventDispatcher, getAppointmentByIdUseCase, confirmAppointmentUseCase, paymentGateway),
+      inject: [PAYMENT_TRANSACTION_REPOSITORY, DOMAIN_EVENT_DISPATCHER, GetAppointmentByIdUseCase, ConfirmAppointmentUseCase, PAYMENT_GATEWAY],
     },
     {
       provide: RefundPaymentUseCase,
@@ -118,6 +106,24 @@ import { PaymentController } from './presentation/controllers/payment.controller
       useFactory: (repository: PaymentTransactionRepository, eventDispatcher: DomainEventDispatcher) =>
         new ReconcileStripeWebhookEventUseCase(repository, eventDispatcher),
       inject: [PAYMENT_TRANSACTION_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Reacts to ConsultationModule's 'consultation.appointment.cancelled'
+      // event -- see the handler's own comment for the exact refund rule.
+      provide: AutoRefundOnDoctorCancellationHandler,
+      useFactory: (
+        repository: PaymentTransactionRepository,
+        refundPaymentUseCase: RefundPaymentUseCase,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new AutoRefundOnDoctorCancellationHandler(repository, refundPaymentUseCase, logger);
+        dispatcher.subscribe('consultation.appointment.cancelled', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentCancelledEventPayload),
+        );
+        return handler;
+      },
+      inject: [PAYMENT_TRANSACTION_REPOSITORY, RefundPaymentUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
   exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase, RefundPaymentUseCase],

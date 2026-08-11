@@ -4,8 +4,9 @@ import { describe, it } from 'node:test';
 import { ReleaseAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { AvailabilityWindowStatus } from '../../../../doctor/domain/enums/availability-window-status.enum.js';
-import { ConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
+import { ConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
+import { Money } from '../../../../doctor/domain/value-objects/money.value-object.js';
 
 import { ReleaseSlotCommand } from './release-slot.command.js';
 import { ReleaseSlotUseCase } from './release-slot.use-case.js';
@@ -37,7 +38,7 @@ describe('ReleaseSlotUseCase', () => {
       doctorId: '11111111-1111-4111-8111-111111111111',
       startTime,
       endTime: new Date(startTime.getTime() + 30 * 60_000),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
     });
     window.hold();
     const releaseAvailabilityWindowUseCase = new ReleaseAvailabilityWindowUseCase(

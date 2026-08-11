@@ -88,7 +88,7 @@ describe('DashboardPage', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it('never calls the journey-status checks for a doctor-role account', async () => {
+  it('redirects a doctor-role account straight to /doctor (Overview), never rendering this generic page, and never calls the journey-status checks', async () => {
     let patientExistsCalled = false;
     server.use(
       http.get(`${base()}/patients/me/exists`, () => {
@@ -99,8 +99,8 @@ describe('DashboardPage', () => {
 
     renderDashboard(doctorState);
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/en/doctor'));
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(patientExistsCalled).toBe(false);
-    expect(replace).not.toHaveBeenCalled();
   });
 });

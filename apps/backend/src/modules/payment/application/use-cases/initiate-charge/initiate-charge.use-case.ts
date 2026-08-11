@@ -1,11 +1,9 @@
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
+import { AppointmentStatus } from '../../../../consultation/domain/enums/appointment-status.enum.js';
 import { ConfirmAppointmentCommand } from '../../../../consultation/application/use-cases/confirm-appointment/confirm-appointment.command.js';
 import type { ConfirmAppointmentUseCase } from '../../../../consultation/application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import type { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
-import type { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
-import { ConsultationType } from '../../../../consultation/domain/enums/consultation-type.enum.js';
-import type { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { PaymentTransaction } from '../../../domain/entities/payment-transaction.entity.js';
 import { IdempotencyKeyConflictError } from '../../../domain/exceptions/idempotency-key-conflict.error.js';
 import { PaymentAuthorizationFailedError } from '../../../domain/exceptions/payment-authorization-failed.error.js';
@@ -20,32 +18,38 @@ import type { InitiateChargeCommand } from './initiate-charge.command.js';
 // Plain TypeScript class — no NestJS dependency; DI wiring lives in
 // payment.module.ts only.
 //
-// Orchestrates: resolve the ConsultationSession -> its Appointment (via
-// ConsultationModule's own exported use cases -- module-to-module calls
-// only through a published interface, never another module's repository)
-// -> persist an Initiated PaymentTransaction -> call PaymentGatewayPort
-// (the documented "external PSP adapter", docs/10-backend-architecture.md)
-// -> record Succeeded/Failed -> on success, confirm the Appointment via
-// ConsultationModule's exported ConfirmAppointmentUseCase (the "Consultation
-// integration" this sprint's scope). PaymentGatewayPort has no bound
-// provider this sprint (no PSP selected) -- this use case still calls it
-// for real; it is simply not wired into the running application yet.
+// Consultation Pricing Lifecycle Completion (pay-then-confirm): charges
+// against the Appointment directly, not a ConsultationSession. This closes
+// a real gap the previous design had -- a session was only ever opened by
+// ConfirmAppointmentUseCase, and confirmation for a Paid appointment was
+// only ever supposed to happen via a successful charge, so a
+// consultationSessionId-keyed charge could never actually be initiated for
+// a Requested Paid appointment (nothing existed yet to charge against).
 //
-// command.amount is validated against the doctor's own
-// consultationFeeAmount (DoctorModule's own data, via its published
-// GetDoctorProfileByIdUseCase) rather than trusted as-is -- a client
-// could otherwise request an arbitrary charge amount for any real
-// consultationSessionId. Currency is still client-supplied: DoctorProfile
-// has no currency field of its own yet (Egypt V1 is single-currency in
-// practice, but nothing in the domain model enforces that), a known,
-// narrower gap than the amount one this closes.
+// Orchestrates: resolve the Appointment (via ConsultationModule's own
+// exported use case -- module-to-module calls only through a published
+// interface, never another module's repository) -> validate it is still
+// Requested and genuinely Paid, with an amount/currency that matches its
+// own snapshotted pricing (frozen at booking time from the
+// AvailabilityWindow that was booked -- never DoctorProfile.
+// consultationFeeAmount, closing the "client could request an arbitrary
+// charge amount" gap) -> persist an Initiated PaymentTransaction -> call
+// PaymentGatewayPort (the documented "external PSP adapter",
+// docs/10-backend-architecture.md) -> record Succeeded/Failed -> on
+// success, confirm the Appointment via ConsultationModule's exported
+// ConfirmAppointmentUseCase, which opens the ConsultationSession for the
+// first time. If confirmation fails after a successful charge (e.g. the
+// slot's hold lapsed while the patient was paying, or a race with another
+// charge attempt using a different idempotency key), the charge is
+// automatically refunded rather than leaving a Succeeded transaction
+// against an appointment nobody can ever use -- docs/01-prd.md's own
+// "technical-failure auto-refund" policy, the one unambiguous automatic-
+// refund case that policy already documents.
 export class InitiateChargeUseCase {
   constructor(
     private readonly paymentTransactionRepository: PaymentTransactionRepository,
     private readonly eventDispatcher: DomainEventDispatcher,
-    private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
-    private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private readonly paymentGateway: PaymentGatewayPort,
   ) {}
@@ -56,40 +60,41 @@ export class InitiateChargeUseCase {
       return this.replay(existing, command);
     }
 
-    const session = await this.getConsultationSessionByIdUseCase.execute({
-      consultationSessionId: command.consultationSessionId,
-    });
-    if (!session) {
-      throw new NotFoundError(`ConsultationSession "${command.consultationSessionId}" not found.`);
-    }
-
-    const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: session.getAppointmentId() });
+    const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: command.appointmentId });
     if (!appointment) {
-      throw new NotFoundError(`Appointment "${session.getAppointmentId()}" not found.`);
+      throw new NotFoundError(`Appointment "${command.appointmentId}" not found.`);
     }
 
-    if (appointment.getConsultationType() === ConsultationType.Free) {
+    if (appointment.getStatus() !== AppointmentStatus.Requested) {
+      throw new PaymentDomainError(
+        `Appointment "${command.appointmentId}" is not awaiting payment (status: ${appointment.getStatus()}).`,
+      );
+    }
+
+    const pricing = appointment.getPricing();
+    if (pricing.isFree()) {
       throw new PaymentDomainError('This consultation is free; no charge can be initiated for it.');
     }
 
-    const doctor = await this.getDoctorProfileByIdUseCase.execute({ doctorProfileId: appointment.getDoctorId() });
-    if (!doctor) {
-      throw new NotFoundError(`Doctor profile "${appointment.getDoctorId()}" not found.`);
+    const consultationFee = pricing.getFee();
+    if (!consultationFee) {
+      throw new PaymentDomainError('This appointment has no configured consultation fee; a charge cannot be initiated.');
     }
-    const consultationFeeAmount = doctor.getConsultationFeeAmount();
-    if (consultationFeeAmount === undefined) {
-      throw new PaymentDomainError('This doctor has no configured consultation fee; a charge cannot be initiated.');
-    }
-    if (command.amount !== consultationFeeAmount) {
+    if (command.amount !== consultationFee.getAmount()) {
       throw new PaymentDomainError(
-        `Requested amount ${command.amount} does not match the doctor's consultation fee ${consultationFeeAmount}.`,
+        `Requested amount ${command.amount} does not match this appointment's consultation fee ${consultationFee.getAmount()}.`,
+      );
+    }
+    if (command.currency.trim().toUpperCase() !== consultationFee.getCurrency()) {
+      throw new PaymentDomainError(
+        `Requested currency ${command.currency} does not match this appointment's consultation fee currency ${consultationFee.getCurrency()}.`,
       );
     }
 
     const amount = Money.create(command.amount, command.currency);
     const transaction = PaymentTransaction.initiate({
       idempotencyKey: command.idempotencyKey,
-      consultationSessionId: command.consultationSessionId,
+      appointmentId: command.appointmentId,
       patientId: appointment.getPatientId(),
       doctorId: appointment.getDoctorId(),
       amount,
@@ -118,7 +123,37 @@ export class InitiateChargeUseCase {
     await this.paymentTransactionRepository.save(transaction);
     await this.eventDispatcher.dispatch(transaction.releaseDomainEvents());
 
-    await this.confirmAppointmentUseCase.execute(new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }));
+    try {
+      const { session } = await this.confirmAppointmentUseCase.execute(
+        new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }),
+      );
+      transaction.attachConsultationSessionId(session.getId());
+      await this.paymentTransactionRepository.save(transaction);
+    } catch {
+      // The charge genuinely succeeded but the appointment could no longer
+      // be confirmed (most likely its slot's hold lapsed, or a concurrent
+      // charge attempt against the same appointment won the race first) --
+      // never leave a Succeeded transaction stranded against an appointment
+      // that can't be used. Auto-refund and surface a clear error instead.
+      // Guarded: refund() itself throws if no externalReference was ever
+      // attached (a gateway that never returns one) -- still surface the
+      // same clear error in that case rather than an unhandled crash, since
+      // the transaction is left Succeeded either way for manual follow-up.
+      try {
+        transaction.refund();
+        const externalReference = transaction.getExternalReference();
+        if (externalReference) {
+          await this.paymentGateway.refund({ externalReference });
+        }
+        await this.paymentTransactionRepository.save(transaction);
+        await this.eventDispatcher.dispatch(transaction.releaseDomainEvents());
+      } catch {
+        // Already Succeeded and saved above; nothing further to persist.
+      }
+      throw new PaymentDomainError(
+        'This appointment could no longer be confirmed (its slot may no longer be available). Your payment has been automatically refunded.',
+      );
+    }
 
     return transaction;
   }
@@ -128,7 +163,7 @@ export class InitiateChargeUseCase {
   // reused with different params (a client bug, not a legitimate retry).
   private replay(existing: PaymentTransaction, command: InitiateChargeCommand): PaymentTransaction {
     const sameRequest =
-      existing.getConsultationSessionId() === command.consultationSessionId &&
+      existing.getAppointmentId() === command.appointmentId &&
       existing.getAmount().getAmount() === command.amount &&
       existing.getAmount().getCurrency() === command.currency &&
       existing.getPaymentMethod() === command.paymentMethod;

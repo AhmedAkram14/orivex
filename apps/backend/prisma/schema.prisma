@@ -234,6 +234,12 @@ model Department {
 model MedicalSpecialty {
   id             String          @id @default(uuid())
   name           String          @unique
+  // Localization fix: the Arabic name shown whenever the caller's locale is
+  // Arabic -- nullable (an admin may not have translated every specialty
+  // yet), in which case every consumer falls back to `name`. Never
+  // @unique -- two specialties could plausibly share a translated form
+  // temporarily during data entry, unlike the canonical `name`.
+  nameAr         String?
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -525,6 +531,14 @@ model AvailabilityWindow {
   startTime        DateTime
   endTime          DateTime
   consultationType ConsultationType
+  // Consultation Pricing Redesign: pricing now belongs to the slot, not
+  // DoctorProfile. `consultationType` above is unchanged (still the
+  // Free/Paid flag); these two are additive -- null/null for a Free
+  // window, both set for Paid. Kept as flattened columns (the domain-layer
+  // ConsultationPricing value object reconstructs from them), matching
+  // this codebase's existing VO-persistence pattern.
+  feeAmount        Decimal?
+  feeCurrency      String?
   status           AvailabilityWindowStatus @default(OPEN)
   holdExpiresAt    DateTime?
   version          Int                      @default(1)
@@ -577,6 +591,11 @@ model Appointment {
   availabilityWindowId String
   availabilityWindow   AvailabilityWindow   @relation(fields: [availabilityWindowId], references: [id], onDelete: Restrict)
   consultationType     ConsultationType
+  // Consultation Pricing Redesign: snapshotted from the AvailabilityWindow's
+  // own pricing at booking time -- never re-read from the window
+  // afterward. See AvailabilityWindow's identical pair above.
+  feeAmount            Decimal?
+  feeCurrency          String?
   status               AppointmentStatus    @default(REQUESTED)
   scheduledAt          DateTime
   reasonForVisit       String?
@@ -587,6 +606,7 @@ model Appointment {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   consultationSession  ConsultationSession?
+  paymentTransactions  PaymentTransaction[]
 
   @@index([patientId])
   @@index([doctorId])
@@ -712,6 +732,13 @@ model PaymentTransaction {
   // makes initiateCharge safely retryable -- a network-timeout retry of the
   // same request replays the original outcome instead of double-charging.
   idempotencyKey        String               @unique
+  // Consultation Pricing Lifecycle Completion: the real join key from the
+  // moment a charge is initiated (pay-then-confirm -- no
+  // ConsultationSession exists yet at that point; see appointment.ts's own
+  // comment). Nullable only so existing rows created before this column
+  // existed remain valid; every row created going forward always sets it.
+  appointmentId         String?
+  appointment           Appointment?         @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
   consultationSessionId String?
   consultationSession   ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   patientId             String
@@ -732,6 +759,7 @@ model PaymentTransaction {
 
   @@index([patientId])
   @@index([doctorId])
+  @@index([appointmentId])
   @@index([consultationSessionId])
   @@index([status])
 }
@@ -1054,6 +1082,13 @@ model WorkingHoursDay {
   startTime     String
   endTime       String
   breaks        Json          @default("[]")
+  // Consultation Pricing Redesign: the default price every
+  // AvailabilityWindow generated for this weekday inherits. Free by
+  // default (a doctor who hasn't configured pricing offers free slots,
+  // never an unset charge).
+  pricingType   ConsultationType @default(FREE)
+  feeAmount     Decimal?
+  feeCurrency   String?
   updatedAt     DateTime      @updatedAt
 
   @@unique([doctorId, dayOfWeek])

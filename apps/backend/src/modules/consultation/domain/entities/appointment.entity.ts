@@ -2,16 +2,21 @@ import { randomUUID } from 'node:crypto';
 
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { AppointmentBookedEvent } from '../events/appointment-booked.event.js';
+import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
-import type { ConsultationType } from '../enums/consultation-type.enum.js';
+import type { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
 
 export interface RequestAppointmentProps {
   patientId: string;
   doctorId: string;
   availabilityWindowId: string;
-  consultationType: ConsultationType;
+  // Snapshotted from the AvailabilityWindow's own pricing at the moment of
+  // booking (Consultation Pricing Redesign) -- never re-read from the
+  // window afterward, so a later slot repricing can never retroactively
+  // change what this appointment was agreed to cost.
+  pricing: ConsultationPricing;
   scheduledAt: Date;
   reasonForVisit?: string;
   rescheduledFromId?: string;
@@ -22,7 +27,7 @@ export interface ReconstituteAppointmentProps {
   patientId: string;
   doctorId: string;
   availabilityWindowId: string;
-  consultationType: ConsultationType;
+  pricing: ConsultationPricing;
   status: AppointmentStatus;
   scheduledAt: Date;
   reasonForVisit?: string;
@@ -46,7 +51,7 @@ export class Appointment {
     private readonly patientId: string,
     private readonly doctorId: string,
     private readonly availabilityWindowId: string,
-    private readonly consultationType: ConsultationType,
+    private readonly pricing: ConsultationPricing,
     private status: AppointmentStatus,
     private readonly scheduledAt: Date,
     private readonly reasonForVisit: string | undefined,
@@ -62,7 +67,7 @@ export class Appointment {
       props.patientId,
       props.doctorId,
       props.availabilityWindowId,
-      props.consultationType,
+      props.pricing,
       AppointmentStatus.Requested,
       props.scheduledAt,
       props.reasonForVisit,
@@ -82,7 +87,7 @@ export class Appointment {
       props.patientId,
       props.doctorId,
       props.availabilityWindowId,
-      props.consultationType,
+      props.pricing,
       props.status,
       props.scheduledAt,
       props.reasonForVisit,
@@ -104,12 +109,19 @@ export class Appointment {
     this.record(new AppointmentConfirmedEvent(this.id));
   }
 
-  cancel(): void {
+  // cancelledBy is carried on the domain event only -- PaymentModule's own
+  // event handler uses it to apply the one unambiguous automatic-refund
+  // rule (doctor-initiated cancellation of a paid appointment = full
+  // refund); ConsultationModule itself has no payment awareness and never
+  // will (module boundary: Payment depends on Consultation, never the
+  // reverse).
+  cancel(cancelledBy: 'doctor' | 'patient'): void {
     if (this.status !== AppointmentStatus.Requested && this.status !== AppointmentStatus.Confirmed) {
       throw new ConsultationDomainError(`Appointment "${this.id}" cannot be cancelled from its current status.`);
     }
     this.status = AppointmentStatus.Cancelled;
     this.updatedAt = new Date();
+    this.record(new AppointmentCancelledEvent(this.id, cancelledBy));
   }
 
   // Marks this appointment as superseded by a new one on a different slot
@@ -148,8 +160,8 @@ export class Appointment {
     return this.availabilityWindowId;
   }
 
-  getConsultationType(): ConsultationType {
-    return this.consultationType;
+  getPricing(): ConsultationPricing {
+    return this.pricing;
   }
 
   getStatus(): AppointmentStatus {

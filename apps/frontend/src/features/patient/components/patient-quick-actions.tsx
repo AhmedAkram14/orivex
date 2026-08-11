@@ -1,24 +1,39 @@
 'use client';
 
-import { CalendarDays, FileText, Layers, Pill, Search, Stethoscope, User } from 'lucide-react';
+import { CalendarDays, FileText, Pill, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { QuickActions } from '@/shared/ui/layout/quick-actions';
+import { Button } from '@/shared/ui/button';
+import { Icon } from '@/shared/icons/icon';
+import { Link } from '@/shared/i18n/navigation';
 
-/** The Patient Portal dashboard's shortcut grid — reuses the shared `QuickActions`/`QuickActionCard` primitives (Phase 6), pointed at this phase's own routes. Every entry links to a route this same phase builds (profile: milestone 2, appointments: milestone 3, records: milestone 4, prescriptions: milestone 5) — never a disabled placeholder. `becomeADoctor` is Doctor Onboarding's real entry point (Phase 4 continuation), reachable by every patient account. `browseDoctors`/`browseSpecialties` are Onboarding Redesign (2026-07-21 proposal, Stage O.5) additions -- immediately reachable, no identity-verification gate. */
+/**
+ * The redesigned "My Health" dashboard's Quick Actions — deliberately a
+ * compact row of outline buttons, not the old 7-tile navigation grid that
+ * used to dominate the lower half of the page. `viewProfile`/
+ * `browseSpecialties` are still reachable from the sidebar, and
+ * `becomeADoctor` moved to its own secondary `BecomeADoctorCta` — this list
+ * is just the handful of actions a patient reaches for most often.
+ */
 export function PatientQuickActions() {
   const t = useTranslations('patient.dashboard.quickActions');
 
+  const actions = [
+    { id: 'book-appointment', label: t('bookAppointment'), icon: CalendarDays, href: '/patient/appointments/book' },
+    { id: 'browse-doctors', label: t('browseDoctors'), icon: Search, href: '/patient/doctors' },
+    { id: 'records', label: t('viewRecords'), icon: FileText, href: '/patient/records' },
+    { id: 'prescriptions', label: t('viewPrescriptions'), icon: Pill, href: '/patient/prescriptions' },
+  ];
+
   return (
-    <QuickActions
-      actions={[
-        { id: 'profile', label: t('viewProfile'), icon: User, href: '/patient/profile' },
-        { id: 'appointments', label: t('viewAppointments'), icon: CalendarDays, href: '/patient/appointments' },
-        { id: 'browse-doctors', label: t('browseDoctors'), icon: Search, href: '/patient/doctors' },
-        { id: 'browse-specialties', label: t('browseSpecialties'), icon: Layers, href: '/patient/specialties' },
-        { id: 'records', label: t('viewRecords'), icon: FileText, href: '/patient/records' },
-        { id: 'prescriptions', label: t('viewPrescriptions'), icon: Pill, href: '/patient/prescriptions' },
-        { id: 'become-a-doctor', label: t('becomeADoctor'), icon: Stethoscope, href: '/doctor/onboarding' },
-      ]}
-    />
+    <div className="flex flex-wrap gap-2">
+      {actions.map((action) => (
+        <Button key={action.id} asChild variant="outline" size="sm">
+          <Link href={action.href}>
+            <Icon icon={action.icon} size="sm" className="me-2" />
+            {action.label}
+          </Link>
+        </Button>
+      ))}
+    </div>
   );
 }

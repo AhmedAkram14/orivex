@@ -8,4 +8,9 @@ export const SCHEDULING_PATHS = {
   // backend route (SchedulingModule's DoctorAvailabilityController) --
   // patient-facing discovery of a specific doctor's real bookable windows.
   availabilityWindows: (doctorId: string) => `/doctors/${doctorId}/availability-windows`,
+  // Consultation Pricing Redesign: the doctor's own generated, not-yet-
+  // booked windows ("Upcoming Slots" management) and the per-slot pricing
+  // override.
+  upcomingSlots: '/scheduling/upcoming-slots',
+  upcomingSlotPricing: (id: string) => `/scheduling/upcoming-slots/${id}/pricing`,
 } as const;

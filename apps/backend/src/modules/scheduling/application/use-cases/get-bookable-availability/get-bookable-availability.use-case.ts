@@ -1,14 +1,18 @@
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { AvailabilityWindowStatus } from '../../../../doctor/domain/enums/availability-window-status.enum.js';
-import { ConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import { DoctorDomainError } from '../../../../doctor/domain/exceptions/doctor-domain.error.js';
 import { DefineAvailabilityWindowCommand } from '../../../../doctor/application/use-cases/define-availability-window/define-availability-window.command.js';
 import type { DefineAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/define-availability-window/define-availability-window.use-case.js';
 import type { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { ListAvailabilityWindowsForDoctorQuery } from '../../../../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.query.js';
 import type { ListAvailabilityWindowsForDoctorUseCase } from '../../../../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
+import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as DoctorMoney } from '../../../../doctor/domain/value-objects/money.value-object.js';
+import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { generateCandidateSlotsForDate, resolveEffectiveDay } from '../../services/generate-bookable-slots.js';
+import type { EffectiveDay } from '../../services/generate-bookable-slots.js';
 import type { GetDoctorWorkingHoursUseCase } from '../get-doctor-working-hours/get-doctor-working-hours.use-case.js';
 import { GetDoctorWorkingHoursQuery } from '../get-doctor-working-hours/get-doctor-working-hours.query.js';
 import type { GetSchedulingRulesUseCase } from '../get-scheduling-rules/get-scheduling-rules.use-case.js';
@@ -31,10 +35,12 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * (`Open`, or `Held` with a lapsed hold) -- a `Booked` or actively-`Held`
  * slot simply doesn't appear, exactly like "available" should read.
  *
- * `consultationType` is not a per-slot choice: this codebase's `ConsultationType`
- * is `Free | Paid`, not a modality, and nothing configures it per-slot today
- * -- it's derived once per doctor from `DoctorProfile.consultationFeeAmount`
- * (set -> Paid, unset -> Free), matching the only real signal that exists.
+ * Consultation Pricing Redesign: pricing is now a per-weekday default on
+ * each `WorkingHoursDay` (`resolveEffectiveDay`'s own `pricing` field),
+ * stamped onto every window materialized for that date -- no longer
+ * derived from `DoctorProfile.consultationFeeAmount`. `getDoctorProfileByIdUseCase`
+ * is kept only for the existence check (a query against an unregistered
+ * doctor id must still 404).
  */
 export class GetBookableAvailabilityUseCase {
   constructor(
@@ -52,8 +58,6 @@ export class GetBookableAvailabilityUseCase {
     if (!doctorProfile) {
       throw new NotFoundError(`Doctor profile "${query.doctorId}" not found.`);
     }
-    const consultationType =
-      doctorProfile.getConsultationFeeAmount() !== undefined ? ConsultationType.Paid : ConsultationType.Free;
 
     const [workingDays, exceptions, holidays, rules, existingWindows] = await Promise.all([
       this.getDoctorWorkingHoursUseCase.execute(new GetDoctorWorkingHoursQuery({ doctorId: query.doctorId })),
@@ -94,7 +98,7 @@ export class GetBookableAvailabilityUseCase {
               doctorId: query.doctorId,
               startTime: candidate.start,
               endTime: candidate.end,
-              consultationType,
+              pricing: this.toDoctorModulePricing(effectiveDay.pricing),
             }),
           );
           available.push(created);
@@ -115,5 +119,17 @@ export class GetBookableAvailabilityUseCase {
   private isBookable(window: AvailabilityWindow, now: Date): boolean {
     if (window.getStatus() === AvailabilityWindowStatus.Open) return true;
     return window.getStatus() === AvailabilityWindowStatus.Held && window.isHoldExpired(now);
+  }
+
+  // Translates SchedulingModule's own ConsultationPricing (this module's
+  // domain layer never imports DoctorModule's) into the shape
+  // DefineAvailabilityWindowCommand expects -- application-layer code, not
+  // domain-layer, so reaching into another module's domain types here to
+  // translate is the same precedent this use case already relies on for
+  // DefineAvailabilityWindowCommand/DoctorDomainError.
+  private toDoctorModulePricing(pricing: EffectiveDay['pricing']): DoctorConsultationPricing {
+    const fee = pricing.getFee();
+    const pricingType = pricing.getPricingType() === ConsultationType.Paid ? DoctorConsultationType.Paid : DoctorConsultationType.Free;
+    return DoctorConsultationPricing.create(pricingType, fee ? DoctorMoney.create(fee.getAmount(), fee.getCurrency()) : undefined);
   }
 }

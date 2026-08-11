@@ -14,5 +14,11 @@ export interface PaymentTransactionRepository {
   // (InitiateChargeUseCase's idempotency key is scoped per charge attempt,
   // but a session is only ever charged once in the current flow).
   findByConsultationSessionId(consultationSessionId: string): Promise<PaymentTransaction | null>;
+  // Backs the doctor-initiated-cancellation auto-refund handler -- looks up
+  // a transaction by appointmentId directly, since that's the real join key
+  // from the moment a charge is initiated (pay-then-confirm; see
+  // InitiateTransactionProps), independent of whether a ConsultationSession
+  // ever existed for this appointment.
+  findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null>;
   save(transaction: PaymentTransaction): Promise<void>;
 }

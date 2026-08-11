@@ -10,6 +10,8 @@ export interface AvailabilityCardProps {
   hoursLabel?: string;
   /** e.g. "1 break" — omitted when there are none. */
   breaksLabel?: string;
+  /** Consultation Pricing Redesign: this day's default price (e.g. "FREE", "500 EGP") — only meaningful when `isWorkingDay` is true. Pre-formatted, never computed here. */
+  priceLabel?: string;
   notWorkingLabel: string;
   className?: string;
 }
@@ -26,6 +28,7 @@ export function AvailabilityCard({
   isWorkingDay,
   hoursLabel,
   breaksLabel,
+  priceLabel,
   notWorkingLabel,
   className,
 }: AvailabilityCardProps) {
@@ -47,6 +50,7 @@ export function AvailabilityCard({
             {hoursLabel}
           </span>
           {breaksLabel && <span className="text-text-tertiary">{breaksLabel}</span>}
+          {priceLabel && <span className="font-medium text-text-primary">{priceLabel}</span>}
         </div>
       ) : (
         <span className="text-sm text-text-tertiary">{notWorkingLabel}</span>

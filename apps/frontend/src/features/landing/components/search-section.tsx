@@ -1,10 +1,11 @@
 'use client';
 
 import { ArrowRight, Stethoscope } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
 import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
 import { Icon } from '@/shared/icons/icon';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { useRouter } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -24,6 +25,7 @@ const ALL_SPECIALTIES_VALUE = 'all';
  */
 export function SearchSection() {
   const t = useTranslations('landing.search');
+  const locale = useLocale();
   const router = useRouter();
   const { data: specialties, isLoading } = usePublicSpecialties();
   const [name, setName] = useState('');
@@ -59,7 +61,7 @@ export function SearchSection() {
             <SelectItem value={ALL_SPECIALTIES_VALUE}>{t('allSpecialties')}</SelectItem>
             {specialties?.map((specialty) => (
               <SelectItem key={specialty.id} value={specialty.id}>
-                {specialty.name}
+                {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
               </SelectItem>
             ))}
           </SelectContent>

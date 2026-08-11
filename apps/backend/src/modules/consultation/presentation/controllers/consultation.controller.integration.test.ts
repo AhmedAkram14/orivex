@@ -23,9 +23,10 @@ import { ReleaseAvailabilityWindowUseCase } from '../../../doctor/application/us
 import { ReserveAvailabilityWindowUseCase } from '../../../doctor/application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
 import { AvailabilityWindow } from '../../../doctor/domain/entities/availability-window.entity.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
-import { ConsultationType as DoctorConsultationType } from '../../../doctor/domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { ConsultationPricing as DoctorConsultationPricing } from '../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as DoctorMoney } from '../../../doctor/domain/value-objects/money.value-object.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { Account } from '../../../identity/domain/entities/account.entity.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
@@ -58,13 +59,14 @@ import type { IdentityVerificationStatusResult } from '../../../trust/applicatio
 import { VerificationStatus } from '../../../trust/domain/enums/verification-status.enum.js';
 import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
-import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
 import { ConsultationCompletionReason } from '../../domain/enums/consultation-completion-reason.enum.js';
 import { ConsultationFeedback } from '../../domain/entities/consultation-feedback.entity.js';
 import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
 import type { ConsultationFeedbackRepository, DoctorRatingAggregate } from '../../domain/repositories/consultation-feedback.repository.js';
 import type { ConsultationSessionRepository } from '../../domain/repositories/consultation-session.repository.js';
+import { ConsultationPricing } from '../../domain/value-objects/consultation-pricing.value-object.js';
+import { Money } from '../../domain/value-objects/money.value-object.js';
 import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
@@ -239,6 +241,9 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
   async save(session: ConsultationSession): Promise<void> {
     this.byId.set(session.getId(), session);
   }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepository {
@@ -356,13 +361,13 @@ describe('Consultation controllers (integration)', () => {
       doctorId: doctor.getId(),
       startTime: windowStart,
       endTime: new Date(windowStart.getTime() + 30 * 60_000),
-      consultationType: DoctorConsultationType.Free,
+      pricing: DoctorConsultationPricing.free(),
     });
     secondFreeWindow = AvailabilityWindow.define({
       doctorId: doctor.getId(),
       startTime: new Date(windowStart.getTime() + 60 * 60_000),
       endTime: new Date(windowStart.getTime() + 90 * 60_000),
-      consultationType: DoctorConsultationType.Free,
+      pricing: DoctorConsultationPricing.free(),
     });
     // Scheduled a full 3 days out, deliberately never "today" -- this
     // suite's doctor-dashboard-summary/upcoming-work/queue tests assert
@@ -372,7 +377,7 @@ describe('Consultation controllers (integration)', () => {
       doctorId: doctor.getId(),
       startTime: new Date(windowStart.getTime() + 72 * 60 * 60_000),
       endTime: new Date(windowStart.getTime() + 72 * 60 * 60_000 + 30 * 60_000),
-      consultationType: DoctorConsultationType.Paid,
+      pricing: DoctorConsultationPricing.paid(DoctorMoney.create(500, 'EGP')),
     });
 
     const availabilityWindowRepo = new InMemoryAvailabilityWindowRepository();
@@ -390,7 +395,7 @@ describe('Consultation controllers (integration)', () => {
       patientId: patient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: freeWindow.getId(),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(),
       reasonForVisit: 'Follow-up on medication',
     });
@@ -415,7 +420,7 @@ describe('Consultation controllers (integration)', () => {
       patientId: patient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: freeWindow.getId(),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() - 72 * 60 * 60_000),
       reasonForVisit: 'Completed consultation fixture',
     });
@@ -642,7 +647,6 @@ describe('Consultation controllers (integration)', () => {
       .send({
         doctorId: doctor.getId(),
         availabilityWindowId: freeWindow.getId(),
-        consultationType: 'free',
         reasonForVisit: 'Routine check-up',
       })
       .expect(401);
@@ -657,7 +661,6 @@ describe('Consultation controllers (integration)', () => {
       .send({
         doctorId: doctor.getId(),
         availabilityWindowId: freeWindow.getId(),
-        consultationType: 'free',
         reasonForVisit: 'Routine check-up',
       })
       .expect(201);
@@ -698,14 +701,20 @@ describe('Consultation controllers (integration)', () => {
       .send({
         doctorId: doctor.getId(),
         availabilityWindowId: secondFreeWindow.getId(),
-        consultationType: 'free',
       })
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
-  it('POST /appointments rejects a mismatched consultationType with 422', async () => {
+  // Consultation Pricing Redesign: the request DTO no longer accepts a
+  // client-supplied consultationType at all -- pricing is always
+  // snapshotted from the booked AvailabilityWindow itself, so there is no
+  // more "does the client's stated type match the window's?" case to
+  // reject. The equivalent rejection that remains is the global
+  // whitelist:true/forbidNonWhitelisted:true ValidationPipe config
+  // rejecting the now-unknown property with 400 VALIDATION_FAILED.
+  it('POST /appointments rejects an unrecognized consultationType field with 400', async () => {
     const response = await request(app.getHttpServer())
       .post('/appointments')
       .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
@@ -714,7 +723,7 @@ describe('Consultation controllers (integration)', () => {
         availabilityWindowId: secondFreeWindow.getId(),
         consultationType: 'paid',
       })
-      .expect(422);
+      .expect(400);
 
     assert.equal(response.body.error.code, 'VALIDATION_FAILED');
   });
@@ -726,7 +735,6 @@ describe('Consultation controllers (integration)', () => {
       .send({
         doctorId: doctor.getId(),
         availabilityWindowId: freeWindow.getId(),
-        consultationType: 'free',
       })
       .expect(409);
 
@@ -746,7 +754,6 @@ describe('Consultation controllers (integration)', () => {
       .send({
         doctorId: doctor.getId(),
         availabilityWindowId: freeWindow.getId(),
-        consultationType: 'free',
         reasonForVisit: 'Routine check-up',
       })
       .expect(403);
@@ -825,7 +832,6 @@ describe('Consultation controllers (integration)', () => {
       .send({
         doctorId: doctor.getId(),
         availabilityWindowId: secondFreeWindow.getId(),
-        consultationType: 'free',
       })
       .expect(201);
 
@@ -892,7 +898,7 @@ describe('Consultation controllers (integration)', () => {
       patientId: patient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: paidWindow.getId(),
-      consultationType: ConsultationType.Paid,
+      pricing: ConsultationPricing.paid(Money.create(500, 'EGP')),
       scheduledAt: paidWindow.getStartTime(),
       reasonForVisit: 'Specialist consultation',
     });

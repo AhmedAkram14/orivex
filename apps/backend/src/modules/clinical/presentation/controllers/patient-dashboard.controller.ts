@@ -89,9 +89,11 @@ export class PatientDashboardController {
   // still needs a human-readable specialization string, so it's resolved
   // here, once per request (ReferenceModule's own specialty list is small
   // and already fully loaded either way), never per-appointment.
-  private async resolveSpecialtyNames(): Promise<Map<string, string>> {
+  private async resolveSpecialtyNames(): Promise<Map<string, { name: string; nameAr: string | null }>> {
     const specialties = await this.listMedicalSpecialtiesUseCase.execute();
-    return new Map(specialties.map((specialty) => [specialty.getId(), specialty.getName()]));
+    return new Map(
+      specialties.map((specialty) => [specialty.getId(), { name: specialty.getName(), nameAr: specialty.getNameAr() ?? null }]),
+    );
   }
 
   @Get('me/dashboard-summary')
@@ -288,14 +290,20 @@ export class PatientDashboardController {
   private async toUpcomingAppointmentPreview(
     appointment: Appointment,
     doctorCache: DoctorCache,
-    specialtyNames: Map<string, string>,
+    specialtyNames: Map<string, { name: string; nameAr: string | null }>,
   ): Promise<UpcomingAppointmentPreviewResponseDto | null> {
     const resolved = await this.resolveDoctor(appointment.getDoctorId(), doctorCache);
     if (!resolved) {
       return null;
     }
-    const specialization = specialtyNames.get(resolved.profile.getSpecialtyId()) ?? 'Unknown specialty';
-    return UpcomingAppointmentPreviewResponseDto.fromDomain(appointment, resolved.account, specialization);
+    const specialty = specialtyNames.get(resolved.profile.getSpecialtyId());
+    const specialization = specialty?.name ?? 'Unknown specialty';
+    return UpcomingAppointmentPreviewResponseDto.fromDomain(
+      appointment,
+      resolved.account,
+      specialization,
+      specialty?.nameAr ?? null,
+    );
   }
 
   private async toActivePrescriptionPreview(

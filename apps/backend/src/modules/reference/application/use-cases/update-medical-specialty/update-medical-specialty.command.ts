@@ -1,6 +1,7 @@
 export interface UpdateMedicalSpecialtyCommandProps {
   medicalSpecialtyId: string;
   name?: string;
+  nameAr?: string;
   isActive?: boolean;
 }
 
@@ -9,11 +10,13 @@ export interface UpdateMedicalSpecialtyCommandProps {
 export class UpdateMedicalSpecialtyCommand {
   readonly medicalSpecialtyId: string;
   readonly name?: string;
+  readonly nameAr?: string;
   readonly isActive?: boolean;
 
   constructor(props: UpdateMedicalSpecialtyCommandProps) {
     this.medicalSpecialtyId = props.medicalSpecialtyId;
     this.name = props.name;
+    this.nameAr = props.nameAr;
     this.isActive = props.isActive;
   }
 }

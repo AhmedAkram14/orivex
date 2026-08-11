@@ -11,6 +11,7 @@ export interface PublicDoctorListing {
   fullName: string;
   professionalRank?: ProfessionalRank;
   specialtyName: string;
+  specialtyNameAr?: string;
   hospitalId?: string;
   hospitalName?: string;
   yearsOfExperience?: number;
@@ -80,6 +81,7 @@ export class ListPublicDoctorsUseCase {
           fullName: entry.fullName,
           professionalRank: entry.professionalRank,
           specialtyName: entry.specialtyName,
+          specialtyNameAr: entry.specialtyNameAr,
           hospitalId: entry.hospitalId,
           hospitalName: entry.hospitalName,
           yearsOfExperience: entry.yearsOfExperience,

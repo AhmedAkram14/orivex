@@ -18,7 +18,7 @@ import { GetAppointmentByIdUseCase } from '../../../consultation/application/use
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../consultation/domain/entities/consultation-session.entity.js';
-import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
 import { GetHealthGraphSubgraphUseCase } from '../../../clinical/application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
@@ -50,6 +50,9 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
   }
   async findByAppointmentId(): Promise<ConsultationSession | null> {
     return null;
+  }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
   }
   async save(): Promise<void> {}
 }
@@ -219,7 +222,7 @@ describe('AISuggestionController (integration)', () => {
       patientId: patient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     session = ConsultationSession.open(appointment.getId());
@@ -333,7 +336,7 @@ describe('AISuggestionController (integration)', () => {
       patientId: freshPatient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     const freshSession = ConsultationSession.open(freshAppointment.getId());
@@ -393,7 +396,7 @@ describe('AISuggestionController (integration)', () => {
       patientId: freshPatient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     const freshSession = ConsultationSession.open(freshAppointment.getId());

@@ -17,7 +17,7 @@ import { GetConsultationSessionByAppointmentIdUseCase } from '../../../consultat
 import { ListAppointmentsForPatientUseCase } from '../../../consultation/application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../consultation/domain/entities/consultation-session.entity.js';
-import { ConsultationType } from '../../../consultation/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
@@ -157,6 +157,9 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
   async findByAppointmentId(appointmentId: string): Promise<ConsultationSession | null> {
     return this.sessions.find((s) => s.getAppointmentId() === appointmentId) ?? null;
   }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
   async save(): Promise<void> {}
 }
 
@@ -258,7 +261,7 @@ describe('PatientDashboardController (integration)', () => {
       patientId: patient.getId(),
       doctorId: doctor.getId(),
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     confirmedAppointment.confirm();

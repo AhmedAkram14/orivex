@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 import { GetAvailabilityWindowByIdUseCase } from './get-availability-window-by-id.use-case.js';
 
@@ -28,7 +28,7 @@ describe('GetAvailabilityWindowByIdUseCase', () => {
       doctorId: '11111111-1111-4111-8111-111111111111',
       startTime,
       endTime: new Date(startTime.getTime() + 30 * 60_000),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
     });
     const useCase = new GetAvailabilityWindowByIdUseCase(new FakeAvailabilityWindowRepository(window));
 

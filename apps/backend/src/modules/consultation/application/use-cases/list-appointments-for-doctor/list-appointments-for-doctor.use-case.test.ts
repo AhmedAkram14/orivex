@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 import { ListAppointmentsForDoctorUseCase } from './list-appointments-for-doctor.use-case.js';
 
@@ -43,7 +43,7 @@ function buildAppointment(doctorId: string, scheduledAt: Date = new Date(Date.no
     patientId: '11111111-1111-4111-8111-111111111111',
     doctorId,
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-    consultationType: ConsultationType.Free,
+    pricing: ConsultationPricing.free(),
     scheduledAt,
   });
 }

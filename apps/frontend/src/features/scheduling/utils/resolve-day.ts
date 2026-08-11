@@ -27,6 +27,7 @@ export function resolveDayForDate(
     isWorkingDay: false,
     hours: { start: '00:00', end: '00:00' },
     breaks: [],
+    pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null },
   };
 
   const dateKey = toDateKey(date);

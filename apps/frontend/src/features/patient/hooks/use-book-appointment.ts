@@ -9,6 +9,7 @@ import {
   patientUpcomingAppointmentsKeys,
 } from '@/features/patient/hooks/query-keys';
 import { doctorDashboardKeys, doctorQueueKeys, doctorUpcomingWorkKeys } from '@/features/doctor/hooks/query-keys';
+import { availabilityWindowsKeys } from '@/features/scheduling/hooks/query-keys';
 
 /**
  * Onboarding Redesign integration-gap closure (2026-07-25): the real
@@ -16,6 +17,13 @@ import { doctorDashboardKeys, doctorQueueKeys, doctorUpcomingWorkKeys } from '@/
  * MSW-only `useCreateBooking`/`schedulingApi.createBooking`. A successful
  * booking changes what both the patient's and the treating doctor's
  * dashboards show, same invalidation set `useCreateBooking` used to cover.
+ *
+ * `availabilityWindowsKeys` is invalidated on both success AND error --
+ * never trust a cached slot grid after attempting a booking against it: a
+ * successful booking removes the slot from availability, and a failed one
+ * (e.g. someone else booked it first, a 409 conflict) means the cached list
+ * was already stale the moment the request was made. Either way the next
+ * render must refetch, not keep showing a slot that may no longer be real.
  */
 export function useBookAppointment() {
   const queryClient = useQueryClient();
@@ -29,6 +37,10 @@ export function useBookAppointment() {
       queryClient.invalidateQueries({ queryKey: doctorDashboardKeys.all });
       queryClient.invalidateQueries({ queryKey: doctorUpcomingWorkKeys.all });
       queryClient.invalidateQueries({ queryKey: doctorQueueKeys.all });
+      queryClient.invalidateQueries({ queryKey: availabilityWindowsKeys.all });
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: availabilityWindowsKeys.all });
     },
   });
 }

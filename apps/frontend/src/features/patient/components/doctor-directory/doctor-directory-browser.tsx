@@ -1,12 +1,13 @@
 'use client';
 
 import { CalendarDays, ListFilter, Search, Shield, Stethoscope, User } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { DoctorRatingSummary } from '@/features/consultation/components/doctor-rating-summary';
 import { useDoctorsList } from '@/features/doctor/hooks/use-doctors-list';
 import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
@@ -46,6 +47,7 @@ export interface DoctorDirectoryBrowserProps {
  */
 export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBrowserProps) {
   const t = useTranslations('patient.doctors');
+  const locale = useLocale();
   const [search, setSearch] = useState('');
   const [specialtyId, setSpecialtyId] = useState(initialSpecialtyId ?? ALL);
   const [hospitalId, setHospitalId] = useState(ALL);
@@ -59,7 +61,9 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
   });
   const { data: specialties } = useSpecialtiesList();
   const { data: hospitals } = useHospitalsList();
-  const specialtyNameById = new Map((specialties ?? []).map((specialty) => [specialty.id, specialty.name]));
+  const specialtyNameById = new Map(
+    (specialties ?? []).map((specialty) => [specialty.id, pickLocalizedName(specialty.name, specialty.nameAr, locale)]),
+  );
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -97,7 +101,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
             <SelectItem value={ALL}>{t('allSpecialties')}</SelectItem>
             {(specialties ?? []).map((specialty) => (
               <SelectItem key={specialty.id} value={specialty.id}>
-                {specialty.name}
+                {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
               </SelectItem>
             ))}
           </SelectContent>

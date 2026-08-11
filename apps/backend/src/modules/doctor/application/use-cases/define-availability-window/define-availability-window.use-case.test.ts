@@ -3,11 +3,12 @@ import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
 import type { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
+import { Money } from '../../../domain/value-objects/money.value-object.js';
 
 import { DefineAvailabilityWindowCommand } from './define-availability-window.command.js';
 import { DefineAvailabilityWindowUseCase } from './define-availability-window.use-case.js';
@@ -52,7 +53,7 @@ function buildCommand(): DefineAvailabilityWindowCommand {
     doctorId: '11111111-1111-4111-8111-111111111111',
     startTime,
     endTime: new Date(startTime.getTime() + 30 * 60_000),
-    consultationType: ConsultationType.Paid,
+    pricing: ConsultationPricing.paid(Money.create(500, 'EGP')),
   });
 }
 
@@ -86,7 +87,7 @@ describe('DefineAvailabilityWindowUseCase', () => {
       doctorId: '11111111-1111-4111-8111-111111111111',
       startTime: new Date(Date.now() + 60 * 60_000),
       endTime: new Date(Date.now() + 90 * 60_000),
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
     });
     const useCase = new DefineAvailabilityWindowUseCase(
       new FakeDoctorProfileRepository({} as DoctorProfile),

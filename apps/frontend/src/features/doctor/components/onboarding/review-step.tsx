@@ -1,11 +1,12 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { useSubmitVerification } from '@/features/doctor/hooks/use-submit-verification';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import type { DocumentSlots } from '@/shared/verification/components/documents-step';
 import { ApiError } from '@/shared/lib/api/client';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
@@ -25,12 +26,20 @@ export interface ReviewStepProps {
  * historical snapshot on the VerificationCase, not a live FK -- resolved
  * here from the profile's own `specialtyId` (Onboarding Redesign Stage O.9:
  * DoctorProfile no longer carries its own free-text specialty at all).
+ * Always the canonical (English) name, regardless of the doctor's own UI
+ * locale -- it's a backend snapshot value, not display text, and must stay
+ * consistent no matter who's reading the verification case later.
  */
 export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewStepProps) {
   const t = useTranslations('doctor.onboarding.reviewStep');
+  const locale = useLocale();
   const submitVerification = useSubmitVerification(profile.id);
   const { data: specialties } = useSpecialtiesList();
-  const specialtyName = specialties?.find((specialty) => specialty.id === profile.specialtyId)?.name ?? '';
+  const matchedSpecialty = specialties?.find((specialty) => specialty.id === profile.specialtyId);
+  const specialtyName = matchedSpecialty?.name ?? '';
+  const specialtyDisplayName = matchedSpecialty
+    ? pickLocalizedName(matchedSpecialty.name, matchedSpecialty.nameAr, locale)
+    : '';
   const documentAssetIds = Object.values(documents)
     .filter((document): document is NonNullable<typeof document> => Boolean(document))
     .map((document) => document.id);
@@ -67,7 +76,7 @@ export function ReviewStep({ profile, documents, onSubmitted, onBack }: ReviewSt
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-text-tertiary">{t('specialty')}</dt>
-              <dd className="font-medium text-text-primary">{specialtyName}</dd>
+              <dd className="font-medium text-text-primary">{specialtyDisplayName}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-text-tertiary">{t('documents')}</dt>

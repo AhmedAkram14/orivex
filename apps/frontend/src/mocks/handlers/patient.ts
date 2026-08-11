@@ -26,6 +26,13 @@ import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks
 
 const base = () => env.apiBaseUrl;
 
+function errorResponse(status: number, code: string, message: string) {
+  return HttpResponse.json(
+    { error: { code, message, requestId: 'mock', timestamp: new Date().toISOString() } },
+    { status },
+  );
+}
+
 export const patientHandlers = [
   // dashboardSummary/upcomingAppointments/activePrescriptions are real
   // endpoints (ClinicalModule's PatientDashboardController) -- these handlers
@@ -58,7 +65,15 @@ export const patientHandlers = [
       return identityVerificationRequiredResponse();
     }
     const body = (await request.json()) as BookAppointmentRequest;
-    return HttpResponse.json({ data: bookAppointment(body) }, { status: 201 });
+    try {
+      return HttpResponse.json({ data: bookAppointment(body) }, { status: 201 });
+    } catch {
+      // Consultation Pricing Redesign: mirrors the real 409
+      // AvailabilityWindowConflictError -- the window stopped being open
+      // (booked by someone else) between the patient viewing it and
+      // confirming.
+      return errorResponse(409, 'CONFLICT', `AvailabilityWindow "${body.availabilityWindowId}" is no longer available.`);
+    }
   }),
 
   http.get(`${base()}${PATIENT_PATHS.medicalRecords}`, () => HttpResponse.json({ data: getMedicalRecords() })),

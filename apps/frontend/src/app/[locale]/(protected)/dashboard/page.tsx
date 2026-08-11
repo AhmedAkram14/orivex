@@ -29,6 +29,15 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
  * repeat visit for an already-provisioned account renders this page
  * exactly as before -- purely additive, not a behavior change for anyone
  * who already made their choice.
+ *
+ * Doctor Workspace redesign follow-up (2026-08-04): a `doctor`-role
+ * session redirects straight to `/doctor` (Overview) instead of ever
+ * rendering this generic shared page -- Overview already is the doctor's
+ * real dashboard (KPIs, schedule, queue, all real data), so this page's
+ * honest-but-empty "nothing to show yet" placeholder would only ever be a
+ * confusing dead end for that role. Every other role still renders this
+ * shared page exactly as before -- no dedicated workspace exists for
+ * super_admin/hospital_admin/nurse/receptionist yet.
  */
 export default function DashboardPage() {
   const t = useTranslations('shell.dashboard');
@@ -36,18 +45,27 @@ export default function DashboardPage() {
   const router = useRouter();
   const role = user ? primaryRole(user.roles) : undefined;
   const subtitle = role ? t(DASHBOARD_SUBTITLE_KEY[role]) : undefined;
+  const isDoctorRole = role === 'doctor';
   const isPatientRole = Boolean(user?.roles.includes('patient'));
   const journeyStatus = useJourneyStatus({ enabled: isPatientRole });
   const { needsJourneyChoice, needsPatientIntake } = journeyStatus.data ?? {};
 
   useEffect(() => {
+    if (isDoctorRole) {
+      router.replace('/doctor');
+      return;
+    }
     if (!isPatientRole) return;
     if (needsJourneyChoice) {
       router.replace('/journey');
     } else if (needsPatientIntake) {
       router.replace('/patient/intake');
     }
-  }, [isPatientRole, needsJourneyChoice, needsPatientIntake, router]);
+  }, [isDoctorRole, isPatientRole, needsJourneyChoice, needsPatientIntake, router]);
+
+  if (isDoctorRole) {
+    return <LoadingState />;
+  }
 
   if (isPatientRole && (journeyStatus.isPending || needsJourneyChoice || needsPatientIntake)) {
     return <LoadingState />;

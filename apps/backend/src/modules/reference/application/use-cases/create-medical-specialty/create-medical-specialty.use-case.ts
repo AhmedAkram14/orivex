@@ -9,7 +9,7 @@ export class CreateMedicalSpecialtyUseCase {
   constructor(private readonly medicalSpecialtyRepository: MedicalSpecialtyRepository) {}
 
   async execute(command: CreateMedicalSpecialtyCommand): Promise<MedicalSpecialty> {
-    const specialty = MedicalSpecialty.create({ name: command.name });
+    const specialty = MedicalSpecialty.create({ name: command.name, nameAr: command.nameAr });
     await this.medicalSpecialtyRepository.save(specialty);
     return specialty;
   }

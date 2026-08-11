@@ -3,7 +3,8 @@ import { describe, it } from 'node:test';
 
 import { DoctorDomainError } from '../exceptions/doctor-domain.error.js';
 import { AvailabilityWindowStatus } from '../enums/availability-window-status.enum.js';
-import { ConsultationType } from '../enums/consultation-type.enum.js';
+import { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
+import { Money } from '../value-objects/money.value-object.js';
 
 import { AvailabilityWindow } from './availability-window.entity.js';
 
@@ -14,7 +15,7 @@ function defineWindow(): AvailabilityWindow {
     doctorId: '11111111-1111-4111-8111-111111111111',
     startTime,
     endTime,
-    consultationType: ConsultationType.Paid,
+    pricing: ConsultationPricing.paid(Money.create(500, 'EGP')),
   });
 }
 
@@ -35,7 +36,7 @@ describe('AvailabilityWindow', () => {
           doctorId: '11111111-1111-4111-8111-111111111111',
           startTime,
           endTime: startTime,
-          consultationType: ConsultationType.Free,
+          pricing: ConsultationPricing.free(),
         }),
       DoctorDomainError,
     );
@@ -49,7 +50,7 @@ describe('AvailabilityWindow', () => {
           doctorId: '11111111-1111-4111-8111-111111111111',
           startTime: past,
           endTime: new Date(past.getTime() + 60_000),
-          consultationType: ConsultationType.Free,
+          pricing: ConsultationPricing.free(),
         }),
       DoctorDomainError,
     );

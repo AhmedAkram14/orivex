@@ -1,12 +1,13 @@
 'use client';
 
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useAccountById } from '@/features/identity/hooks/use-account-by-id';
 import { useDoctorByAccountId } from '@/features/doctor/hooks/use-doctor-by-account-id';
 import { useVerificationCase } from '@/features/admin/hooks/use-verification-case';
 import { useVerificationCaseHistory } from '@/features/admin/hooks/use-verification-case-history';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import type { VerificationCase, VerificationCaseStatus } from '@/features/admin/api/types';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
 import { Badge, badgeVariants } from '@/shared/ui/badge';
 import type { VariantProps } from 'class-variance-authority';
@@ -65,6 +66,7 @@ export function VerificationCaseDetail({ verificationCaseId }: VerificationCaseD
 function VerificationCaseDetailBody({ verificationCase }: { verificationCase: VerificationCase }) {
   const t = useTranslations('admin.verificationCase');
   const format = useFormatter();
+  const locale = useLocale();
   const { data: account, isLoading: isAccountLoading, isError: isAccountError } = useAccountById(
     verificationCase.subjectAccountId,
   );
@@ -74,10 +76,10 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
   );
   const { data: history } = useVerificationCaseHistory(verificationCase.id);
   const { data: specialties } = useSpecialtiesList();
-  const specialtyName =
-    specialties?.find((specialty) => specialty.id === doctorProfile?.specialtyId)?.name ??
-    verificationCase.specialtyCode ??
-    t('notOnRecord');
+  const matchedSpecialty = specialties?.find((specialty) => specialty.id === doctorProfile?.specialtyId);
+  const specialtyName = matchedSpecialty
+    ? pickLocalizedName(matchedSpecialty.name, matchedSpecialty.nameAr, locale)
+    : verificationCase.specialtyCode ?? t('notOnRecord');
 
   return (
     <div className="flex flex-col gap-6">

@@ -96,9 +96,14 @@ export class ConsultationSession {
 
   // docs/12-openapi.md's closeConsultation: "Session closed; triggers
   // ConsultationCompleted or ConsultationInterrupted event downstream."
+  // Consultation Lifecycle Completion: closable from WaitingRoom too, not
+  // only InProgress -- a session whose call never actually started (nobody
+  // ever joined) still needs a real terminal state reachable by both the
+  // LiveKit room_finished handler and the stale-session reconciliation
+  // sweep, neither of which can assume start() was ever called.
   close(completionReason: ConsultationCompletionReason): void {
-    if (this.state !== ConsultationState.InProgress) {
-      throw new ConsultationDomainError(`ConsultationSession "${this.id}" is not InProgress and cannot be closed.`);
+    if (this.state !== ConsultationState.InProgress && this.state !== ConsultationState.WaitingRoom) {
+      throw new ConsultationDomainError(`ConsultationSession "${this.id}" is already closed and cannot be closed again.`);
     }
     this.state = ConsultationState.Closed;
     this.completionReason = completionReason;

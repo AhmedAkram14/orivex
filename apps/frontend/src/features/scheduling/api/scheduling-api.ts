@@ -6,6 +6,7 @@ import type {
   RecurringWeeklySchedule,
   ScheduleException,
   SchedulingRules,
+  UpdateAvailabilityWindowPricingRequest,
 } from '@/features/scheduling/types';
 
 export interface AddScheduleExceptionRequest {
@@ -49,4 +50,11 @@ export const schedulingApi = {
     apiFetch<AvailabilityWindowData[]>({
       path: `${SCHEDULING_PATHS.availabilityWindows(doctorId)}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     }),
+
+  // Consultation Pricing Redesign: the doctor's own "Upcoming Slots"
+  // management list and its per-slot pricing override.
+  getUpcomingSlots: () => apiFetch<AvailabilityWindowData[]>({ path: SCHEDULING_PATHS.upcomingSlots }),
+
+  updateUpcomingSlotPricing: (id: string, request: UpdateAvailabilityWindowPricingRequest) =>
+    apiFetch<AvailabilityWindowData>({ method: 'PATCH', path: SCHEDULING_PATHS.upcomingSlotPricing(id), body: request }),
 };

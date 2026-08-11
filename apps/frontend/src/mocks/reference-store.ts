@@ -8,9 +8,9 @@ import type { Country, InsuranceProvider, MedicalSpecialty } from '@/features/re
  */
 function seedSpecialties(): MedicalSpecialty[] {
   return [
-    { id: 'specialty-cardiology', name: 'Cardiology', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-    { id: 'specialty-dermatology', name: 'Dermatology', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
-    { id: 'specialty-pediatrics', name: 'Pediatrics', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'specialty-cardiology', name: 'Cardiology', nameAr: 'أمراض القلب', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'specialty-dermatology', name: 'Dermatology', nameAr: 'الأمراض الجلدية', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+    { id: 'specialty-pediatrics', name: 'Pediatrics', nameAr: 'طب الأطفال', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
   ];
 }
 

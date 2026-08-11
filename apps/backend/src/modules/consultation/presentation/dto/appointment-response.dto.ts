@@ -13,6 +13,8 @@ export class AppointmentResponseDto {
   doctorId!: string;
   availabilityWindowId!: string;
   consultationType!: ConsultationType;
+  feeAmount!: number | null;
+  feeCurrency!: string | null;
   status!: AppointmentStatus;
   scheduledAt!: string;
   reasonForVisit!: string | null;
@@ -24,7 +26,10 @@ export class AppointmentResponseDto {
     dto.patientId = appointment.getPatientId();
     dto.doctorId = appointment.getDoctorId();
     dto.availabilityWindowId = appointment.getAvailabilityWindowId();
-    dto.consultationType = appointment.getConsultationType();
+    dto.consultationType = appointment.getPricing().getPricingType();
+    const fee = appointment.getPricing().getFee();
+    dto.feeAmount = fee?.getAmount() ?? null;
+    dto.feeCurrency = fee?.getCurrency() ?? null;
     dto.status = appointment.getStatus();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.reasonForVisit = appointment.getReasonForVisit() ?? null;

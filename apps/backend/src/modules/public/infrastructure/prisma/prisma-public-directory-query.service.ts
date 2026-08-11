@@ -44,7 +44,7 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
         where,
         include: {
           account: { select: { displayName: true } },
-          medicalSpecialty: { select: { name: true } },
+          medicalSpecialty: { select: { name: true, nameAr: true } },
           hospital: { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -62,6 +62,7 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
         professionalRank: (row.professionalRank as ProfessionalRank | null) ?? undefined,
         specialtyId: row.specialtyId,
         specialtyName: row.medicalSpecialty.name,
+        specialtyNameAr: row.medicalSpecialty.nameAr ?? undefined,
         hospitalId: row.hospitalId ?? undefined,
         hospitalName: row.hospital?.name ?? undefined,
         yearsOfExperience: row.yearsOfExperience ?? undefined,

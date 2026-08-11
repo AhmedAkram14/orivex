@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { SCHEDULING_PATHS } from '@/features/scheduling/api/paths';
 import type { AddScheduleExceptionRequest } from '@/features/scheduling/api/scheduling-api';
-import type { RecurringWeeklySchedule } from '@/features/scheduling/types';
+import type { RecurringWeeklySchedule, UpdateAvailabilityWindowPricingRequest } from '@/features/scheduling/types';
 import {
   addDoctorException,
   getAvailabilityWindows,
@@ -10,12 +10,26 @@ import {
   getDoctorExceptions,
   getHolidays,
   getSchedulingRules,
+  getUpcomingSlots,
+  isAvailabilityWindowBooked,
   removeDoctorException,
   updateDoctorAvailability,
+  updateUpcomingSlotPricing,
 } from '@/mocks/scheduling-store';
-import { getDoctorById } from '@/mocks/doctor-store';
 
 const base = () => env.apiBaseUrl;
+
+// Every doctor-self-scoped handler in this mock system (no doctor id in the
+// URL, JWT-derived on the real backend) resolves to this one seeded demo
+// doctor -- same convention `patient-store.ts` uses for 'patient-profile-1'.
+const CURRENT_DOCTOR_ID = 'doctor-profile-1';
+
+function errorResponse(status: number, code: string, message: string) {
+  return HttpResponse.json(
+    { error: { code, message, requestId: 'mock', timestamp: new Date().toISOString() } },
+    { status },
+  );
+}
 
 export const schedulingHandlers = [
   // rules/doctorAvailability/doctorExceptions/holidays are real endpoints
@@ -49,16 +63,33 @@ export const schedulingHandlers = [
 
   // Onboarding Redesign integration-gap closure (2026-07-25): the real
   // patient-facing discovery endpoint (SchedulingModule's
-  // DoctorAvailabilityController) -- consultationType is derived from the
-  // doctor's own consultationFeeAmount, same rule as the real
-  // GetBookableAvailabilityUseCase, never a per-request choice.
+  // DoctorAvailabilityController). Consultation Pricing Redesign: each
+  // window's own real price comes from `getAvailabilityWindows`
+  // (`resolveWindowPricing`) now, never derived from the doctor's profile.
   http.get(`${base()}/doctors/:doctorId/availability-windows`, ({ params, request }) => {
     const doctorId = params.doctorId as string;
     const url = new URL(request.url);
     const from = url.searchParams.get('from') ?? new Date().toISOString();
     const to = url.searchParams.get('to') ?? new Date(Date.now() + 86_400_000).toISOString();
-    const doctor = getDoctorById(doctorId);
-    const consultationType = doctor?.consultationFeeAmount !== undefined ? 'paid' : 'free';
-    return HttpResponse.json({ data: getAvailabilityWindows(doctorId, from, to, consultationType) });
+    return HttpResponse.json({ data: getAvailabilityWindows(doctorId, from, to) });
+  }),
+
+  // Consultation Pricing Redesign: the doctor's own "Upcoming Slots"
+  // management list and its per-slot pricing override.
+  http.get(`${base()}${SCHEDULING_PATHS.upcomingSlots}`, () =>
+    HttpResponse.json({ data: getUpcomingSlots(CURRENT_DOCTOR_ID) }),
+  ),
+
+  http.patch(`${base()}${SCHEDULING_PATHS.upcomingSlotPricing(':id')}`, async ({ params, request }) => {
+    const id = params.id as string;
+    if (isAvailabilityWindowBooked(id)) {
+      return errorResponse(404, 'NOT_FOUND', `AvailabilityWindow "${id}" not found.`);
+    }
+    const body = (await request.json()) as UpdateAvailabilityWindowPricingRequest;
+    try {
+      return HttpResponse.json({ data: updateUpcomingSlotPricing(CURRENT_DOCTOR_ID, id, body) });
+    } catch {
+      return errorResponse(404, 'NOT_FOUND', `AvailabilityWindow "${id}" not found.`);
+    }
   }),
 ];

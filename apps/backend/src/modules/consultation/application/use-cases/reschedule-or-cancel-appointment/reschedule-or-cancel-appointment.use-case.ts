@@ -7,9 +7,9 @@ import { ReserveSlotCommand } from '../../../../scheduling/application/use-cases
 import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
+import { toConsultationModulePricing } from '../../mappers/to-consultation-pricing.js';
 import { ConfirmAppointmentCommand } from '../confirm-appointment/confirm-appointment.command.js';
 import type { ConfirmAppointmentUseCase } from '../confirm-appointment/confirm-appointment.use-case.js';
 
@@ -47,15 +47,15 @@ export class RescheduleOrCancelAppointmentUseCase {
     }
 
     if (command.action === 'cancel') {
-      return this.cancel(appointment);
+      return this.cancel(appointment, command.cancelledByRole ?? 'patient');
     }
     return this.reschedule(appointment, command.newAvailabilityWindowId);
   }
 
-  private async cancel(appointment: Appointment): Promise<Appointment> {
+  private async cancel(appointment: Appointment, cancelledByRole: 'doctor' | 'patient'): Promise<Appointment> {
     const wasRequested = appointment.getStatus() === AppointmentStatus.Requested;
 
-    appointment.cancel();
+    appointment.cancel(cancelledByRole);
     if (wasRequested) {
       await this.releaseSlotUseCase.execute(
         new ReleaseSlotCommand({ availabilityWindowId: appointment.getAvailabilityWindowId() }),
@@ -88,11 +88,16 @@ export class RescheduleOrCancelAppointmentUseCase {
 
     await this.reserveSlotUseCase.execute(new ReserveSlotCommand({ availabilityWindowId: newAvailabilityWindowId }));
 
+    // Consultation Pricing Redesign: the new appointment snapshots the NEW
+    // window's own pricing, not the old appointment's -- a reschedule to a
+    // different slot is a reschedule to that slot's own price, which may
+    // genuinely differ now that pricing is per-slot rather than a single
+    // global doctor setting.
     let newAppointment = Appointment.request({
       patientId: appointment.getPatientId(),
       doctorId: appointment.getDoctorId(),
       availabilityWindowId: newAvailabilityWindowId,
-      consultationType: appointment.getConsultationType(),
+      pricing: toConsultationModulePricing(newWindow.getPricing()),
       scheduledAt: newWindow.getStartTime(),
       reasonForVisit: appointment.getReasonForVisit(),
       rescheduledFromId: appointment.getId(),
@@ -117,7 +122,7 @@ export class RescheduleOrCancelAppointmentUseCase {
 
     await this.eventDispatcher.dispatch([...appointment.releaseDomainEvents(), ...newAppointment.releaseDomainEvents()]);
 
-    if (newAppointment.getConsultationType() === ConsultationType.Free) {
+    if (newAppointment.getPricing().isFree()) {
       const result = await this.confirmAppointmentUseCase.execute(
         new ConfirmAppointmentCommand({ appointmentId: newAppointment.getId() }),
       );

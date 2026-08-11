@@ -39,9 +39,21 @@ export class PrismaPaymentTransactionRepository implements PaymentTransactionRep
     return row ? toDomainPaymentTransaction(row) : null;
   }
 
+  // appointmentId is indexed but not unique (a failed attempt followed by a
+  // successful retry both reference the same appointment) -- orderBy
+  // createdAt desc so the most recent attempt is the one returned.
+  async findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null> {
+    const row = await this.prisma.paymentTransaction.findFirst({
+      where: { appointmentId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return row ? toDomainPaymentTransaction(row) : null;
+  }
+
   async save(transaction: PaymentTransaction): Promise<void> {
     const data = {
       idempotencyKey: transaction.getIdempotencyKey(),
+      appointmentId: transaction.getAppointmentId(),
       consultationSessionId: transaction.getConsultationSessionId() ?? null,
       patientId: transaction.getPatientId(),
       doctorId: transaction.getDoctorId(),

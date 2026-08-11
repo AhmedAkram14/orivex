@@ -6,7 +6,7 @@ import { GetAppointmentByIdUseCase } from '../../../../consultation/application/
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../../consultation/domain/entities/consultation-session.entity.js';
-import { ConsultationType } from '../../../../consultation/domain/enums/consultation-type.enum.js';
+import { ConsultationPricing } from '../../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import type { AppointmentRepository } from '../../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../../consultation/domain/repositories/consultation-session.repository.js';
 import { GetHealthGraphSubgraphUseCase } from '../../../../clinical/application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
@@ -30,6 +30,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
   }
   async findByAppointmentId(): Promise<ConsultationSession | null> {
     return null;
+  }
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
   }
   async save(): Promise<void> {}
 }
@@ -120,7 +123,7 @@ function buildScenario() {
     patientId: '11111111-1111-4111-8111-111111111111',
     doctorId: '22222222-2222-4222-8222-222222222222',
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-    consultationType: ConsultationType.Free,
+    pricing: ConsultationPricing.free(),
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
   const session = ConsultationSession.open(appointment.getId());
@@ -225,7 +228,7 @@ describe('RequestAISuggestionUseCase', () => {
       patientId: '11111111-1111-4111-8111-111111111111',
       doctorId: '22222222-2222-4222-8222-222222222222',
       availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-      consultationType: ConsultationType.Free,
+      pricing: ConsultationPricing.free(),
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     const session = ConsultationSession.open(appointment.getId());

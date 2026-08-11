@@ -1,16 +1,7 @@
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
-import type { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
 import { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
-
-// This is the same acknowledged gap InitiateChargeUseCase's own comment
-// documents: "Currency is still client-supplied: DoctorProfile has no
-// currency field of its own yet ... a known, narrower gap." Egypt V1
-// (docs/06-system-architecture.md) is single-currency in practice; this
-// constant makes that assumption explicit and in one place rather than a
-// silent magic string, without pretending the underlying gap is closed.
-const EGYPT_V1_DEFAULT_CURRENCY = 'EGP';
 
 export interface AppointmentFeeDto {
   amount: number;
@@ -38,6 +29,8 @@ export class AppointmentListItemResponseDto {
   scheduledAt!: string;
   doctorName!: string;
   specialization!: string;
+  /** Localization fix: the Arabic specialty name, null until an admin has translated it -- the frontend picks whichever matches the caller's locale. */
+  specializationAr!: string | null;
   status!: AppointmentStatus;
   consultationType!: ConsultationType;
   reasonForVisit!: string | null;
@@ -47,26 +40,30 @@ export class AppointmentListItemResponseDto {
 
   static fromDomain(
     appointment: Appointment,
-    doctorProfile: DoctorProfile,
     doctorAccount: Account,
     consultationSessionId: string | null,
     specialization: string,
+    specializationAr: string | null = null,
   ): AppointmentListItemResponseDto {
     const dto = new AppointmentListItemResponseDto();
     dto.id = appointment.getId();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.doctorName = doctorAccount.getUserProfile().getDisplayName().toString();
     dto.specialization = specialization;
+    dto.specializationAr = specializationAr;
     dto.status = appointment.getStatus();
-    dto.consultationType = appointment.getConsultationType();
+    dto.consultationType = appointment.getPricing().getPricingType();
     dto.reasonForVisit = appointment.getReasonForVisit() ?? null;
     dto.consultationSessionId = consultationSessionId;
 
     dto.paymentRequired =
-      appointment.getConsultationType() === ConsultationType.Paid && appointment.getStatus() === AppointmentStatus.Requested;
+      appointment.getPricing().getPricingType() === ConsultationType.Paid && appointment.getStatus() === AppointmentStatus.Requested;
 
-    const feeAmount = doctorProfile.getConsultationFeeAmount();
-    dto.feeAmount = dto.paymentRequired && feeAmount !== undefined ? { amount: feeAmount, currency: EGYPT_V1_DEFAULT_CURRENCY } : null;
+    // Consultation Pricing Redesign: the appointment's own snapshotted fee,
+    // not DoctorProfile's former global one -- a real per-appointment
+    // amount/currency, not a hardcoded 'EGP' assumption.
+    const fee = appointment.getPricing().getFee();
+    dto.feeAmount = dto.paymentRequired && fee ? { amount: fee.getAmount(), currency: fee.getCurrency() } : null;
 
     return dto;
   }

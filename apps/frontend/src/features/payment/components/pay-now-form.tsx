@@ -15,7 +15,7 @@ import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 
 export interface PayNowFormProps {
-  consultationSessionId: string;
+  appointmentId: string;
   amount: Money;
   onPaid?: () => void;
 }
@@ -49,12 +49,12 @@ export function PayNowForm(props: PayNowFormProps) {
   );
 }
 
-function PayNowCardForm({ consultationSessionId, amount, onPaid }: PayNowFormProps) {
+function PayNowCardForm({ appointmentId, amount, onPaid }: PayNowFormProps) {
   const t = useTranslations('payment');
   const pathname = usePathname();
   const stripe = useStripe();
   const elements = useElements();
-  const initiateCharge = useInitiateCharge(consultationSessionId);
+  const initiateCharge = useInitiateCharge(appointmentId);
   const [cardError, setCardError] = useState<string | null>(null);
 
   const formattedAmount = useMemo(

@@ -50,7 +50,7 @@ describe('PayNowForm (identity-verification gate)', () => {
     setPatientVerified(false);
 
     renderWithProviders(
-      <PayNowForm consultationSessionId="11111111-1111-4111-8111-111111111111" amount={{ amount: 500, currency: 'EGP' }} />,
+      <PayNowForm appointmentId="11111111-1111-4111-8111-111111111111" amount={{ amount: 500, currency: 'EGP' }} />,
     );
 
     await userEvent.click(await screen.findByRole('button', { name: 'Pay now' }));
@@ -63,7 +63,7 @@ describe('PayNowForm (identity-verification gate)', () => {
     setPatientVerified(true);
 
     renderWithProviders(
-      <PayNowForm consultationSessionId="22222222-2222-4222-8222-222222222222" amount={{ amount: 500, currency: 'EGP' }} />,
+      <PayNowForm appointmentId="22222222-2222-4222-8222-222222222222" amount={{ amount: 500, currency: 'EGP' }} />,
     );
 
     await userEvent.click(await screen.findByRole('button', { name: 'Pay now' }));

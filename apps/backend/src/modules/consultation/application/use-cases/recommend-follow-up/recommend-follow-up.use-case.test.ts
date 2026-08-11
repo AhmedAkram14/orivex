@@ -8,10 +8,10 @@ import type { DoctorProfileRepository } from '../../../../doctor/domain/reposito
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import { FollowUpRecommendation } from '../../../domain/entities/follow-up-recommendation.entity.js';
-import { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
 import type { FollowUpRecommendationRepository } from '../../../domain/repositories/follow-up-recommendation.repository.js';
+import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 import { RecommendFollowUpCommand } from './recommend-follow-up.command.js';
 import { RecommendFollowUpUseCase } from './recommend-follow-up.use-case.js';
@@ -41,6 +41,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
     return this.session;
   }
   async save(): Promise<void> {}
+  async findStale(): Promise<ConsultationSession[]> {
+    return [];
+  }
 }
 
 class FakeAppointmentRepository implements AppointmentRepository {
@@ -102,7 +105,7 @@ function buildSessionAndAppointment(): { appointment: Appointment; session: Cons
     patientId: '33333333-3333-4333-8333-333333333333',
     doctorId: DOCTOR_ID,
     availabilityWindowId: '44444444-4444-4444-8444-444444444444',
-    consultationType: ConsultationType.Free,
+    pricing: ConsultationPricing.free(),
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
   appointment.confirm();

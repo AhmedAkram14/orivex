@@ -6,7 +6,7 @@ import { AvailabilityWindowConflictError } from '../../domain/exceptions/availab
 import type { AvailabilityWindowRepository } from '../../domain/repositories/availability-window.repository.js';
 
 import { toDomainAvailabilityWindow } from './availability-window.mapper.js';
-import { toPrismaConsultationType } from './consultation-type.mapper.js';
+import { toPersistedConsultationPricing } from './consultation-pricing.mapper.js';
 import { toPrismaAvailabilityWindowStatus } from './availability-window-status.mapper.js';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class PrismaAvailabilityWindowRepository implements AvailabilityWindowRep
       doctorId: window.getDoctorId(),
       startTime: window.getStartTime(),
       endTime: window.getEndTime(),
-      consultationType: toPrismaConsultationType(window.getConsultationType()),
+      ...toPersistedConsultationPricing(window.getPricing()),
       status: toPrismaAvailabilityWindowStatus(window.getStatus()),
       holdExpiresAt: window.getHoldExpiresAt() ?? null,
     };

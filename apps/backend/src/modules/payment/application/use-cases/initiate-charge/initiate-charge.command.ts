@@ -2,7 +2,11 @@ import type { PaymentMethod } from '../../../domain/enums/payment-method.enum.js
 
 export interface InitiateChargeCommandProps {
   idempotencyKey: string;
-  consultationSessionId: string;
+  // Consultation Pricing Lifecycle Completion: charges are initiated
+  // against the Appointment directly (pay-then-confirm) -- no
+  // ConsultationSession exists yet at this point, since one is only ever
+  // opened by a successful confirmation, which this charge itself triggers.
+  appointmentId: string;
   amount: number;
   currency: string;
   paymentMethod: PaymentMethod;
@@ -19,7 +23,7 @@ export interface InitiateChargeCommandProps {
 // replays the original outcome instead of charging twice.
 export class InitiateChargeCommand {
   readonly idempotencyKey: string;
-  readonly consultationSessionId: string;
+  readonly appointmentId: string;
   readonly amount: number;
   readonly currency: string;
   readonly paymentMethod: PaymentMethod;
@@ -27,7 +31,7 @@ export class InitiateChargeCommand {
 
   constructor(props: InitiateChargeCommandProps) {
     this.idempotencyKey = props.idempotencyKey;
-    this.consultationSessionId = props.consultationSessionId;
+    this.appointmentId = props.appointmentId;
     this.amount = props.amount;
     this.currency = props.currency;
     this.paymentMethod = props.paymentMethod;

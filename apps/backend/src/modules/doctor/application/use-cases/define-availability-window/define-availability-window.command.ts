@@ -1,10 +1,10 @@
-import type { ConsultationType } from '../../../domain/enums/consultation-type.enum.js';
+import type { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 
 export interface DefineAvailabilityWindowCommandProps {
   doctorId: string;
   startTime: Date;
   endTime: Date;
-  consultationType: ConsultationType;
+  pricing: ConsultationPricing;
 }
 
 // Commands are application messages, not structural types — immutable by
@@ -13,12 +13,12 @@ export class DefineAvailabilityWindowCommand {
   readonly doctorId: string;
   readonly startTime: Date;
   readonly endTime: Date;
-  readonly consultationType: ConsultationType;
+  readonly pricing: ConsultationPricing;
 
   constructor(props: DefineAvailabilityWindowCommandProps) {
     this.doctorId = props.doctorId;
     this.startTime = props.startTime;
     this.endTime = props.endTime;
-    this.consultationType = props.consultationType;
+    this.pricing = props.pricing;
   }
 }

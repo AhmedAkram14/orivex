@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useFieldArray, useForm } from 'react-hook-form';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { useUpdateDoctorProfile } from '@/features/doctor/hooks/use-update-doctor-profile';
@@ -12,6 +12,7 @@ import {
 } from '@/features/doctor/schemas/profile.schema';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { ApiError } from '@/shared/lib/api/client';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -51,6 +52,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
   const tLanguages = useTranslations('doctor.profile.languageNames');
   const tShared = useTranslations('doctor.onboarding.profileStep');
   const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
+  const locale = useLocale();
   const updateProfile = useUpdateDoctorProfile();
   const { data: specialties, isLoading: specialtiesLoading } = useSpecialtiesList();
 
@@ -111,7 +113,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                 <SelectContent>
                   {(specialties ?? []).map((specialty) => (
                     <SelectItem key={specialty.id} value={specialty.id}>
-                      {specialty.name}
+                      {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>

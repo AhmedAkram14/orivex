@@ -11,6 +11,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     scheduledAt: '2026-08-01T10:00:00.000Z',
     doctorName: 'Dr. Karim Adel',
     specialization: 'Cardiology',
+    specializationAr: null,
     status: 'requested',
     consultationType: 'free',
     consultationSessionId: null,

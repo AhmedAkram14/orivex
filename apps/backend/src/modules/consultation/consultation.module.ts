@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
 import type { RealtimeEmitterPort } from '../../platform/realtime/ports/realtime-emitter.port.js';
 import { REALTIME_EMITTER } from '../../platform/realtime/ports/tokens.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
@@ -49,6 +50,7 @@ import { ListConsultationFeedbackForDoctorUseCase } from './application/use-case
 import { MintConsultationRoomTokenUseCase } from './application/use-cases/mint-consultation-room-token/mint-consultation-room-token.use-case.js';
 import { RecommendFollowUpUseCase } from './application/use-cases/recommend-follow-up/recommend-follow-up.use-case.js';
 import { RecordSessionConnectionLogUseCase } from './application/use-cases/record-session-connection-log/record-session-connection-log.use-case.js';
+import { ReconcileStaleConsultationSessionsUseCase } from './application/use-cases/reconcile-stale-consultation-sessions/reconcile-stale-consultation-sessions.use-case.js';
 import { RescheduleOrCancelAppointmentUseCase } from './application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
 import { StartConsultationUseCase } from './application/use-cases/start-consultation/start-consultation.use-case.js';
 import { SubmitConsultationFeedbackUseCase } from './application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
@@ -64,6 +66,7 @@ import { PrismaConsultationSessionRepository } from './infrastructure/prisma/pri
 import { PrismaFollowUpRecommendationRepository } from './infrastructure/prisma/prisma-follow-up-recommendation.repository.js';
 import { NotConfiguredRoomTokenAdapter } from './infrastructure/livekit/not-configured-room-token.adapter.js';
 import { LiveKitRoomTokenAdapter } from './infrastructure/livekit/livekit-room-token.adapter.js';
+import { StaleConsultationSessionReconciliationService } from './infrastructure/jobs/stale-consultation-session-reconciliation.service.js';
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
 import { ConsultationFeedbackController } from './presentation/controllers/consultation-feedback.controller.js';
 import { DoctorAppointmentsController } from './presentation/controllers/doctor-appointments.controller.js';
@@ -211,6 +214,20 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         eventDispatcher: DomainEventDispatcher,
       ) => new CloseConsultationUseCase(sessionRepository, appointmentRepository, eventDispatcher),
       inject: [CONSULTATION_SESSION_REPOSITORY, APPOINTMENT_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      provide: ReconcileStaleConsultationSessionsUseCase,
+      useFactory: (sessionRepository: ConsultationSessionRepository, closeConsultationUseCase: CloseConsultationUseCase) =>
+        new ReconcileStaleConsultationSessionsUseCase(sessionRepository, closeConsultationUseCase),
+      inject: [CONSULTATION_SESSION_REPOSITORY, CloseConsultationUseCase],
+    },
+    {
+      provide: StaleConsultationSessionReconciliationService,
+      useFactory: (
+        reconcileStaleConsultationSessionsUseCase: ReconcileStaleConsultationSessionsUseCase,
+        logger: PinoLoggerService,
+      ) => new StaleConsultationSessionReconciliationService(reconcileStaleConsultationSessionsUseCase, logger),
+      inject: [ReconcileStaleConsultationSessionsUseCase, PinoLoggerService],
     },
     {
       provide: ROOM_TOKEN_GENERATOR,

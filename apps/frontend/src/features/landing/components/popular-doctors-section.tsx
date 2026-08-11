@@ -14,9 +14,10 @@ import {
   Stethoscope,
   Trophy,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { usePublicDoctors } from '@/features/landing/hooks/use-public-doctors';
 import type { PublicDoctor } from '@/features/landing/api/types';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
@@ -59,6 +60,8 @@ function specialtyBadgeVariant(specialtyName: string): BadgeProps['variant'] {
 
 function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
   const t = useTranslations('landing.popularDoctors');
+  const locale = useLocale();
+  const specialtyName = pickLocalizedName(doctor.specialtyName, doctor.specialtyNameAr, locale);
 
   return (
     <Card className="relative flex h-full flex-col gap-4 p-6 pb-4">
@@ -79,7 +82,7 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
             </span>
             <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="w-fit gap-1">
               <Icon icon={Stethoscope} size="xs" />
-              {doctor.specialtyName}
+              {specialtyName}
             </Badge>
 
             {doctor.reviewCount > 0 ? (

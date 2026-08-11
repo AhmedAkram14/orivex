@@ -9,6 +9,8 @@ import { toPrismaConsultationCompletionReason } from './consultation-completion-
 import { toDomainConsultationSession } from './consultation-session.mapper.js';
 import { toPrismaConsultationState } from './consultation-state.mapper.js';
 
+const OPEN_STATES = ['WAITING_ROOM', 'IN_PROGRESS'] as const;
+
 const INCLUDE_CONNECTION_LOGS = { connectionLogs: true } as const;
 
 @Injectable()
@@ -26,6 +28,14 @@ export class PrismaConsultationSessionRepository implements ConsultationSessionR
       include: INCLUDE_CONNECTION_LOGS,
     });
     return row ? toDomainConsultationSession(row) : null;
+  }
+
+  async findStale(updatedBefore: Date): Promise<ConsultationSession[]> {
+    const rows = await this.prisma.consultationSession.findMany({
+      where: { state: { in: [...OPEN_STATES] }, updatedAt: { lt: updatedBefore } },
+      include: INCLUDE_CONNECTION_LOGS,
+    });
+    return rows.map((row) => toDomainConsultationSession(row));
   }
 
   // Optimistic locking on the session row, mirroring AvailabilityWindow's

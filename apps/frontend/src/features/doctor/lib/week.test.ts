@@ -17,13 +17,13 @@ describe('getWeekDayName', () => {
 
 describe('getNextAvailability', () => {
   const schedule: RecurringWeeklySchedule = [
-    { dayOfWeek: 'sunday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'monday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'tuesday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'wednesday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'thursday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'friday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'saturday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'sunday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'monday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'tuesday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'wednesday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'thursday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'friday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'saturday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
   ];
 
   it("returns today's working day when its hours have not ended yet", () => {
@@ -47,13 +47,13 @@ describe('getNextAvailability', () => {
 
 describe('getUpcomingAvailabilityDays', () => {
   const schedule: RecurringWeeklySchedule = [
-    { dayOfWeek: 'sunday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'monday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'tuesday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'wednesday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'thursday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'friday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
-    { dayOfWeek: 'saturday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [] },
+    { dayOfWeek: 'sunday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'monday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'tuesday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'wednesday', isWorkingDay: true, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'thursday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'friday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
+    { dayOfWeek: 'saturday', isWorkingDay: false, hours: { start: '09:00', end: '17:00' }, breaks: [], pricing: { pricingType: 'free', feeAmount: null, feeCurrency: null } },
   ];
 
   it('returns the next 4 real working days, skipping non-working days', () => {
