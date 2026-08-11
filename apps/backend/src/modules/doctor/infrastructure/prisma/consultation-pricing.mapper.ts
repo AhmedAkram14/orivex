@@ -16,7 +16,12 @@ export function toDomainConsultationPricing(row: {
   feeCurrency: string | null;
 }): ConsultationPricing {
   const pricingType = toDomainConsultationType(row.consultationType);
-  if (row.feeAmount === null) {
+  // Defensive read: legacy rows from before per-slot pricing existed can
+  // have a stored feeAmount of 0 -- Money.create() correctly rejects a
+  // non-positive amount as a write-time invariant, but that must never
+  // turn into a 500 for every read of a historical row. Treat "no positive
+  // fee on record" the same as "no fee on record": Free.
+  if (row.feeAmount === null || Number(row.feeAmount) <= 0) {
     return ConsultationPricing.create(pricingType);
   }
   return ConsultationPricing.create(pricingType, Money.create(Number(row.feeAmount), row.feeCurrency ?? 'EGP'));
