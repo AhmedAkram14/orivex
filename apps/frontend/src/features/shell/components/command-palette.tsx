@@ -6,6 +6,7 @@ import { useLogout } from '@/features/auth/hooks/use-logout';
 import { COMMANDS, type CommandDefinition } from '@/features/shell/config/commands';
 import { useCommandPalette } from '@/features/shell/hooks/use-command-palette';
 import { getRecentCommandIds, recordRecentCommand } from '@/features/shell/lib/recent-searches';
+import { useAuth } from '@/shared/auth/auth-context';
 import { useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { useTheme, type Theme } from '@/shared/providers/theme-provider';
@@ -40,6 +41,8 @@ export function CommandPalette() {
   const { setTheme } = useTheme();
   const logout = useLogout();
   const recentIds = getRecentCommandIds();
+  const { user } = useAuth();
+  const isDoctor = user?.roles.includes('doctor') ?? false;
 
   function handleSelect(command: CommandDefinition) {
     recordRecentCommand(command.id);
@@ -72,7 +75,7 @@ export function CommandPalette() {
         className="flex items-center gap-2 rounded-md border border-border-default bg-canvas px-3 py-1.5 text-sm text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
         <Icon icon={Search} size="sm" />
-        <span className="hidden sm:inline">{t('triggerLabel')}</span>
+        <span className="hidden sm:inline">{isDoctor ? t('triggerLabel') : t('triggerLabelPatient')}</span>
         <kbd className="hidden rounded border border-border-default bg-surface px-1.5 py-0.5 text-xs sm:inline">
           {t('shortcutHint')}
         </kbd>

@@ -5,8 +5,15 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CommandPalette } from '@/features/shell/components/command-palette';
 import { server } from '@/mocks/server';
+import { AuthContext } from '@/shared/auth/auth-context';
+import type { AuthState } from '@/shared/auth/types';
 import { ThemeProvider } from '@/shared/providers/theme-provider';
 import enMessages from '../../../../messages/en.json';
+
+const patientState: AuthState = {
+  status: 'authenticated',
+  user: { id: '1', email: 'patient@orivex.dev', fullName: 'Amina Youssef', roles: ['patient'] },
+};
 
 const push = vi.fn();
 
@@ -29,20 +36,38 @@ afterEach(() => {
 afterAll(() => server.close());
 beforeEach(() => window.localStorage.clear());
 
-function renderPalette() {
+function renderPalette(user: AuthState = patientState) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale="en" messages={enMessages}>
-        <ThemeProvider>
-          <CommandPalette />
-        </ThemeProvider>
+        <AuthContext.Provider value={user}>
+          <ThemeProvider>
+            <CommandPalette />
+          </ThemeProvider>
+        </AuthContext.Provider>
       </NextIntlClientProvider>
     </QueryClientProvider>,
   );
 }
 
+const doctorState: AuthState = {
+  status: 'authenticated',
+  user: { id: '2', email: 'doctor@orivex.dev', fullName: 'Dr. Sarah Ahmed', roles: ['doctor'] },
+};
+
 describe('CommandPalette', () => {
+  it('shows role-appropriate search copy -- a patient is never told to search for "patients"', () => {
+    renderPalette(patientState);
+    expect(screen.getByText('Search doctors, appointments…')).toBeInTheDocument();
+    expect(screen.queryByText('Search patients, appointments…')).not.toBeInTheDocument();
+  });
+
+  it('shows the doctor-facing search copy for a doctor account', () => {
+    renderPalette(doctorState);
+    expect(screen.getByText('Search patients, appointments…')).toBeInTheDocument();
+  });
+
   it('is closed until the trigger button is clicked', async () => {
     renderPalette();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

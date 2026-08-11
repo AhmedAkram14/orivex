@@ -487,6 +487,7 @@
     },
     "commandPalette": {
       "triggerLabel": "Search patients, appointments…",
+      "triggerLabelPatient": "Search doctors, appointments…",
       "shortcutHint": "⌘K",
       "inputPlaceholder": "Type a command or search...",
       "noResults": "No results found.",

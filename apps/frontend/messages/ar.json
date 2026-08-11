@@ -487,6 +487,7 @@
     },
     "commandPalette": {
       "triggerLabel": "ابحث عن مرضى، مواعيد…",
+      "triggerLabelPatient": "ابحث عن أطباء، مواعيد…",
       "shortcutHint": "⌘K",
       "inputPlaceholder": "اكتب أمرًا أو ابحث...",
       "noResults": "لا توجد نتائج.",
