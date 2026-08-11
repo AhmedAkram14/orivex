@@ -38,7 +38,10 @@ export function RecentActivity() {
   const recent = (notifications ?? []).slice(0, MAX_ITEMS);
 
   return (
-    <WidgetContainer title={t('title')}>
+    <WidgetContainer
+      title={<span className="text-lg font-semibold">{t('title')}</span>}
+      className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+    >
       {isError ? (
         <Alert variant="danger">{t('loadError')}</Alert>
       ) : isLoading ? (

@@ -1187,6 +1187,7 @@
         "title": "Want to practice on Orivex?",
         "action": "Become a Doctor"
       },
+      "quickActionsTitle": "Quick actions",
       "quickActions": {
         "bookAppointment": "Book appointment",
         "viewProfile": "View profile",

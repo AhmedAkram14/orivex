@@ -1187,6 +1187,7 @@
         "title": "هل تريد الممارسة على أوريفكس؟",
         "action": "كن طبيبًا"
       },
+      "quickActionsTitle": "إجراءات سريعة",
       "quickActions": {
         "bookAppointment": "حجز موعد",
         "viewProfile": "عرض الملف الشخصي",

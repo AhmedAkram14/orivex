@@ -38,7 +38,8 @@ export function UpcomingAppointmentsWidget() {
 
   return (
     <WidgetContainer
-      title={t('upcomingAppointmentsTitle')}
+      title={<span className="text-lg font-semibold">{t('upcomingAppointmentsTitle')}</span>}
+      className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
       actions={
         <Button asChild variant="ghost" size="sm">
           <Link href="/patient/appointments">{t('viewAllAppointments')}</Link>

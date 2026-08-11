@@ -19,14 +19,14 @@ export function BecomeADoctorCta() {
   const t = useTranslations('patient.dashboard.becomeADoctor');
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-border-default bg-secondary-subtle p-4">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border-default/70 bg-secondary-subtle p-4">
       <div className="flex items-center gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-text-secondary">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-text-secondary shadow-sm">
           <Icon icon={Stethoscope} size="sm" />
         </span>
         <p className="text-sm font-medium text-text-primary">{t('title')}</p>
       </div>
-      <Button asChild variant="outline" size="sm">
+      <Button asChild variant="outline" size="sm" className="rounded-xl bg-surface">
         <Link href="/doctor/onboarding">{t('action')}</Link>
       </Button>
     </div>

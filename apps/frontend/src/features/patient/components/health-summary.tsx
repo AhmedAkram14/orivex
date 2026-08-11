@@ -28,7 +28,7 @@ interface SummaryTileProps {
 /** One Health Summary tile — real value, a distinctly colored icon (per-tile, so the row/stack reads at a glance instead of three identical blue tiles), and an optional "View all"/"View details" link to the real page that value is a preview of. */
 function SummaryTile({ icon, iconClassName, label, value, loading, href, viewLabel }: SummaryTileProps) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border-default bg-surface p-4">
+    <div className="flex items-start gap-3 rounded-xl border border-border-default bg-surface p-4">
       <div className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', iconClassName)}>
         <Icon icon={icon} size="md" />
       </div>
