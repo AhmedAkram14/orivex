@@ -486,14 +486,20 @@
       "cta": "زر مركز المساعدة"
     },
     "commandPalette": {
-      "triggerLabel": "ابحث عن مرضى، مواعيد…",
-      "triggerLabelPatient": "ابحث عن أطباء، مواعيد…",
+      "triggerLabel": "بحث وأوامر…",
+      "triggerLabelPatient": "بحث وأوامر…",
       "shortcutHint": "⌘K",
-      "inputPlaceholder": "اكتب أمرًا أو ابحث...",
+      "inputPlaceholder": "انتقل إلى صفحة أو نفّذ أمرًا...",
       "noResults": "لا توجد نتائج.",
       "recentHeading": "الأخيرة",
       "navigationHeading": "التنقل",
       "actionsHeading": "الإجراءات",
+      "searchDoctorsHeading": "الأطباء",
+      "searchPatientsHeading": "المرضى",
+      "searchAppointmentsHeading": "المواعيد",
+      "searching": "جارٍ البحث…",
+      "noResultsForQuery": "لا توجد نتائج لـ \"{query}\".",
+      "searchError": "حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.",
       "commands": {
         "themeLight": "التبديل إلى المظهر الفاتح",
         "themeDark": "التبديل إلى المظهر الداكن",

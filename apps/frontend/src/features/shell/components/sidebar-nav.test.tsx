@@ -77,11 +77,11 @@ describe('SidebarNav', () => {
     expect(screen.getByRole('link', { name: 'Security' })).not.toHaveAttribute('aria-current');
   });
 
-  it('renders Dashboard as inert (not a link) for a doctor, since Overview already is their real dashboard', () => {
+  it('renders Dashboard as a real, clickable link for a doctor too -- /dashboard redirects to their real Overview', () => {
     renderSidebar(doctorState);
-    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
-    expect(screen.getByText('Dashboard').closest('[aria-disabled="true"]')).toBeInTheDocument();
-    // Overview (the doctor's own real dashboard) stays a normal, real link.
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/en/dashboard');
+    expect(screen.getByText('Dashboard').closest('[aria-disabled="true"]')).not.toBeInTheDocument();
+    // Overview (the doctor's own real dashboard) is still a normal, real link.
     expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
   });
 

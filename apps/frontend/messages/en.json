@@ -486,14 +486,20 @@
       "cta": "Visit our Help Center"
     },
     "commandPalette": {
-      "triggerLabel": "Search patients, appointments…",
-      "triggerLabelPatient": "Search doctors, appointments…",
+      "triggerLabel": "Search & commands…",
+      "triggerLabelPatient": "Search & commands…",
       "shortcutHint": "⌘K",
-      "inputPlaceholder": "Type a command or search...",
+      "inputPlaceholder": "Jump to a page or run a command...",
       "noResults": "No results found.",
       "recentHeading": "Recent",
       "navigationHeading": "Navigation",
       "actionsHeading": "Actions",
+      "searchDoctorsHeading": "Doctors",
+      "searchPatientsHeading": "Patients",
+      "searchAppointmentsHeading": "Appointments",
+      "searching": "Searching…",
+      "noResultsForQuery": "No results for \"{query}\".",
+      "searchError": "Something went wrong while searching. Please try again.",
       "commands": {
         "themeLight": "Switch to light theme",
         "themeDark": "Switch to dark theme",

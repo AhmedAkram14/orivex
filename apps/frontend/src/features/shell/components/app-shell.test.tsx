@@ -46,11 +46,11 @@ describe('AppShell', () => {
     );
 
     expect(screen.getByText('Orivex')).toBeInTheDocument();
-    // "Dashboard" is inert (an aria-disabled span, not a link) for the
-    // doctor role -- the doctor's own Overview page already serves as its
-    // dashboard, so it never links anywhere for this role.
-    expect(await screen.findByText('Dashboard')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    // "Dashboard" is a real link for every role, including doctor --
+    // /dashboard itself real-redirects a doctor session straight to their
+    // Overview page, so this is a working link, not a dead end (see
+    // navigation.ts's own comment on this entry).
+    expect(await screen.findByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });

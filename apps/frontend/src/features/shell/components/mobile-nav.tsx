@@ -10,7 +10,7 @@ import { Button } from '@/shared/ui/button';
 import { Logo } from '@/shared/ui/logo';
 import { Drawer } from '@/shared/ui/side-panel';
 
-/** The small-viewport equivalent of the desktop `Sidebar` — the same `SidebarNav` content inside a `Drawer` (side-anchored, direction-aware) rather than a permanently-visible column. Closes on navigation since `SidebarNav`'s links are real `Link`s causing a route change, which unmounts this component's open state along with the rest of the page — no explicit close-on-navigate wiring needed. */
+/** The small-viewport equivalent of the desktop `Sidebar` — the same `SidebarNav` content inside a `Drawer` (side-anchored, direction-aware) rather than a permanently-visible column. Explicitly closes itself on navigation (`onNavigate`) — App Router client-side navigation never unmounts this shell component, so without this the drawer would otherwise stay open over the newly-navigated page. */
 export function MobileNav() {
   const t = useTranslations('shell');
   const tCommon = useTranslations('common');
@@ -23,12 +23,12 @@ export function MobileNav() {
           <Icon icon={Menu} size="md" />
         </Button>
       </Drawer.Trigger>
-      <Drawer.Content side="start" className="flex flex-col gap-4 overflow-y-auto">
+      <Drawer.Content side="start" className="flex w-[85vw] flex-col gap-4 overflow-y-auto">
         <Drawer.Title className="flex items-center gap-2 text-lg font-semibold text-text-primary">
           <Logo size="sm" />
           {tCommon('appName')}
         </Drawer.Title>
-        <SidebarNav />
+        <SidebarNav onNavigate={() => setOpen(false)} />
         <div className="mt-auto flex flex-col gap-3 border-t border-border-default pt-3">
           <HelpCenterCard />
           <p className="px-2 text-xs text-text-tertiary">{t('footer', { year: new Date().getFullYear() })}</p>

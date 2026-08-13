@@ -14,10 +14,11 @@ export interface CommandDefinition {
 
 /**
  * Every command the palette can execute — real navigation and real
- * account actions only, same as `QuickActions`. No business search
- * results here (Phase 18 is blocked on a real search endpoint); this is
- * the placeholder command/navigation architecture the phase's scope
- * calls for.
+ * account actions only, same as `QuickActions`. No business-entity search
+ * results here yet — a real search endpoint (Doctors/Patients/Appointments)
+ * is real, not-yet-built work (see the roadmap's Search phase); this is
+ * the command/navigation architecture that phase will add real search
+ * results alongside, not a stand-in pretending to be one.
  */
 export const COMMANDS: CommandDefinition[] = [
   { id: 'nav-dashboard', labelKey: 'dashboard', icon: LayoutDashboard, group: 'navigation', href: '/dashboard' },

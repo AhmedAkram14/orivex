@@ -3,7 +3,6 @@ import {
   Building2,
   CalendarDays,
   CalendarRange,
-  ClipboardPlus,
   Contact,
   FileText,
   Flag,
@@ -63,10 +62,11 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
     icon: LayoutDashboard,
     href: '/dashboard',
     // The doctor role has its own real dashboard (Doctor Workspace's
-    // Overview, /doctor) -- this generic link would just be a second,
-    // redundant path to the same idea, so it's shown but inert for that
-    // role rather than a real navigation choice.
-    disabledForRoles: ['doctor'],
+    // Overview, /doctor) -- but /dashboard itself already redirects a
+    // doctor session straight there (DashboardPage's own effect), so this
+    // is a real, working link for every role, not a dead end. Previously
+    // disabled here, which just made it look broken instead of actually
+    // preventing anything.
   },
   {
     id: 'doctor-workspace',
@@ -100,13 +100,6 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'doctorQueue',
         icon: Users,
         href: '/doctor/queue',
-        roles: ['doctor'],
-      },
-      {
-        id: 'doctor-workspace-consultation',
-        labelKey: 'doctorConsultation',
-        icon: ClipboardPlus,
-        href: '/doctor/consultation',
         roles: ['doctor'],
       },
       {

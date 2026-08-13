@@ -23,10 +23,12 @@ export interface NavItemProps {
   className?: string;
   /** Renders as an inert `<span>` instead of a `Link` -- no navigation, no hover/focus affordance, `aria-disabled` for assistive tech. For a destination that's a real page but not the right one to link to from this exact context (e.g. a role whose own workspace already serves as its "Dashboard"). */
   disabled?: boolean;
+  /** Fires on click, in addition to the real navigation -- e.g. the mobile nav drawer closes itself once a destination is chosen, rather than staying open over the new page. */
+  onClick?: () => void;
 }
 
 /** A single leaf nav entry — a real link (native browser Tab order, no custom roving-tabindex, since this is a navigation landmark, not a toolbar/menu per WAI-ARIA APG). `active` sets `aria-current="page"`, the accessible signal screen readers use for "you are here," styled via the `data-active` selector rather than a conditional className string. */
-export function NavItem({ label, icon, href, active = false, badge, className, disabled = false }: NavItemProps) {
+export function NavItem({ label, icon, href, active = false, badge, className, disabled = false, onClick }: NavItemProps) {
   if (disabled) {
     return (
       <span aria-disabled="true" className={cn(itemClass, 'pointer-events-none cursor-default text-text-tertiary hover:bg-transparent hover:text-text-tertiary', className)}>
@@ -38,7 +40,13 @@ export function NavItem({ label, icon, href, active = false, badge, className, d
   }
 
   return (
-    <Link href={href} aria-current={active ? 'page' : undefined} data-active={active} className={cn(itemClass, className)}>
+    <Link
+      href={href}
+      aria-current={active ? 'page' : undefined}
+      data-active={active}
+      onClick={onClick}
+      className={cn(itemClass, className)}
+    >
       {icon && <Icon icon={icon} size="sm" className="shrink-0" />}
       <span className="flex-1 truncate">{label}</span>
       {badge}

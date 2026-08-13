@@ -12,6 +12,11 @@ function isActive(pathname: string, href: string): boolean {
   return href === '/' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
+export interface SidebarNavProps {
+  /** Fires when any real (non-disabled) nav link is clicked -- the mobile drawer passes its own close handler so picking a destination collapses the menu instead of leaving it open over the new page. Omitted entirely for the always-visible desktop sidebar, which has nothing to close. */
+  onNavigate?: () => void;
+}
+
 /**
  * Renders `NAVIGATION_CONFIG` filtered for the current session's roles and
  * feature flags — the one place that config becomes actual sidebar/
@@ -20,7 +25,7 @@ function isActive(pathname: string, href: string): boolean {
  * off is dropped entirely rather than rendering as an empty, clickless
  * heading.
  */
-export function SidebarNav() {
+export function SidebarNav({ onNavigate }: SidebarNavProps = {}) {
   const t = useTranslations('shell.nav');
   const { user } = useAuth();
   const pathname = usePathname();
@@ -31,13 +36,23 @@ export function SidebarNav() {
   return (
     <nav aria-label={t('landmarkLabel')} className="flex flex-col gap-1">
       {items.map((item) => (
-        <NavEntry key={item.id} item={item} pathname={pathname} userRoles={userRoles} />
+        <NavEntry key={item.id} item={item} pathname={pathname} userRoles={userRoles} onNavigate={onNavigate} />
       ))}
     </nav>
   );
 }
 
-function NavEntry({ item, pathname, userRoles }: { item: NavItemConfig; pathname: string; userRoles: readonly string[] }) {
+function NavEntry({
+  item,
+  pathname,
+  userRoles,
+  onNavigate,
+}: {
+  item: NavItemConfig;
+  pathname: string;
+  userRoles: readonly string[];
+  onNavigate?: () => void;
+}) {
   const t = useTranslations('shell.nav');
   const label = t(item.labelKey);
 
@@ -45,7 +60,7 @@ function NavEntry({ item, pathname, userRoles }: { item: NavItemConfig; pathname
     return (
       <NavGroup label={label}>
         {item.children.map((child) => (
-          <NavEntry key={child.id} item={child} pathname={pathname} userRoles={userRoles} />
+          <NavEntry key={child.id} item={child} pathname={pathname} userRoles={userRoles} onNavigate={onNavigate} />
         ))}
       </NavGroup>
     );
@@ -60,6 +75,7 @@ function NavEntry({ item, pathname, userRoles }: { item: NavItemConfig; pathname
       href={item.href!}
       active={isActive(pathname, item.href!)}
       disabled={disabled}
+      onClick={onNavigate}
     />
   );
 }
