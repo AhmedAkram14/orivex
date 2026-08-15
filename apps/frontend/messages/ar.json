@@ -85,7 +85,8 @@
       "reviewCount": "({count} تقييم)",
       "noReviewsYet": "لا توجد تقييمات بعد",
       "consultationFeeLabel": "رسوم الاستشارة",
-      "consultationFee": "{amount}",
+      "consultationFee": "{amount} جنيه",
+      "consultationFeeFree": "مجانًا",
       "viewProfile": "عرض الملف الشخصي",
       "bookAppointment": "حجز موعد",
       "viewAllDoctors": "عرض كل الأطباء",
@@ -739,7 +740,8 @@
         "reviewsCount": "{count} تقييم",
         "availableNow": "متاح الآن",
         "currentlyUnavailable": "غير متاح حاليًا",
-        "consultationFee": "{amount} جنيه / استشارة"
+        "consultationFee": "{amount} جنيه / استشارة",
+        "consultationFeeFree": "مجانًا"
       },
       "sidebar": {
         "doctorSummary": "ملخص الطبيب",

@@ -27,6 +27,7 @@ import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { cn } from '@/shared/lib/cn';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 function initialsOf(fullName: string): string {
@@ -138,8 +139,10 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
       {doctor.consultationFeeAmount !== undefined && (
         <div className="flex flex-col">
           <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
-          <span className="text-base font-bold text-text-primary">
-            {t('consultationFee', { amount: doctor.consultationFeeAmount })}
+          <span className={cn('text-base font-bold', doctor.consultationFeeAmount === 0 ? 'text-success' : 'text-text-primary')}>
+            {doctor.consultationFeeAmount === 0
+              ? t('consultationFeeFree')
+              : t('consultationFee', { amount: doctor.consultationFeeAmount })}
           </span>
         </div>
       )}

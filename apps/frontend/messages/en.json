@@ -85,7 +85,8 @@
       "reviewCount": "({count} reviews)",
       "noReviewsYet": "No reviews yet",
       "consultationFeeLabel": "Consultation Fee",
-      "consultationFee": "{amount}",
+      "consultationFee": "{amount} EGP",
+      "consultationFeeFree": "Free",
       "viewProfile": "View Profile",
       "bookAppointment": "Book Appointment",
       "viewAllDoctors": "View All Doctors",
@@ -739,7 +740,8 @@
         "reviewsCount": "{count} Reviews",
         "availableNow": "Available now",
         "currentlyUnavailable": "Not available right now",
-        "consultationFee": "{amount} EGP / consultation"
+        "consultationFee": "{amount} EGP / consultation",
+        "consultationFeeFree": "Free"
       },
       "sidebar": {
         "doctorSummary": "Doctor Summary",

@@ -282,8 +282,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                   <Icon icon={Wallet} size="md" />
                 </span>
                 <div>
-                  <p className="text-lg font-semibold text-text-primary">{profile.consultationFeeAmount}</p>
-                  <p className="text-xs text-text-tertiary">{t('hero.consultationFee', { amount: profile.consultationFeeAmount })}</p>
+                  <p className={cn('text-lg font-semibold', profile.consultationFeeAmount === 0 ? 'text-success' : 'text-text-primary')}>
+                    {profile.consultationFeeAmount === 0
+                      ? t('hero.consultationFeeFree')
+                      : t('hero.consultationFee', { amount: profile.consultationFeeAmount })}
+                  </p>
+                  <p className="text-xs text-text-tertiary">{t('consultationFee')}</p>
                 </div>
               </div>
             )}
