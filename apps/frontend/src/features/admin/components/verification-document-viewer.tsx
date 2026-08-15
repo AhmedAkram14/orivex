@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useMediaAsset } from '@/shared/media/hooks/use-media-asset';
 import { Alert } from '@/shared/ui/alert';
+import { Card, CardContent } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 export interface VerificationDocumentViewerProps {
@@ -33,23 +34,25 @@ export function VerificationDocumentViewer({ mediaAssetId }: VerificationDocumen
   const label = t(`purpose.${asset.purpose}`);
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border-default p-3">
-      <p className="text-sm font-medium text-text-primary">{label}</p>
-      {!asset.signedUrl && <p className="text-sm text-text-secondary">{t('notYetAvailable')}</p>}
-      {asset.signedUrl && isImage && (
-        // eslint-disable-next-line @next/next/no-img-element -- a short-lived, admin-authorized presigned S3 URL, not a Next-optimizable static asset.
-        <img src={asset.signedUrl} alt={label} className="max-h-64 w-auto rounded-md border border-border-default object-contain" />
-      )}
-      {asset.signedUrl && !isImage && (
-        <a
-          href={asset.signedUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm font-medium text-primary underline underline-offset-2"
-        >
-          {t('openDocument')}
-        </a>
-      )}
-    </div>
+    <Card>
+      <CardContent className="flex flex-col gap-2 p-3">
+        <p className="text-sm font-medium text-text-primary">{label}</p>
+        {!asset.signedUrl && <p className="text-sm text-text-secondary">{t('notYetAvailable')}</p>}
+        {asset.signedUrl && isImage && (
+          // eslint-disable-next-line @next/next/no-img-element -- a short-lived, admin-authorized presigned S3 URL, not a Next-optimizable static asset.
+          <img src={asset.signedUrl} alt={label} className="max-h-64 w-auto rounded-md border border-border-default object-contain" />
+        )}
+        {asset.signedUrl && !isImage && (
+          <a
+            href={asset.signedUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-medium text-primary underline underline-offset-2"
+          >
+            {t('openDocument')}
+          </a>
+        )}
+      </CardContent>
+    </Card>
   );
 }

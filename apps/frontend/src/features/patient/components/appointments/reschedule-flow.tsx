@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { Heading } from '@/design-system/typography';
 import { PayNowForm } from '@/features/payment/components/pay-now-form';
 import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
 import { useRescheduleAppointment } from '@/features/patient/hooks/use-reschedule-appointment';
@@ -115,7 +116,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
   if (step === 'payment' && rescheduled && rescheduled.feeAmount !== null && rescheduled.feeCurrency !== null) {
     return (
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-text-primary">{tReschedule('paymentStepTitle')}</h2>
+        <Heading as="h2" level={4}>{tReschedule('paymentStepTitle')}</Heading>
         <p className="text-sm text-text-secondary">{tReschedule('paymentStepDescription')}</p>
         <PayNowForm
           appointmentId={rescheduled.id}
@@ -173,6 +174,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
           consultationTypeLabel={t(`consultationType.${selectedWindow.consultationType}`)}
           totalCaption={t('total')}
           priceLabel={priceLabel}
+          isFree={selectedWindow.consultationType === 'free'}
           actions={
             isConflictError ? (
               <Button
@@ -205,6 +207,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
     timeLabel: format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' }),
     status: 'available',
     label: formatConsultationPrice(window, locale, t('priceFree')),
+    priceVariant: window.consultationType === 'free' ? 'free' : 'paid',
     onSelect: () => {
       setSelectedWindow(window);
       setStep('summary');

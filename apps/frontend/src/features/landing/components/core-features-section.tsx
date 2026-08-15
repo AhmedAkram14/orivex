@@ -41,7 +41,7 @@ export function CoreFeaturesSection() {
         {FEATURES.map(({ key, icon, accentBadge }) => (
           <Card
             key={key}
-            className="relative flex flex-col gap-4 rounded-3xl border-border-default p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-[250ms] ease-out hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.1)]"
+            className="relative flex flex-col gap-4 rounded-2xl border-border-default p-8 shadow-md transition-all duration-(--duration-base) ease-standard hover:-translate-y-1 hover:shadow-lg"
           >
             <div
               className="pointer-events-none absolute end-6 top-6 size-16 opacity-40"

@@ -2,6 +2,7 @@
 
 import { CalendarDays } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Heading } from '@/design-system/typography';
 import { useAppointmentAnalytics } from '@/features/reporting/hooks/use-appointment-analytics';
 import { ExportButton } from '@/features/reporting/components/export-button';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
@@ -27,7 +28,7 @@ export function AppointmentAnalyticsPanel({ filter, refetchIntervalMs }: { filte
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-text-primary">{t('title')}</h2>
+        <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="appointments" filter={filter} />
       </div>
       <DashboardGrid columns={3}>

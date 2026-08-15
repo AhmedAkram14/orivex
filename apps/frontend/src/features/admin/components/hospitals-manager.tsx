@@ -93,7 +93,7 @@ export function HospitalsManager() {
       ) : (
         <div className="flex flex-col gap-2">
           {hospitals.map((hospital) => (
-            <div key={hospital.id} className="rounded-lg border border-border-default">
+            <Card key={hospital.id} className="overflow-hidden">
               <button
                 type="button"
                 onClick={() => setSelectedHospitalId(selectedHospitalId === hospital.id ? undefined : hospital.id)}
@@ -106,7 +106,7 @@ export function HospitalsManager() {
                 <Badge variant="neutral">{t('viewDepartments')}</Badge>
               </button>
               {selectedHospitalId === hospital.id && <DepartmentsPanel hospitalId={hospital.id} />}
-            </div>
+            </Card>
           ))}
         </div>
       )}

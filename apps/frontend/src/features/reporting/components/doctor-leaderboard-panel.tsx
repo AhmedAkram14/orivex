@@ -11,6 +11,7 @@ import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
 const SORT_OPTIONS: DoctorSortBy[] = ['revenue', 'rating', 'completedConsultations', 'patientCount'];
@@ -59,34 +60,32 @@ export function DoctorLeaderboardPanel({ filter, refetchIntervalMs }: { filter: 
           <Skeleton className="h-10 w-full" />
         </div>
       ) : data && data.entries.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border-default text-left text-xs text-text-tertiary">
-                <th scope="col" className="py-2 pe-4">{t('columnDoctor')}</th>
-                <th scope="col" className="py-2 pe-4">{t('columnCompleted')}</th>
-                <th scope="col" className="py-2 pe-4">{t('columnRating')}</th>
-                <th scope="col" className="py-2 pe-4">{t('columnRevenue')}</th>
-                <th scope="col" className="py-2 pe-4">{t('columnPatients')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.entries.map((entry) => (
-                <tr key={entry.doctorId} className="border-b border-border-default last:border-0">
-                  <td className="py-2 pe-4">
-                    <Link href="/admin/users" className="font-medium text-primary hover:underline">
-                      {entry.displayName}
-                    </Link>
-                  </td>
-                  <td className="py-2 pe-4">{entry.completedConsultations}</td>
-                  <td className="py-2 pe-4">{entry.averageRating == null ? '—' : `${entry.averageRating.toFixed(1)} (${entry.reviewCount})`}</td>
-                  <td className="py-2 pe-4">{entry.revenueGenerated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                  <td className="py-2 pe-4">{entry.patientCount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('columnDoctor')}</TableHead>
+              <TableHead className="text-end">{t('columnCompleted')}</TableHead>
+              <TableHead className="text-end">{t('columnRating')}</TableHead>
+              <TableHead className="text-end">{t('columnRevenue')}</TableHead>
+              <TableHead className="text-end">{t('columnPatients')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.entries.map((entry) => (
+              <TableRow key={entry.doctorId}>
+                <TableCell>
+                  <Link href="/admin/users" className="font-medium text-primary hover:underline">
+                    {entry.displayName}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-end tabular-nums">{entry.completedConsultations}</TableCell>
+                <TableCell className="text-end tabular-nums">{entry.averageRating == null ? '—' : `${entry.averageRating.toFixed(1)} (${entry.reviewCount})`}</TableCell>
+                <TableCell className="text-end tabular-nums">{entry.revenueGenerated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                <TableCell className="text-end tabular-nums">{entry.patientCount}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       ) : (
         <EmptyState icon={Stethoscope} title={t('emptyTitle')} description={t('emptyDescription')} />
       )}

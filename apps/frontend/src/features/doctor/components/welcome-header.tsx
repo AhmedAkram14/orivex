@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
+import { Heading } from '@/design-system/typography';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 
@@ -47,9 +48,9 @@ export function WelcomeHeader() {
         <AvatarFallback className="text-lg">{initialsFor(user.fullName)}</AvatarFallback>
       </Avatar>
       <div className="flex flex-col gap-1">
-        <p className="text-2xl font-semibold text-text-primary">
+        <Heading as="p" level={2}>
           {t('welcome', { name: toDisplayCase(stripExistingTitle(user.fullName)) })}
-        </p>
+        </Heading>
         <p className="text-sm text-text-secondary">
           {format.dateTime(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>

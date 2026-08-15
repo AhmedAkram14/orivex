@@ -1,5 +1,6 @@
 import { HeartPulse, Plus, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Heading } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
 import { Logo } from '@/shared/ui/logo';
 
@@ -55,7 +56,7 @@ export function StatusPage({ icon, title, description, action, footer }: StatusP
         <Icon icon={icon} size="lg" />
       </div>
       <div className="flex max-w-md flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-text-primary">{title}</h1>
+        <Heading as="h1" level={2}>{title}</Heading>
         <p className="text-sm text-text-secondary">{description}</p>
       </div>
       {action}

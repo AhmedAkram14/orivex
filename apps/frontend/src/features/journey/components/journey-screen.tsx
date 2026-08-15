@@ -13,6 +13,7 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 
+import { Heading } from '@/design-system/typography';
 import { useChoosePatientJourney } from '@/features/journey/hooks/use-choose-patient-journey';
 import { UserMenu } from '@/features/shell/components/user-menu';
 import { useRouter } from '@/shared/i18n/navigation';
@@ -160,7 +161,7 @@ export function JourneyScreen() {
             </div>
             <CardContent className="flex flex-1 flex-col gap-4 p-6 sm:p-8">
               <div className="flex flex-col gap-1.5">
-                <h2 className="text-xl font-semibold text-text-primary">{t('patientCardTitle')}</h2>
+                <Heading as="h2" level={3}>{t('patientCardTitle')}</Heading>
                 <p className="text-sm text-text-secondary">{t('patientCardDescription')}</p>
               </div>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -204,7 +205,7 @@ export function JourneyScreen() {
             </div>
             <CardContent className="flex flex-1 flex-col gap-4 p-6 sm:p-8">
               <div className="flex flex-col gap-1.5">
-                <h2 className="text-xl font-semibold text-text-primary">{t('doctorCardTitle')}</h2>
+                <Heading as="h2" level={3}>{t('doctorCardTitle')}</Heading>
                 <p className="text-sm text-text-secondary">{t('doctorCardDescription')}</p>
               </div>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">

@@ -36,6 +36,9 @@ Engineering
 Decisions
 - 14-adrs.md — Accepted Architecture Decision Records (summary; full reasoning in 06-system-architecture.md, Section 15)
 
+Frontend
+- 16-design-system.md — ORIVEX Design System: colors, typography, spacing, radius, elevation, motion, component primitives, dark mode, responsive/RTL rules (Phase 6A: Design System & UI/UX Transformation)
+
 Resolved since the last integrity review
 - Phase 4 is no longer merged into 05-information-architecture.md — it now lives in its own file, 06-system-architecture.md, with the corrupted paste-artifact text removed and no other content altered.
 - Phase 7's single dangling citation (in what is now 08-logical-data-model.md) was removed. Phase 7 will not be authored; the ADR document (14-adrs.md) is treated as the evolution of that planning step, per architect decision.

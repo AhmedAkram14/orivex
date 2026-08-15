@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { DeviceSessionsList } from '@/features/auth/components/device-sessions-list';
 import { LoginHistoryTable } from '@/features/auth/components/login-history-table';
 import { LogoutAllDevicesButton } from '@/features/auth/components/logout-all-devices-button';
+import { Heading } from '@/design-system/typography';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 import { buildPageMetadata } from '@/shared/lib/seo';
@@ -24,7 +25,7 @@ export default async function SecurityCenterPage() {
   return (
     <Container className="flex flex-col gap-6 py-8">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-text-primary">{t('title')}</h1>
+        <Heading as="h1" level={2}>{t('title')}</Heading>
         <p className="text-text-secondary">{t('subtitle')}</p>
       </div>
 

@@ -75,7 +75,7 @@ function StepPanel({
   const palette = PANEL_THEME[theme];
 
   return (
-    <div className={cn('flex flex-col rounded-3xl border border-border-default p-6', palette.panelBg)}>
+    <div className={cn('flex flex-col rounded-2xl border border-border-default p-6', palette.panelBg)}>
       <div className="flex items-center gap-4 pb-6">
         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-surface shadow-sm">
           <Icon icon={headerIcon} size="lg" className={palette.title} />

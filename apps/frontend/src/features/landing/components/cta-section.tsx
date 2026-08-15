@@ -5,6 +5,7 @@ import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 
 /**
@@ -18,7 +19,7 @@ export function CtaSection() {
 
   return (
     <Container size="lg" className="py-16">
-      <div className="relative overflow-hidden rounded-3xl border border-border-default bg-cta-surface p-8 sm:p-12">
+      <div className="relative overflow-hidden rounded-2xl border border-border-default bg-cta-surface p-8 sm:p-12">
         <div
           className="pointer-events-none absolute start-6 top-6 size-16 opacity-40"
           style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '10px 10px' }}
@@ -32,9 +33,12 @@ export function CtaSection() {
               {t('eyebrow')}
             </Badge>
 
-            <Heading level={1} className="text-4xl sm:text-5xl">
-              {t('title')}
-            </Heading>
+            {/* No size override here -- every other section header on this
+                page is a plain Heading level=1, and this closing CTA
+                shouldn't out-scale them; the section's own weight comes
+                from being last and from the tinted banner around it, not
+                from oversized type. */}
+            <Heading level={1}>{t('title')}</Heading>
 
             <Text size="lg" tone="secondary" className="max-w-md">
               {t('description')}
@@ -57,7 +61,7 @@ export function CtaSection() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border border-border-default bg-surface p-6 text-center shadow-sm">
+            <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
               <span className="flex size-14 items-center justify-center rounded-full bg-primary-subtle">
                 <Icon icon={Stethoscope} size="lg" className="text-primary" />
               </span>
@@ -73,8 +77,8 @@ export function CtaSection() {
               >
                 <path d="M0 20 Q50 0 100 20 T200 20 V40 H0 Z" fill="currentColor" />
               </svg>
-            </div>
-            <div className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border border-border-default bg-surface p-6 text-center shadow-sm">
+            </Card>
+            <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
               <span className="flex size-14 items-center justify-center rounded-full bg-success-subtle">
                 <Icon icon={UserPlus} size="lg" className="text-success" />
               </span>
@@ -90,7 +94,7 @@ export function CtaSection() {
               >
                 <path d="M0 20 Q50 0 100 20 T200 20 V40 H0 Z" fill="currentColor" />
               </svg>
-            </div>
+            </Card>
           </div>
         </div>
       </div>

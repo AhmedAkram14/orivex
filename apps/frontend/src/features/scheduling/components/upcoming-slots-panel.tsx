@@ -97,7 +97,15 @@ export function UpcomingSlotsPanel() {
                   >
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="text-sm font-medium text-text-primary">{timeLabel}</span>
-                      <span className="text-sm text-text-secondary">{priceLabel}</span>
+                      <span
+                        className={
+                          window.consultationType === 'paid'
+                            ? 'text-sm font-semibold text-primary'
+                            : 'text-sm font-semibold text-success'
+                        }
+                      >
+                        {priceLabel}
+                      </span>
                       <StatusBadge tone={toneByWindowStatus[window.status]} label={t(`status.${window.status}`)} />
                     </div>
                     {window.status === 'open' && (

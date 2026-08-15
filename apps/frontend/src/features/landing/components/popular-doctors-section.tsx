@@ -64,7 +64,7 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
   const specialtyName = pickLocalizedName(doctor.specialtyName, doctor.specialtyNameAr, locale);
 
   return (
-    <Card className="relative flex h-full flex-col gap-4 p-6 pb-4">
+    <Card className="relative flex h-full flex-col gap-4 rounded-2xl p-6 pb-4 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <Avatar size="lg" className="size-20">
@@ -106,7 +106,7 @@ function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
         {(doctor.isTopRated || doctor.isMostBooked) && (
           <Badge
             variant={doctor.isTopRated ? 'success' : 'warning'}
-            className="absolute top-0 end-0 shrink-0 gap-1 rounded-[13px] px-2 py-2"
+            className="absolute top-0 end-0 shrink-0 gap-1 rounded-lg px-2 py-2"
           >
             <Icon icon={doctor.isTopRated ? Trophy : Flame} size="xs" />
             {doctor.isTopRated ? t('topRated') : t('mostBooked')}
@@ -251,7 +251,7 @@ export function PopularDoctorsSection() {
       )}
 
       {!isLoading && doctors.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 rounded-2xl border border-border-default bg-surface px-8 py-6 shadow-sm">
+        <Card className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 rounded-2xl px-8 py-6">
           {trustItems.map((item) => (
             <div key={item.title} className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
@@ -265,7 +265,7 @@ export function PopularDoctorsSection() {
               </div>
             </div>
           ))}
-        </div>
+        </Card>
       )}
     </Container>
   );

@@ -93,7 +93,7 @@ function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
     <Link href={`/patient/doctors?specialtyId=${specialty.id}`} className="block h-full">
       <Card
         className={cn(
-          'flex h-full flex-col items-center gap-3 border-t-4 p-6 text-center transition-shadow hover:shadow-md',
+          'flex h-full flex-col items-center gap-3 rounded-2xl border-t-4 p-6 text-center transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md',
           accent.border,
         )}
       >
@@ -146,7 +146,7 @@ export function SpecialtiesSection() {
       </div>
 
       {!isLoading && visible.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-6 rounded-2xl border border-border-default bg-surface px-8 py-4 shadow-sm sm:gap-10">
+        <Card className="flex flex-wrap items-center justify-center gap-6 rounded-2xl px-8 py-4 sm:gap-10">
           <div className="flex items-center gap-2">
             <Icon icon={Stethoscope} size="md" className="text-primary" />
             <span className="text-lg font-bold text-text-primary">{visible.length}+</span>
@@ -162,7 +162,7 @@ export function SpecialtiesSection() {
               {t('doctorsStat')}
             </Text>
           </div>
-        </div>
+        </Card>
       )}
 
       {isLoading && (

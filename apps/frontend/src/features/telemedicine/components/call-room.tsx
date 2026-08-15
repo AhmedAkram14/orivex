@@ -31,7 +31,11 @@ export function CallRoom({ consultationSessionId, displayName, onLeave }: CallRo
   const { data, isLoading, isError, error } = useRoomToken(consultationSessionId, displayName);
 
   if (isLoading) {
-    return <p className="text-sm text-text-secondary">{t('connecting')}</p>;
+    return (
+      <div className="flex min-h-[480px] items-center justify-center rounded-xl border border-border-default bg-secondary-subtle">
+        <p className="text-sm text-text-secondary">{t('connecting')}</p>
+      </div>
+    );
   }
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): the real
@@ -47,18 +51,20 @@ export function CallRoom({ consultationSessionId, displayName, onLeave }: CallRo
   }
 
   return (
-    <LiveKitRoom
-      token={data.token}
-      serverUrl={data.url}
-      connect
-      video
-      audio
-      data-lk-theme="default"
-      style={{ height: '100%', minHeight: '480px' }}
-      onDisconnected={onLeave}
-    >
-      <VideoConference />
-      <RoomAudioRenderer />
-    </LiveKitRoom>
+    <div className="overflow-hidden rounded-xl border border-border-default">
+      <LiveKitRoom
+        token={data.token}
+        serverUrl={data.url}
+        connect
+        video
+        audio
+        data-lk-theme="default"
+        style={{ height: '100%', minHeight: '480px' }}
+        onDisconnected={onLeave}
+      >
+        <VideoConference />
+        <RoomAudioRenderer />
+      </LiveKitRoom>
+    </div>
   );
 }

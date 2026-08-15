@@ -29,6 +29,7 @@ import type { ReactNode } from 'react';
 import { DoctorReviewsList } from '@/features/consultation/components/doctor-reviews-list';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import type { DoctorProfile } from '@/features/doctor/api/types';
+import { Heading } from '@/design-system/typography';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
 import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useMyVerifications } from '@/features/doctor/hooks/use-my-verifications';
@@ -119,7 +120,7 @@ function ProfileSectionCard({ title, icon, iconClassName, actions, children, cla
             >
               <Icon icon={icon} size="md" />
             </span>
-            <h2 className="text-xl font-semibold text-text-primary">{title}</h2>
+            <Heading as="h2" level={3}>{title}</Heading>
           </div>
           {actions}
         </div>
@@ -461,7 +462,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                   <span className="flex size-10 items-center justify-center rounded-full bg-info-subtle text-info">
                     <Icon icon={CalendarClock} size="md" />
                   </span>
-                  <h3 className="text-lg font-semibold text-text-primary">{t('sidebar.availability')}</h3>
+                  <Heading as="h3" level={4}>{t('sidebar.availability')}</Heading>
                 </div>
                 {availabilityLoading ? (
                   <Skeleton className="h-16 w-full" />
@@ -489,7 +490,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
           {isWorkspace && (
             <Card className={CARD_CLASS}>
               <CardContent className="flex flex-col gap-3 p-6">
-                <h3 className="text-lg font-semibold text-text-primary">{t('sidebar.quickActions')}</h3>
+                <Heading as="h3" level={4}>{t('sidebar.quickActions')}</Heading>
                 <div className="flex flex-col gap-2">
                   {onEdit && (
                     <Button variant="outline" className="justify-start" onClick={onEdit}>
@@ -521,7 +522,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                   <span className="flex size-10 items-center justify-center rounded-full bg-primary-subtle text-primary">
                     <Icon icon={Sparkles} size="md" />
                   </span>
-                  <h3 className="text-lg font-semibold text-text-primary">{t('sidebar.profileCompletion')}</h3>
+                  <Heading as="h3" level={4}>{t('sidebar.profileCompletion')}</Heading>
                 </div>
                 <p className="text-sm text-text-secondary">{t('sidebar.profileCompletionDescription')}</p>
                 <div className="flex justify-center py-2">
@@ -545,7 +546,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
 
           <Card className={CARD_CLASS}>
             <CardContent className="flex flex-col gap-4 p-6">
-              <h3 className="text-lg font-semibold text-text-primary">{t('contactInformation')}</h3>
+              <Heading as="h3" level={4}>{t('contactInformation')}</Heading>
               <div className="flex flex-col gap-3">
                 <InfoRow icon={Mail} label={t('email')} value={profile.email} />
                 <InfoRow icon={Phone} label={t('phone')} value={profile.phoneNumber ?? t('notOnRecord')} />

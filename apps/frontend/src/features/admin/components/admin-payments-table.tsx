@@ -2,17 +2,36 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Heading } from '@/design-system/typography';
 import { useAdminPayments } from '@/features/admin/hooks/use-admin-payments';
 import { useAdminRefundPayment } from '@/features/admin/hooks/use-admin-refund-payment';
+import type { PaymentStatus } from '@/features/payment/api/types';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
-import { Badge } from '@/shared/ui/badge';
+import { Badge, badgeVariants } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Pagination } from '@/shared/ui/pagination';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
+import type { VariantProps } from 'class-variance-authority';
+
+type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>;
+
+// Same positive/neutral/negative badge convention as VerificationQueue /
+// VerificationCaseDetail's STATUS_BADGE_VARIANT: success = a settled good
+// outcome, danger = a terminal negative outcome, warning = still in
+// progress, neutral = a resolved-but-inactive state (money already
+// returned, no action pending).
+const STATUS_BADGE_VARIANT: Record<PaymentStatus, BadgeVariant> = {
+  succeeded: 'success',
+  settled: 'success',
+  refunded: 'neutral',
+  initiated: 'warning',
+  failed: 'danger',
+  disputed: 'danger',
+};
 
 const REFUNDABLE_STATUSES = new Set(['succeeded', 'settled']);
 const PAGE_SIZE = 20;
@@ -75,13 +94,13 @@ export function AdminPaymentsTable() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-base font-semibold text-text-primary">{t('transactionsTitle')}</h3>
+      <Heading as="h2" level={4}>{t('transactionsTitle')}</Heading>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>{t('columnPatient')}</TableHead>
             <TableHead>{t('columnDoctor')}</TableHead>
-            <TableHead>{t('columnAmount')}</TableHead>
+            <TableHead className="text-end">{t('columnAmount')}</TableHead>
             <TableHead>{t('columnStatus')}</TableHead>
             <TableHead>{t('columnDate')}</TableHead>
             <TableHead>{t('columnAction')}</TableHead>
@@ -94,11 +113,11 @@ export function AdminPaymentsTable() {
               <TableRow key={transaction.id}>
                 <TableCell>{transaction.patientName}</TableCell>
                 <TableCell>{transaction.doctorName}</TableCell>
-                <TableCell>
+                <TableCell className="text-end tabular-nums">
                   {transaction.amount.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {transaction.amount.currency}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={transaction.status === 'refunded' ? 'neutral' : refundable ? 'success' : 'warning'}>
+                  <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>
                     {t(`status.${transaction.status}`)}
                   </Badge>
                 </TableCell>

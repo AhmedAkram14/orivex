@@ -17,6 +17,7 @@ import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
 import { Pagination } from '@/shared/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 
 const badgeVariantByStatus: Record<AppointmentStatus, 'neutral' | 'primary' | 'success' | 'warning' | 'danger'> = {
   requested: 'warning',
@@ -248,90 +249,88 @@ export function PatientsList() {
         <EmptyState title={t('noResultsTitle')} description={t('noResultsDescription')} />
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-start">
-              <thead>
-                <tr className="border-b border-border-default text-xs text-text-tertiary">
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.name')}</th>
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.ageGender')}</th>
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.visitCount')}</th>
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.lastVisit')}</th>
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.nextAppointment')}</th>
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.patientStatus')}</th>
-                  <th className="px-4 py-3 text-start font-medium">{t('columns.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageItems.map((patient) => {
-                  const status = derivePatientStatus(patient, now);
-                  return (
-                    <tr key={patient.patientProfileId} className="border-b border-border-default last:border-0">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar size="sm">
-                            <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                              {patient.patientName}
-                              {patient.visitCount > 1 && (
-                                <Badge variant="primary" className="text-[10px]">
-                                  {t('returning')}
-                                </Badge>
-                              )}
-                            </span>
-                            <span className="text-xs text-text-tertiary">{patient.email}</span>
-                            {patient.phoneNumber && <span className="text-xs text-text-tertiary">{patient.phoneNumber}</span>}
-                          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>{t('columns.name')}</TableHead>
+                <TableHead>{t('columns.ageGender')}</TableHead>
+                <TableHead>{t('columns.visitCount')}</TableHead>
+                <TableHead>{t('columns.lastVisit')}</TableHead>
+                <TableHead>{t('columns.nextAppointment')}</TableHead>
+                <TableHead>{t('columns.patientStatus')}</TableHead>
+                <TableHead>{t('columns.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((patient) => {
+                const status = derivePatientStatus(patient, now);
+                return (
+                  <TableRow key={patient.patientProfileId}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar size="sm">
+                          <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                            {patient.patientName}
+                            {patient.visitCount > 1 && (
+                              <Badge variant="primary" className="text-[10px]">
+                                {t('returning')}
+                              </Badge>
+                            )}
+                          </span>
+                          <span className="text-xs text-text-tertiary">{patient.email}</span>
+                          {patient.phoneNumber && <span className="text-xs text-text-tertiary">{patient.phoneNumber}</span>}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">
-                        {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
-                        {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">{patient.visitCount}</td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">
-                        {format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })}
-                        <div>
-                          <Badge variant={badgeVariantByStatus[patient.lastVisitStatus]} className="mt-1">
-                            {tStatus(patient.lastVisitStatus)}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-text-secondary">
-                        {patient.nextAppointmentAt
-                          ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
-                          : t('noUpcoming')}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          {[
-                            { icon: Eye, label: t('actions.view') },
-                            { icon: FileText, label: t('actions.notes') },
-                            { icon: MessageSquare, label: t('actions.message') },
-                            { icon: MoreVertical, label: t('actions.more') },
-                          ].map(({ icon, label }) => (
-                            <span
-                              key={label}
-                              role="button"
-                              aria-disabled="true"
-                              title={t('actions.comingSoon')}
-                              className="flex size-7 cursor-not-allowed items-center justify-center rounded-md text-text-tertiary opacity-(--opacity-disabled)"
-                            >
-                              <Icon icon={icon} size="sm" label={label} />
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-text-secondary">
+                      {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
+                      {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
+                    </TableCell>
+                    <TableCell className="text-sm text-text-secondary">{patient.visitCount}</TableCell>
+                    <TableCell className="text-sm text-text-secondary">
+                      {format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })}
+                      <div>
+                        <Badge variant={badgeVariantByStatus[patient.lastVisitStatus]} className="mt-1">
+                          {tStatus(patient.lastVisitStatus)}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-text-secondary">
+                      {patient.nextAppointmentAt
+                        ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+                        : t('noUpcoming')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {[
+                          { icon: Eye, label: t('actions.view') },
+                          { icon: FileText, label: t('actions.notes') },
+                          { icon: MessageSquare, label: t('actions.message') },
+                          { icon: MoreVertical, label: t('actions.more') },
+                        ].map(({ icon, label }) => (
+                          <span
+                            key={label}
+                            role="button"
+                            aria-disabled="true"
+                            title={t('actions.comingSoon')}
+                            className="flex size-7 cursor-not-allowed items-center justify-center rounded-md text-text-tertiary opacity-(--opacity-disabled)"
+                          >
+                            <Icon icon={icon} size="sm" label={label} />
+                          </span>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
           <div className="flex flex-col gap-3 border-t border-border-default p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-text-tertiary">
               {t('showingRange', {

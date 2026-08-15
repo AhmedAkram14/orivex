@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
+import { Heading } from '@/design-system/typography';
 import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { PatientProfileForm } from '@/features/patient/components/profile/patient-profile-form';
@@ -65,7 +66,7 @@ export function PatientIntakeFlow() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 py-8">
       <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold text-text-primary">{t('title')}</h1>
+        <Heading as="h1" level={2}>{t('title')}</Heading>
         <p className="text-text-secondary">{t('description')}</p>
       </div>
 

@@ -183,14 +183,18 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
         ) : (
           <ul className="flex flex-col gap-3">
             {history.map((entry) => (
-              <li key={entry.id} className="flex flex-col gap-1 rounded-lg border border-border-default p-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant={STATUS_BADGE_VARIANT[entry.status]}>{t(`status.${entry.status}`)}</Badge>
-                  <span className="text-xs text-text-tertiary">
-                    {format.dateTime(new Date(entry.submittedAt), { dateStyle: 'medium', timeStyle: 'short' })}
-                  </span>
-                </div>
-                {entry.reason && <p className="text-sm text-text-secondary">{entry.reason}</p>}
+              <li key={entry.id}>
+                <Card>
+                  <CardContent className="flex flex-col gap-1 p-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={STATUS_BADGE_VARIANT[entry.status]}>{t(`status.${entry.status}`)}</Badge>
+                      <span className="text-xs text-text-tertiary">
+                        {format.dateTime(new Date(entry.submittedAt), { dateStyle: 'medium', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                    {entry.reason && <p className="text-sm text-text-secondary">{entry.reason}</p>}
+                  </CardContent>
+                </Card>
               </li>
             ))}
           </ul>

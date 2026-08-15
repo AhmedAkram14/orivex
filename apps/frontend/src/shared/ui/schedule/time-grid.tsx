@@ -9,6 +9,8 @@ export interface TimeGridSlot {
   status: TimeSlotStatus;
   /** Rendered directly on the cell (e.g. "FREE", "500 EGP") — pricing must never hide behind a hover-only affordance, so this is distinct from `detail`. */
   label?: string;
+  /** See `TimeSlotProps.priceVariant` — set only when `label` is a real consultation price. */
+  priceVariant?: 'free' | 'paid';
   /** Extra context shown on hover/focus (e.g. "Booked — reserved", "Inside a break") — omitted entirely when there's nothing more to say than the status itself already shows. */
   detail?: string;
   onSelect?: () => void;
@@ -31,7 +33,15 @@ export function TimeGrid({ slots, className }: TimeGridProps) {
   return (
     <div className={cn('grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4', className)}>
       {slots.map((slot) => {
-        const cell = <TimeSlot time={slot.timeLabel} status={slot.status} label={slot.label} onSelect={slot.onSelect} />;
+        const cell = (
+          <TimeSlot
+            time={slot.timeLabel}
+            status={slot.status}
+            label={slot.label}
+            priceVariant={slot.priceVariant}
+            onSelect={slot.onSelect}
+          />
+        );
 
         if (!slot.detail) return <div key={slot.id}>{cell}</div>;
 

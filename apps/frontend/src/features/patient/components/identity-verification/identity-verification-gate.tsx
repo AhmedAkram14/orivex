@@ -2,9 +2,9 @@
 
 import { ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
+import { EmptyState } from '@/shared/ui/empty-state';
 
 export type GatedAction = 'booking' | 'consultation' | 'documentUpload' | 'payment';
 
@@ -30,17 +30,16 @@ export function IdentityVerificationGate({ action, returnTo }: IdentityVerificat
   const href = returnTo ? `/patient/verify-identity?returnTo=${encodeURIComponent(returnTo)}` : '/patient/verify-identity';
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border border-border-default p-6 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
-        <Icon icon={ShieldCheck} size="lg" />
-      </div>
-      <div className="flex max-w-sm flex-col gap-1">
-        <p className="text-sm font-medium text-text-primary">{t(`title.${action}`)}</p>
-        <p className="text-sm text-text-secondary">{t(`description.${action}`)}</p>
-      </div>
-      <Button asChild>
-        <Link href={href}>{t('startVerification')}</Link>
-      </Button>
-    </div>
+    <EmptyState
+      className="rounded-lg border border-border-default p-6"
+      icon={ShieldCheck}
+      title={t(`title.${action}`)}
+      description={t(`description.${action}`)}
+      action={
+        <Button asChild>
+          <Link href={href}>{t('startVerification')}</Link>
+        </Button>
+      }
+    />
   );
 }

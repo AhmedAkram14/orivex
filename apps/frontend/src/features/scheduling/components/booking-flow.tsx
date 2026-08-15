@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { Heading } from '@/design-system/typography';
 import { IdentityVerificationGate } from '@/features/patient/components/identity-verification/identity-verification-gate';
 import { PayNowForm } from '@/features/payment/components/pay-now-form';
 import { SHARED_ERROR_CODES } from '@/shared/lib/api/error-codes';
@@ -129,7 +130,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   if (step === 'payment' && bookedAppointment && bookedAppointment.feeAmount !== null && bookedAppointment.feeCurrency !== null) {
     return (
       <div className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold text-text-primary">{t('paymentStepTitle')}</h2>
+        <Heading as="h2" level={4}>{t('paymentStepTitle')}</Heading>
         <p className="text-sm text-text-secondary">{t('paymentStepDescription')}</p>
         <PayNowForm
           appointmentId={bookedAppointment.id}
@@ -164,6 +165,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
           consultationTypeLabel={t(`consultationType.${selectedWindow.consultationType}`)}
           totalCaption={t('total')}
           priceLabel={priceLabel}
+          isFree={selectedWindow.consultationType === 'free'}
           actions={
             isConflictError ? (
               <Button
@@ -196,6 +198,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     timeLabel: format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' }),
     status: 'available',
     label: formatConsultationPrice(window, locale, t('priceFree')),
+    priceVariant: window.consultationType === 'free' ? 'free' : 'paid',
     onSelect: () => {
       setSelectedWindow(window);
       setStep('summary');

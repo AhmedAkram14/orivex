@@ -6,21 +6,14 @@ import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
-import type { QueueStatusValue } from '@/shared/ui/queue/queue-status';
+import { QueueStatus, type QueueStatusValue } from '@/shared/ui/queue/queue-status';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
 const MAX_ENTRIES = 4;
-
-const badgeVariantByQueueStatus: Record<QueueStatusValue, 'warning' | 'info' | 'success'> = {
-  waiting: 'warning',
-  'in-consultation': 'info',
-  completed: 'success',
-};
 
 function initialsFor(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -77,9 +70,7 @@ export function PatientQueueMini() {
                   </span>
                 )}
               </div>
-              <Badge variant={badgeVariantByQueueStatus[entry.status as QueueStatusValue]}>
-                {tStatus(entry.status as QueueStatusValue)}
-              </Badge>
+              <QueueStatus status={entry.status as QueueStatusValue} label={tStatus(entry.status as QueueStatusValue)} />
               <button
                 type="button"
                 aria-label={t('patientQueueMini.moreOptions')}

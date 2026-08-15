@@ -4,7 +4,7 @@ import { Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react'
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
-import { Text } from '@/design-system/typography';
+import { Display, Text } from '@/design-system/typography';
 import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
@@ -48,11 +48,17 @@ export function HeroSection() {
             </Text>
           </div>
 
-          <h1 className="text-balance text-5xl font-bold tracking-tight text-text-primary sm:text-6xl lg:text-6xl">
+          {/* Hero-scale headline via the Display primitive, capped at the
+              design system's documented text-5xl token (the largest size
+              typography.css actually defines) rather than reaching for
+              Tailwind's un-tokenized text-6xl -- this is the one place on
+              the page large-scale type is appropriate, so it's the one
+              place Display (not Heading) is used. */}
+          <Display as="h1" className="text-balance text-4xl text-text-primary sm:text-5xl">
             {t('headlineLine1')}
             <br />
             <span className="text-primary">{t('headlineLine2')}</span>
-          </h1>
+          </Display>
 
           <Text size="lg" tone="secondary" className="max-w-md text-balance">
             {t('subheadline')}
@@ -107,7 +113,7 @@ export function HeroSection() {
             className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"
             aria-hidden="true"
           />
-          <div className="relative w-full overflow-hidden rounded-[20px] border-2 border-white shadow-xl">
+          <div className="relative w-full overflow-hidden rounded-2xl border-2 border-white shadow-xl">
             <Image
               src="/hero-1.png"
               alt={t('imageAlt')}
@@ -118,6 +124,11 @@ export function HeroSection() {
               className="h-auto w-full"
             />
           </div>
+          {/* w-[32%] is deliberate, not a token gap: this floating card must
+              stay a fixed proportion of the main panel it overlaps
+              (hero-1.png) so the overlap composition holds at every
+              breakpoint -- no fixed-width or scale token expresses "32% of
+              my sibling's rendered width". */}
           <div className="absolute -bottom-10 -end-6 w-[32%] drop-shadow-xl">
             <Image src="/hero-2.png" alt={t('cardAlt')} width={1124} height={1133} className="h-auto w-full" />
           </div>

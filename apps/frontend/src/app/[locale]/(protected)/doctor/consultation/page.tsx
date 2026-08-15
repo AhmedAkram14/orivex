@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { Heading } from '@/design-system/typography';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
@@ -92,7 +93,7 @@ export default function DoctorConsultationPage() {
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
                   <Icon icon={User} size="md" />
                 </span>
-                <h2 className="text-lg font-semibold text-text-primary">{t('patientPanelTitle')}</h2>
+                <Heading as="h2" level={4}>{t('patientPanelTitle')}</Heading>
               </div>
               <p className="text-sm text-text-secondary">{t('patientPanelDescription')}</p>
 
@@ -122,7 +123,7 @@ export default function DoctorConsultationPage() {
                   <Icon icon={activeSection.icon} size="md" />
                 </span>
                 <div>
-                  <h2 className="text-lg font-semibold text-text-primary">{t('sections.overview')}</h2>
+                  <Heading as="h2" level={4}>{t('sections.overview')}</Heading>
                   <p className="text-sm text-text-secondary">{t('overviewDescription')}</p>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { StatusBadge, type ScheduleStatusTone } from '@/shared/ui/schedule/status-badge';
+import { cn } from '@/shared/lib/cn';
 
 export type BookingSummaryStatus = Extract<ScheduleStatusTone, 'pending' | 'confirmed' | 'cancelled'>;
 
@@ -19,6 +20,8 @@ export interface BookingSummaryCardProps {
   totalCaption?: ReactNode;
   /** Consultation Pricing Redesign: the real backend-supplied price for this booking, pre-formatted (e.g. "FREE" or "500 EGP") — never computed here. */
   priceLabel?: ReactNode;
+  /** Set only when `priceLabel` represents a Free consultation — renders the total row with a success accent instead of the neutral paid styling, so FREE vs paid never rely on the price text alone to read as different. */
+  isFree?: boolean;
   actions?: ReactNode;
 }
 
@@ -40,6 +43,7 @@ export function BookingSummaryCard({
   consultationTypeLabel,
   totalCaption,
   priceLabel,
+  isFree,
   actions,
 }: BookingSummaryCardProps) {
   return (
@@ -65,9 +69,14 @@ export function BookingSummaryCard({
             </div>
           )}
           {priceLabel && (
-            <div className="flex items-center justify-between border-t border-border-default pt-2">
-              <dt className="font-medium text-text-primary">{totalCaption}</dt>
-              <dd className="font-semibold text-text-primary">{priceLabel}</dd>
+            <div
+              className={cn(
+                'flex items-center justify-between rounded-lg border-t border-border-default pt-3',
+                isFree && 'mt-1 border-t-0 border-none bg-success-subtle px-3 py-2',
+              )}
+            >
+              <dt className={cn('font-medium text-text-primary', isFree && 'text-success')}>{totalCaption}</dt>
+              <dd className={cn('text-lg font-bold', isFree ? 'text-success' : 'text-text-primary')}>{priceLabel}</dd>
             </div>
           )}
         </dl>

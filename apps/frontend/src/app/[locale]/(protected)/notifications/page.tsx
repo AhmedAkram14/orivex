@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { NotificationCenterList } from '@/features/notifications/components/notification-center-list';
+import { Heading } from '@/design-system/typography';
 import { Container } from '@/shared/ui/container';
 import { buildPageMetadata } from '@/shared/lib/seo';
 import type { AppLocale } from '@/shared/i18n/routing';
@@ -28,7 +29,7 @@ export default async function NotificationsPage() {
   return (
     <Container className="flex flex-col gap-6 py-8">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-text-primary">{t('title')}</h1>
+        <Heading as="h1" level={2}>{t('title')}</Heading>
         <p className="text-text-secondary">{t('description')}</p>
       </div>
 
