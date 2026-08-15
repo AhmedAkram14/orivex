@@ -8,7 +8,11 @@ import { AppointmentList } from './appointment-list';
 function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: '11111111-1111-4111-8111-111111111111',
-    scheduledAt: '2026-08-01T10:00:00.000Z',
+    // Always in the future relative to whenever the test runs -- a fixed
+    // past date would (correctly) be excluded by the real "is this
+    // appointment still upcoming" date check, exactly the bug this app
+    // used to have.
+    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     doctorId: 'doctor-profile-1',
     doctorName: 'Dr. Karim Adel',
     specialization: 'Cardiology',

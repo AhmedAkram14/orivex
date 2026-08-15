@@ -7,6 +7,7 @@ import { PayNowAction } from '@/features/payment/components/pay-now-action';
 import { CancelAction } from '@/features/patient/components/appointments/cancel-action';
 import { RescheduleAction } from '@/features/patient/components/appointments/reschedule-action';
 import type { Appointment } from '@/features/patient/api/types';
+import { isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
@@ -20,7 +21,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
  * already superseded, so no Reschedule action is ever offered for one.
  */
 function canReschedule(appointment: Appointment): boolean {
-  return appointment.status === 'requested' || appointment.status === 'confirmed';
+  return (appointment.status === 'requested' || appointment.status === 'confirmed') && isAppointmentStillUpcoming(appointment.scheduledAt);
 }
 
 /**
@@ -79,7 +80,9 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
           // can't exist at this point.
           appointment.paymentRequired && appointment.feeAmount ? (
             <PayNowAction appointmentId={appointment.id} amount={appointment.feeAmount} />
-          ) : appointment.status === 'confirmed' && appointment.consultationSessionId ? (
+          ) : appointment.status === 'confirmed' &&
+            appointment.consultationSessionId &&
+            isAppointmentStillUpcoming(appointment.scheduledAt) ? (
             <JoinCallAction consultationSessionId={appointment.consultationSessionId} />
           ) : appointment.status === 'completed' && appointment.consultationSessionId ? (
             <ConsultationOutcomeAction

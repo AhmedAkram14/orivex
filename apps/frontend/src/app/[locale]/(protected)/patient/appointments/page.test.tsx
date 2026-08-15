@@ -91,7 +91,10 @@ describe('PatientAppointmentsPage', () => {
   // real slot-picker flow for the same doctor.
   it('opens the real reschedule flow from a Requested appointment on the Upcoming tab', async () => {
     addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
-    bookAppointment({ doctorId: DOCTOR_ID, availabilityWindowId: `${DOCTOR_ID}::2026-01-05T10:00:00.000Z` });
+    // A future date, not a fixed one -- a fixed past date would (correctly)
+    // be excluded by the real "is this appointment still upcoming" check.
+    const futureWindowStart = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    bookAppointment({ doctorId: DOCTOR_ID, availabilityWindowId: `${DOCTOR_ID}::${futureWindowStart}` });
     renderPage();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Reschedule' }));

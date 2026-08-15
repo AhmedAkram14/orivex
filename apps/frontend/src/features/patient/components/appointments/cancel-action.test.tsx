@@ -13,9 +13,10 @@ import { CancelAction } from './cancel-action';
 
 const DOCTOR_ID = 'doctor-profile-1';
 
-/** Seeds a real, cancel-eligible (Requested) appointment via the same mock booking path `RescheduleAction`'s own tests use -- never a fabricated Appointment literal. */
+/** Seeds a real, cancel-eligible (Requested) appointment via the same mock booking path `RescheduleAction`'s own tests use -- never a fabricated Appointment literal. A future date, not a fixed one -- a fixed past date would (correctly) be excluded by the real "is this appointment still upcoming" date check. */
 function seedCancellableAppointment() {
-  return bookAppointment({ doctorId: DOCTOR_ID, availabilityWindowId: `${DOCTOR_ID}::2026-01-05T10:00:00.000Z` });
+  const futureWindowStart = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  return bookAppointment({ doctorId: DOCTOR_ID, availabilityWindowId: `${DOCTOR_ID}::${futureWindowStart}` });
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));

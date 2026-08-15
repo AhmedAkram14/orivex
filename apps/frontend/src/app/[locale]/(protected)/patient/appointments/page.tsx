@@ -7,6 +7,8 @@ import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { AppointmentList } from '@/features/patient/components/appointments/appointment-list';
 import { AppointmentsCalendar } from '@/features/patient/components/appointments/appointments-calendar';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
+import { isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
@@ -41,12 +43,17 @@ export default function PatientAppointmentsPage() {
   const searchParams = useSearchParams();
   const autoOpenConsultationSessionId = searchParams.get('consultationSessionId') ?? undefined;
 
-  const upcoming = useMemo(
-    () => (appointments ?? []).filter((a) => UPCOMING_STATUSES.includes(a.status)),
-    [appointments],
-  );
+  const upcoming = useMemo(() => {
+    const cairoNow = getCairoNow();
+    return (appointments ?? []).filter(
+      (a) => UPCOMING_STATUSES.includes(a.status) && isAppointmentStillUpcoming(a.scheduledAt, cairoNow),
+    );
+  }, [appointments]);
   const history = useMemo(() => {
-    const past = (appointments ?? []).filter((a) => !UPCOMING_STATUSES.includes(a.status));
+    const cairoNow = getCairoNow();
+    const past = (appointments ?? []).filter(
+      (a) => !UPCOMING_STATUSES.includes(a.status) || !isAppointmentStillUpcoming(a.scheduledAt, cairoNow),
+    );
     return historyFilter === 'all' ? past : past.filter((a) => a.status === historyFilter);
   }, [appointments, historyFilter]);
 
