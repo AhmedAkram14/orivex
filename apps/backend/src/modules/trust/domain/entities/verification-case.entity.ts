@@ -6,6 +6,7 @@ import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-
 import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
 import { VerificationCaseDecidedEvent } from '../events/verification-case-decided.event.js';
 import { VerificationCaseSubmittedEvent } from '../events/verification-case-submitted.event.js';
+import { VerificationCaseSuspendedEvent } from '../events/verification-case-suspended.event.js';
 import { VerificationStatus } from '../enums/verification-status.enum.js';
 import type { VerificationSubjectType } from '../enums/verification-subject-type.enum.js';
 import type { VerificationSubjectDetails } from '../value-objects/verification-subject-details.js';
@@ -143,6 +144,8 @@ export class VerificationCase {
     }
     this.status = VerificationStatus.Suspended;
     this.reason = reason;
+
+    this.record(new VerificationCaseSuspendedEvent(this.id, this.subjectAccountId, this.getSubjectType(), reason));
   }
 
   getId(): string {

@@ -1,10 +1,12 @@
 'use client';
 
+import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-mark-all-notifications-read';
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
-import type { NotificationEntry } from '@/features/notifications/api/types';
+import type { NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
+import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -19,11 +21,34 @@ const notificationRowClassName = cn(
   'disabled:cursor-default disabled:hover:bg-transparent',
 );
 
-function NotificationRowContent({ notification }: { notification: NotificationEntry }) {
+// Same icon + color tokens as `Alert`'s info/success/warning/danger variants
+// (shared/ui/alert.tsx) -- reused here rather than invented, so a
+// notification's severity reads the same way anywhere else severity already
+// appears in this app.
+const severityIcon = {
+  info: Info,
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  danger: XCircle,
+} as const;
+
+const severityIconClassName: Record<NotificationSeverity, string> = {
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-danger',
+};
+
+export function NotificationRowContent({ notification }: { notification: NotificationEntry }) {
   const format = useFormatter();
   return (
     <>
       <div className="flex items-center gap-2">
+        <Icon
+          icon={severityIcon[notification.severity]}
+          size="sm"
+          className={cn('shrink-0', severityIconClassName[notification.severity])}
+        />
         {!notification.read && <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />}
         <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
           {notification.title}
@@ -38,30 +63,37 @@ function NotificationRowContent({ notification }: { notification: NotificationEn
 /**
  * A notification with an `actionUrl` (e.g. "your verification was
  * rejected" -> the onboarding wizard, "new application submitted" -> the
- * admin's case detail page) navigates there on click and closes the
- * popover -- marking as read is fire-and-forget alongside the navigation,
- * never blocking it. One with no `actionUrl` (nothing relevant to jump to)
- * keeps the old mark-as-read-only behavior.
+ * admin's case detail page) navigates there on click -- marking as read is
+ * fire-and-forget alongside the navigation, never blocking it. One with no
+ * `actionUrl` (nothing relevant to jump to) keeps the old mark-as-read-only
+ * behavior. Shared between the bell's popover and the full Notification
+ * Center page (`/notifications`) -- `closeOnNavigate` only applies inside
+ * the popover, where a link click should also dismiss it; the standalone
+ * page has no popover to close.
  */
-function NotificationRow({ notification }: { notification: NotificationEntry }) {
+export function NotificationRow({
+  notification,
+  closeOnNavigate = false,
+}: {
+  notification: NotificationEntry;
+  closeOnNavigate?: boolean;
+}) {
   const markAsRead = useMarkNotificationRead();
 
   if (notification.actionUrl) {
-    return (
-      <li>
-        <PopoverClose asChild>
-          <Link
-            href={notification.actionUrl}
-            onClick={() => {
-              if (!notification.read) markAsRead.mutate(notification.id);
-            }}
-            className={notificationRowClassName}
-          >
-            <NotificationRowContent notification={notification} />
-          </Link>
-        </PopoverClose>
-      </li>
+    const link = (
+      <Link
+        href={notification.actionUrl}
+        onClick={() => {
+          if (!notification.read) markAsRead.mutate(notification.id);
+        }}
+        className={notificationRowClassName}
+      >
+        <NotificationRowContent notification={notification} />
+      </Link>
     );
+
+    return <li>{closeOnNavigate ? <PopoverClose asChild>{link}</PopoverClose> : link}</li>;
   }
 
   return (
@@ -78,7 +110,7 @@ function NotificationRow({ notification }: { notification: NotificationEntry }) 
   );
 }
 
-/** The notification list inside `NotificationBell`'s popover — loading skeleton, empty state, and the real list, each notification markable as read individually or all at once. Backed by MSW's mock `/notifications/*` today (Phase 14 is 🔒 Blocked on a real Notification module); the UI itself is real and working. */
+/** The notification list inside `NotificationBell`'s popover — loading skeleton, empty state, and the real list, each notification markable as read individually or all at once. Backed by the real NotificationModule (`GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`). */
 export function NotificationPanel() {
   const t = useTranslations('shell.notifications');
   const { data: notifications, isLoading, isError } = useNotifications();
@@ -118,10 +150,19 @@ export function NotificationPanel() {
       {!isLoading && !isError && notifications && notifications.length > 0 && (
         <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto">
           {notifications.map((notification) => (
-            <NotificationRow key={notification.id} notification={notification} />
+            <NotificationRow key={notification.id} notification={notification} closeOnNavigate />
           ))}
         </ul>
       )}
+
+      <PopoverClose asChild>
+        <Link
+          href="/notifications"
+          className="rounded-md text-center text-sm font-medium text-primary transition-colors duration-(--duration-fast) hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+        >
+          {t('viewAll')}
+        </Link>
+      </PopoverClose>
     </div>
   );
 }

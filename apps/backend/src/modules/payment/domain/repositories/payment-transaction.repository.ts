@@ -14,11 +14,16 @@ export interface PaymentTransactionRepository {
   // (InitiateChargeUseCase's idempotency key is scoped per charge attempt,
   // but a session is only ever charged once in the current flow).
   findByConsultationSessionId(consultationSessionId: string): Promise<PaymentTransaction | null>;
-  // Backs the doctor-initiated-cancellation auto-refund handler -- looks up
+  // Backs the appointment-cancellation auto-refund handler -- looks up
   // a transaction by appointmentId directly, since that's the real join key
   // from the moment a charge is initiated (pay-then-confirm; see
   // InitiateTransactionProps), independent of whether a ConsultationSession
   // ever existed for this appointment.
   findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null>;
   save(transaction: PaymentTransaction): Promise<void>;
+  // Backs the SuperAdmin-facing "list payment transactions" read (ORIVEX
+  // Roadmap Phase 3, Critical Lifecycle Gaps, Step 4) -- newest first, same
+  // page/offset + total-count shape as AccountRepository.findAll (Stage 4's
+  // established admin-list pagination contract).
+  findAll(options: { limit: number; offset: number }): Promise<{ transactions: PaymentTransaction[]; total: number }>;
 }

@@ -59,7 +59,7 @@ Identity:
 First-party (AuthenticationModule — JWT + argon2, no external IdP; see docs/14-adrs.md ADR-005, Sprint 15)
 
 Search:
-PostgreSQL Full Text
+Real, role-scoped global search over Doctors/Patients/Appointments (SearchModule, `GET /search`; PostgreSQL `contains`/insensitive matching, not full-text search)
 
 Realtime:
 LiveKit

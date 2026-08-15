@@ -156,8 +156,9 @@ describe('Trust controllers (integration)', () => {
         },
         {
           provide: SuspendVerificationCaseUseCase,
-          useFactory: (repo: VerificationCaseRepository) => new SuspendVerificationCaseUseCase(repo),
-          inject: [VERIFICATION_CASE_REPOSITORY],
+          useFactory: (repo: VerificationCaseRepository, dispatcher: NoopDomainEventDispatcher) =>
+            new SuspendVerificationCaseUseCase(repo, dispatcher),
+          inject: [VERIFICATION_CASE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
         },
       ],
     }).compile();

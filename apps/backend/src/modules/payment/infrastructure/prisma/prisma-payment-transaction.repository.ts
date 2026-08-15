@@ -50,6 +50,20 @@ export class PrismaPaymentTransactionRepository implements PaymentTransactionRep
     return row ? toDomainPaymentTransaction(row) : null;
   }
 
+  // Newest first -- mirrors PrismaAccountRepository.findAll's ordering for
+  // the same admin-list use case shape.
+  async findAll(options: { limit: number; offset: number }): Promise<{ transactions: PaymentTransaction[]; total: number }> {
+    const [rows, total] = await Promise.all([
+      this.prisma.paymentTransaction.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: options.offset,
+        take: options.limit,
+      }),
+      this.prisma.paymentTransaction.count(),
+    ]);
+    return { transactions: rows.map((row) => toDomainPaymentTransaction(row)), total };
+  }
+
   async save(transaction: PaymentTransaction): Promise<void> {
     const data = {
       idempotencyKey: transaction.getIdempotencyKey(),

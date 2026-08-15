@@ -87,7 +87,7 @@ function resolveUrl(path: string): string {
   return path;
 }
 
-export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiRequestOptions): Promise<T> {
+async function performRequest({ method = 'GET', body, path, signal }: ApiRequestOptions): Promise<unknown> {
   const response = await fetch(resolveUrl(path), {
     method,
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
@@ -117,6 +117,12 @@ export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiReq
     });
   }
 
+  return json;
+}
+
+export async function apiFetch<T>(options: ApiRequestOptions): Promise<T> {
+  const json = await performRequest(options);
+
   // Envelope-wrapped ({ data, meta }) if a top-level "data" property is
   // present; otherwise the parsed JSON is the payload itself (e.g.
   // HealthController's plain, unwrapped responses).
@@ -124,4 +130,40 @@ export async function apiFetch<T>({ method = 'GET', body, path, signal }: ApiReq
     return (json as { data: T }).data;
   }
   return json as T;
+}
+
+/**
+ * Optional, additive pagination metadata a list endpoint's envelope may
+ * carry alongside `{ requestId, timestamp }` -- mirrors the backend's own
+ * `PaginationMeta` (shared/http/response-envelope.ts). Only populated when
+ * the endpoint was called with page/limit query params.
+ */
+export interface ApiResponseMetaWithPagination extends ApiResponseMeta {
+  page?: number;
+  limit?: number;
+  total?: number;
+}
+
+/**
+ * Same request/error handling as `apiFetch`, but for the rarer case where a
+ * caller needs the envelope's `meta` too (e.g. `total` for real pagination
+ * controls) instead of just the unwrapped `data`. Most list endpoints bundle
+ * their own pagination fields directly into `data` (see admin's
+ * `ListAdminPaymentTransactionsResult`) and never need this -- this exists
+ * for the endpoints (e.g. NotificationController) that instead put
+ * page/limit/total on the envelope's `meta`, which plain `apiFetch` discards.
+ */
+export async function apiFetchWithMeta<T>(
+  options: ApiRequestOptions,
+): Promise<{ data: T; meta: ApiResponseMetaWithPagination }> {
+  const json = await performRequest(options);
+
+  if (json !== null && typeof json === 'object' && 'data' in json) {
+    const envelope = json as { data: T; meta?: ApiResponseMetaWithPagination };
+    return {
+      data: envelope.data,
+      meta: envelope.meta ?? { requestId: 'unknown', timestamp: new Date().toISOString() },
+    };
+  }
+  return { data: json as T, meta: { requestId: 'unknown', timestamp: new Date().toISOString() } };
 }

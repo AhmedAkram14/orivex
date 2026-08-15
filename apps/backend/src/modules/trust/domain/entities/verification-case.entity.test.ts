@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { DoctorVerifiedEvent } from '../events/doctor-verified.event.js';
 import { VerificationCaseDecidedEvent } from '../events/verification-case-decided.event.js';
 import { VerificationCaseSubmittedEvent } from '../events/verification-case-submitted.event.js';
+import { VerificationCaseSuspendedEvent } from '../events/verification-case-suspended.event.js';
 import { VerificationCaseAlreadyDecidedError } from '../exceptions/verification-case-already-decided.error.js';
 import { VerificationCaseNotApprovedError } from '../exceptions/verification-case-not-approved.error.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
@@ -162,6 +163,33 @@ describe('VerificationCase', () => {
 
     assert.equal(verificationCase.getStatus(), VerificationStatus.Suspended);
     assert.equal(verificationCase.getReason(), 'License expired');
+  });
+
+  it('suspend() raises VerificationCaseSuspendedEvent carrying the case id, subjectAccountId, subjectType, and reason', () => {
+    const verificationCase = buildDoctorCase();
+    verificationCase.decide(VerificationStatus.Approved);
+    verificationCase.releaseDomainEvents(); // clears the submission/decision events -- suspend() is a separate transaction in real usage
+
+    verificationCase.suspend('License expired');
+
+    const events = verificationCase.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof VerificationCaseSuspendedEvent);
+    const event = events[0] as VerificationCaseSuspendedEvent;
+    assert.equal(event.verificationCaseId, verificationCase.getId());
+    assert.equal(event.subjectAccountId, SUBJECT_ACCOUNT_ID);
+    assert.equal(event.subjectType, VerificationSubjectType.Doctor);
+    assert.equal(event.reason, 'License expired');
+  });
+
+  it('a second suspend() attempt on an already-Suspended case throws VerificationCaseNotApprovedError and raises no further event (idempotency guard preserved)', () => {
+    const verificationCase = buildDoctorCase();
+    verificationCase.decide(VerificationStatus.Approved);
+    verificationCase.suspend('License expired');
+    verificationCase.releaseDomainEvents();
+
+    assert.throws(() => verificationCase.suspend('License expired again'), VerificationCaseNotApprovedError);
+    assert.equal(verificationCase.releaseDomainEvents().length, 0);
   });
 
   it('suspend() throws VerificationCaseNotApprovedError when the case was never Approved', () => {

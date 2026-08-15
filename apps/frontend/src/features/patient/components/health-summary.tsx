@@ -49,7 +49,7 @@ function SummaryTile({ icon, iconClassName, label, value, loading, href, viewLab
   );
 }
 
-/** The Patient Portal's "Health Summary" — real counts from the mocked `/patient/dashboard-summary` endpoint (honestly zero today, since no Scheduling/Clinical module exists yet), never fabricated numbers. */
+/** The Patient Portal's "Health Summary" — real counts from the real `/patients/me/dashboard-summary` endpoint, never fabricated numbers. */
 export function HealthSummary({ layout = 'row', className }: HealthSummaryProps) {
   const t = useTranslations('patient.dashboard');
   const format = useFormatter();

@@ -1,6 +1,7 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { ADMIN_PATHS } from '@/features/admin/api/paths';
 import type { Role } from '@/shared/auth/types';
+import type { PaymentTransaction } from '@/features/payment/api/types';
 import type {
   AdminAccount,
   CreateDepartmentRequest,
@@ -10,6 +11,8 @@ import type {
   Hospital,
   ListAccountsParams,
   ListAccountsResult,
+  ListAdminPaymentTransactionsParams,
+  ListAdminPaymentTransactionsResult,
   PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
@@ -33,6 +36,14 @@ function buildAccountsQuery(params: ListAccountsParams): string {
   if (params.role) query.set('role', params.role);
   const qs = query.toString();
   return qs ? `${ADMIN_PATHS.accounts}?${qs}` : ADMIN_PATHS.accounts;
+}
+
+function buildPaymentsQuery(params: ListAdminPaymentTransactionsParams): string {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return qs ? `${ADMIN_PATHS.payments}?${qs}` : ADMIN_PATHS.payments;
 }
 
 /**
@@ -77,4 +88,17 @@ export const adminApi = {
     apiFetch<VerificationCase>({ method: 'PATCH', path: ADMIN_PATHS.suspendVerificationCase(id), body: request }),
 
   getFeatureFlags: () => apiFetch<FeatureFlags>({ path: ADMIN_PATHS.featureFlags }),
+
+  // ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4: SuperAdmin's
+  // payment transaction list/refund, extending the previously
+  // read-only-analytics admin payment surface. `refundPayment` calls the
+  // same real RefundPaymentUseCase the doctor-facing `paymentApi.refund`
+  // does, just through the SuperAdmin-gated route -- the response shape is
+  // the full `PaymentTransaction` (not the admin list row), matching
+  // AdminPaymentTransactionResponseDto's backend sibling exactly.
+  listPayments: (params: ListAdminPaymentTransactionsParams = {}) =>
+    apiFetch<ListAdminPaymentTransactionsResult>({ path: buildPaymentsQuery(params) }),
+
+  refundPayment: (id: string) =>
+    apiFetch<PaymentTransaction>({ method: 'POST', path: ADMIN_PATHS.refundPayment(id) }),
 };

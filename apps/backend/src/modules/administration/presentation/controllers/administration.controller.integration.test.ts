@@ -16,6 +16,7 @@ import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js'
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { ACCOUNT_REPOSITORY } from '../../../identity/application/ports/tokens.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { ListAccountsUseCase } from '../../../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 import { UpdateAccountRoleUseCase } from '../../../identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { Account } from '../../../identity/domain/entities/account.entity.js';
@@ -23,6 +24,22 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import type { AccountRepository, ListAccountsOptions } from '../../../identity/domain/repositories/account.repository.js';
 import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
+import { DOCTOR_PROFILE_REPOSITORY } from '../../../doctor/application/ports/tokens.js';
+import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
+import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { PATIENT_PROFILE_REPOSITORY } from '../../../patient/application/ports/tokens.js';
+import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
+import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
+import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
+import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from '../../../payment/application/ports/tokens.js';
+import type { PaymentGatewayPort, RefundPaymentRequest, RefundPaymentResult } from '../../../payment/application/ports/payment-gateway.port.js';
+import { ListPaymentTransactionsUseCase } from '../../../payment/application/use-cases/list-payment-transactions/list-payment-transactions.use-case.js';
+import { RefundPaymentUseCase } from '../../../payment/application/use-cases/refund-payment/refund-payment.use-case.js';
+import { PaymentTransaction } from '../../../payment/domain/entities/payment-transaction.entity.js';
+import { PaymentMethod } from '../../../payment/domain/enums/payment-method.enum.js';
+import type { PaymentTransactionRepository } from '../../../payment/domain/repositories/payment-transaction.repository.js';
+import { Money } from '../../../payment/domain/value-objects/money.value-object.js';
 import { DecideVerificationUseCase } from '../../../trust/application/use-cases/decide-verification/decide-verification.use-case.js';
 import { GetVerificationCaseByIdUseCase } from '../../../trust/application/use-cases/get-verification-case-by-id/get-verification-case-by-id.use-case.js';
 import { ListPendingVerificationCasesUseCase } from '../../../trust/application/use-cases/list-pending-verification-cases/list-pending-verification-cases.use-case.js';
@@ -45,6 +62,7 @@ import { GetVerificationHistoryUseCase } from '../../application/use-cases/get-v
 import { GetVerificationReviewQueueUseCase } from '../../application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsUseCase } from '../../application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from '../../application/use-cases/list-hospitals/list-hospitals.use-case.js';
+import { ListPaymentTransactionsForAdminUseCase } from '../../application/use-cases/list-payment-transactions-for-admin/list-payment-transactions-for-admin.use-case.js';
 import { ReviewVerificationCaseUseCase } from '../../application/use-cases/review-verification-case/review-verification-case.use-case.js';
 import { Department } from '../../domain/entities/department.entity.js';
 import { Hospital } from '../../domain/entities/hospital.entity.js';
@@ -156,6 +174,82 @@ class InMemoryVerificationCaseRepository implements VerificationCaseRepository {
   }
 }
 
+class InMemoryPatientProfileRepository implements PatientProfileRepository {
+  private readonly byId = new Map<string, PatientProfile>();
+
+  async findById(id: string): Promise<PatientProfile | null> {
+    return this.byId.get(id) ?? null;
+  }
+  async findByAccountId(accountId: string): Promise<PatientProfile | null> {
+    for (const profile of this.byId.values()) {
+      if (profile.getAccountId() === accountId) return profile;
+    }
+    return null;
+  }
+  async save(profile: PatientProfile): Promise<void> {
+    this.byId.set(profile.getId(), profile);
+  }
+}
+
+class InMemoryDoctorProfileRepository implements DoctorProfileRepository {
+  private readonly byId = new Map<string, DoctorProfile>();
+
+  async findById(id: string): Promise<DoctorProfile | null> {
+    return this.byId.get(id) ?? null;
+  }
+  async findByAccountId(accountId: string): Promise<DoctorProfile | null> {
+    for (const profile of this.byId.values()) {
+      if (profile.getAccountId() === accountId) return profile;
+    }
+    return null;
+  }
+  async save(profile: DoctorProfile): Promise<void> {
+    this.byId.set(profile.getId(), profile);
+  }
+}
+
+class InMemoryPaymentTransactionRepository implements PaymentTransactionRepository {
+  private readonly byId = new Map<string, PaymentTransaction>();
+
+  async findById(id: string): Promise<PaymentTransaction | null> {
+    return this.byId.get(id) ?? null;
+  }
+  async findByIdempotencyKey(): Promise<PaymentTransaction | null> {
+    return null;
+  }
+  async findByExternalReference(): Promise<PaymentTransaction | null> {
+    return null;
+  }
+  async findByConsultationSessionId(): Promise<PaymentTransaction | null> {
+    return null;
+  }
+  async findByAppointmentId(): Promise<PaymentTransaction | null> {
+    return null;
+  }
+  async findAll(options: { limit: number; offset: number }): Promise<{ transactions: PaymentTransaction[]; total: number }> {
+    const all = [...this.byId.values()].sort((a, b) => b.getCreatedAt().getTime() - a.getCreatedAt().getTime());
+    return { transactions: all.slice(options.offset, options.offset + options.limit), total: all.length };
+  }
+  async save(transaction: PaymentTransaction): Promise<void> {
+    this.byId.set(transaction.getId(), transaction);
+  }
+
+  seed(transaction: PaymentTransaction): void {
+    this.byId.set(transaction.getId(), transaction);
+  }
+}
+
+class FakePaymentGateway implements PaymentGatewayPort {
+  public refundCallCount = 0;
+  async authorize(): Promise<never> {
+    throw new Error('not used in this test');
+  }
+  async refund(_request: RefundPaymentRequest): Promise<RefundPaymentResult> {
+    this.refundCallCount += 1;
+    return { succeeded: true };
+  }
+}
+
 class InMemorySecurityEventRepository implements SecurityEventRepository {
   async record(): Promise<void> {}
   async findByAccountId(): Promise<SecurityEvent[]> {
@@ -183,6 +277,26 @@ class FakeConfigService {
   }
 }
 
+function buildSucceededTransaction(props: {
+  appointmentId: string;
+  patientId: string;
+  doctorId: string;
+  externalReference?: string;
+}): PaymentTransaction {
+  const transaction = PaymentTransaction.initiate({
+    idempotencyKey: `idem-${props.appointmentId}`,
+    appointmentId: props.appointmentId,
+    patientId: props.patientId,
+    doctorId: props.doctorId,
+    amount: Money.create(500, 'EGP'),
+    paymentMethod: PaymentMethod.Card,
+  });
+  transaction.attachExternalReference(props.externalReference ?? `pi_${props.appointmentId}`);
+  transaction.markSucceeded();
+  transaction.releaseDomainEvents();
+  return transaction;
+}
+
 function buildDoctorAccount(): Account {
   const account = Account.register({
     email: EmailAddress.create('doctor-to-promote@example.com'),
@@ -196,14 +310,57 @@ function buildDoctorAccount(): Account {
 describe('AdministrationController (integration)', () => {
   let app: INestApplication;
   let verificationCaseRepository: InMemoryVerificationCaseRepository;
+  let paymentTransactionRepository: InMemoryPaymentTransactionRepository;
+  let paymentGateway: FakePaymentGateway;
+  let seededPatientProfileId: string;
+  let seededDoctorProfileId: string;
 
   before(async () => {
-    const accountRepository = new InMemoryAccountRepository([buildDoctorAccount()]);
+    const paymentPatientAccount = Account.register({
+      email: EmailAddress.create('payment-patient@example.com'),
+      role: AccountRole.Patient,
+      displayName: DisplayName.create('Youssef Ibrahim'),
+    });
+    paymentPatientAccount.releaseDomainEvents();
+    const paymentDoctorAccount = Account.register({
+      email: EmailAddress.create('payment-doctor@example.com'),
+      role: AccountRole.Doctor,
+      displayName: DisplayName.create('Dr. Amina Hassan'),
+    });
+    paymentDoctorAccount.releaseDomainEvents();
+
+    const accountRepository = new InMemoryAccountRepository([buildDoctorAccount(), paymentPatientAccount, paymentDoctorAccount]);
     const hospitalRepository = new InMemoryHospitalRepository();
     const departmentRepository = new InMemoryDepartmentRepository();
     verificationCaseRepository = new InMemoryVerificationCaseRepository();
     const securityEventRepository = new InMemorySecurityEventRepository();
     const dispatcher = new NoopDomainEventDispatcher();
+
+    const patientProfileRepository = new InMemoryPatientProfileRepository();
+    const patientProfile = PatientProfile.create({ accountId: paymentPatientAccount.getId().toString() });
+    patientProfile.releaseDomainEvents();
+    await patientProfileRepository.save(patientProfile);
+    seededPatientProfileId = patientProfile.getId();
+
+    const doctorProfileRepository = new InMemoryDoctorProfileRepository();
+    const doctorProfile = DoctorProfile.register({
+      accountId: paymentDoctorAccount.getId().toString(),
+      licenseNumber: 'LIC-ADMIN-PAYMENTS-1',
+      specialtyId: 'specialty-cardiology',
+    });
+    doctorProfile.releaseDomainEvents();
+    await doctorProfileRepository.save(doctorProfile);
+    seededDoctorProfileId = doctorProfile.getId();
+
+    paymentTransactionRepository = new InMemoryPaymentTransactionRepository();
+    paymentTransactionRepository.seed(
+      buildSucceededTransaction({
+        appointmentId: '11111111-2222-4222-8222-222222222222',
+        patientId: seededPatientProfileId,
+        doctorId: seededDoctorProfileId,
+      }),
+    );
+    paymentGateway = new FakePaymentGateway();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [AdministrationController],
@@ -217,8 +374,48 @@ describe('AdministrationController (integration)', () => {
         { provide: ACCOUNT_REPOSITORY, useValue: accountRepository },
         { provide: HOSPITAL_REPOSITORY, useValue: hospitalRepository },
         { provide: DEPARTMENT_REPOSITORY, useValue: departmentRepository },
+        { provide: PATIENT_PROFILE_REPOSITORY, useValue: patientProfileRepository },
+        { provide: DOCTOR_PROFILE_REPOSITORY, useValue: doctorProfileRepository },
+        { provide: PAYMENT_TRANSACTION_REPOSITORY, useValue: paymentTransactionRepository },
+        { provide: PAYMENT_GATEWAY, useValue: paymentGateway },
         { provide: DOMAIN_EVENT_DISPATCHER, useValue: dispatcher },
         { provide: ListAccountsUseCase, useFactory: () => new ListAccountsUseCase(accountRepository) },
+        {
+          provide: GetAccountByIdUseCase,
+          useFactory: () => new GetAccountByIdUseCase(accountRepository),
+        },
+        {
+          provide: GetPatientProfileByIdUseCase,
+          useFactory: () => new GetPatientProfileByIdUseCase(patientProfileRepository),
+        },
+        {
+          provide: GetDoctorProfileByIdUseCase,
+          useFactory: () => new GetDoctorProfileByIdUseCase(doctorProfileRepository),
+        },
+        {
+          provide: ListPaymentTransactionsUseCase,
+          useFactory: () => new ListPaymentTransactionsUseCase(paymentTransactionRepository),
+        },
+        {
+          provide: ListPaymentTransactionsForAdminUseCase,
+          useFactory: (
+            listPaymentTransactions: ListPaymentTransactionsUseCase,
+            getPatientProfileById: GetPatientProfileByIdUseCase,
+            getDoctorProfileById: GetDoctorProfileByIdUseCase,
+            getAccountById: GetAccountByIdUseCase,
+          ) =>
+            new ListPaymentTransactionsForAdminUseCase(
+              listPaymentTransactions,
+              getPatientProfileById,
+              getDoctorProfileById,
+              getAccountById,
+            ),
+          inject: [ListPaymentTransactionsUseCase, GetPatientProfileByIdUseCase, GetDoctorProfileByIdUseCase, GetAccountByIdUseCase],
+        },
+        {
+          provide: RefundPaymentUseCase,
+          useFactory: () => new RefundPaymentUseCase(paymentTransactionRepository, paymentGateway, dispatcher),
+        },
         {
           provide: UpdateAccountRoleUseCase,
           useFactory: () => new UpdateAccountRoleUseCase(accountRepository, dispatcher),
@@ -258,7 +455,7 @@ describe('AdministrationController (integration)', () => {
         },
         {
           provide: SuspendVerificationCaseUseCase,
-          useFactory: () => new SuspendVerificationCaseUseCase(verificationCaseRepository),
+          useFactory: () => new SuspendVerificationCaseUseCase(verificationCaseRepository, dispatcher),
         },
         {
           provide: GetVerificationCaseByIdUseCase,
@@ -318,8 +515,12 @@ describe('AdministrationController (integration)', () => {
       .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
       .expect(200);
 
-    assert.equal(response.body.data.activeDoctorCount, 1);
-    assert.equal(response.body.data.activePatientCount, 0);
+    // 2 doctors, 1 patient: 'doctor-to-promote@example.com' plus this
+    // suite's own payment-admin fixture accounts (paymentDoctorAccount,
+    // paymentPatientAccount), seeded to give GET /admin/payments a real
+    // patient/doctor name pair to resolve.
+    assert.equal(response.body.data.activeDoctorCount, 2);
+    assert.equal(response.body.data.activePatientCount, 1);
     assert.equal(response.body.data.hospitalCount, 0);
   });
 
@@ -329,8 +530,8 @@ describe('AdministrationController (integration)', () => {
       .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
       .expect(200);
 
-    assert.equal(response.body.data.total, 1);
-    assert.equal(response.body.data.accounts[0].email, 'doctor-to-promote@example.com');
+    assert.equal(response.body.data.total, 2);
+    assert.ok(response.body.data.accounts.some((account: { email: string }) => account.email === 'doctor-to-promote@example.com'));
   });
 
   it('PATCH /admin/accounts/:id/role changes an account role', async () => {
@@ -508,5 +709,95 @@ describe('AdministrationController (integration)', () => {
 
     assert.equal(typeof response.body.data.observabilityEnabled, 'boolean');
     assert.equal(typeof response.body.data.paymentGatewayConfigured, 'boolean');
+  });
+
+  // ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4.
+  it('GET /admin/payments rejects a request with no bearer token', async () => {
+    await request(app.getHttpServer()).get('/admin/payments').expect(401);
+  });
+
+  it('GET /admin/payments rejects a non-SuperAdmin caller with 403', async () => {
+    await request(app.getHttpServer())
+      .get('/admin/payments')
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+      .expect(403);
+  });
+
+  it('GET /admin/payments lists transactions with resolved patient/doctor names', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/admin/payments')
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.total, 1);
+    assert.equal(response.body.data.transactions.length, 1);
+    assert.equal(response.body.data.transactions[0].patientName, 'Youssef Ibrahim');
+    assert.equal(response.body.data.transactions[0].doctorName, 'Dr. Amina Hassan');
+    assert.equal(response.body.data.transactions[0].status, 'succeeded');
+    assert.equal(response.body.data.transactions[0].amount.currency, 'EGP');
+  });
+
+  it('POST /admin/payments/:id/refund rejects a non-SuperAdmin caller with 403, without touching the gateway', async () => {
+    const before = paymentGateway.refundCallCount;
+    await request(app.getHttpServer())
+      .post('/admin/payments/11111111-1111-4111-8111-111111111111/refund')
+      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+      .expect(403);
+    assert.equal(paymentGateway.refundCallCount, before);
+  });
+
+  it('POST /admin/payments/:id/refund rejects an unauthenticated caller', async () => {
+    await request(app.getHttpServer()).post('/admin/payments/11111111-1111-4111-8111-111111111111/refund').expect(401);
+  });
+
+  it('POST /admin/payments/:id/refund returns 404 for an unknown transaction', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/admin/payments/99999999-9999-4999-8999-999999999998/refund')
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(404);
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('POST /admin/payments/:id/refund refunds a Succeeded transaction as SuperAdmin, calling the real gateway', async () => {
+    const transaction = buildSucceededTransaction({
+      appointmentId: '33333333-4444-4444-8444-444444444444',
+      patientId: seededPatientProfileId,
+      doctorId: seededDoctorProfileId,
+      externalReference: 'pi_admin_refund_1',
+    });
+    paymentTransactionRepository.seed(transaction);
+    const gatewayCallsBefore = paymentGateway.refundCallCount;
+
+    const response = await request(app.getHttpServer())
+      .post(`/admin/payments/${transaction.getId()}/refund`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.status, 'refunded');
+    assert.equal(paymentGateway.refundCallCount, gatewayCallsBefore + 1);
+  });
+
+  it('POST /admin/payments/:id/refund returns a clean error for an already-refunded transaction, without a second gateway call', async () => {
+    const transaction = buildSucceededTransaction({
+      appointmentId: '55555555-6666-4666-8666-666666666666',
+      patientId: seededPatientProfileId,
+      doctorId: seededDoctorProfileId,
+      externalReference: 'pi_admin_refund_2',
+    });
+    paymentTransactionRepository.seed(transaction);
+
+    await request(app.getHttpServer())
+      .post(`/admin/payments/${transaction.getId()}/refund`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+    const gatewayCallsAfterFirstRefund = paymentGateway.refundCallCount;
+
+    const response = await request(app.getHttpServer())
+      .post(`/admin/payments/${transaction.getId()}/refund`)
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(422);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    assert.equal(paymentGateway.refundCallCount, gatewayCallsAfterFirstRefund, 'a rejected re-refund must never reach the gateway a second time');
   });
 });

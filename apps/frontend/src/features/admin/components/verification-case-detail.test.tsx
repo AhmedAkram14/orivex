@@ -97,6 +97,8 @@ describe('VerificationCaseDetail', () => {
     expect(screen.getByText('Consultant')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    // Approve now opens a confirmation dialog before firing the mutation.
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
 
     await screen.findAllByText('Approved');
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();

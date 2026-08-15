@@ -1,4 +1,5 @@
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import type { VerificationCase } from '../../../domain/entities/verification-case.entity.js';
 import type { VerificationCaseRepository } from '../../../domain/repositories/verification-case.repository.js';
 
@@ -8,12 +9,15 @@ import type { SuspendVerificationCaseCommand } from './suspend-verification-case
 // trust.module.ts only. Onboarding Redesign (2026-07-21 proposal, Stage
 // O.2): revokes previously-granted standing (license lapse, a compliance
 // finding) -- a distinct transition from DecideVerificationUseCase's own
-// initial-review decision, reachable only from Approved. No event is
-// raised: unlike approval, nothing downstream currently reacts to a
-// suspension (a real, disclosed gap, not a silent omission -- notifying
-// the subject is future work).
+// initial-review decision, reachable only from Approved. Mirrors
+// DecideVerificationUseCase's own save-then-dispatch ordering exactly:
+// suspend() now records VerificationCaseSuspendedEvent, so the subject can
+// be notified the same way every other decision already is.
 export class SuspendVerificationCaseUseCase {
-  constructor(private readonly verificationCaseRepository: VerificationCaseRepository) {}
+  constructor(
+    private readonly verificationCaseRepository: VerificationCaseRepository,
+    private readonly eventDispatcher: DomainEventDispatcher,
+  ) {}
 
   async execute(command: SuspendVerificationCaseCommand): Promise<VerificationCase> {
     const verificationCase = await this.verificationCaseRepository.findById(command.verificationCaseId);
@@ -22,7 +26,9 @@ export class SuspendVerificationCaseUseCase {
     }
 
     verificationCase.suspend(command.reason);
+
     await this.verificationCaseRepository.save(verificationCase);
+    await this.eventDispatcher.dispatch(verificationCase.releaseDomainEvents());
 
     return verificationCase;
   }

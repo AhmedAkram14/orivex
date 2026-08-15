@@ -17,6 +17,7 @@ import { ReleaseSlotUseCase } from '../../../../scheduling/application/use-cases
 import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentCancelledEvent } from '../../../domain/events/appointment-cancelled.event.js';
+import { AppointmentRescheduledEvent } from '../../../domain/events/appointment-rescheduled.event.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
@@ -302,6 +303,77 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
     );
     assert.ok(cancelledEvent, 'AppointmentCancelledEvent must be dispatched');
     assert.equal(cancelledEvent.cancelledBy, 'doctor');
+  });
+
+  it('dispatches AppointmentRescheduledEvent when rescheduling a Confirmed (paid) appointment', async () => {
+    const oldWindow = buildOpenWindow();
+    oldWindow.hold();
+    const newWindow = buildOpenWindow();
+    const windowRepo = new InMemoryAvailabilityWindowRepository();
+    windowRepo.seed(oldWindow);
+    windowRepo.seed(newWindow);
+
+    const appointment = Appointment.request({
+      patientId: '11111111-1111-4111-8111-111111111111',
+      doctorId: '22222222-2222-4222-8222-222222222222',
+      availabilityWindowId: oldWindow.getId(),
+      pricing: ConsultationPricing.free(),
+      scheduledAt: oldWindow.getStartTime(),
+    });
+    appointment.confirm();
+    const appointmentRepo = new FakeAppointmentRepository();
+    appointmentRepo.seed(appointment);
+    const dispatcher = new RecordingDispatcher();
+    const useCase = buildUseCase(windowRepo, appointmentRepo, dispatcher);
+
+    const newAppointment = await useCase.execute(
+      new RescheduleOrCancelAppointmentCommand({
+        appointmentId: appointment.getId(),
+        action: 'reschedule',
+        newAvailabilityWindowId: newWindow.getId(),
+      }),
+    );
+
+    const rescheduledEvent = dispatcher.dispatched.find(
+      (event): event is AppointmentRescheduledEvent => event instanceof AppointmentRescheduledEvent,
+    );
+    assert.ok(rescheduledEvent, 'AppointmentRescheduledEvent must be dispatched for a Confirmed appointment');
+    assert.equal(rescheduledEvent.oldAppointmentId, appointment.getId());
+    assert.equal(rescheduledEvent.newAppointmentId, newAppointment.getId());
+  });
+
+  it('does not dispatch AppointmentRescheduledEvent when rescheduling a still-Requested (unpaid) appointment', async () => {
+    const oldWindow = buildOpenWindow();
+    oldWindow.hold();
+    const newWindow = buildOpenWindow();
+    const windowRepo = new InMemoryAvailabilityWindowRepository();
+    windowRepo.seed(oldWindow);
+    windowRepo.seed(newWindow);
+
+    const appointment = Appointment.request({
+      patientId: '11111111-1111-4111-8111-111111111111',
+      doctorId: '22222222-2222-4222-8222-222222222222',
+      availabilityWindowId: oldWindow.getId(),
+      pricing: ConsultationPricing.free(),
+      scheduledAt: oldWindow.getStartTime(),
+    });
+    const appointmentRepo = new FakeAppointmentRepository();
+    appointmentRepo.seed(appointment);
+    const dispatcher = new RecordingDispatcher();
+    const useCase = buildUseCase(windowRepo, appointmentRepo, dispatcher);
+
+    await useCase.execute(
+      new RescheduleOrCancelAppointmentCommand({
+        appointmentId: appointment.getId(),
+        action: 'reschedule',
+        newAvailabilityWindowId: newWindow.getId(),
+      }),
+    );
+
+    const rescheduledEvent = dispatcher.dispatched.find(
+      (event): event is AppointmentRescheduledEvent => event instanceof AppointmentRescheduledEvent,
+    );
+    assert.equal(rescheduledEvent, undefined, 'no payment was ever charged for a Requested appointment, so no refund event should fire');
   });
 
   it('throws NotFoundError when the appointment does not exist', async () => {

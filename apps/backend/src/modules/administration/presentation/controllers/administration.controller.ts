@@ -30,6 +30,11 @@ import { ListSecurityEventsForAccountUseCase } from '../../../trust/application/
 import { SuspendVerificationCaseCommand } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.command.js';
 import { SuspendVerificationCaseUseCase } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
+import { PaginationQueryDto } from '../../../../shared/http/pagination-query.dto.js';
+import { RefundPaymentCommand } from '../../../payment/application/use-cases/refund-payment/refund-payment.command.js';
+import { RefundPaymentUseCase } from '../../../payment/application/use-cases/refund-payment/refund-payment.use-case.js';
+import { PaymentTransactionResponseDto } from '../../../payment/presentation/dto/payment-transaction-response.dto.js';
+import { mapPaymentError } from '../../../payment/presentation/mappers/payment-exception.mapper.js';
 import type { CreateDepartmentCommand } from '../../application/use-cases/create-department/create-department.command.js';
 import { CreateDepartmentUseCase } from '../../application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalCommand } from '../../application/use-cases/create-hospital/create-hospital.command.js';
@@ -40,6 +45,8 @@ import { GetVerificationReviewQueueUseCase } from '../../application/use-cases/g
 import { ListDepartmentsQuery } from '../../application/use-cases/list-departments/list-departments.query.js';
 import { ListDepartmentsUseCase } from '../../application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from '../../application/use-cases/list-hospitals/list-hospitals.use-case.js';
+import { ListPaymentTransactionsForAdminQuery } from '../../application/use-cases/list-payment-transactions-for-admin/list-payment-transactions-for-admin.query.js';
+import { ListPaymentTransactionsForAdminUseCase } from '../../application/use-cases/list-payment-transactions-for-admin/list-payment-transactions-for-admin.use-case.js';
 import { ReviewVerificationCaseCommand } from '../../application/use-cases/review-verification-case/review-verification-case.command.js';
 import { ReviewVerificationCaseUseCase } from '../../application/use-cases/review-verification-case/review-verification-case.use-case.js';
 import { DecideVerificationRequestDto } from '../../../trust/presentation/dto/decide-verification-request.dto.js';
@@ -53,6 +60,7 @@ import { FeatureFlagsResponseDto } from '../dto/feature-flags-response.dto.js';
 import { HospitalResponseDto } from '../dto/hospital-response.dto.js';
 import { ListAccountsQueryDto } from '../dto/list-accounts-query.dto.js';
 import { ListAccountsResponseDto } from '../dto/list-accounts-response.dto.js';
+import { ListAdminPaymentTransactionsResponseDto } from '../dto/list-admin-payment-transactions-response.dto.js';
 import { PlatformKpisResponseDto } from '../dto/platform-kpis-response.dto.js';
 import { SecurityEventResponseDto } from '../dto/security-event-response.dto.js';
 import { UpdateAccountRoleRequestDto } from '../dto/update-account-role-request.dto.js';
@@ -85,6 +93,8 @@ export class AdministrationController {
     private readonly getVerificationHistoryUseCase: GetVerificationHistoryUseCase,
     private readonly getVerificationCaseByIdUseCase: GetVerificationCaseByIdUseCase,
     private readonly listSecurityEventsForAccountUseCase: ListSecurityEventsForAccountUseCase,
+    private readonly listPaymentTransactionsForAdminUseCase: ListPaymentTransactionsForAdminUseCase,
+    private readonly refundPaymentUseCase: RefundPaymentUseCase,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
 
@@ -241,6 +251,38 @@ export class AdministrationController {
   ): Promise<ResponseEnvelope<SecurityEventResponseDto[]>> {
     const events = await this.listSecurityEventsForAccountUseCase.execute({ accountId: id });
     return envelope(events.map((event) => SecurityEventResponseDto.fromDomain(event)));
+  }
+
+  // ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4: SuperAdmin's
+  // read path onto PaymentModule's transactions, extending the previously
+  // read-only-analytics admin payment surface (GET /admin/analytics) with a
+  // real per-transaction list. Mirrors listAccounts' page/limit ->
+  // ListXxxResponseDto.fromResult(result, page, limit) shape exactly.
+  @Get('payments')
+  async listPayments(@Query() query: PaginationQueryDto): Promise<ResponseEnvelope<ListAdminPaymentTransactionsResponseDto>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const result = await this.listPaymentTransactionsForAdminUseCase.execute(
+      new ListPaymentTransactionsForAdminQuery({ page, limit }),
+    );
+    return envelope(ListAdminPaymentTransactionsResponseDto.fromResult(result, page, limit));
+  }
+
+  // SuperAdmin refund: calls the existing, unmodified RefundPaymentUseCase
+  // directly -- no ownership check the way the doctor-facing POST
+  // /payments/:id/refund requires, since SuperAdmin has platform-wide
+  // authority (same rationale as reviewVerificationCase/suspendVerification-
+  // Case above needing no per-hospital ownership check). Full-refund only;
+  // there is no partial-refund concept anywhere in this domain.
+  @Post('payments/:id/refund')
+  @HttpCode(HttpStatus.OK)
+  async refundPayment(@Param('id', ParseUUIDPipe) id: string): Promise<ResponseEnvelope<PaymentTransactionResponseDto>> {
+    try {
+      const transaction = await this.refundPaymentUseCase.execute(new RefundPaymentCommand({ paymentTransactionId: id }));
+      return envelope(PaymentTransactionResponseDto.fromDomain(transaction));
+    } catch (error) {
+      throw mapPaymentError(error);
+    }
   }
 
   @Get('feature-flags')

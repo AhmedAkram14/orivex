@@ -10,6 +10,7 @@ import type {
   PatientProfile,
   PatientProfileUpdateRequest,
   Prescription,
+  RescheduledAppointment,
   SubmitPatientVerificationRequest,
   UpcomingAppointmentPreview,
 } from '@/features/patient/api/types';
@@ -233,6 +234,10 @@ export function seedCompletedAppointment(consultationSessionId: string, doctor: 
     {
       id: `appointment-${consultationSessionId}`,
       scheduledAt: new Date().toISOString(),
+      // This mock system has exactly one seeded demo doctor
+      // (`doctor-profile-1`, see `doctor-store.ts`) -- same convention
+      // `bookAppointment`/`rescheduleAppointment` below rely on.
+      doctorId: 'doctor-profile-1',
       doctorName: doctor.name,
       specialization: doctor.specialty,
       specializationAr: null,
@@ -288,6 +293,7 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
   const listItem: Appointment = {
     id,
     scheduledAt,
+    doctorId: request.doctorId,
     doctorName: doctor?.fullName ?? 'Doctor',
     specialization: matchedSpecialty?.name ?? '',
     specializationAr: matchedSpecialty?.nameAr ?? null,
@@ -311,6 +317,128 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
     status: listItem.status,
     scheduledAt,
     reasonForVisit: request.reasonForVisit ?? null,
+    rescheduledFromId: null,
+  };
+}
+
+// Patient-Facing Reschedule (Phase 3 Step 2): distinct mock error types so
+// `mocks/handlers/patient.ts` can map each to the exact real HTTP status the
+// backend's `mapConsultationError`/global exception filter would produce --
+// 404 (NotFoundError: appointment or new window not found/not owned), 409
+// (ConflictError: the new slot was reserved/booked by someone else), 422
+// (ValidationError: the appointment can't be rescheduled from its current
+// status). Never a single generic thrown Error -- these three real,
+// distinguishable failure modes are exactly what the real backend produces.
+export class MockNotFoundError extends Error {}
+export class MockConflictError extends Error {}
+export class MockInvalidStateError extends Error {}
+
+/**
+ * Patient-Facing Reschedule (Phase 3 Step 2): mocks the real
+ * `PATCH /appointments/:id` (`action: 'reschedule'`) contract exactly --
+ * mirrors `RescheduleOrCancelAppointmentUseCase.reschedule()`'s own real
+ * behavior: only a Requested/Confirmed appointment can be rescheduled, the
+ * OLD appointment moves to Rescheduled (terminal), a brand-new appointment
+ * is created on the new slot (never a mutation of the same row -- matches
+ * the real backend's forward-only rule), snapshotting the NEW window's own
+ * price (never the old appointment's). A Free new slot auto-confirms
+ * immediately (mints a real session id, same as `confirmAppointment` does);
+ * a Paid one stays Requested/unpaid, exactly like a fresh booking.
+ */
+export function rescheduleAppointment(appointmentId: string, newAvailabilityWindowId: string): RescheduledAppointment {
+  const existing = appointments.find((entry) => entry.id === appointmentId);
+  if (!existing) {
+    throw new MockNotFoundError(`Appointment "${appointmentId}" not found.`);
+  }
+  if (existing.status !== 'requested' && existing.status !== 'confirmed') {
+    throw new MockInvalidStateError(`Appointment "${appointmentId}" cannot be rescheduled from its current status.`);
+  }
+  if (isAvailabilityWindowBooked(newAvailabilityWindowId)) {
+    throw new MockConflictError(`AvailabilityWindow "${newAvailabilityWindowId}" is no longer available.`);
+  }
+
+  const doctorId = existing.doctorId;
+  const doctor = getDoctorById(doctorId);
+  const scheduledAt = newAvailabilityWindowId.split('::')[1] ?? new Date().toISOString();
+  const pricing = resolveWindowPricing(doctorId, scheduledAt);
+  const isPaid = pricing.pricingType === 'paid';
+  const newId = `appointment-${Date.now()}`;
+  const newStatus: Appointment['status'] = isPaid ? 'requested' : 'confirmed';
+
+  markAvailabilityWindowBooked(newAvailabilityWindowId);
+  existing.status = 'rescheduled';
+
+  const matchedSpecialty = doctor && listSpecialties().find((specialty) => specialty.id === doctor.specialtyId);
+  const listItem: Appointment = {
+    id: newId,
+    scheduledAt,
+    doctorId,
+    doctorName: doctor?.fullName ?? existing.doctorName,
+    specialization: matchedSpecialty?.name ?? existing.specialization,
+    specializationAr: matchedSpecialty?.nameAr ?? existing.specializationAr,
+    status: newStatus,
+    consultationType: pricing.pricingType,
+    reasonForVisit: existing.reasonForVisit,
+    consultationSessionId: newStatus === 'confirmed' ? `session-${newId}` : null,
+    paymentRequired: isPaid,
+    feeAmount:
+      isPaid && pricing.feeAmount !== null && pricing.feeCurrency !== null
+        ? { amount: pricing.feeAmount, currency: pricing.feeCurrency }
+        : null,
+  };
+  appointments = [listItem, ...appointments];
+
+  return {
+    id: newId,
+    patientId: 'patient-profile-1',
+    doctorId,
+    availabilityWindowId: newAvailabilityWindowId,
+    consultationType: pricing.pricingType,
+    feeAmount: pricing.feeAmount,
+    feeCurrency: pricing.feeCurrency,
+    status: newStatus,
+    scheduledAt,
+    reasonForVisit: existing.reasonForVisit ?? null,
+    rescheduledFromId: appointmentId,
+  };
+}
+
+/**
+ * Demo Readiness P0: mocks the real `PATCH /appointments/:id`
+ * (`action: 'cancel'`) contract exactly -- mirrors
+ * `RescheduleOrCancelAppointmentUseCase.cancel()`'s own real behavior: only
+ * a Requested/Confirmed appointment can be cancelled (the same real
+ * `MockNotFoundError`/`MockInvalidStateError` reschedule already throws),
+ * the appointment moves straight to Cancelled (terminal, in-place -- unlike
+ * reschedule, cancel never creates a new appointment row). No refund
+ * simulation lives here: the real backend's auto-refund
+ * (`AutoRefundOnAppointmentCancellationHandler`) is server-side business
+ * logic this frontend mock never re-implements, matching this feature's own
+ * "don't touch payment/refund logic" scope.
+ */
+export function cancelAppointment(appointmentId: string): BookedAppointment {
+  const existing = appointments.find((entry) => entry.id === appointmentId);
+  if (!existing) {
+    throw new MockNotFoundError(`Appointment "${appointmentId}" not found.`);
+  }
+  if (existing.status !== 'requested' && existing.status !== 'confirmed') {
+    throw new MockInvalidStateError(`Appointment "${appointmentId}" cannot be cancelled from its current status.`);
+  }
+
+  existing.status = 'cancelled';
+  existing.paymentRequired = false;
+
+  return {
+    id: existing.id,
+    patientId: 'patient-profile-1',
+    doctorId: existing.doctorId,
+    availabilityWindowId: `${existing.doctorId}::${existing.scheduledAt}`,
+    consultationType: existing.consultationType,
+    feeAmount: existing.feeAmount?.amount ?? null,
+    feeCurrency: existing.feeAmount?.currency ?? null,
+    status: existing.status,
+    scheduledAt: existing.scheduledAt,
+    reasonForVisit: existing.reasonForVisit ?? null,
     rescheduledFromId: null,
   };
 }
@@ -409,6 +537,21 @@ export function approveMyLatestVerification(): void {
   const latest = findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID)[0];
   if (!latest) return;
   decideVerificationCase(latest.id, 'approved');
+}
+
+/**
+ * Test-only: simulates an admin rejecting the applicant's latest verification
+ * case -- lets tests seed a genuine "Rejected, backed by the real shared
+ * store" starting state (rather than a static `server.use()` GET override
+ * that can never reflect a later resubmission) before driving the real
+ * "Edit and resubmit" -> Documents -> Review -> Submit UI flow, so the
+ * resubmission's resulting new case is the one the applicant's own status
+ * view genuinely re-fetches and reflects. Never called from application code.
+ */
+export function rejectMyLatestVerification(reason: string): void {
+  const latest = findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID)[0];
+  if (!latest) return;
+  decideVerificationCase(latest.id, 'rejected', reason);
 }
 
 /**

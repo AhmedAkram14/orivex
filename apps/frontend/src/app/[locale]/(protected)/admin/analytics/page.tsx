@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
+import { AdminPaymentsTable } from '@/features/admin/components/admin-payments-table';
 import { AnalyticsFiltersBar } from '@/features/reporting/components/analytics-filters-bar';
 import { DashboardKpiGrid } from '@/features/reporting/components/dashboard-kpi-grid';
 import { useAnalyticsPreferences } from '@/features/reporting/hooks/use-analytics-preferences';
@@ -65,6 +66,9 @@ export default function AdminAnalyticsPage() {
         <DoctorLeaderboardPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
         <PatientAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
         <PaymentAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
+        <section id="payments">
+          <AdminPaymentsTable />
+        </section>
         <TelemedicineAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
         <VerificationAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
         <NotificationAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />

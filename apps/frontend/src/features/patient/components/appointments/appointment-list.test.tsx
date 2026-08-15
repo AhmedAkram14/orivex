@@ -9,6 +9,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
   return {
     id: '11111111-1111-4111-8111-111111111111',
     scheduledAt: '2026-08-01T10:00:00.000Z',
+    doctorId: 'doctor-profile-1',
     doctorName: 'Dr. Karim Adel',
     specialization: 'Cardiology',
     specializationAr: null,
@@ -61,5 +62,93 @@ describe('AppointmentList', () => {
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
     expect(screen.getByRole('button', { name: 'View summary' })).toBeInTheDocument();
+  });
+
+  // Patient-Facing Reschedule (Phase 3 Step 2): only a still-Requested or
+  // Confirmed appointment can actually be rescheduled server-side -- eligible
+  // for either status, and additive alongside whatever else that status
+  // already shows (a Paid-and-unpaid Requested appointment shows both
+  // "Pay now" and "Reschedule").
+  it('renders a reachable "Reschedule" action for a Requested appointment', () => {
+    const appointment = buildAppointment({ status: 'requested' });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+  });
+
+  it('renders "Reschedule" alongside "Pay now" for a Paid, unconfirmed appointment', () => {
+    const appointment = buildAppointment({
+      status: 'requested',
+      consultationType: 'paid',
+      paymentRequired: true,
+      feeAmount: { amount: 500, currency: 'EGP' },
+    });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Pay now' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+  });
+
+  it('renders a reachable "Reschedule" action for a Confirmed appointment', () => {
+    const appointment = buildAppointment({ status: 'confirmed' });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+  });
+
+  it('never renders "Reschedule" for a Rescheduled, Cancelled, No-show, or Completed appointment', () => {
+    const appointments = [
+      buildAppointment({ id: 'a1', status: 'rescheduled' }),
+      buildAppointment({ id: 'a2', status: 'cancelled' }),
+      buildAppointment({ id: 'a3', status: 'no_show' }),
+      buildAppointment({
+        id: 'a4',
+        status: 'completed',
+        consultationSessionId: '66666666-6666-4666-8666-666666666666',
+      }),
+    ];
+
+    renderWithProviders(<AppointmentList appointments={appointments} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.queryByRole('button', { name: 'Reschedule' })).not.toBeInTheDocument();
+  });
+
+  // Demo Readiness P0: the previously-missing patient-facing cancel action --
+  // eligible for the exact same statuses reschedule is (matches the real
+  // backend's own cancel guard), so both actions always appear together.
+  it('renders a reachable "Cancel" action for a Requested appointment', () => {
+    const appointment = buildAppointment({ status: 'requested' });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
+  it('renders a reachable "Cancel" action for a Confirmed appointment', () => {
+    const appointment = buildAppointment({ status: 'confirmed' });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+  });
+
+  it('never renders "Cancel" for a Rescheduled, Cancelled, No-show, or Completed appointment', () => {
+    const appointments = [
+      buildAppointment({ id: 'a1', status: 'rescheduled' }),
+      buildAppointment({ id: 'a2', status: 'cancelled' }),
+      buildAppointment({ id: 'a3', status: 'no_show' }),
+      buildAppointment({
+        id: 'a4',
+        status: 'completed',
+        consultationSessionId: '66666666-6666-4666-8666-666666666666',
+      }),
+    ];
+
+    renderWithProviders(<AppointmentList appointments={appointments} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
   });
 });

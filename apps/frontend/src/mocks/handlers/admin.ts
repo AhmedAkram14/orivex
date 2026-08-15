@@ -27,6 +27,7 @@ import {
   suspendVerificationCase,
   updateAccountRole,
 } from '@/mocks/admin-store';
+import { listAllTransactionsForAdmin, refundTransaction } from '@/mocks/payment-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -122,4 +123,27 @@ export const adminHandlers = [
   }),
 
   http.get(`${base()}${ADMIN_PATHS.featureFlags}`, () => HttpResponse.json({ data: getFeatureFlags() })),
+
+  // ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4: SuperAdmin's
+  // payment transaction list/refund -- registered before the doctor-facing
+  // `/payments/:id/refund` handler in handlers/payment.ts would ever match
+  // (distinct `/admin/payments` prefix, no path collision).
+  http.get(`${base()}${ADMIN_PATHS.payments}`, ({ request }) => {
+    const url = new URL(request.url);
+    const page = url.searchParams.has('page') ? Number(url.searchParams.get('page')) : 1;
+    const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : 50;
+    const result = listAllTransactionsForAdmin(page, limit);
+    return HttpResponse.json({ data: { ...result, page, limit } });
+  }),
+
+  http.post(`${base()}/admin/payments/:id/refund`, ({ params }) => {
+    const result = refundTransaction(params.id as string);
+    if (result.outcome === 'not-found') {
+      return errorResponse(404, 'NOT_FOUND', 'PaymentTransaction not found.');
+    }
+    if (result.outcome === 'already-refunded') {
+      return errorResponse(422, 'VALIDATION_FAILED', 'This transaction has already been refunded.');
+    }
+    return HttpResponse.json({ data: result.transaction });
+  }),
 ];

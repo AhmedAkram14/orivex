@@ -10,6 +10,13 @@ import type { InitiateChargeRequest, PaymentTransaction } from '@/features/payme
  */
 let transactions: PaymentTransaction[] = [];
 let counter = 0;
+// ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4: the real backend
+// resolves patientName/doctorName via Patient/Doctor/IdentityModule reads
+// this mock store has no equivalent for -- tests seed a name pair alongside
+// a transaction via seedAdminPaymentMeta; anything unseeded falls back to
+// the same "Unknown patient"/"Unknown doctor" default the real backend uses
+// when a profile lookup comes back empty.
+let adminMeta: Record<string, { patientName: string; doctorName: string }> = {};
 
 export function seedTransaction(transaction: PaymentTransaction): PaymentTransaction {
   transactions = [...transactions.filter((t) => t.id !== transaction.id), transaction];
@@ -67,8 +74,29 @@ export function refundTransaction(id: string): RefundResult {
   return { outcome: 'refunded', transaction: refunded };
 }
 
+export function seedAdminPaymentMeta(id: string, patientName: string, doctorName: string): void {
+  adminMeta = { ...adminMeta, [id]: { patientName, doctorName } };
+}
+
+export interface AdminPaymentTransactionMock extends PaymentTransaction {
+  patientName: string;
+  doctorName: string;
+}
+
+export function listAllTransactionsForAdmin(page: number, limit: number): { transactions: AdminPaymentTransactionMock[]; total: number } {
+  const sorted = [...transactions].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const start = (page - 1) * limit;
+  const rows = sorted.slice(start, start + limit).map((transaction) => ({
+    ...transaction,
+    patientName: adminMeta[transaction.id]?.patientName ?? 'Unknown patient',
+    doctorName: adminMeta[transaction.id]?.doctorName ?? 'Unknown doctor',
+  }));
+  return { transactions: rows, total: sorted.length };
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPaymentStore(): void {
   transactions = [];
   counter = 0;
+  adminMeta = {};
 }

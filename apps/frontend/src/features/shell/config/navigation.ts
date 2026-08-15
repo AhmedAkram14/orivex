@@ -223,6 +223,13 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         roles: ['super_admin'],
       },
       {
+        id: 'admin-workspace-payments',
+        labelKey: 'adminPayments',
+        icon: Receipt,
+        href: '/admin/analytics#payments',
+        roles: ['super_admin'],
+      },
+      {
         id: 'admin-workspace-hospitals',
         labelKey: 'adminHospitals',
         icon: Building2,

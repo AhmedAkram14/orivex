@@ -20,6 +20,11 @@ export function useNotifications() {
   return useQuery({
     queryKey: notificationKeys.list(),
     queryFn: () => notificationsApi.list(),
+    // Unwraps to the plain array `NotificationBell`/`NotificationPanel` have
+    // always consumed -- `notificationsApi.list()`'s real return shape now
+    // also carries `total`/`page`/`limit` (Notification Center pagination
+    // fix), but the bell's own capped view never needed those.
+    select: (result) => result.notifications,
     refetchInterval: POLL_INTERVAL_MS,
   });
 }

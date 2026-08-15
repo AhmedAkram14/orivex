@@ -37,8 +37,10 @@ function buildListDoctorsQuery(params: ListDoctorDirectoryParams): string {
  * real backend endpoints now (ConsultationModule's AppointmentController /
  * DoctorModule's DoctorProfileController); `src/mocks/handlers/doctor.ts`
  * intercepts them only to keep the frontend test suite deterministic, same
- * precedent as `patientApi`. `getQueue`/`updateProfile`'s queue concept
- * remains MSW-only -- no live check-in/queue system exists on the backend yet.
+ * precedent as `patientApi`. `getQueue` is also real (`GET
+ * /appointments/doctor/queue`) — "queue" here means today's Confirmed/
+ * Completed appointments with a real ConsultationSession, not a live
+ * check-in system.
  */
 export const doctorApi = {
   getDashboardSummary: () => apiFetch<DoctorDashboardSummary>({ path: DOCTOR_PATHS.dashboardSummary }),

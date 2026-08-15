@@ -3,11 +3,14 @@ import { env } from '@/shared/lib/env';
 import { PATIENT_PATHS } from '@/features/patient/api/paths';
 import type {
   BookAppointmentRequest,
+  CancelAppointmentRequest,
   PatientProfileUpdateRequest,
+  RescheduleAppointmentRequest,
   SubmitPatientVerificationRequest,
 } from '@/features/patient/api/types';
 import {
   bookAppointment,
+  cancelAppointment,
   checkProfileExists,
   getActivePrescriptions,
   getAppointments,
@@ -19,6 +22,10 @@ import {
   getProfile,
   getUpcomingAppointments,
   listMyVerifications,
+  MockConflictError,
+  MockInvalidStateError,
+  MockNotFoundError,
+  rescheduleAppointment,
   submitMyVerification,
   updateProfile,
 } from '@/mocks/patient-store';
@@ -73,6 +80,50 @@ export const patientHandlers = [
       // (booked by someone else) between the patient viewing it and
       // confirming.
       return errorResponse(409, 'CONFLICT', `AvailabilityWindow "${body.availabilityWindowId}" is no longer available.`);
+    }
+  }),
+
+  // Patient-Facing Reschedule (Phase 3 Step 2) + Demo Readiness P0 (cancel):
+  // the real production PATCH /appointments/:id endpoint -- matches the real
+  // backend's exact status mapping (mapConsultationError / the shared
+  // AppError hierarchy): 404 for a not-found/not-owned appointment, 409 for
+  // the real optimistic-locking slot conflict (reschedule only), 422 for an
+  // appointment that can no longer be rescheduled/cancelled from its current
+  // status.
+  http.patch(`${base()}${PATIENT_PATHS.appointment(':id')}`, async ({ params, request }) => {
+    const id = params.id as string;
+    const body = (await request.json()) as RescheduleAppointmentRequest | CancelAppointmentRequest;
+
+    if (body.action === 'cancel') {
+      try {
+        return HttpResponse.json({ data: cancelAppointment(id) });
+      } catch (error) {
+        if (error instanceof MockNotFoundError) {
+          return errorResponse(404, 'NOT_FOUND', error.message);
+        }
+        if (error instanceof MockInvalidStateError) {
+          return errorResponse(422, 'VALIDATION_FAILED', error.message);
+        }
+        return errorResponse(422, 'VALIDATION_FAILED', 'Could not cancel this appointment.');
+      }
+    }
+
+    if (body.action !== 'reschedule' || !body.newAvailabilityWindowId) {
+      return errorResponse(422, 'VALIDATION_FAILED', 'newAvailabilityWindowId is required to reschedule.');
+    }
+    try {
+      return HttpResponse.json({ data: rescheduleAppointment(id, body.newAvailabilityWindowId) });
+    } catch (error) {
+      if (error instanceof MockNotFoundError) {
+        return errorResponse(404, 'NOT_FOUND', error.message);
+      }
+      if (error instanceof MockConflictError) {
+        return errorResponse(409, 'CONFLICT', error.message);
+      }
+      if (error instanceof MockInvalidStateError) {
+        return errorResponse(422, 'VALIDATION_FAILED', error.message);
+      }
+      return errorResponse(422, 'VALIDATION_FAILED', 'Could not reschedule this appointment.');
     }
   }),
 

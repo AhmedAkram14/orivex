@@ -1,4 +1,5 @@
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import type { DomainEvent } from '../../../../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import { GetAvailabilityWindowByIdUseCase } from '../../../../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { ReleaseSlotCommand } from '../../../../scheduling/application/use-cases/release-slot/release-slot.command.js';
@@ -6,6 +7,7 @@ import type { ReleaseSlotUseCase } from '../../../../scheduling/application/use-
 import { ReserveSlotCommand } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.command.js';
 import type { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { Appointment } from '../../../domain/entities/appointment.entity.js';
+import { AppointmentRescheduledEvent } from '../../../domain/events/appointment-rescheduled.event.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
@@ -120,7 +122,16 @@ export class RescheduleOrCancelAppointmentUseCase {
       );
     }
 
-    await this.eventDispatcher.dispatch([...appointment.releaseDomainEvents(), ...newAppointment.releaseDomainEvents()]);
+    // Dispatched only when the OLD appointment being superseded was
+    // Confirmed (i.e. had a real, already-charged payment) -- constructed
+    // here rather than via Appointment.record() since it needs both the old
+    // and new appointment ids, which no single entity instance has. Consumed
+    // by PaymentModule's AutoRefundOnAppointmentRescheduledHandler.
+    const events: DomainEvent[] = [...appointment.releaseDomainEvents(), ...newAppointment.releaseDomainEvents()];
+    if (!wasRequested) {
+      events.push(new AppointmentRescheduledEvent(appointment.getId(), newAppointment.getId()));
+    }
+    await this.eventDispatcher.dispatch(events);
 
     if (newAppointment.getPricing().isFree()) {
       const result = await this.confirmAppointmentUseCase.execute(

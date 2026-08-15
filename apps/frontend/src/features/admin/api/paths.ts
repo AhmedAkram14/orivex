@@ -12,4 +12,6 @@ export const ADMIN_PATHS = {
   suspendVerificationCase: (id: string) => `/admin/verification-queue/${id}/suspend`,
   verificationCaseHistory: (id: string) => `/admin/verification-queue/${id}/history`,
   featureFlags: '/admin/feature-flags',
+  payments: '/admin/payments',
+  refundPayment: (id: string) => `/admin/payments/${id}/refund`,
 } as const;

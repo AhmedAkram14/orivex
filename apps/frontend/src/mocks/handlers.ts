@@ -12,6 +12,7 @@ import { paymentHandlers } from '@/mocks/handlers/payment';
 import { publicHandlers } from '@/mocks/handlers/public';
 import { referenceHandlers } from '@/mocks/handlers/reference';
 import { schedulingHandlers } from '@/mocks/handlers/scheduling';
+import { searchHandlers } from '@/mocks/handlers/search';
 import { telemedicineHandlers } from '@/mocks/handlers/telemedicine';
 
 /**
@@ -39,5 +40,6 @@ export const handlers = [
   ...publicHandlers,
   ...referenceHandlers,
   ...schedulingHandlers,
+  ...searchHandlers,
   ...telemedicineHandlers,
 ];

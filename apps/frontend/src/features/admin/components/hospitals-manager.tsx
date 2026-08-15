@@ -31,7 +31,13 @@ export function HospitalsManager() {
   async function handleCreateHospital(event: React.FormEvent) {
     event.preventDefault();
     if (!name.trim()) return;
-    await createHospital.mutateAsync({ name: name.trim(), address: address.trim() || undefined });
+    // mutateAsync's rejection is intentionally not rethrown -- the mutation's
+    // own isError/error state (rendered below) is what surfaces a failure to
+    // the user; re-throwing here would just become an unhandled rejection
+    // since nothing above this handler awaits it (mirrors
+    // AdminPaymentsTable's refund handler).
+    const created = await createHospital.mutateAsync({ name: name.trim(), address: address.trim() || undefined }).catch(() => null);
+    if (!created) return;
     setName('');
     setAddress('');
   }
@@ -68,6 +74,11 @@ export function HospitalsManager() {
           {createHospital.isError && (
             <Alert variant="danger" className="mt-3">
               {t('createError')}
+            </Alert>
+          )}
+          {createHospital.isSuccess && !createHospital.isPending && (
+            <Alert variant="success" className="mt-3">
+              {t('createSucceeded')}
             </Alert>
           )}
         </CardContent>
@@ -112,7 +123,9 @@ function DepartmentsPanel({ hospitalId }: { hospitalId: string }) {
   async function handleCreateDepartment(event: React.FormEvent) {
     event.preventDefault();
     if (!departmentName.trim()) return;
-    await createDepartment.mutateAsync({ name: departmentName.trim() });
+    // Same not-rethrown rationale as handleCreateHospital above.
+    const created = await createDepartment.mutateAsync({ name: departmentName.trim() }).catch(() => null);
+    if (!created) return;
     setDepartmentName('');
   }
 
@@ -149,6 +162,9 @@ function DepartmentsPanel({ hospitalId }: { hospitalId: string }) {
         </Button>
       </form>
       {createDepartment.isError && <Alert variant="danger">{t('departmentCreateError')}</Alert>}
+      {createDepartment.isSuccess && !createDepartment.isPending && (
+        <Alert variant="success">{t('departmentCreateSucceeded')}</Alert>
+      )}
     </div>
   );
 }

@@ -106,6 +106,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null> {
     return this.saved.find((t) => t.getAppointmentId() === appointmentId) ?? null;
   }
+  async findAll(): Promise<{ transactions: PaymentTransaction[]; total: number }> {
+    return { transactions: [], total: 0 };
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.saved.push(transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);

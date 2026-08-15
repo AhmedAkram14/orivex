@@ -154,6 +154,8 @@ export interface Appointment {
   id: string;
   /** ISO timestamp — components format it for display, this type never carries pre-formatted text. */
   scheduledAt: string;
+  /** Patient-Facing Reschedule (Phase 3 Step 2): the same doctor's real id, so the reschedule flow can fetch their availability windows (`GET /doctors/:doctorId/availability-windows`) -- matches `AppointmentListItemResponseDto.doctorId` exactly. */
+  doctorId: string;
   doctorName: string;
   specialization: string;
   /** The Arabic specialty name -- null until an admin has translated it. */
@@ -218,6 +220,45 @@ export interface BookedAppointment {
   reasonForVisit: string | null;
   rescheduledFromId: string | null;
 }
+
+/**
+ * Patient-Facing Reschedule (Phase 3 Step 2): `PATCH /appointments/:id`'s
+ * reschedule request body (`RescheduleOrCancelAppointmentRequestDto`'s
+ * reschedule branch). See `CancelAppointmentRequest` below for the sibling
+ * cancel branch (Demo Readiness P0).
+ */
+export interface RescheduleAppointmentRequest {
+  action: 'reschedule';
+  newAvailabilityWindowId: string;
+}
+
+/**
+ * `PATCH /appointments/:id`'s response shape (`AppointmentResponseDto`) --
+ * identical to `BookedAppointment` (the real backend DTO both endpoints
+ * share), aliased separately so call sites read as "the newly-rescheduled
+ * appointment," not "a fresh booking."
+ */
+export type RescheduledAppointment = BookedAppointment;
+
+/**
+ * Demo Readiness P0 (patient-facing cancel): `PATCH /appointments/:id`'s
+ * cancel request body (`RescheduleOrCancelAppointmentRequestDto`'s cancel
+ * branch) -- the sibling to `RescheduleAppointmentRequest` above. Valid from
+ * `Requested`/`Confirmed` status only, matching the backend exactly; a
+ * Confirmed Paid appointment's refund (if any) is fully automatic and
+ * unconditional, entirely server-side (`AutoRefundOnAppointmentCancellationHandler`).
+ */
+export interface CancelAppointmentRequest {
+  action: 'cancel';
+}
+
+/**
+ * `PATCH /appointments/:id`'s cancel response shape (`AppointmentResponseDto`)
+ * -- identical to `BookedAppointment`/`RescheduledAppointment` (the real
+ * backend DTO all three PATCH/POST outcomes share), aliased separately so
+ * call sites read as "the newly-cancelled appointment."
+ */
+export type CancelledAppointment = BookedAppointment;
 
 /**
  * Matches what `GET /patients/me/medical-records` (ClinicalModule's

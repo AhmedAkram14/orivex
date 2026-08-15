@@ -35,6 +35,81 @@ function seedNotifications(): NotificationEntry[] {
       createdAt: new Date(Date.now() - 5 * 86_400_000).toISOString(),
       read: true,
     },
+    // Notification Center pagination fix -- more than one page's worth
+    // (PAGE_SIZE 5 on the new page) of realistic entries, so pagination is
+    // meaningfully testable instead of always fitting on page 1.
+    {
+      id: 'notification-4',
+      title: 'Appointment confirmed',
+      description: 'Your appointment with Dr. Amina Hassan was confirmed for tomorrow at 10:00 AM.',
+      severity: 'success',
+      createdAt: new Date(Date.now() - 6 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-5',
+      title: 'Payment received',
+      description: 'Your payment of 500 EGP was processed successfully.',
+      severity: 'success',
+      createdAt: new Date(Date.now() - 7 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-6',
+      title: 'Verification under review',
+      description: 'Your professional verification application is being reviewed.',
+      severity: 'info',
+      createdAt: new Date(Date.now() - 8 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-7',
+      title: 'Reminder: upcoming appointment',
+      description: 'You have an appointment with Dr. Karim Mostafa in 2 hours.',
+      severity: 'warning',
+      createdAt: new Date(Date.now() - 9 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-8',
+      title: 'Appointment cancelled',
+      description: 'Your appointment with Dr. Nadia Fathy was cancelled by the doctor.',
+      severity: 'danger',
+      createdAt: new Date(Date.now() - 10 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-9',
+      title: 'Prescription ready',
+      description: 'A new prescription was issued and is ready to view.',
+      severity: 'info',
+      createdAt: new Date(Date.now() - 11 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-10',
+      title: 'Profile verified',
+      description: 'Your identity verification was approved.',
+      severity: 'success',
+      createdAt: new Date(Date.now() - 12 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-11',
+      title: 'Refund issued',
+      description: 'A refund of 300 EGP was issued to your original payment method.',
+      severity: 'info',
+      createdAt: new Date(Date.now() - 13 * 86_400_000).toISOString(),
+      read: true,
+    },
+    {
+      id: 'notification-12',
+      title: 'Security alert',
+      description: 'We noticed a login attempt from an unrecognized location.',
+      severity: 'danger',
+      createdAt: new Date(Date.now() - 14 * 86_400_000).toISOString(),
+      read: true,
+    },
   ];
 }
 
@@ -47,6 +122,13 @@ export function resetNotifications(): void {
 
 export function getNotifications(): NotificationEntry[] {
   return [...notifications].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+/** Real offset pagination over the sorted list (Notification Center pagination fix) — mirrors `listAllTransactionsForAdmin`'s page/limit slicing. */
+export function getNotificationsPage(page: number, limit: number): { items: NotificationEntry[]; total: number } {
+  const sorted = getNotifications();
+  const offset = (page - 1) * limit;
+  return { items: sorted.slice(offset, offset + limit), total: sorted.length };
 }
 
 export function markNotificationAsRead(id: string): void {

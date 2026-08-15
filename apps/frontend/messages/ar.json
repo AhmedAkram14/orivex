@@ -539,6 +539,7 @@
       "patientHealth": "لوحة الصحة",
       "adminWorkspace": "لوحة الإدارة",
       "adminAnalytics": "التحليلات",
+      "adminPayments": "المدفوعات",
       "adminHospitals": "المستشفيات",
       "adminVerificationQueue": "طابور التحقق",
       "adminFeatureFlags": "مزايا النظام",
@@ -551,7 +552,8 @@
       "emptyTitle": "لا توجد إشعارات جديدة",
       "emptyDescription": "ستظهر الإشعارات الجديدة هنا.",
       "bellLabel": "الإشعارات",
-      "bellLabelWithCount": "الإشعارات ({count} غير مقروءة)"
+      "bellLabelWithCount": "الإشعارات ({count} غير مقروءة)",
+      "viewAll": "عرض كل الإشعارات"
     },
     "userMenu": {
       "securityCenter": "مركز الأمان",
@@ -577,6 +579,15 @@
       "emptyDescription": "ستمتلئ لوحة التحكم الخاصة بك مع إطلاق المزيد من أجزاء أوريفكس. في هذه الأثناء، يمكنك مراجعة أمان حسابك.",
       "securityCenterAction": "مركز الأمان"
     }
+  },
+  "notificationCenter": {
+    "title": "الإشعارات",
+    "description": "كل إشعار أُرسل إلى حسابك، وليس فقط الأحدث منها.",
+    "markAllRead": "تعليم الكل كمقروء",
+    "loadError": "تعذّر تحميل إشعاراتك.",
+    "emptyTitle": "لا توجد إشعارات جديدة",
+    "emptyDescription": "ستظهر الإشعارات الجديدة هنا.",
+    "paginationLabel": "التنقل بين صفحات الإشعارات"
   },
   "identity": {
     "personalInfoStep": {
@@ -1343,6 +1354,33 @@
         "today": "اليوم",
         "previousWeek": "الأسبوع السابق",
         "nextWeek": "الأسبوع التالي"
+      },
+      "reschedule": {
+        "button": "إعادة الجدولة",
+        "dialogTitle": "إعادة جدولة الموعد",
+        "confirm": "تأكيد الموعد الجديد",
+        "back": "رجوع",
+        "slotNoLongerAvailable": "لم يعد هذا الموعد متاحًا. يُرجى اختيار وقت آخر.",
+        "invalidStateError": "لم يعد بالإمكان إعادة جدولة هذا الموعد — ربما تم تغييره بالفعل من مكان آخر.",
+        "notFoundError": "تعذّر العثور على هذا الموعد. ربما تم تغييره بالفعل من مكان آخر.",
+        "genericError": "تعذّرت إعادة جدولة هذا الموعد. يُرجى المحاولة مرة أخرى.",
+        "successDescription": "تم نقل موعدك إلى الوقت الجديد.",
+        "paymentStepTitle": "أكمل الدفع لتأكيد موعدك الجديد",
+        "paymentStepDescription": "تم حجز موعدك الجديد. أكمل الدفع الآن لتأكيد هذا الموعد.",
+        "done": "تم",
+        "close": "تجاهل"
+      },
+      "cancel": {
+        "button": "إلغاء",
+        "dialogTitle": "إلغاء الموعد",
+        "confirmDescription": "هل أنت متأكد من رغبتك في إلغاء هذا الموعد؟",
+        "confirmDescriptionRefund": "سيؤدي هذا إلى إلغاء موعدك واسترداد مبلغ الدفع تلقائيًا.",
+        "keepAppointment": "الاحتفاظ بالموعد",
+        "confirmCancel": "إلغاء الموعد",
+        "invalidStateError": "لم يعد بالإمكان إلغاء هذا الموعد — ربما تم تغييره بالفعل من مكان آخر.",
+        "notFoundError": "تعذّر العثور على هذا الموعد. ربما تم تغييره بالفعل من مكان آخر.",
+        "genericError": "تعذّر إلغاء هذا الموعد. يُرجى المحاولة مرة أخرى.",
+        "close": "تجاهل"
       }
     },
     "records": {
@@ -1711,7 +1749,32 @@
         "successful": "ناجحة",
         "failed": "فاشلة",
         "refunds": "المستردات",
-        "notAvailable": "غير متاح"
+        "notAvailable": "غير متاح",
+        "transactionsTitle": "المعاملات",
+        "transactionsLoadError": "تعذّر تحميل معاملات الدفع.",
+        "transactionsEmptyTitle": "لا توجد معاملات بعد",
+        "transactionsEmptyDescription": "ستظهر معاملات الدفع هنا بمجرد دفع المرضى مقابل الاستشارات.",
+        "columnPatient": "المريض",
+        "columnDoctor": "الطبيب",
+        "columnAmount": "المبلغ",
+        "columnStatus": "الحالة",
+        "columnDate": "التاريخ",
+        "columnAction": "الإجراء",
+        "noActionAvailable": "لا يوجد إجراء متاح",
+        "refundAction": "استرداد",
+        "refundSucceeded": "تم استرداد الدفعة.",
+        "refundFailed": "تعذّر إتمام الاسترداد.",
+        "refundDialogTitle": "استرداد هذه الدفعة؟",
+        "refundDialogDescription": "سيؤدي هذا إلى استرداد كامل عبر بوابة الدفع ولا يمكن التراجع عنه.",
+        "cancel": "إلغاء",
+        "status": {
+          "initiated": "بدأت",
+          "succeeded": "ناجحة",
+          "failed": "فاشلة",
+          "settled": "مسوّاة",
+          "refunded": "مستردة",
+          "disputed": "متنازع عليها"
+        }
       },
       "telemedicine": {
         "loadError": "تعذّر تحميل تحليلات التطبيب عن بُعد.",
@@ -1782,6 +1845,13 @@
       },
       "loadError": "تعذر تحميل الحسابات.",
       "roleUpdateError": "تعذر تحديث دور هذا الحساب.",
+      "roleUpdateSucceeded": "تم تحديث الدور.",
+      "roleChangeDialogTitle": "هل تريد تغيير دور هذا الحساب؟",
+      "roleChangeDialogDescription": "سيكتسب الحساب صلاحيات الدور الجديد أو يفقدها فورًا.",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد",
+      "filterRole": "التصفية حسب الدور",
+      "filterRoleAll": "كل الأدوار",
       "emptyTitle": "لا توجد حسابات بعد",
       "emptyDescription": "ستظهر الحسابات هنا بمجرد تسجيل الأشخاص."
     },
@@ -1793,6 +1863,7 @@
       "addressLabel": "العنوان",
       "create": "إضافة مستشفى",
       "createError": "تعذر إنشاء هذا المستشفى.",
+      "createSucceeded": "تم إنشاء المستشفى.",
       "loadError": "تعذر تحميل المستشفيات.",
       "emptyTitle": "لا توجد مستشفيات بعد",
       "emptyDescription": "أضف مستشفاك الأول أعلاه.",
@@ -1801,7 +1872,8 @@
       "noDepartments": "لا توجد أقسام بعد.",
       "departmentNameLabel": "اسم القسم",
       "addDepartment": "إضافة قسم",
-      "departmentCreateError": "تعذر إنشاء هذا القسم."
+      "departmentCreateError": "تعذر إنشاء هذا القسم.",
+      "departmentCreateSucceeded": "تم إنشاء القسم."
     },
     "verificationQueue": {
       "title": "طابور التحقق",
@@ -1919,6 +1991,8 @@
         "reject": "رفض",
         "suspend": "إيقاف",
         "noActionsAvailable": "لا يوجد إجراء متاح لهذه الحالة.",
+        "approveDialogTitle": "هل تريد الموافقة على هذا التوثيق؟",
+        "approveDialogDescription": "سيكتسب مقدّم الطلب الوضع الذي يمنحه هذا التوثيق.",
         "rejectDialogTitle": "هل تريد رفض هذا الطلب؟",
         "rejectDialogDescription": "سيظهر هذا السبب لمقدّم الطلب في شاشة حالته.",
         "moreInfoDialogTitle": "طلب معلومات إضافية",
@@ -1927,7 +2001,11 @@
         "suspendDialogDescription": "هذا يلغي الوضع الممنوح سابقًا. سيظهر هذا السبب لمقدّم الطلب.",
         "reasonLabel": "السبب",
         "reasonPlaceholder": "اشرح السبب...",
-        "cancel": "إلغاء"
+        "cancel": "إلغاء",
+        "approveSucceeded": "تمت الموافقة على التوثيق.",
+        "rejectSucceeded": "تم رفض التوثيق.",
+        "moreInfoSucceeded": "تم طلب معلومات إضافية.",
+        "suspendSucceeded": "تم إيقاف التوثيق."
       },
       "historySection": "سجل التقديمات",
       "historyReviewerLimitation": "الطوابع الزمنية والنتائج حقيقية؛ لم يتم تسجيل هوية المسؤول الذي اتخذ كل قرار بعد.",

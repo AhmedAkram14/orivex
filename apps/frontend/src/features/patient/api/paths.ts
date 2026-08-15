@@ -45,4 +45,8 @@ export const PATIENT_PATHS = {
   // backend route (ConsultationModule's AppointmentController) -- distinct
   // from `appointments` above (GET /appointments/me), which only ever lists.
   createAppointment: '/appointments',
+  // Patient-Facing Reschedule (Phase 3 Step 2): the real backend route
+  // (ConsultationModule's AppointmentController) -- PATCH /appointments/:id,
+  // distinct from `createAppointment` (POST /appointments) above.
+  appointment: (id: string) => `/appointments/${id}`,
 } as const;

@@ -7,6 +7,8 @@ import { useUpdateAccountRole } from '@/features/admin/hooks/use-update-account-
 import type { Role } from '@/shared/auth/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Pagination } from '@/shared/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -22,35 +24,94 @@ const PAGE_SIZE = 20;
  * `PATCH /admin/accounts/:id/role`. This is the one route
  * `NAVIGATION_CONFIG`'s `nav.adminUsers` flag already pointed at before
  * this stage existed to build it.
+ *
+ * Phase 4 (Notification & Admin Polish): a role change is a real permission
+ * grant/revocation, so it goes through the same confirm-then-give-feedback
+ * shape as `AdminPaymentsTable`'s refund flow -- a `Dialog` confirmation
+ * before the mutation fires, and a success `Alert` after it resolves. The
+ * role filter mirrors `VerificationQueue`'s `subjectType`/`status` filter
+ * pattern (an `'all'` sentinel mapped to `undefined` for the real
+ * server-side `role` query param `/admin/accounts` already supports).
  */
 export function AccountsTable() {
   const t = useTranslations('admin.users');
   const [page, setPage] = useState(1);
-  const { data, isLoading, isError } = useAccounts({ page, limit: PAGE_SIZE });
+  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all');
+  const [pendingChange, setPendingChange] = useState<{ accountId: string; role: Role } | null>(null);
+  const { data, isLoading, isError } = useAccounts({
+    page,
+    limit: PAGE_SIZE,
+    role: roleFilter === 'all' ? undefined : roleFilter,
+  });
   const updateRole = useUpdateAccountRole();
 
+  function handleRoleFilterChange(value: string) {
+    setRoleFilter(value as Role | 'all');
+    setPage(1);
+  }
+
+  function closeDialog() {
+    setPendingChange(null);
+  }
+
+  async function handleConfirmRoleChange() {
+    if (!pendingChange) return;
+    await updateRole.mutateAsync(pendingChange).catch(() => {});
+    closeDialog();
+  }
+
+  const roleFilterControl = (
+    <Select value={roleFilter} onValueChange={handleRoleFilterChange}>
+      <SelectTrigger aria-label={t('filterRole')} className="w-48">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">{t('filterRoleAll')}</SelectItem>
+        {ROLE_OPTIONS.map((role) => (
+          <SelectItem key={role} value={role}>
+            {t(`role.${role}`)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   if (isError) {
-    return <Alert variant="danger">{t('loadError')}</Alert>;
+    return (
+      <div className="flex flex-col gap-4">
+        {roleFilterControl}
+        <Alert variant="danger">{t('loadError')}</Alert>
+      </div>
+    );
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton key={index} className="h-12 w-full" />
-        ))}
+      <div className="flex flex-col gap-4">
+        {roleFilterControl}
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-12 w-full" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (!data || data.accounts.length === 0) {
-    return <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />;
+    return (
+      <div className="flex flex-col gap-4">
+        {roleFilterControl}
+        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+      </div>
+    );
   }
 
   const pageCount = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
 
   return (
     <div className="flex flex-col gap-4">
+      {roleFilterControl}
       <Table>
         <TableHeader>
           <TableRow>
@@ -73,7 +134,7 @@ export function AccountsTable() {
               <TableCell>
                 <Select
                   value={account.role}
-                  onValueChange={(role) => updateRole.mutate({ accountId: account.id, role: role as Role })}
+                  onValueChange={(role) => setPendingChange({ accountId: account.id, role: role as Role })}
                   disabled={updateRole.isPending}
                 >
                   <SelectTrigger className="w-40">
@@ -93,7 +154,27 @@ export function AccountsTable() {
         </TableBody>
       </Table>
       {updateRole.isError && <Alert variant="danger">{t('roleUpdateError')}</Alert>}
+      {updateRole.isSuccess && !updateRole.isPending && pendingChange === null && (
+        <Alert variant="success">{t('roleUpdateSucceeded')}</Alert>
+      )}
       <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
+
+      <Dialog open={pendingChange !== null} onOpenChange={(open) => !open && closeDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('roleChangeDialogTitle')}</DialogTitle>
+            <DialogDescription>{t('roleChangeDialogDescription')}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>
+              {t('cancel')}
+            </Button>
+            <Button loading={updateRole.isPending} onClick={handleConfirmRoleChange}>
+              {t('confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

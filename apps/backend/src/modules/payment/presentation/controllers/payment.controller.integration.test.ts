@@ -190,6 +190,9 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null> {
     return Array.from(this.byId.values()).find((t) => t.getAppointmentId() === appointmentId) ?? null;
   }
+  async findAll(): Promise<{ transactions: PaymentTransaction[]; total: number }> {
+    return { transactions: [], total: 0 };
+  }
   async save(transaction: PaymentTransaction): Promise<void> {
     this.byId.set(transaction.getId(), transaction);
     this.byIdempotencyKey.set(transaction.getIdempotencyKey(), transaction);

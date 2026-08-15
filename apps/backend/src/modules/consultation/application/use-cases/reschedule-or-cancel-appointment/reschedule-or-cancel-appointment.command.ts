@@ -6,8 +6,9 @@ export interface RescheduleOrCancelAppointmentCommandProps {
   action: AppointmentAction;
   newAvailabilityWindowId?: string;
   // Required only for 'cancel' -- carried onto AppointmentCancelledEvent so
-  // PaymentModule's own handler can apply the doctor-initiated-cancellation
-  // auto-refund rule without ConsultationModule ever depending on Payment.
+  // PaymentModule's own handler can apply the unconditional cancellation
+  // auto-refund rule (and NotificationModule can vary its message) without
+  // ConsultationModule ever depending on Payment.
   cancelledByRole?: CancelledByRole;
 }
 

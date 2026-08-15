@@ -74,6 +74,14 @@ import {
   type ConsultationInterruptedEventPayload,
 } from './application/event-handlers/notify-of-consultation-interrupted.handler.js';
 import {
+  NotifyPatientOfAppointmentCancelledHandler,
+  type AppointmentCancelledEventPayload,
+} from './application/event-handlers/notify-patient-of-appointment-cancelled.handler.js';
+import {
+  NotifyPatientOfAppointmentRescheduledHandler,
+  type AppointmentRescheduledEventPayload,
+} from './application/event-handlers/notify-patient-of-appointment-rescheduled.handler.js';
+import {
   NotifyOfAccountCreatedHandler,
   type AccountCreatedEventPayload,
 } from './application/event-handlers/notify-of-account-created.handler.js';
@@ -85,6 +93,14 @@ import {
   NotifyOfAccountLockedHandler,
   type AccountLockedEventPayload,
 } from './application/event-handlers/notify-of-account-locked.handler.js';
+import {
+  NotifyOfDoctorRolePromotionHandler,
+  type DoctorVerifiedEventPayload,
+} from './application/event-handlers/notify-of-doctor-role-promotion.handler.js';
+import {
+  NotifyApplicantOfVerificationSuspensionHandler,
+  type VerificationCaseSuspendedEventPayload,
+} from './application/event-handlers/notify-applicant-of-verification-suspension.handler.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
@@ -405,6 +421,71 @@ import { NotificationController } from './presentation/controllers/notification.
       ],
     },
     {
+      // Critical Lifecycle Gaps (Phase 3, Step 2): reacts to
+      // ConsultationModule's 'consultation.appointment.cancelled' event --
+      // existed since the cancel() path was added but only PaymentModule
+      // ever subscribed to it (for the automatic-refund rule, now
+      // unconditional for both doctor- and patient-initiated cancellation);
+      // nothing in NotificationModule did until now.
+      provide: NotifyPatientOfAppointmentCancelledHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfAppointmentCancelledHandler(
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.cancelled', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentCancelledEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Critical Lifecycle Gaps (Phase 3, Step 2): reacts to
+      // ConsultationModule's 'consultation.appointment.rescheduled' event
+      // (only dispatched when the old appointment was Confirmed/paid).
+      provide: NotifyPatientOfAppointmentRescheduledHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfAppointmentRescheduledHandler(
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.rescheduled', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentRescheduledEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
       // Reacts to ClinicalModule's 'clinical.prescription.signed' event --
       // existed since ClinicalModule's own Stage work but nothing ever
       // subscribed to it.
@@ -518,6 +599,40 @@ import { NotificationController } from './presentation/controllers/notification.
         const handler = new NotifyOfAccountLockedHandler(notificationRepository, logger);
         dispatcher.subscribe('authentication.account.locked', (event: DomainEvent) =>
           handler.handle(event as unknown as AccountLockedEventPayload),
+        );
+        return handler;
+      },
+      inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Reacts to TrustModule's 'doctor.verified' event (mirrors
+      // DoctorModule's own PromoteDoctorRoleOnVerificationHandler
+      // subscription to the same event by name only -- neither handler
+      // imports TrustModule, and TrustModule stays unaware either exists).
+      // Tells the newly-promoted doctor their account now has Doctor
+      // Workspace access -- previously nothing in NotificationModule
+      // subscribed to this event at all.
+      provide: NotifyOfDoctorRolePromotionHandler,
+      useFactory: (notificationRepository: NotificationRepository, logger: PinoLoggerService, dispatcher: DomainEventDispatcher) => {
+        const handler = new NotifyOfDoctorRolePromotionHandler(notificationRepository, logger);
+        dispatcher.subscribe('doctor.verified', (event: DomainEvent) =>
+          handler.handle(event as unknown as DoctorVerifiedEventPayload),
+        );
+        return handler;
+      },
+      inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Reacts to TrustModule's 'verification.case.suspended' event (new
+      // this stage -- VerificationCase.suspend() previously raised no event
+      // at all, so a suspension was never notified). Mirrors
+      // NotifyApplicantOfVerificationDecisionHandler's exact by-name-only
+      // subscription shape, 1:1 to the single applicant.
+      provide: NotifyApplicantOfVerificationSuspensionHandler,
+      useFactory: (notificationRepository: NotificationRepository, logger: PinoLoggerService, dispatcher: DomainEventDispatcher) => {
+        const handler = new NotifyApplicantOfVerificationSuspensionHandler(notificationRepository, logger);
+        dispatcher.subscribe('verification.case.suspended', (event: DomainEvent) =>
+          handler.handle(event as unknown as VerificationCaseSuspendedEventPayload),
         );
         return handler;
       },

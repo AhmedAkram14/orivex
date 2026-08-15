@@ -5,6 +5,7 @@ import type {
   AppointmentsResponse,
   BookAppointmentRequest,
   BookedAppointment,
+  CancelledAppointment,
   HealthDashboardResponse,
   IdentityVerificationStatus,
   MedicalRecordsResponse,
@@ -13,17 +14,17 @@ import type {
   PatientProfileExistsResponse,
   PatientProfileUpdateRequest,
   PrescriptionsResponse,
+  RescheduledAppointment,
   SubmitPatientVerificationRequest,
   UpcomingAppointmentsResponse,
 } from '@/features/patient/api/types';
 import type { VerificationCase } from '@/shared/verification/types';
 
 /**
- * The only module that talks to `/patient/*` — mirrors `doctorApi`'s shape.
- * Backed by an MSW mock today (`src/mocks/handlers/patient.ts`); this phase
- * builds the Patient Portal architecture only, not real Scheduling/Clinical
- * business logic, so every endpoint reflects an honest "nothing yet"
- * reality rather than fabricated clinical data.
+ * The only module that talks to `/patients/*`/`/appointments/*` — mirrors
+ * `doctorApi`'s shape. Every endpoint here is a real backend endpoint;
+ * `src/mocks/handlers/patient.ts` intercepts them only to keep the frontend
+ * test suite deterministic, same precedent as `doctorApi`.
  */
 export const patientApi = {
   getDashboardSummary: () => apiFetch<PatientDashboardSummary>({ path: PATIENT_PATHS.dashboardSummary }),
@@ -45,6 +46,29 @@ export const patientApi = {
   // production booking endpoint -- RequiresIdentityVerificationGuard-gated.
   bookAppointment: (request: BookAppointmentRequest) =>
     apiFetch<BookedAppointment>({ method: 'POST', path: PATIENT_PATHS.createAppointment, body: request }),
+
+  // Patient-Facing Reschedule (Phase 3 Step 2): the real production
+  // reschedule endpoint.
+  rescheduleAppointment: (appointmentId: string, newAvailabilityWindowId: string) =>
+    apiFetch<RescheduledAppointment>({
+      method: 'PATCH',
+      path: PATIENT_PATHS.appointment(appointmentId),
+      body: { action: 'reschedule', newAvailabilityWindowId },
+    }),
+
+  // Demo Readiness P0: the real production cancel endpoint -- same
+  // PATCH /appointments/:id the reschedule call above uses, different action
+  // value. Valid from Requested/Confirmed status only (matches the backend
+  // exactly); cancelling a paid Confirmed appointment triggers a real,
+  // already-working, unconditional auto-refund entirely server-side
+  // (AutoRefundOnAppointmentCancellationHandler in PaymentModule) -- this
+  // call alone is enough to trigger it, nothing else for the frontend to do.
+  cancelAppointment: (appointmentId: string) =>
+    apiFetch<CancelledAppointment>({
+      method: 'PATCH',
+      path: PATIENT_PATHS.appointment(appointmentId),
+      body: { action: 'cancel' },
+    }),
 
   getMedicalRecords: () => apiFetch<MedicalRecordsResponse>({ path: PATIENT_PATHS.medicalRecords }),
 

@@ -110,11 +110,11 @@ export class Appointment {
   }
 
   // cancelledBy is carried on the domain event only -- PaymentModule's own
-  // event handler uses it to apply the one unambiguous automatic-refund
-  // rule (doctor-initiated cancellation of a paid appointment = full
-  // refund); ConsultationModule itself has no payment awareness and never
-  // will (module boundary: Payment depends on Consultation, never the
-  // reverse).
+  // event handler uses it (indirectly; the refund rule itself is now
+  // unconditional regardless of who cancelled) and NotificationModule uses
+  // it to vary its message. ConsultationModule itself has no payment
+  // awareness and never will (module boundary: Payment depends on
+  // Consultation, never the reverse).
   cancel(cancelledBy: 'doctor' | 'patient'): void {
     if (this.status !== AppointmentStatus.Requested && this.status !== AppointmentStatus.Confirmed) {
       throw new ConsultationDomainError(`Appointment "${this.id}" cannot be cancelled from its current status.`);

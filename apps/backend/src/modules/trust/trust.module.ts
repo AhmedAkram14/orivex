@@ -73,8 +73,9 @@ import { TrustGuardsModule } from './trust-guards.module.js';
     },
     {
       provide: SuspendVerificationCaseUseCase,
-      useFactory: (repository: VerificationCaseRepository) => new SuspendVerificationCaseUseCase(repository),
-      inject: [VERIFICATION_CASE_REPOSITORY],
+      useFactory: (repository: VerificationCaseRepository, eventDispatcher: DomainEventDispatcher) =>
+        new SuspendVerificationCaseUseCase(repository, eventDispatcher),
+      inject: [VERIFICATION_CASE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
     {
       provide: ListPendingVerificationCasesUseCase,

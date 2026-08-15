@@ -16,14 +16,12 @@ export interface AppointmentCancelledEventPayload {
 // never import the emitting module's event type or the module itself).
 //
 // Applies the one automatic-refund rule the product decision authorized:
-// doctor-initiated cancellation of an appointment that was actually charged
-// = always full refund (docs/01-prd.md's unambiguous rule). Patient-
-// initiated cancellation is deliberately left alone here -- no time-based
-// cutoff/partial-refund policy exists yet (the PRD never specifies the
-// cutoff or the percentage), and inventing one is explicitly out of scope;
-// that remains a manual doctor-triggered refund via POST /payments/:id/refund
-// until a real policy is defined.
-export class AutoRefundOnDoctorCancellationHandler {
+// cancellation (by either doctor or patient) of an appointment that was
+// actually charged = always full refund, unconditionally -- no cutoff, no
+// partial refund. Originally doctor-only; the same unconditional rule now
+// also applies to patient-initiated cancellation, since both are simply
+// "the appointment didn't happen" from a billing standpoint.
+export class AutoRefundOnAppointmentCancellationHandler {
   constructor(
     private readonly paymentTransactionRepository: PaymentTransactionRepository,
     private readonly refundPaymentUseCase: RefundPaymentUseCase,
@@ -31,10 +29,6 @@ export class AutoRefundOnDoctorCancellationHandler {
   ) {}
 
   async handle(event: AppointmentCancelledEventPayload): Promise<void> {
-    if (event.cancelledBy !== 'doctor') {
-      return;
-    }
-
     try {
       const transaction = await this.paymentTransactionRepository.findByAppointmentId(event.appointmentId);
       if (!transaction) {
@@ -50,7 +44,7 @@ export class AutoRefundOnDoctorCancellationHandler {
       // events dispatch -- a refund failure here must never surface as a
       // failed cancellation request. Surfaced loudly in logs instead, since
       // a patient owed a refund that didn't happen needs someone to notice.
-      this.logger.error('Failed to auto-refund a doctor-cancelled paid appointment', {
+      this.logger.error('Failed to auto-refund a cancelled paid appointment', {
         appointmentId: event.appointmentId,
         error: error instanceof Error ? error.stack : String(error),
       });

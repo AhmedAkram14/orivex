@@ -18,12 +18,17 @@ import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 import type { PaymentGatewayPort } from './application/ports/payment-gateway.port.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from './application/ports/tokens.js';
 import {
-  AutoRefundOnDoctorCancellationHandler,
+  AutoRefundOnAppointmentCancellationHandler,
   type AppointmentCancelledEventPayload,
-} from './application/event-handlers/auto-refund-on-doctor-cancellation.handler.js';
+} from './application/event-handlers/auto-refund-on-appointment-cancellation.handler.js';
+import {
+  AutoRefundOnAppointmentRescheduledHandler,
+  type AppointmentRescheduledEventPayload,
+} from './application/event-handlers/auto-refund-on-appointment-rescheduled.handler.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from './application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
+import { ListPaymentTransactionsUseCase } from './application/use-cases/list-payment-transactions/list-payment-transactions.use-case.js';
 import { ReconcileStripeWebhookEventUseCase } from './application/use-cases/reconcile-stripe-webhook-event/reconcile-stripe-webhook-event.use-case.js';
 import { RefundPaymentUseCase } from './application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentTransactionRepository } from './domain/repositories/payment-transaction.repository.js';
@@ -102,6 +107,11 @@ import { PaymentController } from './presentation/controllers/payment.controller
       inject: [PAYMENT_TRANSACTION_REPOSITORY, PAYMENT_GATEWAY, DOMAIN_EVENT_DISPATCHER],
     },
     {
+      provide: ListPaymentTransactionsUseCase,
+      useFactory: (repository: PaymentTransactionRepository) => new ListPaymentTransactionsUseCase(repository),
+      inject: [PAYMENT_TRANSACTION_REPOSITORY],
+    },
+    {
       provide: ReconcileStripeWebhookEventUseCase,
       useFactory: (repository: PaymentTransactionRepository, eventDispatcher: DomainEventDispatcher) =>
         new ReconcileStripeWebhookEventUseCase(repository, eventDispatcher),
@@ -110,14 +120,14 @@ import { PaymentController } from './presentation/controllers/payment.controller
     {
       // Reacts to ConsultationModule's 'consultation.appointment.cancelled'
       // event -- see the handler's own comment for the exact refund rule.
-      provide: AutoRefundOnDoctorCancellationHandler,
+      provide: AutoRefundOnAppointmentCancellationHandler,
       useFactory: (
         repository: PaymentTransactionRepository,
         refundPaymentUseCase: RefundPaymentUseCase,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
-        const handler = new AutoRefundOnDoctorCancellationHandler(repository, refundPaymentUseCase, logger);
+        const handler = new AutoRefundOnAppointmentCancellationHandler(repository, refundPaymentUseCase, logger);
         dispatcher.subscribe('consultation.appointment.cancelled', (event: DomainEvent) =>
           handler.handle(event as unknown as AppointmentCancelledEventPayload),
         );
@@ -125,7 +135,25 @@ import { PaymentController } from './presentation/controllers/payment.controller
       },
       inject: [PAYMENT_TRANSACTION_REPOSITORY, RefundPaymentUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
+    {
+      // Reacts to ConsultationModule's 'consultation.appointment.rescheduled'
+      // event -- see the handler's own comment for the exact refund rule.
+      provide: AutoRefundOnAppointmentRescheduledHandler,
+      useFactory: (
+        repository: PaymentTransactionRepository,
+        refundPaymentUseCase: RefundPaymentUseCase,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new AutoRefundOnAppointmentRescheduledHandler(repository, refundPaymentUseCase, logger);
+        dispatcher.subscribe('consultation.appointment.rescheduled', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentRescheduledEventPayload),
+        );
+        return handler;
+      },
+      inject: [PAYMENT_TRANSACTION_REPOSITORY, RefundPaymentUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
   ],
-  exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase, RefundPaymentUseCase],
+  exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase, RefundPaymentUseCase, ListPaymentTransactionsUseCase],
 })
 export class PaymentModule {}

@@ -6,10 +6,10 @@ import type { AuthenticatedUser } from '@/shared/auth/types';
  * JWT/argon2, no external IdP; apps/backend/src/modules/authentication),
  * matching these shapes field-for-field; src/mocks/handlers/auth.ts's MSW
  * mocks continue to serve local dev/tests against this same contract.
- * `resendVerification` is not yet implemented server-side — still MSW-only,
- * a documented follow-up. `deviceSessions`/`loginHistory`/`logoutAll` ARE now
- * implemented server-side (GET /auth/sessions, DELETE /auth/sessions/:id,
- * POST /auth/logout-all, GET /auth/login-history).
+ * `resendVerification` is also implemented server-side (POST
+ * /auth/resend-verification). `deviceSessions`/`loginHistory`/`logoutAll`
+ * ARE now implemented server-side too (GET /auth/sessions, DELETE
+ * /auth/sessions/:id, POST /auth/logout-all, GET /auth/login-history).
  */
 
 export interface LoginRequest {

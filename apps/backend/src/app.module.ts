@@ -18,6 +18,7 @@ import { PublicModule } from './modules/public/public.module.js';
 import { ReferenceModule } from './modules/reference/reference.module.js';
 import { ReportingModule } from './modules/reporting/reporting.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
+import { SearchModule } from './modules/search/search.module.js';
 import { TrustModule } from './modules/trust/trust.module.js';
 import { PrismaModule } from './platform/database/prisma.module.js';
 import { EventsModule } from './platform/events/events.module.js';
@@ -53,6 +54,7 @@ import { RealtimeModule } from './platform/realtime/realtime.module.js';
     NotificationModule,
     PublicModule,
     ReportingModule,
+    SearchModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

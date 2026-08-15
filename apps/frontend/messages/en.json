@@ -539,6 +539,7 @@
       "security": "Security",
       "adminWorkspace": "Admin Workspace",
       "adminAnalytics": "Analytics",
+      "adminPayments": "Payments",
       "adminHospitals": "Hospitals",
       "adminVerificationQueue": "Verification Queue",
       "adminFeatureFlags": "Feature Flags",
@@ -551,7 +552,8 @@
       "emptyTitle": "You're all caught up",
       "emptyDescription": "New notifications will appear here.",
       "bellLabel": "Notifications",
-      "bellLabelWithCount": "Notifications ({count} unread)"
+      "bellLabelWithCount": "Notifications ({count} unread)",
+      "viewAll": "View all notifications"
     },
     "userMenu": {
       "securityCenter": "Security Center",
@@ -577,6 +579,15 @@
       "emptyDescription": "Your dashboard will fill in as more of Orivex comes online. In the meantime, you can review your account security.",
       "securityCenterAction": "Security Center"
     }
+  },
+  "notificationCenter": {
+    "title": "Notifications",
+    "description": "Every notification sent to your account, not just the most recent ones.",
+    "markAllRead": "Mark all as read",
+    "loadError": "Couldn't load your notifications.",
+    "emptyTitle": "You're all caught up",
+    "emptyDescription": "New notifications will appear here.",
+    "paginationLabel": "Notifications pagination"
   },
   "identity": {
     "personalInfoStep": {
@@ -1343,6 +1354,33 @@
         "today": "Today",
         "previousWeek": "Previous week",
         "nextWeek": "Next week"
+      },
+      "reschedule": {
+        "button": "Reschedule",
+        "dialogTitle": "Reschedule appointment",
+        "confirm": "Confirm new time",
+        "back": "Back",
+        "slotNoLongerAvailable": "This slot is no longer available. Please choose another time.",
+        "invalidStateError": "This appointment can no longer be rescheduled — it may have already been changed elsewhere.",
+        "notFoundError": "This appointment could not be found. It may have already been changed elsewhere.",
+        "genericError": "Couldn't reschedule this appointment. Please try again.",
+        "successDescription": "Your appointment has been moved to the new time.",
+        "paymentStepTitle": "Complete payment to confirm your new time",
+        "paymentStepDescription": "Your new slot is reserved. Complete payment now to confirm this appointment.",
+        "done": "Done",
+        "close": "Dismiss"
+      },
+      "cancel": {
+        "button": "Cancel",
+        "dialogTitle": "Cancel appointment",
+        "confirmDescription": "Are you sure you want to cancel this appointment?",
+        "confirmDescriptionRefund": "This will cancel your appointment and refund your payment automatically.",
+        "keepAppointment": "Keep appointment",
+        "confirmCancel": "Cancel appointment",
+        "invalidStateError": "This appointment can no longer be cancelled — it may have already been changed elsewhere.",
+        "notFoundError": "This appointment could not be found. It may have already been changed elsewhere.",
+        "genericError": "Couldn't cancel this appointment. Please try again.",
+        "close": "Dismiss"
       }
     },
     "records": {
@@ -1711,7 +1749,32 @@
         "successful": "Successful",
         "failed": "Failed",
         "refunds": "Refunds",
-        "notAvailable": "Not available"
+        "notAvailable": "Not available",
+        "transactionsTitle": "Transactions",
+        "transactionsLoadError": "Could not load payment transactions.",
+        "transactionsEmptyTitle": "No transactions yet",
+        "transactionsEmptyDescription": "Payment transactions will appear here once patients pay for consultations.",
+        "columnPatient": "Patient",
+        "columnDoctor": "Doctor",
+        "columnAmount": "Amount",
+        "columnStatus": "Status",
+        "columnDate": "Date",
+        "columnAction": "Action",
+        "noActionAvailable": "No action available",
+        "refundAction": "Refund",
+        "refundSucceeded": "Payment refunded.",
+        "refundFailed": "The refund could not be completed.",
+        "refundDialogTitle": "Refund this payment?",
+        "refundDialogDescription": "This issues a full refund through the payment gateway and cannot be undone.",
+        "cancel": "Cancel",
+        "status": {
+          "initiated": "Initiated",
+          "succeeded": "Succeeded",
+          "failed": "Failed",
+          "settled": "Settled",
+          "refunded": "Refunded",
+          "disputed": "Disputed"
+        }
       },
       "telemedicine": {
         "loadError": "Could not load telemedicine analytics.",
@@ -1782,6 +1845,13 @@
       },
       "loadError": "Could not load accounts.",
       "roleUpdateError": "Could not update this account’s role.",
+      "roleUpdateSucceeded": "Role updated.",
+      "roleChangeDialogTitle": "Change this account’s role?",
+      "roleChangeDialogDescription": "The account will immediately gain or lose the permissions of the new role.",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "filterRole": "Filter by role",
+      "filterRoleAll": "All roles",
       "emptyTitle": "No accounts yet",
       "emptyDescription": "Accounts will appear here once people register."
     },
@@ -1793,6 +1863,7 @@
       "addressLabel": "Address",
       "create": "Add hospital",
       "createError": "Could not create this hospital.",
+      "createSucceeded": "Hospital created.",
       "loadError": "Could not load hospitals.",
       "emptyTitle": "No hospitals yet",
       "emptyDescription": "Add your first hospital above.",
@@ -1801,7 +1872,8 @@
       "noDepartments": "No departments yet.",
       "departmentNameLabel": "Department name",
       "addDepartment": "Add department",
-      "departmentCreateError": "Could not create this department."
+      "departmentCreateError": "Could not create this department.",
+      "departmentCreateSucceeded": "Department created."
     },
     "verificationQueue": {
       "title": "Verification Queue",
@@ -1919,6 +1991,8 @@
         "reject": "Reject",
         "suspend": "Suspend",
         "noActionsAvailable": "No further action is available for this case.",
+        "approveDialogTitle": "Approve this verification?",
+        "approveDialogDescription": "The applicant will gain the standing this verification grants.",
         "rejectDialogTitle": "Reject this application?",
         "rejectDialogDescription": "The applicant will see this reason on their own status screen.",
         "moreInfoDialogTitle": "Request more information",
@@ -1927,7 +2001,11 @@
         "suspendDialogDescription": "This revokes previously granted standing. The applicant will see this reason.",
         "reasonLabel": "Reason",
         "reasonPlaceholder": "Explain why...",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "approveSucceeded": "Verification approved.",
+        "rejectSucceeded": "Verification rejected.",
+        "moreInfoSucceeded": "More information requested.",
+        "suspendSucceeded": "Verification suspended."
       },
       "historySection": "Submission history",
       "historyReviewerLimitation": "Timestamps and outcomes are real; which admin made each decision isn't recorded yet.",

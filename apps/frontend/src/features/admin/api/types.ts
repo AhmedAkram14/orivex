@@ -1,4 +1,5 @@
 import type { Role } from '@/shared/auth/types';
+import type { Money, PaymentStatus } from '@/features/payment/api/types';
 
 /** Matches AdministrationModule's real PlatformKpisResponseDto exactly. */
 export interface PlatformKpis {
@@ -119,6 +120,34 @@ export interface SecurityEvent {
   userAgent?: string;
   metadata: Record<string, unknown>;
   detectedAt: string;
+}
+
+/**
+ * ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4: matches
+ * AdministrationModule's real AdminPaymentTransactionResponseDto exactly --
+ * deliberately smaller than payment's own `PaymentTransaction` type (adds
+ * resolved patient/doctor display names, drops appointmentId/
+ * consultationSessionId the admin list doesn't need).
+ */
+export interface AdminPaymentTransaction {
+  id: string;
+  patientName: string;
+  doctorName: string;
+  amount: Money;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
+export interface ListAdminPaymentTransactionsResult {
+  transactions: AdminPaymentTransaction[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListAdminPaymentTransactionsParams {
+  page?: number;
+  limit?: number;
 }
 
 /** Matches AdministrationModule's real FeatureFlagsResponseDto exactly. */

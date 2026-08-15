@@ -2,14 +2,13 @@ import { DomainEvent } from '../../../../shared/domain/domain-event.js';
 
 // Consultation Pricing Lifecycle Completion: carries who cancelled --
 // PaymentModule's own event handler uses this to apply the one
-// unambiguous automatic-refund rule the PRD documents (doctor-initiated
+// unambiguous automatic-refund rule the product decision authorized:
 // cancellation of a paid, already-charged appointment = always full
-// refund; docs/01-prd.md). Patient-initiated cancellation refund policy
-// (a time-based cutoff/partial-refund rule) is explicitly NOT implemented
-// -- the PRD never specifies the cutoff or the partial percentage, so this
-// event intentionally carries enough information for that rule to be
-// added later without another event/schema change, without inventing the
-// rule now.
+// refund, unconditionally, regardless of whether the doctor or the
+// patient cancelled (no time-based cutoff, no partial refund). cancelledBy
+// is still carried on the event because other consumers (e.g.
+// NotificationModule) vary their behavior by who cancelled, even though
+// the refund rule itself no longer does.
 export class AppointmentCancelledEvent extends DomainEvent {
   readonly eventName = 'consultation.appointment.cancelled';
 

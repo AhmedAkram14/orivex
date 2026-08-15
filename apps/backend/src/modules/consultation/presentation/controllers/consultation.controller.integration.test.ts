@@ -356,17 +356,39 @@ describe('Consultation controllers (integration)', () => {
       consultationFeeAmount: 500,
     });
 
-    const windowStart = new Date(Date.now() + 60 * 60_000);
+    // freeWindow/secondFreeWindow back the doctor dashboard-summary/
+    // upcoming-work/queue tests' "today" assertions -- BookAppointmentUseCase
+    // snapshots a booked appointment's scheduledAt straight from the
+    // window's own startTime, so that startTime must stay within the
+    // current UTC calendar day for those "today" counts to see it.
+    // AvailabilityWindow itself only guarantees "not in the past", so a
+    // naive `Date.now() + 60min` offset can silently spill into tomorrow
+    // whenever this suite happens to run within ~2 hours of UTC midnight --
+    // clamp to (just before) the end of today's UTC day instead.
+    const fixtureNow = new Date();
+    const endOfTodayUtc = new Date(
+      Math.max(
+        Date.UTC(fixtureNow.getUTCFullYear(), fixtureNow.getUTCMonth(), fixtureNow.getUTCDate() + 1) - 1_000,
+        fixtureNow.getTime() + 1_000,
+      ),
+    );
+    const laterTodayUtc = (minutesFromNow: number): Date => {
+      const requested = new Date(fixtureNow.getTime() + minutesFromNow * 60_000);
+      return requested < endOfTodayUtc ? requested : endOfTodayUtc;
+    };
+
+    const windowStart = laterTodayUtc(60);
     freeWindow = AvailabilityWindow.define({
       doctorId: doctor.getId(),
       startTime: windowStart,
       endTime: new Date(windowStart.getTime() + 30 * 60_000),
       pricing: DoctorConsultationPricing.free(),
     });
+    const secondWindowStart = laterTodayUtc(120);
     secondFreeWindow = AvailabilityWindow.define({
       doctorId: doctor.getId(),
-      startTime: new Date(windowStart.getTime() + 60 * 60_000),
-      endTime: new Date(windowStart.getTime() + 90 * 60_000),
+      startTime: secondWindowStart,
+      endTime: new Date(secondWindowStart.getTime() + 30 * 60_000),
       pricing: DoctorConsultationPricing.free(),
     });
     // Scheduled a full 3 days out, deliberately never "today" -- this
@@ -857,6 +879,7 @@ describe('Consultation controllers (integration)', () => {
 
     assert.ok(response.body.data.length >= 2);
     for (const item of response.body.data) {
+      assert.equal(item.doctorId, doctor.getId());
       assert.equal(item.doctorName, 'Dr. Karim Adel');
       assert.equal(item.specialization, 'Cardiology');
       assert.ok(item.scheduledAt);
