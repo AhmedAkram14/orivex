@@ -20,6 +20,23 @@ export class ConfirmAvailabilityWindowUseCase {
       throw new NotFoundError(`AvailabilityWindow "${command.availabilityWindowId}" not found.`);
     }
 
+    // A Requested appointment awaiting doctor approval keeps its window
+    // Held for as long as it stays pending -- which can genuinely be hours
+    // or days, far past the original short booking-flow hold duration
+    // (hold()'s own comment: "a short-lived hold"). `confirm()` itself
+    // documents the correct recovery ("a lapsed hold must be re-held
+    // first") but nothing upstream of this use case actually did that,
+    // so approving anything but a near-instant request always failed with
+    // a 409 "hold has expired" conflict. Re-holding here is safe, not a
+    // race: while a window is Held, hold() itself refuses anyone else's
+    // attempt to claim it (Held && !expired -> conflict), and nothing else
+    // in this codebase re-holds a window tied to an existing Requested
+    // appointment out from under it -- so an "expired" hold on a window
+    // still backing a real pending appointment was never actually
+    // contested, just stale bookkeeping.
+    if (window.isHoldExpired()) {
+      window.hold();
+    }
     window.confirm();
 
     await this.availabilityWindowRepository.save(window);

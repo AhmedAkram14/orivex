@@ -4,7 +4,6 @@ import { describe, it } from 'node:test';
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
 import { AvailabilityWindowStatus } from '../../../domain/enums/availability-window-status.enum.js';
-import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
 import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 import { Money } from '../../../domain/value-objects/money.value-object.js';
@@ -69,7 +68,13 @@ describe('ConfirmAvailabilityWindowUseCase', () => {
     );
   });
 
-  it('propagates the domain error when the hold has expired', async () => {
+  it('re-holds and confirms a window whose hold has expired, rather than rejecting it', async () => {
+    // A Requested appointment awaiting doctor approval can genuinely sit
+    // for hours/days -- far past the original short booking-flow hold --
+    // so approving it must self-heal by re-holding, not reject with a
+    // stale-bookkeeping conflict. Nothing else can have claimed this window
+    // in the meantime: while Held, hold() itself refuses any other caller,
+    // expired or not.
     const startTime = new Date(Date.now() + 60 * 60_000);
     const window = AvailabilityWindow.define({
       doctorId: '11111111-1111-4111-8111-111111111111',
@@ -78,12 +83,13 @@ describe('ConfirmAvailabilityWindowUseCase', () => {
       pricing: ConsultationPricing.paid(Money.create(500, 'EGP')),
     });
     window.hold(new Date(Date.now() - 20 * 60_000), 15);
+    assert.ok(window.isHoldExpired());
     const repo = new FakeAvailabilityWindowRepository(window);
     const useCase = new ConfirmAvailabilityWindowUseCase(repo, new NoopDispatcher());
 
-    await assert.rejects(
-      () => useCase.execute(new ConfirmAvailabilityWindowCommand({ availabilityWindowId: window.getId() })),
-      DoctorDomainError,
-    );
+    const result = await useCase.execute(new ConfirmAvailabilityWindowCommand({ availabilityWindowId: window.getId() }));
+
+    assert.equal(result.getStatus(), AvailabilityWindowStatus.Booked);
+    assert.equal(repo.saved.length, 1);
   });
 });
