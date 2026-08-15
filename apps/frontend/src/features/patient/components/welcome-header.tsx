@@ -4,6 +4,7 @@ import { CalendarDays } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 
 function firstNameOf(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] ?? fullName;
@@ -30,11 +31,15 @@ export function WelcomeHeader() {
   if (!user) return null;
 
   const now = new Date();
+  // Greeting period reads Cairo's wall-clock hour, not the viewer's browser
+  // timezone -- ORIVEX is a single-market (Egypt) product, so "good morning"
+  // must agree with Cairo's actual morning regardless of where the device is.
+  const cairoNow = getCairoNow(now);
 
   return (
     <div className="flex flex-col gap-1">
       <p className="text-xl font-semibold text-text-primary">
-        {t(`greeting.${greetingPeriod(now.getHours())}`, { name: firstNameOf(user.fullName) })}
+        {t(`greeting.${greetingPeriod(cairoNow.getHours())}`, { name: firstNameOf(user.fullName) })}
       </p>
       <p className="text-sm text-text-secondary">{t('welcomeSubtitle')}</p>
       <div className="mt-1 flex items-center gap-1.5 text-sm text-text-tertiary">

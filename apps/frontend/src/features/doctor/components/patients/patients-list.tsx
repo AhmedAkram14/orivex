@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
 import { useDoctorReportsSummary } from '@/features/doctor/hooks/use-doctor-reports-summary';
 import type { AppointmentStatus, DoctorPatientListItem } from '@/features/doctor/api/types';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
@@ -101,7 +102,7 @@ export function PatientsList() {
   const [sort, setSort] = useState<LastVisitSort>('newest');
   const [page, setPage] = useState(1);
 
-  const now = useMemo(() => new Date(), []);
+  const now = useMemo(() => getCairoNow(), []);
 
   const kpis = useMemo(() => {
     if (!patients) return { total: 0, active: 0, thisMonth: 0, thisWeek: 0 };
@@ -110,7 +111,11 @@ export function PatientsList() {
       total: patients.length,
       active: patients.filter((patient) => Boolean(patient.nextAppointmentAt)).length,
       thisMonth: patients.filter((patient) => {
-        const visit = new Date(patient.lastVisitAt);
+        // Cairo-anchored: "this month" must agree with Egypt's calendar,
+        // not the viewer's browser timezone (`now` above is already
+        // shifted; the visit date must be shifted the same way for a
+        // consistent comparison).
+        const visit = getCairoNow(new Date(patient.lastVisitAt));
         return visit.getFullYear() === now.getFullYear() && visit.getMonth() === now.getMonth();
       }).length,
       thisWeek: patients.filter((patient) => new Date(patient.lastVisitAt) >= weekAgo).length,

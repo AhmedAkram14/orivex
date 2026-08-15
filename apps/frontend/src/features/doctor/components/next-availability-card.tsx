@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { getNextAvailability, isSameDay } from '@/features/doctor/lib/week';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -24,13 +25,13 @@ export function NextAvailabilityCard() {
     return <Skeleton className="h-20 w-full" />;
   }
 
-  const next = availability ? getNextAvailability(availability, new Date()) : null;
+  const next = availability ? getNextAvailability(availability, getCairoNow()) : null;
 
   if (!next) {
     return <EmptyState icon={CalendarClock} title={t('noAvailabilityTitle')} />;
   }
 
-  const dateLabel = isSameDay(next.date, new Date())
+  const dateLabel = isSameDay(next.date, getCairoNow())
     ? t('today')
     : format.dateTime(next.date, { weekday: 'long', month: 'short', day: 'numeric' });
   const timeLabel = `${format.dateTime(combineDateAndTime(new Date(0, 0, 0), next.day.hours.start), { hour: 'numeric' })} – ${format.dateTime(

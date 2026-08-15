@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { getUpcomingAvailabilityDays, isSameDay } from '@/features/doctor/lib/week';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
@@ -51,7 +52,7 @@ export function UpcomingAvailability() {
     );
   }
 
-  const days = availability ? getUpcomingAvailabilityDays(availability, new Date(), TILE_COUNT) : [];
+  const days = availability ? getUpcomingAvailabilityDays(availability, getCairoNow(), TILE_COUNT) : [];
 
   return (
     <WidgetContainer title={widgetTitle} className={widgetClassName} contentClassName={contentClassName}>
@@ -60,7 +61,7 @@ export function UpcomingAvailability() {
       ) : (
         <ul className="flex flex-col divide-y divide-border-default">
           {days.map(({ date, day }) => {
-            const today = isSameDay(date, new Date());
+            const today = isSameDay(date, getCairoNow());
             return (
               <li key={date.toISOString()} className="flex items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">

@@ -121,7 +121,7 @@ export function AdminPaymentsTable() {
                     {t(`status.${transaction.status}`)}
                   </Badge>
                 </TableCell>
-                <TableCell>{new Date(transaction.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(transaction.createdAt).toLocaleDateString(undefined, { timeZone: 'Africa/Cairo' })}</TableCell>
                 <TableCell>
                   {refundable ? (
                     <Button

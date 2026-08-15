@@ -22,7 +22,11 @@ export function AppointmentAnalyticsPanel({ filter, refetchIntervalMs }: { filte
   if (isError) return <Alert variant="danger">{t('loadError')}</Alert>;
 
   const percent = (value: number | undefined): string => (value === undefined ? '—' : `${(value * 100).toFixed(1)}%`);
-  const trend = data?.byBucket.map((point) => ({ date: new Date(point.bucket).toLocaleDateString(), count: point.count })) ?? [];
+  const trend =
+    data?.byBucket.map((point) => ({
+      date: new Date(point.bucket).toLocaleDateString(undefined, { timeZone: 'Africa/Cairo' }),
+      count: point.count,
+    })) ?? [];
   const peakHours = data?.peakHours.map((row) => ({ hour: `${row.hour}:00`, count: row.count })) ?? [];
 
   return (

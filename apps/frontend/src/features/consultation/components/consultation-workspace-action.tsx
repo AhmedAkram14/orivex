@@ -160,7 +160,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                   <Alert variant="info">
                     {summary.followUpRecommendation.reason}
                     {summary.followUpRecommendation.recommendedDate
-                      ? ` — ${new Date(summary.followUpRecommendation.recommendedDate).toLocaleDateString()}`
+                      ? ` — ${new Date(summary.followUpRecommendation.recommendedDate).toLocaleDateString(undefined, { timeZone: 'Africa/Cairo' })}`
                       : ''}
                   </Alert>
                 ) : (

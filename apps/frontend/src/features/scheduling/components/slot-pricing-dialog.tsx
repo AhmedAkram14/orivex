@@ -126,6 +126,7 @@ export function SlotPricingDialog({ window, timeLabel, open, onOpenChange }: Slo
                         <Input
                           type="text"
                           maxLength={3}
+                          placeholder="EGP"
                           aria-label={t('feeCurrencyLabel')}
                           value={field.value ?? ''}
                           onChange={(event) => field.onChange(event.target.value.toUpperCase())}

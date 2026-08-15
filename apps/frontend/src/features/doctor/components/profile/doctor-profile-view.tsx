@@ -35,6 +35,7 @@ import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useMyVerifications } from '@/features/doctor/hooks/use-my-verifications';
 import { computeProfileCompletion, type ProfileCompletionField } from '@/features/doctor/lib/profile-completion';
 import { getNextAvailability, isSameDay } from '@/features/doctor/lib/week';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
@@ -165,8 +166,8 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
 
   const isVerified = (verifications ?? []).some((verification) => verification.status === 'approved');
 
-  const nextAvailability = availability ? getNextAvailability(availability, new Date()) : null;
-  const isAvailableToday = Boolean(nextAvailability && isSameDay(nextAvailability.date, new Date()));
+  const nextAvailability = availability ? getNextAvailability(availability, getCairoNow()) : null;
+  const isAvailableToday = Boolean(nextAvailability && isSameDay(nextAvailability.date, getCairoNow()));
 
   const completion = computeProfileCompletion(profile);
 

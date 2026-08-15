@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useDoctorUpcomingWork } from '@/features/doctor/hooks/use-doctor-upcoming-work';
 import { isSameDay } from '@/features/doctor/lib/week';
 import type { UpcomingWorkItem } from '@/features/doctor/api/types';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
@@ -41,7 +42,7 @@ export function TodaysSchedule() {
   const format = useFormatter();
   const { data: items, isLoading, isError } = useDoctorUpcomingWork();
 
-  const today = new Date();
+  const today = getCairoNow();
   const todaysItems = (items ?? [])
     .filter((item) => isSameDay(new Date(item.scheduledAt), today))
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());

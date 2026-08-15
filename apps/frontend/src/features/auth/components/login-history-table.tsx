@@ -50,7 +50,7 @@ export function LoginHistoryTable() {
       <TableBody>
         {entries.map((entry) => (
           <TableRow key={entry.id}>
-            <TableCell>{new Date(entry.timestamp).toLocaleString()}</TableCell>
+            <TableCell>{new Date(entry.timestamp).toLocaleString(undefined, { timeZone: 'Africa/Cairo' })}</TableCell>
             <TableCell>{entry.userAgent ?? t('unknownDevice')}</TableCell>
             <TableCell>{entry.ipAddress ?? '—'}</TableCell>
             <TableCell>

@@ -135,6 +135,7 @@ function DayPricing({ control, dayIndex, dayOfWeek }: { control: Control<Working
                   <Input
                     type="text"
                     maxLength={3}
+                    placeholder="EGP"
                     aria-label={t('feeCurrencyLabel', { day: tDay(dayOfWeek) })}
                     value={field.value ?? ''}
                     onChange={(event) => field.onChange(event.target.value.toUpperCase())}
@@ -246,7 +247,13 @@ export function WorkingHoursForm({ schedule, onSaved }: WorkingHoursFormProps) {
         pricing:
           day.pricing.pricingType === 'free'
             ? { pricingType: 'free', feeAmount: null, feeCurrency: null }
-            : day.pricing,
+            // ORIVEX Egypt V1 is a single-currency market -- a doctor who
+            // sets Paid pricing but leaves the currency field blank should
+            // never end up with a null/empty currency on the wire; default
+            // to EGP rather than rejecting the save or fabricating a
+            // different currency. An explicitly-typed currency is never
+            // overridden.
+            : { ...day.pricing, feeCurrency: day.pricing.feeCurrency?.trim() ? day.pricing.feeCurrency : 'EGP' },
       })) as RecurringWeeklySchedule;
       await updateAvailability.mutateAsync(days);
       onSaved();

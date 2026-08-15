@@ -63,7 +63,9 @@ export function DeviceSessionsList() {
                 </div>
                 {session.ipAddress && <p className="text-sm text-text-secondary">{session.ipAddress}</p>}
                 <p className="text-xs text-text-tertiary">
-                  {t('lastActive', { lastActiveAt: new Date(session.lastActiveAt).toLocaleString() })}
+                  {t('lastActive', {
+                    lastActiveAt: new Date(session.lastActiveAt).toLocaleString(undefined, { timeZone: 'Africa/Cairo' }),
+                  })}
                 </p>
               </div>
             </div>
