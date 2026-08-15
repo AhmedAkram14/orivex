@@ -51,7 +51,7 @@ describe('MobileNav', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
     await screen.findByRole('dialog');
 
-    await userEvent.click(screen.getByRole('link', { name: 'Dashboard' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Security' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

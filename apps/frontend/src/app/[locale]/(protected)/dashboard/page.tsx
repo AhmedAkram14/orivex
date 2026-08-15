@@ -35,9 +35,18 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
  * rendering this generic shared page -- Overview already is the doctor's
  * real dashboard (KPIs, schedule, queue, all real data), so this page's
  * honest-but-empty "nothing to show yet" placeholder would only ever be a
- * confusing dead end for that role. Every other role still renders this
- * shared page exactly as before -- no dedicated workspace exists for
- * super_admin/hospital_admin/nurse/receptionist yet.
+ * confusing dead end for that role.
+ *
+ * UX Reliability Pass: this route is no longer nav-reachable (the sidebar's
+ * top-level "Dashboard" item was a real duplicate of each workspace's own
+ * "Overview" and has been removed) -- it now exists purely as a defensive
+ * redirect target for stale bookmarks/links, for every role that has a real
+ * workspace home: `super_admin` -> `/admin` (previously fell through to
+ * this generic page with no redirect at all) and `patient` -> `/patient`
+ * once the journey/intake gating below (an existing, untouched business
+ * rule) has nothing left to redirect for. No dedicated workspace exists for
+ * hospital_admin/nurse/receptionist yet, so those roles still render this
+ * shared page.
  */
 export default function DashboardPage() {
   const t = useTranslations('shell.dashboard');
@@ -46,28 +55,36 @@ export default function DashboardPage() {
   const role = user ? primaryRole(user.roles) : undefined;
   const subtitle = role ? t(DASHBOARD_SUBTITLE_KEY[role]) : undefined;
   const isDoctorRole = role === 'doctor';
+  const isSuperAdminRole = role === 'super_admin';
   const isPatientRole = Boolean(user?.roles.includes('patient'));
   const journeyStatus = useJourneyStatus({ enabled: isPatientRole });
   const { needsJourneyChoice, needsPatientIntake } = journeyStatus.data ?? {};
+  const patientNeedsGatedRedirect = isPatientRole && (needsJourneyChoice || needsPatientIntake);
 
   useEffect(() => {
     if (isDoctorRole) {
       router.replace('/doctor');
       return;
     }
-    if (!isPatientRole) return;
+    if (isSuperAdminRole) {
+      router.replace('/admin');
+      return;
+    }
+    if (!isPatientRole || journeyStatus.isPending) return;
     if (needsJourneyChoice) {
       router.replace('/journey');
     } else if (needsPatientIntake) {
       router.replace('/patient/intake');
+    } else {
+      router.replace('/patient');
     }
-  }, [isDoctorRole, isPatientRole, needsJourneyChoice, needsPatientIntake, router]);
+  }, [isDoctorRole, isSuperAdminRole, isPatientRole, journeyStatus.isPending, needsJourneyChoice, needsPatientIntake, router]);
 
-  if (isDoctorRole) {
+  if (isDoctorRole || isSuperAdminRole) {
     return <LoadingState />;
   }
 
-  if (isPatientRole && (journeyStatus.isPending || needsJourneyChoice || needsPatientIntake)) {
+  if (isPatientRole && (journeyStatus.isPending || patientNeedsGatedRedirect)) {
     return <LoadingState />;
   }
 

@@ -134,7 +134,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <InfoTile
             icon={CalendarDays}
-            iconClassName="bg-primary-subtle text-primary"
+            iconClassName="bg-primary-subtle text-primary-emphasis"
             label={t('dateOfBirth')}
             value={
               profile.dateOfBirth
@@ -150,7 +150,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
           />
           <InfoTile
             icon={Flower2}
-            iconClassName="bg-warning-subtle text-warning"
+            iconClassName="bg-warning-subtle text-warning-emphasis"
             label={t('allergies')}
             value={profile.allergies || t('noAllergiesOnRecord')}
           />
@@ -196,7 +196,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
           <ul className="flex flex-col gap-3">
             {profile.emergencyContacts.map((contact) => (
               <li key={contact.id} className="flex items-center gap-3 rounded-xl border border-border-default/70 p-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
                   <Icon icon={Phone} size="sm" />
                 </div>
                 <div className="flex min-w-0 flex-col gap-0.5">
@@ -210,7 +210,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
           </ul>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border-default p-6 text-center">
-            <div className="flex size-12 items-center justify-center rounded-full bg-primary-subtle text-primary">
+            <div className="flex size-12 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
               <Icon icon={UserRoundPlus} size="lg" />
             </div>
             <div className="flex flex-col gap-1">
@@ -232,7 +232,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
       <CardContent className="flex h-full flex-col gap-3 px-7 py-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-full bg-primary-subtle text-primary">
+            <div className="flex size-9 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
               <Icon icon={Shield} size="sm" />
             </div>
             <CardTitle className="text-base">{t('insurance')}</CardTitle>

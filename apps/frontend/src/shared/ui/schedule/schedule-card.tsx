@@ -22,7 +22,7 @@ const cardClass = cn(
 export function ScheduleCard({ icon, title, dateLabel, timeLabel, href, className }: ScheduleCardProps) {
   const content = (
     <>
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-emphasis">
         <Icon icon={icon} size="md" />
       </div>
       <div className="flex flex-col gap-0.5">

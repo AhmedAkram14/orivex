@@ -55,6 +55,11 @@ const doctorState: AuthState = {
   user: { id: '2', email: 'doctor@orivex.dev', fullName: 'Dr. Sarah Ahmed', roles: ['doctor'] },
 };
 
+const superAdminState: AuthState = {
+  status: 'authenticated',
+  user: { id: '3', email: 'admin@orivex.dev', fullName: 'Admin User', roles: ['super_admin'] },
+};
+
 describe('DashboardPage', () => {
   it('redirects a patient-role account with neither profile to /journey', async () => {
     server.use(
@@ -72,7 +77,7 @@ describe('DashboardPage', () => {
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/en/journey'));
   });
 
-  it('renders the dashboard, unredirected, for an already-provisioned patient account', async () => {
+  it('redirects an already-provisioned patient account to /patient (Overview) -- this route is a defensive fallback only, no longer nav-reachable', async () => {
     server.use(
       // The mock doctor store always has a seeded profile regardless of
       // caller -- an honest reflection of this account's real state would
@@ -84,8 +89,7 @@ describe('DashboardPage', () => {
 
     renderDashboard(patientState);
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(replace).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/en/patient'));
   });
 
   it('redirects a doctor-role account straight to /doctor (Overview), never rendering this generic page, and never calls the journey-status checks', async () => {
@@ -102,5 +106,12 @@ describe('DashboardPage', () => {
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/en/doctor'));
     expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
     expect(patientExistsCalled).toBe(false);
+  });
+
+  it('redirects a super_admin-role account straight to /admin (Overview), never rendering this generic page', async () => {
+    renderDashboard(superAdminState);
+
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith('/en/admin'));
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
 });

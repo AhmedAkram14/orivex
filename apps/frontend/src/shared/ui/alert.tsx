@@ -7,10 +7,10 @@ import { cn } from '@/shared/lib/cn';
 export const alertVariants = cva('flex gap-3 rounded-md border p-4 text-sm', {
   variants: {
     variant: {
-      info: 'border-info-subtle bg-info-subtle text-info',
-      success: 'border-success-subtle bg-success-subtle text-success',
-      warning: 'border-warning-subtle bg-warning-subtle text-warning',
-      danger: 'border-danger-subtle bg-danger-subtle text-danger',
+      info: 'border-info-subtle bg-info-subtle text-info-emphasis',
+      success: 'border-success-subtle bg-success-subtle text-success-emphasis',
+      warning: 'border-warning-subtle bg-warning-subtle text-warning-emphasis',
+      danger: 'border-danger-subtle bg-danger-subtle text-danger-emphasis',
     },
   },
   defaultVariants: {

@@ -94,7 +94,7 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
           onSelect={() => {
             logout.mutate(undefined, { onSuccess: () => router.replace('/login') });
           }}
-          className="text-danger data-[highlighted]:bg-danger-subtle"
+          className="text-danger data-[highlighted]:bg-danger-subtle data-[highlighted]:text-danger-emphasis"
         >
           <Icon icon={LogOut} size="sm" className="me-2" />
           {t('signOut')}

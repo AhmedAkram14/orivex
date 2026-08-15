@@ -615,6 +615,27 @@
     }
   },
   "doctor": {
+    "card": {
+      "verified": "موثّق",
+      "ranks": {
+        "resident": "طبيب مقيم",
+        "registrar": "طبيب مسجل",
+        "specialist": "أخصائي",
+        "consultant": "استشاري",
+        "professor": "أستاذ"
+      },
+      "yearsExperience": "{count} سنوات خبرة",
+      "independentPractice": "عيادة مستقلة",
+      "availableToday": "متاح اليوم",
+      "availableTomorrow": "متاح غدًا",
+      "consultationFeeLabel": "رسوم الاستشارة",
+      "consultationFee": "{amount} جنيه",
+      "consultationFeeFree": "مجانًا",
+      "viewProfile": "عرض الملف الشخصي",
+      "bookAppointment": "حجز موعد",
+      "topRated": "الأعلى تقييمًا",
+      "mostBooked": "الأكثر حجزًا"
+    },
     "dashboard": {
       "title": "مساحة عمل الطبيب",
       "welcome": "مرحبًا بعودتك، د. {name}.",
@@ -797,6 +818,7 @@
       "dayTab": "يوم",
       "agendaTab": "جدول الأعمال",
       "upcomingSlotsTab": "المواعيد القادمة",
+      "scheduleToolsTitle": "أدوات الجدول",
       "workingHoursTitle": "الأوقات المتاحة",
       "editWorkingHours": "تعديل الأوقات المتاحة",
       "timeOffTitle": "الإجازات",

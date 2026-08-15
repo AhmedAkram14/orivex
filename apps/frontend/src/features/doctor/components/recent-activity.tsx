@@ -15,10 +15,10 @@ const MAX_ITEMS = 4;
 
 /** Maps a real `NotificationEntry.severity` to an icon + accent color — the same field the notification bell's own unread dot/text weight already keys off of, just extended to a colored icon here instead of a new fabricated "activity type" field. */
 const iconBySeverity: Record<NotificationSeverity, { icon: LucideIcon; accentClassName: string }> = {
-  success: { icon: CheckCircle2, accentClassName: 'bg-success-subtle text-success' },
-  warning: { icon: AlertTriangle, accentClassName: 'bg-warning-subtle text-warning' },
-  danger: { icon: XCircle, accentClassName: 'bg-danger-subtle text-danger' },
-  info: { icon: Info, accentClassName: 'bg-info-subtle text-info' },
+  success: { icon: CheckCircle2, accentClassName: 'bg-success-subtle text-success-emphasis' },
+  warning: { icon: AlertTriangle, accentClassName: 'bg-warning-subtle text-warning-emphasis' },
+  danger: { icon: XCircle, accentClassName: 'bg-danger-subtle text-danger-emphasis' },
+  info: { icon: Info, accentClassName: 'bg-info-subtle text-info-emphasis' },
 };
 
 /**

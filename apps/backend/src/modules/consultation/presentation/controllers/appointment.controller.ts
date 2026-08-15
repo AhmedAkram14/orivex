@@ -155,7 +155,7 @@ export class AppointmentController {
           appointmentId: id,
           action: body.action,
           newAvailabilityWindowId: body.newAvailabilityWindowId,
-          cancelledByRole: user.role === AccountRole.Doctor ? 'doctor' : 'patient',
+          initiatedByRole: user.role === AccountRole.Doctor ? 'doctor' : 'patient',
         }),
       );
       return envelope(AppointmentResponseDto.fromDomain(appointment));

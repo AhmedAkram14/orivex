@@ -101,25 +101,25 @@ export function DashboardHero() {
               href="/doctor/queue"
               icon={Video}
               label={t('hero.quickActions.startConsultation')}
-              accentClassName="bg-primary-subtle text-primary"
+              accentClassName="bg-primary-subtle text-primary-emphasis"
             />
             <QuickActionTile
               href="/doctor/queue"
               icon={Users}
               label={t('hero.quickActions.viewQueue')}
-              accentClassName="bg-warning-subtle text-warning"
+              accentClassName="bg-warning-subtle text-warning-emphasis"
             />
             <QuickActionTile
               href="/doctor/schedule"
               icon={CalendarClock}
               label={t('hero.quickActions.updateSchedule')}
-              accentClassName="bg-info-subtle text-info"
+              accentClassName="bg-info-subtle text-info-emphasis"
             />
             <QuickActionTile
               href="/doctor/queue"
               icon={FileText}
               label={t('hero.quickActions.writePrescription')}
-              accentClassName="bg-success-subtle text-success"
+              accentClassName="bg-success-subtle text-success-emphasis"
             />
           </div>
         </div>

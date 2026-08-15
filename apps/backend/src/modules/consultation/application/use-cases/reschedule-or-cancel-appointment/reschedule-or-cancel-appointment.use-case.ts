@@ -49,9 +49,9 @@ export class RescheduleOrCancelAppointmentUseCase {
     }
 
     if (command.action === 'cancel') {
-      return this.cancel(appointment, command.cancelledByRole ?? 'patient');
+      return this.cancel(appointment, command.initiatedByRole ?? 'patient');
     }
-    return this.reschedule(appointment, command.newAvailabilityWindowId);
+    return this.reschedule(appointment, command.newAvailabilityWindowId, command.initiatedByRole ?? 'patient');
   }
 
   private async cancel(appointment: Appointment, cancelledByRole: 'doctor' | 'patient'): Promise<Appointment> {
@@ -69,7 +69,11 @@ export class RescheduleOrCancelAppointmentUseCase {
     return appointment;
   }
 
-  private async reschedule(appointment: Appointment, newAvailabilityWindowId: string | undefined): Promise<Appointment> {
+  private async reschedule(
+    appointment: Appointment,
+    newAvailabilityWindowId: string | undefined,
+    rescheduledByRole: 'doctor' | 'patient',
+  ): Promise<Appointment> {
     if (!newAvailabilityWindowId) {
       throw new ConsultationDomainError('newAvailabilityWindowId is required to reschedule.');
     }
@@ -129,7 +133,7 @@ export class RescheduleOrCancelAppointmentUseCase {
     // by PaymentModule's AutoRefundOnAppointmentRescheduledHandler.
     const events: DomainEvent[] = [...appointment.releaseDomainEvents(), ...newAppointment.releaseDomainEvents()];
     if (!wasRequested) {
-      events.push(new AppointmentRescheduledEvent(appointment.getId(), newAppointment.getId()));
+      events.push(new AppointmentRescheduledEvent(appointment.getId(), newAppointment.getId(), rescheduledByRole));
     }
     await this.eventDispatcher.dispatch(events);
 

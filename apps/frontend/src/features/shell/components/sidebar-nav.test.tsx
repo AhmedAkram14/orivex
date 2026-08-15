@@ -44,10 +44,14 @@ const doctorState: AuthState = {
 };
 
 describe('SidebarNav', () => {
-  it('always shows Dashboard and Security, the two unrestricted destinations', () => {
+  it('always shows Security, the one unrestricted destination outside a workspace group', () => {
     renderSidebar(patientState);
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
+  });
+
+  it('never shows a top-level Dashboard item -- each workspace group\'s own Overview is the one real home link, no duplicate destination', () => {
+    renderSidebar(patientState);
+    expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   });
 
   it('hides the still-feature-flag-gated Clinical group for every role, since its flags default off', () => {
@@ -71,18 +75,22 @@ describe('SidebarNav', () => {
   });
 
   it('marks the item matching the current route as active', () => {
-    mockPathname = '/dashboard';
+    mockPathname = '/security';
     renderSidebar(patientState);
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('link', { name: 'Security' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Security' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('renders Dashboard as a real, clickable link for a doctor too -- /dashboard redirects to their real Overview', () => {
-    renderSidebar(doctorState);
-    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/en/dashboard');
-    expect(screen.getByText('Dashboard').closest('[aria-disabled="true"]')).not.toBeInTheDocument();
-    // Overview (the doctor's own real dashboard) is still a normal, real link.
-    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument();
+  it('marks only the specific matching item active, never the workspace root too, on a nested route', () => {
+    mockPathname = '/patient/doctors';
+    renderSidebar(patientState);
+    expect(screen.getByRole('link', { name: 'Browse Doctors' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks the workspace root Overview active when genuinely on that exact route', () => {
+    mockPathname = '/patient';
+    renderSidebar(patientState);
+    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('shows the new Patients/Reports/Settings doctor-workspace links for a doctor', () => {

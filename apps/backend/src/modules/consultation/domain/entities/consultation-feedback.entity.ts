@@ -69,7 +69,9 @@ export class ConsultationFeedback {
       new Date(),
     );
 
-    feedback.record(new ConsultationFeedbackSubmittedEvent(feedback.id, feedback.doctorId));
+    feedback.record(
+      new ConsultationFeedbackSubmittedEvent(feedback.id, feedback.doctorId, feedback.consultationSessionId),
+    );
     return feedback;
   }
 

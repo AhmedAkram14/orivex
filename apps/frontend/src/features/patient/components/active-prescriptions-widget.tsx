@@ -51,7 +51,7 @@ export function ActivePrescriptionsWidget() {
         <ul className="flex flex-col gap-3">
           {recent.map((item) => (
             <li key={item.id} className="flex items-center gap-3 rounded-xl border border-border-default/70 p-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-success-subtle text-success">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-success-subtle text-success-emphasis">
                 <Icon icon={Pill} size="sm" />
               </div>
               <div className="flex flex-1 flex-col gap-0.5">

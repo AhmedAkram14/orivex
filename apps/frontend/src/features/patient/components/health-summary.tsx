@@ -63,7 +63,7 @@ export function HealthSummary({ layout = 'row', className }: HealthSummaryProps)
     <>
       <SummaryTile
         icon={CalendarClock}
-        iconClassName="bg-primary-subtle text-primary"
+        iconClassName="bg-primary-subtle text-primary-emphasis"
         label={t('upcomingAppointmentsTitle')}
         value={String(data?.upcomingAppointmentsCount ?? 0)}
         loading={isLoading}
@@ -72,7 +72,7 @@ export function HealthSummary({ layout = 'row', className }: HealthSummaryProps)
       />
       <SummaryTile
         icon={Pill}
-        iconClassName="bg-success-subtle text-success"
+        iconClassName="bg-success-subtle text-success-emphasis"
         label={t('activePrescriptionsTitle')}
         value={String(data?.activePrescriptionsCount ?? 0)}
         loading={isLoading}
@@ -81,7 +81,7 @@ export function HealthSummary({ layout = 'row', className }: HealthSummaryProps)
       />
       <SummaryTile
         icon={History}
-        iconClassName="bg-warning-subtle text-warning"
+        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('lastVisit')}
         value={data?.lastVisitAt ? format.dateTime(new Date(data.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' }) : t('noVisitsYet')}
         loading={isLoading}

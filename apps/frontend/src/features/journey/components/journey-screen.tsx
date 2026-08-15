@@ -112,7 +112,7 @@ export function JourneyScreen() {
         </div>
         <div className="flex items-center gap-6">
           <a href="mailto:ahmed.akram7474@gmail.com" className="hidden items-center gap-2 sm:flex">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
               <Icon icon={Headphones} size="sm" />
             </span>
             <span className="flex flex-col text-sm">

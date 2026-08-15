@@ -48,13 +48,13 @@ const PANEL_THEME = {
     panelBg: 'bg-primary-subtle/40',
     title: 'text-primary',
     circle: 'border-primary text-primary',
-    iconBg: 'bg-primary-subtle text-primary',
+    iconBg: 'bg-primary-subtle text-primary-emphasis',
   },
   success: {
     panelBg: 'bg-success-subtle/40',
     title: 'text-success',
     circle: 'border-success text-success',
-    iconBg: 'bg-success-subtle text-success',
+    iconBg: 'bg-success-subtle text-success-emphasis',
   },
 } as const;
 

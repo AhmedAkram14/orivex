@@ -33,6 +33,7 @@
 
   --brand-50: #eff6ff;
   --brand-100: #dbeafe;
+  --brand-300: #93c5fd;
   --brand-500: #3b82f6;
   --brand-600: #2563eb;
   --brand-700: #1d4ed8;
@@ -40,18 +41,22 @@
   --brand-900: #1e3a8a;
 
   --success-50: #ecfdf5;
+  --success-300: #6ee7b7;
   --success-600: #059669;
   --success-900: #064e3b;
 
   --warning-50: #fffbeb;
+  --warning-300: #fcd34d;
   --warning-600: #d97706;
   --warning-900: #78350f;
 
   --danger-50: #fef2f2;
+  --danger-300: #fca5a5;
   --danger-600: #dc2626;
   --danger-900: #7f1d1d;
 
   --info-50: #eff6ff;
+  --info-300: #93c5fd;
   --info-600: #2563eb;
   --info-900: #1e3a8a;
 
@@ -90,6 +95,14 @@
   --color-primary-active: var(--brand-800);
   --color-primary-subtle: var(--brand-50);
   --color-primary-foreground: var(--gray-0);
+  /* "On subtle background" text/icon color -- deliberately decoupled from
+     --color-primary itself (which also backs solid buttons/links and must
+     stay unchanged there). Equal to the base color in light mode; overridden
+     brighter in dark mode (theme-dark.css) since --color-primary-subtle's
+     dark value is a saturated near-black tint of the SAME hue as the base
+     color, which otherwise renders as low-contrast color-on-itself. See
+     that file's comment for the measured contrast ratios. */
+  --color-primary-emphasis: var(--brand-600);
 
   --color-secondary: var(--gray-700);
   --color-secondary-hover: var(--gray-800);
@@ -99,18 +112,22 @@
   --color-success: var(--success-600);
   --color-success-subtle: var(--success-50);
   --color-success-foreground: var(--gray-0);
+  --color-success-emphasis: var(--success-600);
 
   --color-warning: var(--warning-600);
   --color-warning-subtle: var(--warning-50);
   --color-warning-foreground: var(--gray-900);
+  --color-warning-emphasis: var(--warning-600);
 
   --color-danger: var(--danger-600);
   --color-danger-subtle: var(--danger-50);
   --color-danger-foreground: var(--gray-0);
+  --color-danger-emphasis: var(--danger-600);
 
   --color-info: var(--info-600);
   --color-info-subtle: var(--info-50);
   --color-info-foreground: var(--gray-0);
+  --color-info-emphasis: var(--info-600);
 
   --color-neutral: var(--gray-600);
   --color-neutral-subtle: var(--gray-100);

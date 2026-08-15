@@ -44,7 +44,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen flex-col">
       <Topbar>
         <MobileNav />
-        <Link href="/dashboard" className="flex items-center gap-2 text-lg font-semibold text-text-primary">
+        {/* UX Reliability Pass: the logo now always goes to the public landing page, matching the established convention that a site's own logo is a "home" link to the marketing site, not the app's own /dashboard fallback route (which is no longer nav-reachable at all -- see navigation.ts). Consistent across patient/doctor/admin, desktop/mobile (MobileNav's own logo is a non-interactive drawer title, not a second link), and both locales via this same i18n-aware Link. */}
+        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-text-primary">
           <Logo size="sm" />
           {tCommon('appName')}
         </Link>

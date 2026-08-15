@@ -16,6 +16,7 @@ import { AuthenticationModule } from '../authentication/authentication.module.js
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from '../consultation/application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
+import { GetConsultationFeedbackForSessionUseCase } from '../consultation/application/use-cases/get-consultation-feedback-for-session/get-consultation-feedback-for-session.use-case.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from '../clinical/application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { ClinicalModule } from '../clinical/clinical.module.js';
@@ -78,9 +79,21 @@ import {
   type AppointmentCancelledEventPayload,
 } from './application/event-handlers/notify-patient-of-appointment-cancelled.handler.js';
 import {
+  NotifyDoctorOfAppointmentCancelledHandler,
+  type DoctorAppointmentCancelledEventPayload,
+} from './application/event-handlers/notify-doctor-of-appointment-cancelled.handler.js';
+import {
   NotifyPatientOfAppointmentRescheduledHandler,
   type AppointmentRescheduledEventPayload,
 } from './application/event-handlers/notify-patient-of-appointment-rescheduled.handler.js';
+import {
+  NotifyDoctorOfAppointmentRescheduledHandler,
+  type DoctorAppointmentRescheduledEventPayload,
+} from './application/event-handlers/notify-doctor-of-appointment-rescheduled.handler.js';
+import {
+  NotifyDoctorOfConsultationFeedbackSubmittedHandler,
+  type ConsultationFeedbackSubmittedEventPayload,
+} from './application/event-handlers/notify-doctor-of-consultation-feedback-submitted.handler.js';
 import {
   NotifyOfAccountCreatedHandler,
   type AccountCreatedEventPayload,
@@ -455,6 +468,35 @@ import { NotificationController } from './presentation/controllers/notification.
       ],
     },
     {
+      // UX Reliability Pass: the counterpart to
+      // NotifyPatientOfAppointmentCancelledHandler above, which only ever
+      // notified the patient -- a doctor previously had no way to learn a
+      // patient had cancelled short of noticing it missing from their queue.
+      // A second subscriber on the same event (the dispatcher supports
+      // multiple handlers per event name); only fires when cancelledBy ===
+      // 'patient' so a doctor never self-notifies.
+      provide: NotifyDoctorOfAppointmentCancelledHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyDoctorOfAppointmentCancelledHandler(
+          getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.cancelled', (event: DomainEvent) =>
+          handler.handle(event as unknown as DoctorAppointmentCancelledEventPayload),
+        );
+        return handler;
+      },
+      inject: [GetAppointmentByIdUseCase, GetDoctorProfileByIdUseCase, NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
       // Critical Lifecycle Gaps (Phase 3, Step 2): reacts to
       // ConsultationModule's 'consultation.appointment.rescheduled' event
       // (only dispatched when the old appointment was Confirmed/paid).
@@ -484,6 +526,33 @@ import { NotificationController } from './presentation/controllers/notification.
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
+    },
+    {
+      // UX Reliability Pass: the counterpart to
+      // NotifyPatientOfAppointmentRescheduledHandler above, which only ever
+      // notified the patient. A second subscriber on the same event; only
+      // fires when rescheduledByRole === 'patient' so a doctor never
+      // self-notifies when rescheduling their own patient's appointment.
+      provide: NotifyDoctorOfAppointmentRescheduledHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyDoctorOfAppointmentRescheduledHandler(
+          getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.rescheduled', (event: DomainEvent) =>
+          handler.handle(event as unknown as DoctorAppointmentRescheduledEventPayload),
+        );
+        return handler;
+      },
+      inject: [GetAppointmentByIdUseCase, GetDoctorProfileByIdUseCase, NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
     {
       // Reacts to ClinicalModule's 'clinical.prescription.signed' event --
@@ -637,6 +706,46 @@ import { NotificationController } from './presentation/controllers/notification.
         return handler;
       },
       inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // UX Reliability Pass: ConsultationFeedbackSubmittedEvent's own
+      // comment already said "Notification module can subscribe to this to
+      // tell the doctor feedback was received" -- nothing did until now.
+      // Reacts to ConsultationModule's 'consultation.feedback.submitted'
+      // event by name only, mirroring every other handler's cross-module
+      // boundary.
+      provide: NotifyDoctorOfConsultationFeedbackSubmittedHandler,
+      useFactory: (
+        getConsultationFeedbackForSessionUseCase: GetConsultationFeedbackForSessionUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyDoctorOfConsultationFeedbackSubmittedHandler(
+          getConsultationFeedbackForSessionUseCase,
+          getDoctorProfileByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.feedback.submitted', (event: DomainEvent) =>
+          handler.handle(event as unknown as ConsultationFeedbackSubmittedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetConsultationFeedbackForSessionUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
     },
   ],
   // NOTIFICATION_QUEUE is exported for HealthController's GET /health/

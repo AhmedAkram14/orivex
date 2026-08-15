@@ -60,7 +60,8 @@ export function CtaSection() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Only 2 cards -- a carousel would be overkill; stacking to one column on mobile (same "recompose, don't squeeze" rule as the specialty carousel) is enough. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
               <span className="flex size-14 items-center justify-center rounded-full bg-primary-subtle">
                 <Icon icon={Stethoscope} size="lg" className="text-primary" />

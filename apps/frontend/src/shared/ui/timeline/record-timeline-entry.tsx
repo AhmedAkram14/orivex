@@ -57,7 +57,7 @@ export function RecordTimelineEntry({
   return (
     <div className={cn('flex gap-4', className)}>
       <div className="flex flex-col items-center">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
           <Icon icon={iconByType[type]} size="sm" />
         </span>
         {!isLast && <span className="mt-1 w-px flex-1 bg-border-default" aria-hidden="true" />}

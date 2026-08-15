@@ -7,6 +7,7 @@ import type { NotificationRepository } from '../../domain/repositories/notificat
 export interface AppointmentRescheduledEventPayload {
   oldAppointmentId: string;
   newAppointmentId: string;
+  rescheduledByRole?: 'doctor' | 'patient';
 }
 
 // Critical Lifecycle Gaps (Phase 3, Step 2): tells the patient their

@@ -70,28 +70,28 @@ export default function DoctorQueuePage() {
   const stats = [
     {
       icon: Clock,
-      iconClassName: 'bg-primary-subtle text-primary',
+      iconClassName: 'bg-primary-subtle text-primary-emphasis',
       value: pendingCount,
       label: t('stats.pendingApproval.title'),
       sublabel: pendingCount === 0 ? t('stats.pendingApproval.emptySublabel') : t('stats.pendingApproval.sublabel'),
     },
     {
       icon: Clock,
-      iconClassName: 'bg-warning-subtle text-warning',
+      iconClassName: 'bg-warning-subtle text-warning-emphasis',
       value: waitingCount,
       label: t('stats.waiting.title'),
       sublabel: t('stats.waiting.sublabel'),
     },
     {
       icon: Video,
-      iconClassName: 'bg-danger-subtle text-danger',
+      iconClassName: 'bg-danger-subtle text-danger-emphasis',
       value: inConsultationCount,
       label: t('stats.inConsultation.title'),
       sublabel: t('stats.inConsultation.sublabel'),
     },
     {
       icon: CheckCircle2,
-      iconClassName: 'bg-success-subtle text-success',
+      iconClassName: 'bg-success-subtle text-success-emphasis',
       value: completedTodayCount,
       label: t('stats.completedToday.title'),
       sublabel: t('stats.completedToday.sublabel'),

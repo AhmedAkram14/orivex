@@ -57,7 +57,7 @@ export default async function UnauthorizedPage({
               key={title}
               className={`flex max-w-56 items-start gap-3 text-left ${index > 0 ? 'border-l border-border-default pl-8' : ''}`}
             >
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
                 <Icon icon={icon} size="sm" />
               </div>
               <div>

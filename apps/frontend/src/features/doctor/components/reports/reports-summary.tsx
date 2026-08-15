@@ -27,28 +27,28 @@ export function ReportsSummary() {
     <DashboardGrid columns={4}>
       <LinkableStatCard
         icon={CalendarCheck}
-        iconClassName="bg-primary-subtle text-primary"
+        iconClassName="bg-primary-subtle text-primary-emphasis"
         label={t('stats.totalAppointments')}
         value={String(data?.totalAppointments ?? 0)}
         loading={isLoading}
       />
       <LinkableStatCard
         icon={CheckCircle2}
-        iconClassName="bg-success-subtle text-success"
+        iconClassName="bg-success-subtle text-success-emphasis"
         label={t('stats.completed')}
         value={String(data?.completed ?? 0)}
         loading={isLoading}
       />
       <LinkableStatCard
         icon={XCircle}
-        iconClassName="bg-danger-subtle text-danger"
+        iconClassName="bg-danger-subtle text-danger-emphasis"
         label={t('stats.cancelledOrNoShow')}
         value={String(cancelledAndNoShow)}
         loading={isLoading}
       />
       <LinkableStatCard
         icon={Star}
-        iconClassName="bg-warning-subtle text-warning"
+        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('stats.averageRating')}
         value={
           data?.averageRating != null

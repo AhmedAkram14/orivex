@@ -9,6 +9,7 @@ export class ConsultationFeedbackSubmittedEvent extends DomainEvent {
   constructor(
     public readonly consultationFeedbackId: string,
     public readonly doctorId: string,
+    public readonly consultationSessionId: string,
   ) {
     super();
   }

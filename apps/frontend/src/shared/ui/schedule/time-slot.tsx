@@ -14,8 +14,8 @@ export interface TimeSlotProps {
 }
 
 const statusClass: Record<TimeSlotStatus, string> = {
-  available: 'border-success-subtle bg-success-subtle text-success',
-  booked: 'border-primary-subtle bg-primary-subtle text-primary',
+  available: 'border-success-subtle bg-success-subtle text-success-emphasis',
+  booked: 'border-primary-subtle bg-primary-subtle text-primary-emphasis',
   blocked: 'border-border-default bg-canvas text-text-tertiary',
 };
 

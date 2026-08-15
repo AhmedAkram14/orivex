@@ -115,7 +115,7 @@ function ProfileSectionCard({ title, icon, iconClassName, actions, children, cla
           <div className="flex items-center gap-3">
             <span
               className={cn(
-                'flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary',
+                'flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis',
                 iconClassName,
               )}
             >
@@ -245,7 +245,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
           <div className="grid grid-cols-2 gap-3 border-t border-border-default pt-6 sm:grid-cols-4">
             {isWorkspace && patients && (
               <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-info-subtle text-info">
+                <span className="flex size-10 items-center justify-center rounded-full bg-info-subtle text-info-emphasis">
                   <Icon icon={Users} size="md" />
                 </span>
                 <div>
@@ -255,7 +255,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
               </div>
             )}
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-full bg-warning-subtle text-warning">
+              <span className="flex size-10 items-center justify-center rounded-full bg-warning-subtle text-warning-emphasis">
                 <Icon icon={Star} size="md" />
               </span>
               <div>
@@ -267,7 +267,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             </div>
             {profile.yearsOfExperience !== undefined && (
               <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-success-subtle text-success">
+                <span className="flex size-10 items-center justify-center rounded-full bg-success-subtle text-success-emphasis">
                   <Icon icon={Briefcase} size="md" />
                 </span>
                 <div>
@@ -278,7 +278,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             )}
             {profile.consultationFeeAmount !== undefined && (
               <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                <span className="flex size-10 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
                   <Icon icon={Wallet} size="md" />
                 </span>
                 <div>
@@ -318,7 +318,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             </div>
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('experienceTimelineTitle')} icon={History} iconClassName="bg-info-subtle text-info">
+          <ProfileSectionCard title={t('experienceTimelineTitle')} icon={History} iconClassName="bg-info-subtle text-info-emphasis">
             {(profile.workExperience ?? []).length > 0 ? (
               <ol className="flex flex-col gap-6">
                 {profile.workExperience.map((entry) => {
@@ -373,7 +373,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             )}
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('languages')} icon={LanguagesIcon} iconClassName="bg-info-subtle text-info">
+          <ProfileSectionCard title={t('languages')} icon={LanguagesIcon} iconClassName="bg-info-subtle text-info-emphasis">
             {(profile.languages ?? []).length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {profile.languages.map((language) => (
@@ -387,7 +387,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             )}
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('insurance')} icon={ShieldCheck} iconClassName="bg-success-subtle text-success">
+          <ProfileSectionCard title={t('insurance')} icon={ShieldCheck} iconClassName="bg-success-subtle text-success-emphasis">
             {(profile.insuranceProviders ?? []).length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {profile.insuranceProviders.map((provider) => (
@@ -401,7 +401,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             )}
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('publications')} icon={Book} iconClassName="bg-warning-subtle text-warning">
+          <ProfileSectionCard title={t('publications')} icon={Book} iconClassName="bg-warning-subtle text-warning-emphasis">
             {(profile.publications ?? []).length > 0 ? (
               <ul className="flex flex-col gap-3">
                 {profile.publications.map((publication) => (
@@ -427,7 +427,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             )}
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('awards')} icon={Award} iconClassName="bg-danger-subtle text-danger">
+          <ProfileSectionCard title={t('awards')} icon={Award} iconClassName="bg-danger-subtle text-danger-emphasis">
             {(profile.awards ?? []).length > 0 ? (
               <ul className="flex flex-col gap-3">
                 {profile.awards.map((award) => (
@@ -453,7 +453,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             )}
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('reviews')} icon={Star} iconClassName="bg-warning-subtle text-warning">
+          <ProfileSectionCard title={t('reviews')} icon={Star} iconClassName="bg-warning-subtle text-warning-emphasis">
             {reviewsLoading ? <Skeleton className="h-24 w-full" /> : <DoctorReviewsList doctorProfileId={profile.id} />}
           </ProfileSectionCard>
         </div>
@@ -464,7 +464,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             <Card className={CARD_CLASS}>
               <CardContent className="flex flex-col gap-4 p-6">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-full bg-info-subtle text-info">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-info-subtle text-info-emphasis">
                     <Icon icon={CalendarClock} size="md" />
                   </span>
                   <Heading as="h3" level={4}>{t('sidebar.availability')}</Heading>
@@ -524,7 +524,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             <Card className={CARD_CLASS}>
               <CardContent className="flex flex-col gap-4 p-6">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-10 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
                     <Icon icon={Sparkles} size="md" />
                   </span>
                   <Heading as="h3" level={4}>{t('sidebar.profileCompletion')}</Heading>

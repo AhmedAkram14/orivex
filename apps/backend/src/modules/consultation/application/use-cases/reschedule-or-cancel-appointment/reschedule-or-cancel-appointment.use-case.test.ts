@@ -272,7 +272,7 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
     assert.equal(releasedNewWindow?.getStatus(), 'open');
   });
 
-  it('passes an explicit cancelledByRole through to AppointmentCancelledEvent', async () => {
+  it('passes an explicit initiatedByRole through to AppointmentCancelledEvent', async () => {
     const window = buildOpenWindow();
     window.hold();
     const windowRepo = new InMemoryAvailabilityWindowRepository();
@@ -294,7 +294,7 @@ describe('RescheduleOrCancelAppointmentUseCase', () => {
       new RescheduleOrCancelAppointmentCommand({
         appointmentId: appointment.getId(),
         action: 'cancel',
-        cancelledByRole: 'doctor',
+        initiatedByRole: 'doctor',
       }),
     );
 

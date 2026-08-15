@@ -18,12 +18,12 @@ const ITEMS = [
 ] as const satisfies readonly { key: string; icon: typeof UserCheck; accent: BadgeProps['variant'] }[];
 
 const ACCENT_CLASSES: Record<NonNullable<BadgeProps['variant']>, { iconBg: string; icon: string; underline: string }> = {
-  primary: { iconBg: 'bg-primary-subtle', icon: 'text-primary', underline: 'bg-primary' },
-  success: { iconBg: 'bg-success-subtle', icon: 'text-success', underline: 'bg-success' },
-  warning: { iconBg: 'bg-warning-subtle', icon: 'text-warning', underline: 'bg-warning' },
+  primary: { iconBg: 'bg-primary-subtle', icon: 'text-primary-emphasis', underline: 'bg-primary' },
+  success: { iconBg: 'bg-success-subtle', icon: 'text-success-emphasis', underline: 'bg-success' },
+  warning: { iconBg: 'bg-warning-subtle', icon: 'text-warning-emphasis', underline: 'bg-warning' },
   danger: { iconBg: 'bg-danger-subtle', icon: 'text-danger', underline: 'bg-danger' },
   neutral: { iconBg: 'bg-neutral-subtle', icon: 'text-neutral', underline: 'bg-neutral' },
-  info: { iconBg: 'bg-info-subtle', icon: 'text-info', underline: 'bg-info' },
+  info: { iconBg: 'bg-info-subtle', icon: 'text-info-emphasis', underline: 'bg-info' },
 };
 
 // Real mechanisms only -- restates the four cards above in short form, same

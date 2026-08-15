@@ -1,35 +1,25 @@
 'use client';
 
-import { CalendarDays, ListFilter, Search, Shield, Stethoscope, User } from 'lucide-react';
+import { ListFilter, Search, Shield, Stethoscope } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { DoctorRatingSummary } from '@/features/consultation/components/doctor-rating-summary';
+import { DoctorCard } from '@/features/doctor/components/doctor-card';
 import { useDoctorsList } from '@/features/doctor/hooks/use-doctors-list';
 import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Input } from '@/shared/ui/input';
-import { Link } from '@/shared/i18n/navigation';
 import { Pagination } from '@/shared/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 const PAGE_LIMIT = 12;
 const ALL = '__all__';
-
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 export interface DoctorDirectoryBrowserProps {
   /** Pre-filters to one specialty, e.g. arriving from the Browse Specialties screen -- the search box still narrows further within it. */
@@ -64,6 +54,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
   const specialtyNameById = new Map(
     (specialties ?? []).map((specialty) => [specialty.id, pickLocalizedName(specialty.name, specialty.nameAr, locale)]),
   );
+  const hospitalNameById = new Map((hospitals ?? []).map((hospital) => [hospital.id, hospital.name]));
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -145,43 +136,16 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.doctors.map((doctor) => (
-              <Card key={doctor.doctorProfileId} className="flex h-full flex-col">
-                <CardContent className="flex h-full flex-col gap-4 p-6">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="size-14 text-base">
-                      <AvatarFallback>{initialsFor(doctor.displayName)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-sm font-semibold text-text-primary">{doctor.displayName}</p>
-                      <Badge variant="primary">{specialtyNameById.get(doctor.specialtyId) ?? t('unknownSpecialty')}</Badge>
-                    </div>
-                  </div>
-
-                  {doctor.yearsOfExperience !== undefined && (
-                    <div className="flex items-center gap-1.5 text-sm text-text-secondary">
-                      <Icon icon={CalendarDays} size="sm" />
-                      {t('yearsOfExperience', { years: doctor.yearsOfExperience })}
-                    </div>
-                  )}
-
-                  <DoctorRatingSummary doctorProfileId={doctor.doctorProfileId} className="text-sm" />
-
-                  <div className="mt-auto flex items-center gap-2 pt-2">
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link href={`/patient/doctors/${doctor.doctorProfileId}`}>
-                        <Icon icon={User} size="sm" className="me-2" />
-                        {t('viewProfile')}
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" className="flex-1">
-                      <Link href={`/patient/appointments/book?doctorId=${doctor.doctorProfileId}`}>
-                        <Icon icon={CalendarDays} size="sm" className="me-2" />
-                        {t('bookAppointment')}
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <DoctorCard
+                key={doctor.doctorProfileId}
+                doctorProfileId={doctor.doctorProfileId}
+                fullName={doctor.displayName}
+                specialtyLabel={specialtyNameById.get(doctor.specialtyId) ?? t('unknownSpecialty')}
+                yearsOfExperience={doctor.yearsOfExperience}
+                hospitalName={doctor.hospitalId ? hospitalNameById.get(doctor.hospitalId) : undefined}
+                consultationFeeAmount={doctor.consultationFeeAmount}
+                ratingSlot={<DoctorRatingSummary doctorProfileId={doctor.doctorProfileId} className="text-sm" />}
+              />
             ))}
           </div>
           {pageCount > 1 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />}

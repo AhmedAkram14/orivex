@@ -13,7 +13,7 @@ export function AvailabilityBlock({ startLabel, endLabel, label, className }: Av
   return (
     <div
       className={cn(
-        'flex flex-col gap-0.5 rounded-md border border-success-subtle bg-success-subtle p-2 text-xs text-success',
+        'flex flex-col gap-0.5 rounded-md border border-success-subtle bg-success-subtle p-2 text-xs text-success-emphasis',
         className,
       )}
     >

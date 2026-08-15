@@ -172,14 +172,14 @@ export function PatientsList() {
           label={t('kpis.totalPatients')}
           value={String(kpis.total)}
           helperText={t('kpis.totalPatientsHelper')}
-          iconClassName="bg-info-subtle text-info"
+          iconClassName="bg-info-subtle text-info-emphasis"
         />
         <LinkableStatCard
           icon={UserCheck}
           label={t('kpis.activePatients')}
           value={String(kpis.active)}
           helperText={t('kpis.activePatientsHelper')}
-          iconClassName="bg-success-subtle text-success"
+          iconClassName="bg-success-subtle text-success-emphasis"
         />
         <LinkableStatCard
           icon={Calendar}
@@ -193,7 +193,7 @@ export function PatientsList() {
           label={t('kpis.thisWeek')}
           value={String(kpis.thisWeek)}
           helperText={t('kpis.thisWeekHelper')}
-          iconClassName="bg-warning-subtle text-warning"
+          iconClassName="bg-warning-subtle text-warning-emphasis"
         />
         <LinkableStatCard
           icon={Star}

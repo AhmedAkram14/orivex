@@ -7,7 +7,6 @@ import {
   FileText,
   Flag,
   HeartPulse,
-  LayoutDashboard,
   Layers,
   Pill,
   Receipt,
@@ -56,18 +55,15 @@ export interface NavItemConfig {
  * list for the current session, in this order.
  */
 export const NAVIGATION_CONFIG: NavItemConfig[] = [
-  {
-    id: 'dashboard',
-    labelKey: 'dashboard',
-    icon: LayoutDashboard,
-    href: '/dashboard',
-    // The doctor role has its own real dashboard (Doctor Workspace's
-    // Overview, /doctor) -- but /dashboard itself already redirects a
-    // doctor session straight there (DashboardPage's own effect), so this
-    // is a real, working link for every role, not a dead end. Previously
-    // disabled here, which just made it look broken instead of actually
-    // preventing anything.
-  },
+  // UX Reliability Pass: a top-level "Dashboard" item alongside each
+  // workspace's own "Overview" child was a real duplicate destination --
+  // every role (patient/doctor/admin) now has its own real Overview home,
+  // so a second generic link to the same idea is never correct, only
+  // confusing. Removed entirely rather than `disabledForRoles`-gated for
+  // every role, since a permanently-inert nav row is itself confusing
+  // clutter. `/dashboard` (DashboardPage) still exists as a defensive
+  // redirect-only fallback for stale bookmarks/links -- just no longer
+  // nav-reachable.
   {
     id: 'doctor-workspace',
     labelKey: 'doctorWorkspace',

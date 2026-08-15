@@ -68,7 +68,7 @@ export function UpcomingAvailability() {
                   <span
                     className={cn(
                       'flex size-10 shrink-0 items-center justify-center rounded-full',
-                      today ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-text-tertiary',
+                      today ? 'bg-primary-subtle text-primary-emphasis' : 'bg-secondary-subtle text-text-tertiary',
                     )}
                   >
                     <Icon icon={CalendarClock} size="md" />

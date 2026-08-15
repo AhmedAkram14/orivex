@@ -29,3 +29,21 @@ Element.prototype.scrollIntoView ??= function scrollIntoView() {};
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
+
+// jsdom has no matchMedia — shared/hooks/use-media-query.ts (and anything
+// checking prefers-reduced-motion) calls window.matchMedia unconditionally,
+// so any test rendering a component that uses it needs at least a stub.
+// Always reports "no match" (never the mobile/reduced-motion breakpoint),
+// which is the correct default for jsdom's fixed, desktop-sized viewport.
+window.matchMedia ??=
+  ((query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList) as typeof window.matchMedia;

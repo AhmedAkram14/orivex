@@ -11,7 +11,7 @@ const itemClass = cn(
   'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm outline-none transition-colors duration-(--duration-fast)',
   'text-text-secondary hover:bg-secondary-subtle hover:text-text-primary',
   'focus-visible:ring-2 focus-visible:ring-focus-ring',
-  'data-[active=true]:bg-primary-subtle data-[active=true]:font-medium data-[active=true]:text-primary',
+  'data-[active=true]:bg-primary-subtle data-[active=true]:font-medium data-[active=true]:text-primary-emphasis',
 );
 
 export interface NavItemProps {

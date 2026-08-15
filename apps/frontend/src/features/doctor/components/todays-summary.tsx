@@ -43,7 +43,7 @@ export function TodaysSummary() {
       <LinkableStatCard
         size="lg"
         icon={CalendarCheck}
-        iconClassName="bg-info-subtle text-info"
+        iconClassName="bg-info-subtle text-info-emphasis"
         label={t('consultationsToday')}
         value={String(data?.consultationsToday ?? 0)}
         loading={isLoading}
@@ -53,7 +53,7 @@ export function TodaysSummary() {
       <LinkableStatCard
         size="lg"
         icon={Users}
-        iconClassName="bg-warning-subtle text-warning"
+        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('patientsInQueue')}
         value={String(data?.patientsInQueue ?? 0)}
         loading={isLoading}
@@ -63,7 +63,7 @@ export function TodaysSummary() {
       <LinkableStatCard
         size="lg"
         icon={CheckCircle2}
-        iconClassName="bg-success-subtle text-success"
+        iconClassName="bg-success-subtle text-success-emphasis"
         label={t('completedToday')}
         value={String(data?.completedToday ?? 0)}
         loading={isLoading}
@@ -72,7 +72,7 @@ export function TodaysSummary() {
       <LinkableStatCard
         size="lg"
         icon={Star}
-        iconClassName="bg-primary-subtle text-primary"
+        iconClassName="bg-primary-subtle text-primary-emphasis"
         label={t('averageRating')}
         value={ratingValue}
         helperText={helperText}

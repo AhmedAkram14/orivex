@@ -34,12 +34,12 @@ const FAQ_ITEMS: { key: (typeof FAQ_KEYS)[number]; icon: LucideIcon; accent: Acc
 ];
 
 const ACCENT_CLASSES: Record<Accent, string> = {
-  primary: 'bg-primary-subtle text-primary',
-  success: 'bg-success-subtle text-success',
-  warning: 'bg-warning-subtle text-warning',
-  danger: 'bg-danger-subtle text-danger',
+  primary: 'bg-primary-subtle text-primary-emphasis',
+  success: 'bg-success-subtle text-success-emphasis',
+  warning: 'bg-warning-subtle text-warning-emphasis',
+  danger: 'bg-danger-subtle text-danger-emphasis',
   neutral: 'bg-neutral-subtle text-neutral',
-  info: 'bg-info-subtle text-info',
+  info: 'bg-info-subtle text-info-emphasis',
 };
 
 export function FaqSection() {
@@ -85,7 +85,7 @@ export function FaqSection() {
                   <Icon icon={icon} size="sm" />
                 </span>
                 <span className="flex-1 font-semibold text-text-primary">{t(`items.${key}.question`)}</span>
-                <span className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary in-data-[state=open]:flex">
+                <span className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis in-data-[state=open]:flex">
                   <Icon icon={Minus} size="sm" />
                 </span>
                 <Icon

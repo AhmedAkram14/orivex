@@ -13,7 +13,7 @@ export interface LinkableStatCardProps {
   /** Shows a skeleton in place of the value — for a stat whose count is still loading, distinct from a stat that is genuinely zero. */
   loading?: boolean;
   className?: string;
-  /** Overrides the icon tile's default `bg-primary-subtle text-primary` (e.g. per-card accent colors on a multi-stat row) — omitted keeps the existing default unchanged. */
+  /** Overrides the icon tile's default `bg-primary-subtle text-primary-emphasis` (e.g. per-card accent colors on a multi-stat row) — omitted keeps the existing default unchanged. */
   iconClassName?: string;
   /**
    * Real supporting text under the value (e.g. a rating's review count) —
@@ -66,7 +66,7 @@ export function LinkableStatCard({
   const config = sizeConfig[size];
   const content = (
     <>
-      <div className={cn('flex shrink-0 items-center justify-center bg-primary-subtle text-primary', config.icon, iconClassName)}>
+      <div className={cn('flex shrink-0 items-center justify-center bg-primary-subtle text-primary-emphasis', config.icon, iconClassName)}>
         <Icon icon={icon} size={config.iconSize} />
       </div>
       <div className="flex flex-1 flex-col gap-1">

@@ -15,10 +15,10 @@ const MAX_ITEMS = 4;
 
 /** Maps a real `NotificationEntry.severity` to an icon + accent color -- mirrors the Doctor Workspace's `RecentActivity` mapping exactly. */
 const iconBySeverity: Record<NotificationSeverity, { icon: LucideIcon; accentClassName: string }> = {
-  success: { icon: CheckCircle2, accentClassName: 'bg-success-subtle text-success' },
-  warning: { icon: AlertTriangle, accentClassName: 'bg-warning-subtle text-warning' },
+  success: { icon: CheckCircle2, accentClassName: 'bg-success-subtle text-success-emphasis' },
+  warning: { icon: AlertTriangle, accentClassName: 'bg-warning-subtle text-warning-emphasis' },
   danger: { icon: XCircle, accentClassName: 'bg-danger-subtle text-danger' },
-  info: { icon: Info, accentClassName: 'bg-info-subtle text-info' },
+  info: { icon: Info, accentClassName: 'bg-info-subtle text-info-emphasis' },
 };
 
 /**

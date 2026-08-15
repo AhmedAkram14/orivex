@@ -79,6 +79,14 @@ export function useRealtimeSocket(): void {
       queryClient.invalidateQueries({ queryKey: ['patient-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['consultation-summary'] });
       queryClient.invalidateQueries({ queryKey: ['doctor-reviews'] });
+      // UX Reliability Pass: a verification decision (patient identity or
+      // doctor credentialing, approve/reject/suspend) already arrives as a
+      // Notification through this same event -- these two query keys were
+      // simply missing from this fan-out, so the applicant's own status
+      // screen sat on its 30s staleTime instead of updating live.
+      queryClient.invalidateQueries({ queryKey: ['patient-identity-verification-status'] });
+      queryClient.invalidateQueries({ queryKey: ['patient-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['doctor-verifications'] });
       // Product follow-up (2026-07-29): a role change (e.g. a doctor
       // verification getting approved) also arrives as a Notification.
       // The account's role only actually changes in the access token the

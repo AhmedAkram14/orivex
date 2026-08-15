@@ -615,6 +615,27 @@
     }
   },
   "doctor": {
+    "card": {
+      "verified": "Verified",
+      "ranks": {
+        "resident": "Resident",
+        "registrar": "Registrar",
+        "specialist": "Specialist",
+        "consultant": "Consultant",
+        "professor": "Professor"
+      },
+      "yearsExperience": "{count} Years Exp.",
+      "independentPractice": "Independent Practice",
+      "availableToday": "Available Today",
+      "availableTomorrow": "Available Tomorrow",
+      "consultationFeeLabel": "Consultation Fee",
+      "consultationFee": "{amount} EGP",
+      "consultationFeeFree": "Free",
+      "viewProfile": "View Profile",
+      "bookAppointment": "Book Appointment",
+      "topRated": "Top Rated",
+      "mostBooked": "Most Booked"
+    },
     "dashboard": {
       "title": "Doctor Workspace",
       "welcome": "Welcome back, Dr. {name}.",
@@ -797,6 +818,7 @@
       "dayTab": "Day",
       "agendaTab": "Agenda",
       "upcomingSlotsTab": "Upcoming Slots",
+      "scheduleToolsTitle": "Schedule tools",
       "workingHoursTitle": "Available hours",
       "editWorkingHours": "Edit available hours",
       "timeOffTitle": "Time off",

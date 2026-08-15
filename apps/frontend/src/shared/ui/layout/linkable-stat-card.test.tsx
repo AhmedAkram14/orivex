@@ -22,8 +22,8 @@ describe('LinkableStatCard', () => {
 
   it('applies a custom iconClassName when provided, without changing default behavior otherwise', () => {
     const { container } = renderWithProviders(
-      <LinkableStatCard icon={Users} label="Patients in queue" value="3" iconClassName="bg-warning-subtle text-warning" />,
+      <LinkableStatCard icon={Users} label="Patients in queue" value="3" iconClassName="bg-warning-subtle text-warning-emphasis" />,
     );
-    expect(container.querySelector('.bg-warning-subtle.text-warning')).toBeInTheDocument();
+    expect(container.querySelector('.bg-warning-subtle.text-warning-emphasis')).toBeInTheDocument();
   });
 });

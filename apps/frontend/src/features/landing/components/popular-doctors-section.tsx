@@ -1,43 +1,20 @@
 'use client';
 
-import {
-  ArrowRight,
-  BadgeCheck,
-  Briefcase,
-  CalendarCheck,
-  Flame,
-  Headphones,
-  Lock,
-  MapPin,
-  ShieldCheck,
-  Star,
-  Stethoscope,
-  Trophy,
-} from 'lucide-react';
+import { ArrowRight, CalendarCheck, Headphones, Lock, ShieldCheck, Star } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePublicDoctors } from '@/features/landing/hooks/use-public-doctors';
 import type { PublicDoctor } from '@/features/landing/api/types';
+import { DoctorCard } from '@/features/doctor/components/doctor-card';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { cn } from '@/shared/lib/cn';
 import { Skeleton } from '@/shared/ui/skeleton';
-
-function initialsOf(fullName: string): string {
-  return fullName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-}
 
 // Purely cosmetic pill color per specialty -- unlike Browse Specialties'
 // hand-picked category mapping, this card only needs neighbors in a 3-column
@@ -59,110 +36,45 @@ function specialtyBadgeVariant(specialtyName: string): BadgeProps['variant'] {
   return SPECIALTY_BADGE_VARIANTS[Math.abs(hash) % SPECIALTY_BADGE_VARIANTS.length];
 }
 
-function DoctorCard({ doctor }: { doctor: PublicDoctor }) {
+/** Landing already has the rating aggregate inline in its own bulk `/public/doctors` payload -- built here and passed into the shared card's `ratingSlot`, rather than the card re-fetching it per doctor. */
+function PopularDoctorRating({ doctor }: { doctor: PublicDoctor }) {
   const t = useTranslations('landing.popularDoctors');
+
+  if (doctor.reviewCount === 0) {
+    return (
+      <Text size="sm" tone="tertiary">
+        {t('noReviewsYet')}
+      </Text>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon icon={Star} size="sm" className="fill-warning text-warning" />
+      <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
+      <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
+    </div>
+  );
+}
+
+function LandingDoctorCard({ doctor }: { doctor: PublicDoctor }) {
   const locale = useLocale();
   const specialtyName = pickLocalizedName(doctor.specialtyName, doctor.specialtyNameAr, locale);
 
   return (
-    <Card className="relative flex h-full flex-col gap-4 rounded-2xl p-6 pb-4 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Avatar size="lg" className="size-20">
-            <AvatarFallback>{initialsOf(doctor.fullName)}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-1.5">
-            <span className="flex items-center gap-1 text-base font-bold text-text-primary">
-              {doctor.fullName}
-              <Icon
-                icon={BadgeCheck}
-                size="sm"
-                className="shrink-0 text-primary"
-                aria-label={t('verified')}
-              />
-            </span>
-            <Badge variant={specialtyBadgeVariant(doctor.specialtyName)} className="w-fit gap-1">
-              <Icon icon={Stethoscope} size="xs" />
-              {specialtyName}
-            </Badge>
-
-            {doctor.reviewCount > 0 ? (
-              <div className="flex items-center gap-1.5">
-                <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-                <span className="text-sm font-bold text-text-primary">
-                  {doctor.averageRating?.toFixed(1)}
-                </span>
-                <span className="text-sm text-text-tertiary">
-                  {t('reviewCount', { count: doctor.reviewCount })}
-                </span>
-              </div>
-            ) : (
-              <Text size="sm" tone="tertiary">
-                {t('noReviewsYet')}
-              </Text>
-            )}
-          </div>
-        </div>
-
-        {(doctor.isTopRated || doctor.isMostBooked) && (
-          <Badge
-            variant={doctor.isTopRated ? 'success' : 'warning'}
-            className="absolute top-0 end-0 shrink-0 gap-1 rounded-lg px-2 py-2"
-          >
-            <Icon icon={doctor.isTopRated ? Trophy : Flame} size="xs" />
-            {doctor.isTopRated ? t('topRated') : t('mostBooked')}
-          </Badge>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-tertiary">
-        {doctor.yearsOfExperience !== undefined && (
-          <span className="flex items-center gap-1.5">
-            <Icon icon={Briefcase} size="xs" />
-            {t('yearsExperience', { count: doctor.yearsOfExperience })}
-          </span>
-        )}
-        <span className="flex items-center gap-1.5">
-          <Icon icon={MapPin} size="xs" />
-          {doctor.hospitalName ?? t('independentPractice')}
-        </span>
-        {doctor.availability && (
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-success" aria-hidden="true" />
-            {doctor.availability === 'today' ? t('availableToday') : t('availableTomorrow')}
-          </span>
-        )}
-      </div>
-
-      <span className="h-px w-full bg-border-default" aria-hidden="true" />
-
-      {doctor.consultationFeeAmount !== undefined && (
-        <div className="flex flex-col">
-          <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
-          <span className={cn('text-base font-bold', doctor.consultationFeeAmount === 0 ? 'text-success' : 'text-text-primary')}>
-            {doctor.consultationFeeAmount === 0
-              ? t('consultationFeeFree')
-              : t('consultationFee', { amount: doctor.consultationFeeAmount })}
-          </span>
-        </div>
-      )}
-
-      <div className="mt-auto flex items-center justify-between gap-8">
-        <Link
-          href={`/patient/doctors/${doctor.doctorProfileId}`}
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
-        >
-          {t('viewProfile')}
-          <Icon icon={ArrowRight} size="sm" flipRtl />
-        </Link>
-        <Button asChild size="sm" className="flex-1 gap-1.5">
-          <Link href={`/patient/appointments/book?doctorId=${doctor.doctorProfileId}`}>
-            <Icon icon={CalendarCheck} size="sm" />
-            {t('bookAppointment')}
-          </Link>
-        </Button>
-      </div>
-    </Card>
+    <DoctorCard
+      doctorProfileId={doctor.doctorProfileId}
+      fullName={doctor.fullName}
+      specialtyLabel={specialtyName}
+      specialtyBadgeVariant={specialtyBadgeVariant(doctor.specialtyName)}
+      professionalRank={doctor.professionalRank}
+      yearsOfExperience={doctor.yearsOfExperience}
+      hospitalName={doctor.hospitalName}
+      availability={doctor.availability}
+      consultationFeeAmount={doctor.consultationFeeAmount}
+      ratingSlot={<PopularDoctorRating doctor={doctor} />}
+      rankBadge={doctor.isTopRated ? 'topRated' : doctor.isMostBooked ? 'mostBooked' : null}
+    />
   );
 }
 
@@ -248,7 +160,7 @@ export function PopularDoctorsSection() {
       {!isLoading && doctors.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {doctors.map((doctor) => (
-            <DoctorCard key={doctor.doctorProfileId} doctor={doctor} />
+            <LandingDoctorCard key={doctor.doctorProfileId} doctor={doctor} />
           ))}
         </div>
       )}

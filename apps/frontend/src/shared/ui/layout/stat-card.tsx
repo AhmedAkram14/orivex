@@ -18,7 +18,7 @@ export function StatCard({ icon, label, value, className }: StatCardProps) {
         className,
       )}
     >
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-emphasis">
         <Icon icon={icon} size="md" />
       </div>
       <div className="flex flex-col">

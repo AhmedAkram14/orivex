@@ -8,11 +8,11 @@ export const badgeVariants = cva(
     variants: {
       variant: {
         neutral: 'bg-neutral-subtle text-text-secondary',
-        primary: 'bg-primary-subtle text-primary',
-        success: 'bg-success-subtle text-success',
-        warning: 'bg-warning-subtle text-warning',
-        danger: 'bg-danger-subtle text-danger',
-        info: 'bg-info-subtle text-info',
+        primary: 'bg-primary-subtle text-primary-emphasis',
+        success: 'bg-success-subtle text-success-emphasis',
+        warning: 'bg-warning-subtle text-warning-emphasis',
+        danger: 'bg-danger-subtle text-danger-emphasis',
+        info: 'bg-info-subtle text-info-emphasis',
       },
     },
     defaultVariants: {

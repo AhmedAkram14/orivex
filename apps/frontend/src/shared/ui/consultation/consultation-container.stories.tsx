@@ -11,7 +11,7 @@ export const Default: StoryObj = {
     <ConsultationContainer
       leftNav={
         <nav aria-label="Consultation sections" className="flex flex-col gap-1 text-sm text-text-secondary">
-          <span className="rounded-md bg-primary-subtle px-2 py-1.5 font-medium text-primary">Overview</span>
+          <span className="rounded-md bg-primary-subtle px-2 py-1.5 font-medium text-primary-emphasis">Overview</span>
           <span className="px-2 py-1.5">Vitals</span>
           <span className="px-2 py-1.5">Notes</span>
           <span className="px-2 py-1.5">History</span>

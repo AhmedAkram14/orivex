@@ -19,9 +19,11 @@ import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling
 import { addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { addMonths, getMonthGridDays, isSameMonth } from '@/shared/lib/date/month';
 import { RequireRole } from '@/shared/auth/require-role';
+import { useMediaQuery } from '@/shared/hooks/use-media-query';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { Sheet } from '@/shared/ui/side-panel';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { AvailabilityBlock } from '@/shared/ui/schedule/availability-block';
 import { AvailabilityCard } from '@/shared/ui/schedule/availability-card';
@@ -67,6 +69,10 @@ export default function DoctorSchedulePage() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(today);
   const [isEditingHours, setIsEditingHours] = useState(false);
+  // Desktop keeps working-hours editing inline (plenty of width for it);
+  // mobile opens the same form in a bottom Sheet instead, so editing never
+  // pushes the whole page's primary schedule content out of view.
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const weekStart = useMemo(() => addWeeks(startOfWeek(today), weekOffset), [today, weekOffset]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
@@ -172,7 +178,7 @@ export default function DoctorSchedulePage() {
           <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
         ) : (
           <Tabs defaultValue="week" ref={calendarSectionRef}>
-            <TabsList>
+            <TabsList className="max-w-full overflow-x-auto">
               <TabsTrigger value="week">{t('weekTab')}</TabsTrigger>
               <TabsTrigger value="month">{t('monthTab')}</TabsTrigger>
               <TabsTrigger value="day">{t('dayTab')}</TabsTrigger>
@@ -277,32 +283,47 @@ export default function DoctorSchedulePage() {
                 ) : undefined
               }
             >
-              {schedule &&
-                (isEditingHours ? (
-                  <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {schedule.map((day) => (
-                      <AvailabilityCard
-                        key={day.dayOfWeek}
-                        dayLabel={format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}
-                        isWorkingDay={day.isWorkingDay}
-                        hoursLabel={`${day.hours.start} – ${day.hours.end}`}
-                        breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
-                        priceLabel={formatConsultationPrice(
-                          {
-                            consultationType: day.pricing.pricingType,
-                            feeAmount: day.pricing.feeAmount,
-                            feeCurrency: day.pricing.feeCurrency,
-                          },
-                          locale,
-                          t('upcomingSlots.free'),
-                        )}
-                        notWorkingLabel={t('noAvailability')}
-                      />
-                    ))}
-                  </div>
-                ))}
+              {schedule && (
+                <>
+                  {/* Desktop: editing replaces the read-only list in place (plenty of width for it).
+                      Mobile: the read-only list always stays visible; editing opens in the Sheet below instead. */}
+                  {isEditingHours && isDesktop ? (
+                    <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {schedule.map((day) => (
+                        <AvailabilityCard
+                          key={day.dayOfWeek}
+                          dayLabel={format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}
+                          isWorkingDay={day.isWorkingDay}
+                          hoursLabel={`${day.hours.start} – ${day.hours.end}`}
+                          breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
+                          priceLabel={formatConsultationPrice(
+                            {
+                              consultationType: day.pricing.pricingType,
+                              feeAmount: day.pricing.feeAmount,
+                              feeCurrency: day.pricing.feeCurrency,
+                            },
+                            locale,
+                            t('upcomingSlots.free'),
+                          )}
+                          notWorkingLabel={t('noAvailability')}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <Sheet open={isEditingHours && !isDesktop} onOpenChange={setIsEditingHours}>
+                    <Sheet.Content>
+                      <Sheet.Header>
+                        <Sheet.Title>{t('workingHoursTitle')}</Sheet.Title>
+                      </Sheet.Header>
+                      <div className="mt-4 max-h-[65vh] overflow-y-auto">
+                        <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                      </div>
+                    </Sheet.Content>
+                  </Sheet>
+                </>
+              )}
             </Section>
 
             <div ref={timeOffSectionRef}>
@@ -316,7 +337,14 @@ export default function DoctorSchedulePage() {
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-col gap-4">
+          {/* Tertiary content -- always expanded on desktop (no summary shown there); on mobile it
+              starts expanded too but a real collapse control (the summary) lets the doctor tuck
+              these four widgets away instead of them permanently competing with the schedule
+              itself for scroll space. */}
+          <details open className="flex min-w-0 flex-col gap-4">
+            <summary className="cursor-pointer list-none rounded-lg border border-border-default bg-surface px-4 py-3 text-sm font-medium text-text-primary marker:hidden lg:hidden">
+              {t('scheduleToolsTitle')}
+            </summary>
             <WidgetContainer title={t('weeklySummaryTitle')} loading={isLoading}>
               {schedule && (
                 <div className="flex flex-col items-center gap-3">
@@ -394,7 +422,7 @@ export default function DoctorSchedulePage() {
 
             <WidgetContainer contentClassName="pt-6">
               <div className="flex items-start gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-emphasis">
                   <Icon icon={Lightbulb} size="md" />
                 </div>
                 <div>
@@ -403,7 +431,7 @@ export default function DoctorSchedulePage() {
                 </div>
               </div>
             </WidgetContainer>
-          </div>
+          </details>
         </div>
       </Page>
     </RequireRole>

@@ -78,7 +78,7 @@ export default function DoctorConsultationPage() {
                     'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm outline-none transition-colors',
                     'text-text-secondary hover:bg-secondary-subtle hover:text-text-primary',
                     'focus-visible:ring-2 focus-visible:ring-focus-ring',
-                    section === id && 'bg-primary-subtle font-medium text-primary',
+                    section === id && 'bg-primary-subtle font-medium text-primary-emphasis',
                   )}
                 >
                   <SectionIcon className="size-4 shrink-0" aria-hidden="true" />
@@ -90,7 +90,7 @@ export default function DoctorConsultationPage() {
           rightPanel={
             <>
               <div className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
                   <Icon icon={User} size="md" />
                 </span>
                 <Heading as="h2" level={4}>{t('patientPanelTitle')}</Heading>
@@ -119,7 +119,7 @@ export default function DoctorConsultationPage() {
           {section === 'overview' ? (
             <div className="flex h-full flex-col gap-6">
               <div className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
                   <Icon icon={activeSection.icon} size="md" />
                 </span>
                 <div>

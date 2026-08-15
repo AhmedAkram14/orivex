@@ -21,6 +21,7 @@ import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specia
 import type { PublicSpecialty } from '@/features/landing/api/types';
 import { Heading, Text } from '@/design-system/typography';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
+import { Carousel, CarouselItem } from '@/shared/ui/carousel';
 import { Icon } from '@/shared/icons/icon';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Link } from '@/shared/i18n/navigation';
@@ -38,10 +39,10 @@ import { cn } from '@/shared/lib/cn';
 type AccentKey = 'primary' | 'success' | 'warning' | 'danger';
 
 const ACCENTS: Record<AccentKey, { badge: BadgeProps['variant']; icon: string; iconBg: string; border: string }> = {
-  primary: { badge: 'primary', icon: 'text-primary', iconBg: 'bg-primary-subtle', border: 'border-t-primary' },
-  success: { badge: 'success', icon: 'text-success', iconBg: 'bg-success-subtle', border: 'border-t-success' },
-  warning: { badge: 'warning', icon: 'text-warning', iconBg: 'bg-warning-subtle', border: 'border-t-warning' },
-  danger: { badge: 'danger', icon: 'text-danger', iconBg: 'bg-danger-subtle', border: 'border-t-danger' },
+  primary: { badge: 'primary', icon: 'text-primary-emphasis', iconBg: 'bg-primary-subtle', border: 'border-t-primary' },
+  success: { badge: 'success', icon: 'text-success-emphasis', iconBg: 'bg-success-subtle', border: 'border-t-success' },
+  warning: { badge: 'warning', icon: 'text-warning-emphasis', iconBg: 'bg-warning-subtle', border: 'border-t-warning' },
+  danger: { badge: 'danger', icon: 'text-danger-emphasis', iconBg: 'bg-danger-subtle', border: 'border-t-danger' },
 };
 const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];
 
@@ -166,21 +167,42 @@ export function SpecialtiesSection() {
       )}
 
       {isLoading && (
-        <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="h-56 w-full" />
-          ))}
-        </div>
+        <>
+          {/* Mobile: one skeleton card at a time, matching the real carousel's one-card-per-view layout below. */}
+          <Carousel className="w-full sm:hidden">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <CarouselItem key={index}>
+                <Skeleton className="h-56 w-full" />
+              </CarouselItem>
+            ))}
+          </Carousel>
+          <div className="hidden w-full grid-cols-3 gap-4 sm:grid lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Skeleton key={index} className="h-56 w-full" />
+            ))}
+          </div>
+        </>
       )}
 
       {!isLoading && visible.length === 0 && <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />}
 
       {!isLoading && visible.length > 0 && (
-        <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {visible.map((specialty) => (
-            <SpecialtyCard key={specialty.id} specialty={specialty} />
-          ))}
-        </div>
+        <>
+          {/* Mobile: one card visible at a time, horizontal swipe to the next -- a 2-column grid at this width left every card too cramped to read. */}
+          <Carousel className="w-full sm:hidden">
+            {visible.map((specialty) => (
+              <CarouselItem key={specialty.id}>
+                <SpecialtyCard specialty={specialty} />
+              </CarouselItem>
+            ))}
+          </Carousel>
+          {/* Tablet/desktop: the design system's own responsive grid, plenty of room per card. */}
+          <div className="hidden w-full grid-cols-3 gap-4 sm:grid lg:grid-cols-4">
+            {visible.map((specialty) => (
+              <SpecialtyCard key={specialty.id} specialty={specialty} />
+            ))}
+          </div>
+        </>
       )}
     </Container>
   );

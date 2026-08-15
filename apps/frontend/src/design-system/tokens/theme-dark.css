@@ -1,4 +1,19 @@
 /*
+ * UX Reliability Pass -- dark-mode contrast audit: every `--color-X-subtle`
+ * background below is overridden to a saturated near-black tint of that
+ * SAME hue (e.g. primary-subtle -> brand-900, a dark blue), but the base
+ * `--color-X` text/icon token was never overridden, so anything pairing
+ * `text-X` on `bg-X-subtle` (badges, active nav, icon tiles, booked-slot
+ * state, accent cards) rendered as low-contrast color-on-itself in dark
+ * mode. Measured (WCAG relative-luminance contrast ratio, X-600 text on
+ * X-900 background): primary/info ~2.0:1, success ~2.6:1, warning ~2.8:1,
+ * danger ~2.1:1 -- ALL fail even the 3:1 UI-component minimum, let alone
+ * 4.5:1 for text. The `-emphasis` tokens below (X-300 in dark mode) fix
+ * every one of them to 5.2-6.4:1, comfortably clearing AA text contrast,
+ * without touching `--color-X` itself (solid buttons/links stay exactly as
+ * they were -- white text on a saturated -600 background was never the
+ * problem here).
+ *
  * Dark values for the semantic tokens declared in colors.css's @theme block.
  *
  * This is the token LAYER only (roadmap Phase 1's Definition of Done). It does
@@ -38,11 +53,16 @@
     --color-border-strong: var(--gray-700);
 
     --color-primary-subtle: var(--brand-900);
+    --color-primary-emphasis: var(--brand-300);
     --color-secondary-subtle: var(--gray-800);
     --color-success-subtle: var(--success-900);
+    --color-success-emphasis: var(--success-300);
     --color-warning-subtle: var(--warning-900);
+    --color-warning-emphasis: var(--warning-300);
     --color-danger-subtle: var(--danger-900);
+    --color-danger-emphasis: var(--danger-300);
     --color-info-subtle: var(--info-900);
+    --color-info-emphasis: var(--info-300);
     --color-neutral-subtle: var(--gray-800);
     --color-cta-surface: var(--gray-800);
   }
@@ -65,11 +85,16 @@
   --color-border-strong: var(--gray-700);
 
   --color-primary-subtle: var(--brand-900);
+  --color-primary-emphasis: var(--brand-300);
   --color-secondary-subtle: var(--gray-800);
   --color-success-subtle: var(--success-900);
+  --color-success-emphasis: var(--success-300);
   --color-warning-subtle: var(--warning-900);
+  --color-warning-emphasis: var(--warning-300);
   --color-danger-subtle: var(--danger-900);
+  --color-danger-emphasis: var(--danger-300);
   --color-info-subtle: var(--info-900);
+  --color-info-emphasis: var(--info-300);
   --color-neutral-subtle: var(--gray-800);
   --color-cta-surface: var(--gray-800);
 }
