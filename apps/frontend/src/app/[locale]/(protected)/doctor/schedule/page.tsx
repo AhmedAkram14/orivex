@@ -271,8 +271,8 @@ export default function DoctorSchedulePage() {
           </Tabs>
         )}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
             <Section
               title={t('workingHoursTitle')}
               actions={
@@ -341,7 +341,7 @@ export default function DoctorSchedulePage() {
               starts expanded too but a real collapse control (the summary) lets the doctor tuck
               these four widgets away instead of them permanently competing with the schedule
               itself for scroll space. */}
-          <details open className="flex min-w-0 flex-col gap-4">
+          <details open className="flex min-w-0 flex-col gap-6">
             <summary className="cursor-pointer list-none rounded-lg border border-border-default bg-surface px-4 py-3 text-sm font-medium text-text-primary marker:hidden lg:hidden">
               {t('scheduleToolsTitle')}
             </summary>

@@ -21,10 +21,22 @@ export interface WeeklyCalendarProps {
   className?: string;
 }
 
-/** A 7-column week grid — each day a header (day + date, clickable when `onSelect` is given) plus whatever summary content the caller supplies. Drilling into a day's full `DailyTimeline` is a separate, composed view; this component only lays the week out. */
+/**
+ * A 7-column week grid — each day a header (day + date, clickable when
+ * `onSelect` is given) plus whatever summary content the caller supplies.
+ * Drilling into a day's full `DailyTimeline` is a separate, composed view;
+ * this component only lays the week out.
+ *
+ * Below `sm`, a rigid 7-up grid crushes each column too narrow for its own
+ * content (e.g. an hours range wrapping mid-word) — so under that width
+ * this scrolls horizontally instead, with every day column holding a real
+ * minimum width, exactly the "recompose, don't squeeze" rule this design
+ * system uses elsewhere (the mobile specialties carousel, the Schedule
+ * page's own tab bar).
+ */
 export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCalendarProps) {
   return (
-    <div className={cn('grid grid-cols-7 gap-2', className)}>
+    <div className={cn('flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible sm:pb-0', className)}>
       {days.map((day) => {
         const header = (
           <div className="flex flex-col items-center gap-0.5">
@@ -45,7 +57,7 @@ export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCal
           <div
             key={day.id}
             className={cn(
-              'flex flex-col gap-2 rounded-lg border p-2 transition-colors duration-(--duration-fast)',
+              'flex w-24 shrink-0 flex-col gap-2 rounded-lg border p-2 transition-colors duration-(--duration-fast) sm:w-auto',
               day.isSelected ? 'border-primary bg-primary-subtle' : 'border-border-default',
             )}
           >
