@@ -62,4 +62,16 @@ describe('AppBreadcrumbs', () => {
     expect(screen.getByText('Profile')).toBeInTheDocument();
     expect(screen.queryByText('Overview')).not.toBeInTheDocument();
   });
+
+  it('renders nothing for a workspace route with no nav entry of its own, rather than misattributing it to Overview', () => {
+    // /doctor/consultation has no nav-config entry (a placeholder page,
+    // deliberately not linked from the sidebar yet). Overview's href
+    // ("/doctor") is a literal string-prefix of it, which used to make
+    // Overview's prefix-match win by default, incorrectly showing
+    // "Overview" as the current breadcrumb for an unrelated page.
+    mockPathname = '/doctor/consultation';
+    const { container } = renderBreadcrumbs();
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

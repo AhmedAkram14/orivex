@@ -18,13 +18,31 @@ interface Trail {
   href?: string;
 }
 
-/** Collects every candidate ancestor chain whose leaf `href` matches or prefixes the current path — there can legitimately be more than one, since sibling routes (e.g. `/doctor` and `/doctor/consultation`) both "prefix-match" `/doctor/consultation/x` as plain strings even though only one is the actual ancestor. */
+/**
+ * Collects every candidate ancestor chain whose leaf `href` matches or
+ * prefixes the current path — there can legitimately be more than one,
+ * since sibling routes (e.g. `/doctor` and `/doctor/consultation`) both
+ * "prefix-match" `/doctor/consultation/x` as plain strings even though
+ * only one is the actual ancestor.
+ *
+ * `exactMatchOnly` items (a workspace's own root "Overview") are excluded
+ * from prefix-matching entirely: Overview's href is a literal string-prefix
+ * of every route in its workspace, including ones with no nav entry of
+ * their own -- letting it prefix-match those would misidentify an unowned
+ * sibling as "nested under Overview" instead of correctly finding no match
+ * at all (this component's own documented "route not in the nav config ->
+ * no breadcrumb" behavior).
+ */
 function findAllMatches(items: NavItemConfig[], pathname: string, ancestors: Trail[] = []): Trail[][] {
   const matches: Trail[][] = [];
   for (const item of items) {
     const chain = [...ancestors, { labelKey: item.labelKey, href: item.href }];
-    if (item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`))) {
-      matches.push(chain);
+    if (item.href) {
+      const isExact = pathname === item.href;
+      const isPrefix = !item.exactMatchOnly && pathname.startsWith(`${item.href}/`);
+      if (isExact || isPrefix) {
+        matches.push(chain);
+      }
     }
     if (item.children) {
       matches.push(...findAllMatches(item.children, pathname, chain));

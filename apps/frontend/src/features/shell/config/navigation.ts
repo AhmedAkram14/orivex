@@ -45,6 +45,19 @@ export interface NavItemConfig {
   featureFlag?: string;
   /** Renders as inert (no navigation) for any role in this list -- for a real destination that just isn't the right link from that role's own view (e.g. a role with its own dedicated Overview page doesn't need a second, generic "Dashboard" link to the same idea). Never hides the item; `roles`/`permission`/`featureFlag` above are what control visibility. */
   disabledForRoles?: Role[];
+  /**
+   * Restricts this item's `href` to exact-pathname matches only, never a
+   * prefix match, for anything that consults this config for "which item
+   * owns this route" (currently `AppBreadcrumbs`'s ancestor-trail lookup).
+   * Only meaningful for a workspace's own root "Overview" item: its href
+   * (e.g. `/doctor`) is a literal string-prefix of every sibling route in
+   * that workspace, including ones with no nav entry of their own (a
+   * placeholder page like `/doctor/consultation`) -- without this, such a
+   * route would be misidentified as "nested under Overview" and show a
+   * misleading "Overview" breadcrumb instead of the documented "route not
+   * in the nav config -> no breadcrumb" fallback.
+   */
+  exactMatchOnly?: boolean;
   children?: NavItemConfig[];
 }
 
@@ -76,6 +89,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         icon: Stethoscope,
         href: '/doctor',
         roles: ['doctor'],
+        exactMatchOnly: true,
       },
       {
         id: 'doctor-workspace-profile',
@@ -133,6 +147,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         icon: HeartPulse,
         href: '/patient',
         roles: ['patient'],
+        exactMatchOnly: true,
       },
       {
         id: 'patient-workspace-profile',
@@ -210,6 +225,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         icon: UserCog,
         href: '/admin',
         roles: ['super_admin'],
+        exactMatchOnly: true,
       },
       {
         id: 'admin-workspace-analytics',
