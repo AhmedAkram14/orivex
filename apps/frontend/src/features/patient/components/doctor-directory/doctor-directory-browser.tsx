@@ -140,6 +140,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
                 key={doctor.doctorProfileId}
                 doctorProfileId={doctor.doctorProfileId}
                 fullName={doctor.displayName}
+                avatarUrl={doctor.avatarUrl}
                 specialtyLabel={specialtyNameById.get(doctor.specialtyId) ?? t('unknownSpecialty')}
                 yearsOfExperience={doctor.yearsOfExperience}
                 hospitalName={doctor.hospitalId ? hospitalNameById.get(doctor.hospitalId) : undefined}

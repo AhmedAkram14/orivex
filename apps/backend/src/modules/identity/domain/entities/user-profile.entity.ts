@@ -11,6 +11,15 @@ export interface UserProfileProps {
   gender?: Gender;
   nationalityId?: string;
   address?: string;
+  // Demo Data & Profile Avatar Pass: a cached, cheap-to-read display pointer
+  // (always a root-relative path served by the frontend's own public/
+  // folder, e.g. "/demo/avatars/doctor-01.png") -- deliberately NOT the
+  // MediaAsset upload/presigned-URL mechanism, which stays scoped to
+  // arbitrary user-uploaded files (verification documents today; a future
+  // real avatar-upload feature would still go through MediaAsset and then
+  // cache its resolved URL here, the same "cache the resolved URL" pattern
+  // most apps use rather than re-resolving a presigned URL on every read).
+  avatarUrl?: string;
 }
 
 // Child entity of the Account aggregate — no identity of its own (per
@@ -32,6 +41,7 @@ export class UserProfile {
   private gender?: Gender;
   private nationalityId?: string;
   private address?: string;
+  private avatarUrl?: string;
 
   private constructor(props: UserProfileProps) {
     this.displayName = props.displayName;
@@ -41,6 +51,7 @@ export class UserProfile {
     this.gender = props.gender;
     this.nationalityId = props.nationalityId;
     this.address = props.address;
+    this.avatarUrl = props.avatarUrl;
   }
 
   static create(props: UserProfileProps): UserProfile {
@@ -76,6 +87,10 @@ export class UserProfile {
     return this.address;
   }
 
+  getAvatarUrl(): string | undefined {
+    return this.avatarUrl;
+  }
+
   updateDisplayName(displayName: DisplayName): void {
     this.displayName = displayName;
   }
@@ -105,6 +120,10 @@ export class UserProfile {
 
   updateAddress(address: string | undefined): void {
     this.address = address;
+  }
+
+  updateAvatarUrl(avatarUrl: string | undefined): void {
+    this.avatarUrl = avatarUrl;
   }
 
   private static validateDateOfBirth(value: Date | undefined): void {

@@ -16,13 +16,21 @@ import {
   updateDoctorAvailability,
   updateUpcomingSlotPricing,
 } from '@/mocks/scheduling-store';
+import { getDoctorByAccountId } from '@/mocks/doctor-store';
+import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
 
-// Every doctor-self-scoped handler in this mock system (no doctor id in the
-// URL, JWT-derived on the real backend) resolves to this one seeded demo
-// doctor -- same convention `patient-store.ts` uses for 'patient-profile-1'.
-const CURRENT_DOCTOR_ID = 'doctor-profile-1';
+// Demo Data & Profile Avatar Pass: every doctor-self-scoped handler here
+// (no doctor id in the URL, JWT-derived on the real backend) now resolves
+// the *calling* doctor from the intercepted request, instead of always
+// landing on the one seeded demo doctor. Falls back to that legacy doctor
+// when no account can be resolved, which is what keeps the existing
+// no-session component tests unchanged.
+function currentDoctorId(request: Request): string {
+  const accountId = resolveRequestAccountId(request);
+  return (accountId ? getDoctorByAccountId(accountId)?.id : undefined) ?? 'doctor-profile-1';
+}
 
 function errorResponse(status: number, code: string, message: string) {
   return HttpResponse.json(
@@ -38,24 +46,26 @@ export const schedulingHandlers = [
   // test suite deterministic, matching `patient.ts`'s dashboard handlers.
   http.get(`${base()}${SCHEDULING_PATHS.rules}`, () => HttpResponse.json({ data: getSchedulingRules() })),
 
-  http.get(`${base()}${SCHEDULING_PATHS.doctorAvailability}`, () =>
-    HttpResponse.json({ data: getDoctorAvailability() }),
+  http.get(`${base()}${SCHEDULING_PATHS.doctorAvailability}`, ({ request }) =>
+    HttpResponse.json({ data: getDoctorAvailability(resolveRequestAccountId(request)) }),
   ),
 
   http.patch(`${base()}${SCHEDULING_PATHS.doctorAvailability}`, async ({ request }) => {
     const body = (await request.json()) as RecurringWeeklySchedule;
-    return HttpResponse.json({ data: updateDoctorAvailability(body) });
+    return HttpResponse.json({ data: updateDoctorAvailability(body, resolveRequestAccountId(request)) });
   }),
 
-  http.get(`${base()}${SCHEDULING_PATHS.doctorExceptions}`, () => HttpResponse.json({ data: getDoctorExceptions() })),
+  http.get(`${base()}${SCHEDULING_PATHS.doctorExceptions}`, ({ request }) =>
+    HttpResponse.json({ data: getDoctorExceptions(resolveRequestAccountId(request)) }),
+  ),
 
   http.post(`${base()}${SCHEDULING_PATHS.doctorExceptions}`, async ({ request }) => {
     const body = (await request.json()) as AddScheduleExceptionRequest;
-    return HttpResponse.json({ data: addDoctorException(body) }, { status: 201 });
+    return HttpResponse.json({ data: addDoctorException(body, resolveRequestAccountId(request)) }, { status: 201 });
   }),
 
-  http.delete(`${base()}${SCHEDULING_PATHS.doctorExceptions}/:id`, ({ params }) => {
-    removeDoctorException(params.id as string);
+  http.delete(`${base()}${SCHEDULING_PATHS.doctorExceptions}/:id`, ({ params, request }) => {
+    removeDoctorException(params.id as string, resolveRequestAccountId(request));
     return new HttpResponse(null, { status: 204 });
   }),
 
@@ -76,8 +86,8 @@ export const schedulingHandlers = [
 
   // Consultation Pricing Redesign: the doctor's own "Upcoming Slots"
   // management list and its per-slot pricing override.
-  http.get(`${base()}${SCHEDULING_PATHS.upcomingSlots}`, () =>
-    HttpResponse.json({ data: getUpcomingSlots(CURRENT_DOCTOR_ID) }),
+  http.get(`${base()}${SCHEDULING_PATHS.upcomingSlots}`, ({ request }) =>
+    HttpResponse.json({ data: getUpcomingSlots(currentDoctorId(request)) }),
   ),
 
   http.patch(`${base()}${SCHEDULING_PATHS.upcomingSlotPricing(':id')}`, async ({ params, request }) => {
@@ -87,7 +97,7 @@ export const schedulingHandlers = [
     }
     const body = (await request.json()) as UpdateAvailabilityWindowPricingRequest;
     try {
-      return HttpResponse.json({ data: updateUpcomingSlotPricing(CURRENT_DOCTOR_ID, id, body) });
+      return HttpResponse.json({ data: updateUpcomingSlotPricing(currentDoctorId(request), id, body) });
     } catch {
       return errorResponse(404, 'NOT_FOUND', `AvailabilityWindow "${id}" not found.`);
     }

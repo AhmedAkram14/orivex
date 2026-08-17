@@ -8,6 +8,7 @@ export class DoctorDirectoryEntryResponseDto {
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
   hospitalId?: string;
+  avatarUrl?: string;
 
   static fromEntry(entry: DoctorDirectoryEntry): DoctorDirectoryEntryResponseDto {
     const dto = new DoctorDirectoryEntryResponseDto();
@@ -18,6 +19,7 @@ export class DoctorDirectoryEntryResponseDto {
     dto.yearsOfExperience = entry.yearsOfExperience;
     dto.consultationFeeAmount = entry.consultationFeeAmount;
     dto.hospitalId = entry.hospitalId;
+    dto.avatarUrl = entry.avatarUrl;
     return dto;
   }
 }

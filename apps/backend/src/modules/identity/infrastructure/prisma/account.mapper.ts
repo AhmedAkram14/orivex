@@ -22,6 +22,7 @@ export interface PersistedAccount {
   gender: string | null;
   nationalityId: string | null;
   address: string | null;
+  avatarUrl: string | null;
 }
 
 // The one place that knows how the Account aggregate maps to/from Prisma's
@@ -40,6 +41,7 @@ export function toDomainAccount(row: PrismaAccountRow): Account {
       gender: (row.gender as Gender | null) ?? undefined,
       nationalityId: row.nationalityId ?? undefined,
       address: row.address ?? undefined,
+      avatarUrl: row.avatarUrl ?? undefined,
     }),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -61,5 +63,6 @@ export function toPersistedAccount(account: Account): PersistedAccount {
     gender: profile.getGender() ?? null,
     nationalityId: profile.getNationalityId() ?? null,
     address: profile.getAddress() ?? null,
+    avatarUrl: profile.getAvatarUrl() ?? null,
   };
 }

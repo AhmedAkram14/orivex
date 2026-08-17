@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import type { MediaAsset, MediaAssetPurpose } from '@/shared/media/types';
 import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
+import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
 
@@ -46,7 +47,7 @@ export const mediaAssetHandlers = [
   http.post(`${base()}/media-assets/upload-intent`, async ({ request }) => {
     const body = (await request.json()) as { contentType: string; purpose: MediaAssetPurpose };
 
-    if (CLINICAL_PURPOSES.includes(body.purpose) && !isPatientVerified()) {
+    if (CLINICAL_PURPOSES.includes(body.purpose) && !isPatientVerified(resolveRequestAccountId(request))) {
       return identityVerificationRequiredResponse();
     }
 

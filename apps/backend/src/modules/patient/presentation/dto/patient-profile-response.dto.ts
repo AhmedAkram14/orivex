@@ -25,6 +25,7 @@ export class PatientProfileResponseDto {
   fullName!: string;
   email!: string;
   phoneNumber?: string;
+  avatarUrl?: string;
   dateOfBirth?: string;
   gender?: string;
   nationalityId?: string;
@@ -46,6 +47,7 @@ export class PatientProfileResponseDto {
     dto.fullName = userProfile.getDisplayName().toString();
     dto.email = account.getEmail().toString();
     dto.phoneNumber = userProfile.getPhoneNumber();
+    dto.avatarUrl = userProfile.getAvatarUrl();
     dto.dateOfBirth = userProfile.getDateOfBirth()?.toISOString();
     dto.gender = userProfile.getGender();
     dto.nationalityId = userProfile.getNationalityId();

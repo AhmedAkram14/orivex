@@ -3,7 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { Heading } from '@/design-system/typography';
 import { useAuth } from '@/shared/auth/auth-context';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 
 function initialsFor(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -45,6 +45,7 @@ export function WelcomeHeader() {
   return (
     <div className="flex items-center gap-4">
       <Avatar size="lg" className="size-14">
+        {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
         <AvatarFallback className="text-lg">{initialsFor(user.fullName)}</AvatarFallback>
       </Avatar>
       <div className="flex flex-col gap-1">

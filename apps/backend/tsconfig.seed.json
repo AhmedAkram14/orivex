@@ -1,0 +1,13 @@
+{
+  // The Prisma seed script lives outside `src` but imports the real
+  // application-layer use cases from it, so it needs its own rootDir (".")
+  // and its own outDir -- the main tsconfig keeps rootDir "src" so that
+  // `npm run build` still emits `dist/main.js`, not `dist/src/main.js`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist-seed",
+    "tsBuildInfoFile": "dist-seed/.tsbuildinfo"
+  },
+  "include": ["prisma/**/*.ts", "src/**/*.ts"]
+}

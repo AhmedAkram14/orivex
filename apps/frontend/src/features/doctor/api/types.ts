@@ -13,6 +13,7 @@ export interface UpcomingWorkItem {
   /** ISO timestamp — components format it for display, this type never carries pre-formatted text. */
   scheduledAt: string;
   title: string;
+  avatarUrl?: string;
   description?: string;
   status: UpcomingWorkStatus;
 }
@@ -84,6 +85,7 @@ export interface DoctorProfile {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  avatarUrl?: string;
   licenseNumber: string;
   /** Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of a doctor's specialty -- the transitional free-text `specialty` field is gone; resolve a display name via `@/features/reference`'s specialties list. */
   specialtyId: string;
@@ -225,6 +227,7 @@ export interface DoctorDirectoryEntry {
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
   hospitalId?: string;
+  avatarUrl?: string;
 }
 
 /** Matches DoctorProfileController's real `ListDoctorDirectoryQueryDto` exactly -- all optional, `specialty` is a free-text contains-match (now matched via a MedicalSpecialty.name join server-side, Stage O.9), `specialtyId`/`hospitalId` are exact-match UUID filters. */
@@ -250,6 +253,7 @@ export interface QueueEntry {
   id: string;
   /** The real patient's display name — PatientModule is real now, so this is no longer the anonymized "Patient #3" placeholder; a doctor legitimately sees their own patients' names, same as `Appointment.doctorName`'s reverse case. */
   label: string;
+  avatarUrl?: string;
   status: QueueEntryStatus;
   position: number;
   /** Minutes, pre-computed server-side — this type never carries a raw timestamp for the UI to do wait-time math on. */
@@ -277,6 +281,7 @@ export interface ApprovedAppointment {
 export interface DoctorPatientListItem {
   patientProfileId: string;
   patientName: string;
+  avatarUrl?: string;
   email: string;
   phoneNumber?: string;
   /** ISO date string. */

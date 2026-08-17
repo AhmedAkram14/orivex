@@ -37,6 +37,7 @@ export class DoctorProfileResponseDto {
   fullName!: string;
   email!: string;
   phoneNumber?: string;
+  avatarUrl?: string;
   licenseNumber!: string;
   biography?: string;
   yearsOfExperience?: number;
@@ -63,6 +64,7 @@ export class DoctorProfileResponseDto {
     dto.fullName = userProfile.getDisplayName().toString();
     dto.email = account.getEmail().toString();
     dto.phoneNumber = userProfile.getPhoneNumber();
+    dto.avatarUrl = userProfile.getAvatarUrl();
     dto.licenseNumber = profile.getLicenseNumber();
     dto.biography = profile.getBiography();
     dto.yearsOfExperience = profile.getYearsOfExperience();

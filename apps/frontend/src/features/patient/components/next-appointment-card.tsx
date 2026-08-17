@@ -10,7 +10,7 @@ import { JoinCallAction } from '@/features/telemedicine/components/join-call-act
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { isSameDay } from '@/shared/lib/date/week';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
@@ -151,6 +151,7 @@ export function NextAppointmentCard() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3.5">
             <Avatar className="size-12 shrink-0 text-base ring-4 ring-surface/80">
+              {next.doctorAvatarUrl && <AvatarImage src={next.doctorAvatarUrl} alt={next.doctorName} />}
               <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(next.doctorName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col gap-0.5">

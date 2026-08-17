@@ -1,5 +1,12 @@
 import type { AuthenticatedUser } from '@/shared/auth/types';
 import type { DeviceSession, LoginHistoryEntry } from '@/features/auth/api/types';
+import {
+  DEMO_DOCTORS,
+  DEMO_HOSPITAL_ADMIN,
+  DEMO_PASSWORD,
+  DEMO_PATIENTS,
+  DEMO_SUPER_ADMIN,
+} from '@/mocks/demo-data/demo-people';
 
 /**
  * In-memory mock backend state for the MSW auth handlers ONLY — no
@@ -19,11 +26,76 @@ interface MockAccount {
   roles: AuthenticatedUser['roles'];
   emailVerified: boolean;
   locked: boolean;
+  /** Root-relative path served by this app's own `public/` folder. Absent for the legacy edge-case accounts below, which correctly fall back to an initials avatar. */
+  avatarUrl?: string;
 }
 
-export const MOCK_ACCOUNTS: MockAccount[] = [
+/**
+ * Demo Data & Profile Avatar Pass: the two original *persona* accounts
+ * (`doctor@orivex.dev` / `patient@orivex.dev`) keep working exactly as
+ * before -- the existing test suite logs in as them and asserts their names
+ * -- but they no longer share an account id with a real demo person.
+ * `demo-people.ts` already claims `user-doctor-1`/`user-patient-1` for
+ * Dr. Omar Hassan and Ahmed Ali, so these two get their own ids and their
+ * own (unchanged) profiles in `doctor-store.ts`/`patient-store.ts`.
+ * `admin@orivex.dev` needs no such split: `DEMO_SUPER_ADMIN` is the very
+ * same account (same email, same `user-admin-1` id, same name).
+ */
+export const LEGACY_DOCTOR_ACCOUNT_ID = 'user-doctor-legacy-1';
+export const LEGACY_PATIENT_ACCOUNT_ID = 'user-patient-legacy-1';
+
+const demoAccounts: MockAccount[] = [
+  ...DEMO_DOCTORS.map((doctor) => ({
+    id: doctor.accountId,
+    email: doctor.email,
+    password: DEMO_PASSWORD,
+    fullName: doctor.displayName,
+    roles: ['doctor'] as AuthenticatedUser['roles'],
+    emailVerified: true,
+    locked: false,
+    avatarUrl: doctor.avatarUrl,
+  })),
+  ...DEMO_PATIENTS.map((patient) => ({
+    id: patient.accountId,
+    email: patient.email,
+    password: DEMO_PASSWORD,
+    fullName: patient.displayName,
+    roles: ['patient'] as AuthenticatedUser['roles'],
+    emailVerified: true,
+    locked: false,
+    avatarUrl: patient.avatarUrl,
+  })),
   {
-    id: 'user-doctor-1',
+    id: DEMO_SUPER_ADMIN.accountId,
+    email: DEMO_SUPER_ADMIN.email,
+    password: DEMO_PASSWORD,
+    fullName: DEMO_SUPER_ADMIN.displayName,
+    roles: ['super_admin'],
+    emailVerified: true,
+    locked: false,
+  },
+  {
+    id: DEMO_HOSPITAL_ADMIN.accountId,
+    email: DEMO_HOSPITAL_ADMIN.email,
+    password: DEMO_PASSWORD,
+    fullName: DEMO_HOSPITAL_ADMIN.displayName,
+    roles: ['hospital_admin'],
+    emailVerified: true,
+    locked: false,
+  },
+];
+
+/**
+ * Kept verbatim (bar the id split explained above): the existing suite
+ * relies on all four -- `session-provider.test.tsx` logs in as
+ * `doctor@orivex.dev` and asserts "Dr. Sarah Ahmed", `login-form.test.tsx`
+ * drives `patient@orivex.dev`, and the locked/unverified pair are the only
+ * way to exercise those two auth failure branches. No avatar: they're
+ * edge-case test accounts, not demo personas, so initials are correct.
+ */
+const legacyAccounts: MockAccount[] = [
+  {
+    id: LEGACY_DOCTOR_ACCOUNT_ID,
     email: 'doctor@orivex.dev',
     password: 'Password123!',
     fullName: 'Dr. Sarah Ahmed',
@@ -32,20 +104,11 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
     locked: false,
   },
   {
-    id: 'user-patient-1',
+    id: LEGACY_PATIENT_ACCOUNT_ID,
     email: 'patient@orivex.dev',
     password: 'Password123!',
     fullName: 'Amina Youssef',
     roles: ['patient'],
-    emailVerified: true,
-    locked: false,
-  },
-  {
-    id: 'user-admin-1',
-    email: 'admin@orivex.dev',
-    password: 'Password123!',
-    fullName: 'Layla Mansour',
-    roles: ['super_admin'],
     emailVerified: true,
     locked: false,
   },
@@ -68,6 +131,8 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
     locked: false,
   },
 ];
+
+export const MOCK_ACCOUNTS: MockAccount[] = [...demoAccounts, ...legacyAccounts];
 
 const MAX_ATTEMPTS_BEFORE_LOCKOUT_WARNING = 5;
 const SESSION_MARKER_KEY = 'mock-auth-session-account-id';
@@ -155,7 +220,18 @@ export function clearFailedAttempts(email: string): void {
 }
 
 export function toAuthenticatedUser(account: MockAccount): AuthenticatedUser {
-  return { id: account.id, email: account.email, fullName: account.fullName, roles: account.roles };
+  return {
+    id: account.id,
+    email: account.email,
+    fullName: account.fullName,
+    roles: account.roles,
+    avatarUrl: account.avatarUrl,
+  };
+}
+
+export function findAccountById(id: string | undefined): MockAccount | undefined {
+  if (!id) return undefined;
+  return MOCK_ACCOUNTS.find((account) => account.id === id);
 }
 
 export function startSession(account: MockAccount): string {
@@ -173,6 +249,15 @@ export function endSession(): void {
 
 export function getCurrentAccount(): MockAccount | undefined {
   return MOCK_ACCOUNTS.find((account) => account.id === currentSessionAccountId);
+}
+
+/**
+ * Demo Data & Profile Avatar Pass: the account id backing the current mock
+ * session, or `undefined` when nobody is logged in. `request-account.ts`
+ * uses this as the fallback behind the bearer token it prefers to read.
+ */
+export function getCurrentAccountId(): string | undefined {
+  return currentSessionAccountId ?? undefined;
 }
 
 export function isValidAccessToken(token: string | undefined): boolean {

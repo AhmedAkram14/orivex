@@ -12,6 +12,8 @@ export interface AuthenticatedUser {
   email: string;
   fullName: string;
   roles: Role[];
+  /** Root-relative path served by this app's own public/ folder (e.g. "/demo/avatars/doctor-01.png") -- never a MediaAsset presigned URL. Absent for a real user with no photo on record; falls back to the existing initials avatar automatically. */
+  avatarUrl?: string;
 }
 
 export type AuthStatus = 'unauthenticated' | 'authenticated' | 'loading';

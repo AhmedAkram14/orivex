@@ -6,7 +6,7 @@ import { useLogout } from '@/features/auth/hooks/use-logout';
 import type { AuthenticatedUser } from '@/shared/auth/types';
 import { Icon } from '@/shared/icons/icon';
 import { Link, useRouter } from '@/shared/i18n/navigation';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +46,7 @@ export function LandingUserMenu({ user }: { user: AuthenticatedUser }) {
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
         <Avatar size="sm">
+          {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
           <AvatarFallback>{initialsFor(user.fullName)}</AvatarFallback>
         </Avatar>
         <span className="hidden text-sm font-medium text-text-primary sm:inline">{user.fullName}</span>

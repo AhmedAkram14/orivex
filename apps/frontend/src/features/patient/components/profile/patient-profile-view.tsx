@@ -21,7 +21,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import type { PatientProfile } from '@/features/patient/api/types';
 import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
 import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -110,6 +110,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
       <CardContent className="relative z-10 flex flex-col gap-5 px-7 pt-0 pb-7">
         <div className="flex items-center gap-3.5">
           <Avatar className="size-14 shrink-0 text-base ring-4 ring-surface/80">
+            {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
             <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
           </Avatar>
           <div className="flex min-w-0 flex-col gap-0.5">

@@ -22,6 +22,7 @@ export interface PublicDoctorEntry {
   hospitalName?: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
+  avatarUrl?: string;
 }
 
 export interface PublicDoctorFilter {

@@ -9,7 +9,7 @@ import type { AppointmentStatus, DoctorPatientListItem } from '@/features/doctor
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -274,6 +274,7 @@ export function PatientsList() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar size="sm">
+                          {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.patientName} />}
                           <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">

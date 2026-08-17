@@ -9,7 +9,9 @@ import type {
   FollowUpRecommendation,
 } from '@/features/consultation/api/types';
 import { getAppointments } from '@/mocks/patient-store';
-import { getDoctorById } from '@/mocks/doctor-store';
+import { getDoctorById, listAllDoctorProfiles } from '@/mocks/doctor-store';
+import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
+import { findSpecialtyIdByName } from '@/mocks/reference-store';
 
 /**
  * In-memory mock "backend" state for `POST /consultations/:id/close` and
@@ -68,7 +70,55 @@ function seedFeedback(): ConsultationFeedback[] {
   ];
 }
 
-for (const feedback of seedFeedback()) {
+/**
+ * Demo Data & Profile Avatar Pass: a per-doctor review spread, so different
+ * doctors genuinely end up with different averages (roughly 4.2-4.9) and
+ * different review counts rather than everyone sitting at a flat 5.0 or 0.
+ * Psychiatry doctors accumulate the most reviews, matching their heavier
+ * booking/completion weighting elsewhere in the demo seed -- the average
+ * itself is always the real mean of the seeded ratings below, never a
+ * separately-asserted number.
+ */
+const DEMO_REVIEW_COMMENTS = [
+  'Very thorough and took the time to explain my treatment options clearly.',
+  'Listened carefully and never made me feel rushed.',
+  'Excellent follow-up after my results came back.',
+  'Good consultation overall, though the wait was a little longer than expected.',
+  'Explained everything in plain language. Would book again.',
+  'Professional and reassuring throughout the session.',
+  'Helpful advice, and the follow-up plan was clear.',
+  'The video call quality made part of the session hard to follow.',
+];
+
+function seedDemoFeedback(): ConsultationFeedback[] {
+  if (!DEMO_SEED_ENABLED) return [];
+  const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+  const psychiatryId = findSpecialtyIdByName('Psychiatry');
+  const seeded: ConsultationFeedback[] = [];
+
+  listAllDoctorProfiles().forEach((doctor, doctorIndex) => {
+    if (doctor.id === DOCTOR_ID) return;
+    const isPsychiatry = doctor.specialtyId === psychiatryId;
+    const reviewCount = isPsychiatry ? 9 + (doctorIndex % 8) : 3 + (doctorIndex % 4);
+    // A deterministic 4.2-4.9 target per doctor, realized as real individual
+    // ratings whose mean lands on it -- the aggregate is never hardcoded.
+    const lowRatingCount = Math.round(reviewCount * (0.8 - ((doctorIndex * 7) % 8) / 10) * 0.9);
+    for (let index = 0; index < reviewCount; index += 1) {
+      seeded.push({
+        id: `feedback-demo-${doctorIndex + 1}-${index + 1}`,
+        consultationSessionId: `session-demo-${doctorIndex + 1}-${index + 1}`,
+        doctorId: doctor.id,
+        rating: index < lowRatingCount ? 4 : 5,
+        comment: DEMO_REVIEW_COMMENTS[(doctorIndex + index) % DEMO_REVIEW_COMMENTS.length],
+        createdAt: daysAgo((index + 1) * 4 + doctorIndex),
+      });
+    }
+  });
+
+  return seeded;
+}
+
+for (const feedback of [...seedFeedback(), ...seedDemoFeedback()]) {
   feedbackBySessionId.set(feedback.consultationSessionId, feedback);
 }
 
@@ -162,7 +212,7 @@ export function getConsultationSummary(consultationSessionId: string): Consultat
     appointment: {
       id: appointment?.id ?? consultationSessionId,
       patientId: 'patient-profile-1',
-      doctorId: DOCTOR_ID,
+      doctorId: appointment?.doctorId ?? DOCTOR_ID,
       availabilityWindowId: '',
       consultationType: appointment?.consultationType ?? 'paid',
       status: appointment?.status ?? 'confirmed',
@@ -186,7 +236,10 @@ export function submitConsultationFeedback(
   const feedback: ConsultationFeedback = {
     id: `feedback-${Date.now()}`,
     consultationSessionId,
-    doctorId: DOCTOR_ID,
+    // Demo Data & Profile Avatar Pass: credit the review to the doctor the
+    // consultation was actually with, so a demo patient rating any of the 20
+    // doctors moves that doctor's own average -- not always the legacy one.
+    doctorId: findAppointmentBySessionId(consultationSessionId)?.doctorId ?? DOCTOR_ID,
     rating,
     comment: comment ?? null,
     createdAt: new Date().toISOString(),
@@ -258,7 +311,7 @@ export function resetConsultationStore(): void {
   followUpBySessionId.clear();
   notesBySessionId.clear();
   diagnosesBySessionId.clear();
-  for (const feedback of seedFeedback()) {
+  for (const feedback of [...seedFeedback(), ...seedDemoFeedback()]) {
     feedbackBySessionId.set(feedback.consultationSessionId, feedback);
   }
 }

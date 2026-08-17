@@ -8,14 +8,18 @@
     "start:dev": "nodemon",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint src prisma",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.seed.json --noEmit",
+    "seed": "tsc -p tsconfig.seed.json && node dist-seed/prisma/seed.js",
     "test": "tsc -p tsconfig.json && node --test dist/modules dist/platform dist/shared dist/core",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init --skip-generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "openapi:generate": "tsc -p tsconfig.json && node dist/scripts/generate-openapi.js"
+  },
+  "prisma": {
+    "seed": "tsc -p tsconfig.seed.json && node dist-seed/prisma/seed.js"
   },
   "nodemonConfig": {
     "watch": [

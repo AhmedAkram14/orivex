@@ -23,8 +23,16 @@ import {
 } from '@/mocks/doctor-store';
 import { listDepartments, listHospitals } from '@/mocks/admin-store';
 import { approveAppointment, getPendingApprovalAppointments } from '@/mocks/patient-store';
+import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
+
+function notFound(message: string) {
+  return HttpResponse.json(
+    { error: { code: 'NOT_FOUND', message, requestId: 'mock', timestamp: new Date().toISOString() } },
+    { status: 404 },
+  );
+}
 
 export const doctorHandlers = [
   // Every route below is a real endpoint (DoctorModule's DoctorProfileController,
@@ -32,31 +40,52 @@ export const doctorHandlers = [
   // hospital directory, ClinicalModule/ConsultationModule's dashboard-summary/
   // upcoming-work/queue routes) -- these handlers exist purely to keep the
   // frontend test suite deterministic, matching `patient.ts`/`scheduling.ts`.
-  http.get(`${base()}${DOCTOR_PATHS.dashboardSummary}`, () => HttpResponse.json({ data: getDashboardSummary() })),
+  // Demo Data & Profile Avatar Pass: every doctor-self-scoped route below
+  // resolves the caller's own account from the intercepted request (bearer
+  // token -> mock session -> legacy demo doctor, see `request-account.ts`)
+  // and reads that account's own slice of `doctor-store.ts`, instead of the
+  // single shared profile every doctor used to see.
+  http.get(`${base()}${DOCTOR_PATHS.dashboardSummary}`, ({ request }) =>
+    HttpResponse.json({ data: getDashboardSummary(resolveRequestAccountId(request)) }),
+  ),
 
-  http.get(`${base()}${DOCTOR_PATHS.upcomingWork}`, () => HttpResponse.json({ data: getUpcomingWork() })),
+  http.get(`${base()}${DOCTOR_PATHS.upcomingWork}`, ({ request }) =>
+    HttpResponse.json({ data: getUpcomingWork(resolveRequestAccountId(request)) }),
+  ),
 
-  http.get(`${base()}${DOCTOR_PATHS.profile}`, () => HttpResponse.json({ data: getProfile() })),
+  http.get(`${base()}${DOCTOR_PATHS.profile}`, ({ request }) => {
+    const found = getProfile(resolveRequestAccountId(request));
+    if (!found) return notFound('Doctor profile not found.');
+    return HttpResponse.json({ data: found });
+  }),
 
   http.patch(`${base()}${DOCTOR_PATHS.profile}`, async ({ request }) => {
     const body = (await request.json()) as DoctorProfileUpdateRequest;
-    return HttpResponse.json({ data: updateProfile(body) });
+    const updated = updateProfile(body, resolveRequestAccountId(request));
+    if (!updated) return notFound('Doctor profile not found.');
+    return HttpResponse.json({ data: updated });
   }),
 
-  http.get(`${base()}${DOCTOR_PATHS.queue}`, () => HttpResponse.json({ data: getQueue() })),
+  http.get(`${base()}${DOCTOR_PATHS.queue}`, ({ request }) =>
+    HttpResponse.json({ data: getQueue(resolveRequestAccountId(request)) }),
+  ),
 
   // Doctor Workspace dashboard redesign: real distinct-patient list and real
   // appointment-status/rating summary (ConsultationModule's
   // AppointmentController) -- these mocks exist purely to keep the frontend
   // test suite deterministic, matching `getDashboardSummary()`'s precedent.
-  http.get(`${base()}${DOCTOR_PATHS.patients}`, () => HttpResponse.json({ data: getPatients() })),
+  http.get(`${base()}${DOCTOR_PATHS.patients}`, ({ request }) =>
+    HttpResponse.json({ data: getPatients(resolveRequestAccountId(request)) }),
+  ),
 
-  http.get(`${base()}${DOCTOR_PATHS.reportsSummary}`, () => HttpResponse.json({ data: getReportsSummary() })),
+  http.get(`${base()}${DOCTOR_PATHS.reportsSummary}`, ({ request }) =>
+    HttpResponse.json({ data: getReportsSummary(resolveRequestAccountId(request)) }),
+  ),
 
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
   // Requested and waits here until the doctor approves it.
-  http.get(`${base()}${DOCTOR_PATHS.pendingApproval}`, () =>
-    HttpResponse.json({ data: getPendingApprovalAppointments() }),
+  http.get(`${base()}${DOCTOR_PATHS.pendingApproval}`, ({ request }) =>
+    HttpResponse.json({ data: getPendingApprovalAppointments(resolveRequestAccountId(request)) }),
   ),
 
   http.patch(`${base()}/appointments/:id/approve`, ({ params }) =>
@@ -66,16 +95,19 @@ export const doctorHandlers = [
   // Doctor Onboarding (Phase 4 continuation).
   http.post(`${base()}${DOCTOR_PATHS.register}`, async ({ request }) => {
     const body = (await request.json()) as RegisterDoctorProfileRequest;
-    return HttpResponse.json({ data: registerProfile(body) }, { status: 201 });
+    return HttpResponse.json({ data: registerProfile(body, resolveRequestAccountId(request)) }, { status: 201 });
   }),
 
-  http.get(`${base()}/doctors/:id/verifications`, ({ params }) =>
-    HttpResponse.json({ data: listVerifications(params.id as string) }),
+  http.get(`${base()}/doctors/:id/verifications`, ({ params, request }) =>
+    HttpResponse.json({ data: listVerifications(params.id as string, resolveRequestAccountId(request)) }),
   ),
 
   http.post(`${base()}/doctors/:id/verifications`, async ({ request, params }) => {
     const body = (await request.json()) as SubmitVerificationRequest;
-    return HttpResponse.json({ data: submitVerification(params.id as string, body) }, { status: 201 });
+    return HttpResponse.json(
+      { data: submitVerification(params.id as string, body, resolveRequestAccountId(request)) },
+      { status: 201 },
+    );
   }),
 
   http.get(`${base()}${DOCTOR_PATHS.hospitals}`, () => HttpResponse.json({ data: listHospitals() })),
@@ -103,7 +135,9 @@ export const doctorHandlers = [
     const page = Number(url.searchParams.get('page') ?? '1');
     const limit = Number(url.searchParams.get('limit') ?? '50');
     const specialty = url.searchParams.get('specialty') ?? undefined;
-    return HttpResponse.json({ data: listDoctors({ page, limit, specialty }) });
+    const specialtyId = url.searchParams.get('specialtyId') ?? undefined;
+    const hospitalId = url.searchParams.get('hospitalId') ?? undefined;
+    return HttpResponse.json({ data: listDoctors({ page, limit, specialty, specialtyId, hospitalId }) });
   }),
 
   // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):

@@ -5,6 +5,7 @@ import type { InitiateChargeRequest } from '@/features/payment/api/types';
 import { attachConsultationSessionId, createCharge, getByConsultationSessionId, getById, refundTransaction } from '@/mocks/payment-store';
 import { confirmAppointmentAfterPayment, getAppointmentById } from '@/mocks/patient-store';
 import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
+import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
 
@@ -25,7 +26,7 @@ export const paymentHandlers = [
   // guards), then confirms it on a successful charge, same as the real
   // ConfirmAppointmentUseCase call.
   http.post(`${base()}${PAYMENT_PATHS.initiateCharge}`, async ({ request }) => {
-    if (!isPatientVerified()) {
+    if (!isPatientVerified(resolveRequestAccountId(request))) {
       return identityVerificationRequiredResponse();
     }
     const body = (await request.json()) as InitiateChargeRequest;

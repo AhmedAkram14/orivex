@@ -11,6 +11,7 @@ node_modules
 .DS_Store
 coverage
 dist
+dist-seed
 .claude/settings.local.json
 
 # Next.js (apps/frontend)

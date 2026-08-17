@@ -30,7 +30,7 @@ export class PrismaDoctorDirectoryQueryService implements DoctorDirectoryQueryPo
     const [rows, total] = await Promise.all([
       this.prisma.doctorProfile.findMany({
         where,
-        include: { account: { select: { displayName: true } } },
+        include: { account: { select: { displayName: true, avatarUrl: true } } },
         orderBy: { createdAt: 'desc' },
         take: filter.limit,
         skip: filter.offset,
@@ -48,6 +48,7 @@ export class PrismaDoctorDirectoryQueryService implements DoctorDirectoryQueryPo
         yearsOfExperience: row.yearsOfExperience ?? undefined,
         consultationFeeAmount: row.consultationFeeAmount ? Number(row.consultationFeeAmount) : undefined,
         hospitalId: row.hospitalId ?? undefined,
+        avatarUrl: row.account.avatarUrl ?? undefined,
       })),
     };
   }

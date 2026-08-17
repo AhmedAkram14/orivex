@@ -16,6 +16,7 @@ export interface PublicDoctorListing {
   hospitalName?: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
+  avatarUrl?: string;
   averageRating: number | null;
   reviewCount: number;
   availability: 'today' | 'tomorrow' | null;
@@ -86,6 +87,7 @@ export class ListPublicDoctorsUseCase {
           hospitalName: entry.hospitalName,
           yearsOfExperience: entry.yearsOfExperience,
           consultationFeeAmount: entry.consultationFeeAmount,
+          avatarUrl: entry.avatarUrl,
           averageRating: aggregate?.averageRating ?? null,
           reviewCount: aggregate?.reviewCount ?? 0,
           availability,

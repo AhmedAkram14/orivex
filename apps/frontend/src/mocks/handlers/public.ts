@@ -4,7 +4,7 @@ import { getWeekDayName } from '@/features/doctor/lib/week';
 import { getDoctorReviews } from '@/mocks/consultation-store';
 import { listDoctors } from '@/mocks/doctor-store';
 import { listSpecialties } from '@/mocks/reference-store';
-import { getDoctorAvailability, getDoctorExceptions, getHolidays } from '@/mocks/scheduling-store';
+import { getAvailabilityForDoctorId, getExceptionsForDoctorId, getHolidays } from '@/mocks/scheduling-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -13,18 +13,19 @@ function toIsoDate(date: Date): string {
 }
 
 /**
- * Mirrors the real backend's GetDoctorsOpenOnDatesUseCase, scoped to this
- * mock system's single seeded doctor/schedule (there is only ever one
- * `doctor-profile-1` here, so a per-doctorId lookup would be over-built).
- * Working-day check + holiday + exception overrides, same rules as the real
- * use case -- a doctor is never asserted "available" from thin air.
+ * Mirrors the real backend's GetDoctorsOpenOnDatesUseCase. Demo Data &
+ * Profile Avatar Pass: now genuinely per-doctor -- `scheduling-store.ts`
+ * keys availability by doctor profile id, so each of the seeded doctors has
+ * their own working days (Psychiatry deliberately the widest). Working-day
+ * check + holiday + exception overrides, same rules as the real use case --
+ * a doctor is never asserted "available" from thin air.
  */
-function isDoctorOpenOn(date: Date): boolean {
+function isDoctorOpenOn(doctorProfileId: string, date: Date): boolean {
   const isoDate = toIsoDate(date);
   if (getHolidays().some((holiday) => holiday.date === isoDate)) {
     return false;
   }
-  const exception = getDoctorExceptions().find((item) => item.date === isoDate);
+  const exception = getExceptionsForDoctorId(doctorProfileId).find((item) => item.date === isoDate);
   if (exception?.type === 'vacation' || exception?.type === 'unavailable') {
     return false;
   }
@@ -32,18 +33,15 @@ function isDoctorOpenOn(date: Date): boolean {
     return true;
   }
   const weekday = getWeekDayName(date);
-  return getDoctorAvailability().find((day) => day.dayOfWeek === weekday)?.isWorkingDay ?? false;
+  return getAvailabilityForDoctorId(doctorProfileId).find((day) => day.dayOfWeek === weekday)?.isWorkingDay ?? false;
 }
 
 function availabilityFor(doctorProfileId: string): 'today' | 'tomorrow' | null {
-  if (doctorProfileId !== 'doctor-profile-1') {
-    return null;
-  }
   const now = new Date();
-  if (isDoctorOpenOn(now)) return 'today';
+  if (isDoctorOpenOn(doctorProfileId, now)) return 'today';
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  if (isDoctorOpenOn(tomorrow)) return 'tomorrow';
+  if (isDoctorOpenOn(doctorProfileId, tomorrow)) return 'tomorrow';
   return null;
 }
 

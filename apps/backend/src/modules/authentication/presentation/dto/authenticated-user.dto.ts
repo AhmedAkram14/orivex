@@ -10,6 +10,7 @@ export class AuthenticatedUserDto {
   email!: string;
   fullName!: string;
   roles!: string[];
+  avatarUrl?: string;
 
   static fromAccount(account: Account): AuthenticatedUserDto {
     const dto = new AuthenticatedUserDto();
@@ -17,6 +18,7 @@ export class AuthenticatedUserDto {
     dto.email = account.getEmail().toString();
     dto.fullName = account.getUserProfile().getDisplayName().toString();
     dto.roles = [account.getRole()];
+    dto.avatarUrl = account.getUserProfile().getAvatarUrl();
     return dto;
   }
 }

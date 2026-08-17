@@ -11,6 +11,7 @@ export class PublicDoctorResponseDto {
   hospitalName?: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
+  avatarUrl?: string;
   averageRating!: number | null;
   reviewCount!: number;
   availability!: 'today' | 'tomorrow' | null;
@@ -28,6 +29,7 @@ export class PublicDoctorResponseDto {
     dto.hospitalName = doctor.hospitalName;
     dto.yearsOfExperience = doctor.yearsOfExperience;
     dto.consultationFeeAmount = doctor.consultationFeeAmount;
+    dto.avatarUrl = doctor.avatarUrl;
     dto.averageRating = doctor.averageRating;
     dto.reviewCount = doctor.reviewCount;
     dto.availability = doctor.availability;

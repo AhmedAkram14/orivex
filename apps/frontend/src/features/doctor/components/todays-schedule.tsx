@@ -7,7 +7,7 @@ import type { UpcomingWorkItem } from '@/features/doctor/api/types';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -76,6 +76,7 @@ export function TodaysSchedule() {
                 className="rounded-xl p-3 -mx-3 transition-colors duration-(--duration-fast) hover:bg-secondary-subtle"
                 leading={
                   <Avatar size="sm">
+                    {item.avatarUrl && <AvatarImage src={item.avatarUrl} alt={item.title} />}
                     <AvatarFallback>{initialsFor(item.title)}</AvatarFallback>
                   </Avatar>
                 }

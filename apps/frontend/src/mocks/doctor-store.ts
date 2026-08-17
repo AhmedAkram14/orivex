@@ -13,11 +13,15 @@ import type {
   VerificationCase,
 } from '@/features/doctor/api/types';
 import {
+  decideVerificationCase,
   findAllVerificationCasesBySubject,
   setSubjectVerificationCases,
   submitVerificationCase,
 } from '@/mocks/verification-case-store';
-import { listSpecialties } from '@/mocks/reference-store';
+import { findSpecialtyIdByName, listSpecialties } from '@/mocks/reference-store';
+import { findAccountById, getCurrentAccountId, LEGACY_DOCTOR_ACCOUNT_ID } from '@/mocks/auth-store';
+import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
+import { DEMO_DOCTORS, type DemoDoctor } from '@/mocks/demo-data/demo-people';
 
 /**
  * In-memory mock "backend" state for `/doctor/*` — mirrors
@@ -127,7 +131,7 @@ function seedUpcomingWork(): UpcomingWorkItem[] {
 function seedProfile(): DoctorProfile {
   return {
     id: 'doctor-profile-1',
-    accountId: 'user-doctor-1',
+    accountId: LEGACY_DOCTOR_ACCOUNT_ID,
     fullName: 'Dr. Sarah Ahmed',
     email: 'doctor@orivex.dev',
     phoneNumber: '+20 100 000 0000',
@@ -267,28 +271,117 @@ function seedReportsSummary(): DoctorReportsSummary {
   };
 }
 
-let summary: DoctorDashboardSummary = seedSummary();
-let upcomingWork: UpcomingWorkItem[] = seedUpcomingWork();
-let profile: DoctorProfile = seedProfile();
-let queue: QueueEntry[] = seedQueue();
-let patients: DoctorPatientListItem[] = seedPatients();
-let reportsSummary: DoctorReportsSummary = seedReportsSummary();
-
-export function getDashboardSummary(): DoctorDashboardSummary {
-  return summary;
+/**
+ * Demo Data & Profile Avatar Pass -- the root fix for this store's original
+ * architectural limitation: every piece of doctor state below used to be a
+ * single module-level singleton, so switching which mock doctor was logged
+ * in never changed a thing (every doctor saw "Dr. Sarah Ahmed"). Each is now
+ * a `Map` keyed by the owning *account* id, seeded for every demo doctor in
+ * `demo-people.ts` plus the legacy `doctor@orivex.dev` persona, and every
+ * read/write below resolves the caller's own account first.
+ *
+ * Account resolution order (see `request-account.ts`): the intercepted
+ * request's own bearer token -> the mock session marker -> the legacy demo
+ * doctor. That last fallback is what keeps every existing component test
+ * working: those render a page without ever driving a login, so there is no
+ * token and no session, and they correctly keep seeing the exact fixture
+ * they always did.
+ */
+function resolveAccountId(accountId?: string): string {
+  return accountId ?? getCurrentAccountId() ?? LEGACY_DOCTOR_ACCOUNT_ID;
 }
 
-export function getUpcomingWork(): UpcomingWorkItem[] {
-  return upcomingWork;
+/**
+ * A demo doctor's `DoctorProfile`, built from `demo-people.ts`'s own values.
+ * `languages` are stored as the same ISO codes the legacy profile uses (the
+ * UI resolves those to display names), never the English label. No
+ * `hospitalId`: this mock system has no hospital directory to point at, so
+ * an affiliation is left genuinely unset rather than invented (the field is
+ * optional, and the public directory already renders "Independent Practice"
+ * for it).
+ */
+const LANGUAGE_CODES: Record<string, string> = { Arabic: 'ar', English: 'en', French: 'fr' };
+
+function demoDoctorProfile(doctor: DemoDoctor, index: number): DoctorProfile {
+  const seniority = doctor.professionalRank === 'professor' || doctor.professionalRank === 'consultant';
+  const startYear = new Date().getFullYear() - doctor.yearsOfExperience;
+  return {
+    id: `doctor-profile-demo-${index + 1}`,
+    accountId: doctor.accountId,
+    fullName: doctor.displayName,
+    email: doctor.email,
+    phoneNumber: `+20 12${(index + 10).toString().padStart(2, '0')} ${(index + 1).toString().padStart(3, '0')} 4400`,
+    avatarUrl: doctor.avatarUrl,
+    licenseNumber: `LIC-${startYear}-${(4000 + index * 37).toString()}`,
+    specialtyId: findSpecialtyIdByName(doctor.specialtyName) ?? 'specialty-cardiology',
+    professionalRank: doctor.professionalRank,
+    licenseExpiryDate: `${new Date().getFullYear() + 3 + (index % 4)}-06-30T00:00:00.000Z`,
+    biography: doctor.biography,
+    yearsOfExperience: doctor.yearsOfExperience,
+    languages: doctor.languages.map((language) => LANGUAGE_CODES[language] ?? language.toLowerCase()),
+    insuranceProviders: doctor.insuranceProviders,
+    consultationFeeAmount: doctor.consultationFeeAmount,
+    publications: seniority
+      ? [{ id: `pub-demo-${index + 1}`, title: `Clinical outcomes in ${doctor.specialtyName.toLowerCase()} outpatient care`, reference: `Egyptian Medical Journal, ${startYear + Math.floor(doctor.yearsOfExperience / 2)}` }]
+      : [],
+    awards: seniority
+      ? [{ id: `award-demo-${index + 1}`, title: 'Excellence in Patient Care', issuingBody: doctor.hospitalName ?? 'Egyptian Medical Syndicate' }]
+      : [],
+    workExperience: [
+      {
+        id: `work-demo-${index + 1}`,
+        organizationName: doctor.hospitalName ?? 'Private Practice',
+        position: `${doctor.professionalRank.charAt(0).toUpperCase()}${doctor.professionalRank.slice(1)} ${doctor.specialtyName}`,
+        professionalRank: doctor.professionalRank,
+        startDate: `${startYear + Math.floor(doctor.yearsOfExperience / 2)}-01-01T00:00:00.000Z`,
+        description: doctor.biography,
+      },
+    ],
+    createdAt: `${startYear}-01-15T00:00:00.000Z`,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
-export function getProfile(): DoctorProfile {
-  return profile;
+function seedProfilesByAccountId(): Map<string, DoctorProfile> {
+  const seeded = new Map<string, DoctorProfile>();
+  const legacy = seedProfile();
+  seeded.set(legacy.accountId, legacy);
+  if (DEMO_SEED_ENABLED) {
+    DEMO_DOCTORS.forEach((doctor, index) => seeded.set(doctor.accountId, demoDoctorProfile(doctor, index)));
+  }
+  return seeded;
+}
+
+let profilesByAccountId: Map<string, DoctorProfile> = seedProfilesByAccountId();
+// Per-account operational state. Only ever written for accounts that have
+// genuinely diverged from the shared seed (a doctor whose day is generated
+// below, or a legacy-fixture override); an account with no entry reads the
+// same seed as before, which is exactly the pre-existing behavior.
+const summaryByAccountId = new Map<string, DoctorDashboardSummary>();
+const upcomingWorkByAccountId = new Map<string, UpcomingWorkItem[]>();
+const queueByAccountId = new Map<string, QueueEntry[]>();
+const patientsByAccountId = new Map<string, DoctorPatientListItem[]>();
+const reportsSummaryByAccountId = new Map<string, DoctorReportsSummary>();
+
+export function getDashboardSummary(accountId?: string): DoctorDashboardSummary {
+  return summaryByAccountId.get(resolveAccountId(accountId)) ?? seedSummary();
+}
+
+export function getUpcomingWork(accountId?: string): UpcomingWorkItem[] {
+  return upcomingWorkByAccountId.get(resolveAccountId(accountId)) ?? seedUpcomingWork();
+}
+
+/** `undefined` when the caller's account has no doctor profile (e.g. a patient hitting `/doctors/me`) -- the handler maps that to the real backend's own 404. */
+export function getProfile(accountId?: string): DoctorProfile | undefined {
+  return profilesByAccountId.get(resolveAccountId(accountId));
 }
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.5) -- the public GET /doctors/:id lookup. */
 export function getDoctorById(doctorProfileId: string): DoctorProfile | null {
-  return profile.id === doctorProfileId ? profile : null;
+  for (const candidate of profilesByAccountId.values()) {
+    if (candidate.id === doctorProfileId) return candidate;
+  }
+  return null;
 }
 
 // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8): the
@@ -296,7 +389,30 @@ export function getDoctorById(doctorProfileId: string): DoctorProfile | null {
 // verification case-detail page's Doctor-specific context section (a
 // VerificationCase only stores subjectAccountId, never a doctorProfileId).
 export function getDoctorByAccountId(accountId: string): DoctorProfile | null {
-  return profile.accountId === accountId ? profile : null;
+  return profilesByAccountId.get(accountId) ?? null;
+}
+
+/** Demo Data & Profile Avatar Pass: every seeded doctor, for the cross-store demo seeders (scheduling windows, ratings, appointments). */
+export function listAllDoctorProfiles(): DoctorProfile[] {
+  return [...profilesByAccountId.values()];
+}
+
+/** Demo Data & Profile Avatar Pass: lets the demo seeders give each doctor their own generated day/roster/aggregate instead of the one shared fixture. */
+export function setDoctorOperationalState(
+  accountId: string,
+  state: {
+    summary?: DoctorDashboardSummary;
+    upcomingWork?: UpcomingWorkItem[];
+    queue?: QueueEntry[];
+    patients?: DoctorPatientListItem[];
+    reportsSummary?: DoctorReportsSummary;
+  },
+): void {
+  if (state.summary) summaryByAccountId.set(accountId, state.summary);
+  if (state.upcomingWork) upcomingWorkByAccountId.set(accountId, state.upcomingWork);
+  if (state.queue) queueByAccountId.set(accountId, state.queue);
+  if (state.patients) patientsByAccountId.set(accountId, state.patients);
+  if (state.reportsSummary) reportsSummaryByAccountId.set(accountId, state.reportsSummary);
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Browse/Search
@@ -311,30 +427,51 @@ function toDirectoryEntry(doctorProfile: DoctorProfile): DoctorDirectoryEntry {
     yearsOfExperience: doctorProfile.yearsOfExperience,
     consultationFeeAmount: doctorProfile.consultationFeeAmount,
     hospitalId: doctorProfile.hospitalId,
+    avatarUrl: doctorProfile.avatarUrl,
   };
 }
 
 export function listDoctors(params: ListDoctorDirectoryParams): { doctors: DoctorDirectoryEntry[]; total: number; page: number; limit: number } {
   const page = params.page ?? 1;
   const limit = params.limit ?? 50;
+  const specialtyNamesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty.name]));
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the free-text
-  // `specialty` filter now matches against the referenced MedicalSpecialty's
+  // `specialty` filter matches against the referenced MedicalSpecialty's
   // name, mirroring the real backend's relation-filter -- DoctorProfile no
-  // longer carries its own free-text copy.
-  const specialtyName = listSpecialties().find((specialty) => specialty.id === profile.specialtyId)?.name ?? '';
-  const matches = !params.specialty || specialtyName.toLowerCase().includes(params.specialty.toLowerCase())
-    ? [toDirectoryEntry(profile)]
-    : [];
-  return { doctors: matches, total: matches.length, page, limit };
+  // longer carries its own free-text copy. `specialtyId`/`hospitalId` are
+  // exact-match filters, same as the real ListDoctorDirectoryQueryDto.
+  const matches = listAllDoctorProfiles().filter((candidate) => {
+    if (params.specialtyId && candidate.specialtyId !== params.specialtyId) return false;
+    if (params.hospitalId && candidate.hospitalId !== params.hospitalId) return false;
+    if (params.specialty) {
+      const specialtyName = specialtyNamesById.get(candidate.specialtyId) ?? '';
+      if (!specialtyName.toLowerCase().includes(params.specialty.toLowerCase())) return false;
+    }
+    return true;
+  });
+  const offset = (page - 1) * limit;
+  return {
+    doctors: matches.slice(offset, offset + limit).map(toDirectoryEntry),
+    total: matches.length,
+    page,
+    limit,
+  };
 }
 
-export function registerProfile(request: RegisterDoctorProfileRequest): DoctorProfile {
-  profile = {
-    id: 'doctor-profile-1',
-    accountId: 'user-doctor-1',
-    fullName: 'Dr. Sarah Ahmed',
-    email: 'doctor@orivex.dev',
-    phoneNumber: '+20 100 000 0000',
+export function registerProfile(request: RegisterDoctorProfileRequest, accountId?: string): DoctorProfile {
+  const owner = resolveAccountId(accountId);
+  const existing = profilesByAccountId.get(owner);
+  // The owning Account composes fullName/email/avatar on the real backend
+  // too (DoctorProfileResponseDto), so they come from `auth-store.ts` here
+  // rather than being invented -- an already-seeded profile keeps its own.
+  const account = findAccountById(owner);
+  const profile: DoctorProfile = {
+    id: existing?.id ?? `doctor-profile-${owner}`,
+    accountId: owner,
+    fullName: existing?.fullName ?? account?.fullName ?? 'Dr. Sarah Ahmed',
+    email: existing?.email ?? account?.email ?? 'doctor@orivex.dev',
+    phoneNumber: existing?.phoneNumber ?? '+20 100 000 0000',
+    avatarUrl: existing?.avatarUrl ?? account?.avatarUrl,
     licenseNumber: request.licenseNumber,
     specialtyId: request.specialtyId,
     professionalRank: request.professionalRank,
@@ -361,11 +498,15 @@ export function registerProfile(request: RegisterDoctorProfileRequest): DoctorPr
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+  profilesByAccountId.set(owner, profile);
   return profile;
 }
 
-export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfile {
-  profile = {
+export function updateProfile(request: DoctorProfileUpdateRequest, accountId?: string): DoctorProfile | undefined {
+  const owner = resolveAccountId(accountId);
+  const profile = profilesByAccountId.get(owner);
+  if (!profile) return undefined;
+  const updated: DoctorProfile = {
     ...profile,
     specialtyId: request.specialtyId ?? profile.specialtyId,
     professionalRank: request.professionalRank ?? profile.professionalRank,
@@ -401,19 +542,20 @@ export function updateProfile(request: DoctorProfileUpdateRequest): DoctorProfil
       })) ?? profile.workExperience,
     updatedAt: new Date().toISOString(),
   };
-  return profile;
+  profilesByAccountId.set(owner, updated);
+  return updated;
 }
 
-export function getQueue(): QueueEntry[] {
-  return queue;
+export function getQueue(accountId?: string): QueueEntry[] {
+  return queueByAccountId.get(resolveAccountId(accountId)) ?? seedQueue();
 }
 
-export function getPatients(): DoctorPatientListItem[] {
-  return patients;
+export function getPatients(accountId?: string): DoctorPatientListItem[] {
+  return patientsByAccountId.get(resolveAccountId(accountId)) ?? seedPatients();
 }
 
-export function getReportsSummary(): DoctorReportsSummary {
-  return reportsSummary;
+export function getReportsSummary(accountId?: string): DoctorReportsSummary {
+  return reportsSummaryByAccountId.get(resolveAccountId(accountId)) ?? seedReportsSummary();
 }
 
 /**
@@ -424,23 +566,29 @@ export function getReportsSummary(): DoctorReportsSummary {
  * that's the one genuinely unexercisable slice). Never called from
  * application code.
  */
-export function seedInConsultationQueueEntry(consultationSessionId: string, label: string): void {
-  queue = [...queue, { id: consultationSessionId, label, status: 'in-consultation', position: 0 }];
+export function seedInConsultationQueueEntry(consultationSessionId: string, label: string, accountId?: string): void {
+  const owner = resolveAccountId(accountId);
+  const current = queueByAccountId.get(owner) ?? seedQueue();
+  queueByAccountId.set(owner, [...current, { id: consultationSessionId, label, status: 'in-consultation', position: 0 }]);
 }
 
 // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
-// delegates to the shared, cross-store `verification-case-store.ts` --
-// `doctorId` (the profile id) is unused beyond keeping this function's
-// existing call-site signature, since the real subject key is
-// `profile.accountId` (this mock only ever seeds one doctor profile).
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match doctorApi.getVerifications' real shape
-export function listVerifications(doctorId: string): VerificationCase[] {
-  return findAllVerificationCasesBySubject('doctor', profile.accountId);
+// delegates to the shared, cross-store `verification-case-store.ts`. The
+// real subject key is the owning *account* id, so `doctorId` (a profile id)
+// is resolved back to its owner where it names a real seeded profile,
+// falling back to the caller's own account otherwise -- both paths land on
+// the same account for a doctor submitting their own case.
+function verificationSubjectAccountId(doctorId: string, accountId?: string): string {
+  return getDoctorById(doctorId)?.accountId ?? resolveAccountId(accountId);
 }
 
-export function submitVerification(_doctorId: string, request: SubmitVerificationRequest): VerificationCase {
+export function listVerifications(doctorId: string, accountId?: string): VerificationCase[] {
+  return findAllVerificationCasesBySubject('doctor', verificationSubjectAccountId(doctorId, accountId));
+}
+
+export function submitVerification(doctorId: string, request: SubmitVerificationRequest, accountId?: string): VerificationCase {
   return submitVerificationCase({
-    subjectAccountId: profile.accountId,
+    subjectAccountId: verificationSubjectAccountId(doctorId, accountId),
     subjectType: 'doctor',
     licenseNumber: request.licenseNumber,
     specialtyCode: request.specialtyCode,
@@ -450,11 +598,47 @@ export function submitVerification(_doctorId: string, request: SubmitVerificatio
 
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetDoctorStore(): void {
-  summary = seedSummary();
-  upcomingWork = seedUpcomingWork();
-  profile = seedProfile();
-  queue = seedQueue();
-  patients = seedPatients();
-  reportsSummary = seedReportsSummary();
-  setSubjectVerificationCases('doctor', profile.accountId, []);
+  const previousAccountIds = [...profilesByAccountId.keys()];
+  summaryByAccountId.clear();
+  upcomingWorkByAccountId.clear();
+  queueByAccountId.clear();
+  patientsByAccountId.clear();
+  reportsSummaryByAccountId.clear();
+  profilesByAccountId = seedProfilesByAccountId();
+  // Clears every doctor subject this store has ever owned (not just the
+  // legacy one), leaving other subject types untouched -- same
+  // only-reset-my-own-slice contract this function always held.
+  for (const accountId of new Set([...previousAccountIds, ...profilesByAccountId.keys()])) {
+    setSubjectVerificationCases('doctor', accountId, []);
+  }
+  seedDemoVerificationCases();
 }
+
+/**
+ * Demo Data & Profile Avatar Pass: mirrors each demo doctor's own
+ * `verification` field into the shared `verification-case-store.ts` -- the
+ * same store the admin verification queue reads, so the demo's approved/
+ * pending/rejected spread is real state an admin can actually act on, not a
+ * display-only flag.
+ */
+function seedDemoVerificationCases(): void {
+  if (!DEMO_SEED_ENABLED) return;
+  DEMO_DOCTORS.forEach((doctor) => {
+    const submitted = submitVerificationCase({
+      subjectAccountId: doctor.accountId,
+      subjectType: 'doctor',
+      licenseNumber: profilesByAccountId.get(doctor.accountId)?.licenseNumber,
+      specialtyCode: doctor.specialtyName.toLowerCase().replace(/[^a-z]+/g, '-'),
+      documentAssetIds: ['seed-national-id-front', 'seed-national-id-back', 'seed-selfie-with-id'],
+    });
+    // A 'pending' demo doctor deliberately stays `submitted` -- that's what
+    // puts them in the admin's real pending-review queue.
+    if (doctor.verification === 'approved') {
+      decideVerificationCase(submitted.id, 'approved');
+    } else if (doctor.verification === 'rejected') {
+      decideVerificationCase(submitted.id, 'rejected', 'License documentation was unreadable; please re-upload a clearer scan.');
+    }
+  });
+}
+
+seedDemoVerificationCases();

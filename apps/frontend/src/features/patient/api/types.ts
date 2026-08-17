@@ -28,6 +28,7 @@ export interface UpcomingAppointmentPreview {
   /** ISO timestamp — components format it for display, this type never carries pre-formatted text. */
   scheduledAt: string;
   doctorName: string;
+  doctorAvatarUrl?: string;
   specialization: string;
   /** The Arabic specialty name -- null until an admin has translated it. */
   specializationAr: string | null;
@@ -91,6 +92,7 @@ export interface PatientProfile {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  avatarUrl?: string;
   /** ISO date. Undefined when not yet on record. */
   dateOfBirth?: string;
   gender?: Gender;
@@ -157,6 +159,7 @@ export interface Appointment {
   /** Patient-Facing Reschedule (Phase 3 Step 2): the same doctor's real id, so the reschedule flow can fetch their availability windows (`GET /doctors/:doctorId/availability-windows`) -- matches `AppointmentListItemResponseDto.doctorId` exactly. */
   doctorId: string;
   doctorName: string;
+  doctorAvatarUrl?: string;
   specialization: string;
   /** The Arabic specialty name -- null until an admin has translated it. */
   specializationAr: string | null;

@@ -30,6 +30,7 @@ export class AppointmentListItemResponseDto {
   /** Patient-Facing Reschedule (Phase 3 Step 2): additive field so the frontend can look up the same doctor's real availability windows (`GET /doctors/:doctorId/availability-windows`) when rescheduling -- `Appointment.getDoctorId()` already existed on the domain entity, this just maps it through. */
   doctorId!: string;
   doctorName!: string;
+  doctorAvatarUrl?: string;
   specialization!: string;
   /** Localization fix: the Arabic specialty name, null until an admin has translated it -- the frontend picks whichever matches the caller's locale. */
   specializationAr!: string | null;
@@ -52,6 +53,7 @@ export class AppointmentListItemResponseDto {
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
     dto.doctorId = appointment.getDoctorId();
     dto.doctorName = doctorAccount.getUserProfile().getDisplayName().toString();
+    dto.doctorAvatarUrl = doctorAccount.getUserProfile().getAvatarUrl();
     dto.specialization = specialization;
     dto.specializationAr = specializationAr;
     dto.status = appointment.getStatus();

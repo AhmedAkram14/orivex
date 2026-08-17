@@ -14,6 +14,13 @@ import { referenceHandlers } from '@/mocks/handlers/reference';
 import { schedulingHandlers } from '@/mocks/handlers/scheduling';
 import { searchHandlers } from '@/mocks/handlers/search';
 import { telemedicineHandlers } from '@/mocks/handlers/telemedicine';
+import { seedDemoData } from '@/mocks/demo-data/demo-seeder';
+
+// Demo Data & Profile Avatar Pass: fills the (now account-keyed) mock stores
+// with the full 42-account demo history. A no-op under Vitest -- see
+// `demo-mode.ts` for why the seed volume, but not the account-keying fix
+// itself, is environment-gated.
+seedDemoData();
 
 /**
  * Request handlers shared between the browser worker (manual dev/QA

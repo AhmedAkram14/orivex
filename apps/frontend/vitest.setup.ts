@@ -47,3 +47,44 @@ window.matchMedia ??=
       removeEventListener: () => {},
       dispatchEvent: () => false,
     }) as unknown as MediaQueryList) as typeof window.matchMedia;
+
+// jsdom never actually loads an <img>'s network resource, so Radix's
+// Avatar.Image (which tracks a real `new Image()`'s load/error events to
+// decide when to swap from AvatarFallback to the real photo) never leaves
+// its initial "loading" status in tests -- any test asserting the real
+// image renders would hang/always see the fallback instead. Stubbing `src`
+// to synchronously fire `onload` (any non-empty src "succeeds") mirrors
+// how every other jsdom-networking gap in this file is patched: the
+// minimum needed to make already-correct component code testable, not a
+// behavior change.
+class ImageLoadStub extends EventTarget {
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  // Radix's Avatar.Image derives "loaded" vs "error" from `complete` +
+  // `naturalWidth` on the *load* event's own target, not just the event
+  // firing (`getImageLoadingStatus`: `image.complete ? naturalWidth > 0 ?
+  // 'loaded' : 'error' : 'loading'`) -- both need to already be set by the
+  // time the listener reads them.
+  complete = false;
+  naturalWidth = 0;
+  private _src = '';
+  get src(): string {
+    return this._src;
+  }
+  set src(value: string) {
+    this._src = value;
+    if (value) {
+      queueMicrotask(() => {
+        this.complete = true;
+        this.naturalWidth = 1;
+        this.onload?.();
+        this.dispatchEvent(new Event('load'));
+      });
+    }
+  }
+}
+// Direct assignment, not `??=` -- jsdom already defines a real `Image`
+// constructor (unlike ResizeObserver/matchMedia above, which are truly
+// absent), it just never fires load/error events, so the usual "only
+// polyfill if missing" guard would leave the broken one in place.
+globalThis.Image = ImageLoadStub as unknown as typeof Image;

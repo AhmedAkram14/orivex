@@ -25,6 +25,7 @@ export interface DoctorDirectoryEntry {
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
   hospitalId?: string;
+  avatarUrl?: string;
 }
 
 export interface DoctorDirectoryFilter {

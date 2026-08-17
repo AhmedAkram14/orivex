@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
@@ -23,6 +23,7 @@ export type DoctorCardProfessionalRank = 'resident' | 'registrar' | 'specialist'
 export interface DoctorCardProps {
   doctorProfileId: string;
   fullName: string;
+  avatarUrl?: string;
   specialtyLabel: string;
   specialtyBadgeVariant?: BadgeProps['variant'];
   professionalRank?: DoctorCardProfessionalRank;
@@ -50,6 +51,7 @@ export interface DoctorCardProps {
 export function DoctorCard({
   doctorProfileId,
   fullName,
+  avatarUrl,
   specialtyLabel,
   specialtyBadgeVariant = 'primary',
   professionalRank,
@@ -68,6 +70,7 @@ export function DoctorCard({
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <Avatar size="lg" className="size-20">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} />}
             <AvatarFallback>{initialsOf(fullName)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-1.5">

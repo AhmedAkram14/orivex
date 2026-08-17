@@ -43,7 +43,7 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
       this.prisma.doctorProfile.findMany({
         where,
         include: {
-          account: { select: { displayName: true } },
+          account: { select: { displayName: true, avatarUrl: true } },
           medicalSpecialty: { select: { name: true, nameAr: true } },
           hospital: { select: { name: true } },
         },
@@ -67,6 +67,7 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
         hospitalName: row.hospital?.name ?? undefined,
         yearsOfExperience: row.yearsOfExperience ?? undefined,
         consultationFeeAmount: row.consultationFeeAmount ? Number(row.consultationFeeAmount) : undefined,
+        avatarUrl: row.account.avatarUrl ?? undefined,
       })),
     };
   }

@@ -19,6 +19,7 @@ export interface PublicDoctor {
   hospitalName?: string;
   yearsOfExperience?: number;
   consultationFeeAmount?: number;
+  avatarUrl?: string;
   averageRating: number | null;
   reviewCount: number;
   availability: 'today' | 'tomorrow' | null;

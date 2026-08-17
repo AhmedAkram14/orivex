@@ -113,29 +113,52 @@ function seedNotifications(): NotificationEntry[] {
   ];
 }
 
-let notifications: NotificationEntry[] = seedNotifications();
+/**
+ * Demo Data & Profile Avatar Pass: notifications used to be one global list
+ * every account shared -- so a doctor and a patient logged into the same
+ * demo saw literally the same inbox. Now keyed by account id, consistent
+ * with `doctor-store.ts`/`patient-store.ts`'s own account-keying fix. An
+ * account with nothing seeded reads the original fixture list above, which
+ * is what keeps the existing Notification Center tests unchanged.
+ */
+const notificationsByAccountId = new Map<string, NotificationEntry[]>();
+const LEGACY_ACCOUNT_KEY = '__legacy__';
+
+function listFor(accountId: string | undefined): NotificationEntry[] {
+  const key = accountId ?? LEGACY_ACCOUNT_KEY;
+  const existing = notificationsByAccountId.get(key);
+  if (existing) return existing;
+  const seeded = seedNotifications();
+  notificationsByAccountId.set(key, seeded);
+  return seeded;
+}
+
+/** Demo Data & Profile Avatar Pass: the demo seeder's write path -- realistic, role-appropriate, per-account inboxes. */
+export function setNotificationsForAccount(accountId: string, entries: NotificationEntry[]): void {
+  notificationsByAccountId.set(accountId, entries);
+}
 
 /** Test-only: restores the seed data, since `markNotificationAsRead`/`markAllNotificationsAsRead` mutate this module's shared state across every test in a file. Never called from application code. */
 export function resetNotifications(): void {
-  notifications = seedNotifications();
+  notificationsByAccountId.clear();
 }
 
-export function getNotifications(): NotificationEntry[] {
-  return [...notifications].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+export function getNotifications(accountId?: string): NotificationEntry[] {
+  return [...listFor(accountId)].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
 /** Real offset pagination over the sorted list (Notification Center pagination fix) — mirrors `listAllTransactionsForAdmin`'s page/limit slicing. */
-export function getNotificationsPage(page: number, limit: number): { items: NotificationEntry[]; total: number } {
-  const sorted = getNotifications();
+export function getNotificationsPage(page: number, limit: number, accountId?: string): { items: NotificationEntry[]; total: number } {
+  const sorted = getNotifications(accountId);
   const offset = (page - 1) * limit;
   return { items: sorted.slice(offset, offset + limit), total: sorted.length };
 }
 
-export function markNotificationAsRead(id: string): void {
-  const notification = notifications.find((entry) => entry.id === id);
+export function markNotificationAsRead(id: string, accountId?: string): void {
+  const notification = listFor(accountId).find((entry) => entry.id === id);
   if (notification) notification.read = true;
 }
 
-export function markAllNotificationsAsRead(): void {
-  for (const notification of notifications) notification.read = true;
+export function markAllNotificationsAsRead(accountId?: string): void {
+  for (const notification of listFor(accountId)) notification.read = true;
 }

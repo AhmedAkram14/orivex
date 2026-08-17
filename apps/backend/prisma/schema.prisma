@@ -34,6 +34,15 @@ model Account {
   nationalityId     String?
   nationality       Country?           @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
   address           String?
+  // Demo Data & Profile Avatar Pass: a cached display pointer, always a
+  // root-relative path served by the frontend's own public/ folder (e.g.
+  // "/demo/avatars/doctor-01.png") -- never a MediaAsset presigned URL,
+  // which stays scoped to arbitrary user-uploaded files. No public
+  // request DTO sets this yet (no upload-your-photo UI exists); today only
+  // the demo seed script populates it, via the real UpdatePersonalProfile
+  // use case. Absent for a real user simply falls back to the existing
+  // initials avatar, same as it always has.
+  avatarUrl         String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   credential        Credential?

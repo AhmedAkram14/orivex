@@ -8,8 +8,8 @@ import { getMyIdentityVerificationStatus } from '@/mocks/patient-store';
  * (`RequiresIdentityVerificationGuard`), instead of duplicating the
  * response shape four times.
  */
-export function isPatientVerified(): boolean {
-  return getMyIdentityVerificationStatus().isVerified;
+export function isPatientVerified(accountId?: string): boolean {
+  return getMyIdentityVerificationStatus(accountId).isVerified;
 }
 
 export function identityVerificationRequiredResponse() {

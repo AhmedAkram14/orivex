@@ -12,6 +12,9 @@ import { getWeekDayName } from '@/features/doctor/lib/week';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { addDays } from '@/shared/lib/date/week';
+import { getDoctorByAccountId, listAllDoctorProfiles } from '@/mocks/doctor-store';
+import { findSpecialtyIdByName } from '@/mocks/reference-store';
+import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
 
 /**
  * In-memory mock "backend" state for `/scheduling/*` — mirrors
@@ -91,10 +94,64 @@ function seedHolidays(): Holiday[] {
   ];
 }
 
+/**
+ * Demo Data & Profile Avatar Pass: availability is now keyed by the owning
+ * *doctor profile id*, not a single shared weekly schedule -- that singleton
+ * was the reason every doctor in the mock directory offered the exact same
+ * slots. Keyed by profile id rather than account id because the
+ * patient-facing window generator is addressed by profile id
+ * (`GET /doctors/:id/availability-windows`); the doctor's own self-scoped
+ * routes resolve their account -> profile first.
+ */
+const availabilityByDoctorId = new Map<string, RecurringWeeklySchedule>();
+const exceptionsByDoctorId = new Map<string, ScheduleException[]>();
+const LEGACY_DOCTOR_PROFILE_ID = 'doctor-profile-1';
+
+function doctorProfileIdForAccount(accountId?: string): string {
+  return (accountId ? getDoctorByAccountId(accountId)?.id : undefined) ?? LEGACY_DOCTOR_PROFILE_ID;
+}
+
+/** Psychiatry-weighted demo generation: a psychiatrist works six days a week with longer hours and no midday break, so genuinely more bookable windows surface for them across the whole directory -- the honest reason Psychiatry dominates Browse/Popular Doctors, never a hardcoded "popular" flag. */
+function demoWeeklySchedule(isPsychiatry: boolean, index: number, feeAmount: number | undefined): RecurringWeeklySchedule {
+  const allDays: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const workingDays: WeekDay[] = isPsychiatry
+    ? ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday']
+    : index % 2 === 0
+      ? ['sunday', 'monday', 'wednesday']
+      : ['sunday', 'tuesday', 'thursday'];
+  const hours = isPsychiatry ? { start: '09:00', end: '19:00' } : { start: '10:00', end: '15:00' };
+  return allDays.map((dayOfWeek) => {
+    const isWorkingDay = workingDays.includes(dayOfWeek);
+    return {
+      dayOfWeek,
+      isWorkingDay,
+      hours,
+      breaks: isWorkingDay && !isPsychiatry ? [{ start: '13:00', end: '14:00' }] : [],
+      pricing: isWorkingDay && feeAmount
+        ? ({ pricingType: 'paid', feeAmount, feeCurrency: 'EGP' } satisfies ConsultationPricing)
+        : FREE_PRICING,
+    };
+  });
+}
+
+function seedAvailabilityByDoctorId(): void {
+  availabilityByDoctorId.clear();
+  exceptionsByDoctorId.clear();
+  availabilityByDoctorId.set(LEGACY_DOCTOR_PROFILE_ID, seedDoctorAvailability());
+  if (!DEMO_SEED_ENABLED) return;
+  const psychiatryId = findSpecialtyIdByName('Psychiatry');
+  listAllDoctorProfiles().forEach((doctor, index) => {
+    if (doctor.id === LEGACY_DOCTOR_PROFILE_ID) return;
+    availabilityByDoctorId.set(
+      doctor.id,
+      demoWeeklySchedule(doctor.specialtyId === psychiatryId, index, doctor.consultationFeeAmount),
+    );
+  });
+}
+
 let rules: SchedulingRules = seedRules();
-let doctorAvailability: RecurringWeeklySchedule = seedDoctorAvailability();
-let doctorExceptions: ScheduleException[] = seedDoctorExceptions();
 let holidays: Holiday[] = seedHolidays();
+seedAvailabilityByDoctorId();
 // Onboarding Redesign integration-gap closure (2026-07-25): mirrors the real
 // backend's AvailabilityWindow -- once a window id has been consumed by the
 // mock's own `bookAppointment()` (patient-store.ts), it must stop appearing
@@ -117,27 +174,42 @@ export function getSchedulingRules(): SchedulingRules {
   return rules;
 }
 
-export function getDoctorAvailability(): RecurringWeeklySchedule {
-  return doctorAvailability;
+/** The calling doctor's own weekly schedule (self-scoped route -- resolves account -> profile). */
+export function getDoctorAvailability(accountId?: string): RecurringWeeklySchedule {
+  return getAvailabilityForDoctorId(doctorProfileIdForAccount(accountId));
 }
 
-export function updateDoctorAvailability(schedule: RecurringWeeklySchedule): RecurringWeeklySchedule {
-  doctorAvailability = schedule;
-  return doctorAvailability;
+/** One specific doctor's weekly schedule, by profile id -- the patient-facing window generator's own lookup. */
+export function getAvailabilityForDoctorId(doctorProfileId: string): RecurringWeeklySchedule {
+  return availabilityByDoctorId.get(doctorProfileId) ?? seedDoctorAvailability();
 }
 
-export function getDoctorExceptions(): ScheduleException[] {
-  return doctorExceptions;
+export function updateDoctorAvailability(schedule: RecurringWeeklySchedule, accountId?: string): RecurringWeeklySchedule {
+  availabilityByDoctorId.set(doctorProfileIdForAccount(accountId), schedule);
+  return schedule;
 }
 
-export function addDoctorException(exception: Omit<ScheduleException, 'id'>): ScheduleException {
+export function getDoctorExceptions(accountId?: string): ScheduleException[] {
+  return getExceptionsForDoctorId(doctorProfileIdForAccount(accountId));
+}
+
+export function getExceptionsForDoctorId(doctorProfileId: string): ScheduleException[] {
+  return exceptionsByDoctorId.get(doctorProfileId) ?? seedDoctorExceptions();
+}
+
+export function addDoctorException(exception: Omit<ScheduleException, 'id'>, accountId?: string): ScheduleException {
+  const doctorProfileId = doctorProfileIdForAccount(accountId);
   const created: ScheduleException = { ...exception, id: `exception-${Date.now()}` };
-  doctorExceptions = [...doctorExceptions, created];
+  exceptionsByDoctorId.set(doctorProfileId, [...getExceptionsForDoctorId(doctorProfileId), created]);
   return created;
 }
 
-export function removeDoctorException(id: string): void {
-  doctorExceptions = doctorExceptions.filter((exception) => exception.id !== id);
+export function removeDoctorException(id: string, accountId?: string): void {
+  const doctorProfileId = doctorProfileIdForAccount(accountId);
+  exceptionsByDoctorId.set(
+    doctorProfileId,
+    getExceptionsForDoctorId(doctorProfileId).filter((exception) => exception.id !== id),
+  );
 }
 
 export function getHolidays(): Holiday[] {
@@ -159,7 +231,7 @@ export function resolveWindowPricing(doctorId: string, isoStart: string): Consul
 
   const start = new Date(isoStart);
   const weekday = getWeekDayName(start);
-  const day = resolveDayForDate(start, weekday, doctorAvailability, doctorExceptions, holidays);
+  const day = resolveDayForDate(start, weekday, getAvailabilityForDoctorId(doctorId), getExceptionsForDoctorId(doctorId), holidays);
   return day.pricing;
 }
 
@@ -183,7 +255,7 @@ export function getAvailabilityWindows(doctorId: string, from: string, to: strin
 
   for (let cursor = new Date(fromDate); cursor < toDate; cursor = addDays(cursor, 1)) {
     const weekday = getWeekDayName(cursor);
-    const day = resolveDayForDate(cursor, weekday, doctorAvailability, doctorExceptions, holidays);
+    const day = resolveDayForDate(cursor, weekday, getAvailabilityForDoctorId(doctorId), getExceptionsForDoctorId(doctorId), holidays);
     const slots = generateDaySlots(day, rules, cursor, new Date());
 
     for (const slot of slots) {
@@ -269,9 +341,8 @@ export function isAvailabilityWindowBooked(availabilityWindowId: string): boolea
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetSchedulingStore(): void {
   rules = seedRules();
-  doctorAvailability = seedDoctorAvailability();
-  doctorExceptions = seedDoctorExceptions();
   holidays = seedHolidays();
+  seedAvailabilityByDoctorId();
   bookedAvailabilityWindowIds.clear();
   slotPricingOverrides.clear();
 }

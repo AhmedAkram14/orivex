@@ -6,6 +6,9 @@ export interface UpdatePersonalProfileCommandProps {
   gender?: Gender | null;
   nationalityId?: string | null;
   address?: string | null;
+  // Demo Data & Profile Avatar Pass: no public request DTO/controller wires
+  // this yet -- only the demo seed script calls this use case with it today.
+  avatarUrl?: string | null;
 }
 
 // Commands are application messages, not structural types — immutable by
@@ -16,6 +19,7 @@ export class UpdatePersonalProfileCommand {
   readonly gender?: Gender | null;
   readonly nationalityId?: string | null;
   readonly address?: string | null;
+  readonly avatarUrl?: string | null;
 
   constructor(props: UpdatePersonalProfileCommandProps) {
     this.accountId = props.accountId;
@@ -23,5 +27,6 @@ export class UpdatePersonalProfileCommand {
     this.gender = props.gender;
     this.nationalityId = props.nationalityId;
     this.address = props.address;
+    this.avatarUrl = props.avatarUrl;
   }
 }

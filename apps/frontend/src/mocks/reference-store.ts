@@ -1,4 +1,24 @@
 import type { Country, InsuranceProvider, MedicalSpecialty } from '@/features/reference/api/types';
+import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
+
+/**
+ * Demo Data & Profile Avatar Pass: the six specialties `demo-people.ts`
+ * references that weren't already seeded below. Additive only -- the three
+ * original entries keep their exact ids (`specialty-cardiology` and friends
+ * are referenced by `doctor-store.ts`'s legacy profile and by tests), so
+ * nothing that already pointed at them breaks.
+ */
+function seedDemoSpecialties(): MedicalSpecialty[] {
+  const timestamps = { isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
+  return [
+    { id: 'specialty-psychiatry', name: 'Psychiatry', nameAr: 'الطب النفسي', ...timestamps },
+    { id: 'specialty-internal-medicine', name: 'Internal Medicine', nameAr: 'الباطنة العامة', ...timestamps },
+    { id: 'specialty-orthopedics', name: 'Orthopedics', nameAr: 'جراحة العظام', ...timestamps },
+    { id: 'specialty-dentistry', name: 'Dentistry', nameAr: 'طب الأسنان', ...timestamps },
+    { id: 'specialty-ent', name: 'Otolaryngology (ENT)', nameAr: 'الأنف والأذن والحنجرة', ...timestamps },
+    { id: 'specialty-ophthalmology', name: 'Ophthalmology', nameAr: 'طب العيون', ...timestamps },
+  ];
+}
 
 /**
  * In-memory mock "backend" state for `/reference/*` -- mirrors
@@ -7,11 +27,14 @@ import type { Country, InsuranceProvider, MedicalSpecialty } from '@/features/re
  * this mock exists purely to keep the frontend test suite deterministic.
  */
 function seedSpecialties(): MedicalSpecialty[] {
-  return [
+  const original: MedicalSpecialty[] = [
     { id: 'specialty-cardiology', name: 'Cardiology', nameAr: 'أمراض القلب', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
     { id: 'specialty-dermatology', name: 'Dermatology', nameAr: 'الأمراض الجلدية', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
     { id: 'specialty-pediatrics', name: 'Pediatrics', nameAr: 'طب الأطفال', isActive: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
   ];
+  if (!DEMO_SEED_ENABLED) return original;
+  const existingNames = new Set(original.map((specialty) => specialty.name));
+  return [...original, ...seedDemoSpecialties().filter((specialty) => !existingNames.has(specialty.name))];
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.6): the shared Personal
@@ -40,6 +63,11 @@ let insuranceProviders: InsuranceProvider[] = seedInsuranceProviders();
 
 export function listSpecialties(): MedicalSpecialty[] {
   return specialties;
+}
+
+/** Demo Data & Profile Avatar Pass: `demo-people.ts` carries specialty *names*; every store keys off the specialty *id*. */
+export function findSpecialtyIdByName(name: string): string | undefined {
+  return specialties.find((specialty) => specialty.name === name)?.id;
 }
 
 export function listCountries(): Country[] {

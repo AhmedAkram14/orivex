@@ -48,6 +48,10 @@ export interface UpdatePersonalProfileProps {
   gender?: Gender | null;
   nationalityId?: string | null;
   address?: string | null;
+  // Demo Data & Profile Avatar Pass: no public request DTO/controller wires
+  // this yet (no upload-your-photo UI exists) -- today it's only ever set
+  // by the demo seed script calling this same real use case directly.
+  avatarUrl?: string | null;
 }
 
 // Aggregate root of the Identity & Access bounded context (docs/10-backend-
@@ -165,6 +169,9 @@ export class Account {
     }
     if (props.address !== undefined) {
       this.userProfile.updateAddress(props.address ?? undefined);
+    }
+    if (props.avatarUrl !== undefined) {
+      this.userProfile.updateAvatarUrl(props.avatarUrl ?? undefined);
     }
     this.updatedAt = new Date();
   }

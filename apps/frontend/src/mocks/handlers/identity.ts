@@ -3,6 +3,7 @@ import { env } from '@/shared/lib/env';
 import { IDENTITY_PATHS } from '@/features/identity/api/paths';
 import type { UpdatePersonalProfileRequest } from '@/features/identity/api/types';
 import { getAccountById, getMyAccount, updateMyPersonalProfile } from '@/mocks/identity-store';
+import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
 
@@ -17,7 +18,9 @@ function errorResponse(status: number, code: string, message: string) {
 // MyAccountController) -- this handler exists purely to keep the frontend
 // test suite deterministic, matching `patient.ts`/`doctor.ts`.
 export const identityHandlers = [
-  http.get(`${base()}${IDENTITY_PATHS.myAccount}`, () => HttpResponse.json({ data: getMyAccount() })),
+  http.get(`${base()}${IDENTITY_PATHS.myAccount}`, ({ request }) =>
+    HttpResponse.json({ data: getMyAccount(resolveRequestAccountId(request)) }),
+  ),
 
   http.patch(`${base()}${IDENTITY_PATHS.myAccount}`, async ({ request }) => {
     const body = (await request.json()) as UpdatePersonalProfileRequest;

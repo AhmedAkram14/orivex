@@ -1,11 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { getCurrentAccount } from '@/mocks/auth-store';
-import { getPatients as getDoctorPatients, getProfile as getDoctorProfile, getUpcomingWork } from '@/mocks/doctor-store';
+import { getPatients as getDoctorPatients, getUpcomingWork, listAllDoctorProfiles } from '@/mocks/doctor-store';
 import { getAppointments as getPatientAppointments } from '@/mocks/patient-store';
 import { listAccounts } from '@/mocks/admin-store';
 import { listSpecialties } from '@/mocks/reference-store';
 import type { SearchResultDto, SearchResultType } from '@/features/search/api/types';
+import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
 
@@ -13,15 +14,23 @@ function matches(q: string, text: string): boolean {
   return text.toLowerCase().includes(q.toLowerCase());
 }
 
+// Demo Data & Profile Avatar Pass: searches the whole seeded directory now,
+// not the one former singleton profile -- same case-insensitive contains
+// rule the real backend applies.
 function doctorResults(q: string): SearchResultDto[] {
-  const profile = getDoctorProfile();
-  if (!matches(q, profile.fullName)) return [];
-  const specialtyName = listSpecialties().find((specialty) => specialty.id === profile.specialtyId)?.name ?? '';
-  return [{ type: 'doctor', id: profile.id, title: profile.fullName, subtitle: specialtyName }];
+  const specialtyNamesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty.name]));
+  return listAllDoctorProfiles()
+    .filter((profile) => matches(q, profile.fullName))
+    .map((profile) => ({
+      type: 'doctor' as const,
+      id: profile.id,
+      title: profile.fullName,
+      subtitle: specialtyNamesById.get(profile.specialtyId) ?? '',
+    }));
 }
 
-function patientResultsForDoctor(q: string): SearchResultDto[] {
-  return getDoctorPatients()
+function patientResultsForDoctor(q: string, accountId?: string): SearchResultDto[] {
+  return getDoctorPatients(accountId)
     .filter((patient) => matches(q, patient.patientName))
     .map((patient) => ({ type: 'patient', id: patient.patientProfileId, title: patient.patientName, subtitle: 'Patient' }));
 }
@@ -32,8 +41,8 @@ function patientResultsForAdmin(q: string): SearchResultDto[] {
     .map((account) => ({ type: 'patient', id: account.id, title: account.displayName, subtitle: 'Patient' }));
 }
 
-function appointmentResultsForPatient(q: string): SearchResultDto[] {
-  return getPatientAppointments()
+function appointmentResultsForPatient(q: string, accountId?: string): SearchResultDto[] {
+  return getPatientAppointments(accountId)
     .filter((appointment) => matches(q, appointment.doctorName))
     .map((appointment) => ({
       type: 'appointment',
@@ -43,8 +52,8 @@ function appointmentResultsForPatient(q: string): SearchResultDto[] {
     }));
 }
 
-function appointmentResultsForDoctor(q: string): SearchResultDto[] {
-  return getUpcomingWork()
+function appointmentResultsForDoctor(q: string, accountId?: string): SearchResultDto[] {
+  return getUpcomingWork(accountId)
     .filter((item) => matches(q, item.title))
     .map((item) => ({
       type: 'appointment',
@@ -61,9 +70,9 @@ function appointmentResultsForDoctor(q: string): SearchResultDto[] {
  * auth-store's current session, matching `handlers/auth.ts`'s own
  * `getCurrentAccount()` precedent.
  */
-function resultsForRole(role: string | undefined, q: string): SearchResultDto[] {
-  if (role === 'patient') return [...doctorResults(q), ...appointmentResultsForPatient(q)];
-  if (role === 'doctor') return [...patientResultsForDoctor(q), ...appointmentResultsForDoctor(q)];
+function resultsForRole(role: string | undefined, q: string, accountId?: string): SearchResultDto[] {
+  if (role === 'patient') return [...doctorResults(q), ...appointmentResultsForPatient(q, accountId)];
+  if (role === 'doctor') return [...patientResultsForDoctor(q, accountId), ...appointmentResultsForDoctor(q, accountId)];
   if (role === 'super_admin') return [...doctorResults(q), ...patientResultsForAdmin(q)];
   // Nurse/Receptionist/HospitalAdmin: doctor-only.
   return [...doctorResults(q)];
@@ -91,7 +100,7 @@ export const searchHandlers = [
     }
 
     const account = getCurrentAccount();
-    let results = resultsForRole(account?.roles[0], q);
+    let results = resultsForRole(account?.roles[0], q, resolveRequestAccountId(request));
     if (type) results = results.filter((result) => result.type === type);
     const boundedLimit = Math.min(Math.max(limit, 1), 10);
 

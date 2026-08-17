@@ -16,8 +16,11 @@ import type {
 } from '@/features/patient/api/types';
 import type { VerificationCase } from '@/shared/verification/types';
 import type { VerificationCase as AdminVerificationCase } from '@/features/admin/api/types';
-import { getDoctorById } from '@/mocks/doctor-store';
+import { getDoctorById, getDoctorByAccountId } from '@/mocks/doctor-store';
 import { listSpecialties } from '@/mocks/reference-store';
+import { getCurrentAccountId, LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
+import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
+import { DEMO_PATIENTS, type DemoPatient } from '@/mocks/demo-data/demo-people';
 import { isAvailabilityWindowBooked, markAvailabilityWindowBooked, resolveWindowPricing } from '@/mocks/scheduling-store';
 import {
   findAllVerificationCasesBySubject,
@@ -27,7 +30,23 @@ import {
   suspendVerificationCase,
 } from '@/mocks/verification-case-store';
 
-const PATIENT_SUBJECT_ACCOUNT_ID = 'user-patient-1';
+/**
+ * Demo Data & Profile Avatar Pass -- the root fix for this store's original
+ * architectural limitation. Every piece of patient state below used to be a
+ * module-level singleton keyed to one hardcoded account id, so switching
+ * which mock patient was logged in never changed a thing. Each is now a
+ * `Map` keyed by the owning account id, seeded for every demo patient in
+ * `demo-people.ts` plus the legacy `patient@orivex.dev` persona.
+ *
+ * Account resolution order (see `request-account.ts`): the intercepted
+ * request's own bearer token -> the mock session marker -> the legacy demo
+ * patient. That last fallback is what keeps every existing component test
+ * seeing the exact fixture it always did (those tests render a page without
+ * ever driving a login, so no token and no session exist).
+ */
+function resolveAccountId(accountId?: string): string {
+  return accountId ?? getCurrentAccountId() ?? LEGACY_PATIENT_ACCOUNT_ID;
+}
 
 /**
  * In-memory mock "backend" state for `/patient/*` — mirrors
@@ -145,11 +164,11 @@ function seedHealthDashboard(): HealthVitalSummary[] {
 // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):
 // backed by the shared `verification-case-store.ts` (not a local array) so
 // this same case is the one the admin verification queue also sees.
-function seedVerifications(): AdminVerificationCase[] {
+function seedVerifications(subjectAccountId: string = LEGACY_PATIENT_ACCOUNT_ID): AdminVerificationCase[] {
   return [
     {
       id: 'verification-1',
-      subjectAccountId: PATIENT_SUBJECT_ACCOUNT_ID,
+      subjectAccountId,
       subjectType: 'patient',
       status: 'approved',
       submittedAt: '2026-01-01T00:00:00.000Z',
@@ -159,30 +178,117 @@ function seedVerifications(): AdminVerificationCase[] {
   ];
 }
 
-let summary: PatientDashboardSummary = seedSummary();
-let upcomingAppointments: UpcomingAppointmentPreview[] = seedUpcomingAppointments();
-let activePrescriptions: ActivePrescriptionPreview[] = seedActivePrescriptions();
-let profile: PatientProfile = seedProfile();
-let appointments: Appointment[] = seedAppointments();
-let medicalRecords: MedicalRecordEntry[] = seedMedicalRecords();
-let prescriptions: Prescription[] = seedPrescriptions();
-let healthDashboard: HealthVitalSummary[] = seedHealthDashboard();
-setSubjectVerificationCases('patient', PATIENT_SUBJECT_ACCOUNT_ID, seedVerifications());
-
-export function getDashboardSummary(): PatientDashboardSummary {
-  return summary;
+/** A demo patient's `PatientProfile`, built from `demo-people.ts`'s own values. */
+function demoPatientProfile(patient: DemoPatient, index: number): PatientProfile {
+  const birthYear = new Date().getFullYear() - patient.dateOfBirthYearsAgo;
+  return {
+    id: `patient-profile-demo-${index + 1}`,
+    fullName: patient.displayName,
+    email: patient.email,
+    phoneNumber: `+20 11${(index + 10).toString().padStart(2, '0')} ${(index + 1).toString().padStart(3, '0')} 7700`,
+    avatarUrl: patient.avatarUrl,
+    dateOfBirth: `${birthYear}-0${(index % 9) + 1}-1${index % 10}`,
+    gender: patient.gender,
+    nationalityId: 'country-eg',
+    address: `${index + 3} El-Nasr Street, Cairo`,
+    bloodType: patient.bloodType as PatientProfile['bloodType'],
+    allergies: patient.allergies,
+    chronicDiseases: patient.chronicDiseases,
+    insuranceProviderId: patient.hasInsurance ? (index % 2 === 0 ? 'insurance-axa' : 'insurance-allianz') : undefined,
+    emergencyContacts: [
+      {
+        id: `contact-demo-${index + 1}`,
+        name: patient.emergencyContactName,
+        relationship: patient.emergencyContactRelationship,
+        phoneNumber: patient.emergencyContactPhone,
+      },
+    ],
+  };
 }
 
-export function getUpcomingAppointments(): UpcomingAppointmentPreview[] {
-  return upcomingAppointments;
+function seedProfilesByAccountId(): Map<string, PatientProfile> {
+  const seeded = new Map<string, PatientProfile>();
+  seeded.set(LEGACY_PATIENT_ACCOUNT_ID, seedProfile());
+  if (DEMO_SEED_ENABLED) {
+    DEMO_PATIENTS.forEach((patient, index) => seeded.set(patient.accountId, demoPatientProfile(patient, index)));
+  }
+  return seeded;
 }
 
-export function getActivePrescriptions(): ActivePrescriptionPreview[] {
-  return activePrescriptions;
+let profilesByAccountId: Map<string, PatientProfile> = seedProfilesByAccountId();
+const summaryByAccountId = new Map<string, PatientDashboardSummary>();
+const upcomingAppointmentsByAccountId = new Map<string, UpcomingAppointmentPreview[]>();
+const activePrescriptionsByAccountId = new Map<string, ActivePrescriptionPreview[]>();
+const appointmentsByAccountId = new Map<string, Appointment[]>();
+const medicalRecordsByAccountId = new Map<string, MedicalRecordEntry[]>();
+const prescriptionsByAccountId = new Map<string, Prescription[]>();
+const healthDashboardByAccountId = new Map<string, HealthVitalSummary[]>();
+
+function seedAllVerifications(): void {
+  setSubjectVerificationCases('patient', LEGACY_PATIENT_ACCOUNT_ID, seedVerifications());
+  if (!DEMO_SEED_ENABLED) return;
+  // Mirrors each demo patient's own `verification` field into the shared
+  // verification-case store -- the same cases the admin queue reads.
+  for (const patient of DEMO_PATIENTS) {
+    if (patient.verification === 'pending') {
+      setSubjectVerificationCases('patient', patient.accountId, [
+        {
+          id: `verification-${patient.accountId}`,
+          subjectAccountId: patient.accountId,
+          subjectType: 'patient',
+          status: 'submitted',
+          submittedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+          decidedAt: null,
+          documentAssetIds: ['seed-national-id-front', 'seed-national-id-back', 'seed-selfie-with-id'],
+        },
+      ]);
+      continue;
+    }
+    const approved = seedVerifications(patient.accountId);
+    approved[0].id = `verification-${patient.accountId}`;
+    if (patient.verification === 'suspended') {
+      approved[0].status = 'suspended';
+      approved[0].reason = 'Identity documents flagged for re-verification.';
+    }
+    setSubjectVerificationCases('patient', patient.accountId, approved);
+  }
 }
 
-export function getProfile(): PatientProfile {
-  return profile;
+seedAllVerifications();
+
+export function getDashboardSummary(accountId?: string): PatientDashboardSummary {
+  return summaryByAccountId.get(resolveAccountId(accountId)) ?? seedSummary();
+}
+
+export function getUpcomingAppointments(accountId?: string): UpcomingAppointmentPreview[] {
+  return upcomingAppointmentsByAccountId.get(resolveAccountId(accountId)) ?? seedUpcomingAppointments();
+}
+
+export function getActivePrescriptions(accountId?: string): ActivePrescriptionPreview[] {
+  return activePrescriptionsByAccountId.get(resolveAccountId(accountId)) ?? seedActivePrescriptions();
+}
+
+/** `undefined` when the caller's account has no patient profile (e.g. a doctor hitting `/patients/me`) -- the handler maps that to the real backend's own 404. */
+export function getProfile(accountId?: string): PatientProfile | undefined {
+  return profilesByAccountId.get(resolveAccountId(accountId));
+}
+
+/** Demo Data & Profile Avatar Pass: lets the cross-store demo seeder give each patient their own dashboard aggregates. */
+export function setPatientDashboardState(
+  accountId: string,
+  state: {
+    summary?: PatientDashboardSummary;
+    upcomingAppointments?: UpcomingAppointmentPreview[];
+    activePrescriptions?: ActivePrescriptionPreview[];
+    medicalRecords?: MedicalRecordEntry[];
+    prescriptions?: Prescription[];
+  },
+): void {
+  if (state.summary) summaryByAccountId.set(accountId, state.summary);
+  if (state.upcomingAppointments) upcomingAppointmentsByAccountId.set(accountId, state.upcomingAppointments);
+  if (state.activePrescriptions) activePrescriptionsByAccountId.set(accountId, state.activePrescriptions);
+  if (state.medicalRecords) medicalRecordsByAccountId.set(accountId, state.medicalRecords);
+  if (state.prescriptions) prescriptionsByAccountId.set(accountId, state.prescriptions);
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Choose-Your-
@@ -192,12 +298,15 @@ export function getProfile(): PatientProfile {
 // onboarded demo account. Component tests that need to exercise the
 // "no profile yet" gate override this handler directly via `server.use()`
 // (the same pattern `onboarding-flow.test.tsx` already uses for /doctors/me).
-export function checkProfileExists(): boolean {
-  return true;
+export function checkProfileExists(accountId?: string): boolean {
+  return profilesByAccountId.has(resolveAccountId(accountId));
 }
 
-export function updateProfile(request: PatientProfileUpdateRequest): PatientProfile {
-  profile = {
+export function updateProfile(request: PatientProfileUpdateRequest, accountId?: string): PatientProfile | undefined {
+  const owner = resolveAccountId(accountId);
+  const profile = profilesByAccountId.get(owner);
+  if (!profile) return undefined;
+  const updated: PatientProfile = {
     ...profile,
     bloodType: request.bloodType ?? profile.bloodType,
     allergies: request.allergies ?? profile.allergies,
@@ -211,11 +320,26 @@ export function updateProfile(request: PatientProfileUpdateRequest): PatientProf
         phoneNumber: contact.phoneNumber,
       })) ?? profile.emergencyContacts,
   };
-  return profile;
+  profilesByAccountId.set(owner, updated);
+  return updated;
 }
 
-export function getAppointments(): Appointment[] {
-  return appointments;
+export function getAppointments(accountId?: string): Appointment[] {
+  return appointmentsByAccountId.get(resolveAccountId(accountId)) ?? seedAppointments();
+}
+
+function setAppointments(owner: string, next: Appointment[]): void {
+  appointmentsByAccountId.set(owner, next);
+}
+
+/** Demo Data & Profile Avatar Pass: every seeded patient account, for the cross-store demo seeder. */
+export function listPatientAccountIds(): string[] {
+  return [...profilesByAccountId.keys()];
+}
+
+/** Demo Data & Profile Avatar Pass: the cross-store demo seeder's write path for a patient's own appointment history. */
+export function setPatientAppointments(accountId: string, next: Appointment[]): void {
+  setAppointments(accountId, next);
 }
 
 /**
@@ -229,8 +353,9 @@ export function getAppointments(): Appointment[] {
  * `mock-provider.tsx`'s own doc comment). Never called from application
  * code.
  */
-export function seedCompletedAppointment(consultationSessionId: string, doctor: { name: string; specialty: string }): void {
-  appointments = [
+export function seedCompletedAppointment(consultationSessionId: string, doctor: { name: string; specialty: string }, accountId?: string): void {
+  const owner = resolveAccountId(accountId);
+  setAppointments(owner, [
     {
       id: `appointment-${consultationSessionId}`,
       scheduledAt: new Date().toISOString(),
@@ -248,8 +373,8 @@ export function seedCompletedAppointment(consultationSessionId: string, doctor: 
       paymentRequired: false,
       feeAmount: null,
     },
-    ...appointments,
-  ];
+    ...getAppointments(owner),
+  ]);
 }
 
 /**
@@ -272,7 +397,8 @@ export function seedCompletedAppointment(consultationSessionId: string, doctor: 
  * `AvailabilityWindowConflictError`) -- the handler (`patient.ts`) maps this
  * to the same status.
  */
-export function bookAppointment(request: BookAppointmentRequest): BookedAppointment {
+export function bookAppointment(request: BookAppointmentRequest, accountId?: string): BookedAppointment {
+  const owner = resolveAccountId(accountId);
   if (isAvailabilityWindowBooked(request.availabilityWindowId)) {
     throw new Error(`AvailabilityWindow "${request.availabilityWindowId}" is no longer available.`);
   }
@@ -304,11 +430,11 @@ export function bookAppointment(request: BookAppointmentRequest): BookedAppointm
     paymentRequired: isPaid,
     feeAmount: isPaid && pricing.feeAmount !== null && pricing.feeCurrency !== null ? { amount: pricing.feeAmount, currency: pricing.feeCurrency } : null,
   };
-  appointments = [listItem, ...appointments];
+  setAppointments(owner, [listItem, ...getAppointments(owner)]);
 
   return {
     id,
-    patientId: 'patient-profile-1',
+    patientId: profilesByAccountId.get(owner)?.id ?? 'patient-profile-1',
     doctorId: request.doctorId,
     availabilityWindowId: request.availabilityWindowId,
     consultationType: pricing.pricingType,
@@ -345,7 +471,9 @@ export class MockInvalidStateError extends Error {}
  * immediately (mints a real session id, same as `confirmAppointment` does);
  * a Paid one stays Requested/unpaid, exactly like a fresh booking.
  */
-export function rescheduleAppointment(appointmentId: string, newAvailabilityWindowId: string): RescheduledAppointment {
+export function rescheduleAppointment(appointmentId: string, newAvailabilityWindowId: string, accountId?: string): RescheduledAppointment {
+  const owner = resolveAccountId(accountId);
+  const appointments = getAppointments(owner);
   const existing = appointments.find((entry) => entry.id === appointmentId);
   if (!existing) {
     throw new MockNotFoundError(`Appointment "${appointmentId}" not found.`);
@@ -386,11 +514,11 @@ export function rescheduleAppointment(appointmentId: string, newAvailabilityWind
         ? { amount: pricing.feeAmount, currency: pricing.feeCurrency }
         : null,
   };
-  appointments = [listItem, ...appointments];
+  setAppointments(owner, [listItem, ...appointments]);
 
   return {
     id: newId,
-    patientId: 'patient-profile-1',
+    patientId: profilesByAccountId.get(owner)?.id ?? 'patient-profile-1',
     doctorId,
     availabilityWindowId: newAvailabilityWindowId,
     consultationType: pricing.pricingType,
@@ -416,8 +544,9 @@ export function rescheduleAppointment(appointmentId: string, newAvailabilityWind
  * logic this frontend mock never re-implements, matching this feature's own
  * "don't touch payment/refund logic" scope.
  */
-export function cancelAppointment(appointmentId: string): BookedAppointment {
-  const existing = appointments.find((entry) => entry.id === appointmentId);
+export function cancelAppointment(appointmentId: string, accountId?: string): BookedAppointment {
+  const owner = resolveAccountId(accountId);
+  const existing = getAppointments(owner).find((entry) => entry.id === appointmentId);
   if (!existing) {
     throw new MockNotFoundError(`Appointment "${appointmentId}" not found.`);
   }
@@ -430,7 +559,7 @@ export function cancelAppointment(appointmentId: string): BookedAppointment {
 
   return {
     id: existing.id,
-    patientId: 'patient-profile-1',
+    patientId: profilesByAccountId.get(owner)?.id ?? 'patient-profile-1',
     doctorId: existing.doctorId,
     availabilityWindowId: `${existing.doctorId}::${existing.scheduledAt}`,
     consultationType: existing.consultationType,
@@ -451,30 +580,55 @@ export function cancelAppointment(appointmentId: string): BookedAppointment {
  * hasn't paid yet, nothing for the doctor to act on here (mirrors the real
  * `DoctorAppointmentsController.getPendingApproval`'s own filter).
  */
-export function getPendingApprovalAppointments(): {
+export function getPendingApprovalAppointments(accountId?: string): {
   id: string;
   patientName: string;
   scheduledAt: string;
   reasonForVisit?: string;
   consultationType: 'free' | 'paid';
 }[] {
-  return appointments
-    .filter((appointment) => appointment.status === 'requested' && appointment.consultationType === 'free')
-    .map((appointment) => ({
-      id: appointment.id,
-      patientName: 'Amina Youssef',
-      scheduledAt: appointment.scheduledAt,
-      reasonForVisit: appointment.reasonForVisit,
-      consultationType: appointment.consultationType,
-    }));
+  // Demo Data & Profile Avatar Pass: this is a *doctor*-facing read, so it
+  // now scans every patient's own appointment list and keeps only the ones
+  // booked with the calling doctor -- the same doctor-scoped filter the real
+  // `DoctorAppointmentsController.getPendingApproval` applies. The patient's
+  // name comes from that patient's own profile, never a hardcoded one.
+  const doctorAccountId = accountId ?? getCurrentAccountId();
+  const doctorProfileId = (doctorAccountId ? getDoctorByAccountId(doctorAccountId) : null)?.id
+    ?? getDoctorById('doctor-profile-1')?.id;
+
+  return [...profilesByAccountId.entries()].flatMap(([patientAccountId, patientProfile]) =>
+    getAppointments(patientAccountId)
+      .filter(
+        (appointment) =>
+          appointment.status === 'requested' &&
+          appointment.consultationType === 'free' &&
+          (!doctorProfileId || appointment.doctorId === doctorProfileId),
+      )
+      .map((appointment) => ({
+        id: appointment.id,
+        patientName: patientProfile.fullName,
+        scheduledAt: appointment.scheduledAt,
+        reasonForVisit: appointment.reasonForVisit,
+        consultationType: appointment.consultationType,
+      })),
+  );
+}
+
+/** Searches every account's list: an appointment id is looked up by doctors and payment flows too, not just its owning patient. */
+function findAppointmentAnywhere(appointmentId: string): Appointment | undefined {
+  for (const accountId of profilesByAccountId.keys()) {
+    const found = getAppointments(accountId).find((entry) => entry.id === appointmentId);
+    if (found) return found;
+  }
+  return undefined;
 }
 
 export function getAppointmentById(appointmentId: string): Appointment | undefined {
-  return appointments.find((entry) => entry.id === appointmentId);
+  return findAppointmentAnywhere(appointmentId);
 }
 
 function confirmAppointment(appointmentId: string): { id: string; status: string } {
-  const appointment = appointments.find((entry) => entry.id === appointmentId);
+  const appointment = findAppointmentAnywhere(appointmentId);
   if (!appointment) {
     throw new Error(`Appointment "${appointmentId}" not found.`);
   }
@@ -493,34 +647,34 @@ export function confirmAppointmentAfterPayment(appointmentId: string): { id: str
   return confirmAppointment(appointmentId);
 }
 
-export function getMedicalRecords(): MedicalRecordEntry[] {
-  return medicalRecords;
+export function getMedicalRecords(accountId?: string): MedicalRecordEntry[] {
+  return medicalRecordsByAccountId.get(resolveAccountId(accountId)) ?? seedMedicalRecords();
 }
 
-export function getPrescriptions(): Prescription[] {
-  return prescriptions;
+export function getPrescriptions(accountId?: string): Prescription[] {
+  return prescriptionsByAccountId.get(resolveAccountId(accountId)) ?? seedPrescriptions();
 }
 
-export function getHealthDashboard(): HealthVitalSummary[] {
-  return healthDashboard;
+export function getHealthDashboard(accountId?: string): HealthVitalSummary[] {
+  return healthDashboardByAccountId.get(resolveAccountId(accountId)) ?? seedHealthDashboard();
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7). Onboarding
 // Redesign integration-gap closure (2026-07-25, Stage O.8): reads from the
 // shared `verification-case-store.ts` -- the same case an admin sees.
-export function getMyIdentityVerificationStatus(): IdentityVerificationStatus {
-  const latest = findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID)[0];
+export function getMyIdentityVerificationStatus(accountId?: string): IdentityVerificationStatus {
+  const latest = findAllVerificationCasesBySubject('patient', resolveAccountId(accountId))[0];
   const status = latest?.status ?? 'not_submitted';
   return { status, isVerified: status === 'approved' };
 }
 
-export function listMyVerifications(): VerificationCase[] {
-  return findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID);
+export function listMyVerifications(accountId?: string): VerificationCase[] {
+  return findAllVerificationCasesBySubject('patient', resolveAccountId(accountId));
 }
 
-export function submitMyVerification(request: SubmitPatientVerificationRequest): VerificationCase {
+export function submitMyVerification(request: SubmitPatientVerificationRequest, accountId?: string): VerificationCase {
   return submitVerificationCase({
-    subjectAccountId: PATIENT_SUBJECT_ACCOUNT_ID,
+    subjectAccountId: resolveAccountId(accountId),
     subjectType: 'patient',
     documentAssetIds: request.documentAssetIds,
   });
@@ -533,8 +687,8 @@ export function submitMyVerification(request: SubmitPatientVerificationRequest):
  * UI, alongside the real admin decision flow (Stage O.8) which now also
  * writes to this same shared store. Never called from application code.
  */
-export function approveMyLatestVerification(): void {
-  const latest = findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID)[0];
+export function approveMyLatestVerification(accountId?: string): void {
+  const latest = findAllVerificationCasesBySubject('patient', resolveAccountId(accountId))[0];
   if (!latest) return;
   decideVerificationCase(latest.id, 'approved');
 }
@@ -548,8 +702,8 @@ export function approveMyLatestVerification(): void {
  * resubmission's resulting new case is the one the applicant's own status
  * view genuinely re-fetches and reflects. Never called from application code.
  */
-export function rejectMyLatestVerification(reason: string): void {
-  const latest = findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID)[0];
+export function rejectMyLatestVerification(reason: string, accountId?: string): void {
+  const latest = findAllVerificationCasesBySubject('patient', resolveAccountId(accountId))[0];
   if (!latest) return;
   decideVerificationCase(latest.id, 'rejected', reason);
 }
@@ -562,8 +716,8 @@ export function rejectMyLatestVerification(reason: string): void {
  * reports unverified again) without needing a second, admin-role browser
  * session in the same E2E spec. Never called from application code.
  */
-export function suspendMyLatestVerification(reason: string): void {
-  const latest = findAllVerificationCasesBySubject('patient', PATIENT_SUBJECT_ACCOUNT_ID)[0];
+export function suspendMyLatestVerification(reason: string, accountId?: string): void {
+  const latest = findAllVerificationCasesBySubject('patient', resolveAccountId(accountId))[0];
   if (!latest) return;
   suspendVerificationCase(latest.id, reason);
 }
@@ -574,19 +728,24 @@ export function suspendMyLatestVerification(reason: string): void {
  * already-provisioned demo patient) and "never submitted" (to exercise the
  * gate itself). Never called from application code.
  */
-export function setPatientVerified(verified: boolean): void {
-  setSubjectVerificationCases('patient', PATIENT_SUBJECT_ACCOUNT_ID, verified ? seedVerifications() : []);
+export function setPatientVerified(verified: boolean, accountId?: string): void {
+  const owner = resolveAccountId(accountId);
+  setSubjectVerificationCases('patient', owner, verified ? seedVerifications(owner) : []);
 }
 
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPatientStore(): void {
-  summary = seedSummary();
-  upcomingAppointments = seedUpcomingAppointments();
-  activePrescriptions = seedActivePrescriptions();
-  profile = seedProfile();
-  appointments = seedAppointments();
-  medicalRecords = seedMedicalRecords();
-  prescriptions = seedPrescriptions();
-  healthDashboard = seedHealthDashboard();
-  setSubjectVerificationCases('patient', PATIENT_SUBJECT_ACCOUNT_ID, seedVerifications());
+  const previousAccountIds = [...profilesByAccountId.keys()];
+  summaryByAccountId.clear();
+  upcomingAppointmentsByAccountId.clear();
+  activePrescriptionsByAccountId.clear();
+  appointmentsByAccountId.clear();
+  medicalRecordsByAccountId.clear();
+  prescriptionsByAccountId.clear();
+  healthDashboardByAccountId.clear();
+  profilesByAccountId = seedProfilesByAccountId();
+  for (const accountId of previousAccountIds) {
+    setSubjectVerificationCases('patient', accountId, []);
+  }
+  seedAllVerifications();
 }

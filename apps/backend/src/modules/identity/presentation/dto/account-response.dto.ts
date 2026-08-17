@@ -19,6 +19,7 @@ export class AccountResponseDto {
   gender?: Gender;
   nationalityId?: string;
   address?: string;
+  avatarUrl?: string;
   createdAt!: string;
   updatedAt!: string;
 
@@ -37,6 +38,7 @@ export class AccountResponseDto {
     dto.gender = profile.getGender();
     dto.nationalityId = profile.getNationalityId();
     dto.address = profile.getAddress();
+    dto.avatarUrl = profile.getAvatarUrl();
     dto.createdAt = account.getCreatedAt().toISOString();
     dto.updatedAt = account.getUpdatedAt().toISOString();
 

@@ -65,6 +65,7 @@ function LandingDoctorCard({ doctor }: { doctor: PublicDoctor }) {
     <DoctorCard
       doctorProfileId={doctor.doctorProfileId}
       fullName={doctor.fullName}
+      avatarUrl={doctor.avatarUrl}
       specialtyLabel={specialtyName}
       specialtyBadgeVariant={specialtyBadgeVariant(doctor.specialtyName)}
       professionalRank={doctor.professionalRank}
