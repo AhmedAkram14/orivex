@@ -109,7 +109,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
       </CardHeader>
       <CardContent className="relative z-10 flex flex-col gap-5 px-7 pt-0 pb-7">
         <div className="flex items-center gap-3.5">
-          <Avatar className="size-14 shrink-0 text-base ring-4 ring-surface/80">
+          <Avatar size="xl" className="shrink-0 ring-4 ring-surface/80">
             {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
             <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
           </Avatar>

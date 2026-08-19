@@ -67,7 +67,7 @@ export function seedDemoData(): void {
 
   const psychiatrists = doctors.filter((entry) => entry.demo.specialtyName === 'Psychiatry');
   const others = doctors.filter((entry) => entry.demo.specialtyName !== 'Psychiatry');
-  const appointmentsByDoctorAccountId = new Map<string, { appointment: Appointment; patientName: string }[]>();
+  const appointmentsByDoctorAccountId = new Map<string, { appointment: Appointment; patientName: string; patientAvatarUrl?: string }[]>();
 
   let appointmentSeq = 0;
 
@@ -113,6 +113,7 @@ export function seedDemoData(): void {
         scheduledAt: isoOffsetDays(dayOffset, 9 + ((index + patientIndex) % 8)),
         doctorId: profile.id,
         doctorName: profile.fullName,
+        doctorAvatarUrl: profile.avatarUrl,
         specialization: specialty?.name ?? demo.specialtyName,
         specializationAr: specialty?.nameAr ?? null,
         status,
@@ -125,7 +126,7 @@ export function seedDemoData(): void {
 
       appointments.push(appointment);
       const existing = appointmentsByDoctorAccountId.get(demo.accountId) ?? [];
-      existing.push({ appointment, patientName: patientProfile.fullName });
+      existing.push({ appointment, patientName: patientProfile.fullName, patientAvatarUrl: patientProfile.avatarUrl });
       appointmentsByDoctorAccountId.set(demo.accountId, existing);
     }
 
@@ -143,6 +144,7 @@ export function seedDemoData(): void {
         id: entry.id,
         scheduledAt: entry.scheduledAt,
         doctorName: entry.doctorName,
+        doctorAvatarUrl: entry.doctorAvatarUrl,
         specialization: entry.specialization,
         specializationAr: entry.specializationAr,
         status: 'upcoming' as const,
@@ -177,10 +179,11 @@ export function seedDemoData(): void {
 
     const upcomingWork: UpcomingWorkItem[] = owned
       .slice(0, 12)
-      .map(({ appointment, patientName }, index) => ({
+      .map(({ appointment, patientName, patientAvatarUrl }, index) => ({
         id: `upcoming-work-demo-${profile.id}-${index + 1}`,
         scheduledAt: appointment.scheduledAt,
         title: patientName,
+        avatarUrl: patientAvatarUrl,
         description: appointment.reasonForVisit,
         status:
           appointment.status === 'completed'
@@ -191,16 +194,17 @@ export function seedDemoData(): void {
       }))
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
 
-    const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ patientName }, index) => ({
+    const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ patientName, patientAvatarUrl }, index) => ({
       id: `queue-demo-${profile.id}-${index + 1}`,
       label: patientName,
+      avatarUrl: patientAvatarUrl,
       status: index === 0 ? ('in-consultation' as const) : ('waiting' as const),
       position: index,
       estimatedWaitMinutes: index === 0 ? undefined : index * 13,
     }));
 
     const patientsByName = new Map<string, DoctorPatientListItem>();
-    owned.forEach(({ appointment, patientName }, index) => {
+    owned.forEach(({ appointment, patientName, patientAvatarUrl }, index) => {
       const existing = patientsByName.get(patientName);
       if (existing) {
         existing.visitCount += 1;
@@ -209,6 +213,7 @@ export function seedDemoData(): void {
       patientsByName.set(patientName, {
         patientProfileId: `patient-of-${profile.id}-${index + 1}`,
         patientName,
+        avatarUrl: patientAvatarUrl,
         email: `${patientName.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`,
         phoneNumber: `+20 11${(index + 10).toString().padStart(2, '0')} 000 0000`,
         gender: index % 2 === 0 ? 'male' : 'female',

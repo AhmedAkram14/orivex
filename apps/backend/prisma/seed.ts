@@ -35,6 +35,12 @@ import { CREDENTIAL_REPOSITORY } from '../src/modules/authentication/application
 import { RegisterCommand } from '../src/modules/authentication/application/use-cases/register/register.command.js';
 import { RegisterUseCase } from '../src/modules/authentication/application/use-cases/register/register.use-case.js';
 import type { CredentialRepository } from '../src/modules/authentication/domain/repositories/credential.repository.js';
+import { RecordClinicalNoteCommand } from '../src/modules/clinical/application/use-cases/record-clinical-note/record-clinical-note.command.js';
+import { RecordClinicalNoteUseCase } from '../src/modules/clinical/application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
+import { RecordConsultationDiagnosisCommand } from '../src/modules/clinical/application/use-cases/record-consultation-diagnosis/record-consultation-diagnosis.command.js';
+import { RecordConsultationDiagnosisUseCase } from '../src/modules/clinical/application/use-cases/record-consultation-diagnosis/record-consultation-diagnosis.use-case.js';
+import { SignPrescriptionCommand } from '../src/modules/clinical/application/use-cases/sign-prescription/sign-prescription.command.js';
+import { SignPrescriptionUseCase } from '../src/modules/clinical/application/use-cases/sign-prescription/sign-prescription.use-case.js';
 import { BookAppointmentCommand } from '../src/modules/consultation/application/use-cases/book-appointment/book-appointment.command.js';
 import { BookAppointmentUseCase } from '../src/modules/consultation/application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationCommand } from '../src/modules/consultation/application/use-cases/close-consultation/close-consultation.command.js';
@@ -230,6 +236,26 @@ const REASONS_FOR_VISIT = [
   'New symptoms in the last two weeks',
 ];
 
+const PSYCHIATRY_DIAGNOSES: { description: string; drugName: string; dosage: string; frequency: string }[] = [
+  { description: 'Generalized anxiety disorder, moderate severity', drugName: 'Sertraline', dosage: '50mg', frequency: 'Once daily' },
+  { description: 'Major depressive disorder, single episode, mild', drugName: 'Escitalopram', dosage: '10mg', frequency: 'Once daily' },
+  { description: 'Adjustment disorder with mixed anxiety and depressed mood', drugName: 'Mirtazapine', dosage: '15mg', frequency: 'Once nightly' },
+  { description: 'Insomnia secondary to stress', drugName: 'Trazodone', dosage: '50mg', frequency: 'Once nightly, as needed' },
+];
+
+const GENERAL_DIAGNOSES: { description: string; drugName: string; dosage: string; frequency: string }[] = [
+  { description: 'Essential hypertension, well controlled', drugName: 'Amlodipine', dosage: '5mg', frequency: 'Once daily' },
+  { description: 'Type 2 diabetes mellitus, routine follow-up', drugName: 'Metformin', dosage: '500mg', frequency: 'Twice daily' },
+  { description: 'Allergic rhinitis', drugName: 'Cetirizine', dosage: '10mg', frequency: 'Once daily' },
+  { description: 'Mechanical lower back pain', drugName: 'Naproxen', dosage: '250mg', frequency: 'Twice daily, with food' },
+];
+
+const CLINICAL_NOTE_TEMPLATES = [
+  'Patient reports symptoms are consistent with the initial presentation. Vitals stable. Discussed treatment plan and next steps.',
+  'Reviewed history and current medication. No adverse effects reported. Plan to continue current regimen and follow up.',
+  'Patient engaged well during the session. Symptom severity appears to be improving compared to the previous visit.',
+];
+
 // ---------------------------------------------------------------------------
 // Seed
 // ---------------------------------------------------------------------------
@@ -295,6 +321,9 @@ async function main(): Promise<void> {
     const submitConsultationFeedback = app.get(SubmitConsultationFeedbackUseCase);
     const rescheduleOrCancelAppointment = app.get(RescheduleOrCancelAppointmentUseCase);
     const initiateCharge = app.get(InitiateChargeUseCase);
+    const recordClinicalNote = app.get(RecordClinicalNoteUseCase);
+    const recordConsultationDiagnosis = app.get(RecordConsultationDiagnosisUseCase);
+    const signPrescription = app.get(SignPrescriptionUseCase);
 
     // -----------------------------------------------------------------
     // 1. Reference data (idempotent, found-or-created by name)
@@ -421,7 +450,14 @@ async function main(): Promise<void> {
     console.info('Seeding doctors...');
     for (const demo of DEMO_DOCTORS) {
       try {
-        const { accountId, created } = await ensureAccount(demo.email, demo.displayName, AccountRole.Doctor);
+        // Every demo doctor account is registered as Patient, exactly like a
+        // real applicant -- Doctor role is never set directly. It is granted
+        // automatically, exclusively by PromoteDoctorRoleOnVerificationHandler
+        // reacting to a real DoctorVerifiedEvent below, the one and only real
+        // path from Patient to Doctor in this domain (see that handler's own
+        // header comment). A 'pending' demo doctor therefore correctly stays
+        // Patient-role, same as a real unapproved applicant would.
+        const { accountId, created } = await ensureAccount(demo.email, demo.displayName, AccountRole.Patient);
         if (!created) continue;
 
         await updatePersonalProfile.execute(
@@ -487,6 +523,7 @@ async function main(): Promise<void> {
 
         // 'pending' deliberately gets NO decision call at all -- Pending is
         // simply the state a just-submitted case is already in.
+        let isApproved = false;
         if (demo.verification === 'approved') {
           await decideVerification.execute(
             new DecideVerificationCommand({
@@ -495,6 +532,7 @@ async function main(): Promise<void> {
               reason: 'Credentials verified against the Egyptian Medical Syndicate register.',
             }),
           );
+          isApproved = true;
         } else if (demo.verification === 'rejected') {
           await decideVerification.execute(
             new DecideVerificationCommand({
@@ -503,11 +541,38 @@ async function main(): Promise<void> {
               reason: 'The uploaded medical licence has expired. Please resubmit with a current licence.',
             }),
           );
+
+          // Scenario G: rejection is never the end of the real applicant-
+          // facing lifecycle -- SubmitDoctorVerificationUseCase has no
+          // separate "resubmit" endpoint at all (confirmed ground truth, see
+          // verification-resubmission-lifecycle.integration.test.ts): calling
+          // it again with fresh documents unconditionally opens a brand-new
+          // VerificationCase, leaving the rejected one in history untouched.
+          // Approving *this* second case is what finally, for real, promotes
+          // the account to Doctor via the same DoctorVerifiedEvent path.
+          const resubmittedDocumentId = await createDemoDocument(accountId, MediaAssetPurpose.MedicalLicense);
+          const resubmittedCase = await submitDoctorVerification.execute(
+            new SubmitDoctorVerificationCommand({
+              doctorId: profile.getId(),
+              subjectAccountId: accountId,
+              licenseNumber: demo.licenseNumber,
+              specialtyCode: demo.specialtyName,
+              documentAssetIds: [resubmittedDocumentId],
+            }),
+          );
+          await decideVerification.execute(
+            new DecideVerificationCommand({
+              verificationCaseId: resubmittedCase.getId(),
+              status: VerificationStatus.Approved,
+              reason: 'Updated licence documentation confirmed against the Egyptian Medical Syndicate register.',
+            }),
+          );
+          isApproved = true;
         }
 
         // Only an approved doctor has a real practice: working hours and
-        // bookable slots would be meaningless for a pending/rejected one.
-        if (demo.verification !== 'approved') continue;
+        // bookable slots would be meaningless for a still-pending applicant.
+        if (!isApproved) continue;
 
         await updateDoctorWorkingHours.execute(
           new UpdateDoctorWorkingHoursCommand({
@@ -630,9 +695,16 @@ async function main(): Promise<void> {
     const windowSearchFrom = new Date(Date.now() - MS_PER_DAY);
     const windowSearchTo = new Date(Date.now() + 60 * MS_PER_DAY);
     for (const demo of DEMO_DOCTORS) {
-      if (demo.verification !== 'approved') continue;
       const account = await getAccountByEmail.execute({ email: demo.email });
       if (!account) continue;
+      // The account's real, persisted role -- not the static demo-data
+      // field -- is what decides "has an active practice" here: a rejected
+      // doctor that went through Scenario G's resubmit-and-approve above is
+      // genuinely Doctor-role by this point, exactly like doctor11's own
+      // biography describes, even though its own `verification` field is
+      // still the literal 'rejected' of its *first* (real, kept-in-history)
+      // submission.
+      if (account.getRole() !== AccountRole.Doctor) continue;
       const profile = await getDoctorProfileByAccountId.execute({ accountId: account.getId().toString() });
       if (!profile) continue;
       const windows = await listAvailabilityWindowsForDoctor.execute(
@@ -751,6 +823,58 @@ async function main(): Promise<void> {
             const sessionId = await confirmViaPaymentOrApproval(appointment);
             if (!sessionId) throw new Error('no consultation session was opened');
             await startConsultation.execute(new StartConsultationCommand({ consultationSessionId: sessionId }));
+
+            // Real clinical history (docs section 15): a clinical note always
+            // gets recorded, and most visits also get a diagnosis + signed
+            // prescription -- all through ClinicalModule's real use cases,
+            // never a fabricated field on a fake object. Recorded between
+            // start and close, matching how a doctor actually documents a
+            // live consultation.
+            try {
+              await recordClinicalNote.execute(
+                new RecordClinicalNoteCommand({
+                  consultationSessionId: sessionId,
+                  authoringDoctorId: doctor.doctorProfileId,
+                  content: pick(CLINICAL_NOTE_TEMPLATES),
+                }),
+              );
+
+              if (nextRandom() < 0.75) {
+                const diagnosisPool = doctor.demo.specialtyName === 'Psychiatry' ? PSYCHIATRY_DIAGNOSES : GENERAL_DIAGNOSES;
+                const diagnosis = pick(diagnosisPool);
+                const diagnosisResult = await recordConsultationDiagnosis.execute(
+                  new RecordConsultationDiagnosisCommand({
+                    consultationSessionId: sessionId,
+                    authoringDoctorAccountId: doctor.accountId,
+                    freeTextDescription: diagnosis.description,
+                  }),
+                );
+
+                if (nextRandom() < 0.7) {
+                  await signPrescription.execute(
+                    new SignPrescriptionCommand({
+                      consultationSessionId: sessionId,
+                      diagnosisNodeId: diagnosisResult.node.getId(),
+                      authoringDoctorId: doctor.doctorProfileId,
+                      lineItems: [
+                        {
+                          drugCatalogId: randomUUID(),
+                          drugName: diagnosis.drugName,
+                          dosage: diagnosis.dosage,
+                          frequency: diagnosis.frequency,
+                          durationDays: pick([7, 14, 30]),
+                        },
+                      ],
+                    }),
+                  );
+                }
+              }
+            } catch (error) {
+              // Clinical documentation is additive realism, never a reason to
+              // abandon an otherwise-successful completed consultation.
+              console.warn(`  ! clinical history for session ${sessionId} skipped: ${describeError(error)}`);
+            }
+
             await closeConsultation.execute(
               new CloseConsultationCommand({
                 consultationSessionId: sessionId,
@@ -877,7 +1001,20 @@ function ratingFor(demo: DemoDoctor): number {
   return 3;
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    // A one-off script, not the long-running server: by this point
+    // app.close() has already run every real shutdown hook (DB writes are
+    // long done). BullMQ/ioredis's own reconnect timers are known to
+    // outlive a resolved close() (confirmed by tracing: both
+    // BullMqNotificationQueueAdapter's and AppointmentReminderWorkerService's
+    // onModuleDestroy fire and resolve, yet the Redis sockets stay open) --
+    // waiting for Node's event loop to drain on its own would hang this
+    // script forever, which matters here because Render's `jobs create`
+    // needs the process to actually exit to know the job finished.
+    process.exit(process.exitCode ?? 0);
+  });

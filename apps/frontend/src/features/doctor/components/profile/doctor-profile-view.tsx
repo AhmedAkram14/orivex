@@ -188,7 +188,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
         <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <Avatar size="lg">
+              <Avatar size="xl">
                 {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
                 <AvatarFallback>{initialsFor(profile.fullName)}</AvatarFallback>
               </Avatar>

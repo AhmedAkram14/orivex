@@ -35,6 +35,11 @@ COPY apps/backend apps/backend
 
 RUN pnpm --filter @orivex/backend run prisma:generate
 RUN pnpm --filter @orivex/backend run build
+# Compiled separately from `dist` (its own rootDir/outDir, see
+# tsconfig.seed.json) so the demo-data Prisma seed script can be invoked
+# as a one-off `render jobs create` command against a real database --
+# never run automatically by this image's own ENTRYPOINT/CMD.
+RUN pnpm --filter @orivex/backend run build:seed
 
 # ---------------------------------------------------------------------------
 # Stage 3: prod-deps -- production-only install (includes `prisma`, now a
@@ -75,6 +80,7 @@ RUN apt-get update \
 
 COPY --from=prod-deps --chown=orivex:orivex /app /app
 COPY --from=build --chown=orivex:orivex /app/apps/backend/dist /app/apps/backend/dist
+COPY --from=build --chown=orivex:orivex /app/apps/backend/dist-seed /app/apps/backend/dist-seed
 COPY --chown=orivex:orivex apps/backend/docker-entrypoint.sh /app/apps/backend/docker-entrypoint.sh
 COPY --chown=orivex:orivex apps/backend/healthcheck.js /app/apps/backend/healthcheck.js
 RUN chmod +x /app/apps/backend/docker-entrypoint.sh

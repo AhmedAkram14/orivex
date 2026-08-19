@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 import type { EnqueueAppointmentReminderJob, NotificationQueuePort } from '../../application/ports/notification-queue.port.js';
@@ -15,7 +15,7 @@ export const APPOINTMENT_REMINDER_JOB_NAME = 'appointment-reminder';
 // there is no way to exercise the real class directly in tests -- this
 // interface is what makes the adapter's own logic (job name, delay
 // computation, payload shape) testable without one.
-export type QueueLike = Pick<Queue<EnqueueAppointmentReminderJob>, 'add' | 'client'>;
+export type QueueLike = Pick<Queue<EnqueueAppointmentReminderJob>, 'add' | 'client' | 'close'>;
 
 // Real background-job queue provider (ORIVEX Roadmap 2.0 implementation
 // program, Stage 3). Bound in notification.module.ts only when REDIS_URL
@@ -24,8 +24,18 @@ export type QueueLike = Pick<Queue<EnqueueAppointmentReminderJob>, 'add' | 'clie
 // own dependency stays injectable/testable (Ports & Adapters: the
 // adapter's own external dependency should be substitutable).
 @Injectable()
-export class BullMqNotificationQueueAdapter implements NotificationQueuePort {
+export class BullMqNotificationQueueAdapter implements NotificationQueuePort, OnModuleDestroy {
   constructor(private readonly queue: QueueLike) {}
+
+  // Closes the Queue's own Redis connection, opened once in
+  // notification.module.ts's factory -- without this, nothing ever calls
+  // it, so a process that boots this module (the HTTP server, or a
+  // one-off script via NestFactory.createApplicationContext) never exits
+  // on its own even after app.close(): the open Redis socket keeps
+  // Node's event loop alive indefinitely.
+  async onModuleDestroy(): Promise<void> {
+    await this.queue.close();
+  }
 
   async enqueueAppointmentReminder(job: EnqueueAppointmentReminderJob): Promise<void> {
     await this.queue.add(APPOINTMENT_REMINDER_JOB_NAME, job, {

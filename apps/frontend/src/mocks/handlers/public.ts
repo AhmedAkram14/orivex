@@ -89,6 +89,7 @@ export const publicHandlers = [
       return {
         doctorProfileId: doctor.doctorProfileId,
         fullName: doctor.displayName,
+        avatarUrl: doctor.avatarUrl,
         specialtyName: specialtiesById.get(doctor.specialtyId)?.name ?? '',
         specialtyNameAr: specialtiesById.get(doctor.specialtyId)?.nameAr ?? null,
         hospitalId: doctor.hospitalId,

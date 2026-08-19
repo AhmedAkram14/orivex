@@ -21,6 +21,7 @@ class FakeQueue implements QueueLike {
   public lastJobName: string | undefined;
   public lastData: EnqueueAppointmentReminderJob | undefined;
   public lastOptions: JobsOptions | undefined;
+  public closeCallCount = 0;
   public readonly client: QueueLike['client'];
 
   constructor(redisReachable = true) {
@@ -36,6 +37,10 @@ class FakeQueue implements QueueLike {
     this.lastData = data;
     this.lastOptions = opts;
     return { id: 'job-1' } as Job<EnqueueAppointmentReminderJob, unknown, string>;
+  }
+
+  async close(): Promise<void> {
+    this.closeCallCount += 1;
   }
 }
 
@@ -113,6 +118,17 @@ describe('BullMqNotificationQueueAdapter', () => {
       const adapter = new BullMqNotificationQueueAdapter(queue);
 
       await assert.rejects(() => adapter.checkConnectivity());
+    });
+  });
+
+  describe('onModuleDestroy', () => {
+    it('closes the underlying queue, so a process that boots this module can actually exit', async () => {
+      const queue = new FakeQueue();
+      const adapter = new BullMqNotificationQueueAdapter(queue);
+
+      await adapter.onModuleDestroy();
+
+      assert.equal(queue.closeCallCount, 1);
     });
   });
 });
