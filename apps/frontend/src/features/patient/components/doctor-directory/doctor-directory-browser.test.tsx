@@ -59,7 +59,7 @@ describe('DoctorDirectoryBrowser', () => {
     renderBrowser();
     await screen.findByText('Dr. Sarah Ahmed');
 
-    expect(await screen.findByText('No reviews yet')).toBeInTheDocument();
+    expect(await screen.findByText('No ratings yet')).toBeInTheDocument();
   });
 
   it('narrows results by specialty search', async () => {

@@ -82,8 +82,8 @@
         "consultant": "Consultant",
         "professor": "Professor"
       },
-      "reviewCount": "({count} reviews)",
-      "noReviewsYet": "No reviews yet",
+      "reviewCount": "({count} ratings)",
+      "noReviewsYet": "No ratings yet",
       "consultationFeeLabel": "Consultation Fee",
       "consultationFee": "{amount} EGP",
       "consultationFeeFree": "Free",
@@ -758,7 +758,7 @@
         "verified": "Verified",
         "patientsCount": "{count} Patients",
         "yearsExperience": "{years} Years Experience",
-        "reviewsCount": "{count} Reviews",
+        "reviewsCount": "{count} Ratings",
         "availableNow": "Available now",
         "currentlyUnavailable": "Not available right now",
         "consultationFee": "{amount} EGP / consultation",
@@ -1150,7 +1150,7 @@
         "cancelledOrNoShow": "Cancelled / no-show",
         "averageRating": "Average rating",
         "ratingValue": "{rating} ({count})",
-        "noReviewsYet": "No reviews yet"
+        "noReviewsYet": "No ratings yet"
       }
     },
     "settingsPage": {
@@ -2087,8 +2087,8 @@
       "cancel": "Cancel",
       "submitError": "Couldn't submit your rating. Please try again.",
       "updateError": "Couldn't save your changes. Please try again.",
-      "noReviewsYet": "No reviews yet",
-      "reviewCount": "({count} reviews)"
+      "noReviewsYet": "No ratings yet",
+      "reviewCount": "({count} ratings)"
     },
     "outcome": {
       "openAction": "View summary",

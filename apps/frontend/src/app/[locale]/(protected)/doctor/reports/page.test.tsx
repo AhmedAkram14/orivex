@@ -73,7 +73,7 @@ describe('DoctorReportsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('No reviews yet')).toBeInTheDocument();
+    expect(await screen.findByText('No ratings yet')).toBeInTheDocument();
     expect(screen.getByText('Total appointments')).toBeInTheDocument();
     expect(screen.getAllByText('0').length).toBeGreaterThan(0);
   });

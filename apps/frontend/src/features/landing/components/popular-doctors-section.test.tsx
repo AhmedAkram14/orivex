@@ -24,7 +24,7 @@ describe('PopularDoctorsSection', () => {
 
     expect(await screen.findByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('Cardiology')).toBeInTheDocument();
-    expect(screen.getByText('No reviews yet')).toBeInTheDocument();
+    expect(screen.getByText('No ratings yet')).toBeInTheDocument();
     expect(screen.getByText('12 Years Exp.')).toBeInTheDocument();
     expect(screen.getByText('Independent Practice')).toBeInTheDocument();
     // Reviewless doctor is never tagged "Top Rated"/"Most Booked".

@@ -14,7 +14,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe('DoctorRatingSummary', () => {
-  it('shows an honest "no reviews yet" state rather than a fabricated 0.0 rating', async () => {
+  it('shows an honest "no ratings yet" state rather than a fabricated 0.0 rating', async () => {
     // Doctor Profile Redesign (2026-08-02): `consultation-store.ts`'s default
     // handler now seeds a few realistic reviews for this same doctor id (so
     // the redesigned Profile page has real content to render in dev), so this
@@ -29,10 +29,10 @@ describe('DoctorRatingSummary', () => {
 
     renderWithProviders(<DoctorRatingSummary doctorProfileId={DOCTOR_PROFILE_ID} />);
 
-    expect(await screen.findByText('No reviews yet')).toBeInTheDocument();
+    expect(await screen.findByText('No ratings yet')).toBeInTheDocument();
   });
 
-  it('renders the real average rating and review count once reviews exist', async () => {
+  it('renders the real average rating and rating count once ratings exist', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
         HttpResponse.json({
@@ -44,6 +44,6 @@ describe('DoctorRatingSummary', () => {
     renderWithProviders(<DoctorRatingSummary doctorProfileId={DOCTOR_PROFILE_ID} />);
 
     await waitFor(() => expect(screen.getByText('4.5')).toBeInTheDocument());
-    expect(screen.getByText('(2 reviews)')).toBeInTheDocument();
+    expect(screen.getByText('(2 ratings)')).toBeInTheDocument();
   });
 });
