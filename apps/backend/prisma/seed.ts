@@ -70,12 +70,15 @@ import { AvailabilityWindowStatus } from '../src/modules/doctor/domain/enums/ava
 import { ProfessionalRank } from '../src/modules/doctor/domain/enums/professional-rank.enum.js';
 import { ConsultationPricing } from '../src/modules/doctor/domain/value-objects/consultation-pricing.value-object.js';
 import { Money } from '../src/modules/doctor/domain/value-objects/money.value-object.js';
+import { ACCOUNT_REPOSITORY } from '../src/modules/identity/application/ports/tokens.js';
 import { GetAccountByEmailUseCase } from '../src/modules/identity/application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
 import { UpdateAccountRoleCommand } from '../src/modules/identity/application/use-cases/update-account-role/update-account-role.command.js';
 import { UpdateAccountRoleUseCase } from '../src/modules/identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { UpdatePersonalProfileCommand } from '../src/modules/identity/application/use-cases/update-personal-profile/update-personal-profile.command.js';
 import { UpdatePersonalProfileUseCase } from '../src/modules/identity/application/use-cases/update-personal-profile/update-personal-profile.use-case.js';
 import { AccountRole } from '../src/modules/identity/domain/enums/account-role.enum.js';
+import type { AccountRepository } from '../src/modules/identity/domain/repositories/account.repository.js';
+import { AccountId } from '../src/modules/identity/domain/value-objects/account-id.value-object.js';
 import { Gender } from '../src/modules/identity/domain/enums/gender.enum.js';
 import { CreatePatientProfileCommand } from '../src/modules/patient/application/use-cases/create-patient-profile/create-patient-profile.command.js';
 import { CreatePatientProfileUseCase } from '../src/modules/patient/application/use-cases/create-patient-profile/create-patient-profile.use-case.js';
@@ -286,6 +289,11 @@ async function main(): Promise<void> {
     const updatePersonalProfile = app.get(UpdatePersonalProfileUseCase);
     const credentialRepository = app.get<CredentialRepository>(CREDENTIAL_REPOSITORY);
     const mediaAssetRepository = app.get<MediaAssetRepository>(MEDIA_ASSET_REPOSITORY);
+    // Account.updateProfile() (phoneNumber/displayName) has no public
+    // application-layer use case yet -- same "no use case exists for this"
+    // exception ensureAccount's credentialRepository.save() below already
+    // relies on, not a new pattern.
+    const accountRepository = app.get<AccountRepository>(ACCOUNT_REPOSITORY);
 
     const listMedicalSpecialties = app.get(ListMedicalSpecialtiesUseCase);
     const createMedicalSpecialty = app.get(CreateMedicalSpecialtyUseCase);
@@ -437,12 +445,28 @@ async function main(): Promise<void> {
       return asset.getId();
     }
 
+    /**
+     * Account.updateProfile()'s phoneNumber has no public use case yet (only
+     * UpdatePersonalProfileUseCase's separate, narrower field set does) --
+     * this is that same real domain method + repository save, called
+     * unconditionally (not gated by ensureAccount's `created` flag) so a
+     * re-run also self-heals a phone number missing from an earlier run.
+     */
+    async function setPhoneNumber(accountId: string, phoneNumber: string): Promise<void> {
+      const account = await accountRepository.findById(AccountId.create(accountId));
+      if (!account) return;
+      account.updateProfile({ phoneNumber });
+      await accountRepository.save(account);
+    }
+
     // -----------------------------------------------------------------
     // 2. Admin accounts
     // -----------------------------------------------------------------
     console.info('Seeding admin accounts...');
-    await ensureAccount(DEMO_SUPER_ADMIN.email, DEMO_SUPER_ADMIN.displayName, AccountRole.SuperAdmin);
-    await ensureAccount(DEMO_HOSPITAL_ADMIN.email, DEMO_HOSPITAL_ADMIN.displayName, AccountRole.HospitalAdmin);
+    const superAdmin = await ensureAccount(DEMO_SUPER_ADMIN.email, DEMO_SUPER_ADMIN.displayName, AccountRole.SuperAdmin);
+    await setPhoneNumber(superAdmin.accountId, DEMO_SUPER_ADMIN.phoneNumber);
+    const hospitalAdmin = await ensureAccount(DEMO_HOSPITAL_ADMIN.email, DEMO_HOSPITAL_ADMIN.displayName, AccountRole.HospitalAdmin);
+    await setPhoneNumber(hospitalAdmin.accountId, DEMO_HOSPITAL_ADMIN.phoneNumber);
 
     // -----------------------------------------------------------------
     // 3. Doctors
@@ -458,6 +482,7 @@ async function main(): Promise<void> {
         // header comment). A 'pending' demo doctor therefore correctly stays
         // Patient-role, same as a real unapproved applicant would.
         const { accountId, created } = await ensureAccount(demo.email, demo.displayName, AccountRole.Patient);
+        await setPhoneNumber(accountId, demo.phoneNumber);
         if (!created) continue;
 
         await updatePersonalProfile.execute(
@@ -617,6 +642,7 @@ async function main(): Promise<void> {
     for (const demo of DEMO_PATIENTS) {
       try {
         const { accountId, created } = await ensureAccount(demo.email, demo.displayName, AccountRole.Patient);
+        await setPhoneNumber(accountId, demo.phoneNumber);
         if (!created) continue;
 
         await updatePersonalProfile.execute(
