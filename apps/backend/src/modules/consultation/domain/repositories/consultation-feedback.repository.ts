@@ -3,6 +3,8 @@ import type { ConsultationFeedback } from '../entities/consultation-feedback.ent
 export interface DoctorRatingAggregate {
   averageRating: number | null;
   reviewCount: number;
+  /** Of `reviewCount`, how many carry a written comment -- distinct from the star-only ratings that make up the rest. */
+  writtenReviewCount: number;
 }
 
 export interface ConsultationFeedbackRepository {

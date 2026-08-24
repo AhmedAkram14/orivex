@@ -83,6 +83,7 @@
         "professor": "أستاذ"
       },
       "reviewCount": "({count} تقييم)",
+      "writtenReviewCount": "{count, plural, one {# مراجعة مكتوبة} other {# مراجعات مكتوبة}}",
       "noReviewsYet": "لا توجد تقييمات بعد",
       "consultationFeeLabel": "رسوم الاستشارة",
       "consultationFee": "{amount} جنيه",
@@ -2088,7 +2089,8 @@
       "submitError": "تعذر إرسال التقييم. حاول مرة أخرى.",
       "updateError": "تعذر حفظ التغييرات. حاول مرة أخرى.",
       "noReviewsYet": "لا توجد تقييمات بعد",
-      "reviewCount": "({count} تقييم)"
+      "reviewCount": "({count} تقييم)",
+      "writtenReviewCount": "{count, plural, one {# مراجعة مكتوبة} other {# مراجعات مكتوبة}}"
     },
     "outcome": {
       "openAction": "عرض الملخص",

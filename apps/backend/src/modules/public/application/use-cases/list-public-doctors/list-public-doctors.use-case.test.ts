@@ -40,7 +40,7 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
     return { feedback: [], total: 0 };
   }
   async getRatingAggregateForDoctor(): Promise<DoctorRatingAggregate> {
-    return { averageRating: null, reviewCount: 0 };
+    return { averageRating: null, reviewCount: 0, writtenReviewCount: 0 };
   }
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
     const result = new Map<string, DoctorRatingAggregate>();
@@ -129,8 +129,8 @@ describe('ListPublicDoctorsUseCase', () => {
 
     const queryPort = new FakePublicDirectoryQueryPort({ entries: [doctorA, doctorB, doctorC], total: 3 });
     const aggregates = new Map<string, DoctorRatingAggregate>([
-      ['doctor-a', { averageRating: 4.2, reviewCount: 10 }],
-      ['doctor-b', { averageRating: 4.8, reviewCount: 3 }],
+      ['doctor-a', { averageRating: 4.2, reviewCount: 10, writtenReviewCount: 6 }],
+      ['doctor-b', { averageRating: 4.8, reviewCount: 3, writtenReviewCount: 2 }],
       // doctor-c has no reviews at all -- absent from the map entirely.
     ]);
 
@@ -153,7 +153,7 @@ describe('ListPublicDoctorsUseCase', () => {
     const doctorA = buildEntry({ doctorProfileId: 'doctor-a' });
     const doctorB = buildEntry({ doctorProfileId: 'doctor-b' });
     const queryPort = new FakePublicDirectoryQueryPort({ entries: [doctorA, doctorB], total: 2 });
-    const aggregates = new Map<string, DoctorRatingAggregate>([['doctor-b', { averageRating: 4.9, reviewCount: 1 }]]);
+    const aggregates = new Map<string, DoctorRatingAggregate>([['doctor-b', { averageRating: 4.9, reviewCount: 1, writtenReviewCount: 1 }]]);
 
     const useCase = buildUseCase(queryPort, aggregates);
     const result = await useCase.execute(new ListPublicDoctorsQuery({ page: 1, limit: 20 }));
@@ -167,7 +167,7 @@ describe('ListPublicDoctorsUseCase', () => {
     const doctorA = buildEntry({ doctorProfileId: 'doctor-a' });
     const doctorB = buildEntry({ doctorProfileId: 'doctor-b' });
     const queryPort = new FakePublicDirectoryQueryPort({ entries: [doctorA, doctorB], total: 2 });
-    const aggregates = new Map<string, DoctorRatingAggregate>([['doctor-a', { averageRating: 5, reviewCount: 1 }]]);
+    const aggregates = new Map<string, DoctorRatingAggregate>([['doctor-a', { averageRating: 5, reviewCount: 1, writtenReviewCount: 1 }]]);
     const bookingCounts = new Map<string, number>([
       ['doctor-a', 50],
       ['doctor-b', 10],

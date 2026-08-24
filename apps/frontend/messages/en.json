@@ -83,6 +83,7 @@
         "professor": "Professor"
       },
       "reviewCount": "({count} ratings)",
+      "writtenReviewCount": "{count, plural, one {# written review} other {# written reviews}}",
       "noReviewsYet": "No ratings yet",
       "consultationFeeLabel": "Consultation Fee",
       "consultationFee": "{amount} EGP",
@@ -2088,7 +2089,8 @@
       "submitError": "Couldn't submit your rating. Please try again.",
       "updateError": "Couldn't save your changes. Please try again.",
       "noReviewsYet": "No ratings yet",
-      "reviewCount": "({count} ratings)"
+      "reviewCount": "({count} ratings)",
+      "writtenReviewCount": "{count, plural, one {# written review} other {# written reviews}}"
     },
     "outcome": {
       "openAction": "View summary",

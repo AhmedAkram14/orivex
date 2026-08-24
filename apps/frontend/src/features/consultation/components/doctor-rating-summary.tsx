@@ -29,11 +29,18 @@ export function DoctorRatingSummary({ doctorProfileId, className }: DoctorRating
     return <p className={className}>{t('noReviewsYet')}</p>;
   }
 
+  const writtenReviewCount = data.reviews.filter((review) => review.comment).length;
+
   return (
-    <div className={className ? `flex items-center gap-1 ${className}` : 'flex items-center gap-1'}>
-      <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-      <span className="text-sm font-medium text-text-primary">{data.averageRating?.toFixed(1)}</span>
-      <span className="text-sm text-text-tertiary">{t('reviewCount', { count: data.reviewCount })}</span>
+    <div className={className ? `flex flex-wrap items-center gap-x-1.5 gap-y-0.5 ${className}` : 'flex flex-wrap items-center gap-x-1.5 gap-y-0.5'}>
+      <span className="flex items-center gap-1">
+        <Icon icon={Star} size="sm" className="fill-warning text-warning" />
+        <span className="text-sm font-medium text-text-primary">{data.averageRating?.toFixed(1)}</span>
+        <span className="text-sm text-text-tertiary">{t('reviewCount', { count: data.reviewCount })}</span>
+      </span>
+      {writtenReviewCount > 0 && (
+        <span className="text-sm text-text-tertiary">· {t('writtenReviewCount', { count: writtenReviewCount })}</span>
+      )}
     </div>
   );
 }

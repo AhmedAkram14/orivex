@@ -19,6 +19,7 @@ export interface PublicDoctorListing {
   avatarUrl?: string;
   averageRating: number | null;
   reviewCount: number;
+  writtenReviewCount: number;
   availability: 'today' | 'tomorrow' | null;
   isTopRated: boolean;
   isMostBooked: boolean;
@@ -90,6 +91,7 @@ export class ListPublicDoctorsUseCase {
           avatarUrl: entry.avatarUrl,
           averageRating: aggregate?.averageRating ?? null,
           reviewCount: aggregate?.reviewCount ?? 0,
+          writtenReviewCount: aggregate?.writtenReviewCount ?? 0,
           availability,
           isTopRated: false,
           isMostBooked: false,

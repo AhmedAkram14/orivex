@@ -65,10 +65,10 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
     return { feedback: [], total: 0 };
   }
   async getRatingAggregateForDoctor(): Promise<DoctorRatingAggregate> {
-    return { averageRating: null, reviewCount: 0 };
+    return { averageRating: null, reviewCount: 0, writtenReviewCount: 0 };
   }
   async getRatingAggregatesForDoctors(): Promise<Map<string, DoctorRatingAggregate>> {
-    return new Map([['doctor-1', { averageRating: 4.5, reviewCount: 12 }]]);
+    return new Map([['doctor-1', { averageRating: 4.5, reviewCount: 12, writtenReviewCount: 7 }]]);
   }
   async save(): Promise<void> {}
   async update(): Promise<void> {}

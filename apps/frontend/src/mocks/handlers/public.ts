@@ -85,7 +85,8 @@ export const publicHandlers = [
     const specialtiesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty]));
 
     const mapped = doctors.map((doctor) => {
-      const { averageRating, reviewCount } = getDoctorReviews(doctor.doctorProfileId, 1, 1);
+      const { averageRating, reviewCount, reviews } = getDoctorReviews(doctor.doctorProfileId, 1, 100);
+      const writtenReviewCount = reviews.filter((review) => review.comment).length;
       return {
         doctorProfileId: doctor.doctorProfileId,
         fullName: doctor.displayName,
@@ -101,6 +102,7 @@ export const publicHandlers = [
         consultationFeeAmount: doctor.consultationFeeAmount,
         averageRating,
         reviewCount,
+        writtenReviewCount,
         availability: availabilityFor(doctor.doctorProfileId),
         isTopRated: false,
         isMostBooked: false,

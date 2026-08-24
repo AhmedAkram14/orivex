@@ -32,7 +32,7 @@ describe('GetDoctorReportsSummaryUseCase', () => {
       [AppointmentStatus.Requested]: 3,
     });
     const ratingUseCase = new GetDoctorRatingAggregateUseCase(
-      new FakeConsultationFeedbackRepository({ averageRating: 4.5, reviewCount: 10 }) as never,
+      new FakeConsultationFeedbackRepository({ averageRating: 4.5, reviewCount: 10, writtenReviewCount: 6 }) as never,
     );
     const useCase = new GetDoctorReportsSummaryUseCase(repository as unknown as AppointmentRepository, ratingUseCase);
 
@@ -52,7 +52,7 @@ describe('GetDoctorReportsSummaryUseCase', () => {
   it('defaults every count to zero and keeps an honest null rating when nothing exists yet', async () => {
     const repository = new FakeAppointmentRepository({});
     const ratingUseCase = new GetDoctorRatingAggregateUseCase(
-      new FakeConsultationFeedbackRepository({ averageRating: null, reviewCount: 0 }) as never,
+      new FakeConsultationFeedbackRepository({ averageRating: null, reviewCount: 0, writtenReviewCount: 0 }) as never,
     );
     const useCase = new GetDoctorReportsSummaryUseCase(repository as unknown as AppointmentRepository, ratingUseCase);
 

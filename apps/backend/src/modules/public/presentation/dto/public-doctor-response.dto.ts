@@ -14,6 +14,7 @@ export class PublicDoctorResponseDto {
   avatarUrl?: string;
   averageRating!: number | null;
   reviewCount!: number;
+  writtenReviewCount!: number;
   availability!: 'today' | 'tomorrow' | null;
   isTopRated!: boolean;
   isMostBooked!: boolean;
@@ -32,6 +33,7 @@ export class PublicDoctorResponseDto {
     dto.avatarUrl = doctor.avatarUrl;
     dto.averageRating = doctor.averageRating;
     dto.reviewCount = doctor.reviewCount;
+    dto.writtenReviewCount = doctor.writtenReviewCount;
     dto.availability = doctor.availability;
     dto.isTopRated = doctor.isTopRated;
     dto.isMostBooked = doctor.isMostBooked;

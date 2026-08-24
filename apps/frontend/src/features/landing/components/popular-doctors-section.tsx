@@ -49,10 +49,15 @@ function PopularDoctorRating({ doctor }: { doctor: PublicDoctor }) {
   }
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-      <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
-      <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
+    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+      <span className="flex items-center gap-1.5">
+        <Icon icon={Star} size="sm" className="fill-warning text-warning" />
+        <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
+        <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
+      </span>
+      {doctor.writtenReviewCount > 0 && (
+        <span className="text-sm text-text-tertiary">· {t('writtenReviewCount', { count: doctor.writtenReviewCount })}</span>
+      )}
     </div>
   );
 }

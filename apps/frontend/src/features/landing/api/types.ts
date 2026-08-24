@@ -22,6 +22,7 @@ export interface PublicDoctor {
   avatarUrl?: string;
   averageRating: number | null;
   reviewCount: number;
+  writtenReviewCount: number;
   availability: 'today' | 'tomorrow' | null;
   isTopRated: boolean;
   isMostBooked: boolean;

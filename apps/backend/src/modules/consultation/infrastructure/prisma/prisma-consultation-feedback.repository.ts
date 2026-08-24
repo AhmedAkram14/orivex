@@ -41,27 +41,42 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
   // it"). A single indexed (doctorId) aggregate query is cheap at this
   // platform's current scale.
   async getRatingAggregateForDoctor(doctorId: string): Promise<DoctorRatingAggregate> {
-    const result = await this.prisma.consultationFeedback.aggregate({
-      where: { doctorId },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
-    return { averageRating: result._avg.rating, reviewCount: result._count.rating };
+    const [result, writtenReviewCount] = await Promise.all([
+      this.prisma.consultationFeedback.aggregate({
+        where: { doctorId },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+      this.prisma.consultationFeedback.count({ where: { doctorId, comment: { not: null } } }),
+    ]);
+    return { averageRating: result._avg.rating, reviewCount: result._count.rating, writtenReviewCount };
   }
 
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
     if (doctorIds.length === 0) {
       return new Map();
     }
-    const groups = await this.prisma.consultationFeedback.groupBy({
-      by: ['doctorId'],
-      where: { doctorId: { in: doctorIds } },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
+    const [groups, writtenGroups] = await Promise.all([
+      this.prisma.consultationFeedback.groupBy({
+        by: ['doctorId'],
+        where: { doctorId: { in: doctorIds } },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+      this.prisma.consultationFeedback.groupBy({
+        by: ['doctorId'],
+        where: { doctorId: { in: doctorIds }, comment: { not: null } },
+        _count: { rating: true },
+      }),
+    ]);
+    const writtenCountByDoctorId = new Map(writtenGroups.map((group) => [group.doctorId, group._count.rating]));
     const result = new Map<string, DoctorRatingAggregate>();
     for (const group of groups) {
-      result.set(group.doctorId, { averageRating: group._avg.rating, reviewCount: group._count.rating });
+      result.set(group.doctorId, {
+        averageRating: group._avg.rating,
+        reviewCount: group._count.rating,
+        writtenReviewCount: writtenCountByDoctorId.get(group.doctorId) ?? 0,
+      });
     }
     return result;
   }
