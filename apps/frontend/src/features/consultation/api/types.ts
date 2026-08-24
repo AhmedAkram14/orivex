@@ -79,6 +79,10 @@ export interface ConsultationFeedback {
   rating: number;
   comment: string | null;
   createdAt: string;
+  /** Empty/absent for a patient viewing their own submitted feedback (nothing to resolve) -- populated only on the public reviews list. */
+  patientProfileId: string;
+  patientName: string;
+  patientAvatarUrl?: string;
 }
 
 /** Matches ConsultationSummaryResponseDto exactly -- backs both the doctor wrap-up view and the patient post-consultation summary. */
@@ -100,4 +104,5 @@ export interface DoctorReviewsResult {
   limit: number;
   averageRating: number | null;
   reviewCount: number;
+  writtenReviewCount: number;
 }

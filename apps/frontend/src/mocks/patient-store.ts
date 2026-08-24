@@ -273,6 +273,11 @@ export function getProfile(accountId?: string): PatientProfile | undefined {
   return profilesByAccountId.get(resolveAccountId(accountId));
 }
 
+/** Backs the public patient-profile page a review links to -- looked up by patientProfileId, not accountId, since that's the id a review carries. */
+export function getPatientProfileById(patientProfileId: string): PatientProfile | undefined {
+  return [...profilesByAccountId.values()].find((profile) => profile.id === patientProfileId);
+}
+
 /** Demo Data & Profile Avatar Pass: lets the cross-store demo seeder give each patient their own dashboard aggregates. */
 export function setPatientDashboardState(
   accountId: string,

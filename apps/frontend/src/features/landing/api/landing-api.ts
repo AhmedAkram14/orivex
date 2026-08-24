@@ -1,6 +1,6 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { LANDING_PATHS } from '@/features/landing/api/paths';
-import type { PublicDoctorListResult, PublicSpecialty } from '@/features/landing/api/types';
+import type { PublicDoctorListResult, PublicPatient, PublicSpecialty } from '@/features/landing/api/types';
 
 /**
  * The only module that talks to `/public/*` — genuinely anonymous reads,
@@ -12,4 +12,6 @@ export const landingApi = {
 
   getDoctors: (params: { specialtyId?: string; page?: number; limit?: number } = {}) =>
     apiFetch<PublicDoctorListResult>({ path: LANDING_PATHS.doctors(params) }),
+
+  getPatient: (patientProfileId: string) => apiFetch<PublicPatient>({ path: LANDING_PATHS.patient(patientProfileId) }),
 };

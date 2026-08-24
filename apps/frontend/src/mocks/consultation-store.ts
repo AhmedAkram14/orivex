@@ -8,9 +8,10 @@ import type {
   DoctorReviewsResult,
   FollowUpRecommendation,
 } from '@/features/consultation/api/types';
-import { getAppointments } from '@/mocks/patient-store';
+import { getAppointments, getProfile as getPatientProfile } from '@/mocks/patient-store';
 import { getDoctorById, listAllDoctorProfiles } from '@/mocks/doctor-store';
 import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
+import { DEMO_PATIENTS } from '@/mocks/demo-data/demo-people';
 import { findSpecialtyIdByName } from '@/mocks/reference-store';
 
 /**
@@ -32,13 +33,13 @@ const diagnosesBySessionId = new Map<string, DiagnosisNode[]>();
 const DOCTOR_ID = 'doctor-profile-1';
 
 /**
- * Doctor Profile Redesign (2026-08-02): a handful of realistic, anonymized
- * reviews for the seeded demo doctor so the redesigned Profile page's
- * Reviews section has real content to render in dev/tests -- same
- * "populate mock/dev fixtures only" precedent as `doctor-store.ts`'s
- * `seedProfile()`. No patient identity here (never invented): `feedback`
- * mirrors the real `ConsultationFeedbackResponseDto` exactly (rating,
- * comment, createdAt only).
+ * Doctor Profile Redesign (2026-08-02): a handful of realistic reviews for
+ * the seeded demo doctor so the redesigned Profile page's Reviews section
+ * has real content to render in dev/tests -- same "populate mock/dev
+ * fixtures only" precedent as `doctor-store.ts`'s `seedProfile()`. Reviews
+ * are no longer anonymous (a later, explicit decision): attributed to the
+ * one legacy demo patient (`patient-profile-1` / "Amina Youssef") this mock
+ * layer already seeds, never an invented identity.
  */
 function seedFeedback(): ConsultationFeedback[] {
   const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
@@ -50,6 +51,8 @@ function seedFeedback(): ConsultationFeedback[] {
       rating: 5,
       comment: 'Very thorough and took the time to explain my treatment options clearly.',
       createdAt: daysAgo(6),
+      patientProfileId: 'patient-profile-1',
+      patientName: 'Amina Youssef',
     },
     {
       id: 'feedback-seed-2',
@@ -58,6 +61,8 @@ function seedFeedback(): ConsultationFeedback[] {
       rating: 5,
       comment: 'Excellent bedside manner and followed up promptly after my test results came in.',
       createdAt: daysAgo(15),
+      patientProfileId: 'patient-profile-1',
+      patientName: 'Amina Youssef',
     },
     {
       id: 'feedback-seed-3',
@@ -66,6 +71,8 @@ function seedFeedback(): ConsultationFeedback[] {
       rating: 4,
       comment: 'Good consultation overall, though the wait time was a bit longer than expected.',
       createdAt: daysAgo(29),
+      patientProfileId: 'patient-profile-1',
+      patientName: 'Amina Youssef',
     },
   ];
 }
@@ -104,6 +111,8 @@ function seedDemoFeedback(): ConsultationFeedback[] {
     // ratings whose mean lands on it -- the aggregate is never hardcoded.
     const lowRatingCount = Math.round(reviewCount * (0.8 - ((doctorIndex * 7) % 8) / 10) * 0.9);
     for (let index = 0; index < reviewCount; index += 1) {
+      const reviewer = DEMO_PATIENTS[(doctorIndex + index) % DEMO_PATIENTS.length];
+      const reviewerIndex = DEMO_PATIENTS.indexOf(reviewer);
       seeded.push({
         id: `feedback-demo-${doctorIndex + 1}-${index + 1}`,
         consultationSessionId: `session-demo-${doctorIndex + 1}-${index + 1}`,
@@ -111,6 +120,9 @@ function seedDemoFeedback(): ConsultationFeedback[] {
         rating: index < lowRatingCount ? 4 : 5,
         comment: DEMO_REVIEW_COMMENTS[(doctorIndex + index) % DEMO_REVIEW_COMMENTS.length],
         createdAt: daysAgo((index + 1) * 4 + doctorIndex),
+        patientProfileId: `patient-profile-demo-${reviewerIndex + 1}`,
+        patientName: reviewer.displayName,
+        patientAvatarUrl: reviewer.avatarUrl,
       });
     }
   });
@@ -233,6 +245,7 @@ export function submitConsultationFeedback(
   rating: number,
   comment: string | undefined,
 ): ConsultationFeedback {
+  const reviewer = getPatientProfile();
   const feedback: ConsultationFeedback = {
     id: `feedback-${Date.now()}`,
     consultationSessionId,
@@ -243,6 +256,11 @@ export function submitConsultationFeedback(
     rating,
     comment: comment ?? null,
     createdAt: new Date().toISOString(),
+    // The real submitting patient, not a placeholder -- matches the real
+    // backend crediting the review to the JWT-authenticated caller.
+    patientProfileId: reviewer?.id ?? 'patient-profile-1',
+    patientName: reviewer?.fullName ?? 'Amina Youssef',
+    patientAvatarUrl: reviewer?.avatarUrl,
   };
   feedbackBySessionId.set(consultationSessionId, feedback);
   return feedback;
@@ -282,14 +300,23 @@ export function recommendFollowUp(
 
 export function getDoctorReviews(doctorProfileId: string, page: number, limit: number): DoctorReviewsResult {
   if (getDoctorById(doctorProfileId) === null) {
-    return { reviews: [], total: 0, page, limit, averageRating: null, reviewCount: 0 };
+    return { reviews: [], total: 0, page, limit, averageRating: null, reviewCount: 0, writtenReviewCount: 0 };
   }
   const reviews = Array.from(feedbackBySessionId.values()).filter((review) => review.doctorId === doctorProfileId);
   const reviewCount = reviews.length;
+  const writtenReviewCount = reviews.filter((review) => review.comment).length;
   const averageRating =
     reviewCount === 0 ? null : reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount;
   const start = (page - 1) * limit;
-  return { reviews: reviews.slice(start, start + limit), total: reviewCount, page, limit, averageRating, reviewCount };
+  return {
+    reviews: reviews.slice(start, start + limit),
+    total: reviewCount,
+    page,
+    limit,
+    averageRating,
+    reviewCount,
+    writtenReviewCount,
+  };
 }
 
 /**

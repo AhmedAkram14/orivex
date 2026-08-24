@@ -23,7 +23,9 @@ describe('DoctorReviewsList', () => {
     // overriding the handler back to an empty result for this one test.
     server.use(
       http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
-        HttpResponse.json({ data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0 } }),
+        HttpResponse.json({
+          data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0, writtenReviewCount: 0 },
+        }),
       ),
     );
 
@@ -42,6 +44,9 @@ describe('DoctorReviewsList', () => {
                 id: 'review-1',
                 consultationSessionId: 'session-1',
                 doctorId: DOCTOR_PROFILE_ID,
+                patientProfileId: 'patient-profile-1',
+                patientName: 'Amina Youssef',
+                patientAvatarUrl: '/demo/avatars/patient-01.png',
                 rating: 5,
                 comment: 'Excellent bedside manner.',
                 createdAt: '2026-07-20T00:00:00.000Z',
@@ -50,6 +55,8 @@ describe('DoctorReviewsList', () => {
                 id: 'review-2',
                 consultationSessionId: 'session-2',
                 doctorId: DOCTOR_PROFILE_ID,
+                patientProfileId: 'patient-profile-2',
+                patientName: 'Karim Fathy',
                 rating: 3,
                 comment: null,
                 createdAt: '2026-07-21T00:00:00.000Z',
@@ -60,6 +67,7 @@ describe('DoctorReviewsList', () => {
             limit: 20,
             averageRating: 4,
             reviewCount: 2,
+            writtenReviewCount: 1,
           },
         }),
       ),
@@ -69,5 +77,15 @@ describe('DoctorReviewsList', () => {
 
     expect(await screen.findByText('Excellent bedside manner.')).toBeInTheDocument();
     expect(screen.queryByText('No written reviews yet.')).not.toBeInTheDocument();
+
+    // Reviewer identity is real and public: name is shown and links to the
+    // minimal public patient-profile page, never an anonymous placeholder.
+    // Both the avatar and the name render as separate links to that page.
+    const reviewerLinks = screen.getAllByRole('link', { name: 'Amina Youssef' });
+    expect(reviewerLinks.length).toBeGreaterThan(0);
+    for (const link of reviewerLinks) {
+      expect(link).toHaveAttribute('href', '/en/patients/patient-profile-1');
+    }
+    expect(screen.queryByText('Karim Fathy')).not.toBeInTheDocument();
   });
 });

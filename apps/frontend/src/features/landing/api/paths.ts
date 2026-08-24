@@ -8,4 +8,5 @@ export const LANDING_PATHS = {
     const search = query.toString();
     return search ? `/public/doctors?${search}` : '/public/doctors';
   },
+  patient: (patientProfileId: string) => `/public/patients/${patientProfileId}`,
 } as const;

@@ -28,6 +28,13 @@ export interface PublicDoctor {
   isMostBooked: boolean;
 }
 
+/** Matches PublicPatientResponseDto exactly -- deliberately minimal, only what's safe to show a stranger (no health/contact data). */
+export interface PublicPatient {
+  patientProfileId: string;
+  fullName: string;
+  avatarUrl?: string;
+}
+
 /** Matches PublicDoctorListResponseDto exactly. */
 export interface PublicDoctorListResult {
   doctors: PublicDoctor[];

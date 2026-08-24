@@ -1,7 +1,7 @@
 import type { ListConsultationFeedbackForDoctorResult } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
 import type { DoctorRatingAggregate } from '../../domain/repositories/consultation-feedback.repository.js';
 
-import { ConsultationFeedbackResponseDto } from './consultation-feedback-response.dto.js';
+import { ConsultationFeedbackResponseDto, type ReviewerInfo } from './consultation-feedback-response.dto.js';
 
 // Consultation lifecycle completion follow-up (2026-07-26): the public
 // reviews list + rating aggregate backing the doctor directory/profile
@@ -18,20 +18,25 @@ export class DoctorReviewsResponseDto {
   limit!: number;
   averageRating!: number | null;
   reviewCount!: number;
+  writtenReviewCount!: number;
 
   static fromResult(
     result: ListConsultationFeedbackForDoctorResult,
     page: number,
     limit: number,
     ratingAggregate: DoctorRatingAggregate,
+    reviewersByPatientId: Map<string, ReviewerInfo>,
   ): DoctorReviewsResponseDto {
     const dto = new DoctorReviewsResponseDto();
-    dto.reviews = result.feedback.map((feedback) => ConsultationFeedbackResponseDto.fromDomain(feedback));
+    dto.reviews = result.feedback.map((feedback) =>
+      ConsultationFeedbackResponseDto.fromDomain(feedback, reviewersByPatientId.get(feedback.getPatientId())),
+    );
     dto.total = result.total;
     dto.page = page;
     dto.limit = limit;
     dto.averageRating = ratingAggregate.averageRating;
     dto.reviewCount = ratingAggregate.reviewCount;
+    dto.writtenReviewCount = ratingAggregate.writtenReviewCount;
     return dto;
   }
 }

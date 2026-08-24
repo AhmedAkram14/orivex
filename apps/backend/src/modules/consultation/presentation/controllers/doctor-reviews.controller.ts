@@ -4,9 +4,12 @@ import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { PaginationQueryDto } from '../../../../shared/http/pagination-query.dto.js';
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
 import { ListConsultationFeedbackForDoctorUseCase } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
 import { DoctorReviewsResponseDto } from '../dto/doctor-reviews-response.dto.js';
+import type { ReviewerInfo } from '../dto/consultation-feedback-response.dto.js';
 
 // Consultation lifecycle completion follow-up (2026-07-26): public reviews +
 // rating aggregate for a doctor (§10/§11 of the fix's own scope). Lives
@@ -26,6 +29,8 @@ export class DoctorReviewsController {
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly listConsultationFeedbackForDoctorUseCase: ListConsultationFeedbackForDoctorUseCase,
     private readonly getDoctorRatingAggregateUseCase: GetDoctorRatingAggregateUseCase,
+    private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+    private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
   ) {}
 
   @Get(':id/reviews')
@@ -44,6 +49,29 @@ export class DoctorReviewsController {
       this.listConsultationFeedbackForDoctorUseCase.execute({ doctorId: id, page, limit }),
       this.getDoctorRatingAggregateUseCase.execute({ doctorId: id }),
     ]);
-    return envelope(DoctorReviewsResponseDto.fromResult(result, page, limit, ratingAggregate));
+
+    // Batched, not one lookup per review: reviews on the same page rarely
+    // share a patient, but a shared reviewer (or a doctor with 20+ reviews
+    // on one page) would otherwise mean 2N sequential lookups.
+    const uniquePatientIds = [...new Set(result.feedback.map((feedback) => feedback.getPatientId()))];
+    const reviewerEntries = await Promise.all(
+      uniquePatientIds.map(async (patientProfileId): Promise<[string, ReviewerInfo] | null> => {
+        const profile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId });
+        if (!profile) return null;
+        const account = await this.getAccountByIdUseCase.execute({ accountId: profile.getAccountId() });
+        if (!account) return null;
+        return [
+          patientProfileId,
+          {
+            patientProfileId,
+            patientName: account.getUserProfile().getDisplayName().toString(),
+            patientAvatarUrl: account.getUserProfile().getAvatarUrl(),
+          },
+        ];
+      }),
+    );
+    const reviewersByPatientId = new Map(reviewerEntries.filter((entry): entry is [string, ReviewerInfo] => entry !== null));
+
+    return envelope(DoctorReviewsResponseDto.fromResult(result, page, limit, ratingAggregate, reviewersByPatientId));
   }
 }

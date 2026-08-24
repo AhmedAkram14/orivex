@@ -746,7 +746,6 @@
       "reviews": "Reviews",
       "reviewsEmptyTitle": "No written reviews yet.",
       "reviewsEmptyDescription": "Reviews from your patients will appear here once they leave feedback.",
-      "anonymousPatient": "Patient",
       "contactInformation": "Contact information",
       "email": "Email",
       "phone": "Phone",
@@ -1539,6 +1538,12 @@
         "startVerification": "Start verification"
       }
     }
+  },
+  "publicPatient": {
+    "title": "Patient",
+    "notFoundTitle": "Patient not found",
+    "notFoundDescription": "This patient's profile is no longer available.",
+    "loadError": "Couldn't load this patient's profile."
   },
   "scheduling": {
     "slotStatus": {

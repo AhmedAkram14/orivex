@@ -3,6 +3,7 @@ import { env } from '@/shared/lib/env';
 import { getWeekDayName } from '@/features/doctor/lib/week';
 import { getDoctorReviews } from '@/mocks/consultation-store';
 import { listDoctors } from '@/mocks/doctor-store';
+import { getPatientProfileById } from '@/mocks/patient-store';
 import { listSpecialties } from '@/mocks/reference-store';
 import { getAvailabilityForDoctorId, getExceptionsForDoctorId, getHolidays } from '@/mocks/scheduling-store';
 
@@ -120,5 +121,21 @@ export const publicHandlers = [
     const data = { doctors: mapped, total, page, limit };
 
     return HttpResponse.json({ data });
+  }),
+
+  // Deliberately minimal, no auth -- backs the public patient-profile page
+  // a review links to. Same "only what's safe to show a stranger"
+  // narrowing as the real PublicPatientResponseDto: name and avatar only.
+  http.get(`${base()}/public/patients/:id`, ({ params }) => {
+    const profile = getPatientProfileById(params.id as string);
+    if (!profile) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Patient profile not found.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({
+      data: { patientProfileId: profile.id, fullName: profile.fullName, avatarUrl: profile.avatarUrl },
+    });
   }),
 ];

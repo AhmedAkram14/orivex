@@ -746,7 +746,6 @@
       "reviews": "التقييمات",
       "reviewsEmptyTitle": "لا توجد تقييمات مكتوبة بعد.",
       "reviewsEmptyDescription": "ستظهر هنا تقييمات مرضاك بمجرد أن يتركوا آراءهم.",
-      "anonymousPatient": "مريض",
       "contactInformation": "معلومات التواصل",
       "email": "البريد الإلكتروني",
       "phone": "الهاتف",
@@ -1539,6 +1538,12 @@
         "startVerification": "بدء التحقق"
       }
     }
+  },
+  "publicPatient": {
+    "title": "المريض",
+    "notFoundTitle": "المريض غير موجود",
+    "notFoundDescription": "لم يعد الملف الشخصي لهذا المريض متاحًا.",
+    "loadError": "تعذر تحميل الملف الشخصي لهذا المريض."
   },
   "scheduling": {
     "slotStatus": {
