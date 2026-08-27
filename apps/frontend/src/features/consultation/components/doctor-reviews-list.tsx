@@ -49,7 +49,7 @@ export function DoctorReviewsList({ doctorProfileId }: DoctorReviewsListProps) {
     <ul className="flex flex-col gap-3">
       {reviewsWithComments.map((review) => (
         <li key={review.id} className="flex gap-3 rounded-2xl border border-border-default p-4">
-          <Link href={`/patients/${review.patientProfileId}`} className="shrink-0">
+          <Link href={`/patients/${review.patientProfileId}?doctorId=${doctorProfileId}`} className="shrink-0">
             <Avatar size="sm">
               {review.patientAvatarUrl && <AvatarImage src={review.patientAvatarUrl} alt={review.patientName} />}
               <AvatarFallback>{initialsFor(review.patientName)}</AvatarFallback>
@@ -58,7 +58,7 @@ export function DoctorReviewsList({ doctorProfileId }: DoctorReviewsListProps) {
           <div className="flex flex-1 flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
               <Link
-                href={`/patients/${review.patientProfileId}`}
+                href={`/patients/${review.patientProfileId}?doctorId=${doctorProfileId}`}
                 className="text-sm font-medium text-text-primary hover:underline"
               >
                 {review.patientName}

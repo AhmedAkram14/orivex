@@ -5,6 +5,11 @@ import type {
   DepartmentOption,
   DoctorDashboardSummary,
   DoctorDirectoryResult,
+  DoctorPatientChartAppointment,
+  DoctorPatientChartDocument,
+  DoctorPatientChartMedicalRecordEntry,
+  DoctorPatientChartPrescription,
+  DoctorPatientChartProfile,
   DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
@@ -93,4 +98,23 @@ export const doctorApi = {
   getById: (doctorProfileId: string) => apiFetch<DoctorProfile>({ path: DOCTOR_PATHS.byId(doctorProfileId) }),
 
   getByAccountId: (accountId: string) => apiFetch<DoctorProfile>({ path: DOCTOR_PATHS.byAccountId(accountId) }),
+
+  // Doctor-facing Patient Chart (protected) -- authorization (real sign-in +
+  // a real doctor-patient relationship) is enforced server-side; a 404 here
+  // means either the patient doesn't exist or this doctor has no relationship
+  // with them, indistinguishable by design.
+  getPatientChartProfile: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartProfile>({ path: DOCTOR_PATHS.patientChartProfile(patientProfileId) }),
+
+  getPatientChartAppointments: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartAppointment[]>({ path: DOCTOR_PATHS.patientChartAppointments(patientProfileId) }),
+
+  getPatientChartMedicalRecords: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartMedicalRecordEntry[]>({ path: DOCTOR_PATHS.patientChartMedicalRecords(patientProfileId) }),
+
+  getPatientChartPrescriptions: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartPrescription[]>({ path: DOCTOR_PATHS.patientChartPrescriptions(patientProfileId) }),
+
+  getPatientChartDocuments: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartDocument[]>({ path: DOCTOR_PATHS.patientChartDocuments(patientProfileId) }),
 };

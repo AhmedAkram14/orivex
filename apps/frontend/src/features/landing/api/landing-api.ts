@@ -5,7 +5,10 @@ import type { PublicDoctorListResult, PublicPatient, PublicSpecialty } from '@/f
 /**
  * The only module that talks to `/public/*` — genuinely anonymous reads,
  * reachable with no session at all (unlike every other directory-style
- * endpoint in the app). Backs the public landing page only.
+ * endpoint in the app). Backs the public landing page only. Deliberately
+ * stays minimal forever (Public/Protected Information Architecture split):
+ * clinical patient data lives behind `doctorApi`'s `getPatientChart*`
+ * methods (`/doctor/patients/:id/*`), never here.
  */
 export const landingApi = {
   getSpecialties: () => apiFetch<PublicSpecialty[]>({ path: LANDING_PATHS.specialties }),

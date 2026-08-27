@@ -34,11 +34,13 @@ export class PatientProfileResponseDto {
   allergies?: string;
   chronicDiseases?: string;
   insuranceProviderId?: string;
+  /** Resolved by the caller when it already has ReferenceModule's provider list loaded (e.g. the public patient chart); omitted (not fabricated) when no resolver is passed in. */
+  insuranceProviderName?: string;
   emergencyContacts!: EmergencyContactView[];
   createdAt!: string;
   updatedAt!: string;
 
-  static fromDomain(profile: PatientProfile, account: Account): PatientProfileResponseDto {
+  static fromDomain(profile: PatientProfile, account: Account, insuranceProviderName?: string): PatientProfileResponseDto {
     const userProfile = account.getUserProfile();
     const dto = new PatientProfileResponseDto();
 
@@ -56,6 +58,7 @@ export class PatientProfileResponseDto {
     dto.allergies = profile.getAllergies();
     dto.chronicDiseases = profile.getChronicDiseases();
     dto.insuranceProviderId = profile.getInsuranceProviderId();
+    dto.insuranceProviderName = insuranceProviderName;
     dto.emergencyContacts = profile.getEmergencyContacts().map((contact) => ({
       id: contact.getId(),
       name: contact.getName(),

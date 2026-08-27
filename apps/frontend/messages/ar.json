@@ -1543,7 +1543,67 @@
     "title": "المريض",
     "notFoundTitle": "المريض غير موجود",
     "notFoundDescription": "لم يعد الملف الشخصي لهذا المريض متاحًا.",
-    "loadError": "تعذر تحميل الملف الشخصي لهذا المريض."
+    "loadError": "تعذر تحميل الملف الشخصي لهذا المريض.",
+    "notOnRecord": "غير مسجّل",
+    "ageYearsOld": "{age} سنة",
+    "patientId": "رقم المريض: {id}",
+    "genderOptions": { "male": "ذكر", "female": "أنثى", "other": "آخر" },
+    "stats": {
+      "completedConsultations": "الاستشارات المكتملة",
+      "upcomingAppointments": "المواعيد القادمة",
+      "activePrescriptions": "الوصفات الفعّالة",
+      "lastVisit": "آخر زيارة",
+      "none": "لا يوجد بعد"
+    },
+    "recentFeedback": "أحدث تقييم",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "medicalHistory": "التاريخ الطبي",
+      "consultations": "الاستشارات",
+      "prescriptions": "الوصفات الطبية",
+      "documents": "المستندات"
+    },
+    "personalInformation": "المعلومات الشخصية",
+    "medicalProfile": "الملف الطبي",
+    "bloodType": "فصيلة الدم",
+    "allergies": "الحساسية",
+    "noAllergiesOnRecord": "لا توجد حساسية مسجّلة",
+    "chronicConditions": "الأمراض المزمنة",
+    "noConditionsOnRecord": "لا توجد أمراض مزمنة مسجّلة",
+    "insurance": "التأمين",
+    "insuranceSelfPay": "دفع ذاتي / بدون تأمين",
+    "emergencyContacts": "جهة اتصال الطوارئ",
+    "noEmergencyContacts": "لا توجد جهة اتصال طوارئ مسجّلة",
+    "relationshipOptions": {
+      "parent": "أحد الوالدين",
+      "spouse": "الزوج/الزوجة",
+      "sibling": "شقيق/شقيقة",
+      "child": "ابن/ابنة",
+      "guardian": "ولي الأمر",
+      "other": "أخرى"
+    },
+    "medicalHistory": "التاريخ الطبي",
+    "noMedicalHistory": "لا يوجد تاريخ طبي مسجّل",
+    "by": "بواسطة {name}",
+    "upcomingAppointments": "المواعيد القادمة",
+    "noUpcomingAppointments": "لا توجد مواعيد قادمة",
+    "previousVisits": "الزيارات السابقة",
+    "noPreviousVisits": "لا توجد زيارات سابقة مسجّلة",
+    "prescriptions": "الوصفات الطبية",
+    "noPrescriptions": "لا توجد وصفات طبية مسجّلة",
+    "prescriptionStatus": { "active": "فعّالة", "expired": "منتهية" },
+    "documents": "المستندات الطبية",
+    "noDocuments": "لا توجد مستندات سريرية مرفوعة",
+    "documentPurpose": { "clinical_attachment": "مرفق سريري", "lab_report": "تقرير مخبري" },
+    "view": "عرض",
+    "appointmentStatus": {
+      "requested": "بانتظار موافقة الطبيب",
+      "confirmed": "مؤكد",
+      "rescheduled": "أُعيدت جدولته",
+      "completed": "مكتمل",
+      "cancelled": "ملغى",
+      "no_show": "لم يحضر"
+    }
   },
   "scheduling": {
     "slotStatus": {

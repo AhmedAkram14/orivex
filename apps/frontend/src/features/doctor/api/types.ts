@@ -299,6 +299,83 @@ export interface DoctorPatientListItem {
 
 export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
 
+// Doctor-facing Patient Chart (protected -- `/doctor/patients/:id/*`,
+// JwtAuthGuard + RolesGuard(Doctor) + a real doctor-patient relationship
+// check, DOCTOR-OWNED ENCOUNTERS ONLY). Distinct from the public
+// `PublicPatient` shape (`features/landing/api/types.ts`), which stays
+// forever minimal (name + avatar only, no sign-in required).
+
+/** Matches PatientProfileResponseDto exactly. */
+export interface DoctorPatientChartProfile {
+  id: string;
+  accountId: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationalityId?: string;
+  address?: string;
+  bloodType?: string;
+  allergies?: string;
+  chronicDiseases?: string;
+  insuranceProviderId?: string;
+  insuranceProviderName?: string;
+  emergencyContacts: { id: string; name: string; relationship: string; phoneNumber: string }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Matches AppointmentListItemResponseDto exactly -- always this doctor's own appointments with this patient only. */
+export interface DoctorPatientChartAppointment {
+  id: string;
+  scheduledAt: string;
+  doctorId: string;
+  doctorName: string;
+  doctorAvatarUrl?: string;
+  specialization: string;
+  specializationAr: string | null;
+  status: AppointmentStatus;
+  consultationType: 'free' | 'paid';
+  reasonForVisit: string | null;
+  consultationSessionId: string | null;
+  paymentRequired: boolean;
+  feeAmount: { amount: number; currency: string } | null;
+}
+
+/** Matches MedicalRecordEntryResponseDto exactly -- only entries this doctor authored. */
+export interface DoctorPatientChartMedicalRecordEntry {
+  id: string;
+  type: 'visit' | 'condition';
+  date: string;
+  title: string;
+  description?: string;
+  doctorName?: string;
+  downloadUrl?: string;
+}
+
+/** Matches PatientPrescriptionResponseDto exactly -- only prescriptions this doctor authored. */
+export interface DoctorPatientChartPrescription {
+  id: string;
+  medicationName: string;
+  dosageAmount: string;
+  frequencyLabel: string;
+  prescribedBy: string;
+  prescribedAt: string;
+  status: 'active' | 'expired';
+  instructions?: string;
+}
+
+/** Matches MediaAssetListItemResponseDto exactly -- clinical documents only (lab reports/attachments), never identity-verification uploads. */
+export interface DoctorPatientChartDocument {
+  id: string;
+  purpose: string;
+  contentType: string;
+  createdAt: string;
+  signedUrl: string | null;
+}
+
 /** Matches DoctorAppointmentsController's real DoctorReportsSummaryResponseDto exactly -- real appointment-status counts + the doctor's own real rating aggregate. No day-over-day/trend field: there's no historical snapshot to diff against. */
 export interface DoctorReportsSummary {
   totalAppointments: number;

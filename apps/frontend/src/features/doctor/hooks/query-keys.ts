@@ -16,3 +16,9 @@ export const doctorDepartmentsKeys = createQueryKeyFactory('doctor-departments')
 // Doctor Workspace dashboard redesign.
 export const doctorPatientsKeys = createQueryKeyFactory('doctor-patients');
 export const doctorReportsSummaryKeys = createQueryKeyFactory('doctor-reports-summary');
+// Doctor-facing Patient Chart (protected).
+export const doctorPatientChartProfileKeys = createQueryKeyFactory('doctor-patient-chart-profile');
+export const doctorPatientChartAppointmentsKeys = createQueryKeyFactory('doctor-patient-chart-appointments');
+export const doctorPatientChartMedicalRecordsKeys = createQueryKeyFactory('doctor-patient-chart-medical-records');
+export const doctorPatientChartPrescriptionsKeys = createQueryKeyFactory('doctor-patient-chart-prescriptions');
+export const doctorPatientChartDocumentsKeys = createQueryKeyFactory('doctor-patient-chart-documents');

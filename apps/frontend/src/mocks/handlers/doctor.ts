@@ -22,7 +22,16 @@ import {
   updateProfile,
 } from '@/mocks/doctor-store';
 import { listDepartments, listHospitals } from '@/mocks/admin-store';
-import { approveAppointment, getPendingApprovalAppointments } from '@/mocks/patient-store';
+import {
+  approveAppointment,
+  getAccountIdForPatientProfileId,
+  getAppointments,
+  getMedicalRecords,
+  getPatientProfileById,
+  getPendingApprovalAppointments,
+  getPrescriptions,
+} from '@/mocks/patient-store';
+import { listInsuranceProviders } from '@/mocks/reference-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
@@ -164,5 +173,95 @@ export const doctorHandlers = [
       );
     }
     return HttpResponse.json({ data: found });
+  }),
+
+  // Doctor-facing Patient Chart (protected): mirrors the real backend's
+  // DoctorPatientChartController -- a real relationship check (does
+  // getPatients(callingAccountId) include this patient?) before returning
+  // anything, same ownership-safe 404 on failure, never a client-side-only
+  // gate. DOCTOR-OWNED ENCOUNTERS ONLY: medical-records/prescriptions are
+  // filtered to entries this doctor authored (best-effort in this mock
+  // layer, matched by doctor display name -- the mock stores don't track a
+  // per-entry authoring doctor id the way the real domain does).
+  http.get(`${base()}/doctor/patients/:id/profile`, ({ params, request }) => {
+    const callingAccountId = resolveRequestAccountId(request);
+    const patientId = params.id as string;
+    const myPatients = getPatients(callingAccountId);
+    const isOwnPatient = myPatients.some((patient) => patient.patientProfileId === patientId);
+    if (!isOwnPatient) return notFound('Patient not found.');
+
+    const profile = getPatientProfileById(patientId);
+    if (!profile) return notFound('Patient not found.');
+
+    const insuranceProviderName = listInsuranceProviders().find((provider) => provider.id === profile.insuranceProviderId)?.name;
+    return HttpResponse.json({
+      data: {
+        id: profile.id,
+        accountId: getAccountIdForPatientProfileId(profile.id) ?? '',
+        fullName: profile.fullName,
+        email: profile.email,
+        phoneNumber: profile.phoneNumber,
+        avatarUrl: profile.avatarUrl,
+        dateOfBirth: profile.dateOfBirth,
+        gender: profile.gender,
+        nationalityId: profile.nationalityId,
+        address: profile.address,
+        bloodType: profile.bloodType,
+        allergies: profile.allergies,
+        chronicDiseases: profile.chronicDiseases,
+        insuranceProviderId: profile.insuranceProviderId,
+        insuranceProviderName,
+        emergencyContacts: profile.emergencyContacts,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+  }),
+
+  http.get(`${base()}/doctor/patients/:id/appointments`, ({ params, request }) => {
+    const callingAccountId = resolveRequestAccountId(request);
+    const patientId = params.id as string;
+    const isOwnPatient = getPatients(callingAccountId).some((patient) => patient.patientProfileId === patientId);
+    if (!isOwnPatient) return notFound('Patient not found.');
+
+    const callingDoctor = getDoctorByAccountId(callingAccountId ?? '');
+    const patientAccountId = getAccountIdForPatientProfileId(patientId);
+    const own = getAppointments(patientAccountId).filter((appointment) => appointment.doctorId === callingDoctor?.id);
+    return HttpResponse.json({ data: own });
+  }),
+
+  http.get(`${base()}/doctor/patients/:id/medical-records`, ({ params, request }) => {
+    const callingAccountId = resolveRequestAccountId(request);
+    const patientId = params.id as string;
+    const isOwnPatient = getPatients(callingAccountId).some((patient) => patient.patientProfileId === patientId);
+    if (!isOwnPatient) return notFound('Patient not found.');
+
+    const callingDoctor = getDoctorByAccountId(callingAccountId ?? '');
+    const patientAccountId = getAccountIdForPatientProfileId(patientId);
+    const own = getMedicalRecords(patientAccountId).filter((entry) => entry.doctorName === callingDoctor?.fullName);
+    return HttpResponse.json({ data: own });
+  }),
+
+  http.get(`${base()}/doctor/patients/:id/prescriptions`, ({ params, request }) => {
+    const callingAccountId = resolveRequestAccountId(request);
+    const patientId = params.id as string;
+    const isOwnPatient = getPatients(callingAccountId).some((patient) => patient.patientProfileId === patientId);
+    if (!isOwnPatient) return notFound('Patient not found.');
+
+    const callingDoctor = getDoctorByAccountId(callingAccountId ?? '');
+    const patientAccountId = getAccountIdForPatientProfileId(patientId);
+    const own = getPrescriptions(patientAccountId).filter((prescription) => prescription.prescribedBy === callingDoctor?.fullName);
+    return HttpResponse.json({ data: own });
+  }),
+
+  // No mock media-asset/document store exists yet -- an honest empty list,
+  // matching this mock layer's own convention for a real backend capability
+  // this frontend mock hasn't been built out for (see e.g. seedHealthDashboard).
+  http.get(`${base()}/doctor/patients/:id/documents`, ({ params, request }) => {
+    const callingAccountId = resolveRequestAccountId(request);
+    const patientId = params.id as string;
+    const isOwnPatient = getPatients(callingAccountId).some((patient) => patient.patientProfileId === patientId);
+    if (!isOwnPatient) return notFound('Patient not found.');
+    return HttpResponse.json({ data: [] });
   }),
 ];

@@ -49,4 +49,14 @@ export const DOCTOR_PATHS = {
   // case-detail page's Doctor-specific context section (a VerificationCase
   // only stores subjectAccountId, never a doctorProfileId).
   byAccountId: (accountId: string) => `/doctors/by-account/${accountId}`,
+  // Doctor-facing Patient Chart (protected): ClinicalModule's
+  // DoctorPatientChartController -- JwtAuthGuard + RolesGuard(Doctor) + a
+  // real doctor-patient relationship check, DOCTOR-OWNED ENCOUNTERS ONLY.
+  // Distinct from `PublicPatient`'s own `/public/patients/:id` (name/avatar
+  // only, no sign-in) -- these routes never accept an unauthenticated call.
+  patientChartProfile: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/profile`,
+  patientChartAppointments: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/appointments`,
+  patientChartMedicalRecords: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/medical-records`,
+  patientChartPrescriptions: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/prescriptions`,
+  patientChartDocuments: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/documents`,
 } as const;

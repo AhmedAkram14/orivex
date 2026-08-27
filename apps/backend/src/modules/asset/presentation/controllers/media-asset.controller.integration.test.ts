@@ -68,6 +68,9 @@ class InMemoryMediaAssetRepository implements MediaAssetRepository {
   async findById(id: string): Promise<MediaAsset | null> {
     return this.byId.get(id) ?? null;
   }
+  async findByOwner(ownerAccountId: string): Promise<MediaAsset[]> {
+    return [...this.byId.values()].filter((asset) => asset.getOwnerAccountId() === ownerAccountId);
+  }
   async save(asset: MediaAsset): Promise<void> {
     this.byId.set(asset.getId(), asset);
   }

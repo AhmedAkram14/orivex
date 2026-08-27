@@ -1,4 +1,4 @@
-import type { Appointment } from '@/features/patient/api/types';
+import type { Appointment, PatientProfile } from '@/features/patient/api/types';
 import type { NotificationEntry } from '@/features/notifications/api/types';
 import type { DoctorPatientListItem, QueueEntry, UpcomingWorkItem } from '@/features/doctor/api/types';
 import {
@@ -67,7 +67,17 @@ export function seedDemoData(): void {
 
   const psychiatrists = doctors.filter((entry) => entry.demo.specialtyName === 'Psychiatry');
   const others = doctors.filter((entry) => entry.demo.specialtyName !== 'Psychiatry');
-  const appointmentsByDoctorAccountId = new Map<string, { appointment: Appointment; patientName: string; patientAvatarUrl?: string }[]>();
+  // Account-Consistency Fix: carries the REAL PatientProfile through to the
+  // doctor-side aggregation loop below -- previously that loop only kept
+  // `patientName`/`patientAvatarUrl` and fabricated a brand-new
+  // patientProfileId/email/phone per doctor's "Patients" list entry, which
+  // never matched the same patient's real id anywhere else in the mock
+  // layer (patient-store.ts, consultation-store.ts's reviews, etc). One
+  // canonical PatientProfile now flows everywhere a patient is referenced.
+  const appointmentsByDoctorAccountId = new Map<
+    string,
+    { appointment: Appointment; patientProfile: PatientProfile }[]
+  >();
 
   let appointmentSeq = 0;
 
@@ -126,7 +136,7 @@ export function seedDemoData(): void {
 
       appointments.push(appointment);
       const existing = appointmentsByDoctorAccountId.get(demo.accountId) ?? [];
-      existing.push({ appointment, patientName: patientProfile.fullName, patientAvatarUrl: patientProfile.avatarUrl });
+      existing.push({ appointment, patientProfile });
       appointmentsByDoctorAccountId.set(demo.accountId, existing);
     }
 
@@ -179,11 +189,11 @@ export function seedDemoData(): void {
 
     const upcomingWork: UpcomingWorkItem[] = owned
       .slice(0, 12)
-      .map(({ appointment, patientName, patientAvatarUrl }, index) => ({
+      .map(({ appointment, patientProfile }, index) => ({
         id: `upcoming-work-demo-${profile.id}-${index + 1}`,
         scheduledAt: appointment.scheduledAt,
-        title: patientName,
-        avatarUrl: patientAvatarUrl,
+        title: patientProfile.fullName,
+        avatarUrl: patientProfile.avatarUrl,
         description: appointment.reasonForVisit,
         status:
           appointment.status === 'completed'
@@ -194,35 +204,65 @@ export function seedDemoData(): void {
       }))
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
 
-    const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ patientName, patientAvatarUrl }, index) => ({
+    const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ patientProfile }, index) => ({
       id: `queue-demo-${profile.id}-${index + 1}`,
-      label: patientName,
-      avatarUrl: patientAvatarUrl,
+      label: patientProfile.fullName,
+      avatarUrl: patientProfile.avatarUrl,
       status: index === 0 ? ('in-consultation' as const) : ('waiting' as const),
       position: index,
       estimatedWaitMinutes: index === 0 ? undefined : index * 13,
     }));
 
-    const patientsByName = new Map<string, DoctorPatientListItem>();
-    owned.forEach(({ appointment, patientName, patientAvatarUrl }, index) => {
-      const existing = patientsByName.get(patientName);
-      if (existing) {
-        existing.visitCount += 1;
+    // Account-Consistency Fix: keyed by the REAL patientProfile.id (the same
+    // id patient-store.ts, consultation-store.ts's reviews, and every other
+    // mock store already uses for this exact patient) -- never a fabricated
+    // id/email/phone invented just for this list. `lastVisitAt`/
+    // `lastVisitStatus` reflect the most recent appointment by date (not
+    // just the first one encountered), and `nextAppointmentAt` is the
+    // soonest still-upcoming one, mirroring the real backend's own
+    // DoctorAppointmentsController.getDoctorPatients computation.
+    const patientsByProfileId = new Map<string, DoctorPatientListItem>();
+    owned.forEach(({ appointment, patientProfile }) => {
+      const existing = patientsByProfileId.get(patientProfile.id);
+      const isNonTerminal = appointment.status === 'confirmed' || appointment.status === 'requested';
+
+      if (!existing) {
+        patientsByProfileId.set(patientProfile.id, {
+          patientProfileId: patientProfile.id,
+          patientName: patientProfile.fullName,
+          avatarUrl: patientProfile.avatarUrl,
+          email: patientProfile.email,
+          phoneNumber: patientProfile.phoneNumber,
+          dateOfBirth: patientProfile.dateOfBirth,
+          gender: patientProfile.gender,
+          visitCount: 1,
+          lastVisitAt: appointment.scheduledAt,
+          lastVisitStatus: appointment.status,
+          nextAppointmentAt: isNonTerminal ? appointment.scheduledAt : undefined,
+          hasFollowUpRecommendation: false,
+        });
         return;
       }
-      patientsByName.set(patientName, {
-        patientProfileId: `patient-of-${profile.id}-${index + 1}`,
-        patientName,
-        avatarUrl: patientAvatarUrl,
-        email: `${patientName.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`,
-        phoneNumber: `+20 11${(index + 10).toString().padStart(2, '0')} 000 0000`,
-        gender: index % 2 === 0 ? 'male' : 'female',
-        visitCount: 1,
-        lastVisitAt: appointment.scheduledAt,
-        lastVisitStatus: appointment.status === 'cancelled' ? 'cancelled' : 'completed',
-        hasFollowUpRecommendation: index % 4 === 0,
-      });
+
+      existing.visitCount += 1;
+      if (isNonTerminal) {
+        if (!existing.nextAppointmentAt || appointment.scheduledAt < existing.nextAppointmentAt) {
+          existing.nextAppointmentAt = appointment.scheduledAt;
+        }
+      } else if (appointment.scheduledAt > existing.lastVisitAt) {
+        existing.lastVisitAt = appointment.scheduledAt;
+        existing.lastVisitStatus = appointment.status;
+      }
     });
+    // A deterministic (never `Math.random()`), plausibly-varied stand-in for
+    // the real FollowUpRecommendation signal: only ever true for a patient
+    // whose most recent visit completed with nothing booked since, and only
+    // for a third of those, so "Follow up" stays a distinct minority status
+    // rather than swallowing every "Completed" patient.
+    for (const patient of patientsByProfileId.values()) {
+      const eligible = !patient.nextAppointmentAt && patient.lastVisitStatus === 'completed';
+      patient.hasFollowUpRecommendation = eligible && patient.visitCount % 3 === 0;
+    }
 
     const confirmed = owned.filter((entry) => entry.appointment.status === 'confirmed').length;
     const completed = owned.filter((entry) => entry.appointment.status === 'completed').length;
@@ -236,7 +276,7 @@ export function seedDemoData(): void {
       },
       upcomingWork,
       queue,
-      patients: [...patientsByName.values()],
+      patients: [...patientsByProfileId.values()],
       reportsSummary: {
         totalAppointments: confirmed + completed + cancelled,
         confirmed,
@@ -328,7 +368,7 @@ function patientNotifications(accountId: string, appointments: Appointment[], se
 
 function doctorNotifications(
   doctorProfileId: string,
-  owned: { appointment: Appointment; patientName: string }[],
+  owned: { appointment: Appointment; patientProfile: PatientProfile }[],
   verification: 'approved' | 'pending' | 'rejected',
 ): NotificationEntry[] {
   const entries: NotificationEntry[] = [];
@@ -339,7 +379,7 @@ function doctorNotifications(
     entries.push({
       id: `notification-${doctorProfileId}-request`,
       title: 'New appointment request',
-      description: `${requested.patientName} requested a consultation. Review it in your queue.`,
+      description: `${requested.patientProfile.fullName} requested a consultation. Review it in your queue.`,
       severity: 'info',
       createdAt: hoursAgo(2),
       read: false,
@@ -349,7 +389,7 @@ function doctorNotifications(
     entries.push({
       id: `notification-${doctorProfileId}-rated`,
       title: 'A patient rated your consultation',
-      description: `${completed.patientName} left feedback on a recent consultation.`,
+      description: `${completed.patientProfile.fullName} left feedback on a recent consultation.`,
       severity: 'success',
       createdAt: hoursAgo(20),
       read: false,

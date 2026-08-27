@@ -84,7 +84,7 @@ describe('DoctorReviewsList', () => {
     const reviewerLinks = screen.getAllByRole('link', { name: 'Amina Youssef' });
     expect(reviewerLinks.length).toBeGreaterThan(0);
     for (const link of reviewerLinks) {
-      expect(link).toHaveAttribute('href', '/en/patients/patient-profile-1');
+      expect(link).toHaveAttribute('href', `/en/patients/patient-profile-1?doctorId=${DOCTOR_PROFILE_ID}`);
     }
     expect(screen.queryByText('Karim Fathy')).not.toBeInTheDocument();
   });

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { MediaAsset } from '../../domain/entities/media-asset.entity.js';
+import type { MediaAssetPurpose } from '../../domain/enums/media-asset-purpose.enum.js';
 import type { MediaAssetRepository } from '../../domain/repositories/media-asset.repository.js';
 
 import { toDomainMediaAsset } from './media-asset.mapper.js';
@@ -13,6 +14,14 @@ export class PrismaMediaAssetRepository implements MediaAssetRepository {
   async findById(id: string): Promise<MediaAsset | null> {
     const row = await this.prisma.mediaAsset.findUnique({ where: { id } });
     return row ? toDomainMediaAsset(row) : null;
+  }
+
+  async findByOwner(ownerAccountId: string, purposes?: MediaAssetPurpose[]): Promise<MediaAsset[]> {
+    const rows = await this.prisma.mediaAsset.findMany({
+      where: { ownerAccountId, ...(purposes ? { purpose: { in: purposes } } : {}) },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map(toDomainMediaAsset);
   }
 
   async save(asset: MediaAsset): Promise<void> {

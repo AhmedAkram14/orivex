@@ -1543,7 +1543,67 @@
     "title": "Patient",
     "notFoundTitle": "Patient not found",
     "notFoundDescription": "This patient's profile is no longer available.",
-    "loadError": "Couldn't load this patient's profile."
+    "loadError": "Couldn't load this patient's profile.",
+    "notOnRecord": "Not on record",
+    "ageYearsOld": "{age} years old",
+    "patientId": "Patient ID: {id}",
+    "genderOptions": { "male": "Male", "female": "Female", "other": "Other" },
+    "stats": {
+      "completedConsultations": "Completed consultations",
+      "upcomingAppointments": "Upcoming appointments",
+      "activePrescriptions": "Active prescriptions",
+      "lastVisit": "Last visit",
+      "none": "None yet"
+    },
+    "recentFeedback": "Recent feedback",
+    "tabs": {
+      "overview": "Overview",
+      "medicalHistory": "Medical History",
+      "consultations": "Consultations",
+      "prescriptions": "Prescriptions",
+      "documents": "Documents"
+    },
+    "personalInformation": "Personal information",
+    "medicalProfile": "Medical profile",
+    "bloodType": "Blood type",
+    "allergies": "Allergies",
+    "noAllergiesOnRecord": "No allergies recorded",
+    "chronicConditions": "Chronic conditions",
+    "noConditionsOnRecord": "No chronic conditions recorded",
+    "insurance": "Insurance",
+    "insuranceSelfPay": "Self-pay / No insurance",
+    "emergencyContacts": "Emergency contact",
+    "noEmergencyContacts": "No emergency contact on record",
+    "relationshipOptions": {
+      "parent": "Parent",
+      "spouse": "Spouse",
+      "sibling": "Sibling",
+      "child": "Child",
+      "guardian": "Guardian",
+      "other": "Other"
+    },
+    "medicalHistory": "Medical history",
+    "noMedicalHistory": "No medical history recorded",
+    "by": "By {name}",
+    "upcomingAppointments": "Upcoming appointments",
+    "noUpcomingAppointments": "No upcoming appointments",
+    "previousVisits": "Previous visits",
+    "noPreviousVisits": "No previous visits recorded",
+    "prescriptions": "Prescriptions",
+    "noPrescriptions": "No prescriptions recorded",
+    "prescriptionStatus": { "active": "Active", "expired": "Expired" },
+    "documents": "Medical documents",
+    "noDocuments": "No clinical documents uploaded",
+    "documentPurpose": { "clinical_attachment": "Clinical attachment", "lab_report": "Lab report" },
+    "view": "View",
+    "appointmentStatus": {
+      "requested": "Waiting doctor approval",
+      "confirmed": "Confirmed",
+      "rescheduled": "Rescheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "No-show"
+    }
   },
   "scheduling": {
     "slotStatus": {

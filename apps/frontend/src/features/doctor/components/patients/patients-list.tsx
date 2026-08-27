@@ -7,6 +7,7 @@ import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
 import { useDoctorReportsSummary } from '@/features/doctor/hooks/use-doctor-reports-summary';
 import type { AppointmentStatus, DoctorPatientListItem } from '@/features/doctor/api/types';
 import { getCairoNow } from '@/shared/lib/date/timezone';
+import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -81,11 +82,11 @@ const patientStatusBadgeVariant: Record<Exclude<PatientStatus, 'all'>, 'success'
  * from `GET /appointments/doctor/patients` (every patient this doctor has
  * ever had a real appointment with, grouped server-side). Search/filter/
  * sort/pagination are all real, client-side operations over that same real
- * list -- no fabricated page of data. The row Actions icons (view/notes/
- * message/more) are shown to match the reference design but are inert --
- * there is no per-patient detail page, clinical-notes viewer, or messaging
- * feature yet, so each is `aria-disabled` with a "coming soon" tooltip
- * rather than pretending to work.
+ * list -- no fabricated page of data. `View` opens the real clinical chart
+ * at `/doctor/patients/:id` (protected, real doctor-patient relationship
+ * check server-side); notes/message/more remain `aria-disabled` with a
+ * "coming soon" tooltip -- no clinical-notes editor or messaging feature
+ * exists yet, so they stay honest about that rather than pretending to work.
  */
 export function PatientsList() {
   const t = useTranslations('doctor.patients');
@@ -314,8 +315,14 @@ export function PatientsList() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        <Link
+                          href={`/doctor/patients/${patient.patientProfileId}`}
+                          title={t('actions.view')}
+                          className="flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary"
+                        >
+                          <Icon icon={Eye} size="sm" label={t('actions.view')} />
+                        </Link>
                         {[
-                          { icon: Eye, label: t('actions.view') },
                           { icon: FileText, label: t('actions.notes') },
                           { icon: MessageSquare, label: t('actions.message') },
                           { icon: MoreVertical, label: t('actions.more') },

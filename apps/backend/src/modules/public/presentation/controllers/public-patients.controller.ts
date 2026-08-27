@@ -12,6 +12,14 @@ import { PublicPatientResponseDto } from '../dto/public-patient-response.dto.js'
 // on a doctor's profile can name and link to the patient who wrote it.
 // PublicPatientResponseDto is the enforcement point: it carries only what's
 // safe to show a stranger, nothing PatientProfileController itself exposes.
+//
+// EXPLORE -> UNDERSTAND -> BUILD TRUST -> TAKE ACTION -> AUTHENTICATE
+// architecture decision: this controller stays deliberately minimal forever
+// -- clinical data (profile/appointments/medical-records/prescriptions/
+// documents) is never added here, no matter how public the rest of the
+// product becomes. That data lives behind DoctorPatientChartController
+// (ClinicalModule), gated by real sign-in + a real doctor-patient
+// relationship check, not by this controller loosening its own guard.
 @Controller('public/patients')
 export class PublicPatientsController {
   constructor(

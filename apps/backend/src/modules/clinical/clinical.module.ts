@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import type { DomainEvent } from '../../shared/domain/domain-event.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
+import { AssetModule } from '../asset/asset.module.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
@@ -58,6 +59,7 @@ import { PrismaVitalReadingRepository } from './infrastructure/prisma/prisma-vit
 import { ClinicalNoteController } from './presentation/controllers/clinical-note.controller.js';
 import { ConsultationSummaryController } from './presentation/controllers/consultation-summary.controller.js';
 import { DiagnosisController } from './presentation/controllers/diagnosis.controller.js';
+import { DoctorPatientChartController } from './presentation/controllers/doctor-patient-chart.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
 import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
 import { PrescriptionController } from './presentation/controllers/prescription.controller.js';
@@ -69,7 +71,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
 // those modules import Clinical back -- no circular imports, no
 // forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule, ReferenceModule],
+  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule, ReferenceModule, AssetModule],
   controllers: [
     ClinicalNoteController,
     HealthGraphController,
@@ -77,6 +79,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     PatientDashboardController,
     DiagnosisController,
     ConsultationSummaryController,
+    DoctorPatientChartController,
   ],
   providers: [
     { provide: HEALTH_GRAPH_REPOSITORY, useClass: PrismaHealthGraphRepository },
@@ -275,6 +278,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     SignPrescriptionUseCase,
     GetPrescriptionByIdUseCase,
     ListPrescriptionsForConsultationSessionUseCase,
+    ListClinicalNotesForConsultationSessionUseCase,
   ],
 })
 export class ClinicalModule {}

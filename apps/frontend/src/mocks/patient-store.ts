@@ -278,6 +278,11 @@ export function getPatientProfileById(patientProfileId: string): PatientProfile 
   return [...profilesByAccountId.values()].find((profile) => profile.id === patientProfileId);
 }
 
+/** Doctor-facing Patient Profile Completion: the public patient chart's own `:id` param is a patientProfileId, but every other store getter below (appointments/medical-records/prescriptions) is keyed by accountId -- this reverses that lookup. */
+export function getAccountIdForPatientProfileId(patientProfileId: string): string | undefined {
+  return [...profilesByAccountId.entries()].find(([, profile]) => profile.id === patientProfileId)?.[0];
+}
+
 /** Demo Data & Profile Avatar Pass: lets the cross-store demo seeder give each patient their own dashboard aggregates. */
 export function setPatientDashboardState(
   accountId: string,

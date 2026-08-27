@@ -18,6 +18,9 @@ class FakeMediaAssetRepository implements MediaAssetRepository {
   async findById(): Promise<MediaAsset | null> {
     return this.asset;
   }
+  async findByOwner(): Promise<MediaAsset[]> {
+    return this.asset ? [this.asset] : [];
+  }
   async save(asset: MediaAsset): Promise<void> {
     this.saved.push(asset);
   }
