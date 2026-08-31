@@ -202,7 +202,7 @@ export function SpecialtiesSection() {
               desktop) instead of a static grid -- with 9+ specialties a full
               grid ran the page on for several extra rows; scrolling through a
               fixed-height row reads better than a long stack. */}
-          <Carousel className="hidden w-full sm:flex">
+          <Carousel showControls className="hidden w-full sm:flex">
             {visible.map((specialty) => (
               <CarouselItem
                 key={specialty.id}
