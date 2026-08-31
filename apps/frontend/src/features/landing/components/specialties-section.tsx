@@ -176,11 +176,13 @@ export function SpecialtiesSection() {
               </CarouselItem>
             ))}
           </Carousel>
-          <div className="hidden w-full grid-cols-3 gap-4 sm:grid lg:grid-cols-4">
+          <Carousel className="hidden w-full sm:flex">
             {Array.from({ length: 8 }).map((_, index) => (
-              <Skeleton key={index} className="h-56 w-full" />
+              <CarouselItem key={index} className="w-[calc(33.333%-0.667rem)] lg:w-[calc(25%-0.75rem)]">
+                <Skeleton className="h-56 w-full" />
+              </CarouselItem>
             ))}
-          </div>
+          </Carousel>
         </>
       )}
 
@@ -196,12 +198,20 @@ export function SpecialtiesSection() {
               </CarouselItem>
             ))}
           </Carousel>
-          {/* Tablet/desktop: the design system's own responsive grid, plenty of room per card. */}
-          <div className="hidden w-full grid-cols-3 gap-4 sm:grid lg:grid-cols-4">
+          {/* Tablet/desktop: a wider carousel (3 cards per view on tablet, 4 on
+              desktop) instead of a static grid -- with 9+ specialties a full
+              grid ran the page on for several extra rows; scrolling through a
+              fixed-height row reads better than a long stack. */}
+          <Carousel className="hidden w-full sm:flex">
             {visible.map((specialty) => (
-              <SpecialtyCard key={specialty.id} specialty={specialty} />
+              <CarouselItem
+                key={specialty.id}
+                className="w-[calc(33.333%-0.667rem)] lg:w-[calc(25%-0.75rem)]"
+              >
+                <SpecialtyCard specialty={specialty} />
+              </CarouselItem>
             ))}
-          </div>
+          </Carousel>
         </>
       )}
     </Container>
