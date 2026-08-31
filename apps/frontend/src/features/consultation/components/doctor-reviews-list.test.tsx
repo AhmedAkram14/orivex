@@ -88,4 +88,42 @@ describe('DoctorReviewsList', () => {
     }
     expect(screen.queryByText('Karim Fathy')).not.toBeInTheDocument();
   });
+
+  it('links reviewers to the real, authorized Doctor-facing Patient Chart when rendered in the workspace variant', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({
+          data: {
+            reviews: [
+              {
+                id: 'review-1',
+                consultationSessionId: 'session-1',
+                doctorId: DOCTOR_PROFILE_ID,
+                patientProfileId: 'patient-profile-1',
+                patientName: 'Amina Youssef',
+                rating: 5,
+                comment: 'Excellent bedside manner.',
+                createdAt: '2026-07-20T00:00:00.000Z',
+              },
+            ],
+            total: 1,
+            page: 1,
+            limit: 20,
+            averageRating: 5,
+            reviewCount: 1,
+            writtenReviewCount: 1,
+          },
+        }),
+      ),
+    );
+
+    renderWithProviders(<DoctorReviewsList doctorProfileId={DOCTOR_PROFILE_ID} variant="workspace" />);
+
+    await screen.findByText('Excellent bedside manner.');
+    const reviewerLinks = screen.getAllByRole('link', { name: 'Amina Youssef' });
+    expect(reviewerLinks.length).toBeGreaterThan(0);
+    for (const link of reviewerLinks) {
+      expect(link).toHaveAttribute('href', '/en/doctor/patients/patient-profile-1');
+    }
+  });
 });

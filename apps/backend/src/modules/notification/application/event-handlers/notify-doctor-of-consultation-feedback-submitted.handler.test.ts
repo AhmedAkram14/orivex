@@ -112,7 +112,7 @@ function buildAccount(role: AccountRole, displayName: string): Account {
 }
 
 describe('NotifyDoctorOfConsultationFeedbackSubmittedHandler', () => {
-  it("notifies the doctor's own account with the rating, comment, and a link to their profile reviews", async () => {
+  it("notifies the doctor's own account with the rating, comment, and a link to the reviewing patient's chart", async () => {
     const doctorAccount = buildAccount(AccountRole.Doctor, 'Dr. Sarah Ahmed');
     const patientAccount = buildAccount(AccountRole.Patient, 'Amina Youssef');
     const doctorProfile = DoctorProfile.register({
@@ -152,7 +152,7 @@ describe('NotifyDoctorOfConsultationFeedbackSubmittedHandler', () => {
     assert.match(notification.getDescription(), /Amina Youssef/);
     assert.match(notification.getDescription(), /5\/5/);
     assert.match(notification.getDescription(), /Excellent care\./);
-    assert.equal(notification.getActionUrl(), '/doctor/profile');
+    assert.equal(notification.getActionUrl(), `/doctor/patients/${patientProfile.getId()}`);
     assert.equal(logger.errors.length, 0);
   });
 
@@ -175,6 +175,42 @@ describe('NotifyDoctorOfConsultationFeedbackSubmittedHandler', () => {
     });
 
     assert.equal(notificationRepo.saved.length, 0);
+    assert.equal(logger.errors.length, 0);
+  });
+
+  it('falls back to the doctor\'s own profile link when the reviewing patient\'s profile can no longer be resolved', async () => {
+    const doctorAccount = buildAccount(AccountRole.Doctor, 'Dr. Sarah Ahmed');
+    const doctorProfile = DoctorProfile.register({
+      accountId: doctorAccount.getId().toString(),
+      licenseNumber: 'LIC-1',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
+    });
+    const feedback = ConsultationFeedback.submit({
+      consultationSessionId: '33333333-3333-4333-8333-333333333333',
+      patientId: '22222222-2222-4222-8222-222222222222',
+      doctorId: doctorProfile.getId(),
+      rating: 4,
+    });
+
+    const notificationRepo = new FakeNotificationRepository();
+    const logger = new FakeLogger();
+    const handler = new NotifyDoctorOfConsultationFeedbackSubmittedHandler(
+      new GetConsultationFeedbackForSessionUseCase(new FakeConsultationFeedbackRepository(feedback)),
+      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctorProfile)),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(null)),
+      new GetAccountByIdUseCase(new FakeAccountRepository([doctorAccount])),
+      notificationRepo,
+      logger as never,
+    );
+
+    await handler.handle({
+      consultationFeedbackId: feedback.getId(),
+      doctorId: doctorProfile.getId(),
+      consultationSessionId: feedback.getConsultationSessionId(),
+    });
+
+    assert.equal(notificationRepo.saved.length, 1);
+    assert.equal(notificationRepo.saved[0].getActionUrl(), '/doctor/profile');
     assert.equal(logger.errors.length, 0);
   });
 });

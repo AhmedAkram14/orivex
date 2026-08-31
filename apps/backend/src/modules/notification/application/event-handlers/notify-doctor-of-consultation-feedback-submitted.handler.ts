@@ -59,11 +59,18 @@ export class NotifyDoctorOfConsultationFeedbackSubmittedHandler {
         ? `${patientName} rated their consultation ${feedback.getRating()}/5: "${comment}"`
         : `${patientName} rated their consultation ${feedback.getRating()}/5.`;
 
+      // Deep-links straight to the reviewing patient's own chart (the
+      // Doctor-facing Patient Profile's real destination) when we could
+      // resolve their profile -- falls back to the doctor's own profile
+      // (where reviews are also shown) only in the unlikely case a
+      // patient profile no longer exists.
+      const actionUrl = patientProfile ? `/doctor/patients/${patientProfile.getId()}` : '/doctor/profile';
+
       const notification = Notification.create({
         accountId: doctorProfile.getAccountId(),
         title: 'New consultation review',
         description,
-        actionUrl: '/doctor/profile',
+        actionUrl,
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

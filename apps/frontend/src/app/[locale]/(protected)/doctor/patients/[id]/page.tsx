@@ -12,12 +12,14 @@ import {
   Phone,
   Pill,
   Shield,
+  Star,
   Stethoscope,
   UserRoundPlus,
   type LucideIcon,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
+import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import {
   useDoctorPatientChartAppointments,
   useDoctorPatientChartDocuments,
@@ -25,6 +27,7 @@ import {
   useDoctorPatientChartPrescriptions,
   useDoctorPatientChartProfile,
 } from '@/features/doctor/hooks/use-doctor-patient-chart';
+import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
@@ -138,6 +141,15 @@ export default function DoctorPatientChartPage() {
   const { data: medicalRecords, isLoading: medicalRecordsLoading } = useDoctorPatientChartMedicalRecords(patientProfileId);
   const { data: prescriptions, isLoading: prescriptionsLoading } = useDoctorPatientChartPrescriptions(patientProfileId);
   const { data: documents, isLoading: documentsLoading } = useDoctorPatientChartDocuments(patientProfileId);
+  // Recent Feedback: reuses the doctor's own real reviews (GET
+  // /doctors/:id/reviews, already public/authorized for this doctor to read)
+  // filtered to the one patient this chart is for -- the same source the
+  // review click-through itself came from, never a second fabricated feed.
+  const { data: myDoctorProfile } = useDoctorProfile();
+  const { data: doctorReviews } = useDoctorReviews(myDoctorProfile?.id);
+  const reviewsForThisPatient = (doctorReviews?.reviews ?? [])
+    .filter((review) => review.patientProfileId === patientProfileId && review.comment)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const notFound = profileError instanceof ApiError && profileError.status === 404;
 
@@ -218,6 +230,30 @@ export default function DoctorPatientChartPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {reviewsForThisPatient.length > 0 && (
+                <Card className={CARD_CLASSNAME}>
+                  <CardContent className="flex flex-col gap-2 px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-text-primary">{t('recentFeedback')}</p>
+                      <div className="flex items-center gap-0.5" aria-label={`${reviewsForThisPatient[0].rating}/5`}>
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <Icon
+                            key={index}
+                            icon={Star}
+                            size="sm"
+                            className={cn(index < reviewsForThisPatient[0].rating ? 'fill-warning text-warning' : 'text-border-strong')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-text-secondary">&ldquo;{reviewsForThisPatient[0].comment}&rdquo;</p>
+                    <p className="text-xs text-text-tertiary">
+                      {format.dateTime(new Date(reviewsForThisPatient[0].createdAt), { dateStyle: 'medium' })}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               <Tabs defaultValue="overview">
                 <TabsList className="max-w-full overflow-x-auto rounded-xl p-1.5">

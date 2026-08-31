@@ -455,7 +455,11 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
           </ProfileSectionCard>
 
           <ProfileSectionCard title={t('reviews')} icon={Star} iconClassName="bg-warning-subtle text-warning-emphasis">
-            {reviewsLoading ? <Skeleton className="h-24 w-full" /> : <DoctorReviewsList doctorProfileId={profile.id} />}
+            {reviewsLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <DoctorReviewsList doctorProfileId={profile.id} variant={isWorkspace ? 'workspace' : 'public'} />
+            )}
           </ProfileSectionCard>
         </div>
 

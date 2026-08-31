@@ -12,6 +12,17 @@ import { cn } from '@/shared/lib/cn';
 
 export interface DoctorReviewsListProps {
   doctorProfileId: string;
+  /**
+   * 'workspace' -- rendered on the doctor's own dashboard/profile, viewing
+   * their own reviews. Each reviewer links to the real, authorized
+   * Doctor-facing Patient Chart (`/doctor/patients/:id`), since this doctor
+   * genuinely has a treating relationship with everyone who reviewed them.
+   * 'public' (default) -- rendered on the patient-facing doctor profile,
+   * where the viewer may not even be signed in; links to the minimal public
+   * patient page instead. Same component, same data, only the destination
+   * changes with who's actually looking.
+   */
+  variant?: 'workspace' | 'public';
 }
 
 function initialsFor(fullName: string): string {
@@ -30,7 +41,7 @@ function initialsFor(fullName: string): string {
  * endpoint the link opens -- never an invented identity, and never more of
  * the patient's real data than that endpoint deliberately exposes.
  */
-export function DoctorReviewsList({ doctorProfileId }: DoctorReviewsListProps) {
+export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: DoctorReviewsListProps) {
   const t = useTranslations('doctor.profile');
   const format = useFormatter();
   const { data, isLoading } = useDoctorReviews(doctorProfileId);
@@ -45,11 +56,14 @@ export function DoctorReviewsList({ doctorProfileId }: DoctorReviewsListProps) {
     return <EmptyState title={t('reviewsEmptyTitle')} description={t('reviewsEmptyDescription')} />;
   }
 
+  const hrefFor = (patientProfileId: string) =>
+    variant === 'workspace' ? `/doctor/patients/${patientProfileId}` : `/patients/${patientProfileId}?doctorId=${doctorProfileId}`;
+
   return (
     <ul className="flex flex-col gap-3">
       {reviewsWithComments.map((review) => (
         <li key={review.id} className="flex gap-3 rounded-2xl border border-border-default p-4">
-          <Link href={`/patients/${review.patientProfileId}?doctorId=${doctorProfileId}`} className="shrink-0">
+          <Link href={hrefFor(review.patientProfileId)} className="shrink-0">
             <Avatar size="sm">
               {review.patientAvatarUrl && <AvatarImage src={review.patientAvatarUrl} alt={review.patientName} />}
               <AvatarFallback>{initialsFor(review.patientName)}</AvatarFallback>
@@ -57,10 +71,7 @@ export function DoctorReviewsList({ doctorProfileId }: DoctorReviewsListProps) {
           </Link>
           <div className="flex flex-1 flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
-              <Link
-                href={`/patients/${review.patientProfileId}?doctorId=${doctorProfileId}`}
-                className="text-sm font-medium text-text-primary hover:underline"
-              >
+              <Link href={hrefFor(review.patientProfileId)} className="text-sm font-medium text-text-primary hover:underline">
                 {review.patientName}
               </Link>
               <span className="text-xs text-text-tertiary">
