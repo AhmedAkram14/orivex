@@ -68,9 +68,11 @@ export function Carousel({ className, children, showControls = false, ...props }
           // container away from scrollLeft 0 on first paint -- disabled here
           // so this carousel always starts exactly where it visually should.
           // The scroll itself is still fully usable by touch/trackpad/the
-          // arrow buttons below -- only the native OS scrollbar chrome is
-          // hidden (`scrollbar-none` is this Tailwind version's built-in
-          // cross-browser utility for it).
+          // arrow buttons below -- only the native scrollbar chrome is
+          // hidden, via globals.css's plain `.scrollbar-hidden` (a Tailwind
+          // arbitrary-property class here generated no CSS at all under
+          // this project's build, confirmed against the compiled
+          // stylesheet -- see that class's own comment).
           //
           // The arrow-button gutter lives on the OUTER wrapper (above), not
           // here: padding on this scrollable element itself doesn't clip
@@ -81,7 +83,7 @@ export function Carousel({ className, children, showControls = false, ...props }
           // element's own box is the true, fully-clipped viewport, so
           // percentage-based item widths (computed against this box) never
           // have anywhere to visually overflow into.
-          'flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth scrollbar-none [overflow-anchor:none]',
+          'scrollbar-hidden flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth [overflow-anchor:none]',
           className,
         )}
         {...props}
