@@ -57,7 +57,7 @@ export function Carousel({ className, children, showControls = false, ...props }
     // indeterminate shrink-to-fit box instead of the real Container width --
     // observed as the whole carousel rendering ~140px wider than the
     // viewport and shifted off-center.
-    <div className="relative w-full">
+    <div className={cn('relative w-full', showControls && 'px-12')}>
       <div
         ref={scrollRef}
         role="list"
@@ -67,10 +67,21 @@ export function Carousel({ className, children, showControls = false, ...props }
           // e.g. late-loading fonts/icons) can silently drag a snap-x
           // container away from scrollLeft 0 on first paint -- disabled here
           // so this carousel always starts exactly where it visually should.
-          'flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-1 [overflow-anchor:none]',
-          // Room for the arrow buttons in the gutter on each side, so they
-          // never sit on top of (or clip) the first/last card's content.
-          showControls && 'px-12',
+          // The scroll itself is still fully usable by touch/trackpad/the
+          // arrow buttons below -- only the native OS scrollbar chrome is
+          // hidden (`scrollbar-none` is this Tailwind version's built-in
+          // cross-browser utility for it).
+          //
+          // The arrow-button gutter lives on the OUTER wrapper (above), not
+          // here: padding on this scrollable element itself doesn't clip
+          // anything -- an item positioned inside the padding zone still
+          // paints there, up to this element's own outer edge, which is
+          // exactly the "5th card visibly peeking past the arrow" bug this
+          // replaced. With the gutter on the outer wrapper instead, this
+          // element's own box is the true, fully-clipped viewport, so
+          // percentage-based item widths (computed against this box) never
+          // have anywhere to visually overflow into.
+          'flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth scrollbar-none [overflow-anchor:none]',
           className,
         )}
         {...props}
@@ -86,23 +97,23 @@ export function Carousel({ className, children, showControls = false, ...props }
               horizontal overflow. */}
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="icon"
             aria-label="Previous"
             disabled={activePage === 0}
             onClick={() => scrollToPage(activePage - 1)}
-            className="absolute top-1/2 left-0 -translate-y-1/2 rounded-full shadow-md"
+            className="absolute top-1/2 left-0 -translate-y-1/2 rounded-full border-border-default bg-surface text-primary shadow-md hover:border-primary hover:bg-primary-subtle hover:text-primary-emphasis"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
           </Button>
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             size="icon"
             aria-label="Next"
             disabled={activePage === pageCount - 1}
             onClick={() => scrollToPage(activePage + 1)}
-            className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full shadow-md"
+            className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full border-border-default bg-surface text-primary shadow-md hover:border-primary hover:bg-primary-subtle hover:text-primary-emphasis"
           >
             <ChevronRight className="size-5" aria-hidden="true" />
           </Button>
@@ -136,7 +147,13 @@ export interface CarouselProps extends HTMLAttributes<HTMLDivElement> {
 
 export function CarouselItem({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div role="listitem" className={cn('w-full shrink-0 snap-center', className)} {...props}>
+    // `snap-start` (not `snap-center`): with several items per page,
+    // `scrollToPage()` lands on an exact clientWidth multiple, but a
+    // center-aligned snap point pulls the browser's own settle behavior
+    // toward whichever item is nearest-to-centered instead -- landing
+    // between pages, with a card sliver visible on both edges.
+    // Left-aligning each item's snap point keeps every page boundary clean.
+    <div role="listitem" className={cn('w-full shrink-0 snap-start', className)} {...props}>
       {children}
     </div>
   );
