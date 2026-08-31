@@ -20,16 +20,23 @@
 import 'reflect-metadata';
 
 import { randomUUID } from 'node:crypto';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
 
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from '../src/app.module.js';
 import { MEDIA_ASSET_REPOSITORY } from '../src/modules/asset/application/ports/tokens.js';
 import { MediaAsset } from '../src/modules/asset/domain/entities/media-asset.entity.js';
-import { MediaAssetPurpose } from '../src/modules/asset/domain/enums/media-asset-purpose.enum.js';
+import { CLINICAL_MEDIA_ASSET_PURPOSES, MediaAssetPurpose } from '../src/modules/asset/domain/enums/media-asset-purpose.enum.js';
 import type { MediaAssetRepository } from '../src/modules/asset/domain/repositories/media-asset.repository.js';
+import { CreateDepartmentCommand } from '../src/modules/administration/application/use-cases/create-department/create-department.command.js';
+import { CreateDepartmentUseCase } from '../src/modules/administration/application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalCommand } from '../src/modules/administration/application/use-cases/create-hospital/create-hospital.command.js';
 import { CreateHospitalUseCase } from '../src/modules/administration/application/use-cases/create-hospital/create-hospital.use-case.js';
+import { ListDepartmentsQuery } from '../src/modules/administration/application/use-cases/list-departments/list-departments.query.js';
+import { ListDepartmentsUseCase } from '../src/modules/administration/application/use-cases/list-departments/list-departments.use-case.js';
 import { ListHospitalsUseCase } from '../src/modules/administration/application/use-cases/list-hospitals/list-hospitals.use-case.js';
 import { CREDENTIAL_REPOSITORY } from '../src/modules/authentication/application/ports/tokens.js';
 import { RegisterCommand } from '../src/modules/authentication/application/use-cases/register/register.command.js';
@@ -221,6 +228,50 @@ function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+// ---------------------------------------------------------------------------
+// Clinical documents -- real MediaAsset rows backed by real objects in the
+// local MinIO bucket (docs section 15), reusing the exact synthetic PDF/JPG
+// files already generated for the MSW mock demo layer
+// (apps/frontend/public/demo/documents/) so both runtime modes show the same
+// documents for the same patient. This script is only ever run against a
+// local DATABASE_URL (see `assertLocalDatabase` below), so an S3 client
+// built straight from process.env here (populated by ConfigModule's own
+// dotenv load during NestFactory.createApplicationContext above) is safe --
+// never pointed at a real bucket by accident.
+// ---------------------------------------------------------------------------
+const DEMO_DOCUMENTS_DIR = path.resolve(process.cwd(), '..', 'frontend', 'public', 'demo', 'documents');
+
+interface DemoDocumentFile {
+  patientNumber: number;
+  purpose: MediaAssetPurpose;
+  fileName: string;
+  contentType: string;
+}
+
+function parseDemoDocumentFiles(): DemoDocumentFile[] {
+  let entries: string[];
+  try {
+    entries = readdirSync(DEMO_DOCUMENTS_DIR);
+  } catch {
+    return [];
+  }
+
+  const pattern = /^patient(\d{2})-(clinical-attachment|lab-report)-\d+\.(pdf|jpg)$/;
+  const files: DemoDocumentFile[] = [];
+  for (const entry of entries) {
+    const match = pattern.exec(entry);
+    if (!match) continue;
+    const [, patientNumber, purposeSlug, extension] = match;
+    files.push({
+      patientNumber: Number(patientNumber),
+      purpose: purposeSlug === 'lab-report' ? MediaAssetPurpose.LabReport : MediaAssetPurpose.ClinicalAttachment,
+      fileName: entry,
+      contentType: extension === 'pdf' ? 'application/pdf' : 'image/jpeg',
+    });
+  }
+  return files;
+}
+
 const FEEDBACK_COMMENTS = [
   'Very attentive and explained everything clearly. Highly recommended.',
   'The consultation started on time and all my questions were answered.',
@@ -360,6 +411,36 @@ async function main(): Promise<void> {
       console.info(`  + hospital "${name}"`);
     }
 
+    // One department per specialty actually practiced at that hospital
+    // (derived from DEMO_DOCTORS itself, never a hand-maintained duplicate
+    // list) -- real Department rows via AdministrationModule's own use
+    // cases, never `prisma.department.create()` directly.
+    const listDepartments = app.get(ListDepartmentsUseCase);
+    const createDepartment = app.get(CreateDepartmentUseCase);
+    const departmentIdsByHospitalAndName = new Map<string, string>();
+    const specialtiesByHospital = new Map<string, Set<string>>();
+    for (const doctor of DEMO_DOCTORS) {
+      if (!doctor.hospitalName) continue;
+      const set = specialtiesByHospital.get(doctor.hospitalName) ?? new Set<string>();
+      set.add(doctor.specialtyName);
+      specialtiesByHospital.set(doctor.hospitalName, set);
+    }
+    for (const [hospitalName, specialties] of specialtiesByHospital) {
+      const hospitalId = hospitalIdsByName.get(hospitalName);
+      if (!hospitalId) continue;
+      for (const department of await listDepartments.execute(new ListDepartmentsQuery({ hospitalId }))) {
+        departmentIdsByHospitalAndName.set(`${hospitalName}::${department.getName()}`, department.getId());
+      }
+      for (const specialtyName of specialties) {
+        const departmentName = `${specialtyName} Department`;
+        const key = `${hospitalName}::${departmentName}`;
+        if (departmentIdsByHospitalAndName.has(key)) continue;
+        const created = await createDepartment.execute(new CreateDepartmentCommand({ hospitalId, name: departmentName }));
+        departmentIdsByHospitalAndName.set(key, created.getId());
+        console.info(`  + department "${departmentName}" at "${hospitalName}"`);
+      }
+    }
+
     const insuranceIdsByName = new Map<string, string>();
     for (const provider of await listInsuranceProviders.execute()) {
       insuranceIdsByName.set(provider.getName(), provider.getId());
@@ -446,6 +527,48 @@ async function main(): Promise<void> {
     }
 
     /**
+     * Clinical documents (docs section 15) differ from the identity/license
+     * intents above in one real way: a doctor's Documents tab actually
+     * fetches these back through `GET .../documents`'s real presigned-URL
+     * round trip (`ListMediaAssetsForOwnerUseCase` ->
+     * `ObjectStoragePort.createPresignedDownloadUrl`), so the object must
+     * really exist in the bucket the running backend is configured against
+     * -- not just a metadata row. This uploads the exact same synthetic
+     * PDF/JPG bytes already generated for the MSW mock layer, via a direct
+     * S3 client built from the same env vars `S3ObjectStorageAdapter` uses.
+     */
+    const s3Client = new S3Client({
+      endpoint: process.env.S3_ENDPOINT,
+      region: process.env.S3_REGION,
+      forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
+      credentials: {
+        accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '',
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '',
+      },
+    });
+    const s3Bucket = process.env.S3_BUCKET ?? '';
+
+    async function createClinicalDocument(ownerAccountId: string, file: DemoDocumentFile): Promise<void> {
+      const filePath = path.join(DEMO_DOCUMENTS_DIR, file.fileName);
+      const asset = MediaAsset.createIntent({
+        ownerAccountId,
+        purpose: file.purpose,
+        contentType: file.contentType,
+        sizeEstimate: statSync(filePath).size,
+      });
+      asset.confirm();
+      await mediaAssetRepository.save(asset);
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: s3Bucket,
+          Key: asset.getStorageKey(),
+          Body: readFileSync(filePath),
+          ContentType: file.contentType,
+        }),
+      );
+    }
+
+    /**
      * Account.updateProfile()'s phoneNumber has no public use case yet (only
      * UpdatePersonalProfileUseCase's separate, narrower field set does) --
      * this is that same real domain method + repository save, called
@@ -472,7 +595,7 @@ async function main(): Promise<void> {
     // 3. Doctors
     // -----------------------------------------------------------------
     console.info('Seeding doctors...');
-    for (const demo of DEMO_DOCTORS) {
+    for (const [doctorIndex, demo] of DEMO_DOCTORS.entries()) {
       try {
         // Every demo doctor account is registered as Patient, exactly like a
         // real applicant -- Doctor role is never set directly. It is granted
@@ -532,6 +655,9 @@ async function main(): Promise<void> {
             specialtyId,
             professionalRank: toProfessionalRank(demo.professionalRank),
             licenseExpiryDate: yearsFromNow(demo.licenseExpiryYearsFromNow),
+            departmentId: demo.hospitalName
+              ? departmentIdsByHospitalAndName.get(`${demo.hospitalName}::${demo.specialtyName} Department`)
+              : undefined,
           }),
         );
 
@@ -597,12 +723,18 @@ async function main(): Promise<void> {
 
         // Only an approved doctor has a real practice: working hours and
         // bookable slots would be meaningless for a still-pending applicant.
-        if (!isApproved) continue;
+        // Still logged as seeded either way -- a 'pending' outcome is a real,
+        // intentional result, not a failure to report as one.
+        if (!isApproved) {
+          console.info(`  + doctor ${demo.email} (${demo.verification})`);
+          continue;
+        }
 
+        const workingHoursTemplate = WORKING_HOURS_TEMPLATES[doctorIndex % WORKING_HOURS_TEMPLATES.length];
         await updateDoctorWorkingHours.execute(
           new UpdateDoctorWorkingHoursCommand({
             doctorId: profile.getId(),
-            days: buildWorkingHours(demo.consultationFeeAmount),
+            days: buildWorkingHours(demo.consultationFeeAmount, workingHoursTemplate),
           }),
         );
 
@@ -613,7 +745,7 @@ async function main(): Promise<void> {
         // other specialty -- that (not a hardcoded "popular" flag) is what
         // makes it organically the busiest specialty once bookings land.
         const windowCount = demo.specialtyName === 'Psychiatry' ? 10 : 5;
-        for (const startTime of buildWindowStartTimes(windowCount)) {
+        for (const startTime of buildWindowStartTimes(windowCount, workingHoursTemplate)) {
           try {
             await defineAvailabilityWindow.execute(
               new DefineAvailabilityWindowCommand({
@@ -957,6 +1089,36 @@ async function main(): Promise<void> {
       console.info(`  + appointments for ${patient.demo.email}`);
     }
 
+    // -----------------------------------------------------------------
+    // 7. Clinical documents (real MediaAssets, real objects in MinIO)
+    // -----------------------------------------------------------------
+    console.info('Seeding clinical documents...');
+    const filesByPatientNumber = new Map<number, DemoDocumentFile[]>();
+    for (const file of parseDemoDocumentFiles()) {
+      const list = filesByPatientNumber.get(file.patientNumber) ?? [];
+      list.push(file);
+      filesByPatientNumber.set(file.patientNumber, list);
+    }
+    for (const [patientNumber, files] of filesByPatientNumber) {
+      const demo = DEMO_PATIENTS[patientNumber - 1];
+      if (!demo) continue;
+      const account = await getAccountByEmail.execute({ email: demo.email });
+      if (!account) continue;
+      const accountId = account.getId().toString();
+
+      const existing = await mediaAssetRepository.findByOwner(accountId, [...CLINICAL_MEDIA_ASSET_PURPOSES]);
+      if (existing.length > 0) continue; // already seeded on a previous run
+
+      for (const file of files) {
+        try {
+          await createClinicalDocument(accountId, file);
+          console.info(`  + document ${file.fileName} for ${demo.email}`);
+        } catch (error) {
+          console.warn(`  ! document ${file.fileName} for ${demo.email} failed: ${describeError(error)}`);
+        }
+      }
+    }
+
     console.info('Seed complete.');
   } finally {
     await app.close();
@@ -966,40 +1128,86 @@ async function main(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Generators
 // ---------------------------------------------------------------------------
-/** Standard Egyptian working week: Sunday-Thursday 09:00-17:00, Friday/Saturday closed. */
-function buildWorkingHours(consultationFeeAmount: number | undefined): WorkingHoursDayInput[] {
+interface WorkingHoursTemplate {
+  workingDays: WeekDay[];
+  hours: { start: string; end: string };
+  breaks: { start: string; end: string }[];
+}
+
+/**
+ * Four genuinely different real-world schedules (docs section 7: "Do not
+ * give everyone identical schedules") -- assigned round-robin by each
+ * doctor's position in DEMO_DOCTORS, so both the "Working Hours" a doctor's
+ * own profile shows AND the concrete AvailabilityWindow slots patients can
+ * actually book (buildWindowStartTimes below) come from the same template,
+ * never a cosmetic mismatch between the two.
+ */
+const WORKING_HOURS_TEMPLATES: WorkingHoursTemplate[] = [
+  // Sunday-Thursday mornings, no break.
+  { workingDays: [WeekDay.Sunday, WeekDay.Monday, WeekDay.Tuesday, WeekDay.Wednesday, WeekDay.Thursday], hours: { start: '09:00', end: '15:00' }, breaks: [] },
+  // Saturday-Wednesday evenings.
+  { workingDays: [WeekDay.Saturday, WeekDay.Sunday, WeekDay.Monday, WeekDay.Tuesday, WeekDay.Wednesday], hours: { start: '16:00', end: '22:00' }, breaks: [] },
+  // Monday-Thursday only, with a midday break.
+  { workingDays: [WeekDay.Monday, WeekDay.Tuesday, WeekDay.Wednesday, WeekDay.Thursday], hours: { start: '10:00', end: '18:00' }, breaks: [{ start: '13:00', end: '14:00' }] },
+  // Standard Egyptian working week, with a midday break.
+  { workingDays: [WeekDay.Sunday, WeekDay.Monday, WeekDay.Tuesday, WeekDay.Wednesday, WeekDay.Thursday], hours: { start: '09:00', end: '17:00' }, breaks: [{ start: '13:00', end: '14:00' }] },
+];
+
+function buildWorkingHours(consultationFeeAmount: number | undefined, template: WorkingHoursTemplate): WorkingHoursDayInput[] {
   const pricing = consultationFeeAmount
     ? SchedulingConsultationPricing.paid(SchedulingMoney.create(consultationFeeAmount, 'EGP'))
     : SchedulingConsultationPricing.free();
 
   return ALL_WEEK_DAYS.map((dayOfWeek) => {
-    const isWorkingDay = dayOfWeek !== WeekDay.Friday && dayOfWeek !== WeekDay.Saturday;
+    const isWorkingDay = template.workingDays.includes(dayOfWeek);
     return {
       dayOfWeek,
       isWorkingDay,
-      hours: { start: '09:00', end: '17:00' },
-      breaks: isWorkingDay ? [{ start: '13:00', end: '14:00' }] : [],
+      hours: template.hours,
+      breaks: isWorkingDay ? template.breaks : [],
       pricing,
     };
   });
 }
 
+const WEEK_DAY_TO_JS_DAY_NUMBER: Record<WeekDay, number> = {
+  [WeekDay.Sunday]: 0,
+  [WeekDay.Monday]: 1,
+  [WeekDay.Tuesday]: 2,
+  [WeekDay.Wednesday]: 3,
+  [WeekDay.Thursday]: 4,
+  [WeekDay.Friday]: 5,
+  [WeekDay.Saturday]: 6,
+};
+
 /**
- * Concrete 30-minute slots over the next two weeks, on days and hours
- * consistent with the working-hours template above. AvailabilityWindow
- * .define() rejects a start time in the past, so these are always future
- * slots -- see the seed's own README note about completed history therefore
- * being scheduled slightly ahead of "now".
+ * Concrete 30-minute slots over the next three weeks, on the days and within
+ * the hour range the doctor's own working-hours template (above) declares --
+ * so a doctor's "Working Hours" section and their actual bookable slots
+ * never disagree. AvailabilityWindow.define() rejects a start time in the
+ * past, so these are always future slots -- see the seed's own README note
+ * about completed history therefore being scheduled slightly ahead of "now".
  */
-function buildWindowStartTimes(count: number): Date[] {
-  const hours = [9, 10, 11, 14, 15, 16];
+function buildWindowStartTimes(count: number, template: WorkingHoursTemplate): Date[] {
+  const [startHour] = template.hours.start.split(':').map(Number);
+  const [endHour] = template.hours.end.split(':').map(Number);
+  const breakRanges = template.breaks.map((b) => ({
+    start: Number(b.start.split(':')[0]),
+    end: Number(b.end.split(':')[0]),
+  }));
+  const hours: number[] = [];
+  for (let hour = startHour; hour < endHour; hour += 1) {
+    if (breakRanges.some((range) => hour >= range.start && hour < range.end)) continue;
+    hours.push(hour);
+  }
+
+  const workingWeekDayNumbers = new Set(template.workingDays.map((day) => WEEK_DAY_TO_JS_DAY_NUMBER[day]));
   const starts: Date[] = [];
   const now = new Date();
 
-  for (let dayOffset = 1; dayOffset <= 14 && starts.length < count; dayOffset += 1) {
+  for (let dayOffset = 1; dayOffset <= 21 && starts.length < count; dayOffset += 1) {
     const day = new Date(now.getTime() + dayOffset * MS_PER_DAY);
-    const weekday = day.getDay(); // 0 = Sunday ... 6 = Saturday
-    if (weekday === 5 || weekday === 6) continue; // Friday/Saturday closed
+    if (!workingWeekDayNumbers.has(day.getDay())) continue;
 
     const perDay = Math.min(2, count - starts.length);
     for (let slot = 0; slot < perDay; slot += 1) {

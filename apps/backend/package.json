@@ -13,6 +13,7 @@
     "seed": "tsc -p tsconfig.seed.json && node dist-seed/prisma/seed.js",
     "build:seed": "tsc -p tsconfig.seed.json",
     "seed:run": "node dist-seed/prisma/seed.js",
+    "seed:reset": "tsc -p tsconfig.seed.json && node dist-seed/prisma/reset-demo-data.js",
     "test": "tsc -p tsconfig.json && node --test dist/modules dist/platform dist/shared dist/core",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init --skip-generate",
