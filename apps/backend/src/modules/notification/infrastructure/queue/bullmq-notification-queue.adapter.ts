@@ -42,8 +42,13 @@ export class BullMqNotificationQueueAdapter implements NotificationQueuePort, On
       delay: Math.max(job.delayMs, 0),
       // A reminder that's somehow already been delivered (e.g. a retried
       // enqueue call for the same appointment) should never send twice --
-      // BullMQ deduplicates by jobId within the same queue.
-      jobId: `${APPOINTMENT_REMINDER_JOB_NAME}:${job.appointmentId}`,
+      // BullMQ deduplicates by jobId within the same queue. `:` is reserved
+      // by BullMQ for its own internal Redis key construction (`bull:
+      // <queue>:<jobId>`) and is rejected outright in a custom jobId --
+      // confirmed live against local Redis (`Custom Id cannot contain :`)
+      // during the real-database demo seeding pass -- so `-` is the
+      // delimiter here, not `:`.
+      jobId: `${APPOINTMENT_REMINDER_JOB_NAME}-${job.appointmentId}`,
       // A transient failure (e.g. SendGrid briefly unreachable) gets 3
       // attempts with exponential backoff before the job is given up on --
       // removeOnFail only removes it after every attempt is exhausted, not
