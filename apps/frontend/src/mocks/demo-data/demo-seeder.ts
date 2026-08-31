@@ -10,6 +10,7 @@ import {
 } from '@/mocks/demo-data/demo-people';
 import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
 import { getDoctorByAccountId, setDoctorOperationalState } from '@/mocks/doctor-store';
+import { setDocumentsForAccount, type MockMediaAsset } from '@/mocks/media-asset-store';
 import { getProfile as getPatientProfile, setPatientAppointments, setPatientDashboardState } from '@/mocks/patient-store';
 import { setNotificationsForAccount } from '@/mocks/notifications-store';
 import { listSpecialties } from '@/mocks/reference-store';
@@ -52,6 +53,55 @@ function isoOffsetDays(days: number, hour: number): string {
 /** Deterministic pseudo-randomness: the demo must look the same on every reload, so no `Math.random()` anywhere in this file. */
 function pick<T>(items: readonly T[], seed: number): T {
   return items[Math.abs(seed) % items.length];
+}
+
+// MSW Demo Clinical Documents fix: the two real clinical purposes
+// (CLINICAL_MEDIA_ASSET_PURPOSES on the backend) -- never identity-
+// verification purposes, and never a third invented one. contentType/slug/
+// extension mirror what each purpose realistically is in practice (a signed
+// PDF report vs. a photographed/scanned lab result) -- and match the exact
+// filenames of the real, checked-in demo binaries under
+// `public/demo/documents/` (generated once by the same deterministic
+// patient-slug + document-index formula used here, never by array order
+// alone, so a seed re-run can never point at a file that doesn't exist).
+const CLINICAL_DOCUMENT_KINDS: readonly {
+  purpose: MockMediaAsset['purpose'];
+  contentType: string;
+  slug: string;
+  extension: string;
+}[] = [
+  { purpose: 'clinical_attachment', contentType: 'application/pdf', slug: 'clinical-attachment', extension: 'pdf' },
+  { purpose: 'lab_report', contentType: 'image/jpeg', slug: 'lab-report', extension: 'jpg' },
+];
+
+/**
+ * Builds this patient's demo clinical documents from their OWN real
+ * completed appointments (never a fabricated, unrelated date) -- one
+ * document dated shortly after each of up to `count` completed visits, so
+ * "Consultation on Aug 20" and "Document from Aug 21" stay logically
+ * connected even though MediaAsset itself has no consultationId to link
+ * them by. Only ever CLINICAL_MEDIA_ASSET_PURPOSES purposes.
+ */
+function buildDemoDocuments(
+  patient: { accountId: string; email: string },
+  completedAppointments: Appointment[],
+  count: number,
+  seed: number,
+): MockMediaAsset[] {
+  const patientSlug = patient.email.split('@')[0];
+  return completedAppointments.slice(0, count).map((appointment, index) => {
+    const kind = pick(CLINICAL_DOCUMENT_KINDS, seed + index);
+    const uploadedAt = new Date(new Date(appointment.scheduledAt).getTime() + (1 + (index % 2)) * DAY_MS);
+    const filename = `${patientSlug}-${kind.slug}-${index + 1}.${kind.extension}`;
+    return {
+      id: `document-demo-${seed}-${index + 1}`,
+      ownerAccountId: patient.accountId,
+      purpose: kind.purpose,
+      contentType: kind.contentType,
+      createdAt: uploadedAt.toISOString(),
+      signedUrl: `/demo/documents/${filename}`,
+    };
+  });
 }
 
 export function seedDemoData(): void {
@@ -144,6 +194,17 @@ export function seedDemoData(): void {
 
     const upcoming = appointments.filter((entry) => entry.status === 'confirmed' || entry.status === 'requested');
     const completed = appointments.filter((entry) => entry.status === 'completed');
+
+    // MSW Demo Clinical Documents fix: roughly half the patients with a real
+    // completed visit end up with 1-3 real-shaped clinical documents dated
+    // just after that visit -- the rest genuinely have none, so the
+    // Documents tab's empty state stays honestly exercised too, exactly as
+    // it would for a real patient who's never uploaded anything.
+    if (completed.length > 0 && patientIndex % 2 === 0) {
+      const documentCount = 1 + (patientIndex % 3);
+      setDocumentsForAccount(patient.accountId, buildDemoDocuments(patient, completed, documentCount, patientIndex));
+    }
+
     setPatientDashboardState(patient.accountId, {
       summary: {
         upcomingAppointmentsCount: upcoming.length,
@@ -393,6 +454,9 @@ function doctorNotifications(
       severity: 'success',
       createdAt: hoursAgo(20),
       read: false,
+      // Deep-links straight to the reviewing patient's own chart -- mirrors
+      // the real backend's NotifyDoctorOfConsultationFeedbackSubmittedHandler.
+      actionUrl: `/doctor/patients/${completed.patientProfile.id}`,
     });
   }
   entries.push(

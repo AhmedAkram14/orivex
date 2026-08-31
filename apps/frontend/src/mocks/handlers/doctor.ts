@@ -31,6 +31,7 @@ import {
   getPendingApprovalAppointments,
   getPrescriptions,
 } from '@/mocks/patient-store';
+import { getDocumentsForAccount } from '@/mocks/media-asset-store';
 import { listInsuranceProviders } from '@/mocks/reference-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
 
@@ -254,14 +255,18 @@ export const doctorHandlers = [
     return HttpResponse.json({ data: own });
   }),
 
-  // No mock media-asset/document store exists yet -- an honest empty list,
-  // matching this mock layer's own convention for a real backend capability
-  // this frontend mock hasn't been built out for (see e.g. seedHealthDashboard).
+  // MSW Demo Clinical Documents fix: reads media-asset-store.ts's own
+  // account-keyed MockMediaAsset list, seeded (demo-seeder.ts) with only the
+  // two real clinical purposes -- never identity-verification documents,
+  // matching CLINICAL_MEDIA_ASSET_PURPOSES on the real backend. An honest
+  // empty list for any patient never seeded with one.
   http.get(`${base()}/doctor/patients/:id/documents`, ({ params, request }) => {
     const callingAccountId = resolveRequestAccountId(request);
     const patientId = params.id as string;
     const isOwnPatient = getPatients(callingAccountId).some((patient) => patient.patientProfileId === patientId);
     if (!isOwnPatient) return notFound('Patient not found.');
-    return HttpResponse.json({ data: [] });
+
+    const patientAccountId = getAccountIdForPatientProfileId(patientId);
+    return HttpResponse.json({ data: getDocumentsForAccount(patientAccountId) });
   }),
 ];
