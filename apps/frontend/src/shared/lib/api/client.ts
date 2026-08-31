@@ -75,13 +75,24 @@ const AUTH_PATH_PREFIX = '/auth/';
  * path still calls the backend directly; they authenticate via the
  * in-memory bearer token, not a cookie, so they were never affected.
  *
- * In tests there's no real Next.js server applying that rewrite — MSW's
- * handlers (src/mocks/handlers/auth.ts) are registered against the
- * absolute `env.apiBaseUrl`, so this keeps hitting that directly there,
- * unchanged from before.
+ * MSW Authentication Boundary Fix: that rewrite runs on Next.js's own
+ * server (both `next dev` and production honor it), a layer MSW's browser
+ * Service Worker has no visibility into at all — so with the relative-path
+ * branch taken, every `/auth/*` call was silently proxied straight to the
+ * real backend even with `NEXT_PUBLIC_ENABLE_API_MOCKS=true`, 100% of the
+ * time, never intercepted by `src/mocks/handlers/auth.ts`'s
+ * absolute-`env.apiBaseUrl`-registered handlers. Mock mode has no real
+ * cross-site httpOnly cookie to protect in the first place (MSW never sets
+ * one), so it gets the same absolute-URL escape hatch tests already use —
+ * this is the one and only fix; production's real rewrite/cookie behavior
+ * (the `env.enableApiMocks === false` path) is untouched.
+ *
+ * In tests there's no real Next.js server applying that rewrite either —
+ * MSW's handlers are registered against the absolute `env.apiBaseUrl`, so
+ * this keeps hitting that directly there, unchanged from before.
  */
 function resolveUrl(path: string): string {
-  if (process.env.NODE_ENV === 'test' || !path.startsWith(AUTH_PATH_PREFIX)) {
+  if (process.env.NODE_ENV === 'test' || env.enableApiMocks || !path.startsWith(AUTH_PATH_PREFIX)) {
     return `${env.apiBaseUrl}${path}`;
   }
   return path;

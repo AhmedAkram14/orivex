@@ -70,6 +70,7 @@ declare global {
  */
 export function MockProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(!env.enableApiMocks);
+  const [startupError, setStartupError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (!env.enableApiMocks) return;
@@ -78,21 +79,49 @@ export function MockProvider({ children }: { children: ReactNode }) {
       import('@/mocks/patient-store'),
       import('@/mocks/scheduling-store'),
       import('@/mocks/doctor-store'),
-    ]).then(
-      ([
-        { worker },
-        { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification, seedCompletedAppointment },
-        { addDoctorException },
-        { submitVerification, seedInConsultationQueueEntry },
-      ]) => {
-        window.__mockPatientVerification = { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification };
-        window.__mockScheduling = { addDoctorException };
-        window.__mockDoctorStore = { submitVerification, seedInConsultationQueueEntry };
-        window.__mockPatientAppointments = { seedCompletedAppointment };
-        worker.start({ onUnhandledRequest: 'bypass' }).then(() => setReady(true));
-      },
-    );
+    ])
+      .then(
+        ([
+          { worker },
+          { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification, seedCompletedAppointment },
+          { addDoctorException },
+          { submitVerification, seedInConsultationQueueEntry },
+        ]) => {
+          window.__mockPatientVerification = { setPatientVerified, approveMyLatestVerification, suspendMyLatestVerification };
+          window.__mockScheduling = { addDoctorException };
+          window.__mockDoctorStore = { submitVerification, seedInConsultationQueueEntry };
+          window.__mockPatientAppointments = { seedCompletedAppointment };
+          return worker.start({ onUnhandledRequest: 'bypass' });
+        },
+      )
+      .then(() => setReady(true))
+      // MSW Authentication Boundary Fix: a demo build must never silently
+      // fall through to real requests just because the worker failed to
+      // register (e.g. the service worker script 404s, or the browser
+      // blocks SW registration entirely) -- that's exactly the "looks like
+      // it's mocked but secretly isn't" failure mode this whole fix exists
+      // to close. Surfacing the error and refusing to render is the
+      // opposite of silent: nothing (real or mocked) can accidentally run
+      // against production while `NEXT_PUBLIC_ENABLE_API_MOCKS=true`.
+      .catch((error: unknown) => {
+        // The one diagnostic surface a developer has for a mock-startup failure.
+        console.error('[MockProvider] Failed to start the MSW mock worker.', error);
+        setStartupError(error instanceof Error ? error : new Error(String(error)));
+      });
   }, []);
+
+  if (startupError) {
+    return (
+      <div style={{ padding: 24, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+        <h1>Demo mode failed to initialize</h1>
+        <p>
+          NEXT_PUBLIC_ENABLE_API_MOCKS is true, but the MSW mock worker could not start. Refusing to render rather than
+          risk any request silently reaching the real backend.
+        </p>
+        <pre>{startupError.message}</pre>
+      </div>
+    );
+  }
 
   if (!ready) return null;
   return children;
