@@ -6,5 +6,6 @@ export const CONSULTATION_PATHS = {
   followUp: (consultationSessionId: string) => `/consultations/${consultationSessionId}/follow-up`,
   diagnosis: (consultationSessionId: string) => `/consultations/${consultationSessionId}/diagnosis`,
   notes: (consultationSessionId: string) => `/consultations/${consultationSessionId}/notes`,
+  vitals: (consultationSessionId: string) => `/consultations/${consultationSessionId}/vitals`,
   doctorReviews: (doctorProfileId: string) => `/doctors/${doctorProfileId}/reviews`,
 } as const;

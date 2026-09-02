@@ -18,6 +18,14 @@ export class PrismaVitalReadingRepository implements VitalReadingRepository {
     return rows.map(toDomainVitalReading);
   }
 
+  async findByConsultationSessionId(consultationSessionId: string): Promise<VitalReading[]> {
+    const rows = await this.prisma.vitalReading.findMany({
+      where: { consultationSessionId },
+      orderBy: { recordedAt: 'asc' },
+    });
+    return rows.map(toDomainVitalReading);
+  }
+
   async save(vitalReading: VitalReading): Promise<void> {
     const data = toPersistedVitalReading(vitalReading);
     await this.prisma.vitalReading.upsert({

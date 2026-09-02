@@ -193,6 +193,7 @@ model DoctorProfile {
   // rating column on this model.
   receivedFeedback                ConsultationFeedback[]
   authoredFollowUpRecommendations FollowUpRecommendation[]
+  recordedVitalReadings           VitalReading[]
 
   @@index([hospitalId])
   @@index([specialtyId])
@@ -652,6 +653,7 @@ model ConsultationSession {
   // deliberately 1:1 (unique FK), not lists.
   consultationFeedback               ConsultationFeedback?
   followUpRecommendation             FollowUpRecommendation?
+  vitalReadings                      VitalReading[]
 
   @@index([state])
 }
@@ -1140,23 +1142,32 @@ enum VitalType {
 }
 
 // The Patient Portal Health Dashboard's own vitals surface (docs/05-
-// information-architecture.md's Health Dashboard concept). There is no
-// vitals concept anywhere else in the platform yet -- HealthGraphNode's
-// nodeType enum only covers condition/symptom/medication/lab_result/
-// radiology_result, and no create/record-vital producer exists on either
-// side yet, so this table starts empty. Read-only in this phase, same
-// "real read, deferred write" pattern already used for Notification/
-// Holiday.
+// information-architecture.md's Health Dashboard concept). Real Clinical
+// Vitals Demo pass: a real write path now exists (RecordVitalReadingUseCase,
+// mirroring RecordConsultationDiagnosisUseCase's doctor-authorship pattern)
+// -- recordedByDoctorId/consultationSessionId are both optional so a future
+// non-consultation-linked producer (e.g. a patient self-reporting weight)
+// stays representable, but the demo seed always sets both.
 model VitalReading {
-  id             String         @id @default(uuid())
-  patientId      String
-  patientProfile PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  type           VitalType
-  value          Float
-  diastolicValue Float?
-  recordedAt     DateTime       @default(now())
-  createdAt      DateTime       @default(now())
+  id                     String               @id @default(uuid())
+  patientId              String
+  patientProfile         PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type                   VitalType
+  value                  Float
+  diastolicValue         Float?
+  recordedAt             DateTime             @default(now())
+  createdAt              DateTime             @default(now())
+  // SetNull (not Restrict/Cascade): a doctor's account or a consultation
+  // session being later removed must never destroy the patient's own
+  // historical vital reading -- same posture Hospital->DoctorProfile
+  // already takes.
+  recordedByDoctorId     String?
+  recordedByDoctor       DoctorProfile?       @relation(fields: [recordedByDoctorId], references: [id], onDelete: SetNull)
+  consultationSessionId  String?
+  consultationSession    ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: SetNull)
 
   @@index([patientId])
   @@index([type])
+  @@index([recordedByDoctorId])
+  @@index([consultationSessionId])
 }

@@ -1,9 +1,11 @@
 'use client';
 
 import {
+  Activity,
   CalendarDays,
   ClipboardList,
   Droplet,
+  Droplets,
   FileText,
   Flower2,
   HeartPulse,
@@ -11,6 +13,7 @@ import {
   MapPin,
   Phone,
   Pill,
+  Scale,
   Shield,
   Star,
   Stethoscope,
@@ -26,6 +29,7 @@ import {
   useDoctorPatientChartMedicalRecords,
   useDoctorPatientChartPrescriptions,
   useDoctorPatientChartProfile,
+  useDoctorPatientChartVitals,
 } from '@/features/doctor/hooks/use-doctor-patient-chart';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { RequireRole } from '@/shared/auth/require-role';
@@ -141,6 +145,7 @@ export default function DoctorPatientChartPage() {
   const { data: medicalRecords, isLoading: medicalRecordsLoading } = useDoctorPatientChartMedicalRecords(patientProfileId);
   const { data: prescriptions, isLoading: prescriptionsLoading } = useDoctorPatientChartPrescriptions(patientProfileId);
   const { data: documents, isLoading: documentsLoading } = useDoctorPatientChartDocuments(patientProfileId);
+  const { data: vitals } = useDoctorPatientChartVitals(patientProfileId);
   // Recent Feedback: reuses the doctor's own real reviews (GET
   // /doctors/:id/reviews, already public/authorized for this doctor to read)
   // filtered to the one patient this chart is for -- the same source the
@@ -325,6 +330,27 @@ export default function DoctorPatientChartPage() {
                             iconClassName="bg-primary-subtle text-primary-emphasis"
                             label={t('insurance')}
                             value={profile.insuranceProviderName ?? t('insuranceSelfPay')}
+                          />
+                          {/* Real Clinical Vitals Demo pass: latest of each type this doctor
+                              recorded, from GET :id/vitals -- an honest "not on record" fallback
+                              when this doctor has never recorded one, same as every tile above. */}
+                          <InfoTile
+                            icon={Scale}
+                            iconClassName="bg-primary-subtle text-primary-emphasis"
+                            label={t('latestWeight')}
+                            value={vitals?.find((summary) => summary.type === 'weight')?.latest?.valueLabel ?? t('notOnRecord')}
+                          />
+                          <InfoTile
+                            icon={Activity}
+                            iconClassName="bg-danger-subtle text-danger"
+                            label={t('latestBloodPressure')}
+                            value={vitals?.find((summary) => summary.type === 'blood-pressure')?.latest?.valueLabel ?? t('notOnRecord')}
+                          />
+                          <InfoTile
+                            icon={Droplets}
+                            iconClassName="bg-warning-subtle text-warning-emphasis"
+                            label={t('latestBloodSugar')}
+                            value={vitals?.find((summary) => summary.type === 'blood-sugar')?.latest?.valueLabel ?? t('notOnRecord')}
                           />
                         </div>
 

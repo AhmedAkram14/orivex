@@ -8,6 +8,7 @@ import {
   doctorPatientChartMedicalRecordsKeys,
   doctorPatientChartPrescriptionsKeys,
   doctorPatientChartProfileKeys,
+  doctorPatientChartVitalsKeys,
 } from '@/features/doctor/hooks/query-keys';
 
 /**
@@ -53,6 +54,14 @@ export function useDoctorPatientChartDocuments(patientProfileId: string | undefi
   return useQuery({
     queryKey: doctorPatientChartDocumentsKeys.detail(patientProfileId ?? ''),
     queryFn: () => doctorApi.getPatientChartDocuments(patientProfileId!),
+    enabled: Boolean(patientProfileId),
+  });
+}
+
+export function useDoctorPatientChartVitals(patientProfileId: string | undefined) {
+  return useQuery({
+    queryKey: doctorPatientChartVitalsKeys.detail(patientProfileId ?? ''),
+    queryFn: () => doctorApi.getPatientChartVitals(patientProfileId!),
     enabled: Boolean(patientProfileId),
   });
 }

@@ -6,9 +6,11 @@ import type {
   ConsultationFeedback,
   ConsultationSession,
   ConsultationSummary,
+  ConsultationVitalReading,
   DiagnosisNode,
   DoctorReviewsResult,
   FollowUpRecommendation,
+  VitalReadingType,
 } from '@/features/consultation/api/types';
 
 /**
@@ -76,6 +78,14 @@ export const consultationApi = {
 
   recordNote: (consultationSessionId: string, content: string) =>
     apiFetch<ClinicalNote>({ method: 'POST', path: CONSULTATION_PATHS.notes(consultationSessionId), body: { content } }),
+
+  /** One reading per call, matching the real backend contract (POST /consultations/:id/vitals accepts exactly one type per request) -- a partial submit (e.g. weight only) calls this once, a full submit calls it up to three times. */
+  recordVital: (consultationSessionId: string, type: VitalReadingType, value: number, diastolicValue?: number) =>
+    apiFetch<ConsultationVitalReading>({
+      method: 'POST',
+      path: CONSULTATION_PATHS.vitals(consultationSessionId),
+      body: { type, value, diastolicValue },
+    }),
 
   getDoctorReviews: (doctorProfileId: string, page = 1, limit = 20) =>
     apiFetch<DoctorReviewsResult>({

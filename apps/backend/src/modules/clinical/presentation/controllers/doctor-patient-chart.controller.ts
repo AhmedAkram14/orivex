@@ -24,10 +24,15 @@ import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/us
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListClinicalNotesForConsultationSessionUseCase } from '../../application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from '../../application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
+import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import type { Prescription } from '../../domain/entities/prescription.entity.js';
 import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
+import { VitalType } from '../../domain/enums/vital-type.enum.js';
+import { HealthVitalSummaryResponseDto } from '../dto/health-vital-summary-response.dto.js';
 import { MedicalRecordEntryResponseDto } from '../dto/medical-record-entry-response.dto.js';
 import { PatientPrescriptionResponseDto } from '../dto/patient-prescription-response.dto.js';
+
+const ALL_VITAL_TYPES: readonly VitalType[] = [VitalType.Weight, VitalType.BloodPressure, VitalType.BloodSugar];
 
 interface PrescriptionView {
   prescription: Prescription;
@@ -76,6 +81,7 @@ export class DoctorPatientChartController {
     private readonly listClinicalNotesForConsultationSessionUseCase: ListClinicalNotesForConsultationSessionUseCase,
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
     private readonly listMediaAssetsForOwnerUseCase: ListMediaAssetsForOwnerUseCase,
+    private readonly listVitalReadingsForPatientUseCase: ListVitalReadingsForPatientUseCase,
   ) {}
 
   @Get(':id/profile')
@@ -191,6 +197,30 @@ export class DoctorPatientChartController {
       purposes: [...CLINICAL_MEDIA_ASSET_PURPOSES],
     });
     return envelope(results.map(({ asset, signedUrl }) => MediaAssetListItemResponseDto.fromDomain(asset, signedUrl)));
+  }
+
+  // Real Clinical Vitals Demo pass. DOCTOR-OWNED ENCOUNTERS ONLY, same
+  // filter shape as getMedicalRecords' own condition-node filter just above:
+  // ListVitalReadingsForPatientUseCase has no relationship concept of its
+  // own (returns every reading for the patient, any recording doctor), so
+  // this is the one place a real explicit `recordedByDoctorId` filter is
+  // required to keep another doctor's recorded vitals out of this chart.
+  @Get(':id/vitals')
+  async getVitals(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) patientId: string,
+  ): Promise<ResponseEnvelope<HealthVitalSummaryResponseDto[]>> {
+    const { doctorProfile } = await this.requireRelationship(user, patientId);
+
+    const readings = await this.listVitalReadingsForPatientUseCase.execute({ patientId });
+    const ownReadings = readings.filter((reading) => reading.getRecordedByDoctorId() === doctorProfile.getId());
+    const summaries = ALL_VITAL_TYPES.map((type) =>
+      HealthVitalSummaryResponseDto.create({
+        type,
+        readings: ownReadings.filter((reading) => reading.getType() === type),
+      }),
+    );
+    return envelope(summaries);
   }
 
   // The one relationship check every route above starts with. Never reveals

@@ -6,6 +6,7 @@ import type { ConsultationSummary } from '../../application/use-cases/get-consul
 
 import { ClinicalNoteResponseDto } from './clinical-note-response.dto.js';
 import { HealthGraphNodeResponseDto } from './health-graph-node-response.dto.js';
+import { VitalReadingResponseDto } from './health-vital-summary-response.dto.js';
 import { PrescriptionResponseDto } from './prescription-response.dto.js';
 
 // Consultation lifecycle completion follow-up (2026-07-26): the single
@@ -20,6 +21,7 @@ export class ConsultationSummaryResponseDto {
   clinicalNotes!: ClinicalNoteResponseDto[];
   prescriptions!: PrescriptionResponseDto[];
   diagnoses!: HealthGraphNodeResponseDto[];
+  vitalReadings!: VitalReadingResponseDto[];
   followUpRecommendation!: FollowUpRecommendationResponseDto | null;
   feedback!: ConsultationFeedbackResponseDto | null;
 
@@ -30,6 +32,7 @@ export class ConsultationSummaryResponseDto {
     dto.clinicalNotes = result.clinicalNotes.map((note) => ClinicalNoteResponseDto.fromDomain(note));
     dto.prescriptions = result.prescriptions.map((prescription) => PrescriptionResponseDto.fromDomain(prescription));
     dto.diagnoses = result.diagnoses.map((node) => HealthGraphNodeResponseDto.fromDomain(node));
+    dto.vitalReadings = result.vitalReadings.map((reading) => VitalReadingResponseDto.fromDomain(reading));
     dto.followUpRecommendation = result.followUpRecommendation
       ? FollowUpRecommendationResponseDto.fromDomain(result.followUpRecommendation)
       : null;

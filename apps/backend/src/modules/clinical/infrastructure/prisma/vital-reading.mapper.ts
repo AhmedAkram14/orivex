@@ -13,6 +13,8 @@ export function toDomainVitalReading(row: PrismaVitalReadingRow): VitalReading {
     diastolicValue: row.diastolicValue ?? undefined,
     recordedAt: row.recordedAt,
     createdAt: row.createdAt,
+    recordedByDoctorId: row.recordedByDoctorId ?? undefined,
+    consultationSessionId: row.consultationSessionId ?? undefined,
   });
 }
 
@@ -25,5 +27,7 @@ export function toPersistedVitalReading(vitalReading: VitalReading) {
     diastolicValue: vitalReading.getDiastolicValue() ?? null,
     recordedAt: vitalReading.getRecordedAt(),
     createdAt: vitalReading.getCreatedAt(),
+    recordedByDoctorId: vitalReading.getRecordedByDoctorId() ?? null,
+    consultationSessionId: vitalReading.getConsultationSessionId() ?? null,
   };
 }

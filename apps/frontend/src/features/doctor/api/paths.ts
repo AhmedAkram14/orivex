@@ -59,4 +59,5 @@ export const DOCTOR_PATHS = {
   patientChartMedicalRecords: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/medical-records`,
   patientChartPrescriptions: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/prescriptions`,
   patientChartDocuments: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/documents`,
+  patientChartVitals: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/vitals`,
 } as const;

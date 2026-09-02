@@ -376,6 +376,24 @@ export interface DoctorPatientChartDocument {
   signedUrl: string | null;
 }
 
+/** Same shape as the patient portal's own VitalType/VitalReading/HealthVitalSummary (apps/frontend/src/features/patient/api/types.ts) -- one real source of truth, GET :id/vitals just scopes it to this doctor's own recorded readings. */
+export type DoctorPatientChartVitalType = 'weight' | 'blood-pressure' | 'blood-sugar';
+
+export interface DoctorPatientChartVitalReading {
+  id: string;
+  type: DoctorPatientChartVitalType;
+  recordedAt: string;
+  valueLabel: string;
+  value: number;
+  diastolicValue?: number;
+}
+
+export interface DoctorPatientChartVitalSummary {
+  type: DoctorPatientChartVitalType;
+  latest?: DoctorPatientChartVitalReading;
+  readings: DoctorPatientChartVitalReading[];
+}
+
 /** Matches DoctorAppointmentsController's real DoctorReportsSummaryResponseDto exactly -- real appointment-status counts + the doctor's own real rating aggregate. No day-over-day/trend field: there's no historical snapshot to diff against. */
 export interface DoctorReportsSummary {
   totalAppointments: number;

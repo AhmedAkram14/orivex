@@ -4,9 +4,11 @@ import type {
   ConsultationFeedback,
   ConsultationSession,
   ConsultationSummary,
+  ConsultationVitalReading,
   DiagnosisNode,
   DoctorReviewsResult,
   FollowUpRecommendation,
+  VitalReadingType,
 } from '@/features/consultation/api/types';
 import { getAppointments, getProfile as getPatientProfile } from '@/mocks/patient-store';
 import { getDoctorById, listAllDoctorProfiles } from '@/mocks/doctor-store';
@@ -29,6 +31,7 @@ const feedbackBySessionId = new Map<string, ConsultationFeedback>();
 const followUpBySessionId = new Map<string, FollowUpRecommendation>();
 const notesBySessionId = new Map<string, ClinicalNote[]>();
 const diagnosesBySessionId = new Map<string, DiagnosisNode[]>();
+const vitalsBySessionId = new Map<string, ConsultationVitalReading[]>();
 
 const DOCTOR_ID = 'doctor-profile-1';
 
@@ -180,6 +183,35 @@ export function recordConsultationNote(consultationSessionId: string, content: s
   return note;
 }
 
+function formatVitalValueLabel(type: VitalReadingType, value: number, diastolicValue?: number): string {
+  switch (type) {
+    case 'weight':
+      return `${value} kg`;
+    case 'blood-pressure':
+      return `${value}/${diastolicValue} mmHg`;
+    case 'blood-sugar':
+      return `${value} mg/dL`;
+  }
+}
+
+export function recordConsultationVital(
+  consultationSessionId: string,
+  type: VitalReadingType,
+  value: number,
+  diastolicValue?: number,
+): ConsultationVitalReading {
+  const reading: ConsultationVitalReading = {
+    id: `vital-${Date.now()}-${type}`,
+    type,
+    recordedAt: new Date().toISOString(),
+    valueLabel: formatVitalValueLabel(type, value, diastolicValue),
+    value,
+    diastolicValue,
+  };
+  vitalsBySessionId.set(consultationSessionId, [...(vitalsBySessionId.get(consultationSessionId) ?? []), reading]);
+  return reading;
+}
+
 export function recordConsultationDiagnosis(
   consultationSessionId: string,
   freeTextDescription: string,
@@ -235,6 +267,7 @@ export function getConsultationSummary(consultationSessionId: string): Consultat
     clinicalNotes: notesBySessionId.get(consultationSessionId) ?? [],
     prescriptions: [],
     diagnoses: diagnosesBySessionId.get(consultationSessionId) ?? [],
+    vitalReadings: vitalsBySessionId.get(consultationSessionId) ?? [],
     followUpRecommendation: followUpBySessionId.get(consultationSessionId) ?? null,
     feedback: feedbackBySessionId.get(consultationSessionId) ?? null,
   };
@@ -338,6 +371,7 @@ export function resetConsultationStore(): void {
   followUpBySessionId.clear();
   notesBySessionId.clear();
   diagnosesBySessionId.clear();
+  vitalsBySessionId.clear();
   for (const feedback of [...seedFeedback(), ...seedDemoFeedback()]) {
     feedbackBySessionId.set(feedback.consultationSessionId, feedback);
   }

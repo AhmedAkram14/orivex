@@ -9,6 +9,12 @@ export interface CreateVitalReadingProps {
   value: number;
   diastolicValue?: number;
   recordedAt?: Date;
+  // Real Clinical Vitals Demo pass: both optional so a future non-
+  // consultation-linked producer (e.g. a patient self-reporting weight)
+  // stays representable, but every real producer today (the doctor-
+  // authored write path) always sets both.
+  recordedByDoctorId?: string;
+  consultationSessionId?: string;
 }
 
 export interface ReconstituteVitalReadingProps {
@@ -19,14 +25,15 @@ export interface ReconstituteVitalReadingProps {
   diastolicValue?: number;
   recordedAt: Date;
   createdAt: Date;
+  recordedByDoctorId?: string;
+  consultationSessionId?: string;
 }
 
 // A single recorded vital-sign reading (docs/05-information-architecture.md's
-// Health Dashboard concept). There is no create/record-vital producer wired
-// up anywhere yet (no vitals concept exists elsewhere in the platform) --
-// create() exists for this aggregate's own correctness/tests, ready for a
-// future producer, same posture NotificationModule's create() had before its
-// own producer wiring landed.
+// Health Dashboard concept). Real Clinical Vitals Demo pass: written by
+// RecordVitalReadingUseCase, mirroring RecordConsultationDiagnosisUseCase's
+// doctor-authorship pattern -- the treating doctor for a specific
+// consultation session records it, never a generic system user.
 export class VitalReading {
   private constructor(
     private readonly id: string,
@@ -36,6 +43,8 @@ export class VitalReading {
     private readonly diastolicValue: number | undefined,
     private readonly recordedAt: Date,
     private readonly createdAt: Date,
+    private readonly recordedByDoctorId: string | undefined,
+    private readonly consultationSessionId: string | undefined,
   ) {}
 
   static create(props: CreateVitalReadingProps): VitalReading {
@@ -61,6 +70,8 @@ export class VitalReading {
       props.diastolicValue,
       props.recordedAt ?? new Date(),
       new Date(),
+      props.recordedByDoctorId,
+      props.consultationSessionId,
     );
   }
 
@@ -73,6 +84,8 @@ export class VitalReading {
       props.diastolicValue,
       props.recordedAt,
       props.createdAt,
+      props.recordedByDoctorId,
+      props.consultationSessionId,
     );
   }
 
@@ -102,5 +115,13 @@ export class VitalReading {
 
   getCreatedAt(): Date {
     return this.createdAt;
+  }
+
+  getRecordedByDoctorId(): string | undefined {
+    return this.recordedByDoctorId;
+  }
+
+  getConsultationSessionId(): string | undefined {
+    return this.consultationSessionId;
   }
 }

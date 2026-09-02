@@ -12,9 +12,11 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 /**
  * The Patient Portal's Health Dashboard — Weight, Blood Pressure, and Blood
  * Sugar vitals, each a `VitalTrendCard` with a real `TrendChart` sparkline
- * over recent history. Backed by a real (mocked) `/patient/health-dashboard`
- * query, honestly empty today since no Clinical module is wired into the
- * frontend yet.
+ * over recent history. Backed by the real `GET /patients/me/health-dashboard`
+ * endpoint (ClinicalModule's PatientDashboardController) -- real, doctor-
+ * authored VitalReading rows recorded via RecordVitalReadingUseCase during a
+ * consultation, an honest empty grid only for a patient nothing has ever
+ * been recorded for.
  */
 export default function PatientHealthDashboardPage() {
   const t = useTranslations('patient.health');

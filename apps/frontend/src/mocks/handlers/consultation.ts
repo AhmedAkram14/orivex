@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import type { ConsultationCompletionReason } from '@/features/consultation/api/types';
+import type { VitalReadingType } from '@/features/consultation/api/types';
 import {
   closeConsultation,
   deleteConsultationFeedback,
@@ -9,6 +10,7 @@ import {
   recommendFollowUp,
   recordConsultationDiagnosis,
   recordConsultationNote,
+  recordConsultationVital,
   startConsultation,
   submitConsultationFeedback,
   updateConsultationFeedback,
@@ -84,6 +86,14 @@ export const consultationHandlers = [
   http.post(`${base()}/consultations/:id/notes`, async ({ request, params }) => {
     const body = (await request.json()) as { content: string };
     return HttpResponse.json({ data: recordConsultationNote(params.id as string, body.content) }, { status: 201 });
+  }),
+
+  http.post(`${base()}/consultations/:id/vitals`, async ({ request, params }) => {
+    const body = (await request.json()) as { type: VitalReadingType; value: number; diastolicValue?: number };
+    return HttpResponse.json(
+      { data: recordConsultationVital(params.id as string, body.type, body.value, body.diastolicValue) },
+      { status: 201 },
+    );
   }),
 
   http.get(`${base()}/doctors/:id/reviews`, ({ params, request }) => {

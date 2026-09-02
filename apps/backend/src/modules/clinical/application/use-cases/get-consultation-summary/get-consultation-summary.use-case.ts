@@ -10,10 +10,12 @@ import { GetFollowUpRecommendationForSessionUseCase } from '../../../../consulta
 import type { ClinicalNote } from '../../../domain/entities/clinical-note.entity.js';
 import type { HealthGraphNode } from '../../../domain/entities/health-graph-node.entity.js';
 import type { Prescription } from '../../../domain/entities/prescription.entity.js';
+import type { VitalReading } from '../../../domain/entities/vital-reading.entity.js';
 import { HealthGraphNodeType } from '../../../domain/enums/health-graph-node-type.enum.js';
 import { GetHealthGraphSubgraphUseCase } from '../get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListClinicalNotesForConsultationSessionUseCase } from '../list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from '../list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
+import { ListVitalReadingsForConsultationSessionUseCase } from '../list-vital-readings-for-consultation-session/list-vital-readings-for-consultation-session.use-case.js';
 
 export interface GetConsultationSummaryQuery {
   consultationSessionId: string;
@@ -25,6 +27,7 @@ export interface ConsultationSummary {
   clinicalNotes: ClinicalNote[];
   prescriptions: Prescription[];
   diagnoses: HealthGraphNode[];
+  vitalReadings: VitalReading[];
   followUpRecommendation: FollowUpRecommendation | null;
   feedback: ConsultationFeedback | null;
 }
@@ -55,6 +58,7 @@ export class GetConsultationSummaryUseCase {
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
     private readonly getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
     private readonly getConsultationFeedbackForSessionUseCase: GetConsultationFeedbackForSessionUseCase,
+    private readonly listVitalReadingsForConsultationSessionUseCase: ListVitalReadingsForConsultationSessionUseCase,
   ) {}
 
   async execute(query: GetConsultationSummaryQuery): Promise<ConsultationSummary> {
@@ -70,7 +74,7 @@ export class GetConsultationSummaryUseCase {
       throw new NotFoundError(`Appointment "${session.getAppointmentId()}" not found.`);
     }
 
-    const [clinicalNotes, prescriptions, allPatientNodes, followUpRecommendation, feedback] = await Promise.all([
+    const [clinicalNotes, prescriptions, allPatientNodes, followUpRecommendation, feedback, vitalReadings] = await Promise.all([
       this.listClinicalNotesForConsultationSessionUseCase.execute({
         consultationSessionId: query.consultationSessionId,
       }),
@@ -82,6 +86,9 @@ export class GetConsultationSummaryUseCase {
         consultationSessionId: query.consultationSessionId,
       }),
       this.getConsultationFeedbackForSessionUseCase.execute({ consultationSessionId: query.consultationSessionId }),
+      this.listVitalReadingsForConsultationSessionUseCase.execute({
+        consultationSessionId: query.consultationSessionId,
+      }),
     ]);
 
     const diagnoses = allPatientNodes.filter(
@@ -89,6 +96,6 @@ export class GetConsultationSummaryUseCase {
         && node.getNodeType() === HealthGraphNodeType.Condition,
     );
 
-    return { session, appointment, clinicalNotes, prescriptions, diagnoses, followUpRecommendation, feedback };
+    return { session, appointment, clinicalNotes, prescriptions, diagnoses, vitalReadings, followUpRecommendation, feedback };
   }
 }

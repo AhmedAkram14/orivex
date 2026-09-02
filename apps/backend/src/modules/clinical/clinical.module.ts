@@ -36,11 +36,13 @@ import { GetConsultationSummaryUseCase } from './application/use-cases/get-consu
 import { GetHealthGraphSubgraphUseCase } from './application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { GetPrescriptionByIdUseCase } from './application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { ListClinicalNotesForConsultationSessionUseCase } from './application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
+import { ListVitalReadingsForConsultationSessionUseCase } from './application/use-cases/list-vital-readings-for-consultation-session/list-vital-readings-for-consultation-session.use-case.js';
 import { ListHealthJourneysUseCase } from './application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from './application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from './application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { RecordClinicalNoteUseCase } from './application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
 import { RecordConsultationDiagnosisUseCase } from './application/use-cases/record-consultation-diagnosis/record-consultation-diagnosis.use-case.js';
+import { RecordVitalReadingUseCase } from './application/use-cases/record-vital-reading/record-vital-reading.use-case.js';
 import { RecordDiagnosisUseCase } from './application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { SignPrescriptionUseCase } from './application/use-cases/sign-prescription/sign-prescription.use-case.js';
 import { UpdateJourneyStageUseCase } from './application/use-cases/update-journey-stage/update-journey-stage.use-case.js';
@@ -59,6 +61,7 @@ import { PrismaVitalReadingRepository } from './infrastructure/prisma/prisma-vit
 import { ClinicalNoteController } from './presentation/controllers/clinical-note.controller.js';
 import { ConsultationSummaryController } from './presentation/controllers/consultation-summary.controller.js';
 import { DiagnosisController } from './presentation/controllers/diagnosis.controller.js';
+import { VitalsController } from './presentation/controllers/vitals.controller.js';
 import { DoctorPatientChartController } from './presentation/controllers/doctor-patient-chart.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
 import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
@@ -78,6 +81,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     PrescriptionController,
     PatientDashboardController,
     DiagnosisController,
+    VitalsController,
     ConsultationSummaryController,
     DoctorPatientChartController,
   ],
@@ -238,6 +242,29 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         ),
       inject: [RecordDiagnosisUseCase, GetConsultationSessionByIdUseCase, GetAppointmentByIdUseCase, GetDoctorProfileByAccountIdUseCase],
     },
+    // Real Clinical Vitals Demo pass: same doctor-authorship pattern as
+    // RecordConsultationDiagnosisUseCase immediately above.
+    {
+      provide: RecordVitalReadingUseCase,
+      useFactory: (
+        vitalReadingRepository: VitalReadingRepository,
+        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+      ) =>
+        new RecordVitalReadingUseCase(
+          vitalReadingRepository,
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+          getDoctorProfileByAccountIdUseCase,
+        ),
+      inject: [VITAL_READING_REPOSITORY, GetConsultationSessionByIdUseCase, GetAppointmentByIdUseCase, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: ListVitalReadingsForConsultationSessionUseCase,
+      useFactory: (repository: VitalReadingRepository) => new ListVitalReadingsForConsultationSessionUseCase(repository),
+      inject: [VITAL_READING_REPOSITORY],
+    },
     {
       provide: GetConsultationSummaryUseCase,
       useFactory: (
@@ -248,6 +275,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
         getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
         getConsultationFeedbackForSessionUseCase: GetConsultationFeedbackForSessionUseCase,
+        listVitalReadingsForConsultationSessionUseCase: ListVitalReadingsForConsultationSessionUseCase,
       ) =>
         new GetConsultationSummaryUseCase(
           getConsultationSessionByIdUseCase,
@@ -257,6 +285,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
           getHealthGraphSubgraphUseCase,
           getFollowUpRecommendationForSessionUseCase,
           getConsultationFeedbackForSessionUseCase,
+          listVitalReadingsForConsultationSessionUseCase,
         ),
       inject: [
         GetConsultationSessionByIdUseCase,
@@ -266,6 +295,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         GetHealthGraphSubgraphUseCase,
         GetFollowUpRecommendationForSessionUseCase,
         GetConsultationFeedbackForSessionUseCase,
+        ListVitalReadingsForConsultationSessionUseCase,
       ],
     },
   ],

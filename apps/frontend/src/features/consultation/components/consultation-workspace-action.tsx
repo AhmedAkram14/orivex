@@ -6,6 +6,7 @@ import { useCloseConsultation } from '@/features/consultation/hooks/use-close-co
 import { useConsultationSummary } from '@/features/consultation/hooks/use-consultation-summary';
 import { useRecordDiagnosis } from '@/features/consultation/hooks/use-record-diagnosis';
 import { useRecordNote } from '@/features/consultation/hooks/use-record-note';
+import { useRecordVitals } from '@/features/consultation/hooks/use-record-vitals';
 import { useRecommendFollowUp } from '@/features/consultation/hooks/use-recommend-follow-up';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -44,14 +45,65 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const [certaintyLevel, setCertaintyLevel] = useState<'suspected' | 'confirmed' | 'ruled_out'>('suspected');
   const [followUpReason, setFollowUpReason] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
+  const [weightInput, setWeightInput] = useState('');
+  const [systolicInput, setSystolicInput] = useState('');
+  const [diastolicInput, setDiastolicInput] = useState('');
+  const [bloodSugarInput, setBloodSugarInput] = useState('');
+  const [vitalsJustSaved, setVitalsJustSaved] = useState(false);
 
   const { data: summary, isLoading } = useConsultationSummary(open ? consultationSessionId : undefined);
   const recordNote = useRecordNote(consultationSessionId);
   const recordDiagnosis = useRecordDiagnosis(consultationSessionId);
+  const recordVitals = useRecordVitals(consultationSessionId);
   const recommendFollowUp = useRecommendFollowUp(consultationSessionId);
   const closeConsultation = useCloseConsultation();
 
-  const hasUnsavedInput = Boolean(noteContent.trim() || diagnosisText.trim() || followUpReason.trim());
+  // Partial vitals are welcome (docs §8) -- weight/blood-sugar are each
+  // independently optional, but blood pressure is only ever valid as a
+  // complete systolic+diastolic pair or not entered at all (the backend
+  // domain itself enforces this exact rule -- VitalReading.create() throws
+  // without both). At least one group must be filled to save anything.
+  const weightValue = weightInput.trim() ? Number(weightInput) : undefined;
+  const systolicValue = systolicInput.trim() ? Number(systolicInput) : undefined;
+  const diastolicValue = diastolicInput.trim() ? Number(diastolicInput) : undefined;
+  const bloodSugarValue = bloodSugarInput.trim() ? Number(bloodSugarInput) : undefined;
+  const weightInvalid = weightInput.trim() !== '' && !(Number.isFinite(weightValue) && weightValue! > 0);
+  const bloodSugarInvalid = bloodSugarInput.trim() !== '' && !(Number.isFinite(bloodSugarValue) && bloodSugarValue! > 0);
+  const systolicFilled = systolicInput.trim() !== '';
+  const diastolicFilled = diastolicInput.trim() !== '';
+  const bloodPressurePartial = systolicFilled !== diastolicFilled;
+  const bloodPressureInvalid =
+    !bloodPressurePartial &&
+    systolicInput.trim() !== '' &&
+    !(Number.isFinite(systolicValue) && systolicValue! > 0 && Number.isFinite(diastolicValue) && diastolicValue! > 0);
+  const hasAnyVitalInput = Boolean(
+    weightInput.trim() || systolicInput.trim() || diastolicInput.trim() || bloodSugarInput.trim(),
+  );
+  const vitalsHasError = weightInvalid || bloodPressurePartial || bloodPressureInvalid || bloodSugarInvalid;
+  const canSaveVitals = hasAnyVitalInput && !vitalsHasError;
+
+  async function handleSaveVitals() {
+    try {
+      await recordVitals.mutateAsync({
+        weight: weightInvalid ? undefined : weightValue,
+        systolic: bloodPressureInvalid || bloodPressurePartial ? undefined : systolicValue,
+        diastolic: bloodPressureInvalid || bloodPressurePartial ? undefined : diastolicValue,
+        bloodSugar: bloodSugarInvalid ? undefined : bloodSugarValue,
+      });
+    } catch {
+      // Surfaced via recordVitals.isError below -- entered values stay in
+      // place so nothing already typed is lost on a failed save.
+      return;
+    }
+    setWeightInput('');
+    setSystolicInput('');
+    setDiastolicInput('');
+    setBloodSugarInput('');
+    setVitalsJustSaved(true);
+    window.setTimeout(() => setVitalsJustSaved(false), 4000);
+  }
+
+  const hasUnsavedInput = Boolean(noteContent.trim() || diagnosisText.trim() || followUpReason.trim() || hasAnyVitalInput);
 
   async function handleComplete() {
     if (hasUnsavedInput && !window.confirm(t('unsavedWorkWarning'))) {
@@ -78,6 +130,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
             <Tabs defaultValue="notes">
               <TabsList>
                 <TabsTrigger value="notes">{t('tabs.notes')}</TabsTrigger>
+                <TabsTrigger value="vitals">{t('tabs.vitals')}</TabsTrigger>
                 <TabsTrigger value="diagnosis">{t('tabs.diagnosis')}</TabsTrigger>
                 <TabsTrigger value="followUp">{t('tabs.followUp')}</TabsTrigger>
                 <TabsTrigger value="prescriptions">{t('tabs.prescriptions')}</TabsTrigger>
@@ -111,6 +164,121 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                   }}
                 >
                   {t('saveNote')}
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="vitals" className="flex flex-col gap-4">
+                {summary.vitalReadings.length > 0 ? (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-xs font-medium text-text-tertiary">{t('vitalsRecordedToday')}</p>
+                    <ul className="flex flex-wrap gap-2">
+                      {summary.vitalReadings.map((reading) => (
+                        <li
+                          key={reading.id}
+                          className="rounded-full border border-border-default bg-surface-subtle px-3 py-1 text-sm text-text-secondary"
+                        >
+                          {reading.valueLabel}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-sm text-text-secondary">{t('vitalsEmpty')}</p>
+                )}
+
+                <div className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label htmlFor="vitals-weight" className="text-sm font-medium text-text-primary">
+                      {t('vitalsWeightLabel')}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="vitals-weight"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.1"
+                        className="w-24"
+                        value={weightInput}
+                        onChange={(event) => setWeightInput(event.target.value)}
+                        aria-invalid={weightInvalid}
+                      />
+                      <span className="text-sm text-text-tertiary">{t('vitalsWeightUnit')}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span id="vitals-bp-label" className="text-sm font-medium text-text-primary">
+                      {t('vitalsBloodPressureLabel')}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="vitals-systolic"
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
+                        placeholder={t('vitalsSystolicPlaceholder')}
+                        aria-label={t('vitalsSystolicPlaceholder')}
+                        aria-describedby="vitals-bp-label"
+                        className="w-20"
+                        value={systolicInput}
+                        onChange={(event) => setSystolicInput(event.target.value)}
+                        aria-invalid={bloodPressureInvalid || bloodPressurePartial}
+                      />
+                      <span aria-hidden="true" className="text-text-tertiary">
+                        /
+                      </span>
+                      <Input
+                        id="vitals-diastolic"
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
+                        placeholder={t('vitalsDiastolicPlaceholder')}
+                        aria-label={t('vitalsDiastolicPlaceholder')}
+                        aria-describedby="vitals-bp-label"
+                        className="w-20"
+                        value={diastolicInput}
+                        onChange={(event) => setDiastolicInput(event.target.value)}
+                        aria-invalid={bloodPressureInvalid || bloodPressurePartial}
+                      />
+                      <span className="text-sm text-text-tertiary">{t('vitalsBloodPressureUnit')}</span>
+                    </div>
+                  </div>
+                  {bloodPressurePartial && <p className="text-xs text-danger">{t('vitalsBloodPressurePartialError')}</p>}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label htmlFor="vitals-blood-sugar" className="text-sm font-medium text-text-primary">
+                      {t('vitalsBloodSugarLabel')}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="vitals-blood-sugar"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="1"
+                        className="w-24"
+                        value={bloodSugarInput}
+                        onChange={(event) => setBloodSugarInput(event.target.value)}
+                        aria-invalid={bloodSugarInvalid}
+                      />
+                      <span className="text-sm text-text-tertiary">{t('vitalsBloodSugarUnit')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {recordVitals.isError && <Alert variant="danger">{t('saveError')}</Alert>}
+                {vitalsJustSaved && !recordVitals.isError && <Alert variant="success">{t('vitalsSaveSuccess')}</Alert>}
+                <Button
+                  type="button"
+                  size="sm"
+                  loading={recordVitals.isPending}
+                  disabled={!canSaveVitals}
+                  onClick={handleSaveVitals}
+                >
+                  {t('saveVitals')}
                 </Button>
               </TabsContent>
 

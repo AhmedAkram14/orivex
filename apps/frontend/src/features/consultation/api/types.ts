@@ -85,6 +85,19 @@ export interface ConsultationFeedback {
   patientAvatarUrl?: string;
 }
 
+/** Same VitalType/valueLabel shape as the patient portal's own VitalReading (apps/frontend/src/features/patient/api/types.ts) -- one real source of truth, this is just the subset recorded during THIS specific consultation session. */
+export type VitalReadingType = 'weight' | 'blood-pressure' | 'blood-sugar';
+
+/** Matches VitalReadingResponseDto exactly. */
+export interface ConsultationVitalReading {
+  id: string;
+  type: VitalReadingType;
+  recordedAt: string;
+  valueLabel: string;
+  value: number;
+  diastolicValue?: number;
+}
+
 /** Matches ConsultationSummaryResponseDto exactly -- backs both the doctor wrap-up view and the patient post-consultation summary. */
 export interface ConsultationSummary {
   session: ConsultationSession;
@@ -92,6 +105,7 @@ export interface ConsultationSummary {
   clinicalNotes: ClinicalNote[];
   prescriptions: ConsultationPrescription[];
   diagnoses: DiagnosisNode[];
+  vitalReadings: ConsultationVitalReading[];
   followUpRecommendation: FollowUpRecommendation | null;
   feedback: ConsultationFeedback | null;
 }

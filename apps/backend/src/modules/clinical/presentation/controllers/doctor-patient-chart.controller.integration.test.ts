@@ -46,6 +46,7 @@ import type { InsuranceProviderRepository } from '../../../reference/domain/repo
 import type { MedicalSpecialtyRepository } from '../../../reference/domain/repositories/medical-specialty.repository.js';
 import { ListClinicalNotesForConsultationSessionUseCase } from '../../application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from '../../application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
+import { ListVitalReadingsForPatientUseCase } from '../../application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ClinicalNote } from '../../domain/entities/clinical-note.entity.js';
 import { HealthGraph } from '../../domain/entities/health-graph.entity.js';
@@ -432,6 +433,18 @@ describe('DoctorPatientChartController (integration)', () => {
         {
           provide: ListMediaAssetsForOwnerUseCase,
           useFactory: () => new ListMediaAssetsForOwnerUseCase(mediaAssetRepository, new FakeObjectStorage()),
+        },
+        // Real Clinical Vitals Demo pass: no test in this file exercises
+        // GET :id/vitals yet, so an always-empty in-memory repository is
+        // enough to satisfy DoctorPatientChartController's constructor.
+        {
+          provide: ListVitalReadingsForPatientUseCase,
+          useFactory: () =>
+            new ListVitalReadingsForPatientUseCase({
+              findByPatientId: async () => [],
+              findByConsultationSessionId: async () => [],
+              save: async () => {},
+            }),
         },
       ],
     }).compile();

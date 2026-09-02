@@ -22,3 +22,4 @@ export const doctorPatientChartAppointmentsKeys = createQueryKeyFactory('doctor-
 export const doctorPatientChartMedicalRecordsKeys = createQueryKeyFactory('doctor-patient-chart-medical-records');
 export const doctorPatientChartPrescriptionsKeys = createQueryKeyFactory('doctor-patient-chart-prescriptions');
 export const doctorPatientChartDocumentsKeys = createQueryKeyFactory('doctor-patient-chart-documents');
+export const doctorPatientChartVitalsKeys = createQueryKeyFactory('doctor-patient-chart-vitals');

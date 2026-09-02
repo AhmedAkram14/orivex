@@ -10,6 +10,7 @@ import type {
   DoctorPatientChartMedicalRecordEntry,
   DoctorPatientChartPrescription,
   DoctorPatientChartProfile,
+  DoctorPatientChartVitalSummary,
   DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
@@ -117,4 +118,7 @@ export const doctorApi = {
 
   getPatientChartDocuments: (patientProfileId: string) =>
     apiFetch<DoctorPatientChartDocument[]>({ path: DOCTOR_PATHS.patientChartDocuments(patientProfileId) }),
+
+  getPatientChartVitals: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartVitalSummary[]>({ path: DOCTOR_PATHS.patientChartVitals(patientProfileId) }),
 };
