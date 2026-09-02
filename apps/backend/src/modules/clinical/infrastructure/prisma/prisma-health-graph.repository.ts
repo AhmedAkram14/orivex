@@ -34,7 +34,7 @@ export class PrismaHealthGraphRepository implements HealthGraphRepository {
 
     await this.prisma.healthGraph.upsert({
       where: { id },
-      create: { id, patientId: healthGraph.getPatientId() },
+      create: { id, patientId: healthGraph.getPatientId(), createdAt: healthGraph.getCreatedAt() },
       update: {},
     });
 
@@ -49,6 +49,7 @@ export class PrismaHealthGraphRepository implements HealthGraphRepository {
         authoringDoctorId: node.getAuthoringDoctorId() ?? null,
         consultationSessionId: node.getConsultationSessionId() ?? null,
         supersedesNodeId: node.getSupersedesNodeId() ?? null,
+        createdAt: node.getCreatedAt(),
       })),
       skipDuplicates: true,
     });

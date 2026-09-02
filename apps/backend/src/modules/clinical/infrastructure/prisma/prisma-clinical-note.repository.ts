@@ -31,6 +31,7 @@ export class PrismaClinicalNoteRepository implements ClinicalNoteRepository {
         authoringDoctorId: note.getAuthoringDoctorId(),
         content: note.getContent(),
         addendumOfNoteId: note.getAddendumOfNoteId() ?? null,
+        createdAt: note.getCreatedAt(),
       },
     });
   }

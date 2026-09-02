@@ -1,19 +1,40 @@
 /**
  * Demo Data & Profile Avatar Pass -- the Prisma seed script.
  *
- * Every row this script creates is created by driving the REAL application-
- * layer use cases, resolved out of a real Nest DI container. Nothing here
- * touches `prisma.x.create()` directly, and nothing here writes a
- * Notification row: notifications appear because NotificationModule's event
- * handlers -- which only subscribe when Nest instantiates that module's
- * providers -- observe the same domain events a real request would raise.
- * That is exactly why this boots `NestFactory.createApplicationContext(...)`
- * instead of hand-constructing use cases with `new`.
+ * TWO deliberately separate construction paths:
+ *
+ * 1. FUTURE / CURRENT demo data (upcoming appointments, open availability,
+ *    pending verification, live notifications) -- driven entirely by the
+ *    REAL application-layer use cases, resolved out of a real Nest DI
+ *    container. Nothing here touches `prisma.x.create()` directly for this
+ *    path, and nothing here writes a Notification row itself: notifications
+ *    appear because NotificationModule's event handlers -- which only
+ *    subscribe when Nest instantiates that module's providers -- observe the
+ *    same domain events a real request would raise. That is exactly why this
+ *    boots `NestFactory.createApplicationContext(...)` instead of
+ *    hand-constructing use cases with `new`.
+ *
+ * 2. HISTORICAL COMPLETED demo data (past visits/vitals/notes/diagnoses/
+ *    prescriptions/feedback) -- `AvailabilityWindow.define()` unconditionally
+ *    rejects any startTime before `Date.now()` (a correct, intentional
+ *    production rule this script must never weaken), and the consultation/
+ *    clinical write-path commands (start/close/note/diagnosis/prescription/
+ *    feedback) always self-timestamp `new Date()` with no override anywhere.
+ *    So no appointment booked through the real use-case chain can ever be
+ *    genuinely historical. `createHistoricalCompletedVisit()` instead builds
+ *    each entity via its own `static reconstitute(props)` factory -- the
+ *    same rehydration pattern every entity in this codebase already exposes
+ *    for loading persisted rows, not something invented for this script --
+ *    with deterministic historical timestamps, then persists through the
+ *    exact same repository `.save()` a real command would use. Zero
+ *    production entities, commands, or validation rules are touched by this;
+ *    the separation from path 1 is deliberate and stays entirely inside this
+ *    file (see the "5. Historical completed visits" section below).
  *
  * Idempotent: accounts are skipped when an Account with that email already
  * exists, reference data is found-or-created by name, and the appointment
- * phase is skipped for any patient who already has appointments. Running it
- * twice creates no duplicate rows.
+ * phase (both paths) is skipped for any patient who already has
+ * appointments. Running it twice creates no duplicate rows.
  *
  * Run with: `npm run seed` (from apps/backend), or `npx prisma db seed`.
  */
@@ -29,6 +50,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module.js';
 import { MEDIA_ASSET_REPOSITORY } from '../src/modules/asset/application/ports/tokens.js';
 import { MediaAsset } from '../src/modules/asset/domain/entities/media-asset.entity.js';
+import { MediaAssetStatus } from '../src/modules/asset/domain/enums/media-asset-status.enum.js';
 import { CLINICAL_MEDIA_ASSET_PURPOSES, MediaAssetPurpose } from '../src/modules/asset/domain/enums/media-asset-purpose.enum.js';
 import type { MediaAssetRepository } from '../src/modules/asset/domain/repositories/media-asset.repository.js';
 import { CreateDepartmentCommand } from '../src/modules/administration/application/use-cases/create-department/create-department.command.js';
@@ -44,6 +66,9 @@ import { RegisterUseCase } from '../src/modules/authentication/application/use-c
 import type { CredentialRepository } from '../src/modules/authentication/domain/repositories/credential.repository.js';
 import { RecordClinicalNoteCommand } from '../src/modules/clinical/application/use-cases/record-clinical-note/record-clinical-note.command.js';
 import { RecordClinicalNoteUseCase } from '../src/modules/clinical/application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
+import { RecordVitalReadingCommand } from '../src/modules/clinical/application/use-cases/record-vital-reading/record-vital-reading.command.js';
+import { RecordVitalReadingUseCase } from '../src/modules/clinical/application/use-cases/record-vital-reading/record-vital-reading.use-case.js';
+import { VitalType } from '../src/modules/clinical/domain/enums/vital-type.enum.js';
 import { RecordConsultationDiagnosisCommand } from '../src/modules/clinical/application/use-cases/record-consultation-diagnosis/record-consultation-diagnosis.command.js';
 import { RecordConsultationDiagnosisUseCase } from '../src/modules/clinical/application/use-cases/record-consultation-diagnosis/record-consultation-diagnosis.use-case.js';
 import { SignPrescriptionCommand } from '../src/modules/clinical/application/use-cases/sign-prescription/sign-prescription.command.js';
@@ -77,6 +102,38 @@ import { AvailabilityWindowStatus } from '../src/modules/doctor/domain/enums/ava
 import { ProfessionalRank } from '../src/modules/doctor/domain/enums/professional-rank.enum.js';
 import { ConsultationPricing } from '../src/modules/doctor/domain/value-objects/consultation-pricing.value-object.js';
 import { Money } from '../src/modules/doctor/domain/value-objects/money.value-object.js';
+
+// Demo Historical Timeline pass: the historical-completed-visit path
+// reconstitutes each of these directly (see the file header and section 5
+// below) -- entities, their own repository interfaces, and the DI tokens
+// those repositories are bound under, none of which the real-use-case path
+// above needed to touch directly.
+import { AVAILABILITY_WINDOW_REPOSITORY } from '../src/modules/doctor/application/ports/tokens.js';
+import { AvailabilityWindow } from '../src/modules/doctor/domain/entities/availability-window.entity.js';
+import type { AvailabilityWindowRepository } from '../src/modules/doctor/domain/repositories/availability-window.repository.js';
+import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY, CONSULTATION_FEEDBACK_REPOSITORY } from '../src/modules/consultation/application/ports/tokens.js';
+import { Appointment as AppointmentEntity } from '../src/modules/consultation/domain/entities/appointment.entity.js';
+import { ConsultationSession } from '../src/modules/consultation/domain/entities/consultation-session.entity.js';
+import { ConsultationFeedback } from '../src/modules/consultation/domain/entities/consultation-feedback.entity.js';
+import type { AppointmentRepository } from '../src/modules/consultation/domain/repositories/appointment.repository.js';
+import type { ConsultationSessionRepository } from '../src/modules/consultation/domain/repositories/consultation-session.repository.js';
+import type { ConsultationFeedbackRepository } from '../src/modules/consultation/domain/repositories/consultation-feedback.repository.js';
+import { ConsultationState } from '../src/modules/consultation/domain/enums/consultation-state.enum.js';
+import { ConsultationPricing as AppointmentPricing } from '../src/modules/consultation/domain/value-objects/consultation-pricing.value-object.js';
+import { Money as AppointmentMoney } from '../src/modules/consultation/domain/value-objects/money.value-object.js';
+import { CLINICAL_NOTE_REPOSITORY, HEALTH_GRAPH_REPOSITORY, PRESCRIPTION_REPOSITORY } from '../src/modules/clinical/application/ports/tokens.js';
+import { ClinicalNote } from '../src/modules/clinical/domain/entities/clinical-note.entity.js';
+import { HealthGraph } from '../src/modules/clinical/domain/entities/health-graph.entity.js';
+import { HealthGraphNode } from '../src/modules/clinical/domain/entities/health-graph-node.entity.js';
+import { Prescription } from '../src/modules/clinical/domain/entities/prescription.entity.js';
+import { PrescriptionLineItem } from '../src/modules/clinical/domain/entities/prescription-line-item.entity.js';
+import type { ClinicalNoteRepository } from '../src/modules/clinical/domain/repositories/clinical-note.repository.js';
+import type { HealthGraphRepository } from '../src/modules/clinical/domain/repositories/health-graph.repository.js';
+import type { PrescriptionRepository } from '../src/modules/clinical/domain/repositories/prescription.repository.js';
+import { CertaintyLevel } from '../src/modules/clinical/domain/enums/certainty-level.enum.js';
+import { HealthGraphNodeType } from '../src/modules/clinical/domain/enums/health-graph-node-type.enum.js';
+import { NodeSource } from '../src/modules/clinical/domain/enums/node-source.enum.js';
+import { PrescriptionStatus } from '../src/modules/clinical/domain/enums/prescription-status.enum.js';
 import { ACCOUNT_REPOSITORY } from '../src/modules/identity/application/ports/tokens.js';
 import { GetAccountByEmailUseCase } from '../src/modules/identity/application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
 import { UpdateAccountRoleCommand } from '../src/modules/identity/application/use-cases/update-account-role/update-account-role.command.js';
@@ -290,6 +347,53 @@ const REASONS_FOR_VISIT = [
   'New symptoms in the last two weeks',
 ];
 
+// Real Clinical Vitals Demo pass: clinically plausible ranges (docs section
+// 5), ordered from "healthier" to "elevated" so a per-patient starting
+// index can walk toward the gentler end as their own visit history
+// progresses (docs section 6's improving-trend example) -- demo values
+// only, never medical advice, never an extreme/alarming value chosen
+// purely for visual variety.
+const BLOOD_PRESSURE_READINGS: { systolic: number; diastolic: number }[] = [
+  { systolic: 108, diastolic: 68 },
+  { systolic: 117, diastolic: 76 },
+  { systolic: 124, diastolic: 80 },
+  { systolic: 128, diastolic: 82 },
+  { systolic: 135, diastolic: 88 },
+];
+const BLOOD_SUGAR_READINGS = [84, 92, 101, 108, 116];
+
+// Demo Historical Timeline pass: a genuinely past moment for an ENTIRE
+// completed visit -- every record that visit produces (appointment,
+// session, vitals, note, diagnosis, prescription, feedback) is offset from
+// this SAME base instant, so the whole encounter reads as one coherent
+// historical event instead of its appointment landing on one day and its
+// vitals on another. Earlier visitSequence values (this patient's earlier
+// completed encounters) land further in the past; later ones move closer to
+// "now" but never reach it (MIN_DAYS_AGO keeps even the most recent seeded
+// visit safely behind the real current moment), so a genuinely live-recorded
+// action during real usage is always provably the most recent -- multiple
+// visits form a real older-to-newer history (docs section 8/12) instead of
+// every reading colliding on the same instant.
+const HISTORICAL_VISIT_BASE_DAYS_AGO = 45;
+const HISTORICAL_VISIT_SPACING_DAYS = 12;
+const HISTORICAL_VISIT_MIN_DAYS_AGO = 3;
+const HISTORICAL_VISIT_HOURS = [9, 10, 11, 14, 15, 16];
+
+function historicalVisitBaseDate(visitSequence: number): Date {
+  const daysAgo = Math.max(
+    HISTORICAL_VISIT_MIN_DAYS_AGO,
+    HISTORICAL_VISIT_BASE_DAYS_AGO - visitSequence * HISTORICAL_VISIT_SPACING_DAYS,
+  );
+  const base = new Date(Date.now() - daysAgo * MS_PER_DAY);
+  base.setHours(pick(HISTORICAL_VISIT_HOURS), 0, 0, 0);
+  return base;
+}
+
+/** Minutes offset from a visit's base date -- the exact same-day narrative the docs give as an example (14:00 appointment -> 14:03 start -> 14:05 vitals -> ... -> 18:00 feedback). */
+function plusMinutes(base: Date, minutes: number): Date {
+  return new Date(base.getTime() + minutes * 60_000);
+}
+
 const PSYCHIATRY_DIAGNOSES: { description: string; drugName: string; dosage: string; frequency: string }[] = [
   { description: 'Generalized anxiety disorder, moderate severity', drugName: 'Sertraline', dosage: '50mg', frequency: 'Once daily' },
   { description: 'Major depressive disorder, single episode, mild', drugName: 'Escitalopram', dosage: '10mg', frequency: 'Once daily' },
@@ -345,6 +449,17 @@ async function main(): Promise<void> {
     // exception ensureAccount's credentialRepository.save() below already
     // relies on, not a new pattern.
     const accountRepository = app.get<AccountRepository>(ACCOUNT_REPOSITORY);
+    // Demo Historical Timeline pass: resolved directly (not via a use case)
+    // purely so createHistoricalCompletedVisit() below can persist
+    // reconstitute()-built historical entities through the exact same
+    // repository infrastructure a real command uses -- see the file header.
+    const availabilityWindowRepository = app.get<AvailabilityWindowRepository>(AVAILABILITY_WINDOW_REPOSITORY);
+    const appointmentRepository = app.get<AppointmentRepository>(APPOINTMENT_REPOSITORY);
+    const consultationSessionRepository = app.get<ConsultationSessionRepository>(CONSULTATION_SESSION_REPOSITORY);
+    const consultationFeedbackRepository = app.get<ConsultationFeedbackRepository>(CONSULTATION_FEEDBACK_REPOSITORY);
+    const clinicalNoteRepository = app.get<ClinicalNoteRepository>(CLINICAL_NOTE_REPOSITORY);
+    const healthGraphRepository = app.get<HealthGraphRepository>(HEALTH_GRAPH_REPOSITORY);
+    const prescriptionRepository = app.get<PrescriptionRepository>(PRESCRIPTION_REPOSITORY);
 
     const listMedicalSpecialties = app.get(ListMedicalSpecialtiesUseCase);
     const createMedicalSpecialty = app.get(CreateMedicalSpecialtyUseCase);
@@ -381,6 +496,7 @@ async function main(): Promise<void> {
     const rescheduleOrCancelAppointment = app.get(RescheduleOrCancelAppointmentUseCase);
     const initiateCharge = app.get(InitiateChargeUseCase);
     const recordClinicalNote = app.get(RecordClinicalNoteUseCase);
+    const recordVitalReading = app.get(RecordVitalReadingUseCase);
     const recordConsultationDiagnosis = app.get(RecordConsultationDiagnosisUseCase);
     const signPrescription = app.get(SignPrescriptionUseCase);
 
@@ -548,15 +664,26 @@ async function main(): Promise<void> {
     });
     const s3Bucket = process.env.S3_BUCKET ?? '';
 
-    async function createClinicalDocument(ownerAccountId: string, file: DemoDocumentFile): Promise<void> {
+    async function createClinicalDocument(ownerAccountId: string, file: DemoDocumentFile, createdAt: Date): Promise<void> {
       const filePath = path.join(DEMO_DOCUMENTS_DIR, file.fileName);
-      const asset = MediaAsset.createIntent({
+      const id = randomUUID();
+      // Demo Historical Timeline pass (docs section 9): MediaAsset.createIntent()
+      // self-timestamps `new Date()` with no override, same constraint as
+      // every other production write-path entity -- reconstitute() instead,
+      // manually deriving the exact same storageKey format createIntent()
+      // itself uses (`${purpose}/${id}`) so the real presigned-download flow
+      // still resolves the real uploaded object correctly.
+      const asset = MediaAsset.reconstitute({
+        id,
         ownerAccountId,
         purpose: file.purpose,
         contentType: file.contentType,
         sizeEstimate: statSync(filePath).size,
+        storageKey: `${file.purpose}/${id}`,
+        status: MediaAssetStatus.Confirmed,
+        createdAt,
+        updatedAt: createdAt,
       });
-      asset.confirm();
       await mediaAssetRepository.save(asset);
       await s3Client.send(
         new PutObjectCommand({
@@ -911,6 +1038,247 @@ async function main(): Promise<void> {
       return alternatives.length > 0 ? pick(alternatives) : undefined;
     }
 
+    // Demo Historical Timeline pass: a historical visit isn't drawn from a
+    // doctor's real FUTURE bookable-window pool (that pool exists only for
+    // the upcoming/current path below) -- so this only needs the same
+    // Psychiatry-weighted preference pickDoctorWithCapacity() uses, without
+    // its "has an open future window" capacity gate.
+    function pickDoctorForHistoricalVisit(): SeededDoctor | undefined {
+      const preferPsychiatry = nextRandom() < 0.6;
+      const primary = preferPsychiatry ? psychiatrists : otherDoctors;
+      const fallback = preferPsychiatry ? otherDoctors : psychiatrists;
+      if (primary.length > 0) return pick(primary);
+      return fallback.length > 0 ? pick(fallback) : undefined;
+    }
+
+    // One HealthGraph per patient, reused across that patient's own multiple
+    // historical visits (a second visit's diagnosis must be appended to the
+    // same graph, never overwrite the first visit's node) -- HealthGraphNode
+    // has no repository of its own; it only ever persists as part of its
+    // parent HealthGraph aggregate (confirmed: no health-graph-node
+    // .repository.ts exists).
+    const healthGraphCache = new Map<string, HealthGraph>();
+    async function getOrCreateHealthGraph(patientId: string, fallbackCreatedAt: Date): Promise<HealthGraph> {
+      const cached = healthGraphCache.get(patientId);
+      if (cached) return cached;
+      const existing = await healthGraphRepository.findByPatientId(patientId);
+      const graph =
+        existing ?? HealthGraph.reconstitute({ id: randomUUID(), patientId, createdAt: fallbackCreatedAt, nodes: [] });
+      healthGraphCache.set(patientId, graph);
+      return graph;
+    }
+
+    /**
+     * Demo Historical Timeline pass (docs sections 3-9): builds one entire
+     * completed visit -- AvailabilityWindow, Appointment, ConsultationSession,
+     * ClinicalNote, diagnosis, Prescription, VitalReading, ConsultationFeedback
+     * -- with every timestamp offset from ONE shared historical base instant
+     * (historicalVisitBaseDate(visitSequence)), never today's wall-clock
+     * time. Every entity is built via its own `reconstitute()` factory (the
+     * same rehydration pattern this codebase already uses everywhere else
+     * for loading persisted rows) and persisted through the exact same
+     * repository `.save()` a real command would use -- no production entity,
+     * command, or validation rule is touched. VitalReading is the one
+     * exception: it already supports a real `recordedAt` override on its
+     * real `create()`/command (added in an earlier phase), so the real
+     * RecordVitalReadingUseCase is reused here unchanged -- it only needs
+     * the historical session/appointment to already exist, which they now
+     * do by the time it's called.
+     *
+     * Scope, disclosed: no PaymentTransaction is created for a historical
+     * paid visit (this environment has no configured payment gateway, and
+     * fabricating a SUCCEEDED/REFUNDED row here would be exactly the "fake
+     * payment success" this pass is told never to do), and no Notification
+     * rows are produced (this path never raises the real domain events
+     * NotificationModule's handlers listen for, unlike the real-use-case
+     * path below) -- both are genuine, bounded limitations, not oversights.
+     */
+    async function createHistoricalCompletedVisit(params: {
+      patient: SeededPatient;
+      doctor: SeededDoctor;
+      visitSequence: number;
+      patientBaseWeightKg: number;
+      patientBpIndex: number;
+      patientSugarIndex: number;
+    }): Promise<void> {
+      const { patient, doctor, visitSequence, patientBaseWeightKg, patientBpIndex, patientSugarIndex } = params;
+      const base = historicalVisitBaseDate(visitSequence);
+
+      const pricing = doctor.demo.consultationFeeAmount
+        ? ConsultationPricing.paid(Money.create(doctor.demo.consultationFeeAmount, 'EGP'))
+        : ConsultationPricing.free();
+      const appointmentPricing = doctor.demo.consultationFeeAmount
+        ? AppointmentPricing.paid(AppointmentMoney.create(doctor.demo.consultationFeeAmount, 'EGP'))
+        : AppointmentPricing.free();
+
+      const window = AvailabilityWindow.reconstitute({
+        id: randomUUID(),
+        doctorId: doctor.doctorProfileId,
+        startTime: base,
+        endTime: plusMinutes(base, 30),
+        pricing,
+        status: AvailabilityWindowStatus.Booked,
+        version: 1,
+        createdAt: base,
+        updatedAt: base,
+      });
+      await availabilityWindowRepository.save(window);
+
+      const appointment = AppointmentEntity.reconstitute({
+        id: randomUUID(),
+        patientId: patient.patientProfileId,
+        doctorId: doctor.doctorProfileId,
+        availabilityWindowId: window.getId(),
+        pricing: appointmentPricing,
+        status: AppointmentStatus.Completed,
+        scheduledAt: base,
+        reasonForVisit: pick(REASONS_FOR_VISIT),
+        version: 1,
+        createdAt: base,
+        updatedAt: plusMinutes(base, 35),
+      });
+      await appointmentRepository.save(appointment);
+
+      const session = ConsultationSession.reconstitute({
+        id: randomUUID(),
+        appointmentId: appointment.getId(),
+        state: ConsultationState.Closed,
+        completionReason: ConsultationCompletionReason.Completed,
+        startedAt: plusMinutes(base, 3),
+        closedAt: plusMinutes(base, 35),
+        connectionLogs: [],
+        version: 1,
+        createdAt: plusMinutes(base, 3),
+        updatedAt: plusMinutes(base, 35),
+      });
+      await consultationSessionRepository.save(session);
+
+      const note = ClinicalNote.reconstitute({
+        id: randomUUID(),
+        consultationSessionId: session.getId(),
+        authoringDoctorId: doctor.doctorProfileId,
+        content: pick(CLINICAL_NOTE_TEMPLATES),
+        createdAt: plusMinutes(base, 10),
+      });
+      await clinicalNoteRepository.save(note);
+
+      let diagnosisNodeId: string | undefined;
+      if (nextRandom() < 0.75) {
+        const diagnosisPool = doctor.demo.specialtyName === 'Psychiatry' ? PSYCHIATRY_DIAGNOSES : GENERAL_DIAGNOSES;
+        const diagnosis = pick(diagnosisPool);
+        const graph = await getOrCreateHealthGraph(patient.patientProfileId, base);
+        const node = HealthGraphNode.reconstitute({
+          id: randomUUID(),
+          nodeType: HealthGraphNodeType.Condition,
+          freeTextDescription: diagnosis.description,
+          certaintyLevel: CertaintyLevel.Confirmed,
+          source: NodeSource.Clinical,
+          authoringDoctorId: doctor.doctorProfileId,
+          consultationSessionId: session.getId(),
+          createdAt: plusMinutes(base, 12),
+        });
+        const updatedGraph = HealthGraph.reconstitute({
+          id: graph.getId(),
+          patientId: graph.getPatientId(),
+          createdAt: graph.getCreatedAt(),
+          nodes: [...graph.getNodes(), node],
+        });
+        await healthGraphRepository.save(updatedGraph);
+        healthGraphCache.set(patient.patientProfileId, updatedGraph);
+        diagnosisNodeId = node.getId();
+
+        if (diagnosisNodeId && nextRandom() < 0.7) {
+          const lineItem = PrescriptionLineItem.reconstitute({
+            id: randomUUID(),
+            drugCatalogId: randomUUID(),
+            drugName: diagnosis.drugName,
+            dosage: diagnosis.dosage,
+            frequency: diagnosis.frequency,
+            durationDays: pick([7, 14, 30]),
+          });
+          const prescription = Prescription.reconstitute({
+            id: randomUUID(),
+            consultationSessionId: session.getId(),
+            diagnosisNodeId,
+            authoringDoctorId: doctor.doctorProfileId,
+            status: PrescriptionStatus.Signed,
+            signedAt: plusMinutes(base, 15),
+            lineItems: [lineItem],
+            createdAt: plusMinutes(base, 15),
+            updatedAt: plusMinutes(base, 15),
+          });
+          await prescriptionRepository.save(prescription);
+        }
+      }
+
+      // VitalReading already supports a real recordedAt override on its own
+      // real create()/command (Real Clinical Vitals Demo pass) -- the real
+      // use case is reused unchanged; it only needs the historical
+      // session/appointment above to already exist, which they now do.
+      try {
+        const bpEntry =
+          BLOOD_PRESSURE_READINGS[
+            Math.max(0, Math.min(BLOOD_PRESSURE_READINGS.length - 1, patientBpIndex - Math.floor(visitSequence / 2)))
+          ];
+        const sugarBase =
+          BLOOD_SUGAR_READINGS[
+            Math.max(0, Math.min(BLOOD_SUGAR_READINGS.length - 1, patientSugarIndex - Math.floor(visitSequence / 2)))
+          ];
+        const recordedAt = plusMinutes(base, 5);
+
+        if (nextRandom() < 0.9) {
+          const weightKg = Math.round((patientBaseWeightKg - visitSequence * 0.5 + (nextRandom() - 0.5) * 1.2) * 10) / 10;
+          await recordVitalReading.execute(
+            new RecordVitalReadingCommand({
+              consultationSessionId: session.getId(),
+              authoringDoctorAccountId: doctor.accountId,
+              type: VitalType.Weight,
+              value: Math.max(40, weightKg),
+              recordedAt,
+            }),
+          );
+        }
+        if (nextRandom() < 0.85) {
+          await recordVitalReading.execute(
+            new RecordVitalReadingCommand({
+              consultationSessionId: session.getId(),
+              authoringDoctorAccountId: doctor.accountId,
+              type: VitalType.BloodPressure,
+              value: bpEntry.systolic + randomInt(-3, 3),
+              diastolicValue: bpEntry.diastolic + randomInt(-2, 2),
+              recordedAt,
+            }),
+          );
+        }
+        if (nextRandom() < 0.75) {
+          await recordVitalReading.execute(
+            new RecordVitalReadingCommand({
+              consultationSessionId: session.getId(),
+              authoringDoctorAccountId: doctor.accountId,
+              type: VitalType.BloodSugar,
+              value: sugarBase + randomInt(-4, 4),
+              recordedAt,
+            }),
+          );
+        }
+      } catch (error) {
+        console.warn(`  ! historical vitals for session ${session.getId()} skipped: ${describeError(error)}`);
+      }
+
+      const feedback = ConsultationFeedback.reconstitute({
+        id: randomUUID(),
+        consultationSessionId: session.getId(),
+        patientId: patient.patientProfileId,
+        doctorId: doctor.doctorProfileId,
+        rating: ratingFor(doctor.demo),
+        comment: nextRandom() < 0.6 ? pick(FEEDBACK_COMMENTS) : undefined,
+        // "Same day or shortly after" (docs section 7) -- a few hours after
+        // the consultation closed, still the same calendar day.
+        createdAt: plusMinutes(base, 4 * 60 + randomInt(0, 90)),
+      });
+      await consultationFeedbackRepository.save(feedback);
+    }
+
     /**
      * Pay for (or, when no payment gateway is configured in this
      * environment, doctor-approve) a Requested appointment so it reaches
@@ -958,8 +1326,48 @@ async function main(): Promise<void> {
       const existingAppointments = await listAppointmentsForPatient.execute({ patientId: patient.patientProfileId });
       if (existingAppointments.length > 0) continue; // already seeded on a previous run
 
+      // Real Clinical Vitals Demo pass: a stable per-patient starting point
+      // (docs section 5's realistic ranges), so a patient's own vitals drift
+      // gently across their own visits (section 6's Jan->May example)
+      // instead of each reading being independently random. bpIndex/
+      // sugarIndex walk BLOOD_PRESSURE_READINGS/BLOOD_SUGAR_READINGS toward
+      // the gentler end as visitSequence increases -- an improving trend,
+      // never forced, still genuinely varied per patient.
+      const patientBaseWeightKg = randomInt(58, 110);
+      const patientBpIndex = randomInt(2, BLOOD_PRESSURE_READINGS.length - 1);
+      const patientSugarIndex = randomInt(2, BLOOD_SUGAR_READINGS.length - 1);
+      let visitSequence = 0;
+
       const bookingCount = randomInt(2, 5);
       for (let index = 0; index < bookingCount; index += 1) {
+        const roll = nextRandom();
+
+        if (roll < 0.5) {
+          // -- Historical completed visit (docs: "PAST CONSULTATION -> PAST
+          // CLINICAL DATA"). Its own doctor pick, deliberately not drawn
+          // from the shared future-window pool below -- a past encounter
+          // never competes with real upcoming bookable capacity.
+          const doctor = pickDoctorForHistoricalVisit();
+          if (!doctor) continue;
+          try {
+            await createHistoricalCompletedVisit({
+              patient,
+              doctor,
+              visitSequence,
+              patientBaseWeightKg,
+              patientBpIndex,
+              patientSugarIndex,
+            });
+            visitSequence += 1;
+          } catch (error) {
+            console.warn(`  ! historical visit for ${patient.demo.email} skipped: ${describeError(error)}`);
+          }
+          continue;
+        }
+
+        // -- Everything else (Confirmed/Requested/Cancelled/Rescheduled) is
+        // genuinely upcoming/current -- unchanged, still built entirely
+        // through the real use-case chain against a real future window.
         const doctor = pickDoctorWithCapacity();
         if (!doctor) break;
         const windowId = takeWindow(doctor);
@@ -975,79 +1383,7 @@ async function main(): Promise<void> {
             }),
           );
 
-          const roll = nextRandom();
-          if (roll < 0.5) {
-            // -- Completed with feedback
-            const sessionId = await confirmViaPaymentOrApproval(appointment);
-            if (!sessionId) throw new Error('no consultation session was opened');
-            await startConsultation.execute(new StartConsultationCommand({ consultationSessionId: sessionId }));
-
-            // Real clinical history (docs section 15): a clinical note always
-            // gets recorded, and most visits also get a diagnosis + signed
-            // prescription -- all through ClinicalModule's real use cases,
-            // never a fabricated field on a fake object. Recorded between
-            // start and close, matching how a doctor actually documents a
-            // live consultation.
-            try {
-              await recordClinicalNote.execute(
-                new RecordClinicalNoteCommand({
-                  consultationSessionId: sessionId,
-                  authoringDoctorId: doctor.doctorProfileId,
-                  content: pick(CLINICAL_NOTE_TEMPLATES),
-                }),
-              );
-
-              if (nextRandom() < 0.75) {
-                const diagnosisPool = doctor.demo.specialtyName === 'Psychiatry' ? PSYCHIATRY_DIAGNOSES : GENERAL_DIAGNOSES;
-                const diagnosis = pick(diagnosisPool);
-                const diagnosisResult = await recordConsultationDiagnosis.execute(
-                  new RecordConsultationDiagnosisCommand({
-                    consultationSessionId: sessionId,
-                    authoringDoctorAccountId: doctor.accountId,
-                    freeTextDescription: diagnosis.description,
-                  }),
-                );
-
-                if (nextRandom() < 0.7) {
-                  await signPrescription.execute(
-                    new SignPrescriptionCommand({
-                      consultationSessionId: sessionId,
-                      diagnosisNodeId: diagnosisResult.node.getId(),
-                      authoringDoctorId: doctor.doctorProfileId,
-                      lineItems: [
-                        {
-                          drugCatalogId: randomUUID(),
-                          drugName: diagnosis.drugName,
-                          dosage: diagnosis.dosage,
-                          frequency: diagnosis.frequency,
-                          durationDays: pick([7, 14, 30]),
-                        },
-                      ],
-                    }),
-                  );
-                }
-              }
-            } catch (error) {
-              // Clinical documentation is additive realism, never a reason to
-              // abandon an otherwise-successful completed consultation.
-              console.warn(`  ! clinical history for session ${sessionId} skipped: ${describeError(error)}`);
-            }
-
-            await closeConsultation.execute(
-              new CloseConsultationCommand({
-                consultationSessionId: sessionId,
-                completionReason: ConsultationCompletionReason.Completed,
-              }),
-            );
-            await submitConsultationFeedback.execute(
-              new SubmitConsultationFeedbackCommand({
-                consultationSessionId: sessionId,
-                patientAccountId: patient.accountId,
-                rating: ratingFor(doctor.demo),
-                comment: nextRandom() < 0.6 ? pick(FEEDBACK_COMMENTS) : undefined,
-              }),
-            );
-          } else if (roll < 0.75) {
+          if (roll < 0.75) {
             // -- Confirmed / upcoming
             await confirmViaPaymentOrApproval(appointment);
           } else if (roll < 0.85) {
@@ -1109,9 +1445,20 @@ async function main(): Promise<void> {
       const existing = await mediaAssetRepository.findByOwner(accountId, [...CLINICAL_MEDIA_ASSET_PURPOSES]);
       if (existing.length > 0) continue; // already seeded on a previous run
 
+      // Demo Historical Timeline pass (docs section 9): anchored to this
+      // patient's own earliest historical visit (visitSequence 0) -- the
+      // same date band a real completed encounter for them actually landed
+      // on, never today. MediaAsset has no consultationSessionId field (an
+      // already-accepted, pre-existing limitation -- see the Doctor Patient
+      // Chart's own comment), so a specific document can't be tied to one
+      // exact visit, only to a realistic date for this patient's history;
+      // a lab report realistically follows the attachment by a day.
+      const documentBaseDate = historicalVisitBaseDate(0);
       for (const file of files) {
         try {
-          await createClinicalDocument(accountId, file);
+          const createdAt =
+            file.purpose === MediaAssetPurpose.LabReport ? plusMinutes(documentBaseDate, 24 * 60) : documentBaseDate;
+          await createClinicalDocument(accountId, file, createdAt);
           console.info(`  + document ${file.fileName} for ${demo.email}`);
         } catch (error) {
           console.warn(`  ! document ${file.fileName} for ${demo.email} failed: ${describeError(error)}`);

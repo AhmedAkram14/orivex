@@ -40,6 +40,8 @@ export class PrismaPrescriptionRepository implements PrescriptionRepository {
         authoringDoctorId: prescription.getAuthoringDoctorId(),
         status: toPrismaPrescriptionStatus(prescription.getStatus()),
         signedAt: prescription.getSignedAt() ?? null,
+        createdAt: prescription.getCreatedAt(),
+        updatedAt: prescription.getUpdatedAt(),
         lineItems: {
           create: prescription.getLineItems().map((item) => ({
             id: item.getId(),
