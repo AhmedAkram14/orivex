@@ -25,10 +25,13 @@ test.describe('Authentication', () => {
   test('logs in as a patient and lands on the authenticated dashboard', async ({ page }) => {
     await loginAs(page, 'patient');
 
-    // loginAs already asserts the /en/dashboard redirect -- this is the
-    // shared, role-agnostic landing page (not the patient-specific
-    // dashboard at /en/patient, covered by patient-dashboard.spec.ts).
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+    // loginAs already asserts the /en/patient redirect -- the shared
+    // /en/dashboard route is a transient hop only (see login.ts's own
+    // comment): DashboardPage immediately redirects every role onward to
+    // its real workspace home, so a patient session never actually stays
+    // on a page titled "Dashboard". "My Health" is /en/patient's own real
+    // heading (messages/en.json's patient.dashboard.title).
+    await expect(page.getByRole('heading', { name: 'My Health' })).toBeVisible();
   });
 
   test('logs out and returns to an unauthenticated state', async ({ page }) => {
@@ -43,9 +46,11 @@ test.describe('Authentication', () => {
     // The protected-route guard redirects a signed-out visitor to
     // /unauthorized (with its own "Sign in" link) rather than straight to
     // /login -- following that link completes the "back to unauthenticated"
-    // journey.
-    await expect(page).toHaveURL(/\/en\/unauthorized$/);
+    // journey. It now carries a real ?returnTo= so signing back in can
+    // resume where the guard caught them, so match the path only.
+    await expect(page).toHaveURL(/\/en\/unauthorized(\?|$)/);
     await page.getByRole('link', { name: 'Sign in' }).click();
-    await expect(page).toHaveURL(/\/en\/login$/);
+    // Also now carries the same real ?returnTo= as /unauthorized above.
+    await expect(page).toHaveURL(/\/en\/login(\?|$)/);
   });
 });

@@ -35,7 +35,9 @@ test.describe('Admin verification review', () => {
       });
     });
 
-    await page.getByRole('button', { name: 'Admin Workspace' }).click();
+    // The "Admin Workspace" nav group is a plain always-expanded heading
+    // now, not a disclosure toggle (see NavGroup's own comment), so
+    // "Verification Queue" is already visible with no click needed first.
     await page.getByRole('link', { name: 'Verification Queue' }).click();
     await expect(page).toHaveURL(/\/en\/admin\/verification-queue$/);
 
@@ -50,7 +52,11 @@ test.describe('Admin verification review', () => {
     await page.getByRole('option', { name: 'Doctor' }).click();
     await expect(page.getByText('Dr. Sarah Ahmed')).toBeVisible();
 
-    await page.getByRole('link', { name: 'View case' }).click();
+    // The Doctor-filtered queue now seeds more than one pending case (a
+    // busy-queue mock, same "not empty by default" pattern as
+    // doctor-store.ts's own schedule/queue seeds), so scope to this case's
+    // own table row rather than the page's only "View case" link.
+    await page.getByRole('row', { name: /Dr\. Sarah Ahmed/ }).getByRole('link', { name: 'View case' }).click();
     await expect(page).toHaveURL(/\/en\/admin\/verification-queue\/.+/);
 
     // Applicant section: real resolved account identity.
@@ -63,7 +69,14 @@ test.describe('Admin verification review', () => {
     await expect(document).toBeVisible();
     await expect(document).toHaveAttribute('src', /\/mock-object-storage\/seed-national-id-front/);
 
+    // Phase 4 (Notification & Admin Polish): Approve now opens the same
+    // confirm Dialog as Reject/Suspend/Request More Info -- the first click
+    // only opens it, the dialog's own "Approve" button (same label, scoped
+    // to the dialog) actually confirms.
     await page.getByRole('button', { name: 'Approve' }).click();
+    await expect(page.getByText('Approve this verification?')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Approve' }).click();
+
     await expect(page.getByRole('button', { name: 'Suspend' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Approve' })).not.toBeVisible();
 
@@ -81,7 +94,9 @@ test.describe('Admin verification review', () => {
     await page.getByRole('option', { name: 'Approved' }).click();
     await expect(page.getByText('Dr. Sarah Ahmed')).toBeVisible();
 
-    await page.getByRole('link', { name: 'View case' }).click();
+    // The Doctor+Approved-filtered queue can still hold more than one
+    // matching case (see the earlier scope-to-row comment).
+    await page.getByRole('row', { name: /Dr\. Sarah Ahmed/ }).getByRole('link', { name: 'View case' }).click();
     await expect(page.getByRole('button', { name: 'Suspend' })).toBeVisible();
     await expect(page.getByText('Approved').first()).toBeVisible();
   });
@@ -97,9 +112,13 @@ test.describe('Admin verification review', () => {
       });
     });
 
-    await page.getByRole('button', { name: 'Admin Workspace' }).click();
+    // The "Admin Workspace" nav group is a plain always-expanded heading
+    // now, not a disclosure toggle (see NavGroup's own comment), so
+    // "Verification Queue" is already visible with no click needed first.
     await page.getByRole('link', { name: 'Verification Queue' }).click();
-    await page.getByRole('link', { name: 'View case' }).click();
+    // Scope to this case's own row -- the queue seeds more than one
+    // pending case by default (see the earlier test's own comment).
+    await page.getByRole('row', { name: /Dr\. Sarah Ahmed/ }).getByRole('link', { name: 'View case' }).click();
 
     await page.getByRole('button', { name: 'Reject' }).click();
     await expect(page.getByText('Reject this application?')).toBeVisible();
@@ -120,7 +139,9 @@ test.describe('Admin verification review', () => {
     await page.getByRole('combobox', { name: 'Filter by status' }).click();
     await page.getByRole('option', { name: 'Rejected' }).click();
     await expect(page.getByText('Dr. Sarah Ahmed')).toBeVisible();
-    await page.getByRole('link', { name: 'View case' }).click();
+    // The Rejected-filtered queue can still hold more than one matching
+    // case (see the earlier scope-to-row comment).
+    await page.getByRole('row', { name: /Dr\. Sarah Ahmed/ }).getByRole('link', { name: 'View case' }).click();
     await expect(page.getByText('The submitted license photo was unreadable.').first()).toBeVisible();
   });
 
@@ -137,10 +158,18 @@ test.describe('Admin verification review', () => {
       });
     });
 
-    await page.getByRole('button', { name: 'Admin Workspace' }).click();
+    // The "Admin Workspace" nav group is a plain always-expanded heading
+    // now, not a disclosure toggle (see NavGroup's own comment), so
+    // "Verification Queue" is already visible with no click needed first.
     await page.getByRole('link', { name: 'Verification Queue' }).click();
-    await page.getByRole('link', { name: 'View case' }).click();
+    // Scope to this case's own row -- the queue seeds more than one
+    // pending case by default (see the first test's own comment).
+    await page.getByRole('row', { name: /Dr\. Sarah Ahmed/ }).getByRole('link', { name: 'View case' }).click();
+    // Phase 4 (Notification & Admin Polish): Approve opens a confirm Dialog
+    // now, same as Reject/Suspend/Request More Info.
     await page.getByRole('button', { name: 'Approve' }).click();
+    await expect(page.getByText('Approve this verification?')).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Approve' }).click();
     await expect(page.getByRole('button', { name: 'Suspend' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Suspend' }).click();

@@ -22,10 +22,10 @@ test.describe('Choose Your Journey', () => {
 
     await page.goto('/en/journey');
 
-    await expect(page.getByRole('heading', { name: 'Book appointments' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Practice as a Doctor' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "I'm a Patient" })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "I'm a Doctor" })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Apply as a doctor' }).click();
+    await page.getByRole('button', { name: 'Apply as a Doctor' }).click();
     await expect(page).toHaveURL(/\/en\/doctor\/onboarding$/);
   });
 });
@@ -35,11 +35,13 @@ test.describe('Browse Doctors and Specialties (Patient Dashboard)', () => {
     await loginAs(page, 'patient');
     await page.goto('/en/patient');
 
-    // Both the sidebar nav ("Browse Doctors") and this dashboard quick
-    // action ("Browse doctors") link to the same route -- differ only in
-    // capitalization, so `exact` disambiguates which one this test means to
-    // exercise (the dashboard's own quick-action grid).
-    await page.getByRole('link', { name: 'Browse doctors', exact: true }).click();
+    // The sidebar nav ("Browse Doctors") differs in capitalization from
+    // this dashboard's own lowercase "Browse doctors" links, so `exact`
+    // disambiguates those -- but with no upcoming appointment, both
+    // `NextAppointmentCard`'s empty-state CTA and `PatientQuickActions`'
+    // own tile render an identical "Browse doctors" link to the same
+    // /patient/doctors route, so `.first()` picks either safely.
+    await page.getByRole('link', { name: 'Browse doctors', exact: true }).first().click();
 
     await expect(page).toHaveURL(/\/en\/patient\/doctors$/);
     await expect(page.getByText('Dr. Sarah Ahmed')).toBeVisible();

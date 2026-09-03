@@ -38,8 +38,9 @@ test.describe('Consultation completion', () => {
       window.__mockDoctorStore!.seedInConsultationQueueEntry('session-e2e-doctor-1', 'Amina Youssef'),
     );
 
-    await page.getByRole('button', { name: 'Doctor Workspace' }).click();
-    await page.getByRole('link', { name: 'Patient Queue' }).click();
+    // exact: true -- the Doctor Workspace dashboard hero also has its own
+    // "View Patient Queue" quick-action tile, a substring match otherwise.
+    await page.getByRole('link', { name: 'Patient Queue', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/doctor\/queue$/);
 
     await expect(page.getByRole('button', { name: 'Join video call' })).toBeVisible();
@@ -70,8 +71,9 @@ test.describe('Consultation completion', () => {
       }),
     );
 
-    await page.getByRole('button', { name: 'My Health' }).click();
-    await page.getByRole('link', { name: 'Appointments' }).click();
+    // exact: true -- the Patient Dashboard's "View all appointments" links
+    // are also a substring match otherwise.
+    await page.getByRole('link', { name: 'Appointments', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/patient\/appointments$/);
 
     await page.getByRole('tab', { name: 'History' }).click();
@@ -86,20 +88,35 @@ test.describe('Consultation completion', () => {
     await page.getByPlaceholder('Leave an optional comment...').fill('Very attentive and thorough.');
     await page.getByRole('button', { name: 'Submit rating' }).click();
 
-    await expect(page.getByText('You rated this consultation 5 of 5.')).toBeVisible();
+    // SubmittedRatingView (2026-07-29 follow-up) replaced the old visible
+    // "you rated this X of 5" text with an icon-only 5-star display that
+    // only carries this text as an aria-label, not text content.
+    await expect(page.locator('[aria-label="You rated this consultation 5 of 5."]')).toBeVisible();
     await page.getByRole('button', { name: 'Close' }).click();
 
     // Client-side navigation only from here on -- a `page.goto` would
     // reload the page's JS and wipe the in-memory review just submitted.
-    // "My Health" is already expanded from the earlier "Appointments" click,
-    // so this link is already reachable without toggling the group again.
     await page.getByRole('link', { name: 'Browse Doctors' }).click();
     await expect(page).toHaveURL(/\/en\/patient\/doctors$/);
 
-    await page.getByRole('link').filter({ hasText: 'Dr. Sarah Ahmed' }).click();
+    // The doctor's name on the card is plain text, not a link -- DoctorCard
+    // renders "View Profile" as its own separate navigable link, and this
+    // mock fixture seeds many doctors, so scope to the one card containing
+    // both "Dr. Sarah Ahmed" and its own "View Profile" link -- `.last()`
+    // picks the innermost (smallest) such match, i.e. the card itself, not
+    // an outer container that also happens to contain both.
+    const doctorCard = page
+      .locator('div', { hasText: 'Dr. Sarah Ahmed' })
+      .filter({ has: page.getByRole('link', { name: 'View Profile' }) })
+      .last();
+    await doctorCard.getByRole('link', { name: 'View Profile' }).click();
     await expect(page).toHaveURL(/\/en\/patient\/doctors\/doctor-profile-1$/);
 
-    await expect(page.getByText('(1 reviews)')).toBeVisible();
+    // The public profile page's own review count stat ("{count} Ratings",
+    // reviewsCount key) -- computed live from the mock's real feedback
+    // list, which already seeds Dr. Sarah Ahmed with other reviews before
+    // this test's own submission is added to the total.
+    await expect(page.getByText('4 Ratings')).toBeVisible();
     await expect(page.getByText('Very attentive and thorough.')).toBeVisible();
   });
 });

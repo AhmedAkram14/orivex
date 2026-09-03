@@ -94,7 +94,11 @@ function seedProfile(): PatientProfile {
     address: '12 Tahrir Street, Cairo',
     bloodType: 'A+',
     allergies: 'Penicillin',
-    chronicDiseases: undefined,
+    // A real, answered value (not undefined) -- profile-completeness.ts
+    // treats an unanswered field as "intake still needed", and this mock
+    // patient is meant to be already-onboarded (see this file's own
+    // "always reports true" comment below), same as allergies' real value.
+    chronicDiseases: 'None',
     insuranceProviderId: undefined,
     emergencyContacts: [
       { id: 'contact-1', name: 'Mona Youssef', relationship: 'sibling', phoneNumber: '+20 100 333 4444' },

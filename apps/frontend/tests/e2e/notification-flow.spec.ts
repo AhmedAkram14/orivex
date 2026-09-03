@@ -13,10 +13,16 @@ test.describe('Notification flow', () => {
 
     await bell.click();
 
-    await expect(page.getByText('Welcome to Orivex', { exact: true })).toBeVisible();
-    await expect(page.getByText('New device signed in', { exact: true })).toBeVisible();
+    // The Patient Dashboard's own "Recent Activity" widget now also
+    // surfaces real notifications in the page's <main>, so a page-wide text
+    // search finds the same "Welcome to Orivex" twice -- scope to the
+    // bell's popover panel (a Radix Popover.Content, role="dialog") to
+    // disambiguate.
+    const panel = page.getByRole('dialog');
+    await expect(panel.getByText('Welcome to Orivex', { exact: true })).toBeVisible();
+    await expect(panel.getByText('New device signed in', { exact: true })).toBeVisible();
 
-    await page.getByText('Welcome to Orivex', { exact: true }).click();
+    await panel.getByText('Welcome to Orivex', { exact: true }).click();
 
     await expect(bell.getByText('2')).not.toBeVisible();
     await expect(bell.getByText('1')).toBeVisible();
@@ -29,7 +35,8 @@ test.describe('Notification flow', () => {
     await expect(bell.getByText('2')).toBeVisible();
     await bell.click();
 
-    await expect(page.getByText('Welcome to Orivex')).toBeVisible();
+    const panel = page.getByRole('dialog');
+    await expect(panel.getByText('Welcome to Orivex', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Mark all as read' }).click();
 
     await expect(bell.getByText('2')).not.toBeVisible();

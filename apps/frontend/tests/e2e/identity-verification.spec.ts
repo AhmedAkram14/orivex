@@ -31,9 +31,9 @@ test.describe('Patient identity verification gate', () => {
 
     // A client-side Link click, not `page.goto` -- a real navigation would
     // reload the page's JS and re-seed the mock store, undoing the
-    // `setPatientVerified(false)` call above. "Medical Records" sits inside
-    // the collapsible "My Health" nav group, so that has to expand first.
-    await page.getByRole('button', { name: 'My Health' }).click();
+    // `setPatientVerified(false)` call above. The "My Health" nav group is
+    // a plain always-expanded heading now (see NavGroup's own comment), so
+    // "Medical Records" is already visible with no click needed to reveal it.
     await page.getByRole('link', { name: 'Medical Records' }).click();
     await expect(page).toHaveURL(/\/en\/patient\/records$/);
 
@@ -99,8 +99,9 @@ test.describe('Patient identity verification gate', () => {
     await page.waitForFunction(() => window.__mockPatientVerification !== undefined);
 
     // The seeded account is already Approved by default -- confirm the
-    // status screen agrees before suspending it.
-    await page.getByRole('button', { name: 'My Health' }).click();
+    // status screen agrees before suspending it. The "My Health" nav group
+    // is a plain always-expanded heading now (see NavGroup's own comment),
+    // so "Medical Records" is already visible with no click needed first.
     await page.getByRole('link', { name: 'Medical Records' }).click();
     await expect(page).toHaveURL(/\/en\/patient\/records$/);
 

@@ -31,12 +31,24 @@ test.describe('Real appointment booking flow', () => {
       todayDateKey(),
     );
 
-    // Directory -> profile -> real "Book appointment" CTA.
-    await page.getByRole('button', { name: 'My Health' }).click();
+    // Directory -> profile -> real "Book appointment" CTA. The "My Health"
+    // sidebar section is a plain always-expanded heading now, not a
+    // disclosure toggle (see NavGroup's own comment), so its link is
+    // already visible with no click needed to reveal it.
     await page.getByRole('link', { name: 'Browse Doctors', exact: true }).click();
     await expect(page).toHaveURL(/\/en\/patient\/doctors$/);
 
-    await page.getByText('Dr. Sarah Ahmed').click();
+    // The doctor's name on the card is plain text, not a link -- DoctorCard
+    // renders "View Profile" as its own separate navigable link, and this
+    // mock fixture seeds many doctors, so scope to the one card containing
+    // both "Dr. Sarah Ahmed" and its own "View Profile" link -- `.last()`
+    // picks the innermost (smallest) such match, i.e. the card itself, not
+    // an outer container that also happens to contain both.
+    const doctorCard = page
+      .locator('div', { hasText: 'Dr. Sarah Ahmed' })
+      .filter({ has: page.getByRole('link', { name: 'View Profile' }) })
+      .last();
+    await doctorCard.getByRole('link', { name: 'View Profile' }).click();
     await expect(page).toHaveURL(/\/en\/patient\/doctors\/.+/);
 
     await page.getByRole('link', { name: 'Book appointment' }).click();
@@ -108,12 +120,20 @@ test.describe('Real appointment booking flow', () => {
     // returnTo safely resumed the exact booking context (same doctorId).
     await expect(page).toHaveURL(bookUrl);
 
-    // Now verified -- the same real booking completes for real.
+    // Now verified -- the same real booking completes for real. Dr. Sarah
+    // Ahmed is a paid doctor (doctor-store.ts's consultationFeeAmount: 450)
+    // -- the pay-then-confirm lifecycle means a paid booking lands
+    // Requested and stops at its own payment step rather than redirecting
+    // straight to /patient/appointments (that only happens for a free
+    // booking). This E2E build has no Stripe publishable key configured,
+    // so PayNowForm honestly renders "not configured" rather than a
+    // fabricated working card form -- proving the real request reached the
+    // real payment step, not faking a successful charge.
     await clickFirstSlot();
     await expect(page.getByText('Review')).toBeVisible();
     await page.getByRole('button', { name: 'Confirm booking' }).click();
 
-    await expect(page).toHaveURL(/\/en\/patient\/appointments$/);
-    await expect(page.getByText('Dr. Sarah Ahmed')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Complete payment to confirm your booking' })).toBeVisible();
+    await expect(page.getByText('Payments are not available yet.')).toBeVisible();
   });
 });

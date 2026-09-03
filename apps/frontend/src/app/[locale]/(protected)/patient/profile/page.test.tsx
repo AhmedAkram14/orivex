@@ -57,7 +57,13 @@ describe('PatientProfilePage', () => {
     await screen.findByText('Amina Youssef');
 
     expect(screen.getByText('Penicillin')).toBeInTheDocument();
-    expect(screen.getByText('No chronic conditions on record')).toBeInTheDocument();
+    // chronicDiseases is now a real answered value ("None"), not undefined
+    // -- profile-completeness.ts's needsPatientIntake gate requires it
+    // truthy for this already-onboarded seeded account to actually land on
+    // /patient instead of being redirected to /patient/intake. Insurance
+    // (genuinely optional, per that same gate) still demonstrates the
+    // honest-empty-state pattern below.
+    expect(screen.getByText('None')).toBeInTheDocument();
     expect(screen.getByText('Self-pay / No Insurance')).toBeInTheDocument();
   });
 
