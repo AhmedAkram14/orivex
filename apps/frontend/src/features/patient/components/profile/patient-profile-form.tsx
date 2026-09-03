@@ -62,7 +62,10 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
 
   async function onSubmit(values: PatientProfileFormValues) {
     try {
-      await updateProfile.mutateAsync(values);
+      await updateProfile.mutateAsync({
+        ...values,
+        emergencyContacts: values.emergencyContacts.map(({ id: _id, ...contact }) => contact),
+      });
       onSaved();
     } catch {
       // Inline error rendered below from `updateProfile.error`.
