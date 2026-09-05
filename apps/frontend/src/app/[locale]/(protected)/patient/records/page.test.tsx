@@ -45,8 +45,8 @@ describe('PatientMedicalRecordsPage', () => {
     renderPage();
 
     expect(await screen.findByText('No medical records yet')).toBeInTheDocument();
-    expect(screen.getByText("Lab results aren't available yet")).toBeInTheDocument();
-    expect(screen.getByText("Imaging isn't available yet")).toBeInTheDocument();
+    expect(screen.getByText('Results will appear here when available.')).toBeInTheDocument();
+    expect(screen.getByText('Imaging records will appear here when available.')).toBeInTheDocument();
   });
 
   it('renders the type filter tabs', async () => {

@@ -34,6 +34,8 @@ export function MedicalRecordsTimeline({ entries }: MedicalRecordsTimelineProps)
             description={entry.description}
             doctorName={entry.doctorName}
             isLast={index === sorted.length - 1}
+            viewDetailsLabel={t('viewDetails')}
+            showLessLabel={t('showLess')}
             actions={
               entry.downloadUrl ? <RecordDownloadButton href={entry.downloadUrl} label={t('download')} /> : undefined
             }

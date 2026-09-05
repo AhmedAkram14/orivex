@@ -1409,11 +1409,14 @@
     },
     "records": {
       "title": "Medical Records",
+      "description": "Your clinical history, visits, conditions, and shared care records in one place.",
       "loadError": "Couldn't load your medical records.",
-      "timelineTitle": "Timeline",
+      "timelineTitle": "Clinical Timeline",
       "timelineEmptyTitle": "No medical records yet",
       "timelineEmptyDescription": "Visits and conditions recorded by your care team will appear here.",
       "download": "Download",
+      "viewDetails": "View details",
+      "showLess": "Show less",
       "filters": {
         "all": "All",
         "visit": "Visits",
@@ -1423,16 +1426,29 @@
         "visit": "Visit",
         "condition": "Condition"
       },
-      "labResults": "Lab results",
+      "summary": {
+        "totalVisits": "Total Visits",
+        "conditions": "Conditions"
+      },
+      "conditionsTitle": "Conditions",
+      "conditionsEmptyTitle": "No conditions on record",
+      "conditionsEmptyDescription": "Conditions recorded by your care team will appear here.",
+      "recordedOn": "Recorded {date}",
+      "recentPrescriptionsTitle": "Recent Prescriptions",
+      "viewAllPrescriptions": "View all",
+      "recentPrescriptionsEmptyTitle": "No prescriptions yet",
+      "recentPrescriptionsEmptyDescription": "Prescriptions from your care team will appear here.",
+      "labImagingTitle": "Labs & Imaging",
+      "labResults": "Lab Results",
       "labResultsUnavailableTitle": "Lab results aren't available yet",
-      "labResultsUnavailableDescription": "Lab results will appear here once that part of Orivex is available.",
+      "labResultsUnavailableDescription": "Results will appear here when available.",
       "imaging": "Imaging",
       "imagingUnavailableTitle": "Imaging isn't available yet",
-      "imagingUnavailableDescription": "Imaging studies and reports will appear here once that part of Orivex is available.",
+      "imagingUnavailableDescription": "Imaging records will appear here when available.",
       "clinicalUpload": {
-        "title": "Upload a document",
+        "title": "Clinical Documents",
         "description": "Upload a clinical document to share with your care team (PDF, JPG, or PNG).",
-        "uploadButton": "Upload",
+        "uploadButton": "Upload document",
         "uploadError": "Could not upload this file. Please try again."
       }
     },

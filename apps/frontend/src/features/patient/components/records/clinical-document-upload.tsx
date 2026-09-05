@@ -52,8 +52,6 @@ export function ClinicalDocumentUpload() {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-secondary">{t('description')}</p>
-
       {upload.isError && !gateError && <Alert variant="danger">{t('uploadError')}</Alert>}
 
       {uploadedFileName && (

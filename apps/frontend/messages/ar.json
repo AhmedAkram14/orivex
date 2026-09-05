@@ -1409,11 +1409,14 @@
     },
     "records": {
       "title": "السجلات الطبية",
+      "description": "تاريخك السريري وزياراتك وحالاتك وسجلات الرعاية المشتركة في مكان واحد.",
       "loadError": "تعذّر تحميل سجلاتك الطبية.",
-      "timelineTitle": "الجدول الزمني",
+      "timelineTitle": "الجدول الزمني السريري",
       "timelineEmptyTitle": "لا توجد سجلات طبية بعد",
       "timelineEmptyDescription": "ستظهر هنا الزيارات والأمراض المسجلة من فريق الرعاية الخاص بك.",
       "download": "تنزيل",
+      "viewDetails": "عرض التفاصيل",
+      "showLess": "عرض أقل",
       "filters": {
         "all": "الكل",
         "visit": "الزيارات",
@@ -1423,16 +1426,29 @@
         "visit": "زيارة",
         "condition": "مرض"
       },
+      "summary": {
+        "totalVisits": "إجمالي الزيارات",
+        "conditions": "الأمراض"
+      },
+      "conditionsTitle": "الأمراض",
+      "conditionsEmptyTitle": "لا توجد أمراض مسجلة",
+      "conditionsEmptyDescription": "ستظهر هنا الأمراض التي يسجلها فريق الرعاية الخاص بك.",
+      "recordedOn": "سُجّل في {date}",
+      "recentPrescriptionsTitle": "أحدث الوصفات الطبية",
+      "viewAllPrescriptions": "عرض الكل",
+      "recentPrescriptionsEmptyTitle": "لا توجد وصفات طبية بعد",
+      "recentPrescriptionsEmptyDescription": "ستظهر هنا الوصفات الطبية من فريق الرعاية الخاص بك.",
+      "labImagingTitle": "المختبر والأشعة",
       "labResults": "نتائج المختبر",
       "labResultsUnavailableTitle": "نتائج المختبر غير متاحة بعد",
-      "labResultsUnavailableDescription": "ستظهر نتائج المختبر هنا بمجرد توفر هذا الجزء من أوريفكس.",
+      "labResultsUnavailableDescription": "ستظهر النتائج هنا عند توفرها.",
       "imaging": "الأشعة",
       "imagingUnavailableTitle": "الأشعة غير متاحة بعد",
-      "imagingUnavailableDescription": "ستظهر الدراسات والتقارير الإشعاعية هنا بمجرد توفر هذا الجزء من أوريفكس.",
+      "imagingUnavailableDescription": "ستظهر السجلات الإشعاعية هنا عند توفرها.",
       "clinicalUpload": {
-        "title": "رفع مستند",
+        "title": "المستندات الطبية",
         "description": "ارفع مستندًا طبيًا لمشاركته مع فريق الرعاية الخاص بك (PDF أو JPG أو PNG).",
-        "uploadButton": "رفع",
+        "uploadButton": "رفع مستند",
         "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى."
       }
     },
