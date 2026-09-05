@@ -1454,17 +1454,44 @@
     },
     "prescriptions": {
       "title": "Prescriptions",
+      "subtitle": "View and manage your current and previous prescriptions from your doctors.",
       "loadError": "Couldn't load your prescriptions.",
+      "printList": "Print list",
       "activeTab": "Active",
       "previousTab": "Previous",
+      "activeHeading": "Active Prescriptions",
+      "previousHeading": "Previous Prescriptions",
       "activeEmptyTitle": "No active prescriptions",
-      "activeEmptyDescription": "Your active prescriptions will appear here once they are prescribed.",
+      "activeEmptyDescription": "You don't have any active prescriptions right now. Prescriptions from your doctors will appear here.",
       "previousEmptyTitle": "No previous prescriptions",
       "previousEmptyDescription": "Your completed and expired prescriptions will appear here.",
+      "browseDoctors": "Browse Doctors",
+      "bookAppointment": "Book Appointment",
       "prescribedBy": "Prescribed by {name}",
       "status": {
         "active": "Active",
         "expired": "Expired"
+      },
+      "summary": {
+        "activePrescriptions": "Active Prescriptions",
+        "currentlyTaking": "Currently taking",
+        "lastPrescribed": "Last Prescribed",
+        "lastPrescribedSublabel": "Most recent",
+        "none": "None yet",
+        "prescribedBy": "Prescribed by",
+        "differentDoctors": "Different doctors",
+        "totalPrescriptions": "Total Prescriptions",
+        "allTime": "All time"
+      },
+      "sidebar": {
+        "remindersTitle": "Medication Reminders",
+        "remindersDescription": "Never miss a dose by keeping your medication schedule top of mind.",
+        "howToTitle": "How to take medications",
+        "howToDescription": "Follow your doctor's instructions carefully for each medication.",
+        "importantTitle": "Important",
+        "importantDescription": "Do not stop or change your medication without consulting your doctor.",
+        "questionsTitle": "Questions about your medication?",
+        "questionsCta": "Contact support"
       }
     },
     "health": {

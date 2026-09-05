@@ -1454,17 +1454,44 @@
     },
     "prescriptions": {
       "title": "الوصفات الطبية",
+      "subtitle": "عرض وإدارة وصفاتك الطبية الحالية والسابقة من أطبائك.",
       "loadError": "تعذّر تحميل وصفاتك الطبية.",
+      "printList": "طباعة القائمة",
       "activeTab": "نشطة",
       "previousTab": "سابقة",
+      "activeHeading": "الوصفات النشطة",
+      "previousHeading": "الوصفات السابقة",
       "activeEmptyTitle": "لا توجد وصفات نشطة",
-      "activeEmptyDescription": "ستظهر وصفاتك النشطة هنا بمجرد وصفها.",
+      "activeEmptyDescription": "ليس لديك أي وصفات طبية نشطة حاليًا. ستظهر هنا الوصفات الطبية من أطبائك.",
       "previousEmptyTitle": "لا توجد وصفات سابقة",
       "previousEmptyDescription": "ستظهر هنا وصفاتك المكتملة والمنتهية الصلاحية.",
+      "browseDoctors": "تصفح الأطباء",
+      "bookAppointment": "حجز موعد",
       "prescribedBy": "وصفها {name}",
       "status": {
         "active": "نشطة",
         "expired": "منتهية الصلاحية"
+      },
+      "summary": {
+        "activePrescriptions": "الوصفات النشطة",
+        "currentlyTaking": "قيد الاستخدام حاليًا",
+        "lastPrescribed": "آخر وصفة",
+        "lastPrescribedSublabel": "الأحدث",
+        "none": "لا يوجد بعد",
+        "prescribedBy": "وصفها",
+        "differentDoctors": "أطباء مختلفون",
+        "totalPrescriptions": "إجمالي الوصفات",
+        "allTime": "منذ البداية"
+      },
+      "sidebar": {
+        "remindersTitle": "تذكيرات الأدوية",
+        "remindersDescription": "لا تفوّت أي جرعة عبر متابعة جدول أدويتك باستمرار.",
+        "howToTitle": "كيفية تناول الأدوية",
+        "howToDescription": "اتبع تعليمات طبيبك بعناية لكل دواء.",
+        "importantTitle": "تنبيه هام",
+        "importantDescription": "لا تتوقف عن تناول الدواء أو تغيّره دون استشارة طبيبك.",
+        "questionsTitle": "لديك أسئلة حول دوائك؟",
+        "questionsCta": "تواصل مع الدعم"
       }
     },
     "health": {
