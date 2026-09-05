@@ -116,7 +116,11 @@ export class Appointment {
   // awareness and never will (module boundary: Payment depends on
   // Consultation, never the reverse).
   cancel(cancelledBy: 'doctor' | 'patient'): void {
-    if (this.status !== AppointmentStatus.Requested && this.status !== AppointmentStatus.Confirmed) {
+    if (
+      this.status !== AppointmentStatus.Requested &&
+      this.status !== AppointmentStatus.Confirmed &&
+      this.status !== AppointmentStatus.NoShow
+    ) {
       throw new ConsultationDomainError(`Appointment "${this.id}" cannot be cancelled from its current status.`);
     }
     this.status = AppointmentStatus.Cancelled;
@@ -126,12 +130,33 @@ export class Appointment {
 
   // Marks this appointment as superseded by a new one on a different slot
   // (docs/07-domain-data-model.md's forward-only rule: reschedule creates a
-  // new Appointment referencing this one, never a literal rollback).
+  // new Appointment referencing this one, never a literal rollback). A
+  // No-show is reschedulable too (Join-Window Enforcement feature) -- a
+  // missed slot shouldn't dead-end the patient, same reasoning as Requested/
+  // Confirmed.
   markRescheduled(): void {
-    if (this.status !== AppointmentStatus.Requested && this.status !== AppointmentStatus.Confirmed) {
+    if (
+      this.status !== AppointmentStatus.Requested &&
+      this.status !== AppointmentStatus.Confirmed &&
+      this.status !== AppointmentStatus.NoShow
+    ) {
       throw new ConsultationDomainError(`Appointment "${this.id}" cannot be rescheduled from its current status.`);
     }
     this.status = AppointmentStatus.Rescheduled;
+    this.updatedAt = new Date();
+  }
+
+  // Join-Window Enforcement feature: a Confirmed appointment whose join
+  // window closed (docs section on the 1-hour-past-scheduled cutoff) with
+  // nobody ever starting the consultation. Only the reconciliation sweep
+  // calls this -- never a direct patient/doctor action, matching
+  // ReconcileStaleConsultationSessionsUseCase's own "system, not user"
+  // precedent for a related lifecycle transition.
+  markNoShow(): void {
+    if (this.status !== AppointmentStatus.Confirmed) {
+      throw new ConsultationDomainError(`Appointment "${this.id}" is not Confirmed and cannot be marked No-show.`);
+    }
+    this.status = AppointmentStatus.NoShow;
     this.updatedAt = new Date();
   }
 

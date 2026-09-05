@@ -64,6 +64,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
 }
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   constructor(private readonly appointment: Appointment | null) {}
   async findById(): Promise<Appointment | null> {
     return this.appointment;

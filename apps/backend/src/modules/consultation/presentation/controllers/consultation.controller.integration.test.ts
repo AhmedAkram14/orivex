@@ -188,6 +188,9 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
 }
 
 class InMemoryAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   private readonly byId = new Map<string, Appointment>();
   async findById(id: string): Promise<Appointment | null> {
     return this.byId.get(id) ?? null;
@@ -496,7 +499,7 @@ describe('Consultation controllers (integration)', () => {
       new NoopDomainEventDispatcher(),
     );
     roomTokenGenerator = new FakeRoomTokenGenerator();
-    const mintConsultationRoomTokenUseCase = new MintConsultationRoomTokenUseCase(sessionRepo, roomTokenGenerator);
+    const mintConsultationRoomTokenUseCase = new MintConsultationRoomTokenUseCase(sessionRepo, appointmentRepo, roomTokenGenerator);
 
     const accountRepo = new InMemoryAccountRepository([
       patientAccount,

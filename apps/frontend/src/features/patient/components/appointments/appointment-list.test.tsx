@@ -103,11 +103,10 @@ describe('AppointmentList', () => {
     expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
-  it('never renders "Reschedule" for a Rescheduled, Cancelled, No-show, or Completed appointment', () => {
+  it('never renders "Reschedule" for a Rescheduled, Cancelled, or Completed appointment', () => {
     const appointments = [
       buildAppointment({ id: 'a1', status: 'rescheduled' }),
       buildAppointment({ id: 'a2', status: 'cancelled' }),
-      buildAppointment({ id: 'a3', status: 'no_show' }),
       buildAppointment({
         id: 'a4',
         status: 'completed',
@@ -118,6 +117,17 @@ describe('AppointmentList', () => {
     renderWithProviders(<AppointmentList appointments={appointments} emptyTitle="" emptyDescription="" />);
 
     expect(screen.queryByRole('button', { name: 'Reschedule' })).not.toBeInTheDocument();
+  });
+
+  // Join-Window Enforcement feature: a missed appointment shouldn't
+  // dead-end the patient -- markRescheduled()'s backend guard was extended
+  // to allow a No-show appointment through, so the UI offers it too.
+  it('renders a reachable "Reschedule" action for a No-show appointment', () => {
+    const appointment = buildAppointment({ status: 'no_show' });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
   // Demo Readiness P0: the previously-missing patient-facing cancel action --
@@ -139,11 +149,10 @@ describe('AppointmentList', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   });
 
-  it('never renders "Cancel" for a Rescheduled, Cancelled, No-show, or Completed appointment', () => {
+  it('never renders "Cancel" for a Rescheduled, Cancelled, or Completed appointment', () => {
     const appointments = [
       buildAppointment({ id: 'a1', status: 'rescheduled' }),
       buildAppointment({ id: 'a2', status: 'cancelled' }),
-      buildAppointment({ id: 'a3', status: 'no_show' }),
       buildAppointment({
         id: 'a4',
         status: 'completed',
@@ -154,5 +163,16 @@ describe('AppointmentList', () => {
     renderWithProviders(<AppointmentList appointments={appointments} emptyTitle="" emptyDescription="" />);
 
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
+  });
+
+  // Join-Window Enforcement feature: cancel()'s backend guard was extended
+  // to allow a No-show appointment through too (both actions appear
+  // together for it, same as Requested/Confirmed).
+  it('renders a reachable "Cancel" action for a No-show appointment', () => {
+    const appointment = buildAppointment({ status: 'no_show' });
+
+    renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
+
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
   });
 });

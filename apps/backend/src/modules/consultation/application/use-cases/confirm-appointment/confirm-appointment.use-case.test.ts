@@ -18,6 +18,9 @@ import { ConfirmAppointmentCommand } from './confirm-appointment.command.js';
 import { ConfirmAppointmentUseCase } from './confirm-appointment.use-case.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   public readonly saved: Appointment[] = [];
   constructor(private readonly appointment: Appointment | null) {}
   async findById(): Promise<Appointment | null> {

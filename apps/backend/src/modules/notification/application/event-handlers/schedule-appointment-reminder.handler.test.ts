@@ -13,6 +13,9 @@ import type { EnqueueAppointmentReminderJob, NotificationQueuePort } from '../po
 import { ScheduleAppointmentReminderHandler } from './schedule-appointment-reminder.handler.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   constructor(private readonly appointment: Appointment | null) {}
   async findById(id: string): Promise<Appointment | null> {
     return this.appointment && this.appointment.getId() === id ? this.appointment : null;

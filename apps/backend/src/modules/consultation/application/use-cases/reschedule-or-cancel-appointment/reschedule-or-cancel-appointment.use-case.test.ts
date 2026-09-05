@@ -30,6 +30,9 @@ import { RescheduleOrCancelAppointmentCommand } from './reschedule-or-cancel-app
 import { RescheduleOrCancelAppointmentUseCase } from './reschedule-or-cancel-appointment.use-case.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   private readonly byId = new Map<string, Appointment>();
   public readonly saved: Appointment[] = [];
   public failOnSaveCount = 0;

@@ -109,6 +109,9 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
 }
 
 class InMemoryAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   constructor(private readonly appointment: Appointment) {}
   async findById(id: string): Promise<Appointment | null> {
     return this.appointment.getId() === id ? this.appointment : null;

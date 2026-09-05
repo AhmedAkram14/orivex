@@ -82,6 +82,17 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return result;
   }
 
+  async findConfirmedPastJoinWindowMissed(cutoff: Date): Promise<Appointment[]> {
+    const rows = await this.prisma.appointment.findMany({
+      where: {
+        status: 'CONFIRMED',
+        scheduledAt: { lt: cutoff },
+        consultationSession: { state: 'WAITING_ROOM' },
+      },
+    });
+    return rows.map(toDomainAppointment);
+  }
+
   // Optimistic locking, mirroring AvailabilityWindow's repository: updates
   // are conditioned on the version the caller loaded; a 0-row result means
   // another writer already moved the row on.

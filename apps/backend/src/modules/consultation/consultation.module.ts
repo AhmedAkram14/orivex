@@ -48,6 +48,7 @@ import { ListAppointmentsForDoctorUseCase } from './application/use-cases/list-a
 import { ListAppointmentsForPatientUseCase } from './application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from './application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
 import { ListConsultationFeedbackForDoctorUseCase } from './application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
+import { MarkMissedAppointmentsNoShowUseCase } from './application/use-cases/mark-missed-appointments-no-show/mark-missed-appointments-no-show.use-case.js';
 import { MintConsultationRoomTokenUseCase } from './application/use-cases/mint-consultation-room-token/mint-consultation-room-token.use-case.js';
 import { RecommendFollowUpUseCase } from './application/use-cases/recommend-follow-up/recommend-follow-up.use-case.js';
 import { RecordSessionConnectionLogUseCase } from './application/use-cases/record-session-connection-log/record-session-connection-log.use-case.js';
@@ -68,6 +69,7 @@ import { PrismaFollowUpRecommendationRepository } from './infrastructure/prisma/
 import { NotConfiguredRoomTokenAdapter } from './infrastructure/livekit/not-configured-room-token.adapter.js';
 import { LiveKitRoomTokenAdapter } from './infrastructure/livekit/livekit-room-token.adapter.js';
 import { StaleConsultationSessionReconciliationService } from './infrastructure/jobs/stale-consultation-session-reconciliation.service.js';
+import { AppointmentNoShowReconciliationService } from './infrastructure/jobs/appointment-no-show-reconciliation.service.js';
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
 import { ConsultationFeedbackController } from './presentation/controllers/consultation-feedback.controller.js';
 import { DoctorAppointmentsController } from './presentation/controllers/doctor-appointments.controller.js';
@@ -250,9 +252,26 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     },
     {
       provide: MintConsultationRoomTokenUseCase,
-      useFactory: (repository: ConsultationSessionRepository, roomTokenGenerator: RoomTokenGeneratorPort) =>
-        new MintConsultationRoomTokenUseCase(repository, roomTokenGenerator),
-      inject: [CONSULTATION_SESSION_REPOSITORY, ROOM_TOKEN_GENERATOR],
+      useFactory: (
+        repository: ConsultationSessionRepository,
+        appointmentRepository: AppointmentRepository,
+        roomTokenGenerator: RoomTokenGeneratorPort,
+      ) => new MintConsultationRoomTokenUseCase(repository, appointmentRepository, roomTokenGenerator),
+      inject: [CONSULTATION_SESSION_REPOSITORY, APPOINTMENT_REPOSITORY, ROOM_TOKEN_GENERATOR],
+    },
+    {
+      provide: MarkMissedAppointmentsNoShowUseCase,
+      useFactory: (appointmentRepository: AppointmentRepository) =>
+        new MarkMissedAppointmentsNoShowUseCase(appointmentRepository),
+      inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
+      provide: AppointmentNoShowReconciliationService,
+      useFactory: (
+        markMissedAppointmentsNoShowUseCase: MarkMissedAppointmentsNoShowUseCase,
+        logger: PinoLoggerService,
+      ) => new AppointmentNoShowReconciliationService(markMissedAppointmentsNoShowUseCase, logger),
+      inject: [MarkMissedAppointmentsNoShowUseCase, PinoLoggerService],
     },
     {
       provide: RecordSessionConnectionLogUseCase,

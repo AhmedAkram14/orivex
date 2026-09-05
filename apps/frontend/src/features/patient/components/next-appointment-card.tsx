@@ -6,6 +6,7 @@ import { ConsultationOutcomeAction } from '@/features/consultation/components/co
 import { PayNowAction } from '@/features/payment/components/pay-now-action';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
 import type { Appointment, AppointmentStatus } from '@/features/patient/api/types';
+import { canJoinCall } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { isSameDay } from '@/shared/lib/date/week';
@@ -119,7 +120,7 @@ export function NextAppointmentCard() {
   const primaryAction =
     next.paymentRequired && next.feeAmount ? (
       <PayNowAction appointmentId={next.id} amount={next.feeAmount} />
-    ) : next.status === 'confirmed' && next.consultationSessionId ? (
+    ) : next.status === 'confirmed' && next.consultationSessionId && canJoinCall(next.scheduledAt) ? (
       <JoinCallAction consultationSessionId={next.consultationSessionId} />
     ) : next.status === 'completed' && next.consultationSessionId ? (
       <ConsultationOutcomeAction consultationSessionId={next.consultationSessionId} />

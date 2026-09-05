@@ -29,6 +29,12 @@ export interface AppointmentRepository {
   // Reports page, one query for every real status count at once rather
   // than a separate count() call per status.
   countByStatusForDoctor(doctorId: string): Promise<Partial<Record<AppointmentStatus, number>>>;
+  // Join-Window Enforcement feature: backs the No-show reconciliation sweep
+  // -- a Confirmed appointment scheduled before the cutoff whose own
+  // ConsultationSession never left WaitingRoom (nobody, doctor or patient,
+  // ever actually joined). Mirrors ConsultationSessionRepository.findStale's
+  // "system sweep" precedent.
+  findConfirmedPastJoinWindowMissed(cutoff: Date): Promise<Appointment[]>;
   // Throws on a stale version (optimistic locking) -- callers must reload
   // and retry rather than treat this as a generic failure.
   save(appointment: Appointment): Promise<void>;

@@ -27,6 +27,9 @@ import { BookAppointmentCommand } from './book-appointment.command.js';
 import { BookAppointmentUseCase } from './book-appointment.use-case.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   public readonly saved: Appointment[] = [];
   public failOnSaveCount = 0;
   private readonly byId = new Map<string, Appointment>();

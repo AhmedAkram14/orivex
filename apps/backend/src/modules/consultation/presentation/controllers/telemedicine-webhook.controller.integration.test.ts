@@ -52,6 +52,9 @@ class NoopDispatcher {
 }
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   async findById(): Promise<Appointment | null> {
     return null;
   }

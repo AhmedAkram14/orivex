@@ -54,7 +54,11 @@ describe('PatientDashboardPage', () => {
   });
 
   it('highlights the real soonest upcoming appointment as the Next Appointment hero, with a real join action', async () => {
-    const soon = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    // Join-Window Enforcement feature: within the 15-minutes-before window
+    // (canJoinCall), not an arbitrary "in the future" time -- this test is
+    // about the hero card surfacing a real Join action, not about window
+    // boundaries themselves (covered by appointment-time.test.ts).
+    const soon = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     server.use(
       http.get(`${env.apiBaseUrl}/appointments/me`, () =>
         HttpResponse.json({

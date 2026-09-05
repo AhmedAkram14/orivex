@@ -132,6 +132,9 @@ class InMemoryInsuranceProviderRepository implements InsuranceProviderRepository
 }
 
 class InMemoryAppointmentRepository implements Partial<AppointmentRepository> {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   constructor(private readonly appointments: Appointment[]) {}
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     return this.appointments.filter((a) => a.getDoctorId() === doctorId);

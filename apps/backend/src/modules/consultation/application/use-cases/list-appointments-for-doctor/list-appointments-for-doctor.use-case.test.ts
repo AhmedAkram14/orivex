@@ -8,6 +8,9 @@ import { ConsultationPricing } from '../../../domain/value-objects/consultation-
 import { ListAppointmentsForDoctorUseCase } from './list-appointments-for-doctor.use-case.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   constructor(private readonly appointments: Appointment[]) {}
   async findById(): Promise<Appointment | null> {
     return null;

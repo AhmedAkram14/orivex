@@ -32,6 +32,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
 }
 
 class FakeAppointmentRepository implements AppointmentRepository {
+  async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
+    return [];
+  }
   public readonly saved: Appointment[] = [];
   constructor(private readonly appointment: Appointment | null) {}
   async findById(): Promise<Appointment | null> {

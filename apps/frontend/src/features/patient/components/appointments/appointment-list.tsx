@@ -7,7 +7,7 @@ import { PayNowAction } from '@/features/payment/components/pay-now-action';
 import { CancelAction } from '@/features/patient/components/appointments/cancel-action';
 import { RescheduleAction } from '@/features/patient/components/appointments/reschedule-action';
 import type { Appointment } from '@/features/patient/api/types';
-import { isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
+import { canJoinCall, isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
@@ -17,11 +17,19 @@ import { EmptyState } from '@/shared/ui/empty-state';
  * Patient-Facing Reschedule (Phase 3 Step 2): only a still-Requested or
  * Confirmed appointment can actually be rescheduled (matches the real
  * backend's own `Appointment.markRescheduled()` guard exactly) -- a
- * Rescheduled/Cancelled/Completed/No-show appointment is terminal or
- * already superseded, so no Reschedule action is ever offered for one.
+ * Rescheduled/Cancelled/Completed appointment is terminal or already
+ * superseded, so no Reschedule action is ever offered for one. Join-Window
+ * Enforcement feature: a No-show appointment is also reschedulable now
+ * (`markRescheduled()`'s guard was extended to allow it) -- a missed slot
+ * shouldn't dead-end the patient, and it's always "still upcoming" in the
+ * sense that matters here (there's no future scheduledAt to check against).
  */
 function canReschedule(appointment: Appointment): boolean {
-  return (appointment.status === 'requested' || appointment.status === 'confirmed') && isAppointmentStillUpcoming(appointment.scheduledAt);
+  return (
+    ((appointment.status === 'requested' || appointment.status === 'confirmed') &&
+      isAppointmentStillUpcoming(appointment.scheduledAt)) ||
+    appointment.status === 'no_show'
+  );
 }
 
 /**
@@ -29,20 +37,25 @@ function canReschedule(appointment: Appointment): boolean {
  * actually be cancelled (matches the real backend's own
  * `RescheduleOrCancelAppointmentUseCase.cancel()` guard exactly) -- the same
  * eligibility as reschedule, so both actions always appear together.
+ * Join-Window Enforcement feature: a No-show appointment is cancellable too
+ * (`cancel()`'s guard was extended to allow it).
  */
 function canCancel(appointment: Appointment): boolean {
-  return appointment.status === 'requested' || appointment.status === 'confirmed';
+  return appointment.status === 'requested' || appointment.status === 'confirmed' || appointment.status === 'no_show';
 }
 
 /**
  * Demo Readiness P0: true exactly when cancelling would trigger a real
  * refund -- a Paid appointment that is already Confirmed (i.e. already
- * paid; `paymentRequired` is false again once payment succeeds). A
- * still-Requested Paid appointment hasn't been charged yet, so cancelling it
- * never refunds anything.
+ * paid; `paymentRequired` is false again once payment succeeds), or one
+ * that's since been marked No-show (still Paid, still charged -- the
+ * backend's `AutoRefundOnAppointmentCancellationHandler` refunds
+ * unconditionally based on the transaction's own status, not the
+ * appointment's prior status). A still-Requested Paid appointment hasn't
+ * been charged yet, so cancelling it never refunds anything.
  */
 function cancelWillRefund(appointment: Appointment): boolean {
-  return appointment.consultationType === 'paid' && appointment.status === 'confirmed';
+  return appointment.consultationType === 'paid' && (appointment.status === 'confirmed' || appointment.status === 'no_show');
 }
 
 export interface AppointmentListProps {
@@ -82,7 +95,7 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
             <PayNowAction appointmentId={appointment.id} amount={appointment.feeAmount} />
           ) : appointment.status === 'confirmed' &&
             appointment.consultationSessionId &&
-            isAppointmentStillUpcoming(appointment.scheduledAt) ? (
+            canJoinCall(appointment.scheduledAt) ? (
             <JoinCallAction consultationSessionId={appointment.consultationSessionId} />
           ) : appointment.status === 'completed' && appointment.consultationSessionId ? (
             <ConsultationOutcomeAction
