@@ -296,6 +296,7 @@ export function setPatientDashboardState(
     activePrescriptions?: ActivePrescriptionPreview[];
     medicalRecords?: MedicalRecordEntry[];
     prescriptions?: Prescription[];
+    healthDashboard?: HealthVitalSummary[];
   },
 ): void {
   if (state.summary) summaryByAccountId.set(accountId, state.summary);
@@ -303,6 +304,7 @@ export function setPatientDashboardState(
   if (state.activePrescriptions) activePrescriptionsByAccountId.set(accountId, state.activePrescriptions);
   if (state.medicalRecords) medicalRecordsByAccountId.set(accountId, state.medicalRecords);
   if (state.prescriptions) prescriptionsByAccountId.set(accountId, state.prescriptions);
+  if (state.healthDashboard) healthDashboardByAccountId.set(accountId, state.healthDashboard);
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Choose-Your-

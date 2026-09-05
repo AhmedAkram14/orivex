@@ -25,7 +25,7 @@ export default function PatientHealthDashboardPage() {
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
+        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} description={t('description')} />
 
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 

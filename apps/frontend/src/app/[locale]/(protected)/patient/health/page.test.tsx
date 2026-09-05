@@ -4,6 +4,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import PatientHealthDashboardPage from './page';
 import { server } from '@/mocks/server';
+import { LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
+import { resetPatientStore, setPatientDashboardState } from '@/mocks/patient-store';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
@@ -19,7 +21,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  resetPatientStore();
+});
 afterAll(() => server.close());
 
 const patientState: AuthState = {
@@ -56,5 +61,30 @@ describe('PatientHealthDashboardPage', () => {
     expect(screen.getByText('Weight')).toBeInTheDocument();
     expect(screen.getByText('Blood Pressure')).toBeInTheDocument();
     expect(screen.getByText('Blood Sugar')).toBeInTheDocument();
+  });
+
+  it('renders a real latest value and trend chart for a populated vital, alongside honest empty states for the rest', async () => {
+    setPatientDashboardState(LEGACY_PATIENT_ACCOUNT_ID, {
+      healthDashboard: [
+        {
+          type: 'weight',
+          latest: { id: 'w-2', type: 'weight', recordedAt: '2026-08-20T00:00:00.000Z', valueLabel: '78.7 kg', value: 78.7 },
+          readings: [
+            { id: 'w-1', type: 'weight', recordedAt: '2026-07-20T00:00:00.000Z', valueLabel: '76.6 kg', value: 76.6 },
+            { id: 'w-2', type: 'weight', recordedAt: '2026-08-20T00:00:00.000Z', valueLabel: '78.7 kg', value: 78.7 },
+          ],
+        },
+      ],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('78.7 kg')).toBeInTheDocument();
+    expect(screen.getByText('Aug 20, 2026')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Weight trend over recent readings' })).toBeInTheDocument();
+
+    // Blood pressure and blood sugar have no readings on this patient -- still honest empty states.
+    expect(screen.getByText('No blood pressure readings yet')).toBeInTheDocument();
+    expect(screen.getByText('No blood sugar readings yet')).toBeInTheDocument();
   });
 });

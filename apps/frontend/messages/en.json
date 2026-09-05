@@ -1496,6 +1496,7 @@
     },
     "health": {
       "title": "Health Dashboard",
+      "description": "Your latest health readings and trends. Your care team records these during your consultations.",
       "loadError": "Couldn't load your health dashboard.",
       "vitals": {
         "weight": {

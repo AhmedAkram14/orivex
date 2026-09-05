@@ -4,11 +4,22 @@ const VIEWBOX_WIDTH = 240;
 const VIEWBOX_HEIGHT = 64;
 const PADDING = 6;
 
+export type TrendChartTone = 'primary' | 'info' | 'danger' | 'success';
+
+const strokeClassByTone: Record<TrendChartTone, string> = {
+  primary: 'stroke-primary',
+  info: 'stroke-info',
+  danger: 'stroke-danger',
+  success: 'stroke-success',
+};
+
 export interface TrendChartProps {
   /** Raw numeric readings, oldest to newest — this component never formats or fabricates values, it only plots what it's given. */
   values: number[];
   /** Accessible description of the trend (e.g. "Weight over the last 6 readings, 74 to 71 kg") — the SVG itself is marked decorative since a screen reader can't usefully trace a polyline. */
   label: string;
+  /** Line color, matching the vital's own accent elsewhere on its card (e.g. `VitalTrendCard`'s icon). Defaults to 'primary' — the original single-color behavior every existing caller/test/story still gets unchanged. */
+  tone?: TrendChartTone;
   className?: string;
 }
 
@@ -19,7 +30,7 @@ export interface TrendChartProps {
  * one); a hand-rolled polyline is the same approach already used for
  * `WeeklyCalendar`'s custom grid, not a shortcut specific to this component.
  */
-export function TrendChart({ values, label, className }: TrendChartProps) {
+export function TrendChart({ values, label, tone = 'primary', className }: TrendChartProps) {
   if (values.length < 2) {
     return (
       <div className={cn('flex h-16 items-center justify-center text-xs text-text-tertiary', className)}>
@@ -56,7 +67,7 @@ export function TrendChart({ values, label, className }: TrendChartProps) {
       <polyline
         points={points}
         fill="none"
-        className="stroke-primary"
+        className={strokeClassByTone[tone]}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"

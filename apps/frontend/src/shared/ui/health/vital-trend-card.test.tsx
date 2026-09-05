@@ -39,4 +39,21 @@ describe('VitalTrendCard', () => {
 
     expect(screen.getByText('No weight readings yet')).toBeInTheDocument();
   });
+
+  it('applies the given accent color to the icon circle', () => {
+    const { container } = renderWithProviders(
+      <VitalTrendCard
+        icon={Scale}
+        title="Weight"
+        accentClassName="bg-info-subtle text-info-emphasis"
+        trendValues={[68, 70, 74]}
+        latestValueLabel="74 kg"
+        trendLabel="Weight rising from 68 to 74 kg"
+        emptyTitle="No weight readings yet"
+        emptyDescription="Your weight readings will appear here once recorded."
+      />,
+    );
+
+    expect(container.querySelector('.bg-info-subtle')).toBeInTheDocument();
+  });
 });

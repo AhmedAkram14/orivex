@@ -16,4 +16,14 @@ describe('TrendChart', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(screen.getByText('Only one reading on record')).toBeInTheDocument();
   });
+
+  it('colors the line by tone, defaulting to primary', () => {
+    const { rerender, container } = renderWithProviders(
+      <TrendChart values={[68, 70, 74]} label="Weight rising from 68 to 74 kg" />,
+    );
+    expect(container.querySelector('polyline')).toHaveClass('stroke-primary');
+
+    rerender(<TrendChart values={[68, 70, 74]} label="Weight rising from 68 to 74 kg" tone="info" />);
+    expect(container.querySelector('polyline')).toHaveClass('stroke-info');
+  });
 });
