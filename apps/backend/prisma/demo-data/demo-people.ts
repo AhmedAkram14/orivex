@@ -263,7 +263,18 @@ export const DEMO_DOCTORS: DemoDoctor[] = [
     publications: [{ title: 'Dual-Diagnosis Treatment Outcomes in Alexandria', reference: 'Egyptian Journal of Psychiatry', monthsAgo: 20 }],
     awards: [{ title: 'Addiction Medicine Service Award', issuingBody: 'Alexandria General Hospital', monthsAgo: 26 }],
     workExperience: [{ organizationName: 'Alexandria General Hospital', position: 'Psychiatrist', yearsAgo: 7, yearsDuration: 7 }],
-    verification: 'pending',
+    // Data Density & Full Coverage pass: flipped from 'pending' to
+    // 'approved' -- a doctor stuck at "application submitted, never
+    // decided" is a genuine real-world state, but it also means this
+    // account never gets promoted to the Doctor role at all (no working
+    // hours, no availability, no bookable capacity -- see how `doctors` is
+    // resolved in Section 5 below), leaving it the one account in the
+    // entire 20-doctor roster with no usable Doctor Workspace. The
+    // "pending verification" scenario itself is still demonstrated on the
+    // patient side (patient12/patient14 are 'pending') and via doctor11's
+    // full rejected -> resubmitted -> approved cycle (Scenario G) --
+    // doctor09 doesn't need to be the only account carrying it.
+    verification: 'approved',
   },
   {
     email: 'doctor10@orivex.dev',

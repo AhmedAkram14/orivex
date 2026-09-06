@@ -72,14 +72,26 @@ function pick<T>(items: readonly T[], seed: number): T {
 // of sync with the actual files under public/demo/documents/ and starts
 // pointing signedUrl at files that don't exist.
 const PATIENT_EMAILS_WITH_REAL_DOCUMENT_FILES = new Set([
+  'patient01@orivex.dev',
+  'patient02@orivex.dev',
   'patient03@orivex.dev',
+  'patient04@orivex.dev',
   'patient05@orivex.dev',
+  'patient06@orivex.dev',
   'patient07@orivex.dev',
+  'patient08@orivex.dev',
   'patient09@orivex.dev',
+  'patient10@orivex.dev',
   'patient11@orivex.dev',
+  'patient12@orivex.dev',
   'patient13@orivex.dev',
+  'patient14@orivex.dev',
   'patient15@orivex.dev',
+  'patient16@orivex.dev',
   'patient17@orivex.dev',
+  'patient18@orivex.dev',
+  'patient19@orivex.dev',
+  'patient20@orivex.dev',
 ]);
 const CLINICAL_DOCUMENT_KINDS: readonly {
   purpose: MockMediaAsset['purpose'];
