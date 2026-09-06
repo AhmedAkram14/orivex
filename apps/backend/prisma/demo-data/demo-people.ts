@@ -140,10 +140,17 @@ export const DEMO_DOCTORS: DemoDoctor[] = [
     yearsOfExperience: 5,
     licenseNumber: 'EG-PSY-10024',
     licenseExpiryYearsFromNow: 2,
-    biography: 'Early-career psychiatrist building a practice around evidence-based treatment for anxiety and panic disorders.',
+    biography: 'Early-career psychiatrist building a practice around evidence-based treatment for anxiety and panic disorders, currently offering free consultations while building a patient base.',
     languages: ['Arabic', 'English'],
     insuranceProviders: [],
-    consultationFeeAmount: 250,
+    // The one Free-consultation doctor in this roster (every other demo
+    // doctor is Paid) -- deliberate, not an oversight: a Free+Requested
+    // appointment is the only shape the doctor-approval workflow's Pending
+    // Approval queue ever surfaces (Paid bookings confirm automatically on
+    // payment, see DoctorAppointmentsController#getPendingApproval), so
+    // without at least one Free doctor that screen can never be populated
+    // for any demo account, no matter how the seed's RNG rolls.
+    consultationFeeAmount: undefined,
     hospitalName: undefined,
     publications: [{ title: 'Evidence-Based Approaches to Panic Disorder in Young Adults', reference: 'Egyptian Journal of Psychiatry', monthsAgo: 6 }],
     awards: [{ title: 'Resident Research Recognition', issuingBody: 'Nile Medical Center', monthsAgo: 18 }],

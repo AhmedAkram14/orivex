@@ -9,7 +9,6 @@ import { Heading } from '@/design-system/typography';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { cn } from '@/shared/lib/cn';
 import { ConsultationContainer } from '@/shared/ui/consultation/consultation-container';
@@ -37,14 +36,21 @@ const PATIENT_FIELDS = [
  * The Consultation Workspace — the three-pane layout (Left Navigation,
  * Main Workspace, Right Information Panel) future consultation tooling
  * will render inside. Placeholder containers only: switching the left
- * nav's section changes which placeholder shows in the main pane, but no
- * medical form or real consultation data exists yet, per this phase's
- * explicit scope. The "Overview" section gets a real illustrated empty
- * state (matching the approved reference design) since it's the genuine
- * entry point -- "Open Patient Queue" links to the real `/doctor/queue`
- * page, the actual place a consultation session is started from. Vitals/
- * Notes/History keep the plain "not built yet" placeholder since those
- * tools genuinely don't exist, independent of whether a patient is picked.
+ * nav's section changes which placeholder shows in the main pane. The
+ * "Overview" section gets a real illustrated empty state (matching the
+ * approved reference design) since it's the genuine entry point --
+ * "Open Patient Queue" links to the real `/doctor/queue` page, the actual
+ * place a consultation session is started from and where the real, working
+ * clinical tooling (notes, vitals, diagnosis, prescriptions, Health
+ * Journey stage) already lives, in `ConsultationWorkspaceAction`'s dialog.
+ * Vitals/Notes/History here keep the plain "not built yet" placeholder --
+ * this standalone route is not where that tooling is being built.
+ *
+ * False-readiness fix (ORIVEX Remaining Work Audit, P0 C6): this page
+ * previously rendered a green "Module ready" badge in its header, actively
+ * asserting a readiness this placeholder route does not have -- removed
+ * rather than replaced, since the honest empty states below already say
+ * what's real and what isn't.
  */
 export default function DoctorConsultationPage() {
   const t = useTranslations('doctor.consultation');
@@ -54,16 +60,7 @@ export default function DoctorConsultationPage() {
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader
-          breadcrumbs={<AppBreadcrumbs />}
-          title={t('title')}
-          actions={
-            <Badge variant="success" className="gap-1.5 px-3 py-1">
-              <span className="size-1.5 rounded-full bg-success" aria-hidden="true" />
-              {t('moduleReady')}
-            </Badge>
-          }
-        />
+        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
 
         <ConsultationContainer
           leftNav={

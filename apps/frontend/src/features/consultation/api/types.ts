@@ -53,6 +53,25 @@ export interface ConsultationPrescription {
   signedAt: string | null;
 }
 
+/**
+ * Matches SignPrescriptionRequestDto's own lineItems[] shape exactly.
+ * drugCatalogId is required by the real backend contract (no ReferenceDataModule
+ * drug catalog exists yet -- PrescriptionLineItem's own domain comment: "stored
+ * as real, required, doctor-supplied data with no FK"), so the caller mints a
+ * real client-side id (crypto.randomUUID()) rather than referencing a
+ * fabricated catalog entry; drugName carries the doctor's actual free-text
+ * medication name and is what every consumer (patient portal, doctor chart)
+ * displays.
+ */
+export interface SignPrescriptionLineItemInput {
+  drugCatalogId: string;
+  drugName: string;
+  dosage: string;
+  frequency: string;
+  durationDays: number;
+  instructions?: string;
+}
+
 /** Matches HealthGraphNodeResponseDto exactly. */
 export interface DiagnosisNode {
   id: string;
@@ -98,6 +117,25 @@ export interface ConsultationVitalReading {
   diastolicValue?: number;
 }
 
+/**
+ * Matches docs/12-openapi.md's HealthJourney schema, and JourneyStage's own
+ * forward-only state model exactly (Health Journey stage-advance fix,
+ * ORIVEX Remaining Work Audit P0 C5): Diagnosis -> FollowUp -> Monitoring ->
+ * (Resolved | OngoingChronic), with ReferredOut reachable as an exceptional
+ * branch from any non-terminal stage. Terminal stages never advance
+ * further.
+ */
+export type JourneyStage = 'diagnosis' | 'follow_up' | 'monitoring' | 'resolved' | 'ongoing_chronic' | 'referred_out';
+
+/** Matches HealthJourneyResponseDto exactly. */
+export interface HealthJourney {
+  id: string;
+  rootNode: DiagnosisNode;
+  stage: JourneyStage;
+  linkedNodeIds: string[];
+  lastUpdatedAt: string;
+}
+
 /** Matches ConsultationSummaryResponseDto exactly -- backs both the doctor wrap-up view and the patient post-consultation summary. */
 export interface ConsultationSummary {
   session: ConsultationSession;
@@ -108,6 +146,7 @@ export interface ConsultationSummary {
   vitalReadings: ConsultationVitalReading[];
   followUpRecommendation: FollowUpRecommendation | null;
   feedback: ConsultationFeedback | null;
+  journeys: HealthJourney[];
 }
 
 /** Matches DoctorReviewsResponseDto exactly. */

@@ -33,6 +33,16 @@ function renderPage() {
 }
 
 describe('DoctorConsultationPage', () => {
+  // False-readiness fix (ORIVEX Remaining Work Audit, P0 C6): this page
+  // used to render a "Module ready" badge that contradicted its own
+  // honest placeholder content below it.
+  it('never claims to be ready -- the real clinical tooling lives in the queue-launched workspace, not here', async () => {
+    renderPage();
+    await screen.findAllByText('Overview');
+
+    expect(screen.queryByText('Module ready')).not.toBeInTheDocument();
+  });
+
   it('shows the Overview section as a placeholder by default', async () => {
     renderPage();
     // "Overview" appears twice: once as the active nav button, once as the main-pane placeholder title.

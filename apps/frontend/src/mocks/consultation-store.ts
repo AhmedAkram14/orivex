@@ -2,12 +2,16 @@ import type {
   ClinicalNote,
   ConsultationCompletionReason,
   ConsultationFeedback,
+  ConsultationPrescription,
   ConsultationSession,
   ConsultationSummary,
   ConsultationVitalReading,
   DiagnosisNode,
   DoctorReviewsResult,
   FollowUpRecommendation,
+  HealthJourney,
+  JourneyStage,
+  SignPrescriptionLineItemInput,
   VitalReadingType,
 } from '@/features/consultation/api/types';
 import { getAppointments, getProfile as getPatientProfile } from '@/mocks/patient-store';
@@ -32,6 +36,12 @@ const followUpBySessionId = new Map<string, FollowUpRecommendation>();
 const notesBySessionId = new Map<string, ClinicalNote[]>();
 const diagnosesBySessionId = new Map<string, DiagnosisNode[]>();
 const vitalsBySessionId = new Map<string, ConsultationVitalReading[]>();
+const prescriptionsBySessionId = new Map<string, ConsultationPrescription[]>();
+// Health Journey stage-advance fix (ORIVEX Remaining Work Audit, P0 C5):
+// keyed by session, same simplification as everything else in this mock
+// (the real backend scopes Health Journeys per-patient, spanning sessions
+// -- this mock's single-appointment-per-test model doesn't need that).
+const journeysBySessionId = new Map<string, HealthJourney[]>();
 
 const DOCTOR_ID = 'doctor-profile-1';
 
@@ -216,7 +226,8 @@ export function recordConsultationDiagnosis(
   consultationSessionId: string,
   freeTextDescription: string,
   certaintyLevel: 'suspected' | 'confirmed' | 'ruled_out' = 'suspected',
-): DiagnosisNode {
+  startJourney = false,
+): { node: DiagnosisNode; journey?: HealthJourney } {
   const node: DiagnosisNode = {
     id: `diagnosis-${Date.now()}`,
     nodeType: 'condition',
@@ -228,7 +239,74 @@ export function recordConsultationDiagnosis(
     ...(diagnosesBySessionId.get(consultationSessionId) ?? []),
     node,
   ]);
-  return node;
+
+  if (!startJourney) {
+    return { node };
+  }
+
+  const journey: HealthJourney = {
+    id: `journey-${Date.now()}`,
+    rootNode: node,
+    stage: 'diagnosis',
+    linkedNodeIds: [],
+    lastUpdatedAt: new Date().toISOString(),
+  };
+  journeysBySessionId.set(consultationSessionId, [...(journeysBySessionId.get(consultationSessionId) ?? []), journey]);
+  return { node, journey };
+}
+
+// The real JourneyController (`PATCH /journeys/:id`) resolves a journey by
+// id alone, with no session in its path either -- it walks
+// journeyId -> healthGraphId -> patientId instead. This mock has no such
+// chain, so it searches across every session's own journey list for the
+// matching id (journeysBySessionId is otherwise keyed by session, see its
+// own comment).
+export function updateConsultationJourneyStage(journeyId: string, stage: JourneyStage): HealthJourney | null {
+  for (const [sessionId, journeys] of journeysBySessionId.entries()) {
+    const index = journeys.findIndex((journey) => journey.id === journeyId);
+    if (index !== -1) {
+      const updated: HealthJourney = { ...journeys[index], stage, lastUpdatedAt: new Date().toISOString() };
+      journeys[index] = updated;
+      journeysBySessionId.set(sessionId, journeys);
+      return updated;
+    }
+  }
+  return null;
+}
+
+/**
+ * Doctor prescription authoring (ORIVEX Remaining Work Audit, P0 C4): mirrors
+ * the real backend's own shape -- one prescription, one lineItems[] entry
+ * per call, immediately signed (this mock has no draft state, matching how
+ * the real `SignPrescriptionUseCase` signs on creation).
+ */
+export function recordConsultationPrescription(
+  consultationSessionId: string,
+  diagnosisNodeId: string,
+  lineItem: SignPrescriptionLineItemInput,
+): ConsultationPrescription {
+  const prescription: ConsultationPrescription = {
+    id: `prescription-${Date.now()}`,
+    consultationSessionId,
+    diagnosisNodeId,
+    status: 'signed',
+    lineItems: [
+      {
+        drugCatalogId: lineItem.drugCatalogId,
+        drugName: lineItem.drugName,
+        dosage: lineItem.dosage,
+        frequency: lineItem.frequency,
+        durationDays: lineItem.durationDays,
+        instructions: lineItem.instructions ?? null,
+      },
+    ],
+    signedAt: new Date().toISOString(),
+  };
+  prescriptionsBySessionId.set(consultationSessionId, [
+    ...(prescriptionsBySessionId.get(consultationSessionId) ?? []),
+    prescription,
+  ]);
+  return prescription;
 }
 
 export function closeConsultation(
@@ -265,11 +343,12 @@ export function getConsultationSummary(consultationSessionId: string): Consultat
       rescheduledFromId: null,
     },
     clinicalNotes: notesBySessionId.get(consultationSessionId) ?? [],
-    prescriptions: [],
+    prescriptions: prescriptionsBySessionId.get(consultationSessionId) ?? [],
     diagnoses: diagnosesBySessionId.get(consultationSessionId) ?? [],
     vitalReadings: vitalsBySessionId.get(consultationSessionId) ?? [],
     followUpRecommendation: followUpBySessionId.get(consultationSessionId) ?? null,
     feedback: feedbackBySessionId.get(consultationSessionId) ?? null,
+    journeys: journeysBySessionId.get(consultationSessionId) ?? [],
   };
 }
 
@@ -372,6 +451,8 @@ export function resetConsultationStore(): void {
   notesBySessionId.clear();
   diagnosesBySessionId.clear();
   vitalsBySessionId.clear();
+  prescriptionsBySessionId.clear();
+  journeysBySessionId.clear();
   for (const feedback of [...seedFeedback(), ...seedDemoFeedback()]) {
     feedbackBySessionId.set(feedback.consultationSessionId, feedback);
   }
