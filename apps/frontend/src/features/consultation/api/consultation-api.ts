@@ -4,12 +4,16 @@ import type {
   ClinicalNote,
   ConsultationCompletionReason,
   ConsultationFeedback,
+  ConsultationPrescription,
   ConsultationSession,
   ConsultationSummary,
   ConsultationVitalReading,
   DiagnosisNode,
   DoctorReviewsResult,
   FollowUpRecommendation,
+  HealthJourney,
+  JourneyStage,
+  SignPrescriptionLineItemInput,
   VitalReadingType,
 } from '@/features/consultation/api/types';
 
@@ -69,11 +73,12 @@ export const consultationApi = {
     consultationSessionId: string,
     freeTextDescription: string,
     certaintyLevel?: 'suspected' | 'confirmed' | 'ruled_out',
+    startJourney?: boolean,
   ) =>
-    apiFetch<{ node: DiagnosisNode }>({
+    apiFetch<{ node: DiagnosisNode; journey?: HealthJourney }>({
       method: 'POST',
       path: CONSULTATION_PATHS.diagnosis(consultationSessionId),
-      body: { freeTextDescription, certaintyLevel },
+      body: { freeTextDescription, certaintyLevel, startJourney },
     }),
 
   recordNote: (consultationSessionId: string, content: string) =>
@@ -91,4 +96,26 @@ export const consultationApi = {
     apiFetch<DoctorReviewsResult>({
       path: `${CONSULTATION_PATHS.doctorReviews(doctorProfileId)}?page=${page}&limit=${limit}`,
     }),
+
+  /**
+   * One prescription per call, matching the real backend contract exactly
+   * (`POST /prescriptions` signs one prescription, whose lineItems[] is a
+   * single doctor-supplied medication here) -- a doctor prescribing more
+   * than one medication in a visit calls this once per medication, never a
+   * fabricated bulk endpoint.
+   */
+  signPrescription: (consultationSessionId: string, diagnosisNodeId: string, lineItem: SignPrescriptionLineItemInput) =>
+    apiFetch<ConsultationPrescription>({
+      method: 'POST',
+      path: CONSULTATION_PATHS.prescriptions(),
+      body: { consultationSessionId, diagnosisNodeId, lineItems: [lineItem] },
+    }),
+
+  /**
+   * Health Journey stage-advance fix (ORIVEX Remaining Work Audit, P0 C5):
+   * only the treating doctor may call this (enforced server-side by the
+   * real doctor-relationship + consent check JourneyController runs).
+   */
+  updateJourneyStage: (journeyId: string, stage: JourneyStage) =>
+    apiFetch<HealthJourney>({ method: 'PATCH', path: CONSULTATION_PATHS.journeyStage(journeyId), body: { stage } }),
 };

@@ -22,10 +22,13 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import { VERIFICATION_CASE_REPOSITORY } from '../../application/ports/tokens.js';
 import { DecideVerificationUseCase } from '../../application/use-cases/decide-verification/decide-verification.use-case.js';
 import { ListVerificationCasesForSubjectUseCase } from '../../application/use-cases/list-verification-cases-for-subject/list-verification-cases-for-subject.use-case.js';
+import { RecordAuditLogUseCase } from '../../application/use-cases/record-audit-log/record-audit-log.use-case.js';
 import { SubmitDoctorVerificationUseCase } from '../../application/use-cases/submit-doctor-verification/submit-doctor-verification.use-case.js';
 import { SuspendVerificationCaseUseCase } from '../../application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
+import type { AuditLog } from '../../domain/entities/audit-log.entity.js';
 import type { VerificationCase } from '../../domain/entities/verification-case.entity.js';
 import type { VerificationSubjectType } from '../../domain/enums/verification-subject-type.enum.js';
+import type { AuditLogRepository } from '../../domain/repositories/audit-log.repository.js';
 import type { VerificationCaseRepository } from '../../domain/repositories/verification-case.repository.js';
 
 import { DoctorVerificationController } from './doctor-verification.controller.js';
@@ -102,10 +105,18 @@ class NoopDomainEventDispatcher {
   subscribe(): void {}
 }
 
+class InMemoryAuditLogRepository implements AuditLogRepository {
+  public readonly recorded: AuditLog[] = [];
+  async record(entry: AuditLog): Promise<void> {
+    this.recorded.push(entry);
+  }
+}
+
 describe('Trust controllers (integration)', () => {
   let app: INestApplication;
   let doctorProfile: DoctorProfile;
   let createdCaseId: string;
+  let auditLogRepository: InMemoryAuditLogRepository;
 
   before(async () => {
     doctorProfile = DoctorProfile.register({
@@ -115,6 +126,7 @@ describe('Trust controllers (integration)', () => {
     });
 
     const doctorProfileRepository = new InMemoryDoctorProfileRepository(doctorProfile);
+    auditLogRepository = new InMemoryAuditLogRepository();
 
     const moduleRef = await Test.createTestingModule({
       controllers: [DoctorVerificationController, VerificationCaseController],
@@ -160,6 +172,7 @@ describe('Trust controllers (integration)', () => {
             new SuspendVerificationCaseUseCase(repo, dispatcher),
           inject: [VERIFICATION_CASE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
         },
+        { provide: RecordAuditLogUseCase, useFactory: () => new RecordAuditLogUseCase(auditLogRepository) },
       ],
     }).compile();
 
@@ -245,7 +258,7 @@ describe('Trust controllers (integration)', () => {
     assert.equal(response.body.error.code, 'FORBIDDEN');
   });
 
-  it('PATCH /verifications/:id approves the case', async () => {
+  it('PATCH /verifications/:id approves the case and records an audit log entry', async () => {
     const response = await request(app.getHttpServer())
       .patch(`/verifications/${createdCaseId}`)
       .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
@@ -254,6 +267,15 @@ describe('Trust controllers (integration)', () => {
 
     assert.equal(response.body.data.status, 'approved');
     assert.ok(response.body.data.decidedAt);
+
+    // Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): this
+    // admin action on sensitive data must leave a real, actor-attributed
+    // audit row, not just succeed silently.
+    const entry = auditLogRepository.recorded.find((e) => e.getSubjectId() === createdCaseId);
+    assert.ok(entry, 'expected an audit log entry for this verification decision');
+    assert.equal(entry?.getActorAccountId(), '99999999-9999-4999-8999-999999999999');
+    assert.equal(entry?.getActorRole(), 'super_admin');
+    assert.equal(entry?.getSubjectType(), 'verification_case');
   });
 
   it('PATCH /verifications/:id rejects redeciding an already-decided case', async () => {

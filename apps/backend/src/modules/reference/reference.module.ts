@@ -2,19 +2,28 @@ import { Module } from '@nestjs/common';
 
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 
-import { COUNTRY_REPOSITORY, INSURANCE_PROVIDER_REPOSITORY, MEDICAL_SPECIALTY_REPOSITORY } from './application/ports/tokens.js';
+import {
+  CONSENT_SCOPE_CATEGORY_REPOSITORY,
+  COUNTRY_REPOSITORY,
+  INSURANCE_PROVIDER_REPOSITORY,
+  MEDICAL_SPECIALTY_REPOSITORY,
+} from './application/ports/tokens.js';
 import { CreateCountryUseCase } from './application/use-cases/create-country/create-country.use-case.js';
 import { CreateInsuranceProviderUseCase } from './application/use-cases/create-insurance-provider/create-insurance-provider.use-case.js';
 import { CreateMedicalSpecialtyUseCase } from './application/use-cases/create-medical-specialty/create-medical-specialty.use-case.js';
+import { GetConsentScopeCategoryByCodeUseCase } from './application/use-cases/get-consent-scope-category-by-code/get-consent-scope-category-by-code.use-case.js';
+import { ListConsentScopeCategoriesUseCase } from './application/use-cases/list-consent-scope-categories/list-consent-scope-categories.use-case.js';
 import { ListCountriesUseCase } from './application/use-cases/list-countries/list-countries.use-case.js';
 import { ListInsuranceProvidersUseCase } from './application/use-cases/list-insurance-providers/list-insurance-providers.use-case.js';
 import { ListMedicalSpecialtiesUseCase } from './application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { UpdateCountryUseCase } from './application/use-cases/update-country/update-country.use-case.js';
 import { UpdateInsuranceProviderUseCase } from './application/use-cases/update-insurance-provider/update-insurance-provider.use-case.js';
 import { UpdateMedicalSpecialtyUseCase } from './application/use-cases/update-medical-specialty/update-medical-specialty.use-case.js';
+import type { ConsentScopeCategoryRepository } from './domain/repositories/consent-scope-category.repository.js';
 import type { CountryRepository } from './domain/repositories/country.repository.js';
 import type { InsuranceProviderRepository } from './domain/repositories/insurance-provider.repository.js';
 import type { MedicalSpecialtyRepository } from './domain/repositories/medical-specialty.repository.js';
+import { PrismaConsentScopeCategoryRepository } from './infrastructure/prisma/prisma-consent-scope-category.repository.js';
 import { PrismaCountryRepository } from './infrastructure/prisma/prisma-country.repository.js';
 import { PrismaInsuranceProviderRepository } from './infrastructure/prisma/prisma-insurance-provider.repository.js';
 import { PrismaMedicalSpecialtyRepository } from './infrastructure/prisma/prisma-medical-specialty.repository.js';
@@ -36,6 +45,17 @@ import { ReferenceDirectoryController } from './presentation/controllers/referen
     { provide: MEDICAL_SPECIALTY_REPOSITORY, useClass: PrismaMedicalSpecialtyRepository },
     { provide: COUNTRY_REPOSITORY, useClass: PrismaCountryRepository },
     { provide: INSURANCE_PROVIDER_REPOSITORY, useClass: PrismaInsuranceProviderRepository },
+    { provide: CONSENT_SCOPE_CATEGORY_REPOSITORY, useClass: PrismaConsentScopeCategoryRepository },
+    {
+      provide: GetConsentScopeCategoryByCodeUseCase,
+      useFactory: (repo: ConsentScopeCategoryRepository) => new GetConsentScopeCategoryByCodeUseCase(repo),
+      inject: [CONSENT_SCOPE_CATEGORY_REPOSITORY],
+    },
+    {
+      provide: ListConsentScopeCategoriesUseCase,
+      useFactory: (repo: ConsentScopeCategoryRepository) => new ListConsentScopeCategoriesUseCase(repo),
+      inject: [CONSENT_SCOPE_CATEGORY_REPOSITORY],
+    },
     {
       provide: ListMedicalSpecialtiesUseCase,
       useFactory: (repo: MedicalSpecialtyRepository) => new ListMedicalSpecialtiesUseCase(repo),
@@ -82,6 +102,12 @@ import { ReferenceDirectoryController } from './presentation/controllers/referen
       inject: [INSURANCE_PROVIDER_REPOSITORY],
     },
   ],
-  exports: [ListMedicalSpecialtiesUseCase, ListCountriesUseCase, ListInsuranceProvidersUseCase],
+  exports: [
+    ListMedicalSpecialtiesUseCase,
+    ListCountriesUseCase,
+    ListInsuranceProvidersUseCase,
+    GetConsentScopeCategoryByCodeUseCase,
+    ListConsentScopeCategoriesUseCase,
+  ],
 })
 export class ReferenceModule {}

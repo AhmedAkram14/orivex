@@ -1426,6 +1426,164 @@ async function main(): Promise<void> {
     }
 
     // -----------------------------------------------------------------
+    // 6.5. Today's Patient Queue (Doctor Workspace "Patient Queue" page --
+    // the entry point that triggered this whole data-population pass)
+    // -----------------------------------------------------------------
+    // DoctorAppointmentsController#getDoctorQueue reads today's
+    // Confirmed/Completed appointments and their live ConsultationSession
+    // state; #getPendingApproval reads any Free Requested appointment
+    // regardless of date. Section 6 above only ever books FUTURE windows
+    // (tomorrow or later, via buildWindowStartTimes) or HISTORICAL completed
+    // visits (>= 3 days ago, via historicalVisitBaseDate) -- by design
+    // neither ever lands on "today", so all four queue counters are
+    // naturally zero the instant this script finishes, no matter how the
+    // RNG rolls. This section closes that gap for four named doctors, one
+    // queue state each, through the exact same real use-case chain the
+    // running application itself uses -- AvailabilityWindow.define() still
+    // rejects a past start time, so "today" here always means "later today,
+    // relative to whenever this script runs".
+    //
+    // Because these rows are genuinely dated "today", they age out like any
+    // other real appointment once the calendar day turns over.
+    // reset-demo-data.ts (Rule 7's supported reset+reseed path) is what
+    // brings the queue back to "today" after time has passed -- there is no
+    // background job that re-dates existing rows, and inventing one only to
+    // keep a demo screen looking fresh would itself be exactly the kind of
+    // fake state this pass is told never to create.
+    console.info("Seeding today's patient queue...");
+
+    function findSeededDoctor(email: string): SeededDoctor | undefined {
+      return doctors.find((doctor) => doctor.demo.email === email);
+    }
+    function findSeededPatient(email: string): SeededPatient | undefined {
+      return patients.find((patient) => patient.demo.email === email);
+    }
+    function utcDayRangeFromNow(): { start: Date; end: Date } {
+      const now = new Date();
+      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      return { start, end: plusMinutes(start, 24 * 60) };
+    }
+    async function hasAppointmentToday(doctor: SeededDoctor): Promise<boolean> {
+      const { start, end } = utcDayRangeFromNow();
+      const existing = await appointmentRepository.findByDoctorIdForDateRange(doctor.doctorProfileId, start, end);
+      return existing.length > 0;
+    }
+    async function bookWindowLaterToday(
+      doctor: SeededDoctor,
+      patient: SeededPatient,
+      minutesFromNow: number,
+    ): Promise<Appointment> {
+      const pricing = doctor.demo.consultationFeeAmount
+        ? ConsultationPricing.paid(Money.create(doctor.demo.consultationFeeAmount, 'EGP'))
+        : ConsultationPricing.free();
+      const startTime = plusMinutes(new Date(), minutesFromNow);
+      const window = await defineAvailabilityWindow.execute(
+        new DefineAvailabilityWindowCommand({
+          doctorId: doctor.doctorProfileId,
+          startTime,
+          endTime: plusMinutes(startTime, 30),
+          pricing,
+        }),
+      );
+      return bookAppointment.execute(
+        new BookAppointmentCommand({
+          patientId: patient.patientProfileId,
+          doctorId: doctor.doctorProfileId,
+          availabilityWindowId: window.getId(),
+          reasonForVisit: pick(REASONS_FOR_VISIT),
+        }),
+      );
+    }
+
+    // Doctor A (doctor04 -- the one Free-consultation doctor in this
+    // roster): two guaranteed pending requests, never confirmed. Not
+    // date-scoped by the controller, so these don't need to land "today".
+    const pendingDoctor = findSeededDoctor('doctor04@orivex.dev');
+    const pendingPatientA = findSeededPatient('patient01@orivex.dev');
+    const pendingPatientB = findSeededPatient('patient02@orivex.dev');
+    if (pendingDoctor && pendingPatientA && pendingPatientB) {
+      try {
+        const alreadyPending = (await appointmentRepository.findByDoctorId(pendingDoctor.doctorProfileId)).some(
+          (appointment) => appointment.getStatus() === AppointmentStatus.Requested,
+        );
+        if (!alreadyPending) {
+          await bookWindowLaterToday(pendingDoctor, pendingPatientA, 4 * 60);
+          await bookWindowLaterToday(pendingDoctor, pendingPatientB, 6 * 60);
+          console.info(`  + pending-approval requests for ${pendingDoctor.demo.email}`);
+        }
+      } catch (error) {
+        console.warn(`  ! pending-approval seed for ${pendingDoctor.demo.email} skipped: ${describeError(error)}`);
+      }
+    }
+
+    // Doctor B (doctor02): a Confirmed-for-later-today appointment left in
+    // its opened WaitingRoom session -- "Waiting".
+    const waitingDoctor = findSeededDoctor('doctor02@orivex.dev');
+    const waitingPatient = findSeededPatient('patient03@orivex.dev');
+    if (waitingDoctor && waitingPatient) {
+      try {
+        if (!(await hasAppointmentToday(waitingDoctor))) {
+          const appointment = await bookWindowLaterToday(waitingDoctor, waitingPatient, 90);
+          await confirmViaPaymentOrApproval(appointment);
+          console.info(`  + waiting-room appointment for ${waitingDoctor.demo.email}`);
+        }
+      } catch (error) {
+        console.warn(`  ! waiting seed for ${waitingDoctor.demo.email} skipped: ${describeError(error)}`);
+      }
+    }
+
+    // Doctor C (doctor05): the same, but actually started -- "In
+    // Consultation".
+    const inConsultationDoctor = findSeededDoctor('doctor05@orivex.dev');
+    const inConsultationPatient = findSeededPatient('patient04@orivex.dev');
+    if (inConsultationDoctor && inConsultationPatient) {
+      try {
+        if (!(await hasAppointmentToday(inConsultationDoctor))) {
+          const appointment = await bookWindowLaterToday(inConsultationDoctor, inConsultationPatient, 15);
+          const sessionId = await confirmViaPaymentOrApproval(appointment);
+          if (sessionId) {
+            await startConsultation.execute(new StartConsultationCommand({ consultationSessionId: sessionId }));
+          }
+          console.info(`  + in-progress consultation for ${inConsultationDoctor.demo.email}`);
+        }
+      } catch (error) {
+        console.warn(`  ! in-consultation seed for ${inConsultationDoctor.demo.email} skipped: ${describeError(error)}`);
+      }
+    }
+
+    // Doctor D (doctor08): started AND closed -- "Completed Today", with a
+    // real clinical note so the card isn't a bare status pill.
+    const completedTodayDoctor = findSeededDoctor('doctor08@orivex.dev');
+    const completedTodayPatient = findSeededPatient('patient05@orivex.dev');
+    if (completedTodayDoctor && completedTodayPatient) {
+      try {
+        if (!(await hasAppointmentToday(completedTodayDoctor))) {
+          const appointment = await bookWindowLaterToday(completedTodayDoctor, completedTodayPatient, 5);
+          const sessionId = await confirmViaPaymentOrApproval(appointment);
+          if (sessionId) {
+            await startConsultation.execute(new StartConsultationCommand({ consultationSessionId: sessionId }));
+            await recordClinicalNote.execute(
+              new RecordClinicalNoteCommand({
+                consultationSessionId: sessionId,
+                authoringDoctorId: completedTodayDoctor.doctorProfileId,
+                content: pick(CLINICAL_NOTE_TEMPLATES),
+              }),
+            );
+            await closeConsultation.execute(
+              new CloseConsultationCommand({
+                consultationSessionId: sessionId,
+                completionReason: ConsultationCompletionReason.Completed,
+              }),
+            );
+          }
+          console.info(`  + completed-today consultation for ${completedTodayDoctor.demo.email}`);
+        }
+      } catch (error) {
+        console.warn(`  ! completed-today seed for ${completedTodayDoctor.demo.email} skipped: ${describeError(error)}`);
+      }
+    }
+
+    // -----------------------------------------------------------------
     // 7. Clinical documents (real MediaAssets, real objects in MinIO)
     // -----------------------------------------------------------------
     console.info('Seeding clinical documents...');
