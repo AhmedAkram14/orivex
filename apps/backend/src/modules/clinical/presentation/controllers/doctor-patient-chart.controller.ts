@@ -5,7 +5,7 @@ import { Roles } from '../../../authentication/presentation/decorators/roles.dec
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
-import { NotFoundError } from '../../../../shared/errors/app-error.js';
+import { ForbiddenError, NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { ListMediaAssetsForOwnerUseCase } from '../../../asset/application/use-cases/list-media-assets-for-owner/list-media-assets-for-owner.use-case.js';
 import { CLINICAL_MEDIA_ASSET_PURPOSES } from '../../../asset/domain/enums/media-asset-purpose.enum.js';
@@ -31,6 +31,12 @@ import { VitalType } from '../../domain/enums/vital-type.enum.js';
 import { HealthVitalSummaryResponseDto } from '../dto/health-vital-summary-response.dto.js';
 import { MedicalRecordEntryResponseDto } from '../dto/medical-record-entry-response.dto.js';
 import { PatientPrescriptionResponseDto } from '../dto/patient-prescription-response.dto.js';
+import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import { GetConsentStateUseCase } from '../../../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
+import { GENERAL_CONSENT_SCOPE_CODE } from '../../../trust/domain/constants/consent-scope-codes.js';
+import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
+import { ConsentState } from '../../../trust/domain/enums/consent-state.enum.js';
 
 const ALL_VITAL_TYPES: readonly VitalType[] = [VitalType.Weight, VitalType.BloodPressure, VitalType.BloodSugar];
 
@@ -65,6 +71,11 @@ interface PrescriptionView {
 // sees every CLINICAL-purpose document that patient has -- never identity-
 // verification uploads (CLINICAL_MEDIA_ASSET_PURPOSES excludes those by
 // construction). No new document-to-session linking model is introduced.
+//
+// Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): every route
+// below records a real audit entry after requireRelationship succeeds --
+// never before, so a rejected read (unrelated doctor, ownership-safe 404)
+// leaves no audit row claiming an access that never actually happened.
 @Controller('doctor/patients')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(AccountRole.Doctor)
@@ -82,6 +93,8 @@ export class DoctorPatientChartController {
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
     private readonly listMediaAssetsForOwnerUseCase: ListMediaAssetsForOwnerUseCase,
     private readonly listVitalReadingsForPatientUseCase: ListVitalReadingsForPatientUseCase,
+    private readonly recordAuditLogUseCase: RecordAuditLogUseCase,
+    private readonly getConsentStateUseCase: GetConsentStateUseCase,
   ) {}
 
   @Get(':id/profile')
@@ -97,6 +110,8 @@ export class DoctorPatientChartController {
       const providers = await this.listInsuranceProvidersUseCase.execute();
       insuranceProviderName = providers.find((provider) => provider.getId() === insuranceProviderId)?.getName();
     }
+
+    await this.recordAudit(user, patientId, AuditAction.PatientChartProfileRead);
 
     return envelope(PatientProfileResponseDto.fromDomain(profile, account, insuranceProviderName));
   }
@@ -128,6 +143,7 @@ export class DoctorPatientChartController {
         );
       }),
     );
+    await this.recordAudit(user, patientId, AuditAction.PatientChartAppointmentsRead);
     return envelope(items);
   }
 
@@ -167,6 +183,7 @@ export class DoctorPatientChartController {
     const entries = [...visitEntries, ...conditionEntries].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
+    await this.recordAudit(user, patientId, AuditAction.PatientChartMedicalRecordsRead);
     return envelope(entries);
   }
 
@@ -182,6 +199,7 @@ export class DoctorPatientChartController {
 
     const allPrescriptions = await this.findOwnPrescriptions(ownAppointments, doctorProfile.getId());
     const items = allPrescriptions.map((view) => this.toPatientPrescriptionResponse(view, doctorName));
+    await this.recordAudit(user, patientId, AuditAction.PatientChartPrescriptionsRead);
     return envelope(items);
   }
 
@@ -196,6 +214,7 @@ export class DoctorPatientChartController {
       ownerAccountId: profile.getAccountId(),
       purposes: [...CLINICAL_MEDIA_ASSET_PURPOSES],
     });
+    await this.recordAudit(user, patientId, AuditAction.PatientChartDocumentsRead);
     return envelope(results.map(({ asset, signedUrl }) => MediaAssetListItemResponseDto.fromDomain(asset, signedUrl)));
   }
 
@@ -220,12 +239,37 @@ export class DoctorPatientChartController {
         readings: ownReadings.filter((reading) => reading.getType() === type),
       }),
     );
+    await this.recordAudit(user, patientId, AuditAction.PatientChartVitalsRead);
     return envelope(summaries);
+  }
+
+  // Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): the one
+  // helper every read route above ends with, once its own data fetch has
+  // already succeeded -- centralizes the actor/subject shape so each route
+  // only has to name which action it performed.
+  private async recordAudit(user: AccessTokenClaims, patientId: string, action: AuditAction): Promise<void> {
+    await this.recordAuditLogUseCase.execute(
+      new RecordAuditLogCommand({
+        actorAccountId: user.accountId,
+        actorRole: user.role,
+        action,
+        subjectType: 'patient',
+        subjectId: patientId,
+      }),
+    );
   }
 
   // The one relationship check every route above starts with. Never reveals
   // whether a patient id exists at all to a doctor with no real encounter --
   // same NotFoundError, same message shape, regardless of which is true.
+  //
+  // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3): a real encounter
+  // is necessary but not sufficient -- if the patient has since revoked
+  // consent for this doctor, access is blocked with a distinct 403
+  // CONSENT_NOT_GRANTED (the patient's existence to this doctor is already
+  // legitimate; this is "access denied," not "hide that this exists"),
+  // exactly matching HealthGraphController's own split and
+  // docs/12-openapi.md's documented Forbidden response.
   private async requireRelationship(user: AccessTokenClaims, patientId: string) {
     const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
     if (!doctorProfile) {
@@ -238,6 +282,15 @@ export class DoctorPatientChartController {
     });
     if (ownAppointments.length === 0) {
       throw new NotFoundError(`Patient "${patientId}" not found.`);
+    }
+
+    const consentState = await this.getConsentStateUseCase.execute({
+      patientId,
+      doctorId: doctorProfile.getId(),
+      scopeCode: GENERAL_CONSENT_SCOPE_CODE,
+    });
+    if (consentState === ConsentState.Revoked) {
+      throw new ForbiddenError('This doctor does not have consent to view the requested data.', 'CONSENT_NOT_GRANTED');
     }
 
     const profile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId: patientId });

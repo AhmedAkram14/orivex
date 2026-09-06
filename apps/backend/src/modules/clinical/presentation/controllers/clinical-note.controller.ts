@@ -9,6 +9,9 @@ import { RolesGuard } from '../../../authentication/presentation/guards/roles.gu
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
 import { RecordClinicalNoteCommand } from '../../application/use-cases/record-clinical-note/record-clinical-note.command.js';
 import { RecordClinicalNoteUseCase } from '../../application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
 import { ClinicalNoteResponseDto } from '../dto/clinical-note-response.dto.js';
@@ -19,6 +22,10 @@ import { mapClinicalError } from '../mappers/clinical-exception.mapper.js';
 // (createClinicalNote, "treating doctor only") exactly. Gated to
 // AccountRole.Doctor; the use case itself separately enforces that the
 // resolved doctor is this consultation's treating doctor.
+//
+// Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): recorded only
+// after the note is actually saved -- a rejected write (403/404) never
+// leaves an audit row.
 @Controller('consultations')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(AccountRole.Doctor)
@@ -26,6 +33,7 @@ export class ClinicalNoteController {
   constructor(
     private readonly recordClinicalNoteUseCase: RecordClinicalNoteUseCase,
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+    private readonly recordAuditLogUseCase: RecordAuditLogUseCase,
   ) {}
 
   @Post(':id/notes')
@@ -46,6 +54,16 @@ export class ClinicalNoteController {
           authoringDoctorId: doctorProfile.getId(),
           content: body.content,
           addendumOfNoteId: body.addendumOfNoteId,
+        }),
+      );
+      await this.recordAuditLogUseCase.execute(
+        new RecordAuditLogCommand({
+          actorAccountId: user.accountId,
+          actorRole: user.role,
+          action: AuditAction.ClinicalNoteRecorded,
+          subjectType: 'consultation_session',
+          subjectId: id,
+          metadata: { clinicalNoteId: note.getId() },
         }),
       );
       return envelope(ClinicalNoteResponseDto.fromDomain(note));

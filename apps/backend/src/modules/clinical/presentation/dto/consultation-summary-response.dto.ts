@@ -6,6 +6,7 @@ import type { ConsultationSummary } from '../../application/use-cases/get-consul
 
 import { ClinicalNoteResponseDto } from './clinical-note-response.dto.js';
 import { HealthGraphNodeResponseDto } from './health-graph-node-response.dto.js';
+import { HealthJourneyResponseDto } from './health-journey-response.dto.js';
 import { VitalReadingResponseDto } from './health-vital-summary-response.dto.js';
 import { PrescriptionResponseDto } from './prescription-response.dto.js';
 
@@ -24,6 +25,7 @@ export class ConsultationSummaryResponseDto {
   vitalReadings!: VitalReadingResponseDto[];
   followUpRecommendation!: FollowUpRecommendationResponseDto | null;
   feedback!: ConsultationFeedbackResponseDto | null;
+  journeys!: HealthJourneyResponseDto[];
 
   static fromResult(result: ConsultationSummary): ConsultationSummaryResponseDto {
     const dto = new ConsultationSummaryResponseDto();
@@ -37,6 +39,7 @@ export class ConsultationSummaryResponseDto {
       ? FollowUpRecommendationResponseDto.fromDomain(result.followUpRecommendation)
       : null;
     dto.feedback = result.feedback ? ConsultationFeedbackResponseDto.fromDomain(result.feedback) : null;
+    dto.journeys = result.journeys.map(({ journey, rootNode }) => HealthJourneyResponseDto.fromDomain(journey, rootNode));
     return dto;
   }
 }

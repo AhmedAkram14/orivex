@@ -132,9 +132,9 @@ model AuthToken {
 // DoctorModule entry). Verification status (TrustModule, future sprint) is
 // deliberately not duplicated here - single source of truth per fact.
 model DoctorProfile {
-  id                              String                   @id @default(uuid())
-  accountId                       String                   @unique
-  account                         Account                  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  id                              String                    @id @default(uuid())
+  accountId                       String                    @unique
+  account                         Account                   @relation(fields: [accountId], references: [id], onDelete: Restrict)
   licenseNumber                   String
   biography                       String?
   yearsOfExperience               Int?
@@ -153,7 +153,7 @@ model DoctorProfile {
   // Stage 4's roadmap completion note) -- a doctor may exist with no
   // hospital affiliation at all.
   hospitalId                      String?
-  hospital                        Hospital?                @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+  hospital                        Hospital?                 @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): the sole source of
   // a doctor's specialty, now that the transitional free-text `specialty`
   // column (removed this stage, after a verified backfill -- see this
@@ -164,13 +164,13 @@ model DoctorProfile {
   // with only a hospital, or with both a hospital and a department, but
   // never a department alone.
   specialtyId                     String
-  medicalSpecialty                MedicalSpecialty         @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
+  medicalSpecialty                MedicalSpecialty          @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
   professionalRank                String?
   licenseExpiryDate               DateTime?
   departmentId                    String?
-  department                      Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  createdAt                       DateTime                 @default(now())
-  updatedAt                       DateTime                 @updatedAt
+  department                      Department?               @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt                       DateTime                  @default(now())
+  updatedAt                       DateTime                  @updatedAt
   publications                    PortfolioPublication[]
   awards                          PortfolioAward[]
   workExperience                  PortfolioWorkExperience[]
@@ -194,6 +194,8 @@ model DoctorProfile {
   receivedFeedback                ConsultationFeedback[]
   authoredFollowUpRecommendations FollowUpRecommendation[]
   recordedVitalReadings           VitalReading[]
+  // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3).
+  consentRecords                  ConsentRecord[]
 
   @@index([hospitalId])
   @@index([specialtyId])
@@ -284,6 +286,27 @@ model InsuranceProvider {
   // consumer -- Stage O.1 deliberately shipped this table with zero
   // coupling to PatientProfile first.
   patientProfiles PatientProfile[]
+}
+
+// Consent gap fix (ORIVEX Remaining Work Audit, P0 C3): docs/09-physical-
+// database.md Section 2 lists this exact table under the `reference`
+// schema's "slowly-changing shared vocabularies," alongside
+// medical_specialties/insurance_providers -- same shape, same reasoning.
+// Seeded with exactly one row ("general") in this feature's own migration:
+// a "mental_health" category is deliberately NOT seeded yet, because no
+// mental-health data field exists anywhere in PatientProfile/HealthGraph
+// today (see ORIVEX Remaining Work Audit item I6) -- adding a toggle with
+// nothing real to gate would be exactly the "wired but dead" pattern this
+// audit flags elsewhere. Adding that category is a one-row follow-up once
+// I6 ships, not a schema change.
+model ConsentScopeCategory {
+  id             String          @id @default(uuid())
+  code           String          @unique
+  name           String
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  consentRecords ConsentRecord[]
 }
 
 model PortfolioPublication {
@@ -458,6 +481,106 @@ model SecurityEvent {
   @@index([status])
 }
 
+// Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): docs/01-prd.md's
+// release checklist requires "Audit logging live on every PHI access path"
+// as non-negotiable, even in V1 -- SecurityEvent above only ever covers
+// authentication outcomes. AuditLog is the separate, append-only ledger for
+// every PHI read and clinical/administrative write: who (actorAccountId,
+// actorRole), what (action, subjectType/subjectId), when (createdAt), and
+// why for actions that carry an explicit reason (e.g. a verification
+// decision). Deliberately no FK to Account: an audit trail must survive
+// independently of the account row it describes (never cascade-deleted),
+// matching the "immutable" requirement -- this table has no update/delete
+// path anywhere in the codebase, only create + read.
+enum AuditAction {
+  HEALTH_GRAPH_READ
+  HEALTH_JOURNEYS_READ
+  PATIENT_CHART_PROFILE_READ
+  PATIENT_CHART_APPOINTMENTS_READ
+  PATIENT_CHART_MEDICAL_RECORDS_READ
+  PATIENT_CHART_PRESCRIPTIONS_READ
+  PATIENT_CHART_DOCUMENTS_READ
+  PATIENT_CHART_VITALS_READ
+  CLINICAL_NOTE_RECORDED
+  DIAGNOSIS_RECORDED
+  VITAL_READING_RECORDED
+  PRESCRIPTION_SIGNED
+  DOCTOR_VERIFICATION_DECIDED
+  VERIFICATION_CASE_SUSPENDED
+  JOURNEY_STAGE_UPDATED
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  actorAccountId String
+  actorRole      String
+  action         AuditAction
+  subjectType    String
+  subjectId      String
+  reason         String?
+  metadata       Json        @default("{}")
+  createdAt      DateTime    @default(now())
+
+  @@index([actorAccountId])
+  @@index([subjectType, subjectId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Consent gap fix (ORIVEX Remaining Work Audit, P0 C3): docs/09-physical-
+// database.md Section 2/3 designed this table (trust.consent_records) and
+// its versioning shape before any code existed for it -- docs/10-backend-
+// architecture.md's TrustModule entry names ConsentRecord as an owned
+// entity and ConsentGranted/ConsentRevoked as owned events. Append-only and
+// versioned, never updated in place: "a change" is a new row with the next
+// versionNumber for the same (patientId, doctorId, scopeCategoryId) triple,
+// exactly like AuditLog's own immutability but with an explicit sequence
+// (queried via MAX(versionNumber)) rather than a chain-walk, since consent
+// needs a fast "what's the current state" read.
+//
+// doctorId is required here (never null): the documented "null = platform-
+// wide" scope is real per the architecture doc but has no product surface
+// yet (no platform-wide consent screen exists) -- only ever writing
+// doctor-scoped rows in this pass keeps the column honest about what's
+// actually reachable, while the schema doesn't preclude the wider case
+// later (per PRD's "design the data model to not preclude" convention).
+// docs/12-openapi.md's GrantOrRevokeConsent request body requires
+// legalBasisVersion on every consent action -- honored here as a plain,
+// caller-supplied string tag, NOT a FK to docs/09-physical-database.md's
+// versioned consent_text_versions table. That table stores actual,
+// lawyer-reviewed consent language and is a legal deliverable (see ORIVEX
+// Remaining Work Audit K14), not something to invent placeholder text for;
+// this column just satisfies the documented wire contract honestly (real
+// data captured, no legal-text infrastructure pretended into existence).
+//
+// No row for a given (patientId, doctorId, scopeCategoryId) means GRANTED
+// by default -- an existing appointment relationship already implies a
+// treating relationship; a patient's affirmative action is what REVOKES it
+// (matching PRD 01-prd.md L61 "can revoke ... at any time", not an opt-in
+// screen for every doctor before any access exists).
+enum ConsentState {
+  GRANTED
+  REVOKED
+}
+
+model ConsentRecord {
+  id                String               @id @default(uuid())
+  patientId         String
+  patient           PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId          String
+  doctorProfile     DoctorProfile        @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  scopeCategoryId   String
+  scopeCategory     ConsentScopeCategory @relation(fields: [scopeCategoryId], references: [id], onDelete: Restrict)
+  state             ConsentState
+  versionNumber     Int
+  legalBasisVersion String
+  effectiveAt       DateTime             @default(now())
+  createdAt         DateTime             @default(now())
+
+  @@unique([patientId, doctorId, scopeCategoryId, versionNumber])
+  @@index([patientId, doctorId, scopeCategoryId])
+}
+
 enum EmergencyRelationship {
   PARENT
   SPOUSE
@@ -499,6 +622,8 @@ model PatientProfile {
   insuranceProvider   InsuranceProvider?     @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
   // Consultation lifecycle completion follow-up (2026-07-26).
   submittedFeedback   ConsultationFeedback[]
+  // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3).
+  consentRecords      ConsentRecord[]
 
   @@index([insuranceProviderId])
 }
@@ -1085,14 +1210,14 @@ enum ScheduleExceptionType {
 // variable-length list, not a fixed set of columns. CASCADE from
 // DoctorProfile: this data has no meaning without the doctor it belongs to.
 model WorkingHoursDay {
-  id            String        @id @default(uuid())
+  id            String           @id @default(uuid())
   doctorId      String
-  doctorProfile DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctorProfile DoctorProfile    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   dayOfWeek     WeekDay
-  isWorkingDay  Boolean       @default(false)
+  isWorkingDay  Boolean          @default(false)
   startTime     String
   endTime       String
-  breaks        Json          @default("[]")
+  breaks        Json             @default("[]")
   // Consultation Pricing Redesign: the default price every
   // AvailabilityWindow generated for this weekday inherits. Free by
   // default (a doctor who hasn't configured pricing offers free slots,
@@ -1100,7 +1225,7 @@ model WorkingHoursDay {
   pricingType   ConsultationType @default(FREE)
   feeAmount     Decimal?
   feeCurrency   String?
-  updatedAt     DateTime      @updatedAt
+  updatedAt     DateTime         @updatedAt
 
   @@unique([doctorId, dayOfWeek])
   @@index([doctorId])
@@ -1149,22 +1274,22 @@ enum VitalType {
 // non-consultation-linked producer (e.g. a patient self-reporting weight)
 // stays representable, but the demo seed always sets both.
 model VitalReading {
-  id                     String               @id @default(uuid())
-  patientId              String
-  patientProfile         PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  type                   VitalType
-  value                  Float
-  diastolicValue         Float?
-  recordedAt             DateTime             @default(now())
-  createdAt              DateTime             @default(now())
+  id                    String               @id @default(uuid())
+  patientId             String
+  patientProfile        PatientProfile       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type                  VitalType
+  value                 Float
+  diastolicValue        Float?
+  recordedAt            DateTime             @default(now())
+  createdAt             DateTime             @default(now())
   // SetNull (not Restrict/Cascade): a doctor's account or a consultation
   // session being later removed must never destroy the patient's own
   // historical vital reading -- same posture Hospital->DoctorProfile
   // already takes.
-  recordedByDoctorId     String?
-  recordedByDoctor       DoctorProfile?       @relation(fields: [recordedByDoctorId], references: [id], onDelete: SetNull)
-  consultationSessionId  String?
-  consultationSession    ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: SetNull)
+  recordedByDoctorId    String?
+  recordedByDoctor      DoctorProfile?       @relation(fields: [recordedByDoctorId], references: [id], onDelete: SetNull)
+  consultationSessionId String?
+  consultationSession   ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: SetNull)
 
   @@index([patientId])
   @@index([type])

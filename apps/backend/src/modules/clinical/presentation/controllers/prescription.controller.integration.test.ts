@@ -40,6 +40,9 @@ import type { Prescription } from '../../domain/entities/prescription.entity.js'
 import type { HealthGraphRepository } from '../../domain/repositories/health-graph.repository.js';
 import type { PendingAISuggestionAcknowledgmentRepository } from '../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import type { AuditLog } from '../../../trust/domain/entities/audit-log.entity.js';
+import type { AuditLogRepository } from '../../../trust/domain/repositories/audit-log.repository.js';
 
 import { PrescriptionController } from './prescription.controller.js';
 
@@ -180,6 +183,13 @@ class InMemoryPendingAISuggestionAcknowledgmentRepository implements PendingAISu
   }
 }
 
+class InMemoryAuditLogRepository implements AuditLogRepository {
+  public readonly recorded: AuditLog[] = [];
+  async record(entry: AuditLog): Promise<void> {
+    this.recorded.push(entry);
+  }
+}
+
 describe('PrescriptionController (integration)', () => {
   let app: INestApplication;
   let doctor: DoctorProfile;
@@ -187,6 +197,7 @@ describe('PrescriptionController (integration)', () => {
   let session: ConsultationSession;
   let node: HealthGraphNode;
   let signedPrescriptionId: string;
+  let auditLogRepository: InMemoryAuditLogRepository;
 
   before(async () => {
     const patient = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
@@ -229,6 +240,7 @@ describe('PrescriptionController (integration)', () => {
       new InMemoryPendingAISuggestionAcknowledgmentRepository(),
     );
     const getPrescriptionByIdUseCase = new GetPrescriptionByIdUseCase(prescriptionRepo);
+    auditLogRepository = new InMemoryAuditLogRepository();
 
     const jwtSigner = new FakeJwtSigner(
       new Map([
@@ -254,6 +266,7 @@ describe('PrescriptionController (integration)', () => {
         { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
         { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)) },
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)) },
+        { provide: RecordAuditLogUseCase, useFactory: () => new RecordAuditLogUseCase(auditLogRepository) },
       ],
     }).compile();
 
@@ -285,7 +298,7 @@ describe('PrescriptionController (integration)', () => {
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
   });
 
-  it('POST /prescriptions signs a prescription', async () => {
+  it('POST /prescriptions signs a prescription and records an audit log entry', async () => {
     const response = await request(app.getHttpServer())
       .post('/prescriptions')
       .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
@@ -308,6 +321,13 @@ describe('PrescriptionController (integration)', () => {
     assert.equal(response.body.data.status, 'signed');
     assert.equal(response.body.data.lineItems.length, 1);
     signedPrescriptionId = response.body.data.id;
+
+    // Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): a real
+    // clinical write must leave a real audit row.
+    const entry = auditLogRepository.recorded.find((e) => e.getAction() === 'prescription_signed');
+    assert.ok(entry, 'expected an audit log entry for this prescription signing');
+    assert.equal(entry?.getActorAccountId(), doctor.getAccountId());
+    assert.equal(entry?.getSubjectId(), session.getId());
   });
 
   it('POST /prescriptions rejects a doctor who is not the treating doctor with 403', async () => {

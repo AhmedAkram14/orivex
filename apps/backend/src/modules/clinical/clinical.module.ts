@@ -17,6 +17,7 @@ import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
 import { ReferenceModule } from '../reference/reference.module.js';
+import { TrustModule } from '../trust/trust.module.js';
 
 import {
   AI_ACKNOWLEDGMENT_EVENT_SUBSCRIBER,
@@ -33,7 +34,9 @@ import {
   type AISuggestionGeneratedEventPayload,
 } from './application/event-handlers/pending-ai-suggestion-acknowledgment.handler.js';
 import { GetConsultationSummaryUseCase } from './application/use-cases/get-consultation-summary/get-consultation-summary.use-case.js';
+import { GetHealthGraphByIdUseCase } from './application/use-cases/get-health-graph-by-id/get-health-graph-by-id.use-case.js';
 import { GetHealthGraphSubgraphUseCase } from './application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
+import { GetHealthJourneyByIdUseCase } from './application/use-cases/get-health-journey-by-id/get-health-journey-by-id.use-case.js';
 import { GetPrescriptionByIdUseCase } from './application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { ListClinicalNotesForConsultationSessionUseCase } from './application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
 import { ListVitalReadingsForConsultationSessionUseCase } from './application/use-cases/list-vital-readings-for-consultation-session/list-vital-readings-for-consultation-session.use-case.js';
@@ -64,6 +67,7 @@ import { DiagnosisController } from './presentation/controllers/diagnosis.contro
 import { VitalsController } from './presentation/controllers/vitals.controller.js';
 import { DoctorPatientChartController } from './presentation/controllers/doctor-patient-chart.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
+import { JourneyController } from './presentation/controllers/journey.controller.js';
 import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
 import { PrescriptionController } from './presentation/controllers/prescription.controller.js';
 
@@ -74,7 +78,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
 // those modules import Clinical back -- no circular imports, no
 // forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule, ReferenceModule, AssetModule],
+  imports: [PatientModule, DoctorModule, ConsultationModule, IdentityModule, AuthenticationModule, ReferenceModule, AssetModule, TrustModule],
   controllers: [
     ClinicalNoteController,
     HealthGraphController,
@@ -84,6 +88,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     VitalsController,
     ConsultationSummaryController,
     DoctorPatientChartController,
+    JourneyController,
   ],
   providers: [
     { provide: HEALTH_GRAPH_REPOSITORY, useClass: PrismaHealthGraphRepository },
@@ -144,6 +149,17 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
       ) => new ListHealthJourneysUseCase(healthGraphRepository, healthJourneyRepository, getPatientProfileByIdUseCase),
       inject: [HEALTH_GRAPH_REPOSITORY, HEALTH_JOURNEY_REPOSITORY, GetPatientProfileByIdUseCase],
+    },
+    {
+      provide: GetHealthJourneyByIdUseCase,
+      useFactory: (healthJourneyRepository: HealthJourneyRepository) =>
+        new GetHealthJourneyByIdUseCase(healthJourneyRepository),
+      inject: [HEALTH_JOURNEY_REPOSITORY],
+    },
+    {
+      provide: GetHealthGraphByIdUseCase,
+      useFactory: (healthGraphRepository: HealthGraphRepository) => new GetHealthGraphByIdUseCase(healthGraphRepository),
+      inject: [HEALTH_GRAPH_REPOSITORY],
     },
     {
       provide: RecordDiagnosisUseCase,
@@ -276,6 +292,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
         getConsultationFeedbackForSessionUseCase: GetConsultationFeedbackForSessionUseCase,
         listVitalReadingsForConsultationSessionUseCase: ListVitalReadingsForConsultationSessionUseCase,
+        listHealthJourneysUseCase: ListHealthJourneysUseCase,
       ) =>
         new GetConsultationSummaryUseCase(
           getConsultationSessionByIdUseCase,
@@ -286,6 +303,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
           getFollowUpRecommendationForSessionUseCase,
           getConsultationFeedbackForSessionUseCase,
           listVitalReadingsForConsultationSessionUseCase,
+          listHealthJourneysUseCase,
         ),
       inject: [
         GetConsultationSessionByIdUseCase,
@@ -296,6 +314,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         GetFollowUpRecommendationForSessionUseCase,
         GetConsultationFeedbackForSessionUseCase,
         ListVitalReadingsForConsultationSessionUseCase,
+        ListHealthJourneysUseCase,
       ],
     },
   ],

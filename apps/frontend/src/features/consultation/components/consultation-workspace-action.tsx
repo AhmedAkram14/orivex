@@ -8,8 +8,12 @@ import { useRecordDiagnosis } from '@/features/consultation/hooks/use-record-dia
 import { useRecordNote } from '@/features/consultation/hooks/use-record-note';
 import { useRecordVitals } from '@/features/consultation/hooks/use-record-vitals';
 import { useRecommendFollowUp } from '@/features/consultation/hooks/use-recommend-follow-up';
+import { useSignPrescription } from '@/features/consultation/hooks/use-sign-prescription';
+import { useUpdateJourneyStage } from '@/features/consultation/hooks/use-update-journey-stage';
+import type { JourneyStage } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { Checkbox } from '@/shared/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -22,6 +26,24 @@ export interface ConsultationWorkspaceActionProps {
 }
 
 /**
+ * Health Journey stage-advance fix (ORIVEX Remaining Work Audit, P0 C5):
+ * mirrors HealthJourney.advanceStage()'s own ALLOWED_TRANSITIONS exactly
+ * (backend domain entity) -- Diagnosis -> FollowUp -> Monitoring ->
+ * (Resolved | OngoingChronic), with ReferredOut reachable from any
+ * non-terminal stage. Keeping the UI's offered options in sync with the
+ * real backend rule means a doctor is never shown a transition that would
+ * 422; the backend remains the actual source of truth/enforcement.
+ */
+const JOURNEY_STAGE_TRANSITIONS: Record<JourneyStage, JourneyStage[]> = {
+  diagnosis: ['follow_up', 'referred_out'],
+  follow_up: ['monitoring', 'referred_out'],
+  monitoring: ['resolved', 'ongoing_chronic', 'referred_out'],
+  resolved: [],
+  ongoing_chronic: [],
+  referred_out: [],
+};
+
+/**
  * Consultation lifecycle completion follow-up (2026-07-26): the doctor's
  * single reachable entry point for clinical documentation during/after a
  * call (§6 of the fix's own scope: "make sure existing capabilities are
@@ -31,11 +53,19 @@ export interface ConsultationWorkspaceActionProps {
  * `JoinCallAction`/`CallRoom`). None of Notes/Diagnosis/Follow-up are
  * mandatory -- the existing domain requires none of them, and this
  * preserves that (§6: "do not blindly make all of these mandatory").
- * Prescriptions are shown read-only: creating one requires a real Drug
- * Catalog reference that doesn't exist anywhere in this system yet (no
- * ReferenceDataModule drug catalog) -- fabricating a fake catalog id would
- * be worse than not building the form, so that capability stays
- * disclosed-but-unbuilt rather than faked (§14/§20).
+ * Prescriptions (ORIVEX Remaining Work Audit, P0 C4): a doctor signs one
+ * medication per submission against a diagnosis already recorded this
+ * session (the real backend requires a real diagnosisNodeId) -- gated
+ * behind having recorded at least one diagnosis first, never a fabricated
+ * one. No ReferenceDataModule drug catalog exists yet, so drugCatalogId is
+ * a real client-minted id (crypto.randomUUID()), never a reference to a
+ * catalog entry that doesn't exist; drugName carries the doctor's actual
+ * free-text medication name and is what every consumer displays.
+ * Journey (ORIVEX Remaining Work Audit, P0 C5): every one of this patient's
+ * Health Journeys, with a stage-advance control offering only the real
+ * backend's own allowed next stages (JOURNEY_STAGE_TRANSITIONS below) --
+ * the actual enforcement stays server-side (JourneyController), this just
+ * avoids offering a transition that would 422.
  */
 export function ConsultationWorkspaceAction({ consultationSessionId }: ConsultationWorkspaceActionProps) {
   const t = useTranslations('consultation.workspace');
@@ -43,6 +73,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const [noteContent, setNoteContent] = useState('');
   const [diagnosisText, setDiagnosisText] = useState('');
   const [certaintyLevel, setCertaintyLevel] = useState<'suspected' | 'confirmed' | 'ruled_out'>('suspected');
+  const [startJourney, setStartJourney] = useState(false);
   const [followUpReason, setFollowUpReason] = useState('');
   const [followUpDate, setFollowUpDate] = useState('');
   const [weightInput, setWeightInput] = useState('');
@@ -50,12 +81,23 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const [diastolicInput, setDiastolicInput] = useState('');
   const [bloodSugarInput, setBloodSugarInput] = useState('');
   const [vitalsJustSaved, setVitalsJustSaved] = useState(false);
+  const [prescriptionDiagnosisNodeId, setPrescriptionDiagnosisNodeId] = useState('');
+  const [medicationName, setMedicationName] = useState('');
+  const [dosage, setDosage] = useState('');
+  const [frequency, setFrequency] = useState('');
+  const [durationDaysInput, setDurationDaysInput] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [prescriptionJustSaved, setPrescriptionJustSaved] = useState(false);
+  const [journeyStageSelections, setJourneyStageSelections] = useState<Record<string, JourneyStage | ''>>({});
+  const [journeyJustSavedId, setJourneyJustSavedId] = useState<string | null>(null);
 
   const { data: summary, isLoading } = useConsultationSummary(open ? consultationSessionId : undefined);
   const recordNote = useRecordNote(consultationSessionId);
   const recordDiagnosis = useRecordDiagnosis(consultationSessionId);
   const recordVitals = useRecordVitals(consultationSessionId);
   const recommendFollowUp = useRecommendFollowUp(consultationSessionId);
+  const signPrescription = useSignPrescription(consultationSessionId);
+  const updateJourneyStage = useUpdateJourneyStage(consultationSessionId);
   const closeConsultation = useCloseConsultation();
 
   // Partial vitals are welcome (docs §8) -- weight/blood-sugar are each
@@ -103,7 +145,73 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
     window.setTimeout(() => setVitalsJustSaved(false), 4000);
   }
 
-  const hasUnsavedInput = Boolean(noteContent.trim() || diagnosisText.trim() || followUpReason.trim() || hasAnyVitalInput);
+  const durationDaysValue = durationDaysInput.trim() ? Number(durationDaysInput) : undefined;
+  const durationDaysInvalid =
+    durationDaysInput.trim() !== '' && !(Number.isInteger(durationDaysValue) && durationDaysValue! > 0);
+  const hasAnyPrescriptionInput = Boolean(
+    medicationName.trim() || dosage.trim() || frequency.trim() || durationDaysInput.trim() || instructions.trim(),
+  );
+  const canSavePrescription = Boolean(
+    prescriptionDiagnosisNodeId &&
+      medicationName.trim() &&
+      dosage.trim() &&
+      frequency.trim() &&
+      !durationDaysInvalid &&
+      durationDaysValue,
+  );
+
+  async function handleSavePrescription() {
+    if (!prescriptionDiagnosisNodeId || !durationDaysValue) {
+      return;
+    }
+    try {
+      await signPrescription.mutateAsync({
+        diagnosisNodeId: prescriptionDiagnosisNodeId,
+        lineItem: {
+          drugCatalogId: crypto.randomUUID(),
+          drugName: medicationName.trim(),
+          dosage: dosage.trim(),
+          frequency: frequency.trim(),
+          durationDays: durationDaysValue,
+          instructions: instructions.trim() || undefined,
+        },
+      });
+    } catch {
+      // Surfaced via signPrescription.isError below -- entered values stay
+      // in place so nothing already typed is lost on a failed save.
+      return;
+    }
+    setMedicationName('');
+    setDosage('');
+    setFrequency('');
+    setDurationDaysInput('');
+    setInstructions('');
+    setPrescriptionJustSaved(true);
+    window.setTimeout(() => setPrescriptionJustSaved(false), 4000);
+  }
+
+  async function handleAdvanceJourney(journeyId: string, stage: JourneyStage) {
+    try {
+      await updateJourneyStage.mutateAsync({ journeyId, stage });
+    } catch {
+      // Surfaced via updateJourneyStage.isError below -- the selection stays
+      // in place so the doctor doesn't have to re-pick it.
+      return;
+    }
+    setJourneyStageSelections((prev) => ({ ...prev, [journeyId]: '' }));
+    setJourneyJustSavedId(journeyId);
+    window.setTimeout(() => setJourneyJustSavedId(null), 4000);
+  }
+
+  const hasAnyJourneySelection = Object.values(journeyStageSelections).some(Boolean);
+  const hasUnsavedInput = Boolean(
+    noteContent.trim() ||
+      diagnosisText.trim() ||
+      followUpReason.trim() ||
+      hasAnyVitalInput ||
+      hasAnyPrescriptionInput ||
+      hasAnyJourneySelection,
+  );
 
   async function handleComplete() {
     if (hasUnsavedInput && !window.confirm(t('unsavedWorkWarning'))) {
@@ -134,6 +242,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                 <TabsTrigger value="diagnosis">{t('tabs.diagnosis')}</TabsTrigger>
                 <TabsTrigger value="followUp">{t('tabs.followUp')}</TabsTrigger>
                 <TabsTrigger value="prescriptions">{t('tabs.prescriptions')}</TabsTrigger>
+                <TabsTrigger value="journey">{t('tabs.journey')}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="notes" className="flex flex-col gap-3">
@@ -308,6 +417,10 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                     <SelectItem value="ruled_out">{t('certainty.ruled_out')}</SelectItem>
                   </SelectContent>
                 </Select>
+                <label className="flex items-center gap-2 text-sm text-text-secondary">
+                  <Checkbox checked={startJourney} onCheckedChange={(checked) => setStartJourney(checked === true)} />
+                  {t('startJourneyLabel')}
+                </label>
                 {recordDiagnosis.isError && <Alert variant="danger">{t('saveError')}</Alert>}
                 <Button
                   type="button"
@@ -315,8 +428,9 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                   loading={recordDiagnosis.isPending}
                   disabled={!diagnosisText.trim()}
                   onClick={async () => {
-                    await recordDiagnosis.mutateAsync({ freeTextDescription: diagnosisText, certaintyLevel });
+                    await recordDiagnosis.mutateAsync({ freeTextDescription: diagnosisText, certaintyLevel, startJourney });
                     setDiagnosisText('');
+                    setStartJourney(false);
                   }}
                 >
                   {t('saveDiagnosis')}
@@ -365,7 +479,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                 )}
               </TabsContent>
 
-              <TabsContent value="prescriptions">
+              <TabsContent value="prescriptions" className="flex flex-col gap-4">
                 {summary.prescriptions.length === 0 ? (
                   <p className="text-sm text-text-secondary">{t('noPrescriptions')}</p>
                 ) : (
@@ -381,6 +495,174 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                     ))}
                   </ul>
                 )}
+
+                {summary.diagnoses.length === 0 ? (
+                  <p className="text-sm text-text-secondary">{t('prescriptionNeedsDiagnosis')}</p>
+                ) : (
+                  <div className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="prescription-diagnosis" className="text-sm font-medium text-text-primary">
+                        {t('prescriptionDiagnosisLabel')}
+                      </label>
+                      <Select value={prescriptionDiagnosisNodeId} onValueChange={setPrescriptionDiagnosisNodeId}>
+                        <SelectTrigger id="prescription-diagnosis">
+                          <SelectValue placeholder={t('prescriptionDiagnosisPlaceholder')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {summary.diagnoses.map((node) => (
+                            <SelectItem key={node.id} value={node.id}>
+                              {node.description ?? node.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="prescription-medication" className="text-sm font-medium text-text-primary">
+                        {t('prescriptionMedicationLabel')}
+                      </label>
+                      <Input
+                        id="prescription-medication"
+                        value={medicationName}
+                        onChange={(event) => setMedicationName(event.target.value)}
+                        placeholder={t('prescriptionMedicationPlaceholder')}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <label htmlFor="prescription-dosage" className="text-sm font-medium text-text-primary">
+                          {t('prescriptionDosageLabel')}
+                        </label>
+                        <Input
+                          id="prescription-dosage"
+                          value={dosage}
+                          onChange={(event) => setDosage(event.target.value)}
+                          placeholder={t('prescriptionDosagePlaceholder')}
+                        />
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <label htmlFor="prescription-frequency" className="text-sm font-medium text-text-primary">
+                          {t('prescriptionFrequencyLabel')}
+                        </label>
+                        <Input
+                          id="prescription-frequency"
+                          value={frequency}
+                          onChange={(event) => setFrequency(event.target.value)}
+                          placeholder={t('prescriptionFrequencyPlaceholder')}
+                        />
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <label htmlFor="prescription-duration" className="text-sm font-medium text-text-primary">
+                          {t('prescriptionDurationLabel')}
+                        </label>
+                        <Input
+                          id="prescription-duration"
+                          type="number"
+                          inputMode="numeric"
+                          min="1"
+                          step="1"
+                          value={durationDaysInput}
+                          onChange={(event) => setDurationDaysInput(event.target.value)}
+                          aria-invalid={durationDaysInvalid}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="prescription-instructions" className="text-sm font-medium text-text-primary">
+                        {t('prescriptionInstructionsLabel')}
+                      </label>
+                      <Textarea
+                        id="prescription-instructions"
+                        value={instructions}
+                        onChange={(event) => setInstructions(event.target.value)}
+                        placeholder={t('prescriptionInstructionsPlaceholder')}
+                        rows={2}
+                      />
+                    </div>
+
+                    {signPrescription.isError && <Alert variant="danger">{t('saveError')}</Alert>}
+                    {prescriptionJustSaved && !signPrescription.isError && (
+                      <Alert variant="success">{t('prescriptionSaveSuccess')}</Alert>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      loading={signPrescription.isPending}
+                      disabled={!canSavePrescription}
+                      onClick={handleSavePrescription}
+                    >
+                      {t('savePrescription')}
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="journey" className="flex flex-col gap-3">
+                {summary.journeys.length === 0 ? (
+                  <p className="text-sm text-text-secondary">{t('journeyEmpty')}</p>
+                ) : (
+                  <ul className="flex flex-col gap-3">
+                    {summary.journeys.map((journey) => {
+                      const nextStages = JOURNEY_STAGE_TRANSITIONS[journey.stage];
+                      const selected = journeyStageSelections[journey.id] ?? '';
+                      return (
+                        <li key={journey.id} className="flex flex-col gap-2 rounded-lg border border-border-default p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-text-primary">
+                              {journey.rootNode.description ?? journey.rootNode.id}
+                            </span>
+                            <span className="rounded-full bg-secondary-subtle px-2 py-0.5 text-xs text-text-secondary">
+                              {t(`journeyStage.${journey.stage}`)}
+                            </span>
+                          </div>
+                          {nextStages.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Select
+                                value={selected}
+                                onValueChange={(value) =>
+                                  setJourneyStageSelections((prev) => ({ ...prev, [journey.id]: value as JourneyStage }))
+                                }
+                              >
+                                <SelectTrigger
+                                  id={`journey-stage-${journey.id}`}
+                                  aria-label={t('journeyNextStagePlaceholder')}
+                                  className="w-48"
+                                >
+                                  <SelectValue placeholder={t('journeyNextStagePlaceholder')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {nextStages.map((stage) => (
+                                    <SelectItem key={stage} value={stage}>
+                                      {t(`journeyStage.${stage}`)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                size="sm"
+                                loading={updateJourneyStage.isPending}
+                                disabled={!selected}
+                                onClick={() => handleAdvanceJourney(journey.id, selected as JourneyStage)}
+                              >
+                                {t('advanceJourneyStage')}
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-text-tertiary">{t('journeyTerminalStage')}</p>
+                          )}
+                          {journeyJustSavedId === journey.id && !updateJourneyStage.isError && (
+                            <Alert variant="success">{t('journeyStageSaveSuccess')}</Alert>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {updateJourneyStage.isError && <Alert variant="danger">{t('saveError')}</Alert>}
               </TabsContent>
             </Tabs>
 

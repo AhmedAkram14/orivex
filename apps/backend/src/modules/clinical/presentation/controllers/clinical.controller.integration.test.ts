@@ -14,7 +14,9 @@ import { JWT_SIGNER } from '../../../authentication/application/ports/tokens.js'
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { GetAppointmentsForDoctorAndPatientUseCase } from '../../../consultation/application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { ListAppointmentsForDoctorUseCase } from '../../../consultation/application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../consultation/domain/entities/consultation-session.entity.js';
 import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
@@ -39,6 +41,11 @@ import type { ClinicalNote } from '../../domain/entities/clinical-note.entity.js
 import type { ClinicalNoteRepository } from '../../domain/repositories/clinical-note.repository.js';
 import type { HealthGraphRepository } from '../../domain/repositories/health-graph.repository.js';
 import type { HealthJourneyRepository } from '../../domain/repositories/health-journey.repository.js';
+import { GetConsentStateUseCase } from '../../../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import type { AuditLog } from '../../../trust/domain/entities/audit-log.entity.js';
+import { ConsentState } from '../../../trust/domain/enums/consent-state.enum.js';
+import type { AuditLogRepository } from '../../../trust/domain/repositories/audit-log.repository.js';
 
 import { ClinicalNoteController } from './clinical-note.controller.js';
 import { HealthGraphController } from './health-graph.controller.js';
@@ -164,6 +171,13 @@ class InMemoryHealthGraphRepository implements HealthGraphRepository {
   async save(): Promise<void> {}
 }
 
+class InMemoryAuditLogRepository implements AuditLogRepository {
+  public readonly recorded: AuditLog[] = [];
+  async record(entry: AuditLog): Promise<void> {
+    this.recorded.push(entry);
+  }
+}
+
 class InMemoryHealthJourneyRepository implements HealthJourneyRepository {
   constructor(private readonly journeys: HealthJourney[]) {}
   async findById(): Promise<HealthJourney | null> {
@@ -182,6 +196,7 @@ describe('Clinical controllers (integration)', () => {
   let doctor: DoctorProfile;
   let otherDoctor: DoctorProfile;
   let session: ConsultationSession;
+  let auditLogRepository: InMemoryAuditLogRepository;
 
   before(async () => {
     patient = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
@@ -211,6 +226,8 @@ describe('Clinical controllers (integration)', () => {
 
     const doctorProfileRepo = new InMemoryDoctorProfileRepository([doctor, otherDoctor]);
     const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
+    const appointmentRepo = new InMemoryAppointmentRepository(appointment);
+    auditLogRepository = new InMemoryAuditLogRepository();
 
     const jwtSigner = new FakeJwtSigner(
       new Map([
@@ -237,9 +254,14 @@ describe('Clinical controllers (integration)', () => {
             new RecordClinicalNoteUseCase(
               new InMemoryClinicalNoteRepository(),
               new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)),
-              new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)),
+              new GetAppointmentByIdUseCase(appointmentRepo),
               new GetDoctorProfileByIdUseCase(doctorProfileRepo),
             ),
+        },
+        {
+          provide: GetAppointmentsForDoctorAndPatientUseCase,
+          useFactory: () =>
+            new GetAppointmentsForDoctorAndPatientUseCase(new ListAppointmentsForDoctorUseCase(appointmentRepo)),
         },
         {
           provide: GetHealthGraphSubgraphUseCase,
@@ -258,6 +280,13 @@ describe('Clinical controllers (integration)', () => {
               new GetPatientProfileByIdUseCase(patientProfileRepo),
             ),
         },
+        { provide: RecordAuditLogUseCase, useFactory: () => new RecordAuditLogUseCase(auditLogRepository) },
+        // This file's tests are not about consent -- a stub that always
+        // resolves Granted keeps the C1/C2 scenarios below unaffected.
+        // Real revoke/CONSENT_NOT_GRANTED coverage lives in
+        // health-graph.controller.integration.test.ts and
+        // doctor-patient-chart.controller.integration.test.ts.
+        { provide: GetConsentStateUseCase, useValue: { execute: async () => ConsentState.Granted } },
       ],
     }).compile();
 
@@ -283,7 +312,7 @@ describe('Clinical controllers (integration)', () => {
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
   });
 
-  it('POST /consultations/:id/notes records a note', async () => {
+  it('POST /consultations/:id/notes records a note and an audit log entry', async () => {
     const response = await request(app.getHttpServer())
       .post(`/consultations/${session.getId()}/notes`)
       .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
@@ -291,6 +320,13 @@ describe('Clinical controllers (integration)', () => {
       .expect(201);
 
     assert.equal(response.body.data.content, 'SOAP note content');
+
+    // Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): a real
+    // clinical write must leave a real audit row.
+    const entry = auditLogRepository.recorded.find((e) => e.getAction() === 'clinical_note_recorded');
+    assert.ok(entry, 'expected an audit log entry for this clinical note write');
+    assert.equal(entry?.getActorAccountId(), doctor.getAccountId());
+    assert.equal(entry?.getSubjectId(), session.getId());
   });
 
   it('POST /consultations/:id/notes returns 404 for an unknown session', async () => {
@@ -336,13 +372,25 @@ describe('Clinical controllers (integration)', () => {
     assert.equal(response.body.data[0].nodeType, 'condition');
   });
 
-  it('GET /patients/:id/health-graph returns the patient\'s nodes for any doctor', async () => {
+  it('GET /patients/:id/health-graph returns the patient\'s nodes for the treating doctor', async () => {
     const response = await request(app.getHttpServer())
       .get(`/patients/${patient.getId()}/health-graph`)
       .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
       .expect(200);
 
     assert.equal(response.body.data.length, 1);
+  });
+
+  // Guard-gap fix (audit P0 C1): a doctor with no appointment relationship
+  // to this patient must never read their health graph, even though they
+  // are a real, verified doctor account.
+  it('GET /patients/:id/health-graph rejects a doctor with no relationship to the patient', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/patients/${patient.getId()}/health-graph`)
+      .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 
   it('GET /patients/:id/journeys returns the patient\'s journeys with rootNode resolved', async () => {

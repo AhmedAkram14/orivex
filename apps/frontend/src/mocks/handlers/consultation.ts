@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
-import type { ConsultationCompletionReason } from '@/features/consultation/api/types';
+import type { ConsultationCompletionReason, JourneyStage, SignPrescriptionLineItemInput } from '@/features/consultation/api/types';
 import type { VitalReadingType } from '@/features/consultation/api/types';
 import {
   closeConsultation,
@@ -10,20 +10,21 @@ import {
   recommendFollowUp,
   recordConsultationDiagnosis,
   recordConsultationNote,
+  recordConsultationPrescription,
   recordConsultationVital,
   startConsultation,
   submitConsultationFeedback,
   updateConsultationFeedback,
+  updateConsultationJourneyStage,
 } from '@/mocks/consultation-store';
 
 const base = () => env.apiBaseUrl;
 
 /**
  * Real backend endpoints (ConsultationModule's start/close/feedback/follow-up
- * controllers, ClinicalModule's summary/diagnosis/notes controllers --
- * consultation-completion follow-up work). Prescriptions are always returned
- * empty by `getConsultationSummary()` (see `consultation-store.ts`'s own doc
- * comment) since this mock has no prescription-sign store to write into.
+ * controllers, ClinicalModule's summary/diagnosis/notes/prescription
+ * controllers -- consultation-completion follow-up work plus the doctor
+ * prescription-authoring fix, ORIVEX Remaining Work Audit P0 C4).
  */
 export const consultationHandlers = [
   http.post(`${base()}/consultations/:id/start`, ({ params }) =>
@@ -76,9 +77,17 @@ export const consultationHandlers = [
     const body = (await request.json()) as {
       freeTextDescription: string;
       certaintyLevel?: 'suspected' | 'confirmed' | 'ruled_out';
+      startJourney?: boolean;
     };
     return HttpResponse.json(
-      { data: { node: recordConsultationDiagnosis(params.id as string, body.freeTextDescription, body.certaintyLevel) } },
+      {
+        data: recordConsultationDiagnosis(
+          params.id as string,
+          body.freeTextDescription,
+          body.certaintyLevel,
+          body.startJourney,
+        ),
+      },
       { status: 201 },
     );
   }),
@@ -94,6 +103,35 @@ export const consultationHandlers = [
       { data: recordConsultationVital(params.id as string, body.type, body.value, body.diastolicValue) },
       { status: 201 },
     );
+  }),
+
+  http.post(`${base()}/prescriptions`, async ({ request }) => {
+    const body = (await request.json()) as {
+      consultationSessionId: string;
+      diagnosisNodeId: string;
+      lineItems: SignPrescriptionLineItemInput[];
+    };
+    return HttpResponse.json(
+      {
+        data: recordConsultationPrescription(body.consultationSessionId, body.diagnosisNodeId, body.lineItems[0]),
+      },
+      { status: 201 },
+    );
+  }),
+
+  // Health Journey stage-advance fix (ORIVEX Remaining Work Audit, P0 C5):
+  // not nested under /consultations/:id -- matches JourneyController's own
+  // @Controller('journeys') shape exactly.
+  http.patch(`${base()}/journeys/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as { stage: JourneyStage };
+    const updated = updateConsultationJourneyStage(params.id as string, body.stage);
+    if (!updated) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Health Journey not found.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({ data: updated });
   }),
 
   http.get(`${base()}/doctors/:id/reviews`, ({ params, request }) => {

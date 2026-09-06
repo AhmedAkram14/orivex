@@ -15,6 +15,9 @@ import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js
 import { GetPrescriptionByIdUseCase } from '../../application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { SignPrescriptionCommand } from '../../application/use-cases/sign-prescription/sign-prescription.command.js';
 import { SignPrescriptionUseCase } from '../../application/use-cases/sign-prescription/sign-prescription.use-case.js';
+import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
 import type { Prescription } from '../../domain/entities/prescription.entity.js';
 import { PrescriptionResponseDto } from '../dto/prescription-response.dto.js';
 import { SignPrescriptionRequestDto } from '../dto/sign-prescription-request.dto.js';
@@ -22,6 +25,15 @@ import { mapClinicalError } from '../mappers/clinical-exception.mapper.js';
 
 // Matches docs/12-openapi.md's POST /prescriptions (signPrescription) and
 // GET /prescriptions/{id} (getPrescription) exactly.
+//
+// Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): sign() records
+// an audit row after a successful write, matching every other clinical
+// write controller. getById() is deliberately NOT audited here -- it is a
+// single, already ownership-scoped record lookup (same tier as a patient
+// viewing their own profile), not a broad PHI read across a patient's
+// record the way HealthGraphController/DoctorPatientChartController's
+// routes are; auditing every such self-service GET would be noise, not
+// signal, for the access-control risk C2 exists to cover.
 @Controller('prescriptions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class PrescriptionController {
@@ -32,6 +44,7 @@ export class PrescriptionController {
     private readonly getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
     private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+    private readonly recordAuditLogUseCase: RecordAuditLogUseCase,
   ) {}
 
   @Post()
@@ -52,6 +65,16 @@ export class PrescriptionController {
           diagnosisNodeId: body.diagnosisNodeId,
           authoringDoctorId: doctorProfile.getId(),
           lineItems: body.lineItems,
+        }),
+      );
+      await this.recordAuditLogUseCase.execute(
+        new RecordAuditLogCommand({
+          actorAccountId: user.accountId,
+          actorRole: user.role,
+          action: AuditAction.PrescriptionSigned,
+          subjectType: 'consultation_session',
+          subjectId: body.consultationSessionId,
+          metadata: { prescriptionId: prescription.getId() },
         }),
       );
       return envelope(PrescriptionResponseDto.fromDomain(prescription));

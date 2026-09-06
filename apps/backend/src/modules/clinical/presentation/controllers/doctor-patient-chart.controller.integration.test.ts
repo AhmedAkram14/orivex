@@ -57,6 +57,11 @@ import { NodeSource } from '../../domain/enums/node-source.enum.js';
 import type { ClinicalNoteRepository } from '../../domain/repositories/clinical-note.repository.js';
 import type { HealthGraphRepository } from '../../domain/repositories/health-graph.repository.js';
 import type { PrescriptionRepository } from '../../domain/repositories/prescription.repository.js';
+import { GetConsentStateUseCase } from '../../../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import { ConsentState } from '../../../trust/domain/enums/consent-state.enum.js';
+import type { AuditLog } from '../../../trust/domain/entities/audit-log.entity.js';
+import type { AuditLogRepository } from '../../../trust/domain/repositories/audit-log.repository.js';
 
 import { DoctorPatientChartController } from './doctor-patient-chart.controller.js';
 
@@ -204,6 +209,13 @@ class InMemoryMediaAssetRepository implements MediaAssetRepository {
   async save(): Promise<void> {}
 }
 
+class InMemoryAuditLogRepository implements AuditLogRepository {
+  public readonly recorded: AuditLog[] = [];
+  async record(entry: AuditLog): Promise<void> {
+    this.recorded.push(entry);
+  }
+}
+
 class FakeObjectStorage implements ObjectStoragePort {
   async createPresignedUploadUrl(): Promise<string> {
     return 'unused';
@@ -243,6 +255,7 @@ describe('DoctorPatientChartController (integration)', () => {
   let prescriptionB: Prescription;
   let clinicalDocument: MediaAsset;
   let verificationDocument: MediaAsset;
+  let auditLogRepository: InMemoryAuditLogRepository;
 
   before(async () => {
     const patientAccount = Account.register({
@@ -381,6 +394,7 @@ describe('DoctorPatientChartController (integration)', () => {
     const noteRepository = new InMemoryClinicalNoteRepository([noteA, noteB]);
     const healthGraphRepository = new InMemoryHealthGraphRepository(healthGraph);
     const mediaAssetRepository = new InMemoryMediaAssetRepository([clinicalDocument, verificationDocument]);
+    auditLogRepository = new InMemoryAuditLogRepository();
     const specialtyRepository = new InMemoryMedicalSpecialtyRepository([
       MedicalSpecialty.reconstitute({
         id: '11111111-1111-4111-8111-111111111111',
@@ -449,6 +463,10 @@ describe('DoctorPatientChartController (integration)', () => {
               save: async () => {},
             }),
         },
+        { provide: RecordAuditLogUseCase, useFactory: () => new RecordAuditLogUseCase(auditLogRepository) },
+        // Not about consent -- see the same comment in
+        // clinical.controller.integration.test.ts.
+        { provide: GetConsentStateUseCase, useValue: { execute: async () => ConsentState.Granted } },
       ],
     }).compile();
 
@@ -466,7 +484,7 @@ describe('DoctorPatientChartController (integration)', () => {
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
   });
 
-  it('a doctor with a real appointment with the patient gets 200 with real profile fields', async () => {
+  it('a doctor with a real appointment with the patient gets 200 with real profile fields and an audit log entry', async () => {
     const response = await request(app.getHttpServer())
       .get(`/doctor/patients/${patient.getId()}/profile`)
       .set('Authorization', `Bearer ${DOCTOR_A_TOKEN}`)
@@ -474,6 +492,12 @@ describe('DoctorPatientChartController (integration)', () => {
 
     assert.equal(response.body.data.id, patient.getId());
     assert.equal(response.body.data.fullName, 'Nadia Fawzy');
+
+    // Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): a real
+    // chart read must leave a real audit row.
+    const entry = auditLogRepository.recorded.find((e) => e.getAction() === 'patient_chart_profile_read');
+    assert.ok(entry, 'expected an audit log entry for this profile read');
+    assert.equal(entry?.getActorAccountId(), doctorAAccount.getId().toString());
   });
 
   it('a doctor with no relationship to the patient gets an ownership-safe not-found, not a 403', async () => {
