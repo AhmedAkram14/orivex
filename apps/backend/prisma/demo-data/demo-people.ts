@@ -276,10 +276,13 @@ export const DEMO_DOCTORS: DemoDoctor[] = [
     yearsOfExperience: 4,
     licenseNumber: 'EG-PSY-10030',
     licenseExpiryYearsFromNow: 2,
-    biography: 'Newly independent practice focused on stress management and sleep-related mental health concerns.',
+    biography: 'Newly independent practice focused on stress management and sleep-related mental health concerns, currently offering free consultations to grow her patient base.',
     languages: ['Arabic', 'English'],
     insuranceProviders: [],
-    consultationFeeAmount: 220,
+    // Second Free-consultation doctor (see doctor04's own comment) -- a
+    // multi-doctor "Pending Approval" spread needs more than one Free
+    // doctor, since Paid bookings never wait on approval.
+    consultationFeeAmount: undefined,
     hospitalName: undefined,
     publications: [{ title: 'Sleep Hygiene Interventions in Stress-Related Insomnia', reference: 'Cairo Medical Review', monthsAgo: 5 }],
     awards: [{ title: 'Emerging Clinician Award', issuingBody: 'Nile Medical Center', monthsAgo: 12 }],
@@ -486,10 +489,11 @@ export const DEMO_DOCTORS: DemoDoctor[] = [
     yearsOfExperience: 5,
     licenseNumber: 'EG-OPH-20019',
     licenseExpiryYearsFromNow: 2,
-    biography: 'Ophthalmologist providing routine eye exams and treatment for common vision conditions.',
+    biography: 'Ophthalmologist providing routine eye exams and treatment for common vision conditions, offered free of charge while completing his registrar training.',
     languages: ['Arabic', 'English'],
     insuranceProviders: [],
-    consultationFeeAmount: 280,
+    // Third Free-consultation doctor -- see doctor04's own comment.
+    consultationFeeAmount: undefined,
     hospitalName: undefined,
     publications: [{ title: 'Common Vision Conditions in Routine Eye Exams', reference: 'Cairo Medical Review', monthsAgo: 4 }],
     awards: [{ title: 'Resident Clinical Achievement Award', issuingBody: 'Alexandria General Hospital', monthsAgo: 10 }],
@@ -521,8 +525,6 @@ export const DEMO_PATIENTS: DemoPatient[] = [
   { email: 'patient16@orivex.dev', displayName: 'Nadia Fawzy', gender: 'female', avatarUrl: '/demo/avatars/patient-16.png', phoneNumber: '+201116876543', dateOfBirthYearsAgo: 36, hasInsurance: true, emergencyContactName: 'Fawzy Ramzy', emergencyContactRelationship: 'spouse', emergencyContactPhone: '+201016234567', verification: 'approved' },
   { email: 'patient17@orivex.dev', displayName: 'Fady Nassar', gender: 'male', avatarUrl: '/demo/avatars/patient-17.png', phoneNumber: '+201117876543', dateOfBirthYearsAgo: 27, hasInsurance: false, emergencyContactName: 'Nassar Iskandar', emergencyContactRelationship: 'parent', emergencyContactPhone: '+201017234567', verification: 'suspended' },
   { email: 'patient18@orivex.dev', displayName: 'Ghada Selim', gender: 'female', avatarUrl: '/demo/avatars/patient-18.png', phoneNumber: '+201118876543', dateOfBirthYearsAgo: 39, bloodType: 'AB-', hasInsurance: true, emergencyContactName: 'Selim Ashraf', emergencyContactRelationship: 'spouse', emergencyContactPhone: '+201018234567', verification: 'approved' },
-  // Deliberately new/minimal patients — never booked an appointment yet, a
-  // genuine, common real state, not something to paper over.
   { email: 'patient19@orivex.dev', displayName: 'Bassem Naguib', gender: 'male', avatarUrl: '/demo/avatars/patient-19.png', phoneNumber: '+201119876543', dateOfBirthYearsAgo: 23, hasInsurance: false, emergencyContactName: 'Naguib Boulos', emergencyContactRelationship: 'parent', emergencyContactPhone: '+201019234567', verification: 'approved' },
   { email: 'patient20@orivex.dev', displayName: 'Iman Rashad', gender: 'female', avatarUrl: '/demo/avatars/patient-20.png', phoneNumber: '+201120876543', dateOfBirthYearsAgo: 21, hasInsurance: false, emergencyContactName: 'Rashad Hany', emergencyContactRelationship: 'parent', emergencyContactPhone: '+201020234567', verification: 'approved' },
 ];
@@ -539,8 +541,14 @@ export const DEMO_HOSPITAL_ADMIN = {
   phoneNumber: '+201220000002',
 };
 
-/** Patients who never book anything — a genuine empty state (§8 of the plan), not every record maximally full. */
-export const DEMO_PATIENTS_WITH_NO_APPOINTMENTS = new Set(['patient19@orivex.dev', 'patient20@orivex.dev']);
+/**
+ * Data Density & Full Coverage pass: previously patient19/patient20 were
+ * deliberately left with zero appointments as a "genuine empty state".
+ * Superseded by an explicit later requirement that no demo account may be
+ * dead -- every patient must show real, backend-driven activity. Kept as an
+ * empty Set (rather than deleted) since `seed.ts` still reads it.
+ */
+export const DEMO_PATIENTS_WITH_NO_APPOINTMENTS = new Set<string>([]);
 
 /** Doctors who never accumulate a cancellation — a genuine empty state. */
 export const DEMO_DOCTORS_WITH_NO_CANCELLATIONS = new Set(['doctor02@orivex.dev', 'doctor14@orivex.dev']);

@@ -1338,7 +1338,11 @@ async function main(): Promise<void> {
       const patientSugarIndex = randomInt(2, BLOOD_SUGAR_READINGS.length - 1);
       let visitSequence = 0;
 
-      const bookingCount = randomInt(2, 5);
+      // Data Density & Full Coverage pass: widened from (2, 5) so the base
+      // population is denser before the top-up section further below even
+      // has to run -- every patient sees several real doctor relationships
+      // out of this loop alone.
+      const bookingCount = randomInt(4, 8);
       for (let index = 0; index < bookingCount; index += 1) {
         const roll = nextRandom();
 
@@ -1426,8 +1430,9 @@ async function main(): Promise<void> {
     }
 
     // -----------------------------------------------------------------
-    // 6.5. Today's Patient Queue (Doctor Workspace "Patient Queue" page --
-    // the entry point that triggered this whole data-population pass)
+    // 6.5. Data Density & Full Coverage pass: today's queue spread across
+    // MANY doctors, plus a density top-up so no doctor or patient is left a
+    // near-dead account.
     // -----------------------------------------------------------------
     // DoctorAppointmentsController#getDoctorQueue reads today's
     // Confirmed/Completed appointments and their live ConsultationSession
@@ -1435,38 +1440,37 @@ async function main(): Promise<void> {
     // regardless of date. Section 6 above only ever books FUTURE windows
     // (tomorrow or later, via buildWindowStartTimes) or HISTORICAL completed
     // visits (>= 3 days ago, via historicalVisitBaseDate) -- by design
-    // neither ever lands on "today", so all four queue counters are
-    // naturally zero the instant this script finishes, no matter how the
-    // RNG rolls. This section closes that gap for four named doctors, one
-    // queue state each, through the exact same real use-case chain the
-    // running application itself uses -- AvailabilityWindow.define() still
-    // rejects a past start time, so "today" here always means "later today,
-    // relative to whenever this script runs".
+    // neither ever lands on "today". This section closes that gap across a
+    // broad, varied set of doctors (not just one per state), then tops up
+    // every doctor/patient still below a minimum activity floor -- using
+    // the exact same real use-case chain the running application itself
+    // uses (book -> confirm/pay -> start -> close), never a bypassed
+    // domain invariant. AvailabilityWindow.define() still rejects a past
+    // start time, so "today"/"upcoming" here always means "later than
+    // whenever this script runs".
     //
-    // Because these rows are genuinely dated "today", they age out like any
-    // other real appointment once the calendar day turns over.
-    // reset-demo-data.ts (Rule 7's supported reset+reseed path) is what
-    // brings the queue back to "today" after time has passed -- there is no
-    // background job that re-dates existing rows, and inventing one only to
-    // keep a demo screen looking fresh would itself be exactly the kind of
-    // fake state this pass is told never to create.
-    console.info("Seeding today's patient queue...");
-
+    // Because these rows are genuinely dated relative to "now", they age
+    // out like any other real appointment once the calendar day turns
+    // over. reset-demo-data.ts (Rule 7's supported reset+reseed path) is
+    // what brings the queue back to "today" after time has passed -- there
+    // is no background job that re-dates existing rows, and inventing one
+    // only to keep a demo screen looking fresh would itself be exactly the
+    // kind of fake state this pass is told never to create.
+    //
+    // Idempotency: gated on doctor08 already having a Completed appointment
+    // scheduled within roughly the last day. Section 6 above can NEVER
+    // produce that combination on its own -- its only path to Completed is
+    // createHistoricalCompletedVisit, which is always >= 3 days old
+    // (HISTORICAL_VISIT_MIN_DAYS_AGO) -- so this is a structural, RNG-proof
+    // proxy for "this section already ran", not a coincidence-prone one
+    // like checking a specific patient's appointment count would be (every
+    // patient, including the two formerly-empty ones, now legitimately
+    // gets appointments out of Section 6 alone).
     function findSeededDoctor(email: string): SeededDoctor | undefined {
       return doctors.find((doctor) => doctor.demo.email === email);
     }
     function findSeededPatient(email: string): SeededPatient | undefined {
       return patients.find((patient) => patient.demo.email === email);
-    }
-    function utcDayRangeFromNow(): { start: Date; end: Date } {
-      const now = new Date();
-      const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-      return { start, end: plusMinutes(start, 24 * 60) };
-    }
-    async function hasAppointmentToday(doctor: SeededDoctor): Promise<boolean> {
-      const { start, end } = utcDayRangeFromNow();
-      const existing = await appointmentRepository.findByDoctorIdForDateRange(doctor.doctorProfileId, start, end);
-      return existing.length > 0;
     }
     async function bookWindowLaterToday(
       doctor: SeededDoctor,
@@ -1495,77 +1499,81 @@ async function main(): Promise<void> {
       );
     }
 
-    // Doctor A (doctor04 -- the one Free-consultation doctor in this
-    // roster): two guaranteed pending requests, never confirmed. Not
-    // date-scoped by the controller, so these don't need to land "today".
-    const pendingDoctor = findSeededDoctor('doctor04@orivex.dev');
-    const pendingPatientA = findSeededPatient('patient01@orivex.dev');
-    const pendingPatientB = findSeededPatient('patient02@orivex.dev');
-    if (pendingDoctor && pendingPatientA && pendingPatientB) {
-      try {
-        const alreadyPending = (await appointmentRepository.findByDoctorId(pendingDoctor.doctorProfileId)).some(
-          (appointment) => appointment.getStatus() === AppointmentStatus.Requested,
-        );
-        if (!alreadyPending) {
-          await bookWindowLaterToday(pendingDoctor, pendingPatientA, 4 * 60);
-          await bookWindowLaterToday(pendingDoctor, pendingPatientB, 6 * 60);
-          console.info(`  + pending-approval requests for ${pendingDoctor.demo.email}`);
-        }
-      } catch (error) {
-        console.warn(`  ! pending-approval seed for ${pendingDoctor.demo.email} skipped: ${describeError(error)}`);
-      }
-    }
+    const densityMarkerDoctor = findSeededDoctor('doctor08@orivex.dev');
+    const densityPassAlreadyRan = densityMarkerDoctor
+      ? (await appointmentRepository.findByDoctorId(densityMarkerDoctor.doctorProfileId)).some(
+          (appointment) =>
+            appointment.getStatus() === AppointmentStatus.Completed &&
+            appointment.getScheduledAt().getTime() > Date.now() - 24 * 60 * 60_000,
+        )
+      : true;
 
-    // Doctor B (doctor02): a Confirmed-for-later-today appointment left in
-    // its opened WaitingRoom session -- "Waiting".
-    const waitingDoctor = findSeededDoctor('doctor02@orivex.dev');
-    const waitingPatient = findSeededPatient('patient03@orivex.dev');
-    if (waitingDoctor && waitingPatient) {
-      try {
-        if (!(await hasAppointmentToday(waitingDoctor))) {
-          const appointment = await bookWindowLaterToday(waitingDoctor, waitingPatient, 90);
-          await confirmViaPaymentOrApproval(appointment);
-          console.info(`  + waiting-room appointment for ${waitingDoctor.demo.email}`);
-        }
-      } catch (error) {
-        console.warn(`  ! waiting seed for ${waitingDoctor.demo.email} skipped: ${describeError(error)}`);
-      }
-    }
+    if (densityPassAlreadyRan) {
+      console.info("Today's queue distribution + density top-up already present -- skipping (idempotent reseed).");
+    } else {
+      console.info("Seeding today's queue distribution across many doctors...");
 
-    // Doctor C (doctor05): the same, but actually started -- "In
-    // Consultation".
-    const inConsultationDoctor = findSeededDoctor('doctor05@orivex.dev');
-    const inConsultationPatient = findSeededPatient('patient04@orivex.dev');
-    if (inConsultationDoctor && inConsultationPatient) {
-      try {
-        if (!(await hasAppointmentToday(inConsultationDoctor))) {
-          const appointment = await bookWindowLaterToday(inConsultationDoctor, inConsultationPatient, 15);
-          const sessionId = await confirmViaPaymentOrApproval(appointment);
-          if (sessionId) {
-            await startConsultation.execute(new StartConsultationCommand({ consultationSessionId: sessionId }));
+      // Free-consultation doctors (doctor04/doctor10/doctor20 -- see their
+      // own demo-data comments): Pending Approval only ever surfaces
+      // Free+Requested appointments, so several doctors need to be Free for
+      // "some doctors: pending approval" to mean more than one account.
+      // Not date-scoped by the controller, so these don't need to land
+      // "today" specifically.
+      const pendingAssignments: { doctorEmail: string; patientEmails: string[] }[] = [
+        { doctorEmail: 'doctor04@orivex.dev', patientEmails: ['patient01@orivex.dev', 'patient02@orivex.dev'] },
+        { doctorEmail: 'doctor10@orivex.dev', patientEmails: ['patient07@orivex.dev', 'patient10@orivex.dev'] },
+        { doctorEmail: 'doctor20@orivex.dev', patientEmails: ['patient14@orivex.dev'] },
+      ];
+      for (const { doctorEmail, patientEmails } of pendingAssignments) {
+        const doctor = findSeededDoctor(doctorEmail);
+        if (!doctor) continue;
+        for (const [index, patientEmail] of patientEmails.entries()) {
+          const patient = findSeededPatient(patientEmail);
+          if (!patient) continue;
+          try {
+            await bookWindowLaterToday(doctor, patient, (index + 2) * 120);
+          } catch (error) {
+            console.warn(`  ! pending-approval seed for ${doctorEmail}/${patientEmail} skipped: ${describeError(error)}`);
           }
-          console.info(`  + in-progress consultation for ${inConsultationDoctor.demo.email}`);
         }
-      } catch (error) {
-        console.warn(`  ! in-consultation seed for ${inConsultationDoctor.demo.email} skipped: ${describeError(error)}`);
+        console.info(`  + pending-approval requests for ${doctorEmail}`);
       }
-    }
 
-    // Doctor D (doctor08): started AND closed -- "Completed Today", with a
-    // real clinical note so the card isn't a bare status pill.
-    const completedTodayDoctor = findSeededDoctor('doctor08@orivex.dev');
-    const completedTodayPatient = findSeededPatient('patient05@orivex.dev');
-    if (completedTodayDoctor && completedTodayPatient) {
-      try {
-        if (!(await hasAppointmentToday(completedTodayDoctor))) {
-          const appointment = await bookWindowLaterToday(completedTodayDoctor, completedTodayPatient, 5);
-          const sessionId = await confirmViaPaymentOrApproval(appointment);
-          if (sessionId) {
+      // Today's queue: many doctors, varied states (including a couple with
+      // more than one patient in the same state) -- never one doctor per
+      // state.
+      const todayAssignments: { doctorEmail: string; patientEmails: string[]; scenario: 'waiting' | 'in-consultation' | 'completed' }[] = [
+        { doctorEmail: 'doctor02@orivex.dev', patientEmails: ['patient03@orivex.dev'], scenario: 'waiting' },
+        { doctorEmail: 'doctor06@orivex.dev', patientEmails: ['patient06@orivex.dev'], scenario: 'waiting' },
+        { doctorEmail: 'doctor13@orivex.dev', patientEmails: ['patient13@orivex.dev', 'patient19@orivex.dev'], scenario: 'waiting' },
+        { doctorEmail: 'doctor16@orivex.dev', patientEmails: ['patient16@orivex.dev'], scenario: 'waiting' },
+        { doctorEmail: 'doctor05@orivex.dev', patientEmails: ['patient04@orivex.dev'], scenario: 'in-consultation' },
+        { doctorEmail: 'doctor11@orivex.dev', patientEmails: ['patient11@orivex.dev'], scenario: 'in-consultation' },
+        { doctorEmail: 'doctor17@orivex.dev', patientEmails: ['patient17@orivex.dev'], scenario: 'in-consultation' },
+        { doctorEmail: 'doctor08@orivex.dev', patientEmails: ['patient05@orivex.dev', 'patient08@orivex.dev'], scenario: 'completed' },
+        { doctorEmail: 'doctor01@orivex.dev', patientEmails: ['patient01@orivex.dev'], scenario: 'completed' },
+        { doctorEmail: 'doctor12@orivex.dev', patientEmails: ['patient12@orivex.dev'], scenario: 'completed' },
+        { doctorEmail: 'doctor15@orivex.dev', patientEmails: ['patient15@orivex.dev', 'patient09@orivex.dev'], scenario: 'completed' },
+        { doctorEmail: 'doctor18@orivex.dev', patientEmails: ['patient18@orivex.dev', 'patient20@orivex.dev'], scenario: 'completed' },
+      ];
+      for (const { doctorEmail, patientEmails, scenario } of todayAssignments) {
+        const doctor = findSeededDoctor(doctorEmail);
+        if (!doctor) continue;
+        for (const [index, patientEmail] of patientEmails.entries()) {
+          const patient = findSeededPatient(patientEmail);
+          if (!patient) continue;
+          try {
+            const minutesFromNow = 10 + index * 35 + randomInt(0, 20);
+            const appointment = await bookWindowLaterToday(doctor, patient, minutesFromNow);
+            const sessionId = await confirmViaPaymentOrApproval(appointment);
+            if (!sessionId) continue;
+            if (scenario === 'waiting') continue;
             await startConsultation.execute(new StartConsultationCommand({ consultationSessionId: sessionId }));
+            if (scenario === 'in-consultation') continue;
             await recordClinicalNote.execute(
               new RecordClinicalNoteCommand({
                 consultationSessionId: sessionId,
-                authoringDoctorId: completedTodayDoctor.doctorProfileId,
+                authoringDoctorId: doctor.doctorProfileId,
                 content: pick(CLINICAL_NOTE_TEMPLATES),
               }),
             );
@@ -1575,12 +1583,129 @@ async function main(): Promise<void> {
                 completionReason: ConsultationCompletionReason.Completed,
               }),
             );
+          } catch (error) {
+            console.warn(`  ! ${scenario} seed for ${doctorEmail}/${patientEmail} skipped: ${describeError(error)}`);
           }
-          console.info(`  + completed-today consultation for ${completedTodayDoctor.demo.email}`);
         }
-      } catch (error) {
-        console.warn(`  ! completed-today seed for ${completedTodayDoctor.demo.email} skipped: ${describeError(error)}`);
+        console.info(`  + ${scenario} for ${doctorEmail}`);
       }
+
+      // Density top-up: no doctor's real practice should look thinner than
+      // a handful of relationships, and no patient's history should look
+      // like a fresh, unused account -- every account gets topped up to at
+      // least these floors, preferring NEW doctor<->patient links over
+      // repeating existing ones so relationships spread across the whole
+      // population instead of concentrating on whoever the RNG already
+      // favored above.
+      const MIN_PATIENTS_PER_DOCTOR = 4;
+      const MIN_APPOINTMENTS_PER_DOCTOR = 6;
+      const MIN_DOCTORS_PER_PATIENT = 3;
+      const MIN_APPOINTMENTS_PER_PATIENT = 4;
+
+      const doctorPatientSet = new Map<string, Set<string>>();
+      const doctorApptCount = new Map<string, number>();
+      const patientDoctorSet = new Map<string, Set<string>>();
+      const patientApptCount = new Map<string, number>();
+
+      for (const doctor of doctors) {
+        const appts = await appointmentRepository.findByDoctorId(doctor.doctorProfileId);
+        doctorPatientSet.set(doctor.doctorProfileId, new Set(appts.map((appointment) => appointment.getPatientId())));
+        doctorApptCount.set(doctor.doctorProfileId, appts.length);
+      }
+      for (const patient of patients) {
+        const appts = await appointmentRepository.findByPatientId(patient.patientProfileId);
+        patientDoctorSet.set(patient.patientProfileId, new Set(appts.map((appointment) => appointment.getDoctorId())));
+        patientApptCount.set(patient.patientProfileId, appts.length);
+      }
+
+      function recordLink(doctor: SeededDoctor, patient: SeededPatient): void {
+        doctorPatientSet.get(doctor.doctorProfileId)?.add(patient.patientProfileId);
+        doctorApptCount.set(doctor.doctorProfileId, (doctorApptCount.get(doctor.doctorProfileId) ?? 0) + 1);
+        patientDoctorSet.get(patient.patientProfileId)?.add(doctor.doctorProfileId);
+        patientApptCount.set(patient.patientProfileId, (patientApptCount.get(patient.patientProfileId) ?? 0) + 1);
+      }
+
+      let topUpVisitSequence = 4;
+      async function addHistoricalLink(doctor: SeededDoctor, patient: SeededPatient): Promise<void> {
+        topUpVisitSequence += 1;
+        await createHistoricalCompletedVisit({
+          patient,
+          doctor,
+          visitSequence: topUpVisitSequence,
+          patientBaseWeightKg: randomInt(58, 110),
+          patientBpIndex: randomInt(2, BLOOD_PRESSURE_READINGS.length - 1),
+          patientSugarIndex: randomInt(2, BLOOD_SUGAR_READINGS.length - 1),
+        });
+        recordLink(doctor, patient);
+      }
+      async function addUpcomingLink(doctor: SeededDoctor, patient: SeededPatient, daysAhead: number): Promise<void> {
+        const appointment = await bookWindowLaterToday(doctor, patient, daysAhead * 24 * 60 + randomInt(1, 6) * 60);
+        if (nextRandom() < 0.6) {
+          await confirmViaPaymentOrApproval(appointment);
+        }
+        recordLink(doctor, patient);
+      }
+
+      function pickTopUpPatient(doctor: SeededDoctor): SeededPatient | undefined {
+        const connected = doctorPatientSet.get(doctor.doctorProfileId) ?? new Set<string>();
+        const unconnected = patients.filter((candidate) => !connected.has(candidate.patientProfileId));
+        const pool = unconnected.length > 0 ? unconnected : patients;
+        return [...pool].sort(
+          (a, b) =>
+            (patientDoctorSet.get(a.patientProfileId)?.size ?? 0) - (patientDoctorSet.get(b.patientProfileId)?.size ?? 0),
+        )[0];
+      }
+      function pickTopUpDoctor(patient: SeededPatient): SeededDoctor | undefined {
+        const connected = patientDoctorSet.get(patient.patientProfileId) ?? new Set<string>();
+        const unconnected = doctors.filter((candidate) => !connected.has(candidate.doctorProfileId));
+        const pool = unconnected.length > 0 ? unconnected : doctors;
+        return pool.length > 0 ? pick(pool) : undefined;
+      }
+
+      console.info('Topping up doctor activity density...');
+      for (const doctor of doctors) {
+        const rounds = Math.max(
+          MIN_PATIENTS_PER_DOCTOR - (doctorPatientSet.get(doctor.doctorProfileId)?.size ?? 0),
+          MIN_APPOINTMENTS_PER_DOCTOR - (doctorApptCount.get(doctor.doctorProfileId) ?? 0),
+          0,
+        );
+        for (let i = 0; i < rounds; i += 1) {
+          const patient = pickTopUpPatient(doctor);
+          if (!patient) break;
+          try {
+            if (i % 2 === 0) {
+              await addHistoricalLink(doctor, patient);
+            } else {
+              await addUpcomingLink(doctor, patient, randomInt(1, 21));
+            }
+          } catch (error) {
+            console.warn(`  ! density top-up for ${doctor.demo.email} skipped: ${describeError(error)}`);
+          }
+        }
+      }
+
+      console.info('Topping up patient activity density...');
+      for (const patient of patients) {
+        const rounds = Math.max(
+          MIN_DOCTORS_PER_PATIENT - (patientDoctorSet.get(patient.patientProfileId)?.size ?? 0),
+          MIN_APPOINTMENTS_PER_PATIENT - (patientApptCount.get(patient.patientProfileId) ?? 0),
+          0,
+        );
+        for (let i = 0; i < rounds; i += 1) {
+          const doctor = pickTopUpDoctor(patient);
+          if (!doctor) break;
+          try {
+            if (i % 2 === 0) {
+              await addHistoricalLink(doctor, patient);
+            } else {
+              await addUpcomingLink(doctor, patient, randomInt(1, 21));
+            }
+          } catch (error) {
+            console.warn(`  ! density top-up for ${patient.demo.email} skipped: ${describeError(error)}`);
+          }
+        }
+      }
+      console.info('Density top-up complete.');
     }
 
     // -----------------------------------------------------------------

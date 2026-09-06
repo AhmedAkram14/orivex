@@ -64,6 +64,23 @@ function pick<T>(items: readonly T[], seed: number): T {
 // `public/demo/documents/` (generated once by the same deterministic
 // patient-slug + document-index formula used here, never by array order
 // alone, so a seed re-run can never point at a file that doesn't exist).
+//
+// Only these patients have a real checked-in binary on disk -- gating on
+// this explicit set (rather than a parity check like "every other patient")
+// is what a Data Density & Full Coverage pass demonstrated is load-bearing:
+// once every patient has completed visits, a parity-based guess drifts out
+// of sync with the actual files under public/demo/documents/ and starts
+// pointing signedUrl at files that don't exist.
+const PATIENT_EMAILS_WITH_REAL_DOCUMENT_FILES = new Set([
+  'patient03@orivex.dev',
+  'patient05@orivex.dev',
+  'patient07@orivex.dev',
+  'patient09@orivex.dev',
+  'patient11@orivex.dev',
+  'patient13@orivex.dev',
+  'patient15@orivex.dev',
+  'patient17@orivex.dev',
+]);
 const CLINICAL_DOCUMENT_KINDS: readonly {
   purpose: MockMediaAsset['purpose'];
   contentType: string;
@@ -195,12 +212,13 @@ export function seedDemoData(): void {
     const upcoming = appointments.filter((entry) => entry.status === 'confirmed' || entry.status === 'requested');
     const completed = appointments.filter((entry) => entry.status === 'completed');
 
-    // MSW Demo Clinical Documents fix: roughly half the patients with a real
-    // completed visit end up with 1-3 real-shaped clinical documents dated
-    // just after that visit -- the rest genuinely have none, so the
-    // Documents tab's empty state stays honestly exercised too, exactly as
-    // it would for a real patient who's never uploaded anything.
-    if (completed.length > 0 && patientIndex % 2 === 0) {
+    // MSW Demo Clinical Documents fix: patients with a real completed visit
+    // AND a real checked-in binary end up with 1-3 real-shaped clinical
+    // documents dated just after that visit -- the rest genuinely have
+    // none, so the Documents tab's empty state stays honestly exercised
+    // too, exactly as it would for a real patient who's never uploaded
+    // anything.
+    if (completed.length > 0 && PATIENT_EMAILS_WITH_REAL_DOCUMENT_FILES.has(patient.email)) {
       const documentCount = 1 + (patientIndex % 3);
       setDocumentsForAccount(patient.accountId, buildDemoDocuments(patient, completed, documentCount, patientIndex));
     }
