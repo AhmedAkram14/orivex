@@ -9,8 +9,8 @@ import { DASHBOARD_SUBTITLE_KEY, primaryRole } from '@/features/shell/config/das
 import { useAuth } from '@/shared/auth/auth-context';
 import { useRouter } from '@/shared/i18n/navigation';
 import { DashboardGrid, Page } from '@/shared/ui/layout/page';
-import { LoadingState } from '@/shared/ui/loading-state';
 import { QuickActions } from '@/shared/ui/layout/quick-actions';
+import { RouteLoadingSkeleton } from '@/shared/ui/layout/route-loading-skeleton';
 import { RecentActivityContainer } from '@/shared/ui/layout/recent-activity';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
@@ -81,11 +81,11 @@ export default function DashboardPage() {
   }, [isDoctorRole, isSuperAdminRole, isPatientRole, journeyStatus.isPending, needsJourneyChoice, needsPatientIntake, router]);
 
   if (isDoctorRole || isSuperAdminRole) {
-    return <LoadingState />;
+    return <RouteLoadingSkeleton />;
   }
 
   if (isPatientRole && (journeyStatus.isPending || patientNeedsGatedRedirect)) {
-    return <LoadingState />;
+    return <RouteLoadingSkeleton />;
   }
 
   return (

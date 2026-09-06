@@ -15,8 +15,8 @@ import { WelcomeHeader } from '@/features/patient/components/welcome-header';
 import { useJourneyStatus } from '@/features/journey/hooks/use-journey-status';
 import { RequireRole } from '@/shared/auth/require-role';
 import { useRouter } from '@/shared/i18n/navigation';
-import { LoadingState } from '@/shared/ui/loading-state';
 import { DashboardGrid, Page } from '@/shared/ui/layout/page';
+import { RouteLoadingSkeleton } from '@/shared/ui/layout/route-loading-skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
@@ -58,7 +58,7 @@ export default function PatientDashboardPage() {
   }, [needsPatientIntake, router]);
 
   if (journeyStatus.isPending || needsPatientIntake) {
-    return <LoadingState />;
+    return <RouteLoadingSkeleton />;
   }
 
   return (
