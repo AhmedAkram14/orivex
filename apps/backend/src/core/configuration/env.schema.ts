@@ -91,6 +91,22 @@ export const envSchema = z.object({
   // once Stripe is actually the bound gateway.
   STRIPE_SECRET_KEY: z.string().min(1).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // Azure OpenAI (docs/10-backend-architecture.md's AIModule dependency;
+  // CLAUDE.md names Azure OpenAI as the eventual provider). Optional --
+  // unset means AIModule keeps binding NotConfiguredAIProviderAdapter (same
+  // fail-loud-not-fail-fake idiom as every other unconfigured provider in
+  // this schema). All three are required together once AI is actually the
+  // bound provider. ENDPOINT is the resource's unified v1 base URL
+  // (`https://<resource>.openai.azure.com/openai/v1`, confirmed by trial --
+  // NOT the classic `.../openai/deployments/{name}/chat/completions?
+  // api-version=...` shape); ai.module.ts points the plain OpenAI SDK
+  // client (not its AzureOpenAI subclass) straight at it. DEPLOYMENT_NAME
+  // selects which deployed model on that resource to call (Azure OpenAI's
+  // `model` parameter is the deployment name, not the underlying model
+  // name).
+  AZURE_OPENAI_ENDPOINT: z.string().url().optional(),
+  AZURE_OPENAI_API_KEY: z.string().min(1).optional(),
+  AZURE_OPENAI_DEPLOYMENT_NAME: z.string().min(1).optional(),
   // LiveKit (docs/14-adrs.md "Telemedicine" ADR, ORIVEX Roadmap 2.0 Stage 2).
   // Optional -- unset means ConsultationModule keeps binding
   // NotConfiguredRoomTokenAdapter (same fail-loud-not-fail-fake idiom as
