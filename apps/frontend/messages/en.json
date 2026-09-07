@@ -312,6 +312,15 @@
     "joinCall": "Join video call"
   },
   "auth": {
+    "panel": {
+      "headline": "Your care, verified and secure — every step of the way.",
+      "bullets": {
+        "verified": "Every doctor completes identity and credential verification before treating patients.",
+        "secure": "Consultations, records, and payments are encrypted end-to-end.",
+        "everywhere": "Book, consult, and manage your health from any device, anywhere."
+      },
+      "footer": "Trusted by patients and doctors across Egypt"
+    },
     "validation": {
       "emailRequired": "Email is required.",
       "emailInvalid": "Enter a valid email address.",
@@ -665,6 +674,7 @@
       "hero": {
         "consultationsToday": "{count, plural, =0 {No consultations today} one {# consultation today} other {# consultations today}}",
         "nextPatientIn": "Next patient in {minutes, plural, one {# minute} other {# minutes}}",
+        "nextPatientInHours": "Next patient in about {hours, plural, one {# hour} other {# hours}}",
         "noMorePatientsToday": "No more patients today",
         "noStartableConsultation": "No patient waiting to start",
         "quickActions": {

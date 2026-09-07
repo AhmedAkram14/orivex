@@ -60,8 +60,17 @@ export function DashboardHero() {
   const { data: queue } = useDoctorQueue();
 
   const now = new Date();
+  const isSameCalendarDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  // Bounded to *today* -- a patient scheduled days from now is not "next" in
+  // any useful sense here; the honest fallback for that case is the same
+  // "no more patients today" message an actually-empty day gets.
   const nextPatient = (upcomingWork ?? [])
-    .filter((item) => item.status === 'upcoming' && new Date(item.scheduledAt).getTime() > now.getTime())
+    .filter((item) => {
+      const scheduledAt = new Date(item.scheduledAt);
+      return item.status === 'upcoming' && scheduledAt.getTime() > now.getTime() && isSameCalendarDay(scheduledAt, now);
+    })
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
 
   const minutesUntilNext = nextPatient
@@ -82,7 +91,9 @@ export function DashboardHero() {
             {t('hero.consultationsToday', { count: summary?.consultationsToday ?? 0 })}
             {' · '}
             {minutesUntilNext != null
-              ? t('hero.nextPatientIn', { minutes: minutesUntilNext })
+              ? minutesUntilNext >= 60
+                ? t('hero.nextPatientInHours', { hours: Math.round(minutesUntilNext / 60) })
+                : t('hero.nextPatientIn', { minutes: minutesUntilNext })
               : t('hero.noMorePatientsToday')}
           </p>
 

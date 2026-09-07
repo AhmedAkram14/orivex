@@ -11,6 +11,7 @@ import { PersonalInfoStep } from '@/features/identity/components/personal-info-s
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Stepper } from '@/shared/ui/stepper';
 import { DocumentsStep, type DocumentSlots } from '@/shared/verification/components/documents-step';
 import { VerificationStatus } from '@/shared/verification/components/verification-status';
 import type { MediaAssetPurpose } from '@/shared/media/types';
@@ -129,23 +130,16 @@ export function OnboardingFlow() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ol className="flex items-center gap-2 text-xs text-text-tertiary">
-        <li aria-current={step === 'personal' ? 'step' : undefined} className={step === 'personal' ? 'font-semibold text-primary' : ''}>
-          {t('steps.personal')}
-        </li>
-        <li aria-hidden="true">/</li>
-        <li aria-current={step === 'profile' ? 'step' : undefined} className={step === 'profile' ? 'font-semibold text-primary' : ''}>
-          {t('steps.profile')}
-        </li>
-        <li aria-hidden="true">/</li>
-        <li aria-current={step === 'documents' ? 'step' : undefined} className={step === 'documents' ? 'font-semibold text-primary' : ''}>
-          {t('steps.documents')}
-        </li>
-        <li aria-hidden="true">/</li>
-        <li aria-current={step === 'review' ? 'step' : undefined} className={step === 'review' ? 'font-semibold text-primary' : ''}>
-          {t('steps.review')}
-        </li>
-      </ol>
+      <Stepper
+        className="mx-auto w-full max-w-xl"
+        currentKey={step}
+        steps={[
+          { key: 'personal', label: t('steps.personal') },
+          { key: 'profile', label: t('steps.profile') },
+          { key: 'documents', label: t('steps.documents') },
+          { key: 'review', label: t('steps.review') },
+        ]}
+      />
 
       {step === 'personal' && (
         <PersonalInfoStep account={account} onSaved={() => setStep('profile')} />

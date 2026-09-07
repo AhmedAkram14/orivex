@@ -11,6 +11,7 @@ import { usePatientProfile } from '@/features/patient/hooks/use-patient-profile'
 import { useRouter } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { Stepper } from '@/shared/ui/stepper';
 
 type IntakeStep = 'personal' | 'medical';
 
@@ -70,15 +71,14 @@ export function PatientIntakeFlow() {
         <p className="text-text-secondary">{t('description')}</p>
       </div>
 
-      <ol className="flex items-center justify-center gap-2 text-xs text-text-tertiary">
-        <li aria-current={step === 'personal' ? 'step' : undefined} className={step === 'personal' ? 'font-semibold text-primary' : ''}>
-          {t('steps.personal')}
-        </li>
-        <li aria-hidden="true">/</li>
-        <li aria-current={step === 'medical' ? 'step' : undefined} className={step === 'medical' ? 'font-semibold text-primary' : ''}>
-          {t('steps.medical')}
-        </li>
-      </ol>
+      <Stepper
+        className="mx-auto w-full max-w-xs"
+        currentKey={step}
+        steps={[
+          { key: 'personal', label: t('steps.personal') },
+          { key: 'medical', label: t('steps.medical') },
+        ]}
+      />
 
       {step === 'personal' && <PersonalInfoStep account={account} onSaved={() => setStep('medical')} />}
 
