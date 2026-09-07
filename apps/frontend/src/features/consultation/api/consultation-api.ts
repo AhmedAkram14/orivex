@@ -1,6 +1,10 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { CONSULTATION_PATHS } from '@/features/consultation/api/paths';
 import type {
+  AISuggestion,
+  AISuggestionDecision,
+  AISuggestionType,
+  AISuggestionUnavailable,
   ClinicalNote,
   ConsultationCompletionReason,
   ConsultationFeedback,
@@ -118,4 +122,29 @@ export const consultationApi = {
    */
   updateJourneyStage: (journeyId: string, stage: JourneyStage) =>
     apiFetch<HealthJourney>({ method: 'PATCH', path: CONSULTATION_PATHS.journeyStage(journeyId), body: { stage } }),
+
+  /**
+   * AI Copilot (docs/01.1-prd-update.md §4). Sends only what the real
+   * backend contract requires -- consultationSessionId + suggestionType.
+   * The real clinical context is built server-side from
+   * GetHealthGraphSubgraphUseCase; this client never sends patient history,
+   * diagnoses, or medication lists itself, even though the endpoint could
+   * technically accept an arbitrary body. A 202 "unavailable" response
+   * (no AI provider configured, or the real provider call failed) is a
+   * normal, non-error outcome -- not thrown as an ApiError.
+   */
+  requestAISuggestion: (consultationSessionId: string, suggestionType: AISuggestionType) =>
+    apiFetch<AISuggestion | AISuggestionUnavailable>({
+      method: 'POST',
+      path: CONSULTATION_PATHS.aiSuggestions(),
+      body: { consultationSessionId, suggestionType },
+    }),
+
+  /** The doctor's explicit review decision on one AI suggestion -- never inferred client-side. */
+  recordAIDecision: (suggestionId: string, decision: AISuggestionDecision, justification?: string) =>
+    apiFetch<AISuggestion>({
+      method: 'PATCH',
+      path: CONSULTATION_PATHS.aiSuggestionDecision(suggestionId),
+      body: { decision, justification },
+    }),
 };

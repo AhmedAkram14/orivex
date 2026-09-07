@@ -2241,7 +2241,51 @@
       "completeConsultation": "إنهاء الاستشارة",
       "completeError": "تعذر إنهاء الاستشارة. حاول مرة أخرى.",
       "saveError": "تعذر الحفظ. حاول مرة أخرى.",
-      "unsavedWorkWarning": "لديك محتوى غير محفوظ. هل تريد إنهاء الاستشارة على أي حال؟"
+      "unsavedWorkWarning": "لديك محتوى غير محفوظ. هل تريد إنهاء الاستشارة على أي حال؟",
+      "copilot": {
+        "title": "المساعد الذكي",
+        "subtitle": "اقتراحات سياقية لهذه الاستشارة.",
+        "expand": "إظهار المساعد الذكي",
+        "collapse": "طي المساعد الذكي",
+        "notActiveNotice": "المساعد الذكي متاح فقط أثناء استمرار الاستشارة.",
+        "actions": {
+          "summary": "تلخيص الاستشارة",
+          "soap_draft": "صياغة ملاحظة SOAP",
+          "suggested_question": "اقتراح أسئلة متابعة",
+          "prescription_draft": "صياغة وصفة طبية",
+          "interaction_flag": "فحص التفاعلات الدوائية/الحساسية",
+          "follow_up_plan": "صياغة خطة متابعة"
+        },
+        "typeLabel": {
+          "summary": "ملخص",
+          "soap_draft": "مسودة SOAP",
+          "suggested_question": "أسئلة مقترحة",
+          "prescription_draft": "مسودة وصفة طبية",
+          "interaction_flag": "تنبيه تفاعل/حساسية",
+          "follow_up_plan": "خطة متابعة"
+        },
+        "draftNotice": "مسودة من الذكاء الاصطناعي — راجعها قبل الاستخدام.",
+        "safetyFlagNotice": "تنبيه سلامة من الذكاء الاصطناعي — تحقق منه قبل التصرف بناءً عليه.",
+        "generatedAt": "تم الإنشاء {time}",
+        "approve": "موافقة",
+        "edit": "تعديل",
+        "editContentLabel": "تعديل محتوى الاقتراح",
+        "save": "حفظ كنسخة معدَّلة",
+        "cancel": "إلغاء",
+        "reject": "رفض",
+        "regenerate": "إعادة الإنشاء",
+        "copy": "نسخ",
+        "copied": "تم النسخ",
+        "rejectJustificationLabel": "سبب الرفض (مطلوب)",
+        "rejectJustificationPlaceholder": "لماذا هذا الاقتراح غير مفيد؟",
+        "rejectJustificationRequired": "يلزم توضيح سبب لرفض هذا الاقتراح.",
+        "decisionApproved": "لقد وافقت على هذا الاقتراح.",
+        "decisionEdited": "لقد حفظت نسخة معدَّلة من هذا الاقتراح.",
+        "decisionRejected": "لقد رفضت هذا الاقتراح.",
+        "requestError": "تعذر الوصول إلى المساعد الذكي. يمكنك متابعة العمل بدونه.",
+        "unavailable": "المساعد الذكي غير متاح حالياً. يمكنك متابعة العمل بدونه.",
+        "decisionError": "تعذر حفظ قرارك. حاول مرة أخرى."
+      }
     },
     "rating": {
       "prompt": "قيّم استشارتك",

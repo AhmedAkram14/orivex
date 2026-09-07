@@ -15,4 +15,10 @@ export const CONSULTATION_PATHS = {
   // Not nested under /consultations/:id either -- matches JourneyController's
   // own @Controller('journeys') shape exactly.
   journeyStage: (journeyId: string) => `/journeys/${journeyId}`,
+  // AI Copilot: matches AISuggestionController's own @Controller('ai/suggestions')
+  // shape exactly -- consultationSessionId is carried in the request body,
+  // not the URL, for the request; the decision route is keyed by the
+  // suggestion's own id.
+  aiSuggestions: () => '/ai/suggestions',
+  aiSuggestionDecision: (suggestionId: string) => `/ai/suggestions/${suggestionId}`,
 } as const;

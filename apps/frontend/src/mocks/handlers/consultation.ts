@@ -1,6 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
-import type { ConsultationCompletionReason, JourneyStage, SignPrescriptionLineItemInput } from '@/features/consultation/api/types';
+import type {
+  AISuggestionDecision,
+  AISuggestionType,
+  ConsultationCompletionReason,
+  JourneyStage,
+  SignPrescriptionLineItemInput,
+} from '@/features/consultation/api/types';
 import type { VitalReadingType } from '@/features/consultation/api/types';
 import {
   closeConsultation,
@@ -8,10 +14,12 @@ import {
   getConsultationSummary,
   getDoctorReviews,
   recommendFollowUp,
+  recordAIDecision,
   recordConsultationDiagnosis,
   recordConsultationNote,
   recordConsultationPrescription,
   recordConsultationVital,
+  requestAISuggestion,
   startConsultation,
   submitConsultationFeedback,
   updateConsultationFeedback,
@@ -139,5 +147,26 @@ export const consultationHandlers = [
     const page = Number(url.searchParams.get('page') ?? '1');
     const limit = Number(url.searchParams.get('limit') ?? '20');
     return HttpResponse.json({ data: getDoctorReviews(params.id as string, page, limit) });
+  }),
+
+  // AI Copilot (docs/01.1-prd-update.md §4, ORIVEX Remaining Work Audit C7):
+  // matches AISuggestionController's own @Controller('ai/suggestions') shape
+  // exactly.
+  http.post(`${base()}/ai/suggestions`, async ({ request }) => {
+    const body = (await request.json()) as { consultationSessionId: string; suggestionType: AISuggestionType };
+    const result = requestAISuggestion(body.consultationSessionId, body.suggestionType);
+    return HttpResponse.json({ data: result }, { status: 200 });
+  }),
+
+  http.patch(`${base()}/ai/suggestions/:id`, async ({ request, params }) => {
+    const body = (await request.json()) as { decision: AISuggestionDecision; justification?: string };
+    const updated = recordAIDecision(params.id as string, body.decision, body.justification);
+    if (!updated) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'AISuggestion not found.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({ data: updated });
   }),
 ];

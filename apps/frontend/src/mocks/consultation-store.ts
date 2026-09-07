@@ -1,4 +1,8 @@
 import type {
+  AISuggestion,
+  AISuggestionDecision,
+  AISuggestionType,
+  AISuggestionUnavailable,
   ClinicalNote,
   ConsultationCompletionReason,
   ConsultationFeedback,
@@ -37,6 +41,7 @@ const notesBySessionId = new Map<string, ClinicalNote[]>();
 const diagnosesBySessionId = new Map<string, DiagnosisNode[]>();
 const vitalsBySessionId = new Map<string, ConsultationVitalReading[]>();
 const prescriptionsBySessionId = new Map<string, ConsultationPrescription[]>();
+const aiSuggestionsById = new Map<string, AISuggestion>();
 // Health Journey stage-advance fix (ORIVEX Remaining Work Audit, P0 C5):
 // keyed by session, same simplification as everything else in this mock
 // (the real backend scopes Health Journeys per-patient, spanning sessions
@@ -309,6 +314,59 @@ export function recordConsultationPrescription(
   return prescription;
 }
 
+/**
+ * AI Copilot (docs/01.1-prd-update.md §4, ORIVEX Remaining Work Audit C7):
+ * mirrors the real backend's own shape -- one AISuggestion per call,
+ * `requiresAcknowledgment` always true (the real AzureOpenAIAdapter never
+ * sets it any other way), `doctorDecision`/`decisionJustification` unset
+ * until `recordAIDecision` below is called. Dev/test-mode fixture content
+ * only -- MSW is off in the real running app (env.enableApiMocks), so this
+ * is never what a real doctor sees; the real adapter's actual Azure OpenAI
+ * output is what's shown there.
+ */
+const MOCK_SUGGESTION_CONTENT: Record<AISuggestionType, string> = {
+  soap_draft: 'S: Patient reports mild, intermittent symptoms.\nO: Vitals within normal range.\nA: Consistent with prior assessment.\nP: Continue current management; reassess at next visit.',
+  prescription_draft: 'Suggested: a common first-line medication for the documented symptoms, standard adult dosing, once daily, for 7 days.',
+  interaction_flag: 'No significant interactions found against this patient’s currently documented medications and allergies.',
+  suggested_question: 'Consider asking: how long have the symptoms persisted, and have they changed in severity recently?',
+  summary: 'This consultation covered the patient’s reported symptoms and relevant recent history; no new diagnoses were flagged as urgent.',
+  follow_up_plan: 'Suggested follow-up in 2 weeks to reassess symptom progression.',
+};
+
+export function requestAISuggestion(
+  consultationSessionId: string,
+  suggestionType: AISuggestionType,
+): AISuggestion | AISuggestionUnavailable {
+  const suggestion: AISuggestion = {
+    id: `ai-suggestion-${Date.now()}-${Math.round(Math.random() * 1000)}`,
+    consultationSessionId,
+    suggestionType,
+    content: MOCK_SUGGESTION_CONTENT[suggestionType],
+    confidenceScore: null,
+    safetyFlags: [],
+    requiresAcknowledgment: true,
+    doctorDecision: null,
+    decisionJustification: null,
+    generatedAt: new Date().toISOString(),
+  };
+  aiSuggestionsById.set(suggestion.id, suggestion);
+  return suggestion;
+}
+
+export function recordAIDecision(
+  suggestionId: string,
+  decision: AISuggestionDecision,
+  justification?: string,
+): AISuggestion | null {
+  const existing = aiSuggestionsById.get(suggestionId);
+  if (!existing) {
+    return null;
+  }
+  const decided: AISuggestion = { ...existing, doctorDecision: decision, decisionJustification: justification ?? null };
+  aiSuggestionsById.set(suggestionId, decided);
+  return decided;
+}
+
 export function closeConsultation(
   consultationSessionId: string,
   completionReason: ConsultationCompletionReason,
@@ -453,6 +511,7 @@ export function resetConsultationStore(): void {
   vitalsBySessionId.clear();
   prescriptionsBySessionId.clear();
   journeysBySessionId.clear();
+  aiSuggestionsById.clear();
   for (const feedback of [...seedFeedback(), ...seedDemoFeedback()]) {
     feedbackBySessionId.set(feedback.consultationSessionId, feedback);
   }

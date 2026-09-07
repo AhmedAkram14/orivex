@@ -12,6 +12,7 @@ import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { TrustModule } from '../trust/trust.module.js';
 
 import type { AIProviderPort } from './application/ports/ai-provider.port.js';
 import { AI_PROVIDER, AI_SUGGESTION_REPOSITORY } from './application/ports/tokens.js';
@@ -28,10 +29,16 @@ import { AISuggestionController } from './presentation/controllers/ai-suggestion
 // (live consultation/appointment context) to consume their own exported use
 // cases (module-to-module calls only through a published interface, never
 // another module's repository -- docs/10-backend-architecture.md Section
-// 11). Neither module imports AIModule back -- no circular imports, no
-// forwardRef(); this is the one-way dependency docs/10-backend-
+// 11). None of these modules import AIModule back -- no circular imports,
+// no forwardRef(); this is the one-way dependency docs/10-backend-
 // architecture.md mandates ("AIModule calls into Clinical's read
-// interface, not the reverse").
+// interface, not the reverse"). TrustModule added for RecordAuditLogUseCase
+// -- closes the AI-suggestion audit-trail gap the AI Product Surface Audit
+// found: AISuggestion already tracks its own decision trail, but every
+// other PHI read/clinical write in this codebase also lands in the shared
+// AuditLog (C2's audit-trail work); AI requests/decisions didn't. Reuses
+// that existing system exactly (AiSuggestionRequested/AiSuggestionDecided
+// added to AuditAction) rather than inventing a second one.
 //
 // AI_PROVIDER binds AzureOpenAIAdapter when AZURE_OPENAI_ENDPOINT/
 // AZURE_OPENAI_API_KEY/AZURE_OPENAI_DEPLOYMENT_NAME are all set, falling
@@ -49,7 +56,7 @@ import { AISuggestionController } from './presentation/controllers/ai-suggestion
 // backend-architecture.md's AIModule query) is also not exposed -- no
 // endpoint for it is documented in docs/12-openapi.md.
 @Module({
-  imports: [ClinicalModule, ConsultationModule, DoctorModule, AuthenticationGuardsModule],
+  imports: [ClinicalModule, ConsultationModule, DoctorModule, AuthenticationGuardsModule, TrustModule],
   controllers: [AISuggestionController],
   providers: [
     { provide: AI_SUGGESTION_REPOSITORY, useClass: PrismaAISuggestionRepository },

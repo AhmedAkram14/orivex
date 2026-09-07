@@ -23,6 +23,8 @@ const DOMAIN_TO_PRISMA_ACTION: Record<AuditAction, PrismaAuditAction> = {
   [AuditAction.DoctorVerificationDecided]: PrismaAuditAction.DOCTOR_VERIFICATION_DECIDED,
   [AuditAction.VerificationCaseSuspended]: PrismaAuditAction.VERIFICATION_CASE_SUSPENDED,
   [AuditAction.JourneyStageUpdated]: PrismaAuditAction.JOURNEY_STAGE_UPDATED,
+  [AuditAction.AiSuggestionRequested]: PrismaAuditAction.AI_SUGGESTION_REQUESTED,
+  [AuditAction.AiSuggestionDecided]: PrismaAuditAction.AI_SUGGESTION_DECIDED,
 };
 
 export interface PersistedAuditLog {

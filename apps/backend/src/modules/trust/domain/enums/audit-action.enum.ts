@@ -20,4 +20,6 @@ export enum AuditAction {
   DoctorVerificationDecided = 'doctor_verification_decided',
   VerificationCaseSuspended = 'verification_case_suspended',
   JourneyStageUpdated = 'journey_stage_updated',
+  AiSuggestionRequested = 'ai_suggestion_requested',
+  AiSuggestionDecided = 'ai_suggestion_decided',
 }

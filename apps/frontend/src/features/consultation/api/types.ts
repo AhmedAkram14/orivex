@@ -159,3 +159,46 @@ export interface DoctorReviewsResult {
   reviewCount: number;
   writtenReviewCount: number;
 }
+
+/**
+ * AI Copilot (docs/01.1-prd-update.md §4: "AI Copilot... a contextual side
+ * panel", never a chat interface). Matches AISuggestionType's real backend
+ * enum exactly -- these are the only six suggestion kinds the real
+ * `AzureOpenAIAdapter` has a system prompt for; the Copilot never offers a
+ * seventh, invented kind.
+ */
+export type AISuggestionType =
+  | 'soap_draft'
+  | 'prescription_draft'
+  | 'interaction_flag'
+  | 'suggested_question'
+  | 'summary'
+  | 'follow_up_plan';
+
+/** Matches RecordDoctorDecisionRequestDto's AISuggestionDecision enum exactly. */
+export type AISuggestionDecision = 'approved' | 'edited' | 'rejected';
+
+/** Matches AISuggestionResponseDto exactly. */
+export interface AISuggestion {
+  id: string;
+  consultationSessionId: string;
+  suggestionType: AISuggestionType;
+  content: string;
+  confidenceScore: number | null;
+  safetyFlags: string[];
+  requiresAcknowledgment: boolean;
+  doctorDecision: AISuggestionDecision | null;
+  decisionJustification: string | null;
+  generatedAt: string;
+}
+
+/**
+ * POST /ai/suggestions' real 202 degraded-mode shape (docs/12-openapi.md) --
+ * returned instead of an AISuggestion when no AI provider is configured, or
+ * when the real provider call itself failed. Never a thrown error: the rest
+ * of the consultation stays fully usable either way.
+ */
+export interface AISuggestionUnavailable {
+  status: 'unavailable';
+  warnings: string[];
+}

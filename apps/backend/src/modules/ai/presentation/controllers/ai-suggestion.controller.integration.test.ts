@@ -29,6 +29,7 @@ import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.en
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { GetAISuggestionByIdUseCase } from '../../application/use-cases/get-ai-suggestion-by-id/get-ai-suggestion-by-id.use-case.js';
@@ -198,6 +199,11 @@ describe('AISuggestionController (integration)', () => {
       { provide: GetAISuggestionByIdUseCase, useFactory: () => new GetAISuggestionByIdUseCase(suggestionRepo) },
       { provide: GetConsultationSessionByIdUseCase, useFactory: () => new GetConsultationSessionByIdUseCase(sessionRepo) },
       { provide: GetAppointmentByIdUseCase, useFactory: () => new GetAppointmentByIdUseCase(appointmentRepo) },
+      // No-op fake -- these tests assert AISuggestionController's own request/
+      // decision behavior, not the audit trail (that's RecordAuditLogUseCase's
+      // own unit test's job); a real audit-log write here would need a real
+      // AuditLogRepository this test module never sets up.
+      { provide: RecordAuditLogUseCase, useValue: { execute: async () => undefined } },
     ];
   }
 

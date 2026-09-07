@@ -2241,7 +2241,51 @@
       "completeConsultation": "Complete Consultation",
       "completeError": "Couldn't complete the consultation. Please try again.",
       "saveError": "Couldn't save. Please try again.",
-      "unsavedWorkWarning": "You have unsaved input. Complete the consultation anyway?"
+      "unsavedWorkWarning": "You have unsaved input. Complete the consultation anyway?",
+      "copilot": {
+        "title": "AI Copilot",
+        "subtitle": "Contextual suggestions for this consultation.",
+        "expand": "Expand AI Copilot",
+        "collapse": "Collapse AI Copilot",
+        "notActiveNotice": "AI Copilot is available once the consultation is in progress.",
+        "actions": {
+          "summary": "Summarize consultation",
+          "soap_draft": "Draft SOAP note",
+          "suggested_question": "Suggest follow-up questions",
+          "prescription_draft": "Draft prescription",
+          "interaction_flag": "Check drug/allergy interactions",
+          "follow_up_plan": "Draft follow-up plan"
+        },
+        "typeLabel": {
+          "summary": "Summary",
+          "soap_draft": "SOAP draft",
+          "suggested_question": "Suggested questions",
+          "prescription_draft": "Prescription draft",
+          "interaction_flag": "Interaction/allergy flag",
+          "follow_up_plan": "Follow-up plan"
+        },
+        "draftNotice": "AI-generated draft — review before use.",
+        "safetyFlagNotice": "AI-generated safety flag — verify before acting on it.",
+        "generatedAt": "Generated {time}",
+        "approve": "Approve",
+        "edit": "Edit",
+        "editContentLabel": "Edit suggestion content",
+        "save": "Save as edited",
+        "cancel": "Cancel",
+        "reject": "Reject",
+        "regenerate": "Regenerate",
+        "copy": "Copy",
+        "copied": "Copied",
+        "rejectJustificationLabel": "Reason for rejecting (required)",
+        "rejectJustificationPlaceholder": "Why isn't this suggestion useful?",
+        "rejectJustificationRequired": "A reason is required to reject this suggestion.",
+        "decisionApproved": "You approved this suggestion.",
+        "decisionEdited": "You saved an edited version of this suggestion.",
+        "decisionRejected": "You rejected this suggestion.",
+        "requestError": "Couldn't reach the AI Copilot. You can keep working without it.",
+        "unavailable": "AI Copilot is currently unavailable. You can keep working without it.",
+        "decisionError": "Couldn't save your decision. Please try again."
+      }
     },
     "rating": {
       "prompt": "Rate your consultation",

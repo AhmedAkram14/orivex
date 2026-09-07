@@ -11,6 +11,7 @@ import { useRecommendFollowUp } from '@/features/consultation/hooks/use-recommen
 import { useSignPrescription } from '@/features/consultation/hooks/use-sign-prescription';
 import { useUpdateJourneyStage } from '@/features/consultation/hooks/use-update-journey-stage';
 import type { JourneyStage } from '@/features/consultation/api/types';
+import { ConsultationCopilotPanel } from '@/features/consultation/components/copilot/consultation-copilot-panel';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
@@ -226,7 +227,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
         {t('openAction')}
       </Button>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
@@ -234,7 +235,8 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
         {isLoading && <Skeleton className="h-64 w-full" />}
 
         {summary && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
             <Tabs defaultValue="notes">
               <TabsList>
                 <TabsTrigger value="notes">{t('tabs.notes')}</TabsTrigger>
@@ -671,6 +673,12 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
             <Button type="button" loading={closeConsultation.isPending} onClick={handleComplete}>
               {t('completeConsultation')}
             </Button>
+          </div>
+
+          <ConsultationCopilotPanel
+            consultationSessionId={consultationSessionId}
+            isConsultationInProgress={summary.session.state === 'in_progress'}
+          />
           </div>
         )}
       </DialogContent>

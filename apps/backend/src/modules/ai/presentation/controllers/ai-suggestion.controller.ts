@@ -13,6 +13,9 @@ import { GetAppointmentByIdUseCase } from '../../../consultation/application/use
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
+import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
+import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
 import { GetAISuggestionByIdUseCase } from '../../application/use-cases/get-ai-suggestion-by-id/get-ai-suggestion-by-id.use-case.js';
 import { RecordDoctorDecisionCommand } from '../../application/use-cases/record-doctor-decision/record-doctor-decision.command.js';
 import { RecordDoctorDecisionUseCase } from '../../application/use-cases/record-doctor-decision/record-doctor-decision.use-case.js';
@@ -38,6 +41,7 @@ export class AISuggestionController {
     private readonly getAISuggestionByIdUseCase: GetAISuggestionByIdUseCase,
     private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+    private readonly recordAuditLogUseCase: RecordAuditLogUseCase,
   ) {}
 
   @Post()
@@ -64,10 +68,30 @@ export class AISuggestionController {
       );
 
       if (result.kind === 'unavailable') {
+        await this.recordAuditLogUseCase.execute(
+          new RecordAuditLogCommand({
+            actorAccountId: user.accountId,
+            actorRole: user.role,
+            action: AuditAction.AiSuggestionRequested,
+            subjectType: 'consultation_session',
+            subjectId: body.consultationSessionId,
+            metadata: { suggestionType: body.suggestionType, outcome: 'unavailable' },
+          }),
+        );
         res.status(HttpStatus.ACCEPTED);
         return envelope({ status: 'unavailable', warnings: result.warnings });
       }
 
+      await this.recordAuditLogUseCase.execute(
+        new RecordAuditLogCommand({
+          actorAccountId: user.accountId,
+          actorRole: user.role,
+          action: AuditAction.AiSuggestionRequested,
+          subjectType: 'consultation_session',
+          subjectId: body.consultationSessionId,
+          metadata: { suggestionType: body.suggestionType, outcome: 'generated', suggestionId: result.suggestion.getId() },
+        }),
+      );
       res.status(HttpStatus.OK);
       return envelope(AISuggestionResponseDto.fromDomain(result.suggestion));
     } catch (error) {
@@ -88,6 +112,16 @@ export class AISuggestionController {
           suggestionId: id,
           decision: body.decision,
           justification: body.justification,
+        }),
+      );
+      await this.recordAuditLogUseCase.execute(
+        new RecordAuditLogCommand({
+          actorAccountId: user.accountId,
+          actorRole: user.role,
+          action: AuditAction.AiSuggestionDecided,
+          subjectType: 'ai_suggestion',
+          subjectId: id,
+          metadata: { decision: body.decision },
         }),
       );
       return envelope(AISuggestionResponseDto.fromDomain(suggestion));
