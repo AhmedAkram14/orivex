@@ -3,6 +3,7 @@ import { CircleCheck, ShieldCheck } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
+import { Link } from '@/shared/i18n/navigation';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Logo } from '@/shared/ui/logo';
 
@@ -34,10 +35,10 @@ export async function AuthCard({ title, description, children, footer }: AuthCar
         <div aria-hidden="true" className="absolute -end-20 -top-20 size-80 rounded-full bg-white/10" />
         <div aria-hidden="true" className="absolute -start-24 -bottom-24 size-96 rounded-full bg-white/10" />
 
-        <a href="/" className="relative flex items-center gap-2">
+        <Link href="/" className="relative flex items-center gap-2">
           <Logo size="sm" />
           <span className="text-lg font-semibold">Orivex</span>
-        </a>
+        </Link>
 
         <div className="relative flex flex-col gap-8">
           <Heading level={1} className="max-w-sm text-white">
