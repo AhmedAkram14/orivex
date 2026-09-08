@@ -14,10 +14,12 @@ import { JoinCallAction } from '@/features/telemedicine/components/join-call-act
 import { RequireRole } from '@/shared/auth/require-role';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
+import { canJoinCall } from '@/shared/lib/consultation/join-window';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { JoinCountdown } from '@/shared/ui/consultation/join-countdown';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { CurrentPatientCard } from '@/shared/ui/queue/current-patient-card';
 import { PatientQueueCard } from '@/shared/ui/queue/patient-queue-card';
@@ -158,7 +160,11 @@ export default function DoctorQueuePage() {
                         statusLabel={tStatus(currentPatient.status)}
                         actions={
                           <div className="flex flex-wrap items-center gap-2">
-                            <JoinCallAction consultationSessionId={currentPatient.id} />
+                            {canJoinCall(currentPatient.scheduledAt) ? (
+                              <JoinCallAction consultationSessionId={currentPatient.id} />
+                            ) : (
+                              <JoinCountdown scheduledAt={currentPatient.scheduledAt} label={t('joinCountdownLabel')} />
+                            )}
                             <ConsultationWorkspaceAction consultationSessionId={currentPatient.id} />
                           </div>
                         }

@@ -166,6 +166,7 @@ export class DoctorAppointmentsController {
       dto.label = view.patientName;
       dto.status = view.status;
       dto.position = index + 1;
+      dto.scheduledAt = view.scheduledAt;
       if (view.status === 'waiting') {
         dto.estimatedWaitMinutes = index * rules.slotDurationMinutes;
       }
@@ -438,6 +439,7 @@ export class DoctorAppointmentsController {
       sessionId: session.getId(),
       patientName: patientAccount.getUserProfile().getDisplayName().toString(),
       status: toQueueStatus(session.getState()),
+      scheduledAt: appointment.getScheduledAt().toISOString(),
     };
   }
 }
@@ -446,6 +448,7 @@ interface QueueView {
   sessionId: string;
   patientName: string;
   status: QueueEntryResponseDto['status'];
+  scheduledAt: string;
 }
 
 // [start, end) for the UTC calendar day containing `date` -- keeps "today"

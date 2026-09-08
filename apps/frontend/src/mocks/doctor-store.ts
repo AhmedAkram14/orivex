@@ -192,11 +192,11 @@ function seedProfile(): DoctorProfile {
  */
 function seedQueue(): QueueEntry[] {
   return [
-    { id: 'queue-1', label: SEEDED_PATIENT_NAMES[4], status: 'in-consultation', position: 0 },
-    { id: 'queue-2', label: SEEDED_PATIENT_NAMES[5], status: 'waiting', position: 1, estimatedWaitMinutes: 5 },
-    { id: 'queue-3', label: SEEDED_PATIENT_NAMES[6], status: 'waiting', position: 2, estimatedWaitMinutes: 18 },
-    { id: 'queue-4', label: SEEDED_PATIENT_NAMES[7], status: 'waiting', position: 3, estimatedWaitMinutes: 32 },
-    { id: 'queue-5', label: SEEDED_PATIENT_NAMES[8], status: 'waiting', position: 4, estimatedWaitMinutes: 47 },
+    { id: 'queue-1', label: SEEDED_PATIENT_NAMES[4], status: 'in-consultation', position: 0, scheduledAt: offsetFromNow(-10) },
+    { id: 'queue-2', label: SEEDED_PATIENT_NAMES[5], status: 'waiting', position: 1, estimatedWaitMinutes: 5, scheduledAt: offsetFromNow(20) },
+    { id: 'queue-3', label: SEEDED_PATIENT_NAMES[6], status: 'waiting', position: 2, estimatedWaitMinutes: 18, scheduledAt: offsetFromNow(50) },
+    { id: 'queue-4', label: SEEDED_PATIENT_NAMES[7], status: 'waiting', position: 3, estimatedWaitMinutes: 32, scheduledAt: offsetFromNow(80) },
+    { id: 'queue-5', label: SEEDED_PATIENT_NAMES[8], status: 'waiting', position: 4, estimatedWaitMinutes: 47, scheduledAt: offsetFromNow(140) },
   ];
 }
 
@@ -569,7 +569,12 @@ export function getReportsSummary(accountId?: string): DoctorReportsSummary {
 export function seedInConsultationQueueEntry(consultationSessionId: string, label: string, accountId?: string): void {
   const owner = resolveAccountId(accountId);
   const current = queueByAccountId.get(owner) ?? seedQueue();
-  queueByAccountId.set(owner, [...current, { id: consultationSessionId, label, status: 'in-consultation', position: 0 }]);
+  // scheduledAt is "now" -- an E2E spec driving JoinCallAction needs this
+  // entry inside the real join window, not gated behind a countdown.
+  queueByAccountId.set(owner, [
+    ...current,
+    { id: consultationSessionId, label, status: 'in-consultation', position: 0, scheduledAt: new Date().toISOString() },
+  ]);
 }
 
 // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8):

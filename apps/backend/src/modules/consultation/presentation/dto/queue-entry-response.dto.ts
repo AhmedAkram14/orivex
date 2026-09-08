@@ -11,4 +11,6 @@ export class QueueEntryResponseDto {
   position!: number;
   /** Minutes, computed as (queue position - 1) * the global slot duration -- only ever set for `waiting` entries; undefined otherwise, never a fabricated estimate. */
   estimatedWaitMinutes?: number;
+  /** ISO instant -- the real Appointment.scheduledAt this queue entry was materialized from. Join-Window Enforcement feature: lets the frontend gate/count down to the same window MintConsultationRoomTokenUseCase enforces server-side. */
+  scheduledAt!: string;
 }

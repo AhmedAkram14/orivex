@@ -93,7 +93,7 @@ describe('DoctorQueuePage', () => {
       http.get(`${env.apiBaseUrl}/appointments/doctor/queue`, () =>
         HttpResponse.json({
           data: [
-            { id: 'session-1', label: 'Amina Youssef', status: 'in-consultation', position: 0 },
+            { id: 'session-1', label: 'Amina Youssef', status: 'in-consultation', position: 0, scheduledAt: new Date().toISOString() },
           ],
         }),
       ),
@@ -110,6 +110,38 @@ describe('DoctorQueuePage', () => {
     );
 
     expect(await screen.findByRole('button', { name: 'Join video call' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Consultation workspace' })).toBeInTheDocument();
+  });
+
+  it('shows a live countdown instead of Join video call when the join window has not opened yet', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/appointments/doctor/queue`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'session-1',
+              label: 'Amina Youssef',
+              status: 'in-consultation',
+              position: 0,
+              scheduledAt: new Date(Date.now() + 45 * 60_000).toISOString(),
+            },
+          ],
+        }),
+      ),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={doctorState}>
+            <DoctorQueuePage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText(/Joins in/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Join video call' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Consultation workspace' })).toBeInTheDocument();
   });
 

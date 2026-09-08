@@ -11,6 +11,7 @@ import { canJoinCall, isAppointmentStillUpcoming } from '@/features/patient/lib/
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
+import { JoinCountdown } from '@/shared/ui/consultation/join-countdown';
 import { EmptyState } from '@/shared/ui/empty-state';
 
 /**
@@ -68,6 +69,7 @@ export interface AppointmentListProps {
 
 /** Renders a list of `AppointmentCard`s from real `Appointment` data — the shared rendering both the Upcoming and History tabs use, so formatting/translation logic lives in exactly one place. */
 export function AppointmentList({ appointments, emptyTitle, emptyDescription, autoOpenConsultationSessionId }: AppointmentListProps) {
+  const t = useTranslations('patient.appointments');
   const tStatus = useTranslations('patient.appointments.status');
   const tConsultationType = useTranslations('patient.appointments.consultationType');
   const format = useFormatter();
@@ -97,6 +99,8 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
             appointment.consultationSessionId &&
             canJoinCall(appointment.scheduledAt) ? (
             <JoinCallAction consultationSessionId={appointment.consultationSessionId} />
+          ) : appointment.status === 'confirmed' && appointment.consultationSessionId ? (
+            <JoinCountdown scheduledAt={appointment.scheduledAt} label={t('joinCountdownLabel')} />
           ) : appointment.status === 'completed' && appointment.consultationSessionId ? (
             <ConsultationOutcomeAction
               consultationSessionId={appointment.consultationSessionId}

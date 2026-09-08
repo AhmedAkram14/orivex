@@ -256,8 +256,10 @@ export interface QueueEntry {
   avatarUrl?: string;
   status: QueueEntryStatus;
   position: number;
-  /** Minutes, pre-computed server-side — this type never carries a raw timestamp for the UI to do wait-time math on. */
+  /** Minutes, pre-computed server-side — estimated wait itself is never computed client-side from a raw timestamp. */
   estimatedWaitMinutes?: number;
+  /** ISO instant — the real Appointment.scheduledAt this entry was materialized from. Join-Window Enforcement feature: the only raw timestamp this type carries, and only for gating/counting down to the same join window MintConsultationRoomTokenUseCase enforces server-side. */
+  scheduledAt: string;
 }
 
 export type QueueResponse = QueueEntry[];

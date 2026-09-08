@@ -9,6 +9,7 @@ import type { Appointment, AppointmentStatus } from '@/features/patient/api/type
 import { canJoinCall } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
+import { JoinCountdown } from '@/shared/ui/consultation/join-countdown';
 import { isSameDay } from '@/shared/lib/date/week';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
@@ -124,6 +125,8 @@ export function NextAppointmentCard() {
       <PayNowAction appointmentId={next.id} amount={next.feeAmount} />
     ) : next.status === 'confirmed' && next.consultationSessionId && canJoinCall(next.scheduledAt) ? (
       <JoinCallAction consultationSessionId={next.consultationSessionId} />
+    ) : next.status === 'confirmed' && next.consultationSessionId ? (
+      <JoinCountdown scheduledAt={next.scheduledAt} label={t('joinCountdownLabel')} />
     ) : next.status === 'completed' && next.consultationSessionId ? (
       <ConsultationOutcomeAction consultationSessionId={next.consultationSessionId} />
     ) : null;

@@ -892,6 +892,7 @@
       "emptyDescription": "Patients waiting for a consultation will appear here.",
       "waitMinutes": "~{minutes} min wait",
       "loadError": "Couldn't load the patient queue.",
+      "joinCountdownLabel": "Joins in",
       "stats": {
         "pendingApproval": {
           "title": "Pending approval",
@@ -1193,6 +1194,7 @@
       "tomorrow": "Tomorrow",
       "videoConsultation": "Video consultation",
       "nextAppointmentEyebrow": "Next appointment",
+      "joinCountdownLabel": "Joins in",
       "nextAppointmentEmptyTitle": "No upcoming appointments",
       "nextAppointmentEmptyDescription": "Find a doctor and book your next consultation.",
       "nextAppointmentLoadError": "Couldn't load your next appointment.",
@@ -1365,6 +1367,7 @@
       "historyEmptyDescription": "Your past appointments will appear here.",
       "noDoctorSelectedTitle": "No doctor selected",
       "noDoctorSelectedDescription": "Start from a doctor's profile and select \"Book appointment\" to book a real appointment with them.",
+      "joinCountdownLabel": "Joins in",
       "filters": {
         "all": "All",
         "completed": "Completed",

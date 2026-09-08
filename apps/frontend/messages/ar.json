@@ -892,6 +892,7 @@
       "emptyDescription": "سيظهر هنا المرضى الذين ينتظرون استشارة.",
       "waitMinutes": "انتظار ~{minutes} دقيقة",
       "loadError": "تعذّر تحميل قائمة انتظار المرضى.",
+      "joinCountdownLabel": "يبدأ خلال",
       "stats": {
         "pendingApproval": {
           "title": "بانتظار الموافقة",
@@ -1193,6 +1194,7 @@
       "tomorrow": "غدًا",
       "videoConsultation": "استشارة بالفيديو",
       "nextAppointmentEyebrow": "الموعد القادم",
+      "joinCountdownLabel": "يبدأ خلال",
       "nextAppointmentEmptyTitle": "لا توجد مواعيد قادمة",
       "nextAppointmentEmptyDescription": "ابحث عن طبيب واحجز استشارتك القادمة.",
       "nextAppointmentLoadError": "تعذّر تحميل موعدك القادم.",
@@ -1365,6 +1367,7 @@
       "historyEmptyDescription": "ستظهر مواعيدك السابقة هنا.",
       "noDoctorSelectedTitle": "لم يتم اختيار طبيب",
       "noDoctorSelectedDescription": "ابدأ من الملف الشخصي لطبيب واختر \"حجز موعد\" لحجز موعد حقيقي معه.",
+      "joinCountdownLabel": "يبدأ خلال",
       "filters": {
         "all": "الكل",
         "completed": "مكتملة",

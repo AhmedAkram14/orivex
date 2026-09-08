@@ -295,13 +295,14 @@ export function seedDemoData(): void {
       }))
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
 
-    const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ patientProfile }, index) => ({
+    const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ appointment, patientProfile }, index) => ({
       id: `queue-demo-${profile.id}-${index + 1}`,
       label: patientProfile.fullName,
       avatarUrl: patientProfile.avatarUrl,
       status: index === 0 ? ('in-consultation' as const) : ('waiting' as const),
       position: index,
       estimatedWaitMinutes: index === 0 ? undefined : index * 13,
+      scheduledAt: appointment.scheduledAt,
     }));
 
     // Account-Consistency Fix: keyed by the REAL patientProfile.id (the same

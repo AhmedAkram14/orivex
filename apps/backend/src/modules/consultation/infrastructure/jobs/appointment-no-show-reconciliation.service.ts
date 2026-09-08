@@ -7,10 +7,13 @@ import type { MarkMissedAppointmentsNoShowUseCase } from '../../application/use-
 // yet" precedent as StaleConsultationSessionReconciliationService -- a
 // plain `setInterval` inside a NestJS lifecycle hook, zero new
 // dependencies. Runs every SWEEP_INTERVAL_MS, marking any Confirmed
-// appointment No-show once JOIN_WINDOW_MISSED_AFTER_MS (1 hour) has passed
-// since its scheduledAt with the consultation never actually started.
+// appointment No-show once JOIN_WINDOW_MISSED_AFTER_MS has passed since its
+// scheduledAt with the consultation never actually started. Kept equal to
+// MintConsultationRoomTokenUseCase's own JOIN_WINDOW_CLOSES_AFTER_MS so
+// nobody is ever locked out of joining before the sweep would even
+// consider the appointment missed.
 const SWEEP_INTERVAL_MS = 5 * 60_000; // every 5 minutes
-const JOIN_WINDOW_MISSED_AFTER_MS = 60 * 60_000; // 1 hour past scheduledAt
+const JOIN_WINDOW_MISSED_AFTER_MS = 30 * 60_000; // 30 minutes past scheduledAt
 
 @Injectable()
 export class AppointmentNoShowReconciliationService implements OnModuleInit, OnModuleDestroy {

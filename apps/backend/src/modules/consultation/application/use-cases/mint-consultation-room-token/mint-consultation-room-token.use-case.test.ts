@@ -153,9 +153,9 @@ describe('MintConsultationRoomTokenUseCase', () => {
     assert.equal(generator.lastRequest, undefined, 'the gateway must never be called for a closed session');
   });
 
-  it('rejects a patient joining more than 15 minutes before the scheduled time', async () => {
+  it('rejects a patient joining more than 30 minutes before the scheduled time', async () => {
     const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
-    const scheduledAt = new Date(Date.now() + 30 * 60_000);
+    const scheduledAt = new Date(Date.now() + 45 * 60_000);
     const repository = new FakeConsultationSessionRepository(session);
     const appointmentRepository = new FakeAppointmentRepository(
       buildAppointment(scheduledAt, session.getAppointmentId()),
@@ -178,9 +178,9 @@ describe('MintConsultationRoomTokenUseCase', () => {
     assert.equal(generator.lastRequest, undefined);
   });
 
-  it('rejects a patient joining more than 1 hour after the scheduled time', async () => {
+  it('rejects a patient joining more than 30 minutes after the scheduled time', async () => {
     const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
-    const scheduledAt = new Date(Date.now() - 90 * 60_000);
+    const scheduledAt = new Date(Date.now() - 45 * 60_000);
     const repository = new FakeConsultationSessionRepository(session);
     const appointmentRepository = new FakeAppointmentRepository(
       buildAppointment(scheduledAt, session.getAppointmentId()),
@@ -203,7 +203,7 @@ describe('MintConsultationRoomTokenUseCase', () => {
     assert.equal(generator.lastRequest, undefined);
   });
 
-  it('allows a patient to join within the 15-minutes-before window', async () => {
+  it('allows a patient to join within the 30-minutes-before window', async () => {
     const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
     const scheduledAt = new Date(Date.now() + 10 * 60_000);
     const repository = new FakeConsultationSessionRepository(session);
@@ -225,9 +225,34 @@ describe('MintConsultationRoomTokenUseCase', () => {
     assert.ok(result.token);
   });
 
-  it('never applies the join-window guard to the doctor role', async () => {
+  it('applies the same join-window guard to the doctor role', async () => {
     const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
-    const scheduledAt = new Date(Date.now() + 30 * 60_000);
+    const scheduledAt = new Date(Date.now() + 45 * 60_000);
+    const repository = new FakeConsultationSessionRepository(session);
+    const appointmentRepository = new FakeAppointmentRepository(
+      buildAppointment(scheduledAt, session.getAppointmentId()),
+    ) as unknown as AppointmentRepository;
+    const generator = new FakeRoomTokenGenerator();
+    const useCase = new MintConsultationRoomTokenUseCase(repository, appointmentRepository, generator);
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new MintConsultationRoomTokenCommand({
+            consultationSessionId: session.getId(),
+            identity: 'doctor-account-1',
+            displayName: 'Dr. Karim Adel',
+            role: 'doctor',
+          }),
+        ),
+      ConsultationDomainError,
+    );
+    assert.equal(generator.lastRequest, undefined);
+  });
+
+  it('allows a doctor to join within the 30-minutes-before window', async () => {
+    const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+    const scheduledAt = new Date(Date.now() + 10 * 60_000);
     const repository = new FakeConsultationSessionRepository(session);
     const appointmentRepository = new FakeAppointmentRepository(
       buildAppointment(scheduledAt, session.getAppointmentId()),
