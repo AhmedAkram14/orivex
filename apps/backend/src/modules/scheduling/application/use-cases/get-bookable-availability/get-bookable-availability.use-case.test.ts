@@ -21,6 +21,7 @@ import type { WorkingHoursRepository } from '../../../domain/repositories/workin
 import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 import { Money } from '../../../domain/value-objects/money.value-object.js';
 import { generateCandidateSlotsForDate, resolveEffectiveDay } from '../../services/generate-bookable-slots.js';
+import { zonedTimeToUtc } from '../../../../../shared/date/timezone.js';
 import { GetDoctorWorkingHoursUseCase } from '../get-doctor-working-hours/get-doctor-working-hours.use-case.js';
 import { GetSchedulingRulesUseCase } from '../get-scheduling-rules/get-scheduling-rules.use-case.js';
 import { ListHolidaysUseCase } from '../list-holidays/list-holidays.use-case.js';
@@ -182,6 +183,14 @@ function nextMonday(): Date {
   return date;
 }
 
+// Working-hours "HH:mm" are Africa/Cairo wall-clock time -- seeded windows
+// must land on the same real instant `generateCandidateSlotsForDate` itself
+// produces for those hours, or the use case won't recognize them as already
+// materialized and will just create duplicates.
+function cairoSlotStart(monday: Date, hours: number, minutes: number): Date {
+  return zonedTimeToUtc(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate(), hours, minutes);
+}
+
 describe('GetBookableAvailabilityUseCase', () => {
   it('materializes new Open windows from the recurring working hours when none exist yet', async () => {
     const monday = nextMonday();
@@ -232,8 +241,8 @@ describe('GetBookableAvailabilityUseCase', () => {
     const repo = new FakeAvailabilityWindowRepository();
     const existing = AvailabilityWindow.define({
       doctorId: DOCTOR_ID,
-      startTime: new Date(monday.getTime() + 9 * 60 * 60_000),
-      endTime: new Date(monday.getTime() + 9.5 * 60 * 60_000),
+      startTime: cairoSlotStart(monday, 9, 0),
+      endTime: cairoSlotStart(monday, 9, 30),
       pricing: DoctorConsultationPricing.free(),
     });
     repo.seed(existing);
@@ -252,8 +261,8 @@ describe('GetBookableAvailabilityUseCase', () => {
     const repo = new FakeAvailabilityWindowRepository();
     const booked = AvailabilityWindow.define({
       doctorId: DOCTOR_ID,
-      startTime: new Date(monday.getTime() + 9 * 60 * 60_000),
-      endTime: new Date(monday.getTime() + 9.5 * 60 * 60_000),
+      startTime: cairoSlotStart(monday, 9, 0),
+      endTime: cairoSlotStart(monday, 9, 30),
       pricing: DoctorConsultationPricing.free(),
     });
     booked.hold();
@@ -274,8 +283,8 @@ describe('GetBookableAvailabilityUseCase', () => {
     const repo = new FakeAvailabilityWindowRepository();
     const held = AvailabilityWindow.define({
       doctorId: DOCTOR_ID,
-      startTime: new Date(monday.getTime() + 9 * 60 * 60_000),
-      endTime: new Date(monday.getTime() + 9.5 * 60 * 60_000),
+      startTime: cairoSlotStart(monday, 9, 0),
+      endTime: cairoSlotStart(monday, 9, 30),
       pricing: DoctorConsultationPricing.free(),
     });
     held.hold(new Date(Date.now() - 60 * 60_000), 15); // held an hour ago, 15-minute hold -- long expired.

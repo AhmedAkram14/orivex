@@ -5,6 +5,7 @@ import { Holiday } from '../../domain/entities/holiday.entity.js';
 import { ScheduleException } from '../../domain/entities/schedule-exception.entity.js';
 import { WorkingHoursDay } from '../../domain/entities/working-hours-day.entity.js';
 import { WeekDay } from '../../domain/enums/week-day.enum.js';
+import { zonedTimeToUtc } from '../../../../shared/date/timezone.js';
 import type { SchedulingRules } from '../use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 
 import { generateCandidateSlotsForDate, resolveEffectiveDay } from './generate-bookable-slots.js';
@@ -20,11 +21,18 @@ const rules: SchedulingRules = {
 
 // A Monday.
 const monday = new Date(Date.UTC(2026, 6, 20));
+// Working-hours "HH:mm" values are Africa/Cairo wall-clock time -- expected
+// slot instants and "now" values below go through the same `zonedTimeToUtc`
+// conversion the production code uses, rather than assuming Cairo time
+// coincides with UTC.
+function cairoTime(hours: number, minutes: number): Date {
+  return zonedTimeToUtc(2026, 6, 20, hours, minutes);
+}
 // "Now" for tests unrelated to the max-booking-window rule itself -- must
 // stay within `rules.maxBookingWindowDays` of the target date (unlike the
 // frontend's own `slots.test.ts`, which has no such rule to satisfy: this
 // port folds the notice/window checks directly in, see the header comment).
-const earlyMorningSameDay = new Date(Date.UTC(2026, 6, 20, 0, 0));
+const earlyMorningSameDay = cairoTime(0, 0);
 
 function workingDay(overrides: Partial<Parameters<typeof WorkingHoursDay.create>[1]> = {}): WorkingHoursDay {
   return WorkingHoursDay.create('day-1', {
@@ -76,8 +84,8 @@ describe('generateCandidateSlotsForDate', () => {
     const effective = resolveEffectiveDay(monday, [workingDay()], [], []);
     const slots = generateCandidateSlotsForDate(monday, effective, rules, earlyMorningSameDay);
     assert.equal(slots.length, 4);
-    assert.equal(slots[0].start.toISOString(), new Date(Date.UTC(2026, 6, 20, 9, 0)).toISOString());
-    assert.equal(slots[3].start.toISOString(), new Date(Date.UTC(2026, 6, 20, 10, 30)).toISOString());
+    assert.equal(slots[0].start.toISOString(), cairoTime(9, 0).toISOString());
+    assert.equal(slots[3].start.toISOString(), cairoTime(10, 30).toISOString());
   });
 
   it('returns nothing for a non-working day', () => {
@@ -96,7 +104,7 @@ describe('generateCandidateSlotsForDate', () => {
     const slots = generateCandidateSlotsForDate(monday, effective, rules, earlyMorningSameDay);
     assert.equal(slots.length, 3);
     assert.equal(
-      slots.some((slot) => slot.start.toISOString() === new Date(Date.UTC(2026, 6, 20, 10, 0)).toISOString()),
+      slots.some((slot) => slot.start.toISOString() === cairoTime(10, 0).toISOString()),
       false,
     );
   });
@@ -111,15 +119,15 @@ describe('generateCandidateSlotsForDate', () => {
     const effective = resolveEffectiveDay(monday, [workingDay()], [], []);
     // "now" is 09:15 the same day -- the 09:00 slot has already started, and
     // 60 minutes' notice pushes out everything before 10:15.
-    const now = new Date(Date.UTC(2026, 6, 20, 9, 15));
+    const now = cairoTime(9, 15);
     const slots = generateCandidateSlotsForDate(monday, effective, { ...rules, minNoticeMinutes: 60 }, now);
     assert.equal(slots.length, 1);
-    assert.equal(slots[0].start.toISOString(), new Date(Date.UTC(2026, 6, 20, 10, 30)).toISOString());
+    assert.equal(slots[0].start.toISOString(), cairoTime(10, 30).toISOString());
   });
 
   it('excludes a slot beyond the maximum booking window', () => {
     const effective = resolveEffectiveDay(monday, [workingDay()], [], []);
-    const now = new Date(Date.UTC(2026, 6, 20, 8, 0));
+    const now = cairoTime(8, 0);
     const slots = generateCandidateSlotsForDate(monday, effective, { ...rules, maxBookingWindowDays: 0 }, now);
     assert.equal(slots.length, 0);
   });

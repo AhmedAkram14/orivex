@@ -5,6 +5,7 @@ import type { WorkingHoursDay } from '../../domain/entities/working-hours-day.en
 import { ScheduleExceptionType } from '../../domain/enums/schedule-exception-type.enum.js';
 import { ALL_WEEK_DAYS, type WeekDay } from '../../domain/enums/week-day.enum.js';
 import { ConsultationPricing } from '../../domain/value-objects/consultation-pricing.value-object.js';
+import { zonedTimeToUtc } from '../../../../shared/date/timezone.js';
 import type { SchedulingRules } from '../use-cases/get-scheduling-rules/get-scheduling-rules.use-case.js';
 
 /**
@@ -13,10 +14,14 @@ import type { SchedulingRules } from '../use-cases/get-scheduling-rules/get-sche
  * `generateDaySlots` + the notice/window half of `detectConflict`
  * (apps/frontend/src/features/scheduling/utils/{resolve-day,slots,conflicts}.ts)
  * -- same algorithm, now the one place it's allowed to run, per "patients
- * must never calculate authoritative availability on the frontend." All
- * date/time math is UTC-based (a doctor's "HH:mm" working hours have no
- * timezone of their own in this domain, matching the pre-existing frontend
- * design) rather than depending on the server process's local timezone.
+ * must never calculate authoritative availability on the frontend." A
+ * doctor's "HH:mm" working hours are Africa/Cairo wall-clock time (ORIVEX
+ * Egypt V1's one operating timezone, `shared/date/timezone.ts`), converted
+ * to a real UTC instant via `zonedTimeToUtc` rather than assumed to already
+ * be UTC or dependent on the server process's local timezone. Everything
+ * else here (weekday lookup, exception/holiday date-key matching) stays
+ * UTC-getter-based since `date`'s Y/M/D components already represent the
+ * intended Cairo calendar date.
  */
 
 const WEEKDAY_BY_INDEX: readonly WeekDay[] = ALL_WEEK_DAYS;
@@ -38,9 +43,13 @@ function rangesOverlap(a: TimeRangeProps, b: TimeRangeProps): boolean {
 
 function combineDateAndTime(date: Date, time: string): Date {
   const minutes = toMinutes(time);
-  const result = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  result.setUTCHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-  return result;
+  return zonedTimeToUtc(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    Math.floor(minutes / 60),
+    minutes % 60,
+  );
 }
 
 /** "2026-07-24" -- matches `ScheduleException.date`/`Holiday.date`'s own storage format. */
