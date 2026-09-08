@@ -7,6 +7,7 @@ import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get
 import { ListAvailabilityWindowsForDoctorUseCase } from '../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from '../doctor/application/use-cases/release-availability-window/release-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from '../doctor/application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
+import { VoidStaleAvailabilityWindowUseCase } from '../doctor/application/use-cases/void-stale-availability-window/void-stale-availability-window.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
 
 import { HOLIDAY_REPOSITORY, SCHEDULE_EXCEPTION_REPOSITORY, WORKING_HOURS_REPOSITORY } from './application/ports/tokens.js';
@@ -114,6 +115,7 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
         getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         listAvailabilityWindowsForDoctorUseCase: ListAvailabilityWindowsForDoctorUseCase,
         defineAvailabilityWindowUseCase: DefineAvailabilityWindowUseCase,
+        voidStaleAvailabilityWindowUseCase: VoidStaleAvailabilityWindowUseCase,
       ) =>
         new GetBookableAvailabilityUseCase(
           getDoctorWorkingHoursUseCase,
@@ -123,6 +125,7 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
           getDoctorProfileByIdUseCase,
           listAvailabilityWindowsForDoctorUseCase,
           defineAvailabilityWindowUseCase,
+          voidStaleAvailabilityWindowUseCase,
         ),
       inject: [
         GetDoctorWorkingHoursUseCase,
@@ -132,6 +135,7 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
         GetDoctorProfileByIdUseCase,
         ListAvailabilityWindowsForDoctorUseCase,
         DefineAvailabilityWindowUseCase,
+        VoidStaleAvailabilityWindowUseCase,
       ],
     },
     {

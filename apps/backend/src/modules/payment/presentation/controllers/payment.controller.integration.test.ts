@@ -158,6 +158,7 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
     return [];
   }
   async save(): Promise<void> {}
+  async deleteById(): Promise<void> {}
 }
 
 class InMemoryDoctorProfileRepository implements DoctorProfileRepository {

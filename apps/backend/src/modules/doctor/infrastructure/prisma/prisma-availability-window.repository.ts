@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { AvailabilityWindow } from '../../domain/entities/availability-window.entity.js';
@@ -8,6 +9,14 @@ import type { AvailabilityWindowRepository } from '../../domain/repositories/ava
 import { toDomainAvailabilityWindow } from './availability-window.mapper.js';
 import { toPersistedConsultationPricing } from './consultation-pricing.mapper.js';
 import { toPrismaAvailabilityWindowStatus } from './availability-window-status.mapper.js';
+
+function isForeignKeyConstraintViolation(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003';
+}
+
+function isRecordNotFound(error: unknown): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
+}
 
 @Injectable()
 export class PrismaAvailabilityWindowRepository implements AvailabilityWindowRepository {
@@ -73,6 +82,20 @@ export class PrismaAvailabilityWindowRepository implements AvailabilityWindowRep
       throw new AvailabilityWindowConflictError(
         `AvailabilityWindow "${window.getId()}" was modified concurrently; reload and retry.`,
       );
+    }
+  }
+
+  async deleteById(id: string): Promise<void> {
+    try {
+      await this.prisma.availabilityWindow.delete({ where: { id } });
+    } catch (error) {
+      if (isRecordNotFound(error)) return;
+      if (isForeignKeyConstraintViolation(error)) {
+        throw new AvailabilityWindowConflictError(
+          `AvailabilityWindow "${id}" is still referenced by a real Appointment and cannot be deleted.`,
+        );
+      }
+      throw error;
     }
   }
 }

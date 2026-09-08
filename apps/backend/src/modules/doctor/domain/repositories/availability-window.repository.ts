@@ -14,4 +14,12 @@ export interface AvailabilityWindowRepository {
   // Throws on a stale version (optimistic locking) -- callers must reload
   // and retry rather than treat this as a generic failure.
   save(window: AvailabilityWindow): Promise<void>;
+  // Join-Window/Stale-Slot Reclamation: permanently removes a never-booked
+  // window. Callers must confirm `Open` status themselves first (this
+  // method has no domain knowledge of status) -- throws
+  // AvailabilityWindowConflictError instead of deleting if a real
+  // Appointment still references this row (e.g. a since-cancelled booking
+  // that reverted the window back to Open but kept its own historical
+  // record), never silently orphaning that reference.
+  deleteById(id: string): Promise<void>;
 }

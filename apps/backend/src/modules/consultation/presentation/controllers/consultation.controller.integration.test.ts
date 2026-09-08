@@ -185,6 +185,9 @@ class InMemoryAvailabilityWindowRepository implements AvailabilityWindowReposito
   async save(window: AvailabilityWindow): Promise<void> {
     this.byId.set(window.getId(), window);
   }
+  async deleteById(id: string): Promise<void> {
+    this.byId.delete(id);
+  }
 }
 
 class InMemoryAppointmentRepository implements AppointmentRepository {

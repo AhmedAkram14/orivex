@@ -4,10 +4,12 @@ import { describe, it } from 'node:test';
 import { DefineAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/define-availability-window/define-availability-window.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { ListAvailabilityWindowsForDoctorUseCase } from '../../../../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
+import { VoidStaleAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/void-stale-availability-window/void-stale-availability-window.use-case.js';
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
 import { AvailabilityWindowStatus } from '../../../../doctor/domain/enums/availability-window-status.enum.js';
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
+import { AvailabilityWindowConflictError } from '../../../../doctor/domain/exceptions/availability-window-conflict.error.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
@@ -83,6 +85,11 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
   private readonly byId = new Map<string, AvailabilityWindow>();
+  // Test seam: lets a specific test force deleteById to fail (e.g.
+  // simulating a real Appointment still referencing the row), the same way
+  // the real Prisma repository would surface a foreign-key conflict.
+  public deleteShouldFailFor: Set<string> = new Set();
+  public readonly deletedIds: string[] = [];
   async findById(id: string): Promise<AvailabilityWindow | null> {
     return this.byId.get(id) ?? null;
   }
@@ -98,6 +105,13 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
   }
   async save(window: AvailabilityWindow): Promise<void> {
     this.byId.set(window.getId(), window);
+  }
+  async deleteById(id: string): Promise<void> {
+    if (this.deleteShouldFailFor.has(id)) {
+      throw new AvailabilityWindowConflictError(`AvailabilityWindow "${id}" is still referenced by a real Appointment.`);
+    }
+    this.byId.delete(id);
+    this.deletedIds.push(id);
   }
   seed(window: AvailabilityWindow): void {
     this.byId.set(window.getId(), window);
@@ -170,6 +184,7 @@ function buildUseCase(props: {
     new GetDoctorProfileByIdUseCase(doctorProfileRepo),
     new ListAvailabilityWindowsForDoctorUseCase(availabilityWindowRepo),
     new DefineAvailabilityWindowUseCase(doctorProfileRepo, availabilityWindowRepo, new NoopDispatcher()),
+    new VoidStaleAvailabilityWindowUseCase(availabilityWindowRepo),
   );
 }
 
@@ -307,5 +322,104 @@ describe('GetBookableAvailabilityUseCase', () => {
     );
 
     assert.equal(result.length, 0);
+  });
+
+  // Stale-Slot Reclamation: reproduces the real recurring bug -- a doctor
+  // edits their working hours (or the global rules change), the candidate
+  // grid shifts, and a never-booked Open window materialized under the old
+  // grid now overlaps (without exactly matching) the new correct candidate.
+  describe('stale-slot reclamation', () => {
+    it('voids a stale, never-booked Open window at an old grid offset and creates the correct new candidate in its place', async () => {
+      const monday = nextMonday();
+      const repo = new FakeAvailabilityWindowRepository();
+      // Materialized under some earlier grid: 09:05-09:35, five minutes off
+      // the current 09:00-09:30 candidate -- overlaps it without matching.
+      const stale = AvailabilityWindow.define({
+        doctorId: DOCTOR_ID,
+        startTime: new Date(cairoSlotStart(monday, 9, 5)),
+        endTime: new Date(cairoSlotStart(monday, 9, 35)),
+        pricing: DoctorConsultationPricing.free(),
+      });
+      repo.seed(stale);
+
+      const useCase = buildUseCase({ availabilityWindowRepo: repo, workingDays: singleSlotWorkingDays });
+      const result = await useCase.execute(
+        new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, from: monday, to: new Date(monday.getTime() + 86_400_000) }),
+      );
+
+      assert.equal(result.length, 1);
+      assert.ok(result[0].getStartTime().getTime() === cairoSlotStart(monday, 9, 0).getTime());
+      assert.deepEqual(repo.deletedIds, [stale.getId()]);
+      assert.equal(await repo.findById(stale.getId()), null);
+    });
+
+    it('never voids a Booked window at a mismatched offset -- the candidate stays correctly excluded', async () => {
+      const monday = nextMonday();
+      const repo = new FakeAvailabilityWindowRepository();
+      const booked = AvailabilityWindow.define({
+        doctorId: DOCTOR_ID,
+        startTime: new Date(cairoSlotStart(monday, 9, 5)),
+        endTime: new Date(cairoSlotStart(monday, 9, 35)),
+        pricing: DoctorConsultationPricing.free(),
+      });
+      booked.hold();
+      booked.confirm();
+      repo.seed(booked);
+
+      const useCase = buildUseCase({ availabilityWindowRepo: repo, workingDays: singleSlotWorkingDays });
+      const result = await useCase.execute(
+        new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, from: monday, to: new Date(monday.getTime() + 86_400_000) }),
+      );
+
+      assert.equal(result.length, 0);
+      assert.deepEqual(repo.deletedIds, []);
+      assert.ok(await repo.findById(booked.getId()));
+    });
+
+    it('never voids an actively-Held window at a mismatched offset -- the candidate stays correctly excluded', async () => {
+      const monday = nextMonday();
+      const repo = new FakeAvailabilityWindowRepository();
+      const held = AvailabilityWindow.define({
+        doctorId: DOCTOR_ID,
+        startTime: new Date(cairoSlotStart(monday, 9, 5)),
+        endTime: new Date(cairoSlotStart(monday, 9, 35)),
+        pricing: DoctorConsultationPricing.free(),
+      });
+      held.hold(new Date(), 15); // held just now -- not expired.
+      repo.seed(held);
+
+      const useCase = buildUseCase({ availabilityWindowRepo: repo, workingDays: singleSlotWorkingDays });
+      const result = await useCase.execute(
+        new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, from: monday, to: new Date(monday.getTime() + 86_400_000) }),
+      );
+
+      assert.equal(result.length, 0);
+      assert.deepEqual(repo.deletedIds, []);
+    });
+
+    it('leaves the candidate excluded (without failing the whole request) when voiding a stale Open window fails', async () => {
+      const monday = nextMonday();
+      const repo = new FakeAvailabilityWindowRepository();
+      const stale = AvailabilityWindow.define({
+        doctorId: DOCTOR_ID,
+        startTime: new Date(cairoSlotStart(monday, 9, 5)),
+        endTime: new Date(cairoSlotStart(monday, 9, 35)),
+        pricing: DoctorConsultationPricing.free(),
+      });
+      repo.seed(stale);
+      // Simulates the real-world edge case: a since-cancelled Appointment
+      // still references this row, so the database's own FK constraint
+      // would refuse the delete.
+      repo.deleteShouldFailFor = new Set([stale.getId()]);
+
+      const useCase = buildUseCase({ availabilityWindowRepo: repo, workingDays: singleSlotWorkingDays });
+      const result = await useCase.execute(
+        new GetBookableAvailabilityQuery({ doctorId: DOCTOR_ID, from: monday, to: new Date(monday.getTime() + 86_400_000) }),
+      );
+
+      assert.equal(result.length, 0);
+      assert.deepEqual(repo.deletedIds, []);
+      assert.ok(await repo.findById(stale.getId()), 'the un-deletable stale row must still exist, untouched');
+    });
   });
 });

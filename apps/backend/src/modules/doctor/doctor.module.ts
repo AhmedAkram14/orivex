@@ -24,6 +24,7 @@ import { ListAvailabilityWindowsForDoctorUseCase } from './application/use-cases
 import { ListDoctorDirectoryUseCase } from './application/use-cases/list-doctor-directory/list-doctor-directory.use-case.js';
 import { RegisterDoctorProfileUseCase } from './application/use-cases/register-doctor-profile/register-doctor-profile.use-case.js';
 import { ReleaseAvailabilityWindowUseCase } from './application/use-cases/release-availability-window/release-availability-window.use-case.js';
+import { VoidStaleAvailabilityWindowUseCase } from './application/use-cases/void-stale-availability-window/void-stale-availability-window.use-case.js';
 import { ReserveAvailabilityWindowUseCase } from './application/use-cases/reserve-availability-window/reserve-availability-window.use-case.js';
 import { UpdateAvailabilityWindowPricingUseCase } from './application/use-cases/update-availability-window-pricing/update-availability-window-pricing.use-case.js';
 import { UpdateDoctorProfileUseCase } from './application/use-cases/update-doctor-profile/update-doctor-profile.use-case.js';
@@ -126,6 +127,11 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
       inject: [AVAILABILITY_WINDOW_REPOSITORY],
     },
     {
+      provide: VoidStaleAvailabilityWindowUseCase,
+      useFactory: (repository: AvailabilityWindowRepository) => new VoidStaleAvailabilityWindowUseCase(repository),
+      inject: [AVAILABILITY_WINDOW_REPOSITORY],
+    },
+    {
       provide: ListAvailabilityWindowsForDoctorUseCase,
       useFactory: (repository: AvailabilityWindowRepository) => new ListAvailabilityWindowsForDoctorUseCase(repository),
       inject: [AVAILABILITY_WINDOW_REPOSITORY],
@@ -169,6 +175,7 @@ import { DoctorProfileController } from './presentation/controllers/doctor-profi
     ConfirmAvailabilityWindowUseCase,
     GetAvailabilityWindowByIdUseCase,
     ListAvailabilityWindowsForDoctorUseCase,
+    VoidStaleAvailabilityWindowUseCase,
   ],
 })
 export class DoctorModule {}

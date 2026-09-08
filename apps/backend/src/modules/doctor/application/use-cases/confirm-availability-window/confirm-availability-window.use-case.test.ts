@@ -26,6 +26,7 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
   async save(window: AvailabilityWindow): Promise<void> {
     this.saved.push(window);
   }
+  async deleteById(): Promise<void> {}
 }
 
 class NoopDispatcher {

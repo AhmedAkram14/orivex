@@ -101,6 +101,7 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
     return [];
   }
   async save(): Promise<void> {}
+  async deleteById(): Promise<void> {}
 }
 
 class NoopDispatcher {

@@ -7,6 +7,8 @@ import type { DefineAvailabilityWindowUseCase } from '../../../../doctor/applica
 import type { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { ListAvailabilityWindowsForDoctorQuery } from '../../../../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.query.js';
 import type { ListAvailabilityWindowsForDoctorUseCase } from '../../../../doctor/application/use-cases/list-availability-windows-for-doctor/list-availability-windows-for-doctor.use-case.js';
+import { VoidStaleAvailabilityWindowCommand } from '../../../../doctor/application/use-cases/void-stale-availability-window/void-stale-availability-window.command.js';
+import type { VoidStaleAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/void-stale-availability-window/void-stale-availability-window.use-case.js';
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
 import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
 import { Money as DoctorMoney } from '../../../../doctor/domain/value-objects/money.value-object.js';
@@ -41,6 +43,19 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * derived from `DoctorProfile.consultationFeeAmount`. `getDoctorProfileByIdUseCase`
  * is kept only for the existence check (a query against an unregistered
  * doctor id must still 404).
+ *
+ * Stale-Slot Reclamation (fixes a real recurring bug): `findOverlapping`'s
+ * conflict check is doctorId + time-range only, with no notion of "which
+ * schedule/rules version produced this row." Every time a doctor edits
+ * their working hours, or the global SchedulingRules change, the candidate
+ * grid shifts -- and any previously materialized, never-booked `Open`
+ * window sitting at an old grid position can overlap a freshly computed
+ * correct candidate, silently blocking it forever (the `catch` below used
+ * to just drop the candidate with no trace). Since an `Open` window carries
+ * no real patient commitment, `tryReclaimStaleOverlap` voids it via
+ * `VoidStaleAvailabilityWindowUseCase` and the create then proceeds; a
+ * `Booked` or actively-`Held` conflict is left untouched and the candidate
+ * is correctly omitted, exactly as before.
  */
 export class GetBookableAvailabilityUseCase {
   constructor(
@@ -51,6 +66,7 @@ export class GetBookableAvailabilityUseCase {
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly listAvailabilityWindowsForDoctorUseCase: ListAvailabilityWindowsForDoctorUseCase,
     private readonly defineAvailabilityWindowUseCase: DefineAvailabilityWindowUseCase,
+    private readonly voidStaleAvailabilityWindowUseCase: VoidStaleAvailabilityWindowUseCase,
   ) {}
 
   async execute(query: GetBookableAvailabilityQuery): Promise<AvailabilityWindow[]> {
@@ -71,7 +87,11 @@ export class GetBookableAvailabilityUseCase {
       ),
     ]);
 
-    const existingByStart = new Map(existingWindows.map((window) => [window.getStartTime().getTime(), window]));
+    // Mutable working copy -- overlap detection and exact-match reuse both
+    // read from this, and a successful stale-window reclamation removes an
+    // entry from it so a later candidate in the same request never sees it.
+    let remainingExisting = existingWindows;
+    const existingByStart = new Map(remainingExisting.map((window) => [window.getStartTime().getTime(), window]));
     const now = new Date();
     const available: AvailabilityWindow[] = [];
 
@@ -82,6 +102,11 @@ export class GetBookableAvailabilityUseCase {
     ) {
       const effectiveDay = resolveEffectiveDay(cursor, workingDays, exceptions, holidays);
       const candidates = generateCandidateSlotsForDate(cursor, effectiveDay, rules, now);
+      // A window overlapping *this* candidate might still be the exact
+      // match for a *different* candidate later in this same date's grid
+      // (e.g. a wider old slot spanning two new ones) -- never reclaim one
+      // of those, whatever this candidate's own overlap check finds.
+      const candidateStartTimes = new Set(candidates.map((c) => c.start.getTime()));
 
       for (const candidate of candidates) {
         const existing = existingByStart.get(candidate.start.getTime());
@@ -90,6 +115,30 @@ export class GetBookableAvailabilityUseCase {
             available.push(existing);
           }
           continue;
+        }
+
+        const allOverlapping = remainingExisting.filter(
+          (window) => window.getStartTime() < candidate.end && window.getEndTime() > candidate.start,
+        );
+        if (allOverlapping.length > 0) {
+          const protectedOverlap = allOverlapping.some((window) =>
+            candidateStartTimes.has(window.getStartTime().getTime()),
+          );
+          if (protectedOverlap) {
+            // At least one colliding window is a legitimate exact match for
+            // a *different* candidate this same date's grid -- never
+            // reclaim it; just leave this candidate unmet.
+            continue;
+          }
+
+          const reclaimed = await this.tryReclaimStaleOverlap(allOverlapping);
+          if (!reclaimed) {
+            // A real Booked/actively-Held reservation blocks this candidate
+            // -- correctly omitted, exactly like "available" should read.
+            continue;
+          }
+          const reclaimedIds = new Set(allOverlapping.map((window) => window.getId()));
+          remainingExisting = remainingExisting.filter((window) => !reclaimedIds.has(window.getId()));
         }
 
         try {
@@ -114,6 +163,33 @@ export class GetBookableAvailabilityUseCase {
     }
 
     return available;
+  }
+
+  // Stale-Slot Reclamation: only ever reclaims when every window
+  // overlapping the new candidate is genuinely Open (no real patient
+  // commitment) -- a single Booked or actively-Held window in the mix
+  // means this candidate stays correctly blocked. Void failures (e.g. a
+  // since-cancelled Appointment still references the row) are treated the
+  // same as "can't reclaim" rather than propagated, so one stubborn stale
+  // row never fails the whole request.
+  private async tryReclaimStaleOverlap(overlapping: AvailabilityWindow[]): Promise<boolean> {
+    if (overlapping.some((window) => window.getStatus() !== AvailabilityWindowStatus.Open)) {
+      return false;
+    }
+
+    try {
+      for (const window of overlapping) {
+        await this.voidStaleAvailabilityWindowUseCase.execute(
+          new VoidStaleAvailabilityWindowCommand({ availabilityWindowId: window.getId() }),
+        );
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof DoctorDomainError) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   private isBookable(window: AvailabilityWindow, now: Date): boolean {
