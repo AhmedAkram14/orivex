@@ -13,7 +13,7 @@ export interface SchedulingRules {
 const RULES: SchedulingRules = {
   slotDurationMinutes: 30,
   bufferMinutes: 5,
-  minNoticeMinutes: 60,
+  minNoticeMinutes: 15,
   maxBookingWindowDays: 30,
 };
 
