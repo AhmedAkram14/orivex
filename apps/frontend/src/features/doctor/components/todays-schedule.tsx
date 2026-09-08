@@ -44,7 +44,7 @@ export function TodaysSchedule() {
 
   const today = getCairoNow();
   const todaysItems = (items ?? [])
-    .filter((item) => isSameDay(new Date(item.scheduledAt), today))
+    .filter((item) => isSameDay(getCairoNow(new Date(item.scheduledAt)), today))
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
   const currentOrNextId =

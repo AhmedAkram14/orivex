@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { Appointment } from '@/features/patient/api/types';
 import { addWeeks, getWeekDays, isSameDay, startOfWeek } from '@/shared/lib/date/week';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Badge } from '@/shared/ui/badge';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
@@ -27,12 +28,14 @@ export function AppointmentsCalendar({ appointments }: AppointmentsCalendarProps
 
   const today = new Date();
   const days: WeeklyCalendarDay[] = getWeekDays(weekStart).map((date) => {
-    const countThatDay = appointments.filter((appointment) => isSameDay(new Date(appointment.scheduledAt), date)).length;
+    const countThatDay = appointments.filter((appointment) =>
+      isSameDay(getCairoNow(new Date(appointment.scheduledAt)), getCairoNow(date)),
+    ).length;
     return {
       id: date.toISOString(),
       dayLabel: format.dateTime(date, { weekday: 'short' }),
       dateLabel: format.dateTime(date, { day: 'numeric' }),
-      isToday: isSameDay(date, today),
+      isToday: isSameDay(getCairoNow(date), getCairoNow(today)),
       content: countThatDay > 0 ? <Badge variant="info">{countThatDay}</Badge> : undefined,
     };
   });

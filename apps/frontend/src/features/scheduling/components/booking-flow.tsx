@@ -14,6 +14,7 @@ import type { AvailabilityWindowData } from '@/features/scheduling/types';
 import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { addDays, isSameDay } from '@/shared/lib/date/week';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -218,7 +219,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
 
       <p className="text-sm font-medium text-text-primary">
         {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
-        {isSameDay(selectedDate, today) && ` (${t('today')})`}
+        {isSameDay(getCairoNow(selectedDate), getCairoNow(today)) && ` (${t('today')})`}
       </p>
 
       {isLoading && <LoadingCalendar />}

@@ -18,6 +18,7 @@ import { generateDaySlots } from '@/features/scheduling/utils/slots';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { addMonths, getMonthGridDays, isSameMonth } from '@/shared/lib/date/month';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { RequireRole } from '@/shared/auth/require-role';
 import { useMediaQuery } from '@/shared/hooks/use-media-query';
 import { Icon } from '@/shared/icons/icon';
@@ -99,7 +100,7 @@ export default function DoctorSchedulePage() {
       id: date.toISOString(),
       dayLabel: format.dateTime(date, { weekday: 'short' }),
       dateLabel: format.dateTime(date, { day: 'numeric' }),
-      isToday: isSameDay(date, today),
+      isToday: isSameDay(getCairoNow(date), getCairoNow(today)),
       isSelected: isSameDay(date, selectedDate),
       onSelect: () => setSelectedDate(date),
       content: day?.isWorkingDay ? (
@@ -119,7 +120,7 @@ export default function DoctorSchedulePage() {
       id: date.toISOString(),
       dateLabel: format.dateTime(date, { day: 'numeric' }),
       isCurrentMonth: isSameMonth(date, monthDate),
-      isToday: isSameDay(date, today),
+      isToday: isSameDay(getCairoNow(date), getCairoNow(today)),
       isSelected: isSameDay(date, selectedDate),
       onSelect: () => setSelectedDate(date),
       content: day?.isWorkingDay ? <span className="size-1.5 rounded-full bg-success" aria-hidden="true" /> : undefined,

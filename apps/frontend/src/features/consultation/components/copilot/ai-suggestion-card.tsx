@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { Check, Copy, RefreshCw, ShieldAlert, Sparkles, X } from 'lucide-react';
 import type { AISuggestion } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
@@ -46,6 +46,7 @@ export function AISuggestionCard({
   isRegenerating,
 }: AISuggestionCardProps) {
   const t = useTranslations('consultation.workspace.copilot');
+  const format = useFormatter();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(suggestion.content);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -99,7 +100,9 @@ export function AISuggestionCard({
           </Badge>
         </div>
         <span className="text-xs text-text-tertiary">
-          {t('generatedAt', { time: new Date(suggestion.generatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) })}
+          {t('generatedAt', {
+            time: format.dateTime(new Date(suggestion.generatedAt), { hour: '2-digit', minute: '2-digit' }),
+          })}
         </span>
       </div>
 

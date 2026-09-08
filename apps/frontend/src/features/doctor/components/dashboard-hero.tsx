@@ -14,6 +14,7 @@ import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
 import { cn } from '@/shared/lib/cn';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 
 interface QuickActionTileProps {
   href: string;
@@ -69,7 +70,11 @@ export function DashboardHero() {
   const nextPatient = (upcomingWork ?? [])
     .filter((item) => {
       const scheduledAt = new Date(item.scheduledAt);
-      return item.status === 'upcoming' && scheduledAt.getTime() > now.getTime() && isSameCalendarDay(scheduledAt, now);
+      return (
+        item.status === 'upcoming' &&
+        scheduledAt.getTime() > now.getTime() &&
+        isSameCalendarDay(getCairoNow(scheduledAt), getCairoNow(now))
+      );
     })
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
 

@@ -10,6 +10,7 @@ import { canJoinCall } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { isSameDay } from '@/shared/lib/date/week';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
@@ -108,11 +109,12 @@ export function NextAppointmentCard() {
     );
   }
 
-  const now = new Date();
+  const now = getCairoNow();
   const scheduledAt = new Date(next.scheduledAt);
-  const dayLabel = isSameDay(scheduledAt, now)
+  const scheduledAtCairo = getCairoNow(scheduledAt);
+  const dayLabel = isSameDay(scheduledAtCairo, now)
     ? t('today')
-    : isSameDay(scheduledAt, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
+    : isSameDay(scheduledAtCairo, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
       ? t('tomorrow')
       : format.dateTime(scheduledAt, { weekday: 'short', month: 'short', day: 'numeric' });
   const timeLabel = format.dateTime(scheduledAt, { hour: 'numeric', minute: 'numeric' });

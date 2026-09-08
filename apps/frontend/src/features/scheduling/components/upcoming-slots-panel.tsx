@@ -8,6 +8,7 @@ import { SlotPricingDialog } from '@/features/scheduling/components/slot-pricing
 import type { AvailabilityWindowData } from '@/features/scheduling/types';
 import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
 import { isSameDay } from '@/shared/lib/date/week';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -20,11 +21,11 @@ const toneByWindowStatus: Record<AvailabilityWindowData['status'], ScheduleStatu
   booked: 'booked',
 };
 
-/** Groups already-sorted windows by local calendar date, preserving order. */
+/** Groups already-sorted windows by Cairo calendar date, preserving order. */
 function groupByDate(windows: AvailabilityWindowData[]): { dateKey: string; windows: AvailabilityWindowData[] }[] {
   const groups: { dateKey: string; windows: AvailabilityWindowData[] }[] = [];
   for (const window of windows) {
-    const dateKey = new Date(window.startTime).toDateString();
+    const dateKey = getCairoNow(new Date(window.startTime)).toDateString();
     const lastGroup = groups[groups.length - 1];
     if (lastGroup?.dateKey === dateKey) {
       lastGroup.windows.push(window);
@@ -48,7 +49,7 @@ export function UpcomingSlotsPanel() {
   const t = useTranslations('doctor.schedule.upcomingSlots');
   const format = useFormatter();
   const locale = useLocale();
-  const today = new Date();
+  const today = getCairoNow();
   const { data: windows, isLoading, isError } = useUpcomingSlots();
   const [editingWindow, setEditingWindow] = useState<AvailabilityWindowData | null>(null);
 
@@ -81,7 +82,7 @@ export function UpcomingSlotsPanel() {
         return (
           <div key={group.dateKey} className="flex flex-col gap-2">
             <p className="text-sm font-medium text-text-primary">
-              {isSameDay(groupDate, today)
+              {isSameDay(getCairoNow(groupDate), today)
                 ? t('today')
                 : format.dateTime(groupDate, { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
