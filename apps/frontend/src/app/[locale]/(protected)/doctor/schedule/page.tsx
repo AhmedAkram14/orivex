@@ -12,6 +12,8 @@ import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-av
 import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
 import { useHolidays } from '@/features/scheduling/hooks/use-holidays';
 import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-rules';
+import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
+import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
@@ -142,22 +144,24 @@ export default function DoctorSchedulePage() {
   // not a fabricated ratio.
   const workingDaysCount = schedule?.filter((day) => day.isWorkingDay).length ?? 0;
 
-  // Next Available Slot widget: scans forward from today across the next
-  // two real weeks (matching ScheduleAgenda's own forward-looking window)
-  // and reports the first slot `generateDaySlots` actually marks
-  // 'available' -- never a guessed/fabricated time.
+  // Next Available Slot widget: the same authoritative, backend-materialized
+  // `AvailabilityWindow`s a patient would see for this doctor (real
+  // GetBookableAvailabilityUseCase data -- already excludes booked/held
+  // windows and applies minNoticeMinutes) rather than a local client-side
+  // simulation that had no idea which slots were actually still free.
+  const { data: doctorProfile } = useDoctorProfile();
+  const availabilityRangeEnd = useMemo(() => new Date(today.getTime() + 14 * 24 * 60 * 60_000), [today]);
+  const { data: bookableWindows, isLoading: isLoadingBookableWindows } = useAvailabilityWindows(
+    doctorProfile?.id,
+    today.toISOString(),
+    availabilityRangeEnd.toISOString(),
+  );
   const nextAvailableSlot = useMemo(() => {
-    if (!schedule || !rules) return undefined;
-    for (let offset = 0; offset < 14; offset += 1) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + offset);
-      const day = resolveDayForDate(date, getWeekDayName(date), schedule, exceptions ?? [], holidays ?? []);
-      if (!day?.isWorkingDay) continue;
-      const slot = generateDaySlots(day, rules, date, today).find((candidate) => candidate.status === 'available');
-      if (slot) return { date, slot };
-    }
-    return undefined;
-  }, [schedule, rules, exceptions, holidays, today]);
+    if (!bookableWindows || bookableWindows.length === 0) return undefined;
+    return [...bookableWindows].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+    )[0];
+  }, [bookableWindows]);
 
   const timeOffSectionRef = useRef<HTMLDivElement>(null);
   const calendarSectionRef = useRef<HTMLDivElement>(null);
@@ -369,14 +373,14 @@ export default function DoctorSchedulePage() {
               )}
             </WidgetContainer>
 
-            <WidgetContainer title={t('nextAvailableSlotTitle')} loading={isLoading}>
+            <WidgetContainer title={t('nextAvailableSlotTitle')} loading={isLoading || isLoadingBookableWindows}>
               {nextAvailableSlot ? (
                 <div className="flex flex-col gap-1">
                   <p className="text-sm text-text-secondary">
-                    {format.dateTime(nextAvailableSlot.date, { weekday: 'long', month: 'short', day: 'numeric' })}
+                    {format.dateTime(new Date(nextAvailableSlot.startTime), { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
                   <p className="text-2xl font-semibold text-primary">
-                    {format.dateTime(new Date(nextAvailableSlot.slot.start), { hour: 'numeric', minute: 'numeric' })}
+                    {format.dateTime(new Date(nextAvailableSlot.startTime), { hour: 'numeric', minute: 'numeric' })}
                   </p>
                   <button
                     type="button"
