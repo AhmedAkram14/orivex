@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -133,7 +133,8 @@ describe('ConsultationOutcomeAction', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
     expect(await screen.findByDisplayValue('It was okay.')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('radio', { name: '4 of 5 stars' }));
+    const overallRatingGroup = screen.getByRole('radiogroup', { name: 'Rate your consultation' });
+    await userEvent.click(within(overallRatingGroup).getByRole('radio', { name: '4 of 5 stars' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument());

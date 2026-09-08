@@ -5,6 +5,13 @@ export interface DoctorRatingAggregate {
   reviewCount: number;
   /** Of `reviewCount`, how many carry a written comment -- distinct from the star-only ratings that make up the rest. */
   writtenReviewCount: number;
+  // Multi-dimensional reviews (docs/01-prd.md L99-100 §2.11, inventory
+  // L173 "Multi-dimension ratings 🟢"). Each is null when no review for
+  // this doctor has that dimension filled in yet (older rows never
+  // collected it) -- an honest gap, not backfilled with zero/average.
+  averageCommunicationRating: number | null;
+  averagePunctualityRating: number | null;
+  averageThoroughnessRating: number | null;
 }
 
 export interface ConsultationFeedbackRepository {

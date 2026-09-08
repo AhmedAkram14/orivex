@@ -66,6 +66,9 @@ export class SubmitConsultationFeedbackUseCase {
       doctorId: appointment.getDoctorId(),
       rating: command.rating,
       comment: command.comment,
+      communicationRating: command.communicationRating,
+      punctualityRating: command.punctualityRating,
+      thoroughnessRating: command.thoroughnessRating,
     });
 
     await this.consultationFeedbackRepository.save(feedback);

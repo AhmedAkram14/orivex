@@ -7,12 +7,33 @@ import { ConsultationDomainError } from '../exceptions/consultation-domain.error
 const MIN_RATING = 1;
 const MAX_RATING = 5;
 
+function validateRating(rating: number): void {
+  if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) {
+    throw new ConsultationDomainError(`Rating must be an integer between ${MIN_RATING} and ${MAX_RATING}.`);
+  }
+}
+
+// Dimension ratings are optional (undefined = not provided), but when
+// present they follow the exact same 1-5 integer rule as the overall
+// rating -- there is no separate scale for "was the doctor punctual".
+function validateOptionalDimension(value: number | undefined): void {
+  if (value === undefined) {
+    return;
+  }
+  if (!Number.isInteger(value) || value < MIN_RATING || value > MAX_RATING) {
+    throw new ConsultationDomainError(`Dimension rating must be an integer between ${MIN_RATING} and ${MAX_RATING}.`);
+  }
+}
+
 export interface SubmitConsultationFeedbackProps {
   consultationSessionId: string;
   patientId: string;
   doctorId: string;
   rating: number;
   comment?: string;
+  communicationRating?: number;
+  punctualityRating?: number;
+  thoroughnessRating?: number;
 }
 
 export interface ReconstituteConsultationFeedbackProps {
@@ -22,6 +43,9 @@ export interface ReconstituteConsultationFeedbackProps {
   doctorId: string;
   rating: number;
   comment?: string;
+  communicationRating?: number;
+  punctualityRating?: number;
+  thoroughnessRating?: number;
   createdAt: Date;
 }
 
@@ -51,13 +75,17 @@ export class ConsultationFeedback {
     private readonly doctorId: string,
     private rating: number,
     private comment: string | undefined,
+    private communicationRating: number | undefined,
+    private punctualityRating: number | undefined,
+    private thoroughnessRating: number | undefined,
     private readonly createdAt: Date,
   ) {}
 
   static submit(props: SubmitConsultationFeedbackProps): ConsultationFeedback {
-    if (!Number.isInteger(props.rating) || props.rating < MIN_RATING || props.rating > MAX_RATING) {
-      throw new ConsultationDomainError(`Rating must be an integer between ${MIN_RATING} and ${MAX_RATING}.`);
-    }
+    validateRating(props.rating);
+    validateOptionalDimension(props.communicationRating);
+    validateOptionalDimension(props.punctualityRating);
+    validateOptionalDimension(props.thoroughnessRating);
 
     const feedback = new ConsultationFeedback(
       randomUUID(),
@@ -66,6 +94,9 @@ export class ConsultationFeedback {
       props.doctorId,
       props.rating,
       props.comment?.trim() || undefined,
+      props.communicationRating,
+      props.punctualityRating,
+      props.thoroughnessRating,
       new Date(),
     );
 
@@ -77,12 +108,22 @@ export class ConsultationFeedback {
 
   // Same validation as submit() -- a rating out of range is never valid,
   // whether this is the first submission or a correction.
-  update(rating: number, comment?: string): void {
-    if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) {
-      throw new ConsultationDomainError(`Rating must be an integer between ${MIN_RATING} and ${MAX_RATING}.`);
-    }
+  update(
+    rating: number,
+    comment?: string,
+    communicationRating?: number,
+    punctualityRating?: number,
+    thoroughnessRating?: number,
+  ): void {
+    validateRating(rating);
+    validateOptionalDimension(communicationRating);
+    validateOptionalDimension(punctualityRating);
+    validateOptionalDimension(thoroughnessRating);
     this.rating = rating;
     this.comment = comment?.trim() || undefined;
+    this.communicationRating = communicationRating;
+    this.punctualityRating = punctualityRating;
+    this.thoroughnessRating = thoroughnessRating;
   }
 
   static reconstitute(props: ReconstituteConsultationFeedbackProps): ConsultationFeedback {
@@ -93,6 +134,9 @@ export class ConsultationFeedback {
       props.doctorId,
       props.rating,
       props.comment,
+      props.communicationRating,
+      props.punctualityRating,
+      props.thoroughnessRating,
       props.createdAt,
     );
   }
@@ -119,6 +163,21 @@ export class ConsultationFeedback {
 
   getComment(): string | undefined {
     return this.comment;
+  }
+
+  // Multi-dimensional reviews (docs/01-prd.md L99-100 §2.11): captured
+  // separately from the overall `rating` -- "was the diagnosis right" and
+  // "was the doctor kind" are different signals.
+  getCommunicationRating(): number | undefined {
+    return this.communicationRating;
+  }
+
+  getPunctualityRating(): number | undefined {
+    return this.punctualityRating;
+  }
+
+  getThoroughnessRating(): number | undefined {
+    return this.thoroughnessRating;
   }
 
   getCreatedAt(): Date {

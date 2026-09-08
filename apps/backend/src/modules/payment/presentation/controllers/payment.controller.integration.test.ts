@@ -38,6 +38,7 @@ import type { PatientProfileRepository } from '../../../patient/domain/repositor
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
+import { GetDoctorEarningsSummaryUseCase } from '../../application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
@@ -194,6 +195,9 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null> {
     return Array.from(this.byId.values()).find((t) => t.getAppointmentId() === appointmentId) ?? null;
   }
+  async findByDoctorId(): Promise<PaymentTransaction[]> {
+    return Array.from(this.byId.values());
+  }
   async findAll(): Promise<{ transactions: PaymentTransaction[]; total: number }> {
     return { transactions: [], total: 0 };
   }
@@ -314,6 +318,7 @@ async function buildApp(
   );
   const refundPaymentUseCase = new RefundPaymentUseCase(paymentTransactionRepo, gateway, new NoopDomainEventDispatcher());
   const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo);
+  const getDoctorEarningsSummaryUseCase = new GetDoctorEarningsSummaryUseCase(paymentTransactionRepo);
 
   const moduleRef = await Test.createTestingModule({
     controllers: [PaymentController],
@@ -331,6 +336,7 @@ async function buildApp(
         useValue: getPaymentTransactionByConsultationSessionIdUseCase,
       },
       { provide: RefundPaymentUseCase, useValue: refundPaymentUseCase },
+      { provide: GetDoctorEarningsSummaryUseCase, useValue: getDoctorEarningsSummaryUseCase },
       { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
       { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
       { provide: GetConsultationSessionByIdUseCase, useFactory: () => new GetConsultationSessionByIdUseCase(sessionRepo) },

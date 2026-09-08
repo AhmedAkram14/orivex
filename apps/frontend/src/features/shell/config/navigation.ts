@@ -18,6 +18,7 @@ import {
   User,
   UserCog,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@/shared/auth/permissions';
@@ -124,6 +125,13 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'doctorReports',
         icon: BarChart3,
         href: '/doctor/reports',
+        roles: ['doctor'],
+      },
+      {
+        id: 'doctor-workspace-earnings',
+        labelKey: 'doctorEarnings',
+        icon: Wallet,
+        href: '/doctor/earnings',
         roles: ['doctor'],
       },
       {

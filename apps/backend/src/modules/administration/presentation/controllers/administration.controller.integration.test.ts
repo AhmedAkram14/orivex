@@ -226,6 +226,9 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByAppointmentId(): Promise<PaymentTransaction | null> {
     return null;
   }
+  async findByDoctorId(): Promise<PaymentTransaction[]> {
+    return [];
+  }
   async findAll(options: { limit: number; offset: number }): Promise<{ transactions: PaymentTransaction[]; total: number }> {
     const all = [...this.byId.values()].sort((a, b) => b.getCreatedAt().getTime() - a.getCreatedAt().getTime());
     return { transactions: all.slice(options.offset, options.offset + options.limit), total: all.length };

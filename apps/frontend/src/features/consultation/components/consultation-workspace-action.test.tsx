@@ -34,6 +34,7 @@ function emptySummary(): ConsultationSummary {
     },
     clinicalNotes: [],
     prescriptions: [],
+    labRequests: [],
     diagnoses: [],
     vitalReadings: [],
     followUpRecommendation: null,

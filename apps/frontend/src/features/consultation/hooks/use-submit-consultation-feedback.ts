@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { consultationApi } from '@/features/consultation/api/consultation-api';
+import { consultationApi, type SubmitFeedbackInput } from '@/features/consultation/api/consultation-api';
 import { consultationSummaryKeys, doctorReviewsKeys } from '@/features/consultation/hooks/query-keys';
 
 /**
@@ -15,8 +15,7 @@ export function useSubmitConsultationFeedback(consultationSessionId: string, doc
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ rating, comment }: { rating: number; comment?: string }) =>
-      consultationApi.submitFeedback(consultationSessionId, rating, comment),
+    mutationFn: (input: SubmitFeedbackInput) => consultationApi.submitFeedback(consultationSessionId, input),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: consultationSummaryKeys.detail(consultationSessionId) }),

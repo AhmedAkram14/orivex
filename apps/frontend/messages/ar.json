@@ -529,6 +529,7 @@
       "doctorConsultation": "الاستشارة",
       "doctorPatients": "المرضى",
       "doctorReports": "التقارير",
+      "doctorEarnings": "الأرباح",
       "doctorSettings": "الإعدادات",
       "groups": {
         "clinical": "الرعاية السريرية",
@@ -1161,6 +1162,28 @@
         "averageRating": "متوسط التقييم",
         "ratingValue": "{rating} ({count})",
         "noReviewsYet": "لا توجد تقييمات بعد"
+      }
+    },
+    "earnings": {
+      "title": "الأرباح",
+      "description": "أرباحك الفعلية لكل استشارة وعمولة المنصة، في لمحة واحدة.",
+      "loadError": "تعذّر تحميل أرباحك.",
+      "stats": {
+        "lifetimeNet": "صافي الأرباح الإجمالي",
+        "lifetimeGross": "إجمالي الدخل",
+        "commissionRate": "عمولة المنصة",
+        "commissionRateValue": "{rate}%",
+        "transactionCount": "الاستشارات المدفوعة"
+      },
+      "cyclesTitle": "التفصيل الشهري",
+      "cyclesEmptyTitle": "لا توجد أرباح بعد",
+      "cyclesEmptyDescription": "ستظهر هنا الاستشارات المدفوعة المكتملة، مقسّمة حسب الشهر.",
+      "table": {
+        "cycle": "الشهر",
+        "gross": "الإجمالي",
+        "commission": "العمولة",
+        "net": "الصافي",
+        "transactions": "الاستشارات"
       }
     },
     "settingsPage": {
@@ -2186,6 +2209,7 @@
         "diagnosis": "التشخيص",
         "followUp": "المتابعة",
         "prescriptions": "الوصفات الطبية",
+        "labRequests": "الطلبات المخبرية",
         "journey": "الرحلة العلاجية"
       },
       "notesPlaceholder": "أضف ملاحظة سريرية...",
@@ -2228,6 +2252,15 @@
       "prescriptionInstructionsPlaceholder": "مثال: يؤخذ مع الطعام",
       "savePrescription": "توقيع الوصفة الطبية",
       "prescriptionSaveSuccess": "تم توقيع الوصفة الطبية.",
+      "noLabRequests": "لا توجد طلبات مخبرية لهذه الاستشارة.",
+      "labRequestTestNameLabel": "اسم الفحص / اللوحة",
+      "labRequestTestNamePlaceholder": "مثال: تعداد الدم الكامل (CBC)",
+      "labRequestReasonLabel": "السبب السريري (اختياري)",
+      "labRequestReasonPlaceholder": "سبب طلب هذا الفحص...",
+      "labRequestInstructionsLabel": "التعليمات (اختياري)",
+      "labRequestInstructionsPlaceholder": "مثال: يتطلب الصيام",
+      "saveLabRequest": "طلب فحص مخبري",
+      "labRequestSaveSuccess": "تم تسجيل الطلب المخبري.",
       "journeyEmpty": "لا توجد رحلات علاجية لهذا المريض بعد.",
       "journeyStage": {
         "diagnosis": "التشخيص",
@@ -2293,6 +2326,9 @@
     "rating": {
       "prompt": "قيّم استشارتك",
       "starLabel": "{count} من 5 نجوم",
+      "communicationLabel": "التواصل",
+      "punctualityLabel": "الالتزام بالموعد",
+      "thoroughnessLabel": "الشمولية",
       "commentPlaceholder": "اترك تعليقًا اختياريًا...",
       "submit": "إرسال التقييم",
       "save": "حفظ التغييرات",

@@ -185,6 +185,7 @@ model DoctorProfile {
   authoredHealthGraphNodes        HealthGraphNode[]
   authoredClinicalNotes           ClinicalNote[]
   authoredPrescriptions           Prescription[]
+  authoredLabRequests             LabRequest[]
   workingHoursDays                WorkingHoursDay[]
   scheduleExceptions              ScheduleException[]
   // Consultation lifecycle completion follow-up (2026-07-26): reviews are
@@ -510,6 +511,7 @@ enum AuditAction {
   JOURNEY_STAGE_UPDATED
   AI_SUGGESTION_REQUESTED
   AI_SUGGESTION_DECIDED
+  LAB_REQUEST_ORDERED
 }
 
 model AuditLog {
@@ -775,6 +777,7 @@ model ConsultationSession {
   prescriptions                      Prescription[]
   aiSuggestions                      AISuggestion[]
   pendingAISuggestionAcknowledgments PendingAISuggestionAcknowledgment[]
+  labRequests                        LabRequest[]
   // Consultation lifecycle completion follow-up (2026-07-26): one feedback
   // row and one follow-up recommendation per session, at most -- both
   // deliberately 1:1 (unique FK), not lists.
@@ -806,6 +809,15 @@ model ConsultationFeedback {
   doctorId              String
   doctorProfile         DoctorProfile       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   rating                Int
+  // Multi-dimensional reviews (docs/01-prd.md L99-100 §2.11, inventory
+  // L173 "Multi-dimension ratings 🟢"): captured separately from the
+  // overall `rating` since "was the diagnosis right" and "was the doctor
+  // kind" are different signals. Nullable -- every row created before this
+  // column existed has no dimension breakdown, and that's an honest gap in
+  // historical data, not something to backfill with fabricated numbers.
+  communicationRating   Int?
+  punctualityRating     Int?
+  thoroughnessRating    Int?
   comment               String?
   createdAt             DateTime            @default(now())
 
@@ -1018,6 +1030,34 @@ model JourneyNodeLink {
 // mutation (docs/07-domain-data-model.md's "never rewrite" rule).
 // derivedFromSuggestionId is deliberately not stored -- would reference
 // AISuggestion (AIModule), which doesn't exist yet.
+enum LabRequestStatus {
+  ORDERED
+  CANCELLED
+}
+
+// I1 -- Lab Requests (docs/01-prd.md L86-90 §2.9: "Lightweight in V1" --
+// a structured advisory test-request document, deliberately NOT an
+// integration with any real laboratory system (no result ever flows back
+// in). One doctor-authored row per requested test/panel, visible on the
+// patient's timeline alongside prescriptions -- same shape and scope as
+// ClinicalNote/Prescription below, not a second pattern.
+model LabRequest {
+  id                    String              @id @default(uuid())
+  consultationSessionId String
+  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  authoringDoctorId     String
+  doctorProfile         DoctorProfile       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  testName              String
+  clinicalReason        String?
+  instructions          String?
+  status                LabRequestStatus    @default(ORDERED)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@index([consultationSessionId])
+  @@index([authoringDoctorId])
+}
+
 model ClinicalNote {
   id                    String              @id @default(uuid())
   consultationSessionId String

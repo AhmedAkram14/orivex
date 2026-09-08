@@ -1,6 +1,6 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { PAYMENT_PATHS } from '@/features/payment/api/paths';
-import type { InitiateChargeRequest, PaymentTransaction } from '@/features/payment/api/types';
+import type { DoctorEarningsSummary, InitiateChargeRequest, PaymentTransaction } from '@/features/payment/api/types';
 
 /**
  * The only module that talks to `/payments/*` — mirrors `notificationsApi`'s
@@ -19,4 +19,10 @@ export const paymentApi = {
     apiFetch<PaymentTransaction | null>({ path: PAYMENT_PATHS.getByConsultationSessionId(consultationSessionId) }),
 
   refund: (id: string) => apiFetch<PaymentTransaction>({ method: 'POST', path: PAYMENT_PATHS.refund(id) }),
+
+  /** I2 -- Doctor earnings dashboard. `month` is an optional "YYYY-MM" filter for the cycle breakdown. */
+  getDoctorEarningsSummary: (month?: string) =>
+    apiFetch<DoctorEarningsSummary>({
+      path: month ? `${PAYMENT_PATHS.doctorEarningsSummary}?month=${month}` : PAYMENT_PATHS.doctorEarningsSummary,
+    }),
 };

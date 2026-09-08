@@ -8,6 +8,7 @@ import { ClinicalNoteResponseDto } from './clinical-note-response.dto.js';
 import { HealthGraphNodeResponseDto } from './health-graph-node-response.dto.js';
 import { HealthJourneyResponseDto } from './health-journey-response.dto.js';
 import { VitalReadingResponseDto } from './health-vital-summary-response.dto.js';
+import { LabRequestResponseDto } from './lab-request-response.dto.js';
 import { PrescriptionResponseDto } from './prescription-response.dto.js';
 
 // Consultation lifecycle completion follow-up (2026-07-26): the single
@@ -21,6 +22,7 @@ export class ConsultationSummaryResponseDto {
   appointment!: AppointmentResponseDto;
   clinicalNotes!: ClinicalNoteResponseDto[];
   prescriptions!: PrescriptionResponseDto[];
+  labRequests!: LabRequestResponseDto[];
   diagnoses!: HealthGraphNodeResponseDto[];
   vitalReadings!: VitalReadingResponseDto[];
   followUpRecommendation!: FollowUpRecommendationResponseDto | null;
@@ -33,6 +35,7 @@ export class ConsultationSummaryResponseDto {
     dto.appointment = AppointmentResponseDto.fromDomain(result.appointment);
     dto.clinicalNotes = result.clinicalNotes.map((note) => ClinicalNoteResponseDto.fromDomain(note));
     dto.prescriptions = result.prescriptions.map((prescription) => PrescriptionResponseDto.fromDomain(prescription));
+    dto.labRequests = result.labRequests.map((labRequest) => LabRequestResponseDto.fromDomain(labRequest));
     dto.diagnoses = result.diagnoses.map((node) => HealthGraphNodeResponseDto.fromDomain(node));
     dto.vitalReadings = result.vitalReadings.map((reading) => VitalReadingResponseDto.fromDomain(reading));
     dto.followUpRecommendation = result.followUpRecommendation

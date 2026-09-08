@@ -42,7 +42,13 @@ export class UpdateConsultationFeedbackUseCase {
       throw new ForbiddenError('Only the reviewer may edit this feedback.');
     }
 
-    feedback.update(command.rating, command.comment);
+    feedback.update(
+      command.rating,
+      command.comment,
+      command.communicationRating,
+      command.punctualityRating,
+      command.thoroughnessRating,
+    );
     await this.consultationFeedbackRepository.update(feedback);
 
     const doctorProfile = await this.getDoctorProfileByIdUseCase.execute({ doctorProfileId: feedback.getDoctorId() });

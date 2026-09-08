@@ -24,6 +24,7 @@ import {
   CLINICAL_NOTE_REPOSITORY,
   HEALTH_GRAPH_REPOSITORY,
   HEALTH_JOURNEY_REPOSITORY,
+  LAB_REQUEST_REPOSITORY,
   PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY,
   PRESCRIPTION_REPOSITORY,
   VITAL_READING_REPOSITORY,
@@ -37,14 +38,17 @@ import { GetConsultationSummaryUseCase } from './application/use-cases/get-consu
 import { GetHealthGraphByIdUseCase } from './application/use-cases/get-health-graph-by-id/get-health-graph-by-id.use-case.js';
 import { GetHealthGraphSubgraphUseCase } from './application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { GetHealthJourneyByIdUseCase } from './application/use-cases/get-health-journey-by-id/get-health-journey-by-id.use-case.js';
+import { GetLabRequestByIdUseCase } from './application/use-cases/get-lab-request-by-id/get-lab-request-by-id.use-case.js';
 import { GetPrescriptionByIdUseCase } from './application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { ListClinicalNotesForConsultationSessionUseCase } from './application/use-cases/list-clinical-notes-for-consultation-session/list-clinical-notes-for-consultation-session.use-case.js';
+import { ListLabRequestsForConsultationSessionUseCase } from './application/use-cases/list-lab-requests-for-consultation-session/list-lab-requests-for-consultation-session.use-case.js';
 import { ListVitalReadingsForConsultationSessionUseCase } from './application/use-cases/list-vital-readings-for-consultation-session/list-vital-readings-for-consultation-session.use-case.js';
 import { ListHealthJourneysUseCase } from './application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
 import { ListPrescriptionsForConsultationSessionUseCase } from './application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
 import { ListVitalReadingsForPatientUseCase } from './application/use-cases/list-vital-readings-for-patient/list-vital-readings-for-patient.use-case.js';
 import { RecordClinicalNoteUseCase } from './application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
 import { RecordConsultationDiagnosisUseCase } from './application/use-cases/record-consultation-diagnosis/record-consultation-diagnosis.use-case.js';
+import { RecordLabRequestUseCase } from './application/use-cases/record-lab-request/record-lab-request.use-case.js';
 import { RecordVitalReadingUseCase } from './application/use-cases/record-vital-reading/record-vital-reading.use-case.js';
 import { RecordDiagnosisUseCase } from './application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { SignPrescriptionUseCase } from './application/use-cases/sign-prescription/sign-prescription.use-case.js';
@@ -52,12 +56,14 @@ import { UpdateJourneyStageUseCase } from './application/use-cases/update-journe
 import type { ClinicalNoteRepository } from './domain/repositories/clinical-note.repository.js';
 import type { HealthGraphRepository } from './domain/repositories/health-graph.repository.js';
 import type { HealthJourneyRepository } from './domain/repositories/health-journey.repository.js';
+import type { LabRequestRepository } from './domain/repositories/lab-request.repository.js';
 import type { PendingAISuggestionAcknowledgmentRepository } from './domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from './domain/repositories/prescription.repository.js';
 import type { VitalReadingRepository } from './domain/repositories/vital-reading.repository.js';
 import { PrismaClinicalNoteRepository } from './infrastructure/prisma/prisma-clinical-note.repository.js';
 import { PrismaHealthGraphRepository } from './infrastructure/prisma/prisma-health-graph.repository.js';
 import { PrismaHealthJourneyRepository } from './infrastructure/prisma/prisma-health-journey.repository.js';
+import { PrismaLabRequestRepository } from './infrastructure/prisma/prisma-lab-request.repository.js';
 import { PrismaPendingAISuggestionAcknowledgmentRepository } from './infrastructure/prisma/prisma-pending-ai-suggestion-acknowledgment.repository.js';
 import { PrismaPrescriptionRepository } from './infrastructure/prisma/prisma-prescription.repository.js';
 import { PrismaVitalReadingRepository } from './infrastructure/prisma/prisma-vital-reading.repository.js';
@@ -68,6 +74,7 @@ import { VitalsController } from './presentation/controllers/vitals.controller.j
 import { DoctorPatientChartController } from './presentation/controllers/doctor-patient-chart.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
 import { JourneyController } from './presentation/controllers/journey.controller.js';
+import { LabRequestController } from './presentation/controllers/lab-request.controller.js';
 import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
 import { PrescriptionController } from './presentation/controllers/prescription.controller.js';
 
@@ -89,6 +96,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     ConsultationSummaryController,
     DoctorPatientChartController,
     JourneyController,
+    LabRequestController,
   ],
   providers: [
     { provide: HEALTH_GRAPH_REPOSITORY, useClass: PrismaHealthGraphRepository },
@@ -96,6 +104,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     { provide: CLINICAL_NOTE_REPOSITORY, useClass: PrismaClinicalNoteRepository },
     { provide: PRESCRIPTION_REPOSITORY, useClass: PrismaPrescriptionRepository },
     { provide: VITAL_READING_REPOSITORY, useClass: PrismaVitalReadingRepository },
+    { provide: LAB_REQUEST_REPOSITORY, useClass: PrismaLabRequestRepository },
     { provide: PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY, useClass: PrismaPendingAISuggestionAcknowledgmentRepository },
     {
       // Registers Clinical's own event subscriber against the shared
@@ -134,6 +143,32 @@ import { PrescriptionController } from './presentation/controllers/prescription.
           getDoctorProfileByIdUseCase,
         ),
       inject: [CLINICAL_NOTE_REPOSITORY, GetConsultationSessionByIdUseCase, GetAppointmentByIdUseCase, GetDoctorProfileByIdUseCase],
+    },
+    {
+      provide: RecordLabRequestUseCase,
+      useFactory: (
+        repository: LabRequestRepository,
+        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+      ) =>
+        new RecordLabRequestUseCase(
+          repository,
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
+        ),
+      inject: [LAB_REQUEST_REPOSITORY, GetConsultationSessionByIdUseCase, GetAppointmentByIdUseCase, GetDoctorProfileByIdUseCase],
+    },
+    {
+      provide: GetLabRequestByIdUseCase,
+      useFactory: (repository: LabRequestRepository) => new GetLabRequestByIdUseCase(repository),
+      inject: [LAB_REQUEST_REPOSITORY],
+    },
+    {
+      provide: ListLabRequestsForConsultationSessionUseCase,
+      useFactory: (repository: LabRequestRepository) => new ListLabRequestsForConsultationSessionUseCase(repository),
+      inject: [LAB_REQUEST_REPOSITORY],
     },
     {
       provide: GetHealthGraphSubgraphUseCase,
@@ -288,6 +323,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
         listClinicalNotesForConsultationSessionUseCase: ListClinicalNotesForConsultationSessionUseCase,
         listPrescriptionsForConsultationSessionUseCase: ListPrescriptionsForConsultationSessionUseCase,
+        listLabRequestsForConsultationSessionUseCase: ListLabRequestsForConsultationSessionUseCase,
         getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
         getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
         getConsultationFeedbackForSessionUseCase: GetConsultationFeedbackForSessionUseCase,
@@ -299,6 +335,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
           getAppointmentByIdUseCase,
           listClinicalNotesForConsultationSessionUseCase,
           listPrescriptionsForConsultationSessionUseCase,
+          listLabRequestsForConsultationSessionUseCase,
           getHealthGraphSubgraphUseCase,
           getFollowUpRecommendationForSessionUseCase,
           getConsultationFeedbackForSessionUseCase,
@@ -310,6 +347,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         GetAppointmentByIdUseCase,
         ListClinicalNotesForConsultationSessionUseCase,
         ListPrescriptionsForConsultationSessionUseCase,
+        ListLabRequestsForConsultationSessionUseCase,
         GetHealthGraphSubgraphUseCase,
         GetFollowUpRecommendationForSessionUseCase,
         GetConsultationFeedbackForSessionUseCase,
@@ -328,6 +366,9 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     GetPrescriptionByIdUseCase,
     ListPrescriptionsForConsultationSessionUseCase,
     ListClinicalNotesForConsultationSessionUseCase,
+    RecordLabRequestUseCase,
+    GetLabRequestByIdUseCase,
+    ListLabRequestsForConsultationSessionUseCase,
   ],
 })
 export class ClinicalModule {}

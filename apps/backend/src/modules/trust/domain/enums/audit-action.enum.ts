@@ -22,4 +22,5 @@ export enum AuditAction {
   JourneyStageUpdated = 'journey_stage_updated',
   AiSuggestionRequested = 'ai_suggestion_requested',
   AiSuggestionDecided = 'ai_suggestion_decided',
+  LabRequestOrdered = 'lab_request_ordered',
 }

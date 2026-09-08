@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
@@ -15,6 +15,7 @@ import { GetConsultationSessionByIdUseCase } from '../../../consultation/applica
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { GetDoctorEarningsSummaryUseCase } from '../../application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeCommand } from '../../application/use-cases/initiate-charge/initiate-charge.command.js';
@@ -22,6 +23,7 @@ import { InitiateChargeUseCase } from '../../application/use-cases/initiate-char
 import { RefundPaymentCommand } from '../../application/use-cases/refund-payment/refund-payment.command.js';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentTransaction } from '../../domain/entities/payment-transaction.entity.js';
+import { DoctorEarningsSummaryResponseDto } from '../dto/doctor-earnings-summary-response.dto.js';
 import { InitiateChargeRequestDto } from '../dto/initiate-charge-request.dto.js';
 import { PaymentTransactionResponseDto } from '../dto/payment-transaction-response.dto.js';
 import { mapPaymentError } from '../mappers/payment-exception.mapper.js';
@@ -47,7 +49,32 @@ export class PaymentController {
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
     private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+    private readonly getDoctorEarningsSummaryUseCase: GetDoctorEarningsSummaryUseCase,
   ) {}
+
+  // I2 -- Doctor earnings dashboard (docs/01-prd.md L15, L94 §2.10).
+  // Registered before ':id' so Nest's route matching never treats
+  // "doctor/earnings-summary" as an :id value, same as
+  // "by-consultation-session" below. `month` is an optional "YYYY-MM"
+  // filter for the cycle breakdown; the lifetime totals are always
+  // computed across every cycle regardless of this filter.
+  @Get('doctor/earnings-summary')
+  @Roles(AccountRole.Doctor)
+  async getDoctorEarningsSummary(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query('month') month?: string,
+  ): Promise<ResponseEnvelope<DoctorEarningsSummaryResponseDto>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      throw new NotFoundError('No doctor profile exists for this account.');
+    }
+    const parsedMonth = month && /^\d{4}-\d{2}$/.test(month) ? new Date(`${month}-01T00:00:00.000Z`) : undefined;
+    const summary = await this.getDoctorEarningsSummaryUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      month: parsedMonth,
+    });
+    return envelope(DoctorEarningsSummaryResponseDto.fromResult(summary));
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

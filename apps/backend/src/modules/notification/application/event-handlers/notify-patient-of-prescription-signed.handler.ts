@@ -1,7 +1,9 @@
 import type { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
+import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import type { GetPrescriptionByIdUseCase } from '../../../clinical/application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
+import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
@@ -23,7 +25,9 @@ export class NotifyPatientOfPrescriptionSignedHandler {
     private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+    private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
+    private readonly emailSender: EmailSenderPort,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -60,6 +64,16 @@ export class NotifyPatientOfPrescriptionSignedHandler {
         actionUrl: '/patient/prescriptions',
       });
       await this.notificationRepository.save(notification);
+
+      // I3 -- Notification delivery channels. Reuses AuthenticationModule's
+      // own EMAIL_SENDER port, never a second email-sending path. No
+      // medication name/dosage in the template's data -- same PHI-light
+      // rule the in-app notification's own description above already
+      // follows.
+      const account = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
+      if (account) {
+        await this.emailSender.send(account.getEmail().toString(), 'prescription-signed', {});
+      }
     } catch (error) {
       // A notification failure must never surface back through
       // SignPrescriptionUseCase, which has already saved the prescription

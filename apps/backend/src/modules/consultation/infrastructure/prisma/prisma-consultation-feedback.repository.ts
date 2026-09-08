@@ -44,12 +44,19 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
     const [result, writtenReviewCount] = await Promise.all([
       this.prisma.consultationFeedback.aggregate({
         where: { doctorId },
-        _avg: { rating: true },
+        _avg: { rating: true, communicationRating: true, punctualityRating: true, thoroughnessRating: true },
         _count: { rating: true },
       }),
       this.prisma.consultationFeedback.count({ where: { doctorId, comment: { not: null } } }),
     ]);
-    return { averageRating: result._avg.rating, reviewCount: result._count.rating, writtenReviewCount };
+    return {
+      averageRating: result._avg.rating,
+      reviewCount: result._count.rating,
+      writtenReviewCount,
+      averageCommunicationRating: result._avg.communicationRating,
+      averagePunctualityRating: result._avg.punctualityRating,
+      averageThoroughnessRating: result._avg.thoroughnessRating,
+    };
   }
 
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
@@ -60,7 +67,7 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
       this.prisma.consultationFeedback.groupBy({
         by: ['doctorId'],
         where: { doctorId: { in: doctorIds } },
-        _avg: { rating: true },
+        _avg: { rating: true, communicationRating: true, punctualityRating: true, thoroughnessRating: true },
         _count: { rating: true },
       }),
       this.prisma.consultationFeedback.groupBy({
@@ -76,6 +83,9 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
         averageRating: group._avg.rating,
         reviewCount: group._count.rating,
         writtenReviewCount: writtenCountByDoctorId.get(group.doctorId) ?? 0,
+        averageCommunicationRating: group._avg.communicationRating,
+        averagePunctualityRating: group._avg.punctualityRating,
+        averageThoroughnessRating: group._avg.thoroughnessRating,
       });
     }
     return result;
@@ -90,6 +100,9 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
         doctorId: feedback.getDoctorId(),
         rating: feedback.getRating(),
         comment: feedback.getComment() ?? null,
+        communicationRating: feedback.getCommunicationRating() ?? null,
+        punctualityRating: feedback.getPunctualityRating() ?? null,
+        thoroughnessRating: feedback.getThoroughnessRating() ?? null,
         createdAt: feedback.getCreatedAt(),
       },
     });
@@ -98,7 +111,13 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
   async update(feedback: ConsultationFeedback): Promise<void> {
     await this.prisma.consultationFeedback.update({
       where: { id: feedback.getId() },
-      data: { rating: feedback.getRating(), comment: feedback.getComment() ?? null },
+      data: {
+        rating: feedback.getRating(),
+        comment: feedback.getComment() ?? null,
+        communicationRating: feedback.getCommunicationRating() ?? null,
+        punctualityRating: feedback.getPunctualityRating() ?? null,
+        thoroughnessRating: feedback.getThoroughnessRating() ?? null,
+      },
     });
   }
 

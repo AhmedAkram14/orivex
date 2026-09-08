@@ -28,6 +28,9 @@ class FakePaymentTransactionRepository implements PaymentTransactionRepository {
   async findByAppointmentId(): Promise<PaymentTransaction | null> {
     return null;
   }
+  async findByDoctorId(): Promise<PaymentTransaction[]> {
+    return [];
+  }
   async findAll(options: { limit: number; offset: number }): Promise<{ transactions: PaymentTransaction[]; total: number }> {
     this.lastFindAllOptions = options;
     return { transactions: this.transactions, total: this.total };

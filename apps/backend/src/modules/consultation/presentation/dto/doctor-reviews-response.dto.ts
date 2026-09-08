@@ -19,6 +19,9 @@ export class DoctorReviewsResponseDto {
   averageRating!: number | null;
   reviewCount!: number;
   writtenReviewCount!: number;
+  averageCommunicationRating!: number | null;
+  averagePunctualityRating!: number | null;
+  averageThoroughnessRating!: number | null;
 
   static fromResult(
     result: ListConsultationFeedbackForDoctorResult,
@@ -37,6 +40,9 @@ export class DoctorReviewsResponseDto {
     dto.averageRating = ratingAggregate.averageRating;
     dto.reviewCount = ratingAggregate.reviewCount;
     dto.writtenReviewCount = ratingAggregate.writtenReviewCount;
+    dto.averageCommunicationRating = ratingAggregate.averageCommunicationRating;
+    dto.averagePunctualityRating = ratingAggregate.averagePunctualityRating;
+    dto.averageThoroughnessRating = ratingAggregate.averageThoroughnessRating;
     return dto;
   }
 }

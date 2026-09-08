@@ -350,14 +350,18 @@ import { NotificationController } from './presentation/controllers/notification.
       useFactory: (
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
         getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
         const handler = new NotifyPatientOfAppointmentConfirmedHandler(
           getAppointmentByIdUseCase,
           getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
           notificationRepository,
+          emailSender,
           logger,
         );
         dispatcher.subscribe('consultation.appointment.confirmed', (event: DomainEvent) =>
@@ -368,7 +372,9 @@ import { NotificationController } from './presentation/controllers/notification.
       inject: [
         GetAppointmentByIdUseCase,
         GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -444,14 +450,18 @@ import { NotificationController } from './presentation/controllers/notification.
       useFactory: (
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
         getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
         const handler = new NotifyPatientOfAppointmentCancelledHandler(
           getAppointmentByIdUseCase,
           getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
           notificationRepository,
+          emailSender,
           logger,
         );
         dispatcher.subscribe('consultation.appointment.cancelled', (event: DomainEvent) =>
@@ -462,7 +472,9 @@ import { NotificationController } from './presentation/controllers/notification.
       inject: [
         GetAppointmentByIdUseCase,
         GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -564,7 +576,9 @@ import { NotificationController } from './presentation/controllers/notification.
         getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
         getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
         getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -573,7 +587,9 @@ import { NotificationController } from './presentation/controllers/notification.
           getConsultationSessionByIdUseCase,
           getAppointmentByIdUseCase,
           getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
           notificationRepository,
+          emailSender,
           logger,
         );
         dispatcher.subscribe('clinical.prescription.signed', (event: DomainEvent) =>
@@ -586,7 +602,9 @@ import { NotificationController } from './presentation/controllers/notification.
         GetConsultationSessionByIdUseCase,
         GetAppointmentByIdUseCase,
         GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],

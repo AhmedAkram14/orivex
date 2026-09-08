@@ -20,6 +20,12 @@ export interface PaymentTransactionRepository {
   // InitiateTransactionProps), independent of whether a ConsultationSession
   // ever existed for this appointment.
   findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null>;
+  // I2 -- Doctor earnings (docs/01-prd.md L94 §2.10, L189 "commission taken
+  // transparently and disclosed to doctors upfront"): every transaction for
+  // this doctor within an optional date range, newest first -- backs
+  // GetDoctorEarningsSummaryUseCase's derive-from-existing-ledger approach
+  // (no separate PayoutStatement model; see that use case's own comment).
+  findByDoctorId(doctorId: string, range?: { from?: Date; to?: Date }): Promise<PaymentTransaction[]>;
   save(transaction: PaymentTransaction): Promise<void>;
   // Backs the SuperAdmin-facing "list payment transactions" read (ORIVEX
   // Roadmap Phase 3, Critical Lifecycle Gaps, Step 4) -- newest first, same

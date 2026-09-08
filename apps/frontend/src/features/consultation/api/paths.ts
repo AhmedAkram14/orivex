@@ -12,6 +12,10 @@ export const CONSULTATION_PATHS = {
   // route shape exactly (PrescriptionController is @Controller('prescriptions'),
   // with consultationSessionId/diagnosisNodeId carried in the request body).
   prescriptions: () => '/prescriptions',
+  // I1 -- Lab Requests. Not nested under /consultations/:id either -- matches
+  // LabRequestController's own @Controller('lab-requests') shape exactly,
+  // same convention as prescriptions above.
+  labRequests: () => '/lab-requests',
   // Not nested under /consultations/:id either -- matches JourneyController's
   // own @Controller('journeys') shape exactly.
   journeyStage: (journeyId: string) => `/journeys/${journeyId}`,

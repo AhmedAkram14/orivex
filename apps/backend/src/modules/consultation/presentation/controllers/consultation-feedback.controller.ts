@@ -50,6 +50,9 @@ export class ConsultationFeedbackController {
           patientAccountId: user.accountId,
           rating: body.rating,
           comment: body.comment,
+          communicationRating: body.communicationRating,
+          punctualityRating: body.punctualityRating,
+          thoroughnessRating: body.thoroughnessRating,
         }),
       );
       return envelope(ConsultationFeedbackResponseDto.fromDomain(feedback));
@@ -71,6 +74,9 @@ export class ConsultationFeedbackController {
           patientAccountId: user.accountId,
           rating: body.rating,
           comment: body.comment,
+          communicationRating: body.communicationRating,
+          punctualityRating: body.punctualityRating,
+          thoroughnessRating: body.thoroughnessRating,
         }),
       );
       return envelope(ConsultationFeedbackResponseDto.fromDomain(feedback));

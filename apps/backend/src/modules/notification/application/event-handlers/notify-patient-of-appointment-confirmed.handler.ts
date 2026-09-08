@@ -1,5 +1,7 @@
 import type { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
+import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
@@ -18,7 +20,9 @@ export class NotifyPatientOfAppointmentConfirmedHandler {
   constructor(
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+    private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
+    private readonly emailSender: EmailSenderPort,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -43,6 +47,18 @@ export class NotifyPatientOfAppointmentConfirmedHandler {
         actionUrl: '/patient/appointments',
       });
       await this.notificationRepository.save(notification);
+
+      // I3 -- Notification delivery channels (docs/01-prd.md "we'll email
+      // you" affordances). Reuses AuthenticationModule's own EMAIL_SENDER
+      // port (already bound to SendGrid/LoggingEmailSender), never a second
+      // email-sending path. PHI-light by construction: no reason for visit,
+      // diagnosis, or other clinical detail in the template's data.
+      const account = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
+      if (account) {
+        await this.emailSender.send(account.getEmail().toString(), 'appointment-confirmed', {
+          scheduledAt: appointment.getScheduledAt().toISOString(),
+        });
+      }
     } catch (error) {
       // A notification failure must never surface back through
       // ApproveAppointmentUseCase, which has already saved the appointment

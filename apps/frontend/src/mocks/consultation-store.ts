@@ -15,6 +15,7 @@ import type {
   FollowUpRecommendation,
   HealthJourney,
   JourneyStage,
+  LabRequestRecord,
   SignPrescriptionLineItemInput,
   VitalReadingType,
 } from '@/features/consultation/api/types';
@@ -41,6 +42,7 @@ const notesBySessionId = new Map<string, ClinicalNote[]>();
 const diagnosesBySessionId = new Map<string, DiagnosisNode[]>();
 const vitalsBySessionId = new Map<string, ConsultationVitalReading[]>();
 const prescriptionsBySessionId = new Map<string, ConsultationPrescription[]>();
+const labRequestsBySessionId = new Map<string, LabRequestRecord[]>();
 const aiSuggestionsById = new Map<string, AISuggestion>();
 // Health Journey stage-advance fix (ORIVEX Remaining Work Audit, P0 C5):
 // keyed by session, same simplification as everything else in this mock
@@ -314,6 +316,27 @@ export function recordConsultationPrescription(
   return prescription;
 }
 
+export function recordLabRequest(
+  consultationSessionId: string,
+  input: { testName: string; clinicalReason?: string; instructions?: string },
+): LabRequestRecord {
+  const labRequest: LabRequestRecord = {
+    id: `lab-request-${Date.now()}`,
+    consultationSessionId,
+    authoringDoctorId: DOCTOR_ID,
+    testName: input.testName,
+    clinicalReason: input.clinicalReason ?? null,
+    instructions: input.instructions ?? null,
+    status: 'ordered',
+    createdAt: new Date().toISOString(),
+  };
+  labRequestsBySessionId.set(consultationSessionId, [
+    ...(labRequestsBySessionId.get(consultationSessionId) ?? []),
+    labRequest,
+  ]);
+  return labRequest;
+}
+
 /**
  * AI Copilot (docs/01.1-prd-update.md §4, ORIVEX Remaining Work Audit C7):
  * mirrors the real backend's own shape -- one AISuggestion per call,
@@ -402,6 +425,7 @@ export function getConsultationSummary(consultationSessionId: string): Consultat
     },
     clinicalNotes: notesBySessionId.get(consultationSessionId) ?? [],
     prescriptions: prescriptionsBySessionId.get(consultationSessionId) ?? [],
+    labRequests: labRequestsBySessionId.get(consultationSessionId) ?? [],
     diagnoses: diagnosesBySessionId.get(consultationSessionId) ?? [],
     vitalReadings: vitalsBySessionId.get(consultationSessionId) ?? [],
     followUpRecommendation: followUpBySessionId.get(consultationSessionId) ?? null,
@@ -410,10 +434,17 @@ export function getConsultationSummary(consultationSessionId: string): Consultat
   };
 }
 
+export interface SubmitConsultationFeedbackMockInput {
+  rating: number;
+  comment?: string;
+  communicationRating?: number;
+  punctualityRating?: number;
+  thoroughnessRating?: number;
+}
+
 export function submitConsultationFeedback(
   consultationSessionId: string,
-  rating: number,
-  comment: string | undefined,
+  input: SubmitConsultationFeedbackMockInput,
 ): ConsultationFeedback {
   const reviewer = getPatientProfile();
   const feedback: ConsultationFeedback = {
@@ -423,8 +454,11 @@ export function submitConsultationFeedback(
     // consultation was actually with, so a demo patient rating any of the 20
     // doctors moves that doctor's own average -- not always the legacy one.
     doctorId: findAppointmentBySessionId(consultationSessionId)?.doctorId ?? DOCTOR_ID,
-    rating,
-    comment: comment ?? null,
+    rating: input.rating,
+    comment: input.comment ?? null,
+    communicationRating: input.communicationRating ?? null,
+    punctualityRating: input.punctualityRating ?? null,
+    thoroughnessRating: input.thoroughnessRating ?? null,
     createdAt: new Date().toISOString(),
     // The real submitting patient, not a placeholder -- matches the real
     // backend crediting the review to the JWT-authenticated caller.
@@ -438,12 +472,18 @@ export function submitConsultationFeedback(
 
 export function updateConsultationFeedback(
   consultationSessionId: string,
-  rating: number,
-  comment: string | undefined,
+  input: SubmitConsultationFeedbackMockInput,
 ): ConsultationFeedback | null {
   const existing = feedbackBySessionId.get(consultationSessionId);
   if (!existing) return null;
-  const updated: ConsultationFeedback = { ...existing, rating, comment: comment ?? null };
+  const updated: ConsultationFeedback = {
+    ...existing,
+    rating: input.rating,
+    comment: input.comment ?? null,
+    communicationRating: input.communicationRating ?? null,
+    punctualityRating: input.punctualityRating ?? null,
+    thoroughnessRating: input.thoroughnessRating ?? null,
+  };
   feedbackBySessionId.set(consultationSessionId, updated);
   return updated;
 }
@@ -468,9 +508,24 @@ export function recommendFollowUp(
   return followUp;
 }
 
+function averageOf(values: number[]): number | null {
+  return values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
 export function getDoctorReviews(doctorProfileId: string, page: number, limit: number): DoctorReviewsResult {
   if (getDoctorById(doctorProfileId) === null) {
-    return { reviews: [], total: 0, page, limit, averageRating: null, reviewCount: 0, writtenReviewCount: 0 };
+    return {
+      reviews: [],
+      total: 0,
+      page,
+      limit,
+      averageRating: null,
+      reviewCount: 0,
+      writtenReviewCount: 0,
+      averageCommunicationRating: null,
+      averagePunctualityRating: null,
+      averageThoroughnessRating: null,
+    };
   }
   const reviews = Array.from(feedbackBySessionId.values()).filter((review) => review.doctorId === doctorProfileId);
   const reviewCount = reviews.length;
@@ -486,6 +541,9 @@ export function getDoctorReviews(doctorProfileId: string, page: number, limit: n
     averageRating,
     reviewCount,
     writtenReviewCount,
+    averageCommunicationRating: averageOf(reviews.flatMap((review) => (review.communicationRating != null ? [review.communicationRating] : []))),
+    averagePunctualityRating: averageOf(reviews.flatMap((review) => (review.punctualityRating != null ? [review.punctualityRating] : []))),
+    averageThoroughnessRating: averageOf(reviews.flatMap((review) => (review.thoroughnessRating != null ? [review.thoroughnessRating] : []))),
   };
 }
 
@@ -510,6 +568,7 @@ export function resetConsultationStore(): void {
   diagnosesBySessionId.clear();
   vitalsBySessionId.clear();
   prescriptionsBySessionId.clear();
+  labRequestsBySessionId.clear();
   journeysBySessionId.clear();
   aiSuggestionsById.clear();
   for (const feedback of [...seedFeedback(), ...seedDemoFeedback()]) {

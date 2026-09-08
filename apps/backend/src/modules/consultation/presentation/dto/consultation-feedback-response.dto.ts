@@ -15,6 +15,9 @@ export class ConsultationFeedbackResponseDto {
   doctorId!: string;
   rating!: number;
   comment!: string | null;
+  communicationRating!: number | null;
+  punctualityRating!: number | null;
+  thoroughnessRating!: number | null;
   createdAt!: string;
   patientProfileId!: string;
   patientName!: string;
@@ -32,6 +35,9 @@ export class ConsultationFeedbackResponseDto {
     dto.doctorId = feedback.getDoctorId();
     dto.rating = feedback.getRating();
     dto.comment = feedback.getComment() ?? null;
+    dto.communicationRating = feedback.getCommunicationRating() ?? null;
+    dto.punctualityRating = feedback.getPunctualityRating() ?? null;
+    dto.thoroughnessRating = feedback.getThoroughnessRating() ?? null;
     dto.createdAt = feedback.getCreatedAt().toISOString();
     dto.patientProfileId = reviewer?.patientProfileId ?? feedback.getPatientId();
     dto.patientName = reviewer?.patientName ?? '';

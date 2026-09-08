@@ -94,6 +94,35 @@ export function listAllTransactionsForAdmin(page: number, limit: number): { tran
   return { transactions: rows, total: sorted.length };
 }
 
+/**
+ * I2 -- Doctor earnings dashboard mock. This mock store's PaymentTransaction
+ * shape (mirroring the frontend's own minimal type) carries no doctorId, so
+ * there's no honest way to filter "this doctor's" transactions out of the
+ * flat mock list -- returning a real, non-empty breakdown here would mean
+ * fabricating a doctor association that doesn't exist in this mock layer.
+ * An honest empty summary instead; the real backend (which does have
+ * doctorId on every row) is exercised in integration tests, not here.
+ */
+export function getDoctorEarningsSummaryMock(): {
+  currency: string | null;
+  commissionRate: number;
+  lifetimeGrossAmount: number;
+  lifetimeCommissionAmount: number;
+  lifetimeNetAmount: number;
+  lifetimeTransactionCount: number;
+  cycles: never[];
+} {
+  return {
+    currency: null,
+    commissionRate: 0.15,
+    lifetimeGrossAmount: 0,
+    lifetimeCommissionAmount: 0,
+    lifetimeNetAmount: 0,
+    lifetimeTransactionCount: 0,
+    cycles: [],
+  };
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPaymentStore(): void {
   transactions = [];

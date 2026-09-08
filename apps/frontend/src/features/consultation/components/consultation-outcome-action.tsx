@@ -183,6 +183,9 @@ export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = fa
                   mode="edit"
                   initialRating={summary.feedback.rating}
                   initialComment={summary.feedback.comment ?? ''}
+                  initialCommunicationRating={summary.feedback.communicationRating ?? 0}
+                  initialPunctualityRating={summary.feedback.punctualityRating ?? 0}
+                  initialThoroughnessRating={summary.feedback.thoroughnessRating ?? 0}
                   onSubmitted={() => setIsEditingRating(false)}
                   onCancel={() => setIsEditingRating(false)}
                 />

@@ -17,9 +17,19 @@ import type {
   FollowUpRecommendation,
   HealthJourney,
   JourneyStage,
+  LabRequestRecord,
+  RecordLabRequestInput,
   SignPrescriptionLineItemInput,
   VitalReadingType,
 } from '@/features/consultation/api/types';
+
+export interface SubmitFeedbackInput {
+  rating: number;
+  comment?: string;
+  communicationRating?: number;
+  punctualityRating?: number;
+  thoroughnessRating?: number;
+}
 
 /**
  * The only module that talks to `/consultations/:id/*` lifecycle routes
@@ -49,18 +59,18 @@ export const consultationApi = {
   getSummary: (consultationSessionId: string) =>
     apiFetch<ConsultationSummary>({ path: CONSULTATION_PATHS.summary(consultationSessionId) }),
 
-  submitFeedback: (consultationSessionId: string, rating: number, comment?: string) =>
+  submitFeedback: (consultationSessionId: string, input: SubmitFeedbackInput) =>
     apiFetch<ConsultationFeedback>({
       method: 'POST',
       path: CONSULTATION_PATHS.feedback(consultationSessionId),
-      body: { rating, comment },
+      body: input,
     }),
 
-  updateFeedback: (consultationSessionId: string, rating: number, comment?: string) =>
+  updateFeedback: (consultationSessionId: string, input: SubmitFeedbackInput) =>
     apiFetch<ConsultationFeedback>({
       method: 'PATCH',
       path: CONSULTATION_PATHS.feedback(consultationSessionId),
-      body: { rating, comment },
+      body: input,
     }),
 
   deleteFeedback: (consultationSessionId: string) =>
@@ -113,6 +123,19 @@ export const consultationApi = {
       method: 'POST',
       path: CONSULTATION_PATHS.prescriptions(),
       body: { consultationSessionId, diagnosisNodeId, lineItems: [lineItem] },
+    }),
+
+  /**
+   * I1 -- Lab Requests (docs/01-prd.md §2.9 "Lightweight in V1"): a
+   * structured advisory test-request document, matching the real backend
+   * contract exactly (`POST /lab-requests`, consultationSessionId carried in
+   * the body). Never a real lab-system order -- no result ever flows back.
+   */
+  recordLabRequest: (consultationSessionId: string, input: RecordLabRequestInput) =>
+    apiFetch<LabRequestRecord>({
+      method: 'POST',
+      path: CONSULTATION_PATHS.labRequests(),
+      body: { consultationSessionId, ...input },
     }),
 
   /**

@@ -30,3 +30,29 @@ export interface InitiateChargeRequest {
   /** A Stripe payment-method id from Stripe Elements -- never a raw card number. */
   paymentMethodToken: string;
 }
+
+/** Matches DoctorEarningsCycleDto exactly (I2 -- Doctor earnings, docs/01-prd.md L15, L94 §2.10). */
+export interface DoctorEarningsCycle {
+  cycleLabel: string;
+  grossAmount: number;
+  commissionAmount: number;
+  netAmount: number;
+  transactionCount: number;
+}
+
+/**
+ * Matches DoctorEarningsSummaryResponseDto exactly. Derived on demand from
+ * the existing PaymentTransaction ledger -- no separate payout/invoice
+ * model exists, so "lifetime net" is exactly that (every Succeeded/Settled
+ * transaction's commission-adjusted amount), not "what's been wired to a
+ * bank account" (no PSP payout integration exists to report that from).
+ */
+export interface DoctorEarningsSummary {
+  currency: string | null;
+  commissionRate: number;
+  lifetimeGrossAmount: number;
+  lifetimeCommissionAmount: number;
+  lifetimeNetAmount: number;
+  lifetimeTransactionCount: number;
+  cycles: DoctorEarningsCycle[];
+}

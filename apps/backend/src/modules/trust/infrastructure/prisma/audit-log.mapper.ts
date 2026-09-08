@@ -25,6 +25,7 @@ const DOMAIN_TO_PRISMA_ACTION: Record<AuditAction, PrismaAuditAction> = {
   [AuditAction.JourneyStageUpdated]: PrismaAuditAction.JOURNEY_STAGE_UPDATED,
   [AuditAction.AiSuggestionRequested]: PrismaAuditAction.AI_SUGGESTION_REQUESTED,
   [AuditAction.AiSuggestionDecided]: PrismaAuditAction.AI_SUGGESTION_DECIDED,
+  [AuditAction.LabRequestOrdered]: PrismaAuditAction.LAB_REQUEST_ORDERED,
 };
 
 export interface PersistedAuditLog {

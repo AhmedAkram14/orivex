@@ -72,6 +72,25 @@ export interface SignPrescriptionLineItemInput {
   instructions?: string;
 }
 
+/** Matches LabRequestResponseDto exactly (I1 -- Lab Requests, docs/01-prd.md §2.9 "Lightweight in V1"). */
+export interface LabRequestRecord {
+  id: string;
+  consultationSessionId: string;
+  authoringDoctorId: string;
+  testName: string;
+  clinicalReason: string | null;
+  instructions: string | null;
+  status: 'ordered' | 'cancelled';
+  createdAt: string;
+}
+
+/** Matches RecordLabRequestRequestDto exactly (minus consultationSessionId, which the API wrapper injects). */
+export interface RecordLabRequestInput {
+  testName: string;
+  clinicalReason?: string;
+  instructions?: string;
+}
+
 /** Matches HealthGraphNodeResponseDto exactly. */
 export interface DiagnosisNode {
   id: string;
@@ -97,6 +116,10 @@ export interface ConsultationFeedback {
   doctorId: string;
   rating: number;
   comment: string | null;
+  /** I4 -- multi-dimensional reviews. Absent/null when not collected (older reviews, or a patient who skipped a dimension). */
+  communicationRating?: number | null;
+  punctualityRating?: number | null;
+  thoroughnessRating?: number | null;
   createdAt: string;
   /** Empty/absent for a patient viewing their own submitted feedback (nothing to resolve) -- populated only on the public reviews list. */
   patientProfileId: string;
@@ -142,6 +165,7 @@ export interface ConsultationSummary {
   appointment: ConsultationAppointment;
   clinicalNotes: ClinicalNote[];
   prescriptions: ConsultationPrescription[];
+  labRequests: LabRequestRecord[];
   diagnoses: DiagnosisNode[];
   vitalReadings: ConsultationVitalReading[];
   followUpRecommendation: FollowUpRecommendation | null;
@@ -158,6 +182,9 @@ export interface DoctorReviewsResult {
   averageRating: number | null;
   reviewCount: number;
   writtenReviewCount: number;
+  averageCommunicationRating?: number | null;
+  averagePunctualityRating?: number | null;
+  averageThoroughnessRating?: number | null;
 }
 
 /**

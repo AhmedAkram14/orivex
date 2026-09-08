@@ -43,6 +43,7 @@ function initialsFor(fullName: string): string {
  */
 export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: DoctorReviewsListProps) {
   const t = useTranslations('doctor.profile');
+  const tRating = useTranslations('consultation.rating');
   const format = useFormatter();
   const { data, isLoading } = useDoctorReviews(doctorProfileId);
 
@@ -59,8 +60,25 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
   const hrefFor = (patientProfileId: string) =>
     variant === 'workspace' ? `/doctor/patients/${patientProfileId}` : `/patients/${patientProfileId}?doctorId=${doctorProfileId}`;
 
+  const dimensions: Array<{ key: string; value: number | null | undefined }> = [
+    { key: 'communicationLabel', value: data?.averageCommunicationRating },
+    { key: 'punctualityLabel', value: data?.averagePunctualityRating },
+    { key: 'thoroughnessLabel', value: data?.averageThoroughnessRating },
+  ].filter((dimension) => dimension.value != null);
+
   return (
     <ul className="flex flex-col gap-3">
+      {dimensions.length > 0 && (
+        <li className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl border border-border-default bg-surface-subtle p-3">
+          {dimensions.map((dimension) => (
+            <span key={dimension.key} className="flex items-center gap-1.5 text-xs text-text-secondary">
+              <span>{tRating(dimension.key)}</span>
+              <Icon icon={Star} size="sm" className="fill-warning text-warning" />
+              <span className="font-medium text-text-primary">{dimension.value?.toFixed(1)}</span>
+            </span>
+          ))}
+        </li>
+      )}
       {reviewsWithComments.map((review) => (
         <li key={review.id} className="flex gap-3 rounded-2xl border border-border-default p-4">
           <Link href={hrefFor(review.patientProfileId)} className="shrink-0">

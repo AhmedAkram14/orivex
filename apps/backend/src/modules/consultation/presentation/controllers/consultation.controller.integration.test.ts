@@ -266,11 +266,18 @@ class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepo
   async getRatingAggregateForDoctor(doctorId: string): Promise<DoctorRatingAggregate> {
     const { feedback } = await this.listForDoctor(doctorId);
     if (feedback.length === 0) {
-      return { averageRating: null, reviewCount: 0, writtenReviewCount: 0 };
+      return { averageRating: null, reviewCount: 0, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null };
     }
     const averageRating = feedback.reduce((sum, item) => sum + item.getRating(), 0) / feedback.length;
     const writtenReviewCount = feedback.filter((item) => item.getComment()).length;
-    return { averageRating, reviewCount: feedback.length, writtenReviewCount };
+    return {
+      averageRating,
+      reviewCount: feedback.length,
+      writtenReviewCount,
+      averageCommunicationRating: null,
+      averagePunctualityRating: null,
+      averageThoroughnessRating: null,
+    };
   }
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
     const result = new Map<string, DoctorRatingAggregate>();

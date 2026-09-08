@@ -8,6 +8,7 @@ import { useRecordDiagnosis } from '@/features/consultation/hooks/use-record-dia
 import { useRecordNote } from '@/features/consultation/hooks/use-record-note';
 import { useRecordVitals } from '@/features/consultation/hooks/use-record-vitals';
 import { useRecommendFollowUp } from '@/features/consultation/hooks/use-recommend-follow-up';
+import { useRecordLabRequest } from '@/features/consultation/hooks/use-record-lab-request';
 import { useSignPrescription } from '@/features/consultation/hooks/use-sign-prescription';
 import { useUpdateJourneyStage } from '@/features/consultation/hooks/use-update-journey-stage';
 import type { JourneyStage } from '@/features/consultation/api/types';
@@ -89,6 +90,10 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const [durationDaysInput, setDurationDaysInput] = useState('');
   const [instructions, setInstructions] = useState('');
   const [prescriptionJustSaved, setPrescriptionJustSaved] = useState(false);
+  const [labTestName, setLabTestName] = useState('');
+  const [labClinicalReason, setLabClinicalReason] = useState('');
+  const [labInstructions, setLabInstructions] = useState('');
+  const [labRequestJustSaved, setLabRequestJustSaved] = useState(false);
   const [journeyStageSelections, setJourneyStageSelections] = useState<Record<string, JourneyStage | ''>>({});
   const [journeyJustSavedId, setJourneyJustSavedId] = useState<string | null>(null);
 
@@ -98,6 +103,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const recordVitals = useRecordVitals(consultationSessionId);
   const recommendFollowUp = useRecommendFollowUp(consultationSessionId);
   const signPrescription = useSignPrescription(consultationSessionId);
+  const recordLabRequest = useRecordLabRequest(consultationSessionId);
   const updateJourneyStage = useUpdateJourneyStage(consultationSessionId);
   const closeConsultation = useCloseConsultation();
 
@@ -191,6 +197,30 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
     window.setTimeout(() => setPrescriptionJustSaved(false), 4000);
   }
 
+  const canSaveLabRequest = Boolean(labTestName.trim());
+
+  async function handleSaveLabRequest() {
+    if (!labTestName.trim()) {
+      return;
+    }
+    try {
+      await recordLabRequest.mutateAsync({
+        testName: labTestName.trim(),
+        clinicalReason: labClinicalReason.trim() || undefined,
+        instructions: labInstructions.trim() || undefined,
+      });
+    } catch {
+      // Surfaced via recordLabRequest.isError below -- entered values stay
+      // in place so nothing already typed is lost on a failed save.
+      return;
+    }
+    setLabTestName('');
+    setLabClinicalReason('');
+    setLabInstructions('');
+    setLabRequestJustSaved(true);
+    window.setTimeout(() => setLabRequestJustSaved(false), 4000);
+  }
+
   async function handleAdvanceJourney(journeyId: string, stage: JourneyStage) {
     try {
       await updateJourneyStage.mutateAsync({ journeyId, stage });
@@ -244,6 +274,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                 <TabsTrigger value="diagnosis">{t('tabs.diagnosis')}</TabsTrigger>
                 <TabsTrigger value="followUp">{t('tabs.followUp')}</TabsTrigger>
                 <TabsTrigger value="prescriptions">{t('tabs.prescriptions')}</TabsTrigger>
+                <TabsTrigger value="labRequests">{t('tabs.labRequests')}</TabsTrigger>
                 <TabsTrigger value="journey">{t('tabs.journey')}</TabsTrigger>
               </TabsList>
 
@@ -600,6 +631,80 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                     </Button>
                   </div>
                 )}
+              </TabsContent>
+
+              <TabsContent value="labRequests" className="flex flex-col gap-4">
+                {summary.labRequests.length === 0 ? (
+                  <p className="text-sm text-text-secondary">{t('noLabRequests')}</p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {summary.labRequests.map((labRequest) => (
+                      <li key={labRequest.id} className="rounded-lg border border-border-default p-3 text-sm">
+                        <p className="font-medium text-text-primary">{labRequest.testName}</p>
+                        {labRequest.clinicalReason && (
+                          <p className="text-text-secondary">{labRequest.clinicalReason}</p>
+                        )}
+                        {labRequest.instructions && (
+                          <p className="text-text-tertiary">{labRequest.instructions}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="lab-request-test-name" className="text-sm font-medium text-text-primary">
+                      {t('labRequestTestNameLabel')}
+                    </label>
+                    <Input
+                      id="lab-request-test-name"
+                      value={labTestName}
+                      onChange={(event) => setLabTestName(event.target.value)}
+                      placeholder={t('labRequestTestNamePlaceholder')}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="lab-request-reason" className="text-sm font-medium text-text-primary">
+                      {t('labRequestReasonLabel')}
+                    </label>
+                    <Textarea
+                      id="lab-request-reason"
+                      value={labClinicalReason}
+                      onChange={(event) => setLabClinicalReason(event.target.value)}
+                      placeholder={t('labRequestReasonPlaceholder')}
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="lab-request-instructions" className="text-sm font-medium text-text-primary">
+                      {t('labRequestInstructionsLabel')}
+                    </label>
+                    <Textarea
+                      id="lab-request-instructions"
+                      value={labInstructions}
+                      onChange={(event) => setLabInstructions(event.target.value)}
+                      placeholder={t('labRequestInstructionsPlaceholder')}
+                      rows={2}
+                    />
+                  </div>
+
+                  {recordLabRequest.isError && <Alert variant="danger">{t('saveError')}</Alert>}
+                  {labRequestJustSaved && !recordLabRequest.isError && (
+                    <Alert variant="success">{t('labRequestSaveSuccess')}</Alert>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    loading={recordLabRequest.isPending}
+                    disabled={!canSaveLabRequest}
+                    onClick={handleSaveLabRequest}
+                  >
+                    {t('saveLabRequest')}
+                  </Button>
+                </div>
               </TabsContent>
 
               <TabsContent value="journey" className="flex flex-col gap-3">

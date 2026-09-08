@@ -529,6 +529,7 @@
       "doctorConsultation": "Consultation",
       "doctorPatients": "Patients",
       "doctorReports": "Reports",
+      "doctorEarnings": "Earnings",
       "doctorSettings": "Settings",
       "patientWorkspace": "My Health",
       "patientProfile": "Profile",
@@ -1161,6 +1162,28 @@
         "averageRating": "Average rating",
         "ratingValue": "{rating} ({count})",
         "noReviewsYet": "No ratings yet"
+      }
+    },
+    "earnings": {
+      "title": "Earnings",
+      "description": "Your real per-consultation earnings and platform commission, at a glance.",
+      "loadError": "Couldn't load your earnings.",
+      "stats": {
+        "lifetimeNet": "Lifetime net earnings",
+        "lifetimeGross": "Lifetime gross",
+        "commissionRate": "Platform commission",
+        "commissionRateValue": "{rate}%",
+        "transactionCount": "Paid consultations"
+      },
+      "cyclesTitle": "Monthly breakdown",
+      "cyclesEmptyTitle": "No earnings yet",
+      "cyclesEmptyDescription": "Completed paid consultations will appear here, broken down by month.",
+      "table": {
+        "cycle": "Month",
+        "gross": "Gross",
+        "commission": "Commission",
+        "net": "Net",
+        "transactions": "Consultations"
       }
     },
     "settingsPage": {
@@ -2186,6 +2209,7 @@
         "diagnosis": "Diagnosis",
         "followUp": "Follow-up",
         "prescriptions": "Prescriptions",
+        "labRequests": "Lab Requests",
         "journey": "Journey"
       },
       "notesPlaceholder": "Add a clinical note...",
@@ -2228,6 +2252,15 @@
       "prescriptionInstructionsPlaceholder": "e.g. Take with food",
       "savePrescription": "Sign prescription",
       "prescriptionSaveSuccess": "Prescription signed.",
+      "noLabRequests": "No lab requests for this consultation.",
+      "labRequestTestNameLabel": "Test / panel name",
+      "labRequestTestNamePlaceholder": "e.g. Complete Blood Count (CBC)",
+      "labRequestReasonLabel": "Clinical reason (optional)",
+      "labRequestReasonPlaceholder": "Why this test is being requested...",
+      "labRequestInstructionsLabel": "Instructions (optional)",
+      "labRequestInstructionsPlaceholder": "e.g. Fasting required",
+      "saveLabRequest": "Order lab request",
+      "labRequestSaveSuccess": "Lab request recorded.",
       "journeyEmpty": "No Health Journeys for this patient yet.",
       "journeyStage": {
         "diagnosis": "Diagnosis",
@@ -2293,6 +2326,9 @@
     "rating": {
       "prompt": "Rate your consultation",
       "starLabel": "{count} of 5 stars",
+      "communicationLabel": "Communication",
+      "punctualityLabel": "Punctuality",
+      "thoroughnessLabel": "Thoroughness",
       "commentPlaceholder": "Leave an optional comment...",
       "submit": "Submit rating",
       "save": "Save changes",

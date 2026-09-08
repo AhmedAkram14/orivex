@@ -43,6 +43,25 @@ function buildTemplateRenderers(
       subject: 'Upcoming Orivex appointment reminder',
       text: `You have an upcoming appointment scheduled for ${String(data.scheduledAt)}.`,
     }),
+    // I3 -- Notification delivery channels (docs/01-prd.md "we'll email
+    // you" affordances). All three deliberately PHI-light, matching
+    // appointment-reminder's own convention -- no reason for visit,
+    // diagnosis, or medication name/dosage, ever.
+    'appointment-confirmed': (data) => ({
+      subject: 'Your Orivex appointment is confirmed',
+      text: `Your doctor has approved your appointment request, scheduled for ${String(data.scheduledAt)}.`,
+    }),
+    'appointment-cancelled': (data) => ({
+      subject: 'Your Orivex appointment was cancelled',
+      text:
+        data.cancelledBy === 'doctor'
+          ? 'Your doctor cancelled your appointment. Any payment made will be refunded automatically.'
+          : 'Your appointment has been cancelled. Any payment made will be refunded automatically.',
+    }),
+    'prescription-signed': () => ({
+      subject: 'You have a new prescription',
+      text: 'Your doctor has signed a new prescription for you. Log in to Orivex to view it.',
+    }),
   };
 }
 

@@ -5,3 +5,4 @@ export const PRESCRIPTION_REPOSITORY = Symbol('PrescriptionRepository');
 export const PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY = Symbol('PendingAISuggestionAcknowledgmentRepository');
 export const AI_ACKNOWLEDGMENT_EVENT_SUBSCRIBER = Symbol('AIAcknowledgmentEventSubscriber');
 export const VITAL_READING_REPOSITORY = Symbol('VitalReadingRepository');
+export const LAB_REQUEST_REPOSITORY = Symbol('LabRequestRepository');

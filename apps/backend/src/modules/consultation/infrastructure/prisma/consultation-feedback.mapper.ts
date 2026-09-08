@@ -10,6 +10,9 @@ export function toDomainConsultationFeedback(row: PrismaConsultationFeedback): C
     doctorId: row.doctorId,
     rating: row.rating,
     comment: row.comment ?? undefined,
+    communicationRating: row.communicationRating ?? undefined,
+    punctualityRating: row.punctualityRating ?? undefined,
+    thoroughnessRating: row.thoroughnessRating ?? undefined,
     createdAt: row.createdAt,
   });
 }

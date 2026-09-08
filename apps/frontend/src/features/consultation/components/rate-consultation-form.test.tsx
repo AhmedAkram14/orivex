@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -20,7 +20,8 @@ describe('RateConsultationForm', () => {
 
     expect(screen.getByRole('button', { name: 'Submit rating' })).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('radio', { name: '4 of 5 stars' }));
+    const overallRatingGroup = screen.getByRole('radiogroup', { name: 'Rate your consultation' });
+    await userEvent.click(within(overallRatingGroup).getByRole('radio', { name: '4 of 5 stars' }));
 
     expect(screen.getByRole('button', { name: 'Submit rating' })).toBeEnabled();
   });
@@ -55,7 +56,8 @@ describe('RateConsultationForm', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('radio', { name: '5 of 5 stars' }));
+    const overallRatingGroup = screen.getByRole('radiogroup', { name: 'Rate your consultation' });
+    await userEvent.click(within(overallRatingGroup).getByRole('radio', { name: '5 of 5 stars' }));
     await userEvent.type(screen.getByPlaceholderText('Leave an optional comment...'), 'Great visit');
     await userEvent.click(screen.getByRole('button', { name: 'Submit rating' }));
 

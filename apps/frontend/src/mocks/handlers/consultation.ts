@@ -18,10 +18,12 @@ import {
   recordConsultationDiagnosis,
   recordConsultationNote,
   recordConsultationPrescription,
+  recordLabRequest,
   recordConsultationVital,
   requestAISuggestion,
   startConsultation,
   submitConsultationFeedback,
+  type SubmitConsultationFeedbackMockInput,
   updateConsultationFeedback,
   updateConsultationJourneyStage,
 } from '@/mocks/consultation-store';
@@ -49,16 +51,16 @@ export const consultationHandlers = [
   ),
 
   http.post(`${base()}/consultations/:id/feedback`, async ({ request, params }) => {
-    const body = (await request.json()) as { rating: number; comment?: string };
+    const body = (await request.json()) as SubmitConsultationFeedbackMockInput;
     return HttpResponse.json(
-      { data: submitConsultationFeedback(params.id as string, body.rating, body.comment) },
+      { data: submitConsultationFeedback(params.id as string, body) },
       { status: 201 },
     );
   }),
 
   http.patch(`${base()}/consultations/:id/feedback`, async ({ request, params }) => {
-    const body = (await request.json()) as { rating: number; comment?: string };
-    const updated = updateConsultationFeedback(params.id as string, body.rating, body.comment);
+    const body = (await request.json()) as SubmitConsultationFeedbackMockInput;
+    const updated = updateConsultationFeedback(params.id as string, body);
     if (!updated) {
       return HttpResponse.json(
         { error: { code: 'NOT_FOUND', message: 'No feedback exists for this session.', requestId: 'mock', timestamp: new Date().toISOString() } },
@@ -123,6 +125,22 @@ export const consultationHandlers = [
       {
         data: recordConsultationPrescription(body.consultationSessionId, body.diagnosisNodeId, body.lineItems[0]),
       },
+      { status: 201 },
+    );
+  }),
+
+  // I1 -- Lab Requests. Not nested under /consultations/:id -- matches
+  // LabRequestController's own @Controller('lab-requests') shape exactly,
+  // same convention as /prescriptions above.
+  http.post(`${base()}/lab-requests`, async ({ request }) => {
+    const body = (await request.json()) as {
+      consultationSessionId: string;
+      testName: string;
+      clinicalReason?: string;
+      instructions?: string;
+    };
+    return HttpResponse.json(
+      { data: recordLabRequest(body.consultationSessionId, body) },
       { status: 201 },
     );
   }),

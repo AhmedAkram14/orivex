@@ -2,7 +2,14 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { PAYMENT_PATHS } from '@/features/payment/api/paths';
 import type { InitiateChargeRequest } from '@/features/payment/api/types';
-import { attachConsultationSessionId, createCharge, getByConsultationSessionId, getById, refundTransaction } from '@/mocks/payment-store';
+import {
+  attachConsultationSessionId,
+  createCharge,
+  getByConsultationSessionId,
+  getById,
+  getDoctorEarningsSummaryMock,
+  refundTransaction,
+} from '@/mocks/payment-store';
 import { confirmAppointmentAfterPayment, getAppointmentById } from '@/mocks/patient-store';
 import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
 import { resolveRequestAccountId } from '@/mocks/request-account';
@@ -49,6 +56,13 @@ export const paymentHandlers = [
     const transaction = getByConsultationSessionId(params.consultationSessionId as string);
     return HttpResponse.json({ data: transaction });
   }),
+
+  // I2 -- Doctor earnings dashboard. Registered before ':id' below so MSW's
+  // route matching never treats "doctor/earnings-summary" as an :id value,
+  // matching the real backend's own controller-ordering comment.
+  http.get(`${base()}${PAYMENT_PATHS.doctorEarningsSummary}`, () =>
+    HttpResponse.json({ data: getDoctorEarningsSummaryMock() }),
+  ),
 
   http.get(`${base()}${PAYMENT_PATHS.initiateCharge}/:id`, ({ params }) => {
     const transaction = getById(params.id as string);
