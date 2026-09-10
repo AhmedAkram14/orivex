@@ -34,7 +34,7 @@ import { PatientPrescriptionResponseDto } from '../dto/patient-prescription-resp
 import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
 import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
 import { GetConsentStateUseCase } from '../../../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
-import { GENERAL_CONSENT_SCOPE_CODE } from '../../../trust/domain/constants/consent-scope-codes.js';
+import { GENERAL_CONSENT_SCOPE_CODE, MENTAL_HEALTH_CONSENT_SCOPE_CODE } from '../../../trust/domain/constants/consent-scope-codes.js';
 import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
 import { ConsentState } from '../../../trust/domain/enums/consent-state.enum.js';
 
@@ -102,7 +102,7 @@ export class DoctorPatientChartController {
     @CurrentUser() user: AccessTokenClaims,
     @Param('id', ParseUUIDPipe) patientId: string,
   ): Promise<ResponseEnvelope<PatientProfileResponseDto>> {
-    const { profile, account } = await this.requireRelationship(user, patientId);
+    const { doctorProfile, profile, account } = await this.requireRelationship(user, patientId);
 
     let insuranceProviderName: string | undefined;
     const insuranceProviderId = profile.getInsuranceProviderId();
@@ -111,9 +111,27 @@ export class DoctorPatientChartController {
       insuranceProviderName = providers.find((provider) => provider.getId() === insuranceProviderId)?.getName();
     }
 
+    // I6 -- Health Passport: mental-health notes are gated behind their own,
+    // separately default-revoked consent scope -- general consent (already
+    // checked by requireRelationship above) is necessary but not sufficient
+    // for this one field.
+    const mentalHealthConsent = await this.getConsentStateUseCase.execute({
+      patientId,
+      doctorId: doctorProfile.getId(),
+      scopeCode: MENTAL_HEALTH_CONSENT_SCOPE_CODE,
+      defaultState: ConsentState.Revoked,
+    });
+
     await this.recordAudit(user, patientId, AuditAction.PatientChartProfileRead);
 
-    return envelope(PatientProfileResponseDto.fromDomain(profile, account, insuranceProviderName));
+    return envelope(
+      PatientProfileResponseDto.fromDomain(
+        profile,
+        account,
+        insuranceProviderName,
+        mentalHealthConsent === ConsentState.Granted,
+      ),
+    );
   }
 
   @Get(':id/appointments')

@@ -8,6 +8,7 @@ import type { AuthTokenRepository } from '../../../domain/repositories/auth-toke
 import type { CredentialRepository } from '../../../domain/repositories/credential.repository.js';
 import type { EmailSenderPort } from '../../ports/email-sender.port.js';
 import type { TokenGeneratorPort } from '../../ports/token-generator.port.js';
+import { toEmailLocale } from '../../../infrastructure/email/templates/email-locale.js';
 
 import type { ResendVerificationCommand } from './resend-verification.command.js';
 
@@ -45,8 +46,11 @@ export class ResendVerificationUseCase {
     });
     await this.authTokenRepository.save(token);
 
-    await this.emailSender.send(account.getEmail().toString(), 'email-verification', {
-      token: plainToken.toString(),
-    });
+    await this.emailSender.send(
+      account.getEmail().toString(),
+      'email-verification',
+      { token: plainToken.toString() },
+      toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+    );
   }
 }

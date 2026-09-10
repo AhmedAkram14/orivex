@@ -7,6 +7,9 @@ import type { PrescriptionRepository } from '../../../domain/repositories/prescr
 import { GetPrescriptionByIdUseCase } from './get-prescription-by-id.use-case.js';
 
 class FakePrescriptionRepository implements PrescriptionRepository {
+  async findByVerificationCode(): Promise<Prescription | null> {
+    return null;
+  }
   constructor(private readonly prescription: Prescription | null) {}
   async findById(): Promise<Prescription | null> {
     return this.prescription;
@@ -23,6 +26,9 @@ describe('GetPrescriptionByIdUseCase', () => {
       consultationSessionId: '11111111-1111-4111-8111-111111111111',
       diagnosisNodeId: '22222222-2222-4222-8222-222222222222',
       authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE',
+      signedAt: new Date(),
       lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
     });
     const useCase = new GetPrescriptionByIdUseCase(new FakePrescriptionRepository(prescription));

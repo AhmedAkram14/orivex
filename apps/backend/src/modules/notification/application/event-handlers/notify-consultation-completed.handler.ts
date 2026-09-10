@@ -1,8 +1,11 @@
 import type { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
+import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
+import { toEmailLocale } from '../../../authentication/infrastructure/email/templates/email-locale.js';
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import type { GetFollowUpRecommendationForSessionUseCase } from '../../../consultation/application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import type { ListPrescriptionsForConsultationSessionUseCase } from '../../../clinical/application/use-cases/list-prescriptions-for-consultation-session/list-prescriptions-for-consultation-session.use-case.js';
+import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
@@ -27,7 +30,9 @@ export class NotifyConsultationCompletedHandler {
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly listPrescriptionsForConsultationSessionUseCase: ListPrescriptionsForConsultationSessionUseCase,
     private readonly getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
+    private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
+    private readonly emailSender: EmailSenderPort,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -83,6 +88,22 @@ export class NotifyConsultationCompletedHandler {
         actionUrl: `/patient/appointments?consultationSessionId=${event.consultationSessionId}`,
       });
       await this.notificationRepository.save(notification);
+
+      // I3 -- Notification delivery channels (docs/01-prd.md's "review
+      // requests" email type). Reuses AuthenticationModule's own
+      // EMAIL_SENDER port, never a second email-sending path. Deliberately
+      // PHI-light -- unlike the in-app notification above, the email never
+      // mentions prescriptions/follow-up specifics, just a generic prompt
+      // back to the authenticated product.
+      const account = await this.getAccountByIdUseCase.execute({ accountId: patient.getAccountId() });
+      if (account) {
+        await this.emailSender.send(
+          account.getEmail().toString(),
+          'consultation-completed',
+          {},
+          toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+        );
+      }
     } catch (error) {
       // A notification failure must never surface back through
       // CloseConsultationUseCase, which has already saved the session/

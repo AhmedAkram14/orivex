@@ -17,11 +17,11 @@ import { NotificationResponseDto } from '../dto/notification-response.dto.js';
 // notifications/api/paths.ts): GET /notifications, POST /notifications/:id/
 // read, POST /notifications/read-all. Deliberately no @Roles() restriction --
 // any authenticated account (patient or doctor) reads/marks only its own
-// notifications, scoped via the JWT, never a role. No producer wiring across
-// other modules exists yet (docs/05-information-architecture.md's "consumes
-// nearly every event in the system" is future work) -- this is the honest
-// delivery/query/mark-read surface only, so the list is empty until that
-// infrastructure lands.
+// notifications, scoped via the JWT, never a role. This is the in-app
+// delivery/query/mark-read surface only -- producer wiring lives entirely in
+// notification.module.ts's own domain-event handlers (~20 of them, covering
+// booking/cancellation/prescription/verification/consultation lifecycle
+// events, several of which also email via I3's EMAIL_SENDER port), not here.
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationController {

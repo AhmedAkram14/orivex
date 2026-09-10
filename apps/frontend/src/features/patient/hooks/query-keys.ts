@@ -13,3 +13,5 @@ export const patientProfileExistsKeys = createQueryKeyFactory('patient-profile-e
 // Onboarding Redesign (2026-07-21 proposal, Stage O.7).
 export const patientIdentityVerificationStatusKeys = createQueryKeyFactory('patient-identity-verification-status');
 export const patientVerificationsKeys = createQueryKeyFactory('patient-verifications');
+// I6 -- Health Passport.
+export const healthPassportEntriesKeys = createQueryKeyFactory('health-passport-entries');

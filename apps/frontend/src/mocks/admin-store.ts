@@ -6,6 +6,7 @@ import type {
   FeatureFlags,
   Hospital,
   ListAccountsParams,
+  ListAuditLogResult,
   PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
@@ -159,6 +160,17 @@ export function suspendVerificationCase(id: string, request: SuspendVerification
   const updated = suspendVerificationCaseInStore(id, request.reason);
   if (!updated) return { ok: false };
   return { ok: true, verificationCase: updated };
+}
+
+/**
+ * I11 -- Admin audit-log viewer: an honest empty result (same convention as
+ * `patient-store.ts`'s `seedMedicalRecords()`) -- this mock system has no
+ * write-path plumbing feeding every PHI read/clinical write into a shared
+ * in-memory ledger the way the real backend's AuditLog table does, so
+ * fabricating rows here would be misleading rather than useful.
+ */
+export function getAuditLog(): ListAuditLogResult {
+  return { entries: [], total: 0, page: 1, limit: 50 };
 }
 
 export function getFeatureFlags(): FeatureFlags {

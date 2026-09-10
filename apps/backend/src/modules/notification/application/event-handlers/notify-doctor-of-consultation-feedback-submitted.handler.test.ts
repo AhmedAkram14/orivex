@@ -23,6 +23,12 @@ import type { NotificationRepository } from '../../domain/repositories/notificat
 import { NotifyDoctorOfConsultationFeedbackSubmittedHandler } from './notify-doctor-of-consultation-feedback-submitted.handler.js';
 
 class FakeConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  async findById(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async listByModerationStatus(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
   constructor(private readonly feedback: ConsultationFeedback | null) {}
   async findByConsultationSessionId(consultationSessionId: string): Promise<ConsultationFeedback | null> {
     return this.feedback && this.feedback.getConsultationSessionId() === consultationSessionId ? this.feedback : null;

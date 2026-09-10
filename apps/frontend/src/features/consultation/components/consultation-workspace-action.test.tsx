@@ -83,7 +83,7 @@ describe('ConsultationWorkspaceAction', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Consultation workspace' }));
     await screen.findByRole('button', { name: 'Complete Consultation' });
 
-    await userEvent.type(screen.getByPlaceholderText('Add a clinical note...'), 'Patient reports improvement');
+    await userEvent.type(screen.getByPlaceholderText('What the patient reports...'), 'Patient reports improvement');
     await userEvent.click(screen.getByRole('button', { name: 'Complete Consultation' }));
 
     expect(confirmSpy).toHaveBeenCalledWith('You have unsaved input. Complete the consultation anyway?');
@@ -355,6 +355,7 @@ describe('ConsultationWorkspaceAction', () => {
               { drugCatalogId: 'cat-1', drugName: 'Amoxicillin 500mg', dosage: '500mg', frequency: 'Twice daily', durationDays: 7, instructions: null },
             ],
             signedAt: '2026-08-20T14:10:00.000Z',
+            verificationCode: 'TEST-CODE',
           },
         ],
       });

@@ -54,6 +54,7 @@ export class DoctorProfileResponseDto {
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: string;
   departmentId?: string;
+  maxFreeSlotsPerDay?: number;
 
   static fromDomain(profile: DoctorProfile, account: Account): DoctorProfileResponseDto {
     const userProfile = account.getUserProfile();
@@ -99,6 +100,7 @@ export class DoctorProfileResponseDto {
     dto.professionalRank = profile.getProfessionalRank();
     dto.licenseExpiryDate = profile.getLicenseExpiryDate()?.toISOString();
     dto.departmentId = profile.getDepartmentId();
+    dto.maxFreeSlotsPerDay = profile.getMaxFreeSlotsPerDay();
 
     return dto;
   }

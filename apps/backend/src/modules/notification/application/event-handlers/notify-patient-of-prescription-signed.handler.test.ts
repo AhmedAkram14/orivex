@@ -31,6 +31,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointment: Appointment | null) {}
   async findById(id: string): Promise<Appointment | null> {
     return this.appointment && this.appointment.getId() === id ? this.appointment : null;
@@ -74,6 +80,9 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
 }
 
 class FakePrescriptionRepository implements PrescriptionRepository {
+  async findByVerificationCode(): Promise<Prescription | null> {
+    return null;
+  }
   constructor(private readonly prescription: Prescription | null) {}
   async findById(id: string): Promise<Prescription | null> {
     return this.prescription && this.prescription.getId() === id ? this.prescription : null;
@@ -166,6 +175,9 @@ describe('NotifyPatientOfPrescriptionSignedHandler', () => {
       consultationSessionId: session.getId(),
       diagnosisNodeId: '66666666-6666-4666-8666-666666666666',
       authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE',
+      signedAt: new Date(),
       lineItems: [{ drugCatalogId: '77777777-7777-4777-8777-777777777777', dosage: '500mg', frequency: 'Twice daily', durationDays: 7 }],
     });
 

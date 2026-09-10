@@ -31,5 +31,9 @@ export function toDomainPatientProfile(row: PersistedPatientProfileRow): Patient
     allergies: row.allergies ?? undefined,
     chronicDiseases: row.chronicDiseases ?? undefined,
     insuranceProviderId: row.insuranceProviderId ?? undefined,
+    lifestyleNotes: row.lifestyleNotes ?? undefined,
+    nutritionNotes: row.nutritionNotes ?? undefined,
+    exerciseNotes: row.exerciseNotes ?? undefined,
+    mentalHealthNotes: row.mentalHealthNotes ?? undefined,
   });
 }

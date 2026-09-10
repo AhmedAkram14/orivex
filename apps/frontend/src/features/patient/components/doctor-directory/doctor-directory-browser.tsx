@@ -1,6 +1,6 @@
 'use client';
 
-import { ListFilter, Search, Shield, Stethoscope } from 'lucide-react';
+import { ListFilter, Search, Shield, Star, Stethoscope } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { DoctorRatingSummary } from '@/features/consultation/components/doctor-rating-summary';
@@ -15,11 +15,24 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Input } from '@/shared/ui/input';
 import { Pagination } from '@/shared/ui/pagination';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 const PAGE_LIMIT = 12;
 const ALL = '__all__';
+
+// I10 -- Doctor discovery filters (docs/01-prd.md names 9). Real values
+// (languages: matches the actual demo-data spread in prisma/demo-data/
+// demo-people.ts; availability windows: preset day ranges, since asking a
+// patient for an exact date range is more friction than a real V1 filter
+// needs). `condition` remains deliberately absent -- see
+// prisma-doctor-directory-query.service.ts's own comment on why its
+// semantics are genuinely undefined in the PRD, a disclosed gap rather
+// than a guessed one.
+const LANGUAGE_OPTIONS = ['Arabic', 'English', 'French'] as const;
+const AVAILABILITY_OPTIONS = [3, 7, 14, 30] as const;
+const RATING_OPTIONS = [4.5, 4, 3.5, 3] as const;
 
 export interface DoctorDirectoryBrowserProps {
   /** Pre-filters to one specialty, e.g. arriving from the Browse Specialties screen -- the search box still narrows further within it. */
@@ -41,14 +54,47 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
   const [search, setSearch] = useState('');
   const [specialtyId, setSpecialtyId] = useState(initialSpecialtyId ?? ALL);
   const [hospitalId, setHospitalId] = useState(ALL);
+  const [language, setLanguage] = useState(ALL);
+  const [gender, setGender] = useState(ALL);
+  const [consultationType, setConsultationType] = useState(ALL);
+  const [minYearsOfExperience, setMinYearsOfExperience] = useState('');
+  const [availableWithinDays, setAvailableWithinDays] = useState(ALL);
+  const [minRating, setMinRating] = useState(ALL);
   const [page, setPage] = useState(1);
+
+  const parsedMinYears = minYearsOfExperience.trim() ? Number(minYearsOfExperience) : undefined;
+  const activeFilterCount = [
+    language !== ALL,
+    gender !== ALL,
+    consultationType !== ALL,
+    Number.isFinite(parsedMinYears),
+    availableWithinDays !== ALL,
+    minRating !== ALL,
+  ].filter(Boolean).length;
+
   const { data, isLoading, isError } = useDoctorsList({
     page,
     limit: PAGE_LIMIT,
     specialty: search.trim() || undefined,
     specialtyId: specialtyId === ALL ? undefined : specialtyId,
     hospitalId: hospitalId === ALL ? undefined : hospitalId,
+    language: language === ALL ? undefined : language,
+    gender: gender === ALL ? undefined : gender,
+    consultationType: consultationType === ALL ? undefined : (consultationType as 'FREE' | 'PAID'),
+    minYearsOfExperience: Number.isFinite(parsedMinYears) ? parsedMinYears : undefined,
+    availableWithinDays: availableWithinDays === ALL ? undefined : Number(availableWithinDays),
+    minRating: minRating === ALL ? undefined : Number(minRating),
   });
+
+  function resetFilters() {
+    setLanguage(ALL);
+    setGender(ALL);
+    setConsultationType(ALL);
+    setMinYearsOfExperience('');
+    setAvailableWithinDays(ALL);
+    setMinRating(ALL);
+    setPage(1);
+  }
   const { data: specialties } = useSpecialtiesList();
   const { data: hospitals } = useHospitalsList();
   const specialtyNameById = new Map(
@@ -116,10 +162,109 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
             ))}
           </SelectContent>
         </Select>
-        <Button type="button" variant="outline" disabled>
-          <Icon icon={ListFilter} size="sm" className="me-2" />
-          {t('filters')}
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button type="button" variant="outline">
+              <Icon icon={ListFilter} size="sm" className="me-2" />
+              {t('filters')}
+              {activeFilterCount > 0 && (
+                <span className="ms-2 flex size-5 items-center justify-center rounded-full bg-primary text-xs text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="filter-language" className="text-sm font-medium text-text-primary">{t('filterLanguage')}</label>
+                <Select value={language} onValueChange={(value) => { setLanguage(value); resetToFirstPage(); }}>
+                  <SelectTrigger id="filter-language"><SelectValue placeholder={t('filterAny')} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('filterAny')}</SelectItem>
+                    {LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="filter-gender" className="text-sm font-medium text-text-primary">{t('filterGender')}</label>
+                <Select value={gender} onValueChange={(value) => { setGender(value); resetToFirstPage(); }}>
+                  <SelectTrigger id="filter-gender"><SelectValue placeholder={t('filterAny')} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('filterAny')}</SelectItem>
+                    <SelectItem value="male">{t('filterGenderMale')}</SelectItem>
+                    <SelectItem value="female">{t('filterGenderFemale')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="filter-consultation-type" className="text-sm font-medium text-text-primary">{t('filterConsultationType')}</label>
+                <Select value={consultationType} onValueChange={(value) => { setConsultationType(value); resetToFirstPage(); }}>
+                  <SelectTrigger id="filter-consultation-type"><SelectValue placeholder={t('filterAny')} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('filterAny')}</SelectItem>
+                    <SelectItem value="FREE">{t('filterConsultationTypeFree')}</SelectItem>
+                    <SelectItem value="PAID">{t('filterConsultationTypePaid')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="filter-min-experience" className="text-sm font-medium text-text-primary">{t('filterMinExperience')}</label>
+                <Input
+                  id="filter-min-experience"
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={minYearsOfExperience}
+                  onChange={(event) => { setMinYearsOfExperience(event.target.value); resetToFirstPage(); }}
+                  placeholder={t('filterMinExperiencePlaceholder')}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="filter-availability" className="text-sm font-medium text-text-primary">{t('filterAvailability')}</label>
+                <Select value={availableWithinDays} onValueChange={(value) => { setAvailableWithinDays(value); resetToFirstPage(); }}>
+                  <SelectTrigger id="filter-availability"><SelectValue placeholder={t('filterAny')} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('filterAny')}</SelectItem>
+                    {AVAILABILITY_OPTIONS.map((days) => (
+                      <SelectItem key={days} value={String(days)}>{t('filterAvailabilityDays', { count: days })}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="filter-rating" className="text-sm font-medium text-text-primary">{t('filterRating')}</label>
+                <Select value={minRating} onValueChange={(value) => { setMinRating(value); resetToFirstPage(); }}>
+                  <SelectTrigger id="filter-rating"><SelectValue placeholder={t('filterAny')} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL}>{t('filterAny')}</SelectItem>
+                    {RATING_OPTIONS.map((threshold) => (
+                      <SelectItem key={threshold} value={String(threshold)}>
+                        <span className="flex items-center gap-1.5">
+                          <Icon icon={Star} size="sm" className="fill-warning text-warning" />
+                          {t('filterRatingThreshold', { threshold })}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {activeFilterCount > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={resetFilters}>
+                  {t('filterReset')}
+                </Button>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}

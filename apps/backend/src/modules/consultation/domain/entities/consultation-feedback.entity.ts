@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { ConsultationFeedbackSubmittedEvent } from '../events/consultation-feedback-submitted.event.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
+import { ReviewModerationStatus } from '../enums/review-moderation-status.enum.js';
 
 const MIN_RATING = 1;
 const MAX_RATING = 5;
@@ -47,6 +48,10 @@ export interface ReconstituteConsultationFeedbackProps {
   punctualityRating?: number;
   thoroughnessRating?: number;
   createdAt: Date;
+  moderationStatus: ReviewModerationStatus;
+  moderationReason?: string;
+  moderatedByAccountId?: string;
+  moderatedAt?: Date;
 }
 
 // Consultation lifecycle completion follow-up (2026-07-26): the sole source
@@ -79,6 +84,10 @@ export class ConsultationFeedback {
     private punctualityRating: number | undefined,
     private thoroughnessRating: number | undefined,
     private readonly createdAt: Date,
+    private moderationStatus: ReviewModerationStatus,
+    private moderationReason: string | undefined,
+    private moderatedByAccountId: string | undefined,
+    private moderatedAt: Date | undefined,
   ) {}
 
   static submit(props: SubmitConsultationFeedbackProps): ConsultationFeedback {
@@ -98,6 +107,10 @@ export class ConsultationFeedback {
       props.punctualityRating,
       props.thoroughnessRating,
       new Date(),
+      ReviewModerationStatus.Visible,
+      undefined,
+      undefined,
+      undefined,
     );
 
     feedback.record(
@@ -138,7 +151,41 @@ export class ConsultationFeedback {
       props.punctualityRating,
       props.thoroughnessRating,
       props.createdAt,
+      props.moderationStatus,
+      props.moderationReason,
+      props.moderatedByAccountId,
+      props.moderatedAt,
     );
+  }
+
+  // I11 -- Admin content moderation: the reviewed doctor's own precautionary
+  // flag. Only valid from Visible -- an already-Flagged or already-Hidden
+  // review has nothing new for this call to do (re-flagging isn't a
+  // separate signal admin needs, and a Hidden review is already off the
+  // public list).
+  flag(reason: string): void {
+    if (this.moderationStatus !== ReviewModerationStatus.Visible) {
+      throw new ConsultationDomainError('Only a visible review can be flagged.');
+    }
+    if (!reason || reason.trim().length === 0) {
+      throw new ConsultationDomainError('A reason is required to flag a review.');
+    }
+    this.moderationStatus = ReviewModerationStatus.Flagged;
+    this.moderationReason = reason.trim();
+  }
+
+  // The admin's own decision -- restores to Visible or confirms Hidden,
+  // always overwriting the reason with the admin's own (the flag reason
+  // above was only ever provisional). Callable from any current status,
+  // including reversing a previous Hidden decision.
+  moderate(status: ReviewModerationStatus.Visible | ReviewModerationStatus.Hidden, reason: string, moderatorAccountId: string): void {
+    if (!reason || reason.trim().length === 0) {
+      throw new ConsultationDomainError('A reason is required to moderate a review.');
+    }
+    this.moderationStatus = status;
+    this.moderationReason = reason.trim();
+    this.moderatedByAccountId = moderatorAccountId;
+    this.moderatedAt = new Date();
   }
 
   getId(): string {
@@ -182,6 +229,22 @@ export class ConsultationFeedback {
 
   getCreatedAt(): Date {
     return this.createdAt;
+  }
+
+  getModerationStatus(): ReviewModerationStatus {
+    return this.moderationStatus;
+  }
+
+  getModerationReason(): string | undefined {
+    return this.moderationReason;
+  }
+
+  getModeratedByAccountId(): string | undefined {
+    return this.moderatedByAccountId;
+  }
+
+  getModeratedAt(): Date | undefined {
+    return this.moderatedAt;
   }
 
   releaseDomainEvents(): DomainEvent[] {

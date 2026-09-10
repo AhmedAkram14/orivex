@@ -3,6 +3,7 @@ import type {
   Appointment,
   BookAppointmentRequest,
   BookedAppointment,
+  HealthPassportEntry,
   HealthVitalSummary,
   IdentityVerificationStatus,
   MedicalRecordEntry,
@@ -10,6 +11,7 @@ import type {
   PatientProfile,
   PatientProfileUpdateRequest,
   Prescription,
+  RecordHealthPassportEntryInput,
   RescheduledAppointment,
   SubmitPatientVerificationRequest,
   UpcomingAppointmentPreview,
@@ -328,6 +330,10 @@ export function updateProfile(request: PatientProfileUpdateRequest, accountId?: 
     allergies: request.allergies ?? profile.allergies,
     chronicDiseases: request.chronicDiseases ?? profile.chronicDiseases,
     insuranceProviderId: request.insuranceProviderId ?? profile.insuranceProviderId,
+    lifestyleNotes: request.lifestyleNotes ?? profile.lifestyleNotes,
+    nutritionNotes: request.nutritionNotes ?? profile.nutritionNotes,
+    exerciseNotes: request.exerciseNotes ?? profile.exerciseNotes,
+    mentalHealthNotes: request.mentalHealthNotes ?? profile.mentalHealthNotes,
     emergencyContacts:
       request.emergencyContacts?.map((contact, index) => ({
         id: contact.id ?? `contact-${Date.now()}-${index}`,
@@ -751,6 +757,39 @@ export function setPatientVerified(verified: boolean, accountId?: string): void 
   setSubjectVerificationCases('patient', owner, verified ? seedVerifications(owner) : []);
 }
 
+// I6 -- Health Passport entries, keyed by owning account id -- mirrors
+// every other per-account Map in this store.
+let healthPassportEntriesByAccountId = new Map<string, HealthPassportEntry[]>();
+let healthPassportEntryCounter = 0;
+
+export function listHealthPassportEntries(accountId?: string): HealthPassportEntry[] {
+  const owner = resolveAccountId(accountId);
+  return healthPassportEntriesByAccountId.get(owner) ?? [];
+}
+
+export function recordHealthPassportEntry(request: RecordHealthPassportEntryInput, accountId?: string): HealthPassportEntry {
+  const owner = resolveAccountId(accountId);
+  healthPassportEntryCounter += 1;
+  const entry: HealthPassportEntry = {
+    id: `health-passport-entry-${healthPassportEntryCounter}`,
+    category: request.category,
+    title: request.title,
+    detail: request.detail ?? null,
+    occurredAt: request.occurredAt ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  healthPassportEntriesByAccountId.set(owner, [entry, ...(healthPassportEntriesByAccountId.get(owner) ?? [])]);
+  return entry;
+}
+
+export function deleteHealthPassportEntry(id: string, accountId?: string): boolean {
+  const owner = resolveAccountId(accountId);
+  const existing = healthPassportEntriesByAccountId.get(owner) ?? [];
+  const next = existing.filter((entry) => entry.id !== id);
+  healthPassportEntriesByAccountId.set(owner, next);
+  return next.length !== existing.length;
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetPatientStore(): void {
   const previousAccountIds = [...profilesByAccountId.keys()];
@@ -762,6 +801,7 @@ export function resetPatientStore(): void {
   prescriptionsByAccountId.clear();
   healthDashboardByAccountId.clear();
   profilesByAccountId = seedProfilesByAccountId();
+  healthPassportEntriesByAccountId = new Map();
   for (const accountId of previousAccountIds) {
     setSubjectVerificationCases('patient', accountId, []);
   }

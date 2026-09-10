@@ -7,7 +7,7 @@ import { AuditAction } from '../../domain/enums/audit-action.enum.js';
 // Prisma's enum is UPPER_SNAKE (database convention); the domain enum is
 // lower_snake. This is the sole place the two vocabularies are translated
 // (mirrors security-event.mapper.ts's established pattern).
-const DOMAIN_TO_PRISMA_ACTION: Record<AuditAction, PrismaAuditAction> = {
+export const DOMAIN_TO_PRISMA_ACTION: Record<AuditAction, PrismaAuditAction> = {
   [AuditAction.HealthGraphRead]: PrismaAuditAction.HEALTH_GRAPH_READ,
   [AuditAction.HealthJourneysRead]: PrismaAuditAction.HEALTH_JOURNEYS_READ,
   [AuditAction.PatientChartProfileRead]: PrismaAuditAction.PATIENT_CHART_PROFILE_READ,
@@ -27,6 +27,10 @@ const DOMAIN_TO_PRISMA_ACTION: Record<AuditAction, PrismaAuditAction> = {
   [AuditAction.AiSuggestionDecided]: PrismaAuditAction.AI_SUGGESTION_DECIDED,
   [AuditAction.LabRequestOrdered]: PrismaAuditAction.LAB_REQUEST_ORDERED,
 };
+
+const PRISMA_TO_DOMAIN_ACTION: Record<PrismaAuditAction, AuditAction> = Object.fromEntries(
+  Object.entries(DOMAIN_TO_PRISMA_ACTION).map(([domainAction, prismaAction]) => [prismaAction, domainAction as AuditAction]),
+) as Record<PrismaAuditAction, AuditAction>;
 
 export interface PersistedAuditLog {
   id: string;
@@ -56,4 +60,36 @@ export function toPersistedAuditLog(entry: AuditLog): PersistedAuditLog {
     metadata: entry.getMetadata() as Prisma.InputJsonValue,
     createdAt: entry.getCreatedAt(),
   };
+}
+
+export interface QueriedAuditLogRow {
+  id: string;
+  actorAccountId: string;
+  actorRole: string;
+  action: PrismaAuditAction;
+  subjectType: string;
+  subjectId: string;
+  reason: string | null;
+  // Prisma's read-side JSON type (`Prisma.JsonValue`, which includes `null`)
+  // rather than `write`-only `Prisma.InputJsonValue` -- a row read back from
+  // the database is never itself the value being written.
+  metadata: Prisma.JsonValue;
+  createdAt: Date;
+}
+
+// I11 -- Admin audit-log viewer: the reverse mapping, now that something
+// (AuditLogRepository.findMany) actually reads AuditLog rows back through
+// the domain layer.
+export function toDomainAuditLog(row: QueriedAuditLogRow): AuditLog {
+  return AuditLog.reconstitute({
+    id: row.id,
+    actorAccountId: row.actorAccountId,
+    actorRole: row.actorRole,
+    action: PRISMA_TO_DOMAIN_ACTION[row.action],
+    subjectType: row.subjectType,
+    subjectId: row.subjectId,
+    reason: row.reason ?? undefined,
+    metadata: row.metadata as Record<string, unknown>,
+    createdAt: row.createdAt,
+  });
 }

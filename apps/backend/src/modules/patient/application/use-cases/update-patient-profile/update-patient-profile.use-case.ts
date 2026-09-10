@@ -25,6 +25,10 @@ export class UpdatePatientProfileUseCase {
       allergies: command.allergies,
       chronicDiseases: command.chronicDiseases,
       insuranceProviderId: command.insuranceProviderId,
+      lifestyleNotes: command.lifestyleNotes,
+      nutritionNotes: command.nutritionNotes,
+      exerciseNotes: command.exerciseNotes,
+      mentalHealthNotes: command.mentalHealthNotes,
     });
 
     await this.patientProfileRepository.save(profile);

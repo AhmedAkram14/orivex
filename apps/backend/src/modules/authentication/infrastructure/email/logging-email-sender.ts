@@ -26,7 +26,7 @@ export class LoggingEmailSender implements EmailSenderPort {
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
 
-  async send(to: string, template: string, data: Record<string, unknown>): Promise<void> {
+  async send(to: string, template: string, data: Record<string, unknown>, locale: 'en' | 'ar' = 'en'): Promise<void> {
     const isProduction = this.configService.get('NODE_ENV', { infer: true }) === 'production';
     const frontendUrl = this.configService.get('FRONTEND_URL', { infer: true });
 
@@ -46,6 +46,6 @@ export class LoggingEmailSender implements EmailSenderPort {
       loggedData = '[redacted]';
     }
 
-    this.logger.log(`Email (stub, not actually delivered): ${template} -> ${to}`, { template, to, data: loggedData });
+    this.logger.log(`Email (stub, not actually delivered): ${template} -> ${to}`, { template, to, locale, data: loggedData });
   }
 }

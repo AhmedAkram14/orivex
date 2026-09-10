@@ -12,6 +12,17 @@ export interface SignPrescriptionProps {
   diagnosisNodeId: string;
   authoringDoctorId: string;
   lineItems: CreatePrescriptionLineItemProps[];
+  // I12 -- Prescription digital signature (ORIVEX Remaining Work Audit):
+  // computed by the application layer (SignPrescriptionUseCase, via the
+  // injected PrescriptionSignerPort) *before* this factory runs, never
+  // computed here -- the domain layer has no crypto/env dependency,
+  // matching this codebase's own Clean Architecture boundary. `signedAt`
+  // must be the exact instant the signer signed over -- re-deriving "now"
+  // separately here would make the stored signedAt disagree with the
+  // signature's own canonical content, breaking verification.
+  signatureHash: string;
+  verificationCode: string;
+  signedAt: Date;
 }
 
 export interface ReconstitutePrescriptionProps {
@@ -24,6 +35,8 @@ export interface ReconstitutePrescriptionProps {
   lineItems: PrescriptionLineItem[];
   createdAt: Date;
   updatedAt: Date;
+  signatureHash?: string;
+  verificationCode?: string;
 }
 
 // Aggregate root of ClinicalModule (docs/10-backend-architecture.md's
@@ -48,11 +61,16 @@ export class Prescription {
     private readonly lineItems: PrescriptionLineItem[],
     private readonly createdAt: Date,
     private readonly updatedAt: Date,
+    private readonly signatureHash: string | undefined,
+    private readonly verificationCode: string | undefined,
   ) {}
 
   static sign(props: SignPrescriptionProps): Prescription {
     if (!props.lineItems || props.lineItems.length === 0) {
       throw new ClinicalDomainError('A prescription requires at least one line item.');
+    }
+    if (!props.signatureHash || !props.verificationCode) {
+      throw new ClinicalDomainError('A signed prescription requires a signature and verification code.');
     }
 
     const now = new Date();
@@ -62,10 +80,12 @@ export class Prescription {
       props.diagnosisNodeId,
       props.authoringDoctorId,
       PrescriptionStatus.Signed,
-      now,
+      props.signedAt,
       props.lineItems.map((item) => PrescriptionLineItem.create(item)),
       now,
       now,
+      props.signatureHash,
+      props.verificationCode,
     );
 
     prescription.record(new PrescriptionSignedEvent(prescription.id));
@@ -83,6 +103,8 @@ export class Prescription {
       props.lineItems,
       props.createdAt,
       props.updatedAt,
+      props.signatureHash,
+      props.verificationCode,
     );
   }
 
@@ -120,6 +142,14 @@ export class Prescription {
 
   getUpdatedAt(): Date {
     return this.updatedAt;
+  }
+
+  getSignatureHash(): string | undefined {
+    return this.signatureHash;
+  }
+
+  getVerificationCode(): string | undefined {
+    return this.verificationCode;
   }
 
   // No "active/expired" status field is stored on this entity -- it's

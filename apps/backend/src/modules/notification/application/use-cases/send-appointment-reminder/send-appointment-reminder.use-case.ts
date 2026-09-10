@@ -1,5 +1,6 @@
 import type { GetAccountByIdUseCase } from '../../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { EmailSenderPort } from '../../../../authentication/application/ports/email-sender.port.js';
+import { toEmailLocale } from '../../../../authentication/infrastructure/email/templates/email-locale.js';
 import { Notification } from '../../../domain/entities/notification.entity.js';
 import type { NotificationRepository } from '../../../domain/repositories/notification.repository.js';
 
@@ -34,8 +35,11 @@ export class SendAppointmentReminderUseCase {
     });
     await this.notificationRepository.save(notification);
 
-    await this.emailSender.send(account.getEmail().toString(), 'appointment-reminder', {
-      scheduledAt: command.scheduledAt,
-    });
+    await this.emailSender.send(
+      account.getEmail().toString(),
+      'appointment-reminder',
+      { scheduledAt: command.scheduledAt },
+      toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+    );
   }
 }

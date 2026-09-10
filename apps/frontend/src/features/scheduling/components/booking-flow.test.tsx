@@ -195,4 +195,82 @@ describe('BookingFlow', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm booking' })).not.toBeInTheDocument();
   });
+
+  // I8 -- Free-tier abuse controls: the backend is the sole authority (this
+  // asserts the real FREE_TIER_CAP_EXCEEDED code, per docs/11-api-contracts.md
+  // §7, drives clear, localized messaging -- never a frontend-computed
+  // guess about the patient's remaining count).
+  it('shows a clear monthly-free-cap message and offers to go back and book a Paid slot instead', async () => {
+    addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
+    setPatientVerified(true);
+    server.use(
+      http.post(`${env.apiBaseUrl}${PATIENT_PATHS.createAppointment}`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'FREE_TIER_CAP_EXCEEDED',
+              message: 'This account has already used its 3 free consultations for this month.',
+              requestId: 'test',
+              timestamp: new Date().toISOString(),
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
+
+    const slotButton = await vi.waitFor(() => {
+      const slot = findSlotButton();
+      if (!slot) throw new Error('no slot yet');
+      return slot;
+    });
+    await userEvent.click(slotButton);
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
+
+    expect(
+      await screen.findByText(
+        "You've reached your free consultation limit for this month. You can still book a paid consultation with this doctor.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm booking' })).not.toBeInTheDocument();
+  });
+
+  it('shows a clear no-show-restriction message and offers to go back and book a Paid slot instead', async () => {
+    addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
+    setPatientVerified(true);
+    server.use(
+      http.post(`${env.apiBaseUrl}${PATIENT_PATHS.createAppointment}`, () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'NO_SHOW_BOOKING_RESTRICTED',
+              message: 'This account has too many missed free consultations.',
+              requestId: 'test',
+              timestamp: new Date().toISOString(),
+            },
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
+
+    const slotButton = await vi.waitFor(() => {
+      const slot = findSlotButton();
+      if (!slot) throw new Error('no slot yet');
+      return slot;
+    });
+    await userEvent.click(slotButton);
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
+
+    expect(
+      await screen.findByText(
+        "Free bookings aren't available on this account right now due to missed past appointments. You can still book a paid consultation.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm booking' })).not.toBeInTheDocument();
+  });
 });

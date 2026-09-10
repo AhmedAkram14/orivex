@@ -440,6 +440,16 @@ export function listDoctors(params: ListDoctorDirectoryParams): { doctors: Docto
   // name, mirroring the real backend's relation-filter -- DoctorProfile no
   // longer carries its own free-text copy. `specialtyId`/`hospitalId` are
   // exact-match filters, same as the real ListDoctorDirectoryQueryDto.
+  // I10 -- doctor discovery filters. language/fee-range/years-of-experience/
+  // consultationType map directly onto this mock's own DoctorProfile fields.
+  // gender, availableWithinDays, and minRating are deliberately NOT
+  // filtered here: gender lives on the mock Account store, minRating's
+  // average lives in consultation-store.ts (which already imports FROM
+  // this file -- importing back would be a circular module dependency
+  // between the two stores), and this mock has no queryable per-doctor
+  // AvailabilityWindow model for a day range -- three real gaps in mock
+  // parity, disclosed rather than faked. The real backend implements all
+  // three (verified against real PostgreSQL, not this mock).
   const matches = listAllDoctorProfiles().filter((candidate) => {
     if (params.specialtyId && candidate.specialtyId !== params.specialtyId) return false;
     if (params.hospitalId && candidate.hospitalId !== params.hospitalId) return false;
@@ -447,6 +457,12 @@ export function listDoctors(params: ListDoctorDirectoryParams): { doctors: Docto
       const specialtyName = specialtyNamesById.get(candidate.specialtyId) ?? '';
       if (!specialtyName.toLowerCase().includes(params.specialty.toLowerCase())) return false;
     }
+    if (params.language && !candidate.languages.includes(params.language)) return false;
+    if (params.minYearsOfExperience !== undefined && (candidate.yearsOfExperience ?? 0) < params.minYearsOfExperience) return false;
+    if (params.minFeeAmount !== undefined && (candidate.consultationFeeAmount ?? 0) < params.minFeeAmount) return false;
+    if (params.maxFeeAmount !== undefined && (candidate.consultationFeeAmount ?? 0) > params.maxFeeAmount) return false;
+    if (params.consultationType === 'FREE' && candidate.consultationFeeAmount) return false;
+    if (params.consultationType === 'PAID' && !candidate.consultationFeeAmount) return false;
     return true;
   });
   const offset = (page - 1) * limit;

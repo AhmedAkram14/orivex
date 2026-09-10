@@ -52,7 +52,10 @@ export class ClinicalNoteController {
         new RecordClinicalNoteCommand({
           consultationSessionId: id,
           authoringDoctorId: doctorProfile.getId(),
-          content: body.content,
+          subjective: body.subjective,
+          objective: body.objective,
+          assessment: body.assessment,
+          plan: body.plan,
           addendumOfNoteId: body.addendumOfNoteId,
         }),
       );

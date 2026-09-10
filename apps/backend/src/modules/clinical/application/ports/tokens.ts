@@ -6,3 +6,5 @@ export const PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY = Symbol('PendingAI
 export const AI_ACKNOWLEDGMENT_EVENT_SUBSCRIBER = Symbol('AIAcknowledgmentEventSubscriber');
 export const VITAL_READING_REPOSITORY = Symbol('VitalReadingRepository');
 export const LAB_REQUEST_REPOSITORY = Symbol('LabRequestRepository');
+export const PRESCRIPTION_SIGNER = Symbol('PrescriptionSignerPort');
+export const PRESCRIPTION_PDF_GENERATOR = Symbol('PrescriptionPdfGeneratorPort');

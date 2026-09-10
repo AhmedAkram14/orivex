@@ -23,6 +23,12 @@ const PATIENT_ACCOUNT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const OTHER_PATIENT_ACCOUNT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 class FakeConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  async findById(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async listByModerationStatus(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
   public readonly saved: ConsultationFeedback[] = [];
   constructor(private existing: ConsultationFeedback | null = null) {}
   async findByConsultationSessionId(): Promise<ConsultationFeedback | null> {
@@ -66,6 +72,12 @@ class FakeConsultationSessionRepository implements ConsultationSessionRepository
 class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
+  }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
   }
   constructor(private readonly appointment: Appointment | null) {}
   async findById(): Promise<Appointment | null> {

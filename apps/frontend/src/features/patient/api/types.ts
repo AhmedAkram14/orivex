@@ -104,7 +104,33 @@ export interface PatientProfile {
   /** Plain free text, same reasoning as `allergies`. */
   chronicDiseases?: string;
   insuranceProviderId?: string;
+  /** I6 -- Health Passport. Free text, same convention as allergies/chronicDiseases above. */
+  lifestyleNotes?: string;
+  nutritionNotes?: string;
+  exerciseNotes?: string;
+  /** Absent when the caller is a doctor without the (default-revoked) mental_health consent grant -- never fabricated as blank. Always present on the patient's own read of their own profile. */
+  mentalHealthNotes?: string;
   emergencyContacts: EmergencyContact[];
+}
+
+/** Matches HealthPassportEntryResponseDto exactly (I6 -- Health Passport). */
+export type HealthPassportEntryCategory = 'vaccination' | 'family_history' | 'surgery' | 'medication';
+
+export interface HealthPassportEntry {
+  id: string;
+  category: HealthPassportEntryCategory;
+  title: string;
+  detail: string | null;
+  occurredAt: string | null;
+  createdAt: string;
+}
+
+/** Matches RecordHealthPassportEntryRequestDto exactly. */
+export interface RecordHealthPassportEntryInput {
+  category: HealthPassportEntryCategory;
+  title: string;
+  detail?: string;
+  occurredAt?: string;
 }
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.5): matches PatientProfileController's real PatientProfileExistsResponseDto exactly. */
@@ -127,6 +153,10 @@ export interface PatientProfileUpdateRequest {
   allergies?: string;
   chronicDiseases?: string;
   insuranceProviderId?: string;
+  lifestyleNotes?: string;
+  nutritionNotes?: string;
+  exerciseNotes?: string;
+  mentalHealthNotes?: string;
 }
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): matches TrustModule's real IdentityVerificationStatusResponseDto exactly -- the UX-convenience check backing the four gated actions' pre-emptive "you'll need to verify" prompt. */

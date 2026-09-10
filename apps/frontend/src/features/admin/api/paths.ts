@@ -14,4 +14,13 @@ export const ADMIN_PATHS = {
   featureFlags: '/admin/feature-flags',
   payments: '/admin/payments',
   refundPayment: (id: string) => `/admin/payments/${id}/refund`,
+  auditLog: '/admin/audit-log',
+  reviews: '/admin/reviews',
+  moderateReview: (id: string) => `/admin/reviews/${id}/moderate`,
+  disputes: '/admin/disputes',
+  resolveDispute: (id: string) => `/admin/disputes/${id}/resolve`,
+  // I13 -- Knowledge Center: matches AdministrationController's own
+  // `knowledge/articles` routes exactly.
+  knowledgeArticles: '/admin/knowledge/articles',
+  moderateKnowledgeArticle: (id: string) => `/admin/knowledge/articles/${id}/moderate`,
 } as const;

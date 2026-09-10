@@ -19,6 +19,10 @@ export const PATIENT_PATHS = {
   // The real backend route (PatientModule's PatientProfileController) --
   // not /patient/profile.
   profile: '/patients/me',
+  // I6 -- Health Passport. The real backend route (PatientModule's
+  // PatientProfileController).
+  healthPassportEntries: '/patients/me/health-passport-entries',
+  healthPassportEntry: (id: string) => `/patients/me/health-passport-entries/${id}`,
   // The real backend route (ConsultationModule's AppointmentController) --
   // not /patient/appointments.
   appointments: '/appointments/me',

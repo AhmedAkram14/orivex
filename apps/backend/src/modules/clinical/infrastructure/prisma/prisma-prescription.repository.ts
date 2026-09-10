@@ -26,6 +26,15 @@ export class PrismaPrescriptionRepository implements PrescriptionRepository {
     return rows.map((row) => toDomainPrescription(row));
   }
 
+  // I12 -- Prescription digital signature: the public verification lookup.
+  async findByVerificationCode(verificationCode: string): Promise<Prescription | null> {
+    const row = await this.prisma.prescription.findUnique({
+      where: { verificationCode },
+      include: INCLUDE_LINE_ITEMS,
+    });
+    return row ? toDomainPrescription(row) : null;
+  }
+
   // Prescription has no mutation methods after signing (immutable once
   // signed, docs/09-physical-database.md) -- save() is only ever called
   // once per aggregate instance, at creation.
@@ -40,6 +49,8 @@ export class PrismaPrescriptionRepository implements PrescriptionRepository {
         authoringDoctorId: prescription.getAuthoringDoctorId(),
         status: toPrismaPrescriptionStatus(prescription.getStatus()),
         signedAt: prescription.getSignedAt() ?? null,
+        signatureHash: prescription.getSignatureHash() ?? null,
+        verificationCode: prescription.getVerificationCode() ?? null,
         createdAt: prescription.getCreatedAt(),
         updatedAt: prescription.getUpdatedAt(),
         lineItems: {

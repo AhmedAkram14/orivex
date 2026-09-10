@@ -11,6 +11,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointments: Appointment[]) {}
   async findById(): Promise<Appointment | null> {
     return null;

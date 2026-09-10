@@ -36,11 +36,30 @@ export class PatientProfileResponseDto {
   insuranceProviderId?: string;
   /** Resolved by the caller when it already has ReferenceModule's provider list loaded (e.g. the public patient chart); omitted (not fabricated) when no resolver is passed in. */
   insuranceProviderName?: string;
+  // I6 -- Health Passport.
+  lifestyleNotes?: string;
+  nutritionNotes?: string;
+  exerciseNotes?: string;
+  /**
+   * Gated behind the 'mental_health' consent scope, unlike every other field
+   * here -- omitted (not just blanked) when the caller is a doctor who
+   * hasn't been granted that consent (default-revoked, the opposite of
+   * every other clinical scope), so a doctor's own client code can tell
+   * "not shared with you" apart from "the patient left this blank."
+   * Always included for the patient's own read of their own profile --
+   * `includeMentalHealthNotes` defaults to true for exactly that reason.
+   */
+  mentalHealthNotes?: string;
   emergencyContacts!: EmergencyContactView[];
   createdAt!: string;
   updatedAt!: string;
 
-  static fromDomain(profile: PatientProfile, account: Account, insuranceProviderName?: string): PatientProfileResponseDto {
+  static fromDomain(
+    profile: PatientProfile,
+    account: Account,
+    insuranceProviderName?: string,
+    includeMentalHealthNotes = true,
+  ): PatientProfileResponseDto {
     const userProfile = account.getUserProfile();
     const dto = new PatientProfileResponseDto();
 
@@ -59,6 +78,10 @@ export class PatientProfileResponseDto {
     dto.chronicDiseases = profile.getChronicDiseases();
     dto.insuranceProviderId = profile.getInsuranceProviderId();
     dto.insuranceProviderName = insuranceProviderName;
+    dto.lifestyleNotes = profile.getLifestyleNotes();
+    dto.nutritionNotes = profile.getNutritionNotes();
+    dto.exerciseNotes = profile.getExerciseNotes();
+    dto.mentalHealthNotes = includeMentalHealthNotes ? profile.getMentalHealthNotes() : undefined;
     dto.emergencyContacts = profile.getEmergencyContacts().map((contact) => ({
       id: contact.getId(),
       name: contact.getName(),

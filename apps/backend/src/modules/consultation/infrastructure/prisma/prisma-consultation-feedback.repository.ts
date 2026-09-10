@@ -1,17 +1,25 @@
 import { Injectable } from '@nestjs/common';
 
+import { ReviewModerationStatus as PrismaReviewModerationStatus } from '@prisma/client';
+
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { ConsultationFeedback } from '../../domain/entities/consultation-feedback.entity.js';
+import type { ReviewModerationStatus } from '../../domain/enums/review-moderation-status.enum.js';
 import type {
   ConsultationFeedbackRepository,
   DoctorRatingAggregate,
 } from '../../domain/repositories/consultation-feedback.repository.js';
 
-import { toDomainConsultationFeedback } from './consultation-feedback.mapper.js';
+import { toDomainConsultationFeedback, toPrismaModerationStatus } from './consultation-feedback.mapper.js';
 
 @Injectable()
 export class PrismaConsultationFeedbackRepository implements ConsultationFeedbackRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findById(id: string): Promise<ConsultationFeedback | null> {
+    const row = await this.prisma.consultationFeedback.findUnique({ where: { id } });
+    return row ? toDomainConsultationFeedback(row) : null;
+  }
 
   async findByConsultationSessionId(consultationSessionId: string): Promise<ConsultationFeedback | null> {
     const row = await this.prisma.consultationFeedback.findUnique({ where: { consultationSessionId } });
@@ -23,14 +31,33 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
     page: number,
     limit: number,
   ): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    const where = { doctorId, moderationStatus: PrismaReviewModerationStatus.VISIBLE };
     const [rows, total] = await Promise.all([
       this.prisma.consultationFeedback.findMany({
-        where: { doctorId },
+        where,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.consultationFeedback.count({ where: { doctorId } }),
+      this.prisma.consultationFeedback.count({ where }),
+    ]);
+    return { feedback: rows.map(toDomainConsultationFeedback), total };
+  }
+
+  async listByModerationStatus(
+    status: ReviewModerationStatus,
+    page: number,
+    limit: number,
+  ): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    const where = { moderationStatus: toPrismaModerationStatus(status) };
+    const [rows, total] = await Promise.all([
+      this.prisma.consultationFeedback.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.consultationFeedback.count({ where }),
     ]);
     return { feedback: rows.map(toDomainConsultationFeedback), total };
   }
@@ -41,13 +68,19 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
   // it"). A single indexed (doctorId) aggregate query is cheap at this
   // platform's current scale.
   async getRatingAggregateForDoctor(doctorId: string): Promise<DoctorRatingAggregate> {
+    // I11 -- Admin content moderation: a Flagged/Hidden review counts
+    // toward neither the public average nor the review count -- matches
+    // listForDoctor's own Visible-only filter, so the number on a doctor's
+    // profile always agrees with what the review list actually shows.
     const [result, writtenReviewCount] = await Promise.all([
       this.prisma.consultationFeedback.aggregate({
-        where: { doctorId },
+        where: { doctorId, moderationStatus: PrismaReviewModerationStatus.VISIBLE },
         _avg: { rating: true, communicationRating: true, punctualityRating: true, thoroughnessRating: true },
         _count: { rating: true },
       }),
-      this.prisma.consultationFeedback.count({ where: { doctorId, comment: { not: null } } }),
+      this.prisma.consultationFeedback.count({
+        where: { doctorId, comment: { not: null }, moderationStatus: PrismaReviewModerationStatus.VISIBLE },
+      }),
     ]);
     return {
       averageRating: result._avg.rating,
@@ -66,13 +99,13 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
     const [groups, writtenGroups] = await Promise.all([
       this.prisma.consultationFeedback.groupBy({
         by: ['doctorId'],
-        where: { doctorId: { in: doctorIds } },
+        where: { doctorId: { in: doctorIds }, moderationStatus: PrismaReviewModerationStatus.VISIBLE },
         _avg: { rating: true, communicationRating: true, punctualityRating: true, thoroughnessRating: true },
         _count: { rating: true },
       }),
       this.prisma.consultationFeedback.groupBy({
         by: ['doctorId'],
-        where: { doctorId: { in: doctorIds }, comment: { not: null } },
+        where: { doctorId: { in: doctorIds }, comment: { not: null }, moderationStatus: PrismaReviewModerationStatus.VISIBLE },
         _count: { rating: true },
       }),
     ]);
@@ -117,6 +150,13 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
         communicationRating: feedback.getCommunicationRating() ?? null,
         punctualityRating: feedback.getPunctualityRating() ?? null,
         thoroughnessRating: feedback.getThoroughnessRating() ?? null,
+        // I11 -- Admin content moderation: persisted here too, since
+        // FlagConsultationFeedbackUseCase/ModerateConsultationFeedbackUseCase
+        // both mutate the entity in memory then call this same update().
+        moderationStatus: toPrismaModerationStatus(feedback.getModerationStatus()),
+        moderationReason: feedback.getModerationReason() ?? null,
+        moderatedByAccountId: feedback.getModeratedByAccountId() ?? null,
+        moderatedAt: feedback.getModeratedAt() ?? null,
       },
     });
   }

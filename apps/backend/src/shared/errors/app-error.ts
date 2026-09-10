@@ -8,9 +8,20 @@ export class NotFoundError extends AppError {
   readonly httpStatus = 404;
 }
 
+// code is overridable (default 'VALIDATION_FAILED'), same pattern as
+// ForbiddenError/UnauthorizedError below -- lets a specific module surface a
+// stable, frontend-recognized business-rule code (e.g. I8's
+// 'FREE_TIER_CAP_EXCEEDED', per docs/11-api-contracts.md §7's "Business
+// Rule Error" category) without a proliferation of near-identical 422
+// subclasses -- every other call site continues passing just a message.
 export class ValidationError extends AppError {
-  readonly code = 'VALIDATION_FAILED';
+  readonly code: string;
   readonly httpStatus = 422;
+
+  constructor(message: string, code = 'VALIDATION_FAILED') {
+    super(message);
+    this.code = code;
+  }
 }
 
 // code is overridable (default 'FORBIDDEN') so AuthenticationModule's

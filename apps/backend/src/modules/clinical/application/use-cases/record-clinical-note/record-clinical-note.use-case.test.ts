@@ -49,6 +49,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointment: Appointment | null) {}
   async findById(): Promise<Appointment | null> {
     return this.appointment;
@@ -124,11 +130,11 @@ describe('RecordClinicalNoteUseCase', () => {
       new RecordClinicalNoteCommand({
         consultationSessionId: session.getId(),
         authoringDoctorId: appointment.getDoctorId(),
-        content: 'SOAP note',
+        subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic',
       }),
     );
 
-    assert.equal(note.getContent(), 'SOAP note');
+    assert.match(note.getContent(), /Reports headache/);
     assert.equal(repo.saved.length, 1);
   });
 
@@ -143,7 +149,7 @@ describe('RecordClinicalNoteUseCase', () => {
           new RecordClinicalNoteCommand({
             consultationSessionId: 'missing-id',
             authoringDoctorId: appointment.getDoctorId(),
-            content: 'SOAP note',
+            subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic',
           }),
         ),
       NotFoundError,
@@ -161,7 +167,7 @@ describe('RecordClinicalNoteUseCase', () => {
           new RecordClinicalNoteCommand({
             consultationSessionId: session.getId(),
             authoringDoctorId: 'missing-id',
-            content: 'SOAP note',
+            subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic',
           }),
         ),
       NotFoundError,
@@ -179,7 +185,7 @@ describe('RecordClinicalNoteUseCase', () => {
           new RecordClinicalNoteCommand({
             consultationSessionId: session.getId(),
             authoringDoctorId: '55555555-5555-4555-8555-555555555555',
-            content: 'SOAP note',
+            subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic',
           }),
         ),
       ForbiddenError,

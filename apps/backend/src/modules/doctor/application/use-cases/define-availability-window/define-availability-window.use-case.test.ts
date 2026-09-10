@@ -5,7 +5,7 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
 import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
-import type { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
+import { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
 import { ConsultationPricing } from '../../../domain/value-objects/consultation-pricing.value-object.js';
 import { Money } from '../../../domain/value-objects/money.value-object.js';
@@ -26,7 +26,10 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
   public readonly saved: AvailabilityWindow[] = [];
-  constructor(private readonly overlapping: AvailabilityWindow[] = []) {}
+  constructor(
+    private readonly overlapping: AvailabilityWindow[] = [],
+    private readonly sameDayWindows: AvailabilityWindow[] = [],
+  ) {}
   async findById(): Promise<AvailabilityWindow | null> {
     return null;
   }
@@ -34,7 +37,7 @@ class FakeAvailabilityWindowRepository implements AvailabilityWindowRepository {
     return this.overlapping;
   }
   async findByDoctorAndRange(): Promise<AvailabilityWindow[]> {
-    return [];
+    return this.sameDayWindows;
   }
   async save(window: AvailabilityWindow): Promise<void> {
     this.saved.push(window);
@@ -46,6 +49,15 @@ class NoopDispatcher {
   async dispatch(): Promise<void> {}
 
   subscribe(): void {}
+}
+
+function buildDoctorProfile(maxFreeSlotsPerDay?: number): DoctorProfile {
+  return DoctorProfile.register({
+    accountId: '99999999-9999-4999-8999-999999999999',
+    licenseNumber: 'LIC-1',
+    specialtyId: '22222222-2222-4222-8222-222222222222',
+    maxFreeSlotsPerDay,
+  });
 }
 
 function buildCommand(): DefineAvailabilityWindowCommand {
@@ -62,7 +74,7 @@ describe('DefineAvailabilityWindowUseCase', () => {
   it('defines a window for an existing doctor profile', async () => {
     const windowRepo = new FakeAvailabilityWindowRepository();
     const useCase = new DefineAvailabilityWindowUseCase(
-      new FakeDoctorProfileRepository({} as DoctorProfile),
+      new FakeDoctorProfileRepository(buildDoctorProfile()),
       windowRepo,
       new NoopDispatcher(),
     );
@@ -91,11 +103,53 @@ describe('DefineAvailabilityWindowUseCase', () => {
       pricing: ConsultationPricing.free(),
     });
     const useCase = new DefineAvailabilityWindowUseCase(
-      new FakeDoctorProfileRepository({} as DoctorProfile),
+      new FakeDoctorProfileRepository(buildDoctorProfile()),
       new FakeAvailabilityWindowRepository([existing]),
       new NoopDispatcher(),
     );
 
     await assert.rejects(() => useCase.execute(buildCommand()), DoctorDomainError);
+  });
+
+  it('throws DoctorDomainError when a FREE window would exceed the doctor\'s own daily cap', async () => {
+    const startTime = new Date(Date.now() + 60 * 60_000);
+    const existingFreeWindowSameDay = AvailabilityWindow.define({
+      doctorId: '11111111-1111-4111-8111-111111111111',
+      startTime: new Date(startTime.getTime() + 4 * 60 * 60_000),
+      endTime: new Date(startTime.getTime() + 4 * 60 * 60_000 + 30 * 60_000),
+      pricing: ConsultationPricing.free(),
+    });
+    const useCase = new DefineAvailabilityWindowUseCase(
+      new FakeDoctorProfileRepository(buildDoctorProfile(1)),
+      new FakeAvailabilityWindowRepository([], [existingFreeWindowSameDay]),
+      new NoopDispatcher(),
+    );
+    const command = new DefineAvailabilityWindowCommand({
+      doctorId: '11111111-1111-4111-8111-111111111111',
+      startTime,
+      endTime: new Date(startTime.getTime() + 30 * 60_000),
+      pricing: ConsultationPricing.free(),
+    });
+
+    await assert.rejects(() => useCase.execute(command), DoctorDomainError);
+  });
+
+  it('allows a FREE window when the doctor has no daily cap set', async () => {
+    const windowRepo = new FakeAvailabilityWindowRepository();
+    const useCase = new DefineAvailabilityWindowUseCase(
+      new FakeDoctorProfileRepository(buildDoctorProfile()),
+      windowRepo,
+      new NoopDispatcher(),
+    );
+    const startTime = new Date(Date.now() + 60 * 60_000);
+    const command = new DefineAvailabilityWindowCommand({
+      doctorId: '11111111-1111-4111-8111-111111111111',
+      startTime,
+      endTime: new Date(startTime.getTime() + 30 * 60_000),
+      pricing: ConsultationPricing.free(),
+    });
+
+    const window = await useCase.execute(command);
+    assert.equal(window.getPricing().isFree(), true);
   });
 });

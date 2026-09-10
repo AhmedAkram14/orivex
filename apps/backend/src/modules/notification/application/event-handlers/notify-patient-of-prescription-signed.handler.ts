@@ -1,5 +1,6 @@
 import type { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
+import { toEmailLocale } from '../../../authentication/infrastructure/email/templates/email-locale.js';
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import type { GetPrescriptionByIdUseCase } from '../../../clinical/application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
@@ -72,7 +73,12 @@ export class NotifyPatientOfPrescriptionSignedHandler {
       // follows.
       const account = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
       if (account) {
-        await this.emailSender.send(account.getEmail().toString(), 'prescription-signed', {});
+        await this.emailSender.send(
+          account.getEmail().toString(),
+          'prescription-signed',
+          {},
+          toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+        );
       }
     } catch (error) {
       // A notification failure must never surface back through

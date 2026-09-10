@@ -1,9 +1,12 @@
-import { CalendarDays, Pill, UserRound } from 'lucide-react';
+import { CalendarDays, Download, Pill, UserRound } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import type { PrescriptionStatus } from '@/features/patient/api/types';
 import { PrescriptionMetaItem } from '@/features/patient/components/prescriptions/prescription-meta-item';
 import { PrescriptionStatusBadge } from '@/features/patient/components/prescriptions/prescription-status-badge';
+import { useDownloadPrescriptionPdf } from '@/features/consultation/hooks/use-download-prescription-pdf';
 import { Icon } from '@/shared/icons/icon';
+import { Button } from '@/shared/ui/button';
 import { cn } from '@/shared/lib/cn';
 
 const accentByStatus: Record<PrescriptionStatus, string> = {
@@ -17,6 +20,7 @@ const iconWrapByStatus: Record<PrescriptionStatus, string> = {
 };
 
 export interface PrescriptionCardProps {
+  id: string;
   medicationName: string;
   /** Pre-formatted, localized dosage amount text (e.g. "50mg") — this component never formats a raw number itself. */
   dosageAmount: string;
@@ -43,6 +47,7 @@ export interface PrescriptionCardProps {
  * it is a dead control.
  */
 export function PrescriptionCard({
+  id,
   medicationName,
   dosageAmount,
   frequencyLabel,
@@ -53,6 +58,9 @@ export function PrescriptionCard({
   instructions,
   className,
 }: PrescriptionCardProps) {
+  const t = useTranslations('patient.prescriptions');
+  const downloadPdf = useDownloadPrescriptionPdf();
+
   return (
     <div
       className={cn(
@@ -80,11 +88,23 @@ export function PrescriptionCard({
         </div>
       </div>
 
-      {instructions && (
-        <div className="rounded-md bg-secondary-subtle px-3 py-2 text-xs text-text-secondary sm:max-w-56 sm:text-end">
-          {instructions}
-        </div>
-      )}
+      <div className="flex flex-col items-end gap-2">
+        {instructions && (
+          <div className="rounded-md bg-secondary-subtle px-3 py-2 text-xs text-text-secondary sm:max-w-56 sm:text-end">
+            {instructions}
+          </div>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          loading={downloadPdf.isPending}
+          onClick={() => downloadPdf.mutate(id)}
+        >
+          <Icon icon={Download} size="sm" />
+          {t('downloadPdf')}
+        </Button>
+      </div>
     </div>
   );
 }

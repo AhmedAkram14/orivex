@@ -2,6 +2,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../../../../share
 import { AvailabilityWindowConflictError } from '../../domain/exceptions/availability-window-conflict.error.js';
 import { DepartmentNotFoundError } from '../../domain/exceptions/department-not-found.error.js';
 import { DoctorDomainError } from '../../domain/exceptions/doctor-domain.error.js';
+import { DoctorFreeSlotDailyCapExceededError } from '../../domain/exceptions/doctor-free-slot-daily-cap-exceeded.error.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
 import { HospitalNotFoundError } from '../../domain/exceptions/hospital-not-found.error.js';
 import { MedicalSpecialtyNotFoundError } from '../../domain/exceptions/medical-specialty-not-found.error.js';
@@ -18,6 +19,12 @@ import { MedicalSpecialtyNotFoundError } from '../../domain/exceptions/medical-s
 // hospitalId that doesn't exist references a missing resource, not an
 // invalid-shape input).
 export function mapDoctorError(error: unknown): unknown {
+  // I8 -- Free-tier abuse controls: named Business Rule Error code (docs/
+  // 11-api-contracts.md §7's convention for this rule category), checked
+  // before the generic DoctorDomainError fallback below.
+  if (error instanceof DoctorFreeSlotDailyCapExceededError) {
+    return new ValidationError(error.message, 'DOCTOR_FREE_TIER_DAILY_CAP_EXCEEDED');
+  }
   if (error instanceof AvailabilityWindowConflictError || error instanceof DoctorProfileAlreadyExistsError) {
     return new ConflictError(error.message);
   }

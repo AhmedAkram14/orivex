@@ -58,6 +58,12 @@ class FakePublicDirectoryQueryPort implements PublicDirectoryQueryPort {
 }
 
 class FakeConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  async findById(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async listByModerationStatus(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
   async findByConsultationSessionId(): Promise<ConsultationFeedback | null> {
     return null;
   }

@@ -41,6 +41,11 @@ export interface RegisterDoctorProfileProps {
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: Date;
   departmentId?: string;
+  // I8 -- Free-tier abuse controls (docs/01-prd.md §7): the doctor's own
+  // daily cap on how many FREE availability windows they'll offer.
+  // Undefined/null means no cap (this codebase's own convention for every
+  // other optional numeric field here) -- most doctors never set one.
+  maxFreeSlotsPerDay?: number;
 }
 
 export interface UpdateDoctorProfileProps {
@@ -59,6 +64,7 @@ export interface UpdateDoctorProfileProps {
   professionalRank?: ProfessionalRank | null;
   licenseExpiryDate?: Date | null;
   departmentId?: string | null;
+  maxFreeSlotsPerDay?: number | null;
 }
 
 export interface ReconstituteDoctorProfileProps {
@@ -80,6 +86,7 @@ export interface ReconstituteDoctorProfileProps {
   professionalRank?: ProfessionalRank;
   licenseExpiryDate?: Date;
   departmentId?: string;
+  maxFreeSlotsPerDay?: number;
 }
 
 // Aggregate root of the Doctor bounded context (docs/10-backend-
@@ -110,6 +117,7 @@ export class DoctorProfile {
     private professionalRank: ProfessionalRank | undefined,
     private licenseExpiryDate: Date | undefined,
     private departmentId: string | undefined,
+    private maxFreeSlotsPerDay: number | undefined,
   ) {}
 
   static register(props: RegisterDoctorProfileProps): DoctorProfile {
@@ -117,6 +125,7 @@ export class DoctorProfile {
     DoctorProfile.validateYearsOfExperience(props.yearsOfExperience);
     DoctorProfile.validateConsultationFee(props.consultationFeeAmount);
     DoctorProfile.validateDepartmentRequiresHospital(props.hospitalId, props.departmentId);
+    DoctorProfile.validateMaxFreeSlotsPerDay(props.maxFreeSlotsPerDay);
 
     const now = new Date();
     const profile = new DoctorProfile(
@@ -138,6 +147,7 @@ export class DoctorProfile {
       props.professionalRank,
       props.licenseExpiryDate,
       props.departmentId,
+      props.maxFreeSlotsPerDay,
     );
 
     profile.record(new DoctorProfileUpdatedEvent(profile.id));
@@ -164,6 +174,7 @@ export class DoctorProfile {
       props.professionalRank,
       props.licenseExpiryDate,
       props.departmentId,
+      props.maxFreeSlotsPerDay,
     );
   }
 
@@ -210,6 +221,10 @@ export class DoctorProfile {
     if (props.licenseExpiryDate !== undefined) {
       this.licenseExpiryDate = props.licenseExpiryDate ?? undefined;
     }
+    if (props.maxFreeSlotsPerDay !== undefined) {
+      DoctorProfile.validateMaxFreeSlotsPerDay(props.maxFreeSlotsPerDay ?? undefined);
+      this.maxFreeSlotsPerDay = props.maxFreeSlotsPerDay ?? undefined;
+    }
 
     this.updatedAt = new Date();
     this.record(new DoctorProfileUpdatedEvent(this.id));
@@ -230,6 +245,12 @@ export class DoctorProfile {
   private static validateConsultationFee(value: number | undefined): void {
     if (value !== undefined && value < 0) {
       throw new DoctorDomainError('consultationFeeAmount must not be negative.');
+    }
+  }
+
+  private static validateMaxFreeSlotsPerDay(value: number | undefined): void {
+    if (value !== undefined && (!Number.isInteger(value) || value < 0)) {
+      throw new DoctorDomainError('maxFreeSlotsPerDay must be a non-negative integer.');
     }
   }
 
@@ -294,6 +315,10 @@ export class DoctorProfile {
 
   getDepartmentId(): string | undefined {
     return this.departmentId;
+  }
+
+  getMaxFreeSlotsPerDay(): number | undefined {
+    return this.maxFreeSlotsPerDay;
   }
 
   getPublications(): PortfolioPublication[] {

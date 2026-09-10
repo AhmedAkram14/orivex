@@ -1,4 +1,5 @@
 import type { ConsultationFeedback } from '../entities/consultation-feedback.entity.js';
+import type { ReviewModerationStatus } from '../enums/review-moderation-status.enum.js';
 
 export interface DoctorRatingAggregate {
   averageRating: number | null;
@@ -15,9 +16,16 @@ export interface DoctorRatingAggregate {
 }
 
 export interface ConsultationFeedbackRepository {
+  findById(id: string): Promise<ConsultationFeedback | null>;
   findByConsultationSessionId(consultationSessionId: string): Promise<ConsultationFeedback | null>;
-  /** Newest first. Backs both the doctor's own review list and the doctor-directory/profile public reviews. */
+  /** Newest first. Backs both the doctor's own review list and the doctor-directory/profile public reviews -- Visible only (I11: a Flagged or Hidden review is excluded, never fabricated as if it didn't exist -- just not shown to the public). */
   listForDoctor(doctorId: string, page: number, limit: number): Promise<{ feedback: ConsultationFeedback[]; total: number }>;
+  /** I11 -- Admin content moderation: the admin moderation queue, newest first. */
+  listByModerationStatus(
+    status: ReviewModerationStatus,
+    page: number,
+    limit: number,
+  ): Promise<{ feedback: ConsultationFeedback[]; total: number }>;
   getRatingAggregateForDoctor(doctorId: string): Promise<DoctorRatingAggregate>;
   /** Batched form for a paginated doctor-directory listing -- avoids one aggregate query per doctor per page (N+1). */
   getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>>;

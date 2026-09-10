@@ -27,6 +27,7 @@ export interface UpdateDoctorProfileCommandProps {
   professionalRank?: ProfessionalRank | null;
   licenseExpiryDate?: Date | null;
   departmentId?: string | null;
+  maxFreeSlotsPerDay?: number | null;
 }
 
 export class UpdateDoctorProfileCommand {
@@ -44,6 +45,7 @@ export class UpdateDoctorProfileCommand {
   readonly professionalRank?: ProfessionalRank | null;
   readonly licenseExpiryDate?: Date | null;
   readonly departmentId?: string | null;
+  readonly maxFreeSlotsPerDay?: number | null;
 
   constructor(props: UpdateDoctorProfileCommandProps) {
     this.doctorProfileId = props.doctorProfileId;
@@ -60,5 +62,6 @@ export class UpdateDoctorProfileCommand {
     this.professionalRank = props.professionalRank;
     this.licenseExpiryDate = props.licenseExpiryDate;
     this.departmentId = props.departmentId;
+    this.maxFreeSlotsPerDay = props.maxFreeSlotsPerDay;
   }
 }

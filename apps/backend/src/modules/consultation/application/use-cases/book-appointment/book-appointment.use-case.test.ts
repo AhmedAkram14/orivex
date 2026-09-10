@@ -21,7 +21,14 @@ import { ReserveSlotUseCase } from '../../../../scheduling/application/use-cases
 import type { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
 import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
+import { FreeTierMonthlyCapExceededError } from '../../../domain/exceptions/free-tier-monthly-cap-exceeded.error.js';
+import { NoShowBookingRestrictedError } from '../../../domain/exceptions/no-show-booking-restricted.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
+import type {
+  FreeTierBookingCaps,
+  FreeTierBookingOutcome,
+  FreeTierBookingRepository,
+} from '../../../domain/repositories/free-tier-booking.repository.js';
 
 import { BookAppointmentCommand } from './book-appointment.command.js';
 import { BookAppointmentUseCase } from './book-appointment.use-case.js';
@@ -29,6 +36,12 @@ import { BookAppointmentUseCase } from './book-appointment.use-case.js';
 class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
+  }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
   }
   public readonly saved: Appointment[] = [];
   public failOnSaveCount = 0;
@@ -64,6 +77,34 @@ class FakeAppointmentRepository implements AppointmentRepository {
     }
     this.saved.push(appointment);
     this.byId.set(appointment.getId(), appointment);
+  }
+}
+
+// Mirrors PrismaFreeTierBookingRepository's own decision logic (no-show
+// check, then monthly-cap check, then save) so these unit tests exercise
+// BookAppointmentUseCase's branching/compensating-action behavior without a
+// real database -- the atomicity/concurrency guarantee itself is proven
+// separately, against real PostgreSQL (prisma-free-tier-booking.repository.integration.test.ts).
+class FakeFreeTierBookingRepository implements FreeTierBookingRepository {
+  public noShowCount = 0;
+  public freeConsultationsThisMonth = 0;
+  public failWith: Error | null = null;
+  public readonly saved: Appointment[] = [];
+  public calls = 0;
+
+  async checkCapsAndSave(appointment: Appointment, _patientId: string, caps: FreeTierBookingCaps): Promise<FreeTierBookingOutcome> {
+    this.calls += 1;
+    if (this.failWith) {
+      throw this.failWith;
+    }
+    if (this.noShowCount >= caps.maxNoShowsBeforeBlocked) {
+      return 'no_show_blocked';
+    }
+    if (this.freeConsultationsThisMonth >= caps.maxFreeConsultationsPerMonth) {
+      return 'monthly_cap_exceeded';
+    }
+    this.saved.push(appointment);
+    return 'booked';
   }
 }
 
@@ -129,6 +170,7 @@ function buildUseCase(props: {
   window: AvailabilityWindow | null;
   patient?: PatientProfile | null;
   doctor?: DoctorProfile | null;
+  freeTierBookingRepo?: FakeFreeTierBookingRepository;
 }): BookAppointmentUseCase {
   const availabilityWindowRepo = new FakeAvailabilityWindowRepository(props.window);
   const patient = props.patient === undefined ? ({} as PatientProfile) : props.patient;
@@ -141,6 +183,7 @@ function buildUseCase(props: {
     new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
     new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
     new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+    props.freeTierBookingRepo ?? new FakeFreeTierBookingRepository(),
   );
 }
 
@@ -153,7 +196,8 @@ describe('BookAppointmentUseCase', () => {
   it('books a free appointment as Requested, never auto-confirming it', async () => {
     const window = buildWindow(DoctorConsultationType.Free);
     const appointmentRepo = new FakeAppointmentRepository();
-    const useCase = buildUseCase({ appointmentRepo, window });
+    const freeTierBookingRepo = new FakeFreeTierBookingRepository();
+    const useCase = buildUseCase({ appointmentRepo, window, freeTierBookingRepo });
 
     const appointment = await useCase.execute(
       new BookAppointmentCommand({
@@ -164,7 +208,11 @@ describe('BookAppointmentUseCase', () => {
     );
 
     assert.equal(appointment.getStatus(), AppointmentStatus.Requested);
-    assert.equal(appointmentRepo.saved.length, 1);
+    // A FREE booking is persisted through FreeTierBookingRepository's own
+    // atomic check-and-save, never through AppointmentRepository.save()
+    // directly -- see the concurrency-fix doc comment on that port.
+    assert.equal(freeTierBookingRepo.saved.length, 1);
+    assert.equal(appointmentRepo.saved.length, 0);
   });
 
   it('books a paid appointment as Requested the same way', async () => {
@@ -239,8 +287,8 @@ describe('BookAppointmentUseCase', () => {
     );
   });
 
-  it('releases the reserved slot if persisting the appointment fails', async () => {
-    const window = buildWindow(DoctorConsultationType.Free);
+  it('releases the reserved slot if persisting a Paid appointment fails', async () => {
+    const window = buildWindow(DoctorConsultationType.Paid);
     const availabilityWindowRepo = new FakeAvailabilityWindowRepository(window);
     const appointmentRepo = new FakeAppointmentRepository();
     appointmentRepo.failOnSaveCount = 1;
@@ -252,6 +300,7 @@ describe('BookAppointmentUseCase', () => {
       new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
       new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
       new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+      new FakeFreeTierBookingRepository(),
     );
 
     await assert.rejects(() =>
@@ -266,5 +315,100 @@ describe('BookAppointmentUseCase', () => {
 
     const releasedWindow = await availabilityWindowRepo.findById();
     assert.equal(releasedWindow?.getStatus(), 'open');
+  });
+
+  it('releases the reserved slot if the atomic free-tier check-and-save fails for a Free appointment', async () => {
+    const window = buildWindow(DoctorConsultationType.Free);
+    const availabilityWindowRepo = new FakeAvailabilityWindowRepository(window);
+    const freeTierBookingRepo = new FakeFreeTierBookingRepository();
+    freeTierBookingRepo.failWith = new Error('simulated transaction failure');
+    const useCase = new BookAppointmentUseCase(
+      new FakeAppointmentRepository(),
+      new NoopDispatcher(),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository({} as PatientProfile)),
+      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository({} as DoctorProfile)),
+      new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
+      new ReserveSlotUseCase(new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+      new ReleaseSlotUseCase(new ReleaseAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDispatcher())),
+      freeTierBookingRepo,
+    );
+
+    await assert.rejects(() =>
+      useCase.execute(
+        new BookAppointmentCommand({
+          patientId: '11111111-1111-4111-8111-111111111111',
+          doctorId: '22222222-2222-4222-8222-222222222222',
+          availabilityWindowId: window.getId(),
+        }),
+      ),
+    );
+
+    const releasedWindow = await availabilityWindowRepo.findById();
+    assert.equal(releasedWindow?.getStatus(), 'open');
+  });
+
+  // I8 -- Free-tier abuse controls.
+  it('throws FreeTierMonthlyCapExceededError when the patient has already used their monthly free-consultation cap', async () => {
+    const window = buildWindow(DoctorConsultationType.Free);
+    const appointmentRepo = new FakeAppointmentRepository();
+    const freeTierBookingRepo = new FakeFreeTierBookingRepository();
+    freeTierBookingRepo.freeConsultationsThisMonth = 3;
+    const useCase = buildUseCase({ appointmentRepo, window, freeTierBookingRepo });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new BookAppointmentCommand({
+            patientId: '11111111-1111-4111-8111-111111111111',
+            doctorId: '22222222-2222-4222-8222-222222222222',
+            availabilityWindowId: window.getId(),
+          }),
+        ),
+      FreeTierMonthlyCapExceededError,
+    );
+    assert.equal(freeTierBookingRepo.saved.length, 0);
+  });
+
+  it('throws NoShowBookingRestrictedError when the patient has too many no-shows, blocking free-tier booking', async () => {
+    const window = buildWindow(DoctorConsultationType.Free);
+    const appointmentRepo = new FakeAppointmentRepository();
+    const freeTierBookingRepo = new FakeFreeTierBookingRepository();
+    freeTierBookingRepo.noShowCount = 2;
+    const useCase = buildUseCase({ appointmentRepo, window, freeTierBookingRepo });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new BookAppointmentCommand({
+            patientId: '11111111-1111-4111-8111-111111111111',
+            doctorId: '22222222-2222-4222-8222-222222222222',
+            availabilityWindowId: window.getId(),
+          }),
+        ),
+      NoShowBookingRestrictedError,
+    );
+    assert.equal(freeTierBookingRepo.saved.length, 0);
+  });
+
+  it('never checks free-tier caps for a Paid booking, even with a high no-show count', async () => {
+    const window = buildWindow(DoctorConsultationType.Paid);
+    const appointmentRepo = new FakeAppointmentRepository();
+    const freeTierBookingRepo = new FakeFreeTierBookingRepository();
+    freeTierBookingRepo.noShowCount = 99;
+    freeTierBookingRepo.freeConsultationsThisMonth = 99;
+    const useCase = buildUseCase({ appointmentRepo, window, freeTierBookingRepo });
+
+    const appointment = await useCase.execute(
+      new BookAppointmentCommand({
+        patientId: '11111111-1111-4111-8111-111111111111',
+        doctorId: '22222222-2222-4222-8222-222222222222',
+        availabilityWindowId: window.getId(),
+      }),
+    );
+
+    assert.equal(appointment.getStatus(), AppointmentStatus.Requested);
+    // Proves the Paid path never even calls the free-tier gateway.
+    assert.equal(freeTierBookingRepo.calls, 0);
+    assert.equal(appointmentRepo.saved.length, 1);
   });
 });

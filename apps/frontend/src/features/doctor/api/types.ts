@@ -237,6 +237,16 @@ export interface ListDoctorDirectoryParams {
   specialty?: string;
   specialtyId?: string;
   hospitalId?: string;
+  /** I10 -- doctor discovery filters. `condition` is deliberately not offered here -- see the backend port's own comment on why its semantics are genuinely undefined in the PRD, a disclosed gap rather than a guessed one. */
+  language?: string;
+  gender?: string;
+  minFeeAmount?: number;
+  maxFeeAmount?: number;
+  consultationType?: 'FREE' | 'PAID';
+  minYearsOfExperience?: number;
+  availableWithinDays?: number;
+  /** Average rating >= this threshold (1-5, matching ConsultationFeedback.rating's own domain range). A doctor with no (non-hidden) reviews never matches. */
+  minRating?: number;
 }
 
 /** Matches DoctorProfileController's real `DoctorDirectoryResponseDto` exactly. */

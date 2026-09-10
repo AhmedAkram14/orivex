@@ -15,6 +15,11 @@ export class PrescriptionResponseDto {
   lineItems!: PrescriptionLineItemDto[];
   signedAt!: string | null;
   derivedFromSuggestionId!: null;
+  // I12 -- Prescription digital signature and verification marker (ORIVEX
+  // Remaining Work Audit): additive to docs/12-openapi.md's PrescriptionSummary
+  // schema -- the short public marker the PDF's own QR code encodes, so the
+  // frontend can show/copy it without a second round-trip.
+  verificationCode!: string | null;
 
   static fromDomain(prescription: Prescription): PrescriptionResponseDto {
     const dto = new PrescriptionResponseDto();
@@ -34,6 +39,7 @@ export class PrescriptionResponseDto {
     });
     dto.signedAt = prescription.getSignedAt()?.toISOString() ?? null;
     dto.derivedFromSuggestionId = null;
+    dto.verificationCode = prescription.getVerificationCode() ?? null;
     return dto;
   }
 }

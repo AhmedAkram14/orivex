@@ -13,6 +13,7 @@ import type {
   ConsultationSummary,
   ConsultationVitalReading,
   DiagnosisNode,
+  Dispute,
   DoctorReviewsResult,
   FollowUpRecommendation,
   HealthJourney,
@@ -20,6 +21,7 @@ import type {
   LabRequestRecord,
   RecordLabRequestInput,
   SignPrescriptionLineItemInput,
+  VerifyPrescriptionResult,
   VitalReadingType,
 } from '@/features/consultation/api/types';
 
@@ -95,8 +97,12 @@ export const consultationApi = {
       body: { freeTextDescription, certaintyLevel, startJourney },
     }),
 
-  recordNote: (consultationSessionId: string, content: string) =>
-    apiFetch<ClinicalNote>({ method: 'POST', path: CONSULTATION_PATHS.notes(consultationSessionId), body: { content } }),
+  // I5 -- SOAP-structured clinical notes. Matches RecordClinicalNoteRequestDto exactly.
+  recordNote: (
+    consultationSessionId: string,
+    soap: { subjective: string; objective: string; assessment: string; plan: string },
+  ) =>
+    apiFetch<ClinicalNote>({ method: 'POST', path: CONSULTATION_PATHS.notes(consultationSessionId), body: soap }),
 
   /** One reading per call, matching the real backend contract (POST /consultations/:id/vitals accepts exactly one type per request) -- a partial submit (e.g. weight only) calls this once, a full submit calls it up to three times. */
   recordVital: (consultationSessionId: string, type: VitalReadingType, value: number, diastolicValue?: number) =>
@@ -170,4 +176,22 @@ export const consultationApi = {
       path: CONSULTATION_PATHS.aiSuggestionDecision(suggestionId),
       body: { decision, justification },
     }),
+
+  /**
+   * I11 -- Admin content moderation: the reviewed doctor's own precautionary
+   * flag on a review about them -- matches DoctorReviewFlagController's real
+   * contract exactly (`PATCH /reviews/:id/flag`).
+   */
+  flagReview: (feedbackId: string, reason: string) =>
+    apiFetch<ConsultationFeedback>({ method: 'PATCH', path: CONSULTATION_PATHS.flagReview(feedbackId), body: { reason } }),
+
+  // I11 -- Admin dispute resolution: raised by either genuine party on a real appointment.
+  raiseDispute: (appointmentId: string, reason: string) =>
+    apiFetch<Dispute>({ method: 'POST', path: CONSULTATION_PATHS.disputes(), body: { appointmentId, reason } }),
+
+  listMyDisputes: () => apiFetch<Dispute[]>({ path: CONSULTATION_PATHS.disputes() }),
+
+  /** I12 -- Prescription digital signature and verification marker: public, no auth required. */
+  verifyPrescription: (code: string) =>
+    apiFetch<VerifyPrescriptionResult>({ path: CONSULTATION_PATHS.verifyPrescription(code) }),
 };

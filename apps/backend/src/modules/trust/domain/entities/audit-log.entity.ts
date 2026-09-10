@@ -3,6 +3,18 @@ import { randomUUID } from 'node:crypto';
 import { AuditAction } from '../enums/audit-action.enum.js';
 import { TrustDomainError } from '../exceptions/trust-domain.error.js';
 
+export interface ReconstituteAuditLogProps {
+  id: string;
+  actorAccountId: string;
+  actorRole: string;
+  action: AuditAction;
+  subjectType: string;
+  subjectId: string;
+  reason?: string;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+}
+
 export interface RecordAuditLogEntryProps {
   actorAccountId: string;
   actorRole: string;
@@ -49,6 +61,20 @@ export class AuditLog {
       props.reason,
       props.metadata ?? {},
       new Date(),
+    );
+  }
+
+  static reconstitute(props: ReconstituteAuditLogProps): AuditLog {
+    return new AuditLog(
+      props.id,
+      props.actorAccountId,
+      props.actorRole,
+      props.action,
+      props.subjectType,
+      props.subjectId,
+      props.reason,
+      props.metadata,
+      props.createdAt,
     );
   }
 

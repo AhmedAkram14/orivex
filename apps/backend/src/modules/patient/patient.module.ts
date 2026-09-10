@@ -6,12 +6,17 @@ import { AuthenticationGuardsModule } from '../authentication/authentication-gua
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 
-import { PATIENT_PROFILE_REPOSITORY } from './application/ports/tokens.js';
+import { HEALTH_PASSPORT_ENTRY_REPOSITORY, PATIENT_PROFILE_REPOSITORY } from './application/ports/tokens.js';
 import { CreatePatientProfileUseCase } from './application/use-cases/create-patient-profile/create-patient-profile.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from './application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from './application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { UpdatePatientProfileUseCase } from './application/use-cases/update-patient-profile/update-patient-profile.use-case.js';
+import { RecordHealthPassportEntryUseCase } from './application/use-cases/record-health-passport-entry/record-health-passport-entry.use-case.js';
+import { ListHealthPassportEntriesForPatientUseCase } from './application/use-cases/list-health-passport-entries-for-patient/list-health-passport-entries-for-patient.use-case.js';
+import { DeleteHealthPassportEntryUseCase } from './application/use-cases/delete-health-passport-entry/delete-health-passport-entry.use-case.js';
+import type { HealthPassportEntryRepository } from './domain/repositories/health-passport-entry.repository.js';
 import type { PatientProfileRepository } from './domain/repositories/patient-profile.repository.js';
+import { PrismaHealthPassportEntryRepository } from './infrastructure/prisma/prisma-health-passport-entry.repository.js';
 import { PrismaPatientProfileRepository } from './infrastructure/prisma/prisma-patient-profile.repository.js';
 import { PatientProfileController } from './presentation/controllers/patient-profile.controller.js';
 
@@ -58,6 +63,22 @@ import { PatientProfileController } from './presentation/controllers/patient-pro
       provide: GetPatientProfileByAccountIdUseCase,
       useFactory: (repository: PatientProfileRepository) => new GetPatientProfileByAccountIdUseCase(repository),
       inject: [PATIENT_PROFILE_REPOSITORY],
+    },
+    { provide: HEALTH_PASSPORT_ENTRY_REPOSITORY, useClass: PrismaHealthPassportEntryRepository },
+    {
+      provide: RecordHealthPassportEntryUseCase,
+      useFactory: (repository: HealthPassportEntryRepository) => new RecordHealthPassportEntryUseCase(repository),
+      inject: [HEALTH_PASSPORT_ENTRY_REPOSITORY],
+    },
+    {
+      provide: ListHealthPassportEntriesForPatientUseCase,
+      useFactory: (repository: HealthPassportEntryRepository) => new ListHealthPassportEntriesForPatientUseCase(repository),
+      inject: [HEALTH_PASSPORT_ENTRY_REPOSITORY],
+    },
+    {
+      provide: DeleteHealthPassportEntryUseCase,
+      useFactory: (repository: HealthPassportEntryRepository) => new DeleteHealthPassportEntryUseCase(repository),
+      inject: [HEALTH_PASSPORT_ENTRY_REPOSITORY],
     },
   ],
   exports: [

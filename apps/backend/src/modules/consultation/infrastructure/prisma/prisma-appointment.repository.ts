@@ -41,6 +41,21 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return this.prisma.appointment.count({ where: { patientId } });
   }
 
+  async countFreeConsultationsForPatientSince(patientId: string, since: Date): Promise<number> {
+    return this.prisma.appointment.count({
+      where: {
+        patientId,
+        consultationType: 'FREE',
+        status: { not: 'CANCELLED' },
+        createdAt: { gte: since },
+      },
+    });
+  }
+
+  async countNoShowsForPatient(patientId: string): Promise<number> {
+    return this.prisma.appointment.count({ where: { patientId, status: 'NO_SHOW' } });
+  }
+
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     const rows = await this.prisma.appointment.findMany({
       where: { doctorId },

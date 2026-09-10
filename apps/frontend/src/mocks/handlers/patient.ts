@@ -5,6 +5,7 @@ import type {
   BookAppointmentRequest,
   CancelAppointmentRequest,
   PatientProfileUpdateRequest,
+  RecordHealthPassportEntryInput,
   RescheduleAppointmentRequest,
   SubmitPatientVerificationRequest,
 } from '@/features/patient/api/types';
@@ -12,6 +13,7 @@ import {
   bookAppointment,
   cancelAppointment,
   checkProfileExists,
+  deleteHealthPassportEntry,
   getActivePrescriptions,
   getAppointments,
   getDashboardSummary,
@@ -21,10 +23,12 @@ import {
   getPrescriptions,
   getProfile,
   getUpcomingAppointments,
+  listHealthPassportEntries,
   listMyVerifications,
   MockConflictError,
   MockInvalidStateError,
   MockNotFoundError,
+  recordHealthPassportEntry,
   rescheduleAppointment,
   submitMyVerification,
   updateProfile,
@@ -69,6 +73,23 @@ export const patientHandlers = [
     const updated = updateProfile(body, resolveRequestAccountId(request));
     if (!updated) return errorResponse(404, 'NOT_FOUND', 'Patient profile not found.');
     return HttpResponse.json({ data: updated });
+  }),
+
+  // I6 -- Health Passport.
+  http.get(`${base()}${PATIENT_PATHS.healthPassportEntries}`, ({ request }) =>
+    HttpResponse.json({ data: listHealthPassportEntries(resolveRequestAccountId(request)) }),
+  ),
+
+  http.post(`${base()}${PATIENT_PATHS.healthPassportEntries}`, async ({ request }) => {
+    const body = (await request.json()) as RecordHealthPassportEntryInput;
+    const created = recordHealthPassportEntry(body, resolveRequestAccountId(request));
+    return HttpResponse.json({ data: created }, { status: 201 });
+  }),
+
+  http.delete(`${base()}/patients/me/health-passport-entries/:id`, ({ request, params }) => {
+    const deleted = deleteHealthPassportEntry(params.id as string, resolveRequestAccountId(request));
+    if (!deleted) return errorResponse(404, 'NOT_FOUND', 'Health passport entry not found.');
+    return new HttpResponse(null, { status: 204 });
   }),
 
   http.get(`${base()}${PATIENT_PATHS.appointments}`, ({ request }) =>

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -14,9 +14,16 @@ import { CreatePatientProfileCommand } from '../../application/use-cases/create-
 import { GetPatientProfileByAccountIdUseCase } from '../../application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { UpdatePatientProfileCommand } from '../../application/use-cases/update-patient-profile/update-patient-profile.command.js';
 import { UpdatePatientProfileUseCase } from '../../application/use-cases/update-patient-profile/update-patient-profile.use-case.js';
+import { RecordHealthPassportEntryCommand } from '../../application/use-cases/record-health-passport-entry/record-health-passport-entry.command.js';
+import { RecordHealthPassportEntryUseCase } from '../../application/use-cases/record-health-passport-entry/record-health-passport-entry.use-case.js';
+import { ListHealthPassportEntriesForPatientUseCase } from '../../application/use-cases/list-health-passport-entries-for-patient/list-health-passport-entries-for-patient.use-case.js';
+import { DeleteHealthPassportEntryCommand } from '../../application/use-cases/delete-health-passport-entry/delete-health-passport-entry.command.js';
+import { DeleteHealthPassportEntryUseCase } from '../../application/use-cases/delete-health-passport-entry/delete-health-passport-entry.use-case.js';
 import type { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
 import { PatientProfileExistsResponseDto } from '../dto/patient-profile-exists-response.dto.js';
 import { PatientProfileResponseDto } from '../dto/patient-profile-response.dto.js';
+import { HealthPassportEntryResponseDto } from '../dto/health-passport-entry-response.dto.js';
+import { RecordHealthPassportEntryRequestDto } from '../dto/record-health-passport-entry-request.dto.js';
 import { UpdatePatientProfileRequestDto } from '../dto/update-patient-profile-request.dto.js';
 import { mapPatientError } from '../mappers/patient-exception.mapper.js';
 
@@ -35,6 +42,9 @@ export class PatientProfileController {
     private readonly createPatientProfileUseCase: CreatePatientProfileUseCase,
     private readonly updatePatientProfileUseCase: UpdatePatientProfileUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
+    private readonly recordHealthPassportEntryUseCase: RecordHealthPassportEntryUseCase,
+    private readonly listHealthPassportEntriesForPatientUseCase: ListHealthPassportEntriesForPatientUseCase,
+    private readonly deleteHealthPassportEntryUseCase: DeleteHealthPassportEntryUseCase,
   ) {}
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the
@@ -77,6 +87,10 @@ export class PatientProfileController {
           allergies: body.allergies,
           chronicDiseases: body.chronicDiseases,
           insuranceProviderId: body.insuranceProviderId,
+          lifestyleNotes: body.lifestyleNotes,
+          nutritionNotes: body.nutritionNotes,
+          exerciseNotes: body.exerciseNotes,
+          mentalHealthNotes: body.mentalHealthNotes,
         }),
       );
       const account = await this.getAccountByIdUseCase.execute({ accountId: user.accountId });
@@ -84,6 +98,59 @@ export class PatientProfileController {
         throw new NotFoundError(`Account "${user.accountId}" not found.`);
       }
       return envelope(PatientProfileResponseDto.fromDomain(profile, account));
+    } catch (error) {
+      throw mapPatientError(error);
+    }
+  }
+
+  // I6 -- Health Passport (docs/01-prd.md L59 §2.4, docs/01.1-prd-update.md
+  // §17-30): patient-authored vaccinations/family history/surgeries/current
+  // medications. Own-resource, same "derive patientId from the caller's own
+  // JWT, never trust a body/param" convention as every other patient-owned
+  // write in this controller.
+  @Post('me/health-passport-entries')
+  @HttpCode(HttpStatus.CREATED)
+  async recordHealthPassportEntry(
+    @CurrentUser() user: AccessTokenClaims,
+    @Body() body: RecordHealthPassportEntryRequestDto,
+  ): Promise<ResponseEnvelope<HealthPassportEntryResponseDto>> {
+    try {
+      const profile = await this.myProfile(user.accountId);
+      const entry = await this.recordHealthPassportEntryUseCase.execute(
+        new RecordHealthPassportEntryCommand({
+          patientId: profile.getId(),
+          category: body.category,
+          title: body.title,
+          detail: body.detail,
+          occurredAt: body.occurredAt ? new Date(body.occurredAt) : undefined,
+        }),
+      );
+      return envelope(HealthPassportEntryResponseDto.fromDomain(entry));
+    } catch (error) {
+      throw mapPatientError(error);
+    }
+  }
+
+  @Get('me/health-passport-entries')
+  async listHealthPassportEntries(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<HealthPassportEntryResponseDto[]>> {
+    const profile = await this.myProfile(user.accountId);
+    const entries = await this.listHealthPassportEntriesForPatientUseCase.execute({ patientId: profile.getId() });
+    return envelope(entries.map((entry) => HealthPassportEntryResponseDto.fromDomain(entry)));
+  }
+
+  @Delete('me/health-passport-entries/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteHealthPassportEntry(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    try {
+      const profile = await this.myProfile(user.accountId);
+      await this.deleteHealthPassportEntryUseCase.execute(
+        new DeleteHealthPassportEntryCommand({ entryId: id, patientId: profile.getId() }),
+      );
     } catch (error) {
       throw mapPatientError(error);
     }

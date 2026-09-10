@@ -79,4 +79,53 @@ describe('SendGridEmailSender', () => {
     assert.equal(message.subject, 'some-future-template');
     assert.match(String(message.text), /"foo":"bar"/);
   });
+
+  // I3 -- Notification email delivery: every send now also carries a real
+  // HTML body (never just plain text) built from the shared template layer.
+  it('always includes an HTML body alongside the plain-text one', async () => {
+    const client = new FakeSendGridClient();
+    const sender = new SendGridEmailSender(client, 'noreply@orivex.dev', 'https://orivex-eg.vercel.app');
+
+    await sender.send('patient@example.com', 'appointment-confirmed', { scheduledAt: '2026-08-01T10:00:00.000Z' });
+
+    const message = client.lastMessage as MailDataRequired;
+    assert.match(String(message.html), /<!doctype html>/i);
+    assert.match(String(message.html), /2026-08-01T10:00:00\.000Z/);
+    assert.match(String(message.html), /View appointment/);
+  });
+
+  it('sends a review-request (consultation-completed) message, PHI-light, with no clinical detail', async () => {
+    const client = new FakeSendGridClient();
+    const sender = new SendGridEmailSender(client, 'noreply@orivex.dev', 'https://orivex-eg.vercel.app');
+
+    await sender.send('patient@example.com', 'consultation-completed', {});
+
+    const message = client.lastMessage as MailDataRequired;
+    assert.equal(message.subject, 'How was your Orivex consultation?');
+    assert.match(String(message.text), /rate your experience/i);
+    assert.doesNotMatch(String(message.text), /diagnosis|prescription|medication/i);
+  });
+
+  it('renders Arabic content with a real RTL HTML document when locale is "ar"', async () => {
+    const client = new FakeSendGridClient();
+    const sender = new SendGridEmailSender(client, 'noreply@orivex.dev', 'https://orivex-eg.vercel.app');
+
+    await sender.send('patient@example.com', 'appointment-confirmed', { scheduledAt: '2026-08-01T10:00:00.000Z' }, 'ar');
+
+    const message = client.lastMessage as MailDataRequired;
+    assert.equal(message.subject, 'تم تأكيد موعدك في أوريفكس');
+    assert.match(String(message.html), /dir="rtl"/);
+    assert.match(String(message.html), /lang="ar"/);
+  });
+
+  it('defaults to English (unchanged) when no locale is passed', async () => {
+    const client = new FakeSendGridClient();
+    const sender = new SendGridEmailSender(client, 'noreply@orivex.dev');
+
+    await sender.send('patient@example.com', 'appointment-confirmed', { scheduledAt: '2026-08-01T10:00:00.000Z' });
+
+    const message = client.lastMessage as MailDataRequired;
+    assert.equal(message.subject, 'Your Orivex appointment is confirmed');
+    assert.match(String(message.html), /dir="ltr"/);
+  });
 });

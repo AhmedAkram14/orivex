@@ -32,7 +32,9 @@ import { DoctorProfile } from '../../domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../domain/repositories/doctor-profile.repository.js';
 
 class FakeDoctorDirectoryQueryPort implements DoctorDirectoryQueryPort {
-  async search(_filter: DoctorDirectoryFilter): Promise<DoctorDirectoryResult> {
+  public lastFilter: DoctorDirectoryFilter | undefined;
+  async search(filter: DoctorDirectoryFilter): Promise<DoctorDirectoryResult> {
+    this.lastFilter = filter;
     return { entries: [], total: 0 };
   }
 }
@@ -113,6 +115,7 @@ class NoopDomainEventDispatcher {
 
 describe('DoctorProfileController (integration)', () => {
   let app: INestApplication;
+  let directoryQueryPort: FakeDoctorDirectoryQueryPort;
   let existingAccountId: string;
   let registeredProfileId: string;
   let meAccountId: string;
@@ -226,6 +229,7 @@ describe('DoctorProfileController (integration)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    directoryQueryPort = moduleRef.get(DOCTOR_DIRECTORY_QUERY_PORT);
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -518,6 +522,25 @@ describe('DoctorProfileController (integration)', () => {
     assert.equal(response.body.data.total, 0);
     assert.equal(response.body.data.page, 1);
     assert.equal(response.body.data.limit, 50);
+  });
+
+  // I10 -- Doctor discovery filters (rating).
+  it('GET /doctors?minRating=... passes the rating filter through to the directory query port', async () => {
+    await request(app.getHttpServer())
+      .get('/doctors?minRating=4.5')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.equal(directoryQueryPort.lastFilter?.minRating, 4.5);
+  });
+
+  it('GET /doctors?minRating=6 (out of the 1-5 domain range) is rejected with 400', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/doctors?minRating=6')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(400);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
   });
 
   // Onboarding Redesign integration-gap closure (2026-07-25, Stage O.8).

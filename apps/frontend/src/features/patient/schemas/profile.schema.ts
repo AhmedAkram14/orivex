@@ -24,6 +24,13 @@ export function createPatientProfileSchema(t: Translate) {
     allergies: z.string().min(1, t('allergiesRequired')).max(2000, t('allergiesTooLong', { max: 2000 })),
     chronicDiseases: z.string().min(1, t('chronicDiseasesRequired')).max(2000, t('chronicDiseasesTooLong', { max: 2000 })),
     insuranceProviderId: z.string().optional(),
+    // I6 -- Health Passport (docs/01.1-prd-update.md §17-30). Deliberately
+    // optional, unlike bloodType/allergies/chronicDiseases above -- these
+    // aren't part of the mandatory Medical Information onboarding gate.
+    lifestyleNotes: z.string().max(2000, t('lifestyleNotesTooLong', { max: 2000 })).optional(),
+    nutritionNotes: z.string().max(2000, t('nutritionNotesTooLong', { max: 2000 })).optional(),
+    exerciseNotes: z.string().max(2000, t('exerciseNotesTooLong', { max: 2000 })).optional(),
+    mentalHealthNotes: z.string().max(2000, t('mentalHealthNotesTooLong', { max: 2000 })).optional(),
     emergencyContacts: z
       .array(
         z.object({

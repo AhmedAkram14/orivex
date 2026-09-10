@@ -1,4 +1,5 @@
 import type { ConsultationFeedback } from '../../domain/entities/consultation-feedback.entity.js';
+import type { ReviewModerationStatus } from '../../domain/enums/review-moderation-status.enum.js';
 
 // The patient identity fields (name/avatar) require an extra Account +
 // PatientProfile lookup this DTO can't do itself -- the caller resolves
@@ -22,6 +23,11 @@ export class ConsultationFeedbackResponseDto {
   patientProfileId!: string;
   patientName!: string;
   patientAvatarUrl?: string;
+  // I11 -- Admin content moderation.
+  moderationStatus!: ReviewModerationStatus;
+  moderationReason!: string | null;
+  moderatedByAccountId!: string | null;
+  moderatedAt!: string | null;
 
   // `reviewer` is omitted by every call site where the viewer is the
   // patient looking at their own submitted feedback (consultation summary,
@@ -42,6 +48,10 @@ export class ConsultationFeedbackResponseDto {
     dto.patientProfileId = reviewer?.patientProfileId ?? feedback.getPatientId();
     dto.patientName = reviewer?.patientName ?? '';
     dto.patientAvatarUrl = reviewer?.patientAvatarUrl;
+    dto.moderationStatus = feedback.getModerationStatus();
+    dto.moderationReason = feedback.getModerationReason() ?? null;
+    dto.moderatedByAccountId = feedback.getModeratedByAccountId() ?? null;
+    dto.moderatedAt = feedback.getModeratedAt()?.toISOString() ?? null;
     return dto;
   }
 }

@@ -69,6 +69,11 @@ export const envSchema = z.object({
   // access tokens -- required (no safe default for a signing secret).
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_ACCESS_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  // I12 -- Prescription digital signature (ORIVEX Remaining Work Audit):
+  // the HMAC-SHA256 key HmacPrescriptionSignerAdapter signs every
+  // prescription with -- required, same "no safe default for a signing
+  // secret" rule as JWT_ACCESS_SECRET above.
+  PRESCRIPTION_SIGNING_SECRET: z.string().min(32),
   // argon2id cost parameters (docs/14-adrs.md's "First-Party Authentication"
   // ADR). Defaults follow OWASP's current recommendation; env-overridable so
   // production can tune for its actual hardware without a code change.
@@ -127,6 +132,17 @@ export const envSchema = z.object({
   // The verified sender address SendGrid requires on every outbound email
   // -- required together with the API key once SendGrid is actually bound.
   SENDGRID_FROM_EMAIL: z.string().email().optional(),
+  // I3 -- Notification email delivery. Local-dev-only real transport: when
+  // SendGrid isn't configured (no SENDGRID_API_KEY) and SMTP_HOST is set,
+  // AuthenticationModule binds SmtpEmailSender (nodemailer) instead of the
+  // silent LoggingEmailSender stub -- pointed at the already-provisioned
+  // Mailpit service (infrastructure/docker/docker-compose.yml) by default in
+  // .env.development, so local email delivery is genuinely verifiable
+  // (open http://localhost:8025) without needing a real SendGrid API key.
+  // Never set in production -- SendGrid (or unset -> Logging) remains the
+  // only production path.
+  SMTP_HOST: z.string().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(1025),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

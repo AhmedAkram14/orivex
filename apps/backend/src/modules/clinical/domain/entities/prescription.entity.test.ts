@@ -12,6 +12,9 @@ function signValidPrescription(): Prescription {
     consultationSessionId: '11111111-1111-4111-8111-111111111111',
     diagnosisNodeId: '22222222-2222-4222-8222-222222222222',
     authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+    signatureHash: 'test-signature-hash',
+    verificationCode: 'TEST-CODE',
+    signedAt: new Date(),
     lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
   });
 }
@@ -33,6 +36,9 @@ describe('Prescription', () => {
           consultationSessionId: '11111111-1111-4111-8111-111111111111',
           diagnosisNodeId: '22222222-2222-4222-8222-222222222222',
           authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+          signatureHash: 'test-signature-hash',
+          verificationCode: 'TEST-CODE',
+          signedAt: new Date(),
           lineItems: [],
         }),
       ClinicalDomainError,
@@ -46,6 +52,9 @@ describe('Prescription', () => {
           consultationSessionId: '11111111-1111-4111-8111-111111111111',
           diagnosisNodeId: '22222222-2222-4222-8222-222222222222',
           authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+          signatureHash: 'test-signature-hash',
+          verificationCode: 'TEST-CODE',
+          signedAt: new Date(),
           lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 0 }],
         }),
       ClinicalDomainError,
@@ -64,6 +73,8 @@ describe('Prescription', () => {
       consultationSessionId: '11111111-1111-4111-8111-111111111111',
       diagnosisNodeId: '22222222-2222-4222-8222-222222222222',
       authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE',
       status: PrescriptionStatus.Signed,
       signedAt,
       lineItems: [
@@ -89,6 +100,8 @@ describe('Prescription', () => {
       consultationSessionId: '11111111-1111-4111-8111-111111111111',
       diagnosisNodeId: '22222222-2222-4222-8222-222222222222',
       authoringDoctorId: '33333333-3333-4333-8333-333333333333',
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE',
       status: PrescriptionStatus.Signed,
       signedAt: undefined,
       lineItems: [

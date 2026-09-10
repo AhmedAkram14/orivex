@@ -103,6 +103,16 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   // going back re-renders against fresh data instead of the stale slot.
   const isConflictError = bookAppointment.error instanceof ApiError && bookAppointment.error.status === 409;
 
+  // I8 -- Free-tier abuse controls: the backend is the sole authority on
+  // eligibility (MAX_FREE_CONSULTATIONS_PER_MONTH / no-show restriction) --
+  // this only translates the real API error code into clear, localized
+  // copy. Neither case blocks browsing/booking a Paid slot; the messaging
+  // says so explicitly, matching docs/11-api-contracts.md §7's example UX.
+  const isFreeTierMonthlyCapError =
+    bookAppointment.error instanceof ApiError && bookAppointment.error.code === SHARED_ERROR_CODES.freeTierMonthlyCapExceeded;
+  const isNoShowRestrictedError =
+    bookAppointment.error instanceof ApiError && bookAppointment.error.code === SHARED_ERROR_CODES.noShowBookingRestricted;
+
   // Consultation Pricing Lifecycle Completion (pay-then-confirm): a Paid
   // booking lands Requested and is NOT confirmed by this call -- the
   // patient must pay next (this component's own 'payment' step) before the
@@ -151,9 +161,13 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
           <Alert variant="danger" role="alert">
             {isConflictError
               ? t('slotNoLongerAvailable')
-              : bookAppointment.error instanceof ApiError
-                ? bookAppointment.error.message
-                : t('bookingFailed')}
+              : isFreeTierMonthlyCapError
+                ? t('freeTierMonthlyCapReached')
+                : isNoShowRestrictedError
+                  ? t('noShowBookingRestricted')
+                  : bookAppointment.error instanceof ApiError
+                    ? bookAppointment.error.message
+                    : t('bookingFailed')}
           </Alert>
         )}
         <BookingSummaryCard
@@ -168,7 +182,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
           priceLabel={priceLabel}
           isFree={selectedWindow.consultationType === 'free'}
           actions={
-            isConflictError ? (
+            isConflictError || isFreeTierMonthlyCapError || isNoShowRestrictedError ? (
               <Button
                 variant="outline"
                 onClick={() => {

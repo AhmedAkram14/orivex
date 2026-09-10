@@ -34,6 +34,7 @@ export class UpdateDoctorProfileUseCase {
       professionalRank: command.professionalRank,
       licenseExpiryDate: command.licenseExpiryDate,
       departmentId: command.departmentId,
+      maxFreeSlotsPerDay: command.maxFreeSlotsPerDay,
     });
 
     await this.doctorProfileRepository.save(profile);

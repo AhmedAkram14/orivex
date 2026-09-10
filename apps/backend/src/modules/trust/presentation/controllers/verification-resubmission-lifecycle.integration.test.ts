@@ -63,6 +63,25 @@ import type { DepartmentRepository } from '../../../administration/domain/reposi
 import type { HospitalRepository } from '../../../administration/domain/repositories/hospital.repository.js';
 import type { SecurityEvent } from '../../domain/entities/security-event.entity.js';
 import type { SecurityEventRepository } from '../../domain/repositories/security-event.repository.js';
+import type { AuditLog } from '../../domain/entities/audit-log.entity.js';
+import type { AuditLogRepository } from '../../domain/repositories/audit-log.repository.js';
+import { ListAuditLogEntriesUseCase } from '../../application/use-cases/list-audit-log-entries/list-audit-log-entries.use-case.js';
+import type { ConsultationFeedback } from '../../../consultation/domain/entities/consultation-feedback.entity.js';
+import type {
+  ConsultationFeedbackRepository,
+  DoctorRatingAggregate,
+} from '../../../consultation/domain/repositories/consultation-feedback.repository.js';
+import { ListConsultationFeedbackByModerationStatusUseCase } from '../../../consultation/application/use-cases/list-consultation-feedback-by-moderation-status/list-consultation-feedback-by-moderation-status.use-case.js';
+import { ModerateConsultationFeedbackUseCase } from '../../../consultation/application/use-cases/moderate-consultation-feedback/moderate-consultation-feedback.use-case.js';
+import type { Dispute } from '../../../consultation/domain/entities/dispute.entity.js';
+import type { DisputeRepository } from '../../../consultation/domain/repositories/dispute.repository.js';
+import { GetDisputeByIdUseCase } from '../../../consultation/application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
+import { ListDisputesByStatusUseCase } from '../../../consultation/application/use-cases/list-disputes-by-status/list-disputes-by-status.use-case.js';
+import { ResolveDisputeUseCase } from '../../../consultation/application/use-cases/resolve-dispute/resolve-dispute.use-case.js';
+import type { KnowledgeArticle } from '../../../knowledge/domain/entities/knowledge-article.entity.js';
+import type { KnowledgeArticleRepository } from '../../../knowledge/domain/repositories/knowledge-article.repository.js';
+import { ListArticlesByStatusUseCase } from '../../../knowledge/application/use-cases/list-articles-by-status/list-articles-by-status.use-case.js';
+import { ModerateArticleUseCase } from '../../../knowledge/application/use-cases/moderate-article/moderate-article.use-case.js';
 import { AdministrationController } from '../../../administration/presentation/controllers/administration.controller.js';
 import { ListPaymentTransactionsForAdminUseCase } from '../../../administration/application/use-cases/list-payment-transactions-for-admin/list-payment-transactions-for-admin.use-case.js';
 import { PAYMENT_GATEWAY, PAYMENT_TRANSACTION_REPOSITORY } from '../../../payment/application/ports/tokens.js';
@@ -203,6 +222,84 @@ class InMemorySecurityEventRepository implements SecurityEventRepository {
   }
 }
 
+class InMemoryAuditLogRepository implements AuditLogRepository {
+  public readonly recorded: AuditLog[] = [];
+  async record(entry: AuditLog): Promise<void> {
+    this.recorded.push(entry);
+  }
+  async findMany(): Promise<{ entries: AuditLog[]; total: number }> {
+    return { entries: this.recorded, total: this.recorded.length };
+  }
+}
+
+class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  async findById(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async findByConsultationSessionId(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async listForDoctor(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
+  async listByModerationStatus(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
+  async getRatingAggregateForDoctor(): Promise<DoctorRatingAggregate> {
+    return {
+      averageRating: null,
+      reviewCount: 0,
+      writtenReviewCount: 0,
+      averageCommunicationRating: null,
+      averagePunctualityRating: null,
+      averageThoroughnessRating: null,
+    };
+  }
+  async getRatingAggregatesForDoctors(): Promise<Map<string, DoctorRatingAggregate>> {
+    return new Map();
+  }
+  async save(): Promise<void> {}
+  async update(): Promise<void> {}
+  async delete(): Promise<void> {}
+}
+
+class InMemoryKnowledgeArticleRepository implements KnowledgeArticleRepository {
+  async findById(): Promise<KnowledgeArticle | null> {
+    return null;
+  }
+  async listPublished(): Promise<{ articles: KnowledgeArticle[]; total: number }> {
+    return { articles: [], total: 0 };
+  }
+  async listByAuthor(): Promise<KnowledgeArticle[]> {
+    return [];
+  }
+  async listByStatus(): Promise<{ articles: KnowledgeArticle[]; total: number }> {
+    return { articles: [], total: 0 };
+  }
+  async countEverPublishedByAuthor(): Promise<number> {
+    return 0;
+  }
+  async save(): Promise<void> {}
+  async update(): Promise<void> {}
+}
+
+class InMemoryDisputeRepository implements DisputeRepository {
+  async findById(): Promise<Dispute | null> {
+    return null;
+  }
+  async findByAppointmentId(): Promise<Dispute | null> {
+    return null;
+  }
+  async listByRaisedByAccountId(): Promise<Dispute[]> {
+    return [];
+  }
+  async listByStatus(): Promise<{ disputes: Dispute[]; total: number }> {
+    return { disputes: [], total: 0 };
+  }
+  async save(): Promise<void> {}
+  async update(): Promise<void> {}
+}
+
 class FakeConfigService {
   private readonly values: Record<string, unknown> = { OTEL_ENABLED: false, OPENAPI_ENABLED: true };
   get(key: string): unknown {
@@ -290,6 +387,10 @@ describe('Verification resubmission lifecycle (integration)', () => {
     const departmentRepository = new InMemoryDepartmentRepository();
     const verificationCaseRepository = new InMemoryVerificationCaseRepository();
     const securityEventRepository = new InMemorySecurityEventRepository();
+    const auditLogRepository = new InMemoryAuditLogRepository();
+    const consultationFeedbackRepository = new InMemoryConsultationFeedbackRepository();
+    const disputeRepository = new InMemoryDisputeRepository();
+    const knowledgeArticleRepository = new InMemoryKnowledgeArticleRepository();
 
     // The one deliberate deviation from this suite's usual NoopDomainEventDispatcher
     // convention: a *real* dispatcher, with the real production subscription
@@ -400,6 +501,38 @@ describe('Verification resubmission lifecycle (integration)', () => {
         {
           provide: ListSecurityEventsForAccountUseCase,
           useFactory: () => new ListSecurityEventsForAccountUseCase(securityEventRepository),
+        },
+        {
+          provide: ListAuditLogEntriesUseCase,
+          useFactory: () => new ListAuditLogEntriesUseCase(auditLogRepository),
+        },
+        {
+          provide: ListConsultationFeedbackByModerationStatusUseCase,
+          useFactory: () => new ListConsultationFeedbackByModerationStatusUseCase(consultationFeedbackRepository),
+        },
+        {
+          provide: ModerateConsultationFeedbackUseCase,
+          useFactory: () => new ModerateConsultationFeedbackUseCase(consultationFeedbackRepository),
+        },
+        {
+          provide: ListDisputesByStatusUseCase,
+          useFactory: () => new ListDisputesByStatusUseCase(disputeRepository),
+        },
+        {
+          provide: GetDisputeByIdUseCase,
+          useFactory: () => new GetDisputeByIdUseCase(disputeRepository),
+        },
+        {
+          provide: ResolveDisputeUseCase,
+          useFactory: () => new ResolveDisputeUseCase(disputeRepository),
+        },
+        {
+          provide: ListArticlesByStatusUseCase,
+          useFactory: () => new ListArticlesByStatusUseCase(knowledgeArticleRepository),
+        },
+        {
+          provide: ModerateArticleUseCase,
+          useFactory: () => new ModerateArticleUseCase(knowledgeArticleRepository),
         },
         { provide: ListAccountsUseCase, useFactory: () => new ListAccountsUseCase(accountRepository) },
         {

@@ -28,9 +28,19 @@ import {
   APPOINTMENT_REPOSITORY,
   CONSULTATION_FEEDBACK_REPOSITORY,
   CONSULTATION_SESSION_REPOSITORY,
+  DISPUTE_REPOSITORY,
   FOLLOW_UP_RECOMMENDATION_REPOSITORY,
+  FREE_TIER_BOOKING_REPOSITORY,
   ROOM_TOKEN_GENERATOR,
 } from './application/ports/tokens.js';
+import { GetDisputeByIdUseCase } from './application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
+import { ListDisputesByStatusUseCase } from './application/use-cases/list-disputes-by-status/list-disputes-by-status.use-case.js';
+import { ListDisputesForCallerUseCase } from './application/use-cases/list-disputes-for-caller/list-disputes-for-caller.use-case.js';
+import { RaiseDisputeUseCase } from './application/use-cases/raise-dispute/raise-dispute.use-case.js';
+import { ResolveDisputeUseCase } from './application/use-cases/resolve-dispute/resolve-dispute.use-case.js';
+import type { DisputeRepository } from './domain/repositories/dispute.repository.js';
+import { PrismaDisputeRepository } from './infrastructure/prisma/prisma-dispute.repository.js';
+import { DisputeController } from './presentation/controllers/dispute.controller.js';
 import { BookAppointmentUseCase } from './application/use-cases/book-appointment/book-appointment.use-case.js';
 import { CloseConsultationUseCase } from './application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from './application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
@@ -57,12 +67,17 @@ import { RescheduleOrCancelAppointmentUseCase } from './application/use-cases/re
 import { StartConsultationUseCase } from './application/use-cases/start-consultation/start-consultation.use-case.js';
 import { SubmitConsultationFeedbackUseCase } from './application/use-cases/submit-consultation-feedback/submit-consultation-feedback.use-case.js';
 import { UpdateConsultationFeedbackUseCase } from './application/use-cases/update-consultation-feedback/update-consultation-feedback.use-case.js';
+import { FlagConsultationFeedbackUseCase } from './application/use-cases/flag-consultation-feedback/flag-consultation-feedback.use-case.js';
+import { ModerateConsultationFeedbackUseCase } from './application/use-cases/moderate-consultation-feedback/moderate-consultation-feedback.use-case.js';
+import { ListConsultationFeedbackByModerationStatusUseCase } from './application/use-cases/list-consultation-feedback-by-moderation-status/list-consultation-feedback-by-moderation-status.use-case.js';
 import { DeleteConsultationFeedbackUseCase } from './application/use-cases/delete-consultation-feedback/delete-consultation-feedback.use-case.js';
 import type { AppointmentRepository } from './domain/repositories/appointment.repository.js';
 import type { ConsultationFeedbackRepository } from './domain/repositories/consultation-feedback.repository.js';
 import type { ConsultationSessionRepository } from './domain/repositories/consultation-session.repository.js';
 import type { FollowUpRecommendationRepository } from './domain/repositories/follow-up-recommendation.repository.js';
 import { PrismaAppointmentRepository } from './infrastructure/prisma/prisma-appointment.repository.js';
+import { PrismaFreeTierBookingRepository } from './infrastructure/prisma/prisma-free-tier-booking.repository.js';
+import type { FreeTierBookingRepository } from './domain/repositories/free-tier-booking.repository.js';
 import { PrismaConsultationFeedbackRepository } from './infrastructure/prisma/prisma-consultation-feedback.repository.js';
 import { PrismaConsultationSessionRepository } from './infrastructure/prisma/prisma-consultation-session.repository.js';
 import { PrismaFollowUpRecommendationRepository } from './infrastructure/prisma/prisma-follow-up-recommendation.repository.js';
@@ -72,6 +87,7 @@ import { StaleConsultationSessionReconciliationService } from './infrastructure/
 import { AppointmentNoShowReconciliationService } from './infrastructure/jobs/appointment-no-show-reconciliation.service.js';
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
 import { ConsultationFeedbackController } from './presentation/controllers/consultation-feedback.controller.js';
+import { DoctorReviewFlagController } from './presentation/controllers/doctor-review-flag.controller.js';
 import { DoctorAppointmentsController } from './presentation/controllers/doctor-appointments.controller.js';
 import { DoctorReviewsController } from './presentation/controllers/doctor-reviews.controller.js';
 import { ConsultationController } from './presentation/controllers/consultation.controller.js';
@@ -92,13 +108,17 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     ConsultationController,
     TelemedicineWebhookController,
     ConsultationFeedbackController,
+    DoctorReviewFlagController,
+    DisputeController,
     FollowUpRecommendationController,
     DoctorReviewsController,
   ],
   providers: [
     { provide: APPOINTMENT_REPOSITORY, useClass: PrismaAppointmentRepository },
+    { provide: FREE_TIER_BOOKING_REPOSITORY, useClass: PrismaFreeTierBookingRepository },
     { provide: CONSULTATION_SESSION_REPOSITORY, useClass: PrismaConsultationSessionRepository },
     { provide: CONSULTATION_FEEDBACK_REPOSITORY, useClass: PrismaConsultationFeedbackRepository },
+    { provide: DISPUTE_REPOSITORY, useClass: PrismaDisputeRepository },
     { provide: FOLLOW_UP_RECOMMENDATION_REPOSITORY, useClass: PrismaFollowUpRecommendationRepository },
     {
       provide: ConfirmAppointmentUseCase,
@@ -120,6 +140,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         getAvailabilityWindowByIdUseCase: GetAvailabilityWindowByIdUseCase,
         reserveSlotUseCase: ReserveSlotUseCase,
         releaseSlotUseCase: ReleaseSlotUseCase,
+        freeTierBookingRepository: FreeTierBookingRepository,
       ) =>
         new BookAppointmentUseCase(
           appointmentRepository,
@@ -129,6 +150,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
           getAvailabilityWindowByIdUseCase,
           reserveSlotUseCase,
           releaseSlotUseCase,
+          freeTierBookingRepository,
         ),
       inject: [
         APPOINTMENT_REPOSITORY,
@@ -138,6 +160,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         GetAvailabilityWindowByIdUseCase,
         ReserveSlotUseCase,
         ReleaseSlotUseCase,
+        FREE_TIER_BOOKING_REPOSITORY,
       ],
     },
     {
@@ -342,6 +365,63 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       useFactory: (repository: ConsultationFeedbackRepository) => new GetConsultationFeedbackForSessionUseCase(repository),
       inject: [CONSULTATION_FEEDBACK_REPOSITORY],
     },
+    // I11 -- Admin content moderation (ORIVEX Remaining Work Audit).
+    {
+      provide: FlagConsultationFeedbackUseCase,
+      useFactory: (
+        repository: ConsultationFeedbackRepository,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+      ) => new FlagConsultationFeedbackUseCase(repository, getDoctorProfileByAccountIdUseCase),
+      inject: [CONSULTATION_FEEDBACK_REPOSITORY, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: ModerateConsultationFeedbackUseCase,
+      useFactory: (repository: ConsultationFeedbackRepository) => new ModerateConsultationFeedbackUseCase(repository),
+      inject: [CONSULTATION_FEEDBACK_REPOSITORY],
+    },
+    {
+      provide: ListConsultationFeedbackByModerationStatusUseCase,
+      useFactory: (repository: ConsultationFeedbackRepository) =>
+        new ListConsultationFeedbackByModerationStatusUseCase(repository),
+      inject: [CONSULTATION_FEEDBACK_REPOSITORY],
+    },
+    // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit).
+    {
+      provide: RaiseDisputeUseCase,
+      useFactory: (
+        disputeRepository: DisputeRepository,
+        appointmentRepository: AppointmentRepository,
+        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+      ) =>
+        new RaiseDisputeUseCase(
+          disputeRepository,
+          appointmentRepository,
+          getPatientProfileByAccountIdUseCase,
+          getDoctorProfileByAccountIdUseCase,
+        ),
+      inject: [DISPUTE_REPOSITORY, APPOINTMENT_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: ListDisputesForCallerUseCase,
+      useFactory: (repository: DisputeRepository) => new ListDisputesForCallerUseCase(repository),
+      inject: [DISPUTE_REPOSITORY],
+    },
+    {
+      provide: GetDisputeByIdUseCase,
+      useFactory: (repository: DisputeRepository) => new GetDisputeByIdUseCase(repository),
+      inject: [DISPUTE_REPOSITORY],
+    },
+    {
+      provide: ListDisputesByStatusUseCase,
+      useFactory: (repository: DisputeRepository) => new ListDisputesByStatusUseCase(repository),
+      inject: [DISPUTE_REPOSITORY],
+    },
+    {
+      provide: ResolveDisputeUseCase,
+      useFactory: (repository: DisputeRepository) => new ResolveDisputeUseCase(repository),
+      inject: [DISPUTE_REPOSITORY],
+    },
     {
       provide: GetDoctorRatingAggregateUseCase,
       useFactory: (repository: ConsultationFeedbackRepository) => new GetDoctorRatingAggregateUseCase(repository),
@@ -397,6 +477,11 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     ListConsultationFeedbackForDoctorUseCase,
     GetFollowUpRecommendationForSessionUseCase,
     GetAppointmentsForDoctorAndPatientUseCase,
+    ModerateConsultationFeedbackUseCase,
+    ListConsultationFeedbackByModerationStatusUseCase,
+    ListDisputesByStatusUseCase,
+    ResolveDisputeUseCase,
+    GetDisputeByIdUseCase,
   ],
 })
 export class ConsultationModule {}

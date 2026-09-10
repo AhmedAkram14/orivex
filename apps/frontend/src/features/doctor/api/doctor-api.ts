@@ -32,6 +32,14 @@ function buildListDoctorsQuery(params: ListDoctorDirectoryParams): string {
   if (params.specialty) query.set('specialty', params.specialty);
   if (params.specialtyId) query.set('specialtyId', params.specialtyId);
   if (params.hospitalId) query.set('hospitalId', params.hospitalId);
+  if (params.language) query.set('language', params.language);
+  if (params.gender) query.set('gender', params.gender);
+  if (params.minFeeAmount !== undefined) query.set('minFeeAmount', String(params.minFeeAmount));
+  if (params.maxFeeAmount !== undefined) query.set('maxFeeAmount', String(params.maxFeeAmount));
+  if (params.consultationType) query.set('consultationType', params.consultationType);
+  if (params.minYearsOfExperience !== undefined) query.set('minYearsOfExperience', String(params.minYearsOfExperience));
+  if (params.availableWithinDays !== undefined) query.set('availableWithinDays', String(params.availableWithinDays));
+  if (params.minRating !== undefined) query.set('minRating', String(params.minRating));
   const qs = query.toString();
   return qs ? `${DOCTOR_PATHS.list}?${qs}` : DOCTOR_PATHS.list;
 }

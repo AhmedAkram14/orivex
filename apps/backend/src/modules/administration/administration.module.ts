@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
+import { ConsultationModule } from '../consultation/consultation.module.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { KnowledgeModule } from '../knowledge/knowledge.module.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
@@ -40,7 +42,7 @@ import { HospitalDirectoryController } from './presentation/controllers/hospital
 // exported use cases -- never their repositories directly, same rule as
 // before Stage 4.
 @Module({
-  imports: [IdentityModule, TrustModule, AuthenticationGuardsModule, PaymentModule, PatientModule, DoctorModule],
+  imports: [IdentityModule, TrustModule, AuthenticationGuardsModule, PaymentModule, PatientModule, DoctorModule, ConsultationModule, KnowledgeModule],
   controllers: [AdministrationController, HospitalDirectoryController],
   providers: [
     { provide: HOSPITAL_REPOSITORY, useClass: PrismaHospitalRepository },

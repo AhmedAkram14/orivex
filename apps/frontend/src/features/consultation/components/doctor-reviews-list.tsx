@@ -3,6 +3,7 @@
 import { Star } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
+import { FlagReviewAction } from '@/features/consultation/components/flag-review-action';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -107,6 +108,11 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
               ))}
             </div>
             <p className="text-sm text-text-secondary">{review.comment}</p>
+            {variant === 'workspace' && (
+              <div className="mt-1">
+                <FlagReviewAction feedbackId={review.id} doctorProfileId={doctorProfileId} />
+              </div>
+            )}
           </div>
         </li>
       ))}

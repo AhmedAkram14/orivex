@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BookHeart,
   CalendarDays,
   Droplet,
   Flower2,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { PatientProfile } from '@/features/patient/api/types';
+import { HealthPassportEntriesPanel } from '@/features/patient/components/profile/health-passport-entries-panel';
 import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
 import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -255,6 +257,36 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
     </Card>
   );
 
+  const healthPassportNotesCard = (
+    <Card className={cn('flex h-full flex-col', CARD_CLASSNAME)}>
+      <CardHeader className="flex-row items-center justify-between px-7 py-6">
+        <CardTitle>{t('healthPassport')}</CardTitle>
+        <Button variant="outline" size="sm" onClick={onEdit}>
+          <Icon icon={Pencil} size="sm" className="me-2" />
+          {t('edit')}
+        </Button>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 px-7 pt-0 pb-7">
+        <div>
+          <p className="text-xs text-text-tertiary">{t('lifestyleNotes')}</p>
+          <p className="text-sm text-text-secondary">{profile.lifestyleNotes || t('notOnRecord')}</p>
+        </div>
+        <div>
+          <p className="text-xs text-text-tertiary">{t('nutritionNotes')}</p>
+          <p className="text-sm text-text-secondary">{profile.nutritionNotes || t('notOnRecord')}</p>
+        </div>
+        <div>
+          <p className="text-xs text-text-tertiary">{t('exerciseNotes')}</p>
+          <p className="text-sm text-text-secondary">{profile.exerciseNotes || t('notOnRecord')}</p>
+        </div>
+        <div>
+          <p className="text-xs text-text-tertiary">{t('mentalHealthNotes')}</p>
+          <p className="text-sm text-text-secondary">{profile.mentalHealthNotes || t('notOnRecord')}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   const settingsCard = (
     <Card className={cn('flex h-full flex-col', CARD_CLASSNAME)}>
       <CardContent className="flex h-full flex-col gap-3 px-7 py-6">
@@ -304,6 +336,13 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
           {t('tabs.insurance')}
         </TabsTrigger>
         <TabsTrigger
+          value="passport"
+          className="flex items-center whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary"
+        >
+          <Icon icon={BookHeart} size="sm" className="me-2" />
+          {t('tabs.healthPassport')}
+        </TabsTrigger>
+        <TabsTrigger
           value="settings"
           className="flex items-center whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary"
         >
@@ -336,6 +375,10 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
 
       <TabsContent value="emergency">{emergencyContactsCard}</TabsContent>
       <TabsContent value="insurance">{insuranceCard}</TabsContent>
+      <TabsContent value="passport" className="flex flex-col gap-6">
+        {healthPassportNotesCard}
+        <HealthPassportEntriesPanel />
+      </TabsContent>
       <TabsContent value="settings">{settingsCard}</TabsContent>
     </Tabs>
   );

@@ -17,6 +17,11 @@ export enum MediaAssetPurpose {
   GraduationCertificate = 'graduation_certificate',
   BoardCertificate = 'board_certificate',
   ProfessionalMembershipCard = 'professional_membership_card',
+  // I7 -- Messaging (docs/01-prd.md §2.13): an attachment on a Message.
+  // Administrative/follow-up communication, not a clinical record -- never
+  // added to CLINICAL_MEDIA_ASSET_PURPOSES below, so it carries no
+  // identity-verification gate.
+  MessageAttachment = 'message_attachment',
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.4): the subset of

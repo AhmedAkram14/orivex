@@ -5,7 +5,9 @@ import { authHandlers } from '@/mocks/handlers/auth';
 import { consultationHandlers } from '@/mocks/handlers/consultation';
 import { doctorHandlers } from '@/mocks/handlers/doctor';
 import { identityHandlers } from '@/mocks/handlers/identity';
+import { knowledgeHandlers } from '@/mocks/handlers/knowledge';
 import { mediaAssetHandlers } from '@/mocks/handlers/media-assets';
+import { messagingHandlers } from '@/mocks/handlers/messaging';
 import { notificationHandlers } from '@/mocks/handlers/notifications';
 import { patientHandlers } from '@/mocks/handlers/patient';
 import { paymentHandlers } from '@/mocks/handlers/payment';
@@ -41,7 +43,9 @@ export const handlers = [
   ...notificationHandlers,
   ...doctorHandlers,
   ...identityHandlers,
+  ...knowledgeHandlers,
   ...mediaAssetHandlers,
+  ...messagingHandlers,
   ...patientHandlers,
   ...paymentHandlers,
   ...publicHandlers,

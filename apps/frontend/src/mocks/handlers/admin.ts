@@ -14,6 +14,7 @@ import type { Role } from '@/shared/auth/types';
 import {
   createDepartment,
   createHospital,
+  getAuditLog,
   getFeatureFlags,
   getPlatformKpis,
   getSecurityEventsForAccount,
@@ -28,6 +29,10 @@ import {
   updateAccountRole,
 } from '@/mocks/admin-store';
 import { listAllTransactionsForAdmin, refundTransaction } from '@/mocks/payment-store';
+import { listConsultationFeedbackByModerationStatus, moderateConsultationFeedback } from '@/mocks/consultation-store';
+import { listDisputesByStatus, resolveDispute } from '@/mocks/disputes-store';
+import { resolveRequestAccountId } from '@/mocks/request-account';
+import { LEGACY_DOCTOR_ACCOUNT_ID } from '@/mocks/auth-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -145,5 +150,42 @@ export const adminHandlers = [
       return errorResponse(422, 'VALIDATION_FAILED', 'This transaction has already been refunded.');
     }
     return HttpResponse.json({ data: result.transaction });
+  }),
+
+  // I11 -- Admin audit-log viewer.
+  http.get(`${base()}${ADMIN_PATHS.auditLog}`, () => HttpResponse.json({ data: getAuditLog() })),
+
+  // I11 -- Admin content moderation.
+  http.get(`${base()}${ADMIN_PATHS.reviews}`, ({ request }) => {
+    const url = new URL(request.url);
+    const status = (url.searchParams.get('status') ?? 'flagged') as 'visible' | 'flagged' | 'hidden';
+    return HttpResponse.json({ data: listConsultationFeedbackByModerationStatus(status) });
+  }),
+
+  http.patch(`${base()}/admin/reviews/:id/moderate`, async ({ request, params }) => {
+    const body = (await request.json()) as { status: 'visible' | 'hidden'; reason: string };
+    const moderatorAccountId = resolveRequestAccountId(request) ?? LEGACY_DOCTOR_ACCOUNT_ID;
+    const updated = moderateConsultationFeedback(params.id as string, body.status, body.reason, moderatorAccountId);
+    if (!updated) {
+      return errorResponse(404, 'NOT_FOUND', 'ConsultationFeedback not found.');
+    }
+    return HttpResponse.json({ data: updated });
+  }),
+
+  // I11 -- Admin dispute resolution.
+  http.get(`${base()}${ADMIN_PATHS.disputes}`, ({ request }) => {
+    const url = new URL(request.url);
+    const status = (url.searchParams.get('status') ?? 'open') as 'open' | 'resolved' | 'dismissed';
+    return HttpResponse.json({ data: listDisputesByStatus(status) });
+  }),
+
+  http.patch(`${base()}/admin/disputes/:id/resolve`, async ({ request, params }) => {
+    const body = (await request.json()) as { status: 'resolved' | 'dismissed'; resolutionNotes: string };
+    const moderatorAccountId = resolveRequestAccountId(request) ?? LEGACY_DOCTOR_ACCOUNT_ID;
+    const updated = resolveDispute(params.id as string, body.status, body.resolutionNotes, moderatorAccountId);
+    if (!updated) {
+      return errorResponse(404, 'NOT_FOUND', 'Dispute not found.');
+    }
+    return HttpResponse.json({ data: updated });
   }),
 ];

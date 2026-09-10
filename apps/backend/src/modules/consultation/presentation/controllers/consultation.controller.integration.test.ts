@@ -41,8 +41,14 @@ import type { PatientProfileRepository } from '../../../patient/domain/repositor
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { ReleaseSlotUseCase } from '../../../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../../../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
-import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY } from '../../application/ports/tokens.js';
+import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY, FREE_TIER_BOOKING_REPOSITORY } from '../../application/ports/tokens.js';
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
+import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
+import type {
+  FreeTierBookingCaps,
+  FreeTierBookingOutcome,
+  FreeTierBookingRepository,
+} from '../../domain/repositories/free-tier-booking.repository.js';
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
@@ -194,6 +200,12 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   private readonly byId = new Map<string, Appointment>();
   async findById(id: string): Promise<Appointment | null> {
     return this.byId.get(id) ?? null;
@@ -231,6 +243,40 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   }
 }
 
+// I8 -- Free-tier abuse controls, concurrency fix: an in-memory stand-in for
+// PrismaFreeTierBookingRepository, backed by the SAME InMemoryAppointmentRepository
+// instance this test suite already uses -- so a booking made through this
+// gateway is visible to every other assertion in this file exactly like a
+// real one would be. No locking needed in-memory (single-threaded Node.js
+// test process); the real concurrency guarantee is proven separately
+// against actual PostgreSQL.
+class InMemoryFreeTierBookingRepository implements FreeTierBookingRepository {
+  constructor(private readonly appointmentRepo: InMemoryAppointmentRepository) {}
+
+  async checkCapsAndSave(
+    appointment: Appointment,
+    patientId: string,
+    caps: FreeTierBookingCaps,
+  ): Promise<FreeTierBookingOutcome> {
+    const existing = await this.appointmentRepo.findByPatientId(patientId);
+    const noShowCount = existing.filter((a) => a.getStatus() === AppointmentStatus.NoShow).length;
+    if (noShowCount >= caps.maxNoShowsBeforeBlocked) {
+      return 'no_show_blocked';
+    }
+    const freeThisMonth = existing.filter(
+      (a) =>
+        a.getPricing().isFree() &&
+        a.getStatus() !== AppointmentStatus.Cancelled &&
+        a.getCreatedAt() >= caps.freeConsultationsWindowStart,
+    ).length;
+    if (freeThisMonth >= caps.maxFreeConsultationsPerMonth) {
+      return 'monthly_cap_exceeded';
+    }
+    await this.appointmentRepo.save(appointment);
+    return 'booked';
+  }
+}
+
 class InMemoryConsultationSessionRepository implements ConsultationSessionRepository {
   private readonly byId = new Map<string, ConsultationSession>();
   async findById(id: string): Promise<ConsultationSession | null> {
@@ -253,6 +299,12 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
 }
 
 class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  async findById(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async listByModerationStatus(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
   private readonly bySessionId = new Map<string, ConsultationFeedback>();
   async findByConsultationSessionId(consultationSessionId: string): Promise<ConsultationFeedback | null> {
     return this.bySessionId.get(consultationSessionId) ?? null;
@@ -493,6 +545,7 @@ describe('Consultation controllers (integration)', () => {
       new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
       reserveSlotUseCase,
       releaseSlotUseCase,
+      new InMemoryFreeTierBookingRepository(appointmentRepo),
     );
     const rescheduleOrCancelAppointmentUseCase = new RescheduleOrCancelAppointmentUseCase(
       appointmentRepo,
@@ -862,12 +915,20 @@ describe('Consultation controllers (integration)', () => {
   });
 
   it('PATCH /appointments/:id cancels a Confirmed appointment on the second window', async () => {
+    // I8 -- Free-tier abuse controls: uses paidWindow rather than
+    // secondFreeWindow -- this test's earlier free booking would otherwise
+    // count toward (and, this deep into the suite, exceed) the patient's
+    // real MAX_FREE_CONSULTATIONS_PER_MONTH cap, which is now genuinely
+    // enforced (InMemoryFreeTierBookingRepository computes it live from
+    // appointmentRepo, unlike the old always-0 stub). Cancellation behavior
+    // itself is identical regardless of Free/Paid, so this is a pure test-
+    // fixture fix, not a weakened assertion.
     const booked = await request(app.getHttpServer())
       .post('/appointments')
       .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
       .send({
         doctorId: doctor.getId(),
-        availabilityWindowId: secondFreeWindow.getId(),
+        availabilityWindowId: paidWindow.getId(),
       })
       .expect(201);
 

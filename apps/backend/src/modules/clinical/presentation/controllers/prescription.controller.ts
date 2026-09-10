@@ -1,5 +1,8 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 
+import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
@@ -12,6 +15,7 @@ import { GetConsultationSessionByIdUseCase } from '../../../consultation/applica
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GeneratePrescriptionPdfUseCase } from '../../application/use-cases/generate-prescription-pdf/generate-prescription-pdf.use-case.js';
 import { GetPrescriptionByIdUseCase } from '../../application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { SignPrescriptionCommand } from '../../application/use-cases/sign-prescription/sign-prescription.command.js';
 import { SignPrescriptionUseCase } from '../../application/use-cases/sign-prescription/sign-prescription.use-case.js';
@@ -45,6 +49,8 @@ export class PrescriptionController {
     private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly recordAuditLogUseCase: RecordAuditLogUseCase,
+    private readonly generatePrescriptionPdfUseCase: GeneratePrescriptionPdfUseCase,
+    private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
 
   @Post()
@@ -98,6 +104,31 @@ export class PrescriptionController {
         throw new NotFoundError(`Prescription "${id}" not found.`);
       }
       return envelope(PrescriptionResponseDto.fromDomain(prescription));
+    } catch (error) {
+      throw mapClinicalError(error);
+    }
+  }
+
+  // I12 -- Prescription PDF generation (ORIVEX Remaining Work Audit): same
+  // ownership check as getById -- either the authoring doctor or the
+  // treated patient may download the PDF, never anyone else.
+  @Get(':id/pdf')
+  @Header('Content-Type', 'application/pdf')
+  async getPdf(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Buffer> {
+    try {
+      const prescription = await this.getPrescriptionByIdUseCase.execute({ prescriptionId: id });
+      if (!prescription || !(await this.isOwnedByCaller(prescription, user)) || !prescription.getVerificationCode()) {
+        throw new NotFoundError(`Prescription "${id}" not found.`);
+      }
+      const frontendUrl = this.configService.get('FRONTEND_URL', { infer: true });
+      const verificationUrl = `${frontendUrl ?? ''}/verify-prescription/${prescription.getVerificationCode()}`;
+      const pdf = await this.generatePrescriptionPdfUseCase.execute({ prescriptionId: id, verificationUrl });
+      res.setHeader('Content-Disposition', `attachment; filename="prescription-${id}.pdf"`);
+      return pdf;
     } catch (error) {
       throw mapClinicalError(error);
     }

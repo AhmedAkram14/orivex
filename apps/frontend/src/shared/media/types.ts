@@ -18,7 +18,8 @@ export type MediaAssetPurpose =
   | 'medical_license'
   | 'graduation_certificate'
   | 'board_certificate'
-  | 'professional_membership_card';
+  | 'professional_membership_card'
+  | 'message_attachment';
 
 export type MediaAssetStatus = 'pending' | 'confirmed' | 'rejected';
 

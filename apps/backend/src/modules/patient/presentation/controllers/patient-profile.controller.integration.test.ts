@@ -21,11 +21,16 @@ import type { AccountRepository } from '../../../identity/domain/repositories/ac
 import type { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
 import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
-import { PATIENT_PROFILE_REPOSITORY } from '../../application/ports/tokens.js';
+import { HEALTH_PASSPORT_ENTRY_REPOSITORY, PATIENT_PROFILE_REPOSITORY } from '../../application/ports/tokens.js';
 import { CreatePatientProfileUseCase } from '../../application/use-cases/create-patient-profile/create-patient-profile.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { UpdatePatientProfileUseCase } from '../../application/use-cases/update-patient-profile/update-patient-profile.use-case.js';
+import { RecordHealthPassportEntryUseCase } from '../../application/use-cases/record-health-passport-entry/record-health-passport-entry.use-case.js';
+import { ListHealthPassportEntriesForPatientUseCase } from '../../application/use-cases/list-health-passport-entries-for-patient/list-health-passport-entries-for-patient.use-case.js';
+import { DeleteHealthPassportEntryUseCase } from '../../application/use-cases/delete-health-passport-entry/delete-health-passport-entry.use-case.js';
+import type { HealthPassportEntry } from '../../domain/entities/health-passport-entry.entity.js';
 import type { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
+import type { HealthPassportEntryRepository } from '../../domain/repositories/health-passport-entry.repository.js';
 import type { PatientProfileRepository } from '../../domain/repositories/patient-profile.repository.js';
 
 import { PatientProfileController } from './patient-profile.controller.js';
@@ -63,6 +68,23 @@ class InMemoryPatientProfileRepository implements PatientProfileRepository {
   }
   async save(profile: PatientProfile): Promise<void> {
     this.byId.set(profile.getId(), profile);
+  }
+}
+
+class InMemoryHealthPassportEntryRepository implements HealthPassportEntryRepository {
+  private readonly byId = new Map<string, HealthPassportEntry>();
+
+  async findById(id: string): Promise<HealthPassportEntry | null> {
+    return this.byId.get(id) ?? null;
+  }
+  async findByPatientId(patientId: string): Promise<HealthPassportEntry[]> {
+    return [...this.byId.values()].filter((entry) => entry.getPatientId() === patientId);
+  }
+  async save(entry: HealthPassportEntry): Promise<void> {
+    this.byId.set(entry.getId(), entry);
+  }
+  async delete(id: string): Promise<void> {
+    this.byId.delete(id);
   }
 }
 
@@ -131,6 +153,22 @@ describe('PatientProfileController (integration)', () => {
           provide: GetPatientProfileByAccountIdUseCase,
           useFactory: (repo: PatientProfileRepository) => new GetPatientProfileByAccountIdUseCase(repo),
           inject: [PATIENT_PROFILE_REPOSITORY],
+        },
+        { provide: HEALTH_PASSPORT_ENTRY_REPOSITORY, useClass: InMemoryHealthPassportEntryRepository },
+        {
+          provide: RecordHealthPassportEntryUseCase,
+          useFactory: (repo: HealthPassportEntryRepository) => new RecordHealthPassportEntryUseCase(repo),
+          inject: [HEALTH_PASSPORT_ENTRY_REPOSITORY],
+        },
+        {
+          provide: ListHealthPassportEntriesForPatientUseCase,
+          useFactory: (repo: HealthPassportEntryRepository) => new ListHealthPassportEntriesForPatientUseCase(repo),
+          inject: [HEALTH_PASSPORT_ENTRY_REPOSITORY],
+        },
+        {
+          provide: DeleteHealthPassportEntryUseCase,
+          useFactory: (repo: HealthPassportEntryRepository) => new DeleteHealthPassportEntryUseCase(repo),
+          inject: [HEALTH_PASSPORT_ENTRY_REPOSITORY],
         },
       ],
     }).compile();
@@ -230,5 +268,72 @@ describe('PatientProfileController (integration)', () => {
       .expect(400);
 
     assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
+  it('PATCH /patients/me updates the health passport notes fields', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({
+        lifestyleNotes: 'Non-smoker, exercises weekly.',
+        nutritionNotes: 'Vegetarian.',
+        exerciseNotes: 'Runs 5k twice a week.',
+        mentalHealthNotes: 'No history of anxiety or depression.',
+      })
+      .expect(200);
+
+    assert.equal(response.body.data.lifestyleNotes, 'Non-smoker, exercises weekly.');
+    assert.equal(response.body.data.nutritionNotes, 'Vegetarian.');
+    assert.equal(response.body.data.exerciseNotes, 'Runs 5k twice a week.');
+    assert.equal(response.body.data.mentalHealthNotes, 'No history of anxiety or depression.');
+  });
+
+  it('POST /patients/me/health-passport-entries records an entry, GET lists it, DELETE removes it', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/patients/me/health-passport-entries')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ category: 'vaccination', title: 'MMR', detail: 'Second dose', occurredAt: '2020-01-01T00:00:00.000Z' })
+      .expect(201);
+
+    assert.equal(created.body.data.category, 'vaccination');
+    assert.equal(created.body.data.title, 'MMR');
+
+    const listed = await request(app.getHttpServer())
+      .get('/patients/me/health-passport-entries')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.ok(listed.body.data.some((entry: { id: string }) => entry.id === created.body.data.id));
+
+    await request(app.getHttpServer())
+      .delete(`/patients/me/health-passport-entries/${created.body.data.id}`)
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(204);
+
+    const afterDelete = await request(app.getHttpServer())
+      .get('/patients/me/health-passport-entries')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.ok(!afterDelete.body.data.some((entry: { id: string }) => entry.id === created.body.data.id));
+  });
+
+  it('POST /patients/me/health-passport-entries rejects an empty title', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/patients/me/health-passport-entries')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ category: 'surgery', title: '' })
+      .expect(400);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
+  it('DELETE /patients/me/health-passport-entries/:id returns 404 for an unknown id', async () => {
+    const response = await request(app.getHttpServer())
+      .delete('/patients/me/health-passport-entries/99999999-9999-4999-8999-999999999999')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
   });
 });

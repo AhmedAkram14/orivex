@@ -13,6 +13,7 @@ import { GetFollowUpRecommendationForSessionUseCase } from '../consultation/appl
 import { GetDoctorProfileByAccountIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
@@ -26,7 +27,9 @@ import {
   HEALTH_JOURNEY_REPOSITORY,
   LAB_REQUEST_REPOSITORY,
   PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY,
+  PRESCRIPTION_PDF_GENERATOR,
   PRESCRIPTION_REPOSITORY,
+  PRESCRIPTION_SIGNER,
   VITAL_READING_REPOSITORY,
 } from './application/ports/tokens.js';
 import {
@@ -53,6 +56,12 @@ import { RecordVitalReadingUseCase } from './application/use-cases/record-vital-
 import { RecordDiagnosisUseCase } from './application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { SignPrescriptionUseCase } from './application/use-cases/sign-prescription/sign-prescription.use-case.js';
 import { UpdateJourneyStageUseCase } from './application/use-cases/update-journey-stage/update-journey-stage.use-case.js';
+import { VerifyPrescriptionUseCase } from './application/use-cases/verify-prescription/verify-prescription.use-case.js';
+import { GeneratePrescriptionPdfUseCase } from './application/use-cases/generate-prescription-pdf/generate-prescription-pdf.use-case.js';
+import type { PrescriptionSignerPort } from './application/ports/prescription-signer.port.js';
+import type { PrescriptionPdfGeneratorPort } from './application/ports/prescription-pdf-generator.port.js';
+import { HmacPrescriptionSignerAdapter } from './infrastructure/crypto/hmac-prescription-signer.adapter.js';
+import { PdfkitPrescriptionPdfGeneratorAdapter } from './infrastructure/pdf/pdfkit-prescription-pdf-generator.adapter.js';
 import type { ClinicalNoteRepository } from './domain/repositories/clinical-note.repository.js';
 import type { HealthGraphRepository } from './domain/repositories/health-graph.repository.js';
 import type { HealthJourneyRepository } from './domain/repositories/health-journey.repository.js';
@@ -77,6 +86,7 @@ import { JourneyController } from './presentation/controllers/journey.controller
 import { LabRequestController } from './presentation/controllers/lab-request.controller.js';
 import { PatientDashboardController } from './presentation/controllers/patient-dashboard.controller.js';
 import { PrescriptionController } from './presentation/controllers/prescription.controller.js';
+import { PrescriptionVerificationController } from './presentation/controllers/prescription-verification.controller.js';
 
 // Imports PatientModule, DoctorModule, ConsultationModule, IdentityModule, and
 // AuthenticationModule to consume their own exported use cases/guards
@@ -90,6 +100,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     ClinicalNoteController,
     HealthGraphController,
     PrescriptionController,
+    PrescriptionVerificationController,
     PatientDashboardController,
     DiagnosisController,
     VitalsController,
@@ -106,6 +117,8 @@ import { PrescriptionController } from './presentation/controllers/prescription.
     { provide: VITAL_READING_REPOSITORY, useClass: PrismaVitalReadingRepository },
     { provide: LAB_REQUEST_REPOSITORY, useClass: PrismaLabRequestRepository },
     { provide: PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY, useClass: PrismaPendingAISuggestionAcknowledgmentRepository },
+    { provide: PRESCRIPTION_SIGNER, useClass: HmacPrescriptionSignerAdapter },
+    { provide: PRESCRIPTION_PDF_GENERATOR, useClass: PdfkitPrescriptionPdfGeneratorAdapter },
     {
       // Registers Clinical's own event subscriber against the shared
       // DomainEventDispatcher port (docs/10-backend-architecture.md's hard
@@ -236,6 +249,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
         getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
         pendingAISuggestionAcknowledgmentRepository: PendingAISuggestionAcknowledgmentRepository,
+        prescriptionSignerPort: PrescriptionSignerPort,
       ) =>
         new SignPrescriptionUseCase(
           repository,
@@ -245,6 +259,7 @@ import { PrescriptionController } from './presentation/controllers/prescription.
           getDoctorProfileByIdUseCase,
           getHealthGraphSubgraphUseCase,
           pendingAISuggestionAcknowledgmentRepository,
+          prescriptionSignerPort,
         ),
       inject: [
         PRESCRIPTION_REPOSITORY,
@@ -254,12 +269,72 @@ import { PrescriptionController } from './presentation/controllers/prescription.
         GetDoctorProfileByIdUseCase,
         GetHealthGraphSubgraphUseCase,
         PENDING_AI_SUGGESTION_ACKNOWLEDGMENT_REPOSITORY,
+        PRESCRIPTION_SIGNER,
       ],
     },
     {
       provide: GetPrescriptionByIdUseCase,
       useFactory: (repository: PrescriptionRepository) => new GetPrescriptionByIdUseCase(repository),
       inject: [PRESCRIPTION_REPOSITORY],
+    },
+    // I12 -- Prescription digital signature and verification marker (ORIVEX
+    // Remaining Work Audit).
+    {
+      provide: VerifyPrescriptionUseCase,
+      useFactory: (
+        repository: PrescriptionRepository,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+      ) =>
+        new VerifyPrescriptionUseCase(
+          repository,
+          getDoctorProfileByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+        ),
+      inject: [
+        PRESCRIPTION_REPOSITORY,
+        GetDoctorProfileByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        GetConsultationSessionByIdUseCase,
+        GetAppointmentByIdUseCase,
+      ],
+    },
+    {
+      provide: GeneratePrescriptionPdfUseCase,
+      useFactory: (
+        repository: PrescriptionRepository,
+        pdfGenerator: PrescriptionPdfGeneratorPort,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+      ) =>
+        new GeneratePrescriptionPdfUseCase(
+          repository,
+          pdfGenerator,
+          getDoctorProfileByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          getConsultationSessionByIdUseCase,
+          getAppointmentByIdUseCase,
+        ),
+      inject: [
+        PRESCRIPTION_REPOSITORY,
+        PRESCRIPTION_PDF_GENERATOR,
+        GetDoctorProfileByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        GetConsultationSessionByIdUseCase,
+        GetAppointmentByIdUseCase,
+      ],
     },
     {
       provide: ListVitalReadingsForPatientUseCase,

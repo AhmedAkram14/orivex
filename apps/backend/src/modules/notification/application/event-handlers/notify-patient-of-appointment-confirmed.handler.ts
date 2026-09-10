@@ -1,5 +1,6 @@
 import type { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
+import { toEmailLocale } from '../../../authentication/infrastructure/email/templates/email-locale.js';
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
@@ -55,9 +56,12 @@ export class NotifyPatientOfAppointmentConfirmedHandler {
       // diagnosis, or other clinical detail in the template's data.
       const account = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
       if (account) {
-        await this.emailSender.send(account.getEmail().toString(), 'appointment-confirmed', {
-          scheduledAt: appointment.getScheduledAt().toISOString(),
-        });
+        await this.emailSender.send(
+          account.getEmail().toString(),
+          'appointment-confirmed',
+          { scheduledAt: appointment.getScheduledAt().toISOString() },
+          toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+        );
       }
     } catch (error) {
       // A notification failure must never surface back through

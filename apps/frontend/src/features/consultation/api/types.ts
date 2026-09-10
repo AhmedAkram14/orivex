@@ -29,6 +29,11 @@ export interface ClinicalNote {
   id: string;
   consultationSessionId: string;
   content: string;
+  /** I5 -- SOAP-structured clinical notes. Absent/null for a note recorded before this field existed -- render `content` as a plain paragraph fallback in that case. */
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
   addendumOfNoteId: string | null;
   createdAt: string;
 }
@@ -51,6 +56,8 @@ export interface ConsultationPrescription {
   status: 'draft' | 'signed' | 'active' | 'expired' | 'superseded';
   lineItems: PrescriptionLineItem[];
   signedAt: string | null;
+  /** I12 -- Prescription digital signature and verification marker. */
+  verificationCode: string | null;
 }
 
 /**
@@ -125,6 +132,11 @@ export interface ConsultationFeedback {
   patientProfileId: string;
   patientName: string;
   patientAvatarUrl?: string;
+  /** I11 -- Admin content moderation. */
+  moderationStatus: 'visible' | 'flagged' | 'hidden';
+  moderationReason: string | null;
+  moderatedByAccountId: string | null;
+  moderatedAt: string | null;
 }
 
 /** Same VitalType/valueLabel shape as the patient portal's own VitalReading (apps/frontend/src/features/patient/api/types.ts) -- one real source of truth, this is just the subset recorded during THIS specific consultation session. */
@@ -185,6 +197,39 @@ export interface DoctorReviewsResult {
   averageCommunicationRating?: number | null;
   averagePunctualityRating?: number | null;
   averageThoroughnessRating?: number | null;
+}
+
+/**
+ * I12 -- Prescription digital signature and verification marker (ORIVEX
+ * Remaining Work Audit): matches VerifyPrescriptionResponseDto exactly --
+ * the public, unauthenticated GET /prescriptions/verify/:code response.
+ */
+export type VerifyPrescriptionResult =
+  | { valid: false }
+  | {
+      valid: true;
+      doctorName: string;
+      doctorLicenseNumber: string;
+      patientName: string;
+      signedAt: string;
+      lineItems: Array<{ drugName: string; dosage: string; frequency: string; durationDays: number; instructions?: string }>;
+    };
+
+/**
+ * I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit): matches
+ * DisputeController/DisputeResponseDto exactly. One dispute per appointment,
+ * raised by either genuine party on it.
+ */
+export interface Dispute {
+  id: string;
+  appointmentId: string;
+  raisedByAccountId: string;
+  reason: string;
+  status: 'open' | 'resolved' | 'dismissed';
+  resolutionNotes: string | null;
+  resolvedByAccountId: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
 }
 
 /**

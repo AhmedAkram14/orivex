@@ -8,6 +8,10 @@ export function toDomainClinicalNote(row: PrismaClinicalNoteRow): ClinicalNote {
     consultationSessionId: row.consultationSessionId,
     authoringDoctorId: row.authoringDoctorId,
     content: row.content,
+    subjective: row.subjective ?? undefined,
+    objective: row.objective ?? undefined,
+    assessment: row.assessment ?? undefined,
+    plan: row.plan ?? undefined,
     addendumOfNoteId: row.addendumOfNoteId ?? undefined,
     createdAt: row.createdAt,
   });

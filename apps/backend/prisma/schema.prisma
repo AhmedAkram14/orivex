@@ -55,6 +55,10 @@ model Account {
   // references the subject's Account directly and uniformly, regardless of
   // subject type -- not DoctorProfile.id as it did before.
   verificationCases VerificationCase[]
+  // I7 -- Messaging (docs/01-prd.md §2.13).
+  sentMessages      Message[]
+  // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit).
+  disputesRaised    Dispute[]
 }
 
 enum CredentialStatus {
@@ -148,6 +152,9 @@ model DoctorProfile {
   // own coverage.
   insuranceProviders              String[]
   consultationFeeAmount           Decimal?
+  // I8 -- Free-tier abuse controls (docs/01-prd.md §7): the doctor's own
+  // daily cap on FREE availability windows. Null = no cap.
+  maxFreeSlotsPerDay              Int?
   // ORIVEX Roadmap 2.0 Stage 4: optional grouping/org-chart link only, not
   // multi-tenant scoping (true tenant isolation is explicitly deferred, see
   // Stage 4's roadmap completion note) -- a doctor may exist with no
@@ -186,6 +193,11 @@ model DoctorProfile {
   authoredClinicalNotes           ClinicalNote[]
   authoredPrescriptions           Prescription[]
   authoredLabRequests             LabRequest[]
+  // I7 -- Messaging (docs/01-prd.md §2.13).
+  messageThreads                  MessageThread[]
+  // I13 -- Knowledge Center (docs/01.1-prd-update.md §6).
+  knowledgeArticles                KnowledgeArticle[]
+  followers                       DoctorFollow[]
   workingHoursDays                WorkingHoursDay[]
   scheduleExceptions              ScheduleException[]
   // Consultation lifecycle completion follow-up (2026-07-26): reviews are
@@ -379,6 +391,11 @@ model MediaAsset {
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   verificationDocuments VerificationDocument[]
+  // I7 -- Messaging (docs/01-prd.md §2.13): attachments reference an
+  // already-uploaded, already-confirmed MediaAsset by id -- the same
+  // "reference by ID via AssetModule" pattern VerificationDocument already
+  // uses, never a second upload path.
+  messageAttachments    Message[]
 
   @@index([ownerAccountId])
 }
@@ -622,6 +639,25 @@ model PatientProfile {
   bloodType           String?
   allergies           String?
   chronicDiseases     String?
+  // I6 -- Health Passport (docs/01.1-prd-update.md §17-30): lifestyle/
+  // nutrition/exercise are free text, same convention as allergies/
+  // chronicDiseases above (no structured taxonomy for V1). mentalHealthNotes
+  // is the one field this whole passport gates behind a stricter consent
+  // default -- see MENTAL_HEALTH_CONSENT_SCOPE_CODE and
+  // DoctorPatientChartController's own comment on why (01.1:33-34: mental
+  // health defaults to hidden from a treating doctor unless the patient
+  // explicitly grants it, the opposite of every other clinical scope's
+  // default-granted rule).
+  lifestyleNotes      String?
+  nutritionNotes      String?
+  exerciseNotes       String?
+  mentalHealthNotes   String?
+  healthPassportEntries HealthPassportEntry[]
+  // I7 -- Messaging (docs/01-prd.md §2.13).
+  messageThreads      MessageThread[]
+  // I13 -- Knowledge Center (docs/01.1-prd-update.md §6).
+  savedArticles       KnowledgeArticleSave[]
+  followedDoctors     DoctorFollow[]
   insuranceProviderId String?
   insuranceProvider   InsuranceProvider?     @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
   // Consultation lifecycle completion follow-up (2026-07-26).
@@ -630,6 +666,34 @@ model PatientProfile {
   consentRecords      ConsentRecord[]
 
   @@index([insuranceProviderId])
+}
+
+enum HealthPassportEntryCategory {
+  VACCINATION
+  FAMILY_HISTORY
+  SURGERY
+  MEDICATION
+}
+
+// I6 -- Health Passport (docs/01-prd.md L59 §2.4, docs/01.1-prd-update.md
+// §17-30): one generic, patient-editable, categorized entry model backing
+// vaccinations/family history/past surgeries/current medications --
+// deliberately ONE model with a category discriminator rather than four
+// near-identical tables, since all four share the same real shape (a
+// title, an optional date, an optional detail) and none needs fields the
+// others don't. Genuinely structured (filterable/queryable by category),
+// just not four separate schemas for no functional difference.
+model HealthPassportEntry {
+  id         String                      @id @default(uuid())
+  patientId  String
+  patient    PatientProfile              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  category   HealthPassportEntryCategory
+  title      String
+  detail     String?
+  occurredAt DateTime?
+  createdAt  DateTime                    @default(now())
+
+  @@index([patientId, category])
 }
 
 model EmergencyContact {
@@ -746,6 +810,10 @@ model Appointment {
   updatedAt            DateTime             @updatedAt
   consultationSession  ConsultationSession?
   paymentTransactions  PaymentTransaction[]
+  // I7 -- Messaging (docs/01-prd.md §2.13).
+  messageThread        MessageThread?
+  // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit).
+  dispute              Dispute?
 
   @@index([patientId])
   @@index([doctorId])
@@ -820,9 +888,28 @@ model ConsultationFeedback {
   thoroughnessRating    Int?
   comment               String?
   createdAt             DateTime            @default(now())
+  // I11 -- Admin content moderation (ORIVEX Remaining Work Audit): the
+  // reviewed doctor can flag their own review as inappropriate, which
+  // immediately excludes it from the public doctor-directory/profile list
+  // (ListForDoctor's own query only ever selects Visible) pending an admin
+  // decision -- never silently deleted, so there is always a real row for
+  // an admin to review and restore. Hidden is a distinct terminal state
+  // from Flagged: an admin confirmed the concern, not merely that someone
+  // raised one.
+  moderationStatus      ReviewModerationStatus @default(VISIBLE)
+  moderationReason      String?
+  moderatedByAccountId  String?
+  moderatedAt           DateTime?
 
   @@index([doctorId])
   @@index([patientId])
+  @@index([moderationStatus])
+}
+
+enum ReviewModerationStatus {
+  VISIBLE
+  FLAGGED
+  HIDDEN
 }
 
 // Consultation lifecycle completion follow-up (2026-07-26): the smallest
@@ -1064,7 +1151,20 @@ model ClinicalNote {
   consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   authoringDoctorId     String
   doctorProfile         DoctorProfile       @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  // I5 -- SOAP-structured clinical notes (docs/01-prd.md inventory: "SOAP
+  // structure 🟢" core). `content` stays as the immutable legacy free-text
+  // field for notes recorded before this column existed (docs/07-domain-
+  // data-model.md's "never rewrite" rule -- old rows are never migrated
+  // into fabricated SOAP sections); every note authored going forward
+  // fills all four SOAP fields and `content` becomes a derived
+  // concatenation of them (kept in sync so any pre-existing consumer that
+  // only reads `content` -- audit metadata, search -- still sees the full
+  // text).
   content               String
+  subjective            String?
+  objective             String?
+  assessment            String?
+  plan                  String?
   addendumOfNoteId      String?
   addendumOf            ClinicalNote?       @relation("NoteAddendum", fields: [addendumOfNoteId], references: [id], onDelete: Restrict)
   addenda               ClinicalNote[]      @relation("NoteAddendum")
@@ -1101,6 +1201,17 @@ model Prescription {
   doctorProfile         DoctorProfile          @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
   status                PrescriptionStatus     @default(DRAFT)
   signedAt              DateTime?
+  // I12 -- Prescription digital signature, PDF, and verification marker
+  // (ORIVEX Remaining Work Audit): cryptographic HMAC-SHA256 signature over
+  // the prescription's own signed content, computed once at sign() time by
+  // PrescriptionSignerPort -- present exactly when status is Signed, never
+  // recomputed afterward (the line items it covers are themselves
+  // immutable once signed, per this table's own precedent). verificationCode
+  // is the short, public-safe marker a pharmacy actually types in or scans
+  // via the PDF's QR code -- GET /prescriptions/verify/:code resolves it
+  // without exposing any PHI.
+  signatureHash         String?
+  verificationCode      String?                @unique
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   lineItems             PrescriptionLineItem[]
@@ -1337,4 +1448,155 @@ model VitalReading {
   @@index([type])
   @@index([recordedByDoctorId])
   @@index([consultationSessionId])
+}
+
+// I7 -- Messaging (docs/01-prd.md §2.13, in-scope list "in-consultation
+// chat" and this module's own async follow-up thread). One thread per
+// Appointment (a patient/doctor pair may have several threads over time,
+// one per booking, never one long-running thread across every visit --
+// matches this schema's "forward-only, never a literal rollback" data
+// model applied to relationships: each booking is its own real-world
+// encounter). patientId/doctorId are denormalized off the Appointment they
+// belong to, purely so "list my threads" never needs to join through
+// Appointment -- same snapshotting precedent AppointmentPricing already
+// sets on PaymentTransaction.
+model MessageThread {
+  id            String         @id @default(uuid())
+  appointmentId String         @unique
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  patientId     String
+  patientProfile PatientProfile @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId      String
+  doctorProfile DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  createdAt     DateTime       @default(now())
+  messages      Message[]
+
+  @@index([patientId])
+  @@index([doctorId])
+}
+
+// Explicitly administrative/follow-up communication (docs/01-prd.md L112:
+// "not diagnosis-via-chat" -- both a UX and liability concern this schema
+// deliberately doesn't try to enforce structurally; the frontend's own
+// framing carries that rule). readAt is a single timestamp, not a per-
+// recipient receipt table -- every thread is exactly one patient and one
+// doctor, so "read by the other party" has only one possible meaning.
+model Message {
+  id                String        @id @default(uuid())
+  threadId          String
+  thread            MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderAccountId   String
+  senderAccount     Account       @relation(fields: [senderAccountId], references: [id], onDelete: Restrict)
+  body              String
+  attachmentAssetId String?
+  attachmentAsset   MediaAsset?   @relation(fields: [attachmentAssetId], references: [id], onDelete: SetNull)
+  readAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([threadId])
+  @@index([senderAccountId])
+}
+
+// I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit): one
+// dispute per Appointment (matches MessageThread's own one-per-appointment
+// shape) -- a patient or doctor raises a concern about a specific real
+// encounter, an admin resolves it with a logged reason (release checklist
+// L118: admin actions "must be audit-logged with actor, timestamp, and
+// reason"). raisedByAccountId is a real Account id, not a profile id --
+// either party on the appointment can raise one, so the entity needs to
+// know exactly which account did, not just "the patient" or "the doctor".
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model Dispute {
+  id                 String         @id @default(uuid())
+  appointmentId      String         @unique
+  appointment        Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  raisedByAccountId  String
+  raisedByAccount    Account        @relation(fields: [raisedByAccountId], references: [id], onDelete: Restrict)
+  reason             String
+  status             DisputeStatus  @default(OPEN)
+  resolutionNotes    String?
+  resolvedByAccountId String?
+  resolvedAt         DateTime?
+  createdAt          DateTime       @default(now())
+
+  @@index([appointmentId])
+  @@index([raisedByAccountId])
+  @@index([status])
+}
+
+// I13 -- Knowledge Center (docs/01.1-prd-update.md §6): "turn doctor
+// expertise into ongoing patient engagement... independent of a booked
+// consultation." PendingReview is the default -- a doctor's first 3
+// articles (counted at read time from PUBLISHED/ARCHIVED rows, no stored
+// counter) require admin approval before anyone but the author sees them;
+// after that, new articles publish immediately but remain subject to
+// post-publication spot-review (an admin can still move a Published
+// article to Archived later, same moderate() action). Rejected/Archived
+// are both terminal-for-public-visibility states -- distinguished only so
+// an admin's own history shows *why* an article isn't live (never approved
+// vs. taken down after being live), matching AuditLog/Dispute's own
+// "every admin action is honestly, separately logged" convention.
+enum KnowledgeArticleStatus {
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+model KnowledgeArticle {
+  id                   String                 @id @default(uuid())
+  authoringDoctorId    String
+  doctorProfile        DoctorProfile          @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  title                String
+  body                 String
+  status               KnowledgeArticleStatus @default(PENDING_REVIEW)
+  moderationReason     String?
+  moderatedByAccountId String?
+  moderatedAt          DateTime?
+  publishedAt          DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  saves                KnowledgeArticleSave[]
+
+  @@index([authoringDoctorId])
+  @@index([status])
+}
+
+// A patient bookmarking an article for later -- deliberately a plain join
+// row with no content copy (never a raw-content export, per the PRD's own
+// "protect authorship" rule: sharing/saving always points back at the
+// original article, never duplicates its text).
+model KnowledgeArticleSave {
+  id             String           @id @default(uuid())
+  articleId      String
+  article        KnowledgeArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  patientId      String
+  patientProfile PatientProfile   @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  createdAt      DateTime         @default(now())
+
+  @@unique([articleId, patientId])
+  @@index([patientId])
+}
+
+// I13 -- Knowledge Center: "following" is a content-subscription signal
+// only -- explicitly NOT an implicit clinical relationship or messaging
+// channel (docs/01.1-prd-update.md §6's own business rule). Never joined
+// with MessageThread/Dispute eligibility checks anywhere in this codebase;
+// a patient must still have a real Appointment with a doctor to message or
+// dispute with them, following or not.
+model DoctorFollow {
+  id             String         @id @default(uuid())
+  patientId      String
+  patientProfile PatientProfile @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId       String
+  doctorProfile  DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  createdAt      DateTime       @default(now())
+
+  @@unique([patientId, doctorId])
+  @@index([doctorId])
 }

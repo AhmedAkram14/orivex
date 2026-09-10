@@ -32,6 +32,7 @@ export function toDomainDoctorProfile(row: PersistedDoctorProfileRow): DoctorPro
     professionalRank: (row.professionalRank as ProfessionalRank | null) ?? undefined,
     licenseExpiryDate: row.licenseExpiryDate ?? undefined,
     departmentId: row.departmentId ?? undefined,
+    maxFreeSlotsPerDay: row.maxFreeSlotsPerDay ?? undefined,
     publications: row.publications.map((p) =>
       PortfolioPublication.reconstitute({
         id: p.id,

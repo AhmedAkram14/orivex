@@ -1,7 +1,10 @@
 export interface RecordClinicalNoteCommandProps {
   consultationSessionId: string;
   authoringDoctorId: string;
-  content: string;
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
   addendumOfNoteId?: string;
 }
 
@@ -10,13 +13,19 @@ export interface RecordClinicalNoteCommandProps {
 export class RecordClinicalNoteCommand {
   readonly consultationSessionId: string;
   readonly authoringDoctorId: string;
-  readonly content: string;
+  readonly subjective: string;
+  readonly objective: string;
+  readonly assessment: string;
+  readonly plan: string;
   readonly addendumOfNoteId?: string;
 
   constructor(props: RecordClinicalNoteCommandProps) {
     this.consultationSessionId = props.consultationSessionId;
     this.authoringDoctorId = props.authoringDoctorId;
-    this.content = props.content;
+    this.subjective = props.subjective;
+    this.objective = props.objective;
+    this.assessment = props.assessment;
+    this.plan = props.plan;
     this.addendumOfNoteId = props.addendumOfNoteId;
   }
 }

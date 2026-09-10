@@ -54,6 +54,10 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
       allergies: profile.allergies ?? '',
       chronicDiseases: profile.chronicDiseases ?? '',
       insuranceProviderId: profile.insuranceProviderId,
+      lifestyleNotes: profile.lifestyleNotes ?? '',
+      nutritionNotes: profile.nutritionNotes ?? '',
+      exerciseNotes: profile.exerciseNotes ?? '',
+      mentalHealthNotes: profile.mentalHealthNotes ?? '',
       emergencyContacts: profile.emergencyContacts,
     },
   });
@@ -128,6 +132,64 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{t('chronicConditions')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </Section>
+
+        <Section title={t('healthPassport')} description={t('healthPassportDescription')}>
+          <div className="flex flex-col gap-4">
+            <FormField
+              control={form.control}
+              name="lifestyleNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('lifestyleNotes')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="nutritionNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('nutritionNotes')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="exerciseNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('exerciseNotes')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} value={field.value ?? ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="mentalHealthNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('mentalHealthNotes')}</FormLabel>
+                  <p className="text-xs text-text-tertiary">{t('mentalHealthNotesHint')}</p>
                   <FormControl>
                     <Textarea {...field} value={field.value ?? ''} />
                   </FormControl>

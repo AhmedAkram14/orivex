@@ -28,10 +28,28 @@ export interface DoctorDirectoryEntry {
   avatarUrl?: string;
 }
 
+// I10 -- Doctor discovery filters (docs/01-prd.md: 9 filters named).
+// `consultationType` backs "free/paid"; `availableWithinDays` backs
+// "availability window"; both are expressed against the same
+// AvailabilityWindow relation and combined into one existential check when
+// both are given (a slot must satisfy both at once, not two independent
+// slots). `minRating` backs "rating" -- see
+// prisma-doctor-directory-query.service.ts's own comment for how it's
+// computed (ConsultationFeedback lives in a different aggregate root) and
+// for why `condition` (the 9th named filter) remains a deliberate,
+// disclosed gap rather than a guessed one.
 export interface DoctorDirectoryFilter {
   specialty?: string;
   specialtyId?: string;
   hospitalId?: string;
+  language?: string;
+  gender?: string;
+  minFeeAmount?: number;
+  maxFeeAmount?: number;
+  consultationType?: 'FREE' | 'PAID';
+  minYearsOfExperience?: number;
+  availableWithinDays?: number;
+  minRating?: number;
   limit: number;
   offset: number;
 }

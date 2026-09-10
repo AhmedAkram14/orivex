@@ -89,6 +89,14 @@ export class DoctorProfileController {
         specialty: query.specialty,
         specialtyId: query.specialtyId,
         hospitalId: query.hospitalId,
+        language: query.language,
+        gender: query.gender,
+        minFeeAmount: query.minFeeAmount,
+        maxFeeAmount: query.maxFeeAmount,
+        consultationType: query.consultationType,
+        minYearsOfExperience: query.minYearsOfExperience,
+        availableWithinDays: query.availableWithinDays,
+        minRating: query.minRating,
       }),
     );
     return envelope(DoctorDirectoryResponseDto.fromResult(result, page, limit));
@@ -179,6 +187,7 @@ export class DoctorProfileController {
           professionalRank: body.professionalRank,
           licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
           departmentId: body.departmentId,
+          maxFreeSlotsPerDay: body.maxFreeSlotsPerDay,
         }),
       );
       const account = await this.getAccountOrThrow(user.accountId);
@@ -270,6 +279,7 @@ export class DoctorProfileController {
           professionalRank: body.professionalRank,
           licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
           departmentId: body.departmentId,
+          maxFreeSlotsPerDay: body.maxFreeSlotsPerDay,
         }),
       );
       const account = await this.getAccountOrThrow(profile.getAccountId());

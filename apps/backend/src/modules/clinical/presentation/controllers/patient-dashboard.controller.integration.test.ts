@@ -124,6 +124,12 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointments: Appointment[]) {}
   async findById(id: string): Promise<Appointment | null> {
     return this.appointments.find((a) => a.getId() === id) ?? null;
@@ -167,6 +173,9 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
 }
 
 class InMemoryPrescriptionRepository implements PrescriptionRepository {
+  async findByVerificationCode(): Promise<Prescription | null> {
+    return null;
+  }
   constructor(private readonly prescriptions: Prescription[]) {}
   async findById(id: string): Promise<Prescription | null> {
     return this.prescriptions.find((p) => p.getId() === id) ?? null;
@@ -278,6 +287,9 @@ describe('PatientDashboardController (integration)', () => {
       consultationSessionId: session.getId(),
       diagnosisNodeId: '44444444-4444-4444-8444-444444444444',
       authoringDoctorId: doctor.getId(),
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE-1',
+      signedAt: new Date(),
       lineItems: [
         {
           drugCatalogId: '55555555-5555-4555-8555-555555555555',
@@ -295,6 +307,8 @@ describe('PatientDashboardController (integration)', () => {
       consultationSessionId: session.getId(),
       diagnosisNodeId: '44444444-4444-4444-8444-444444444444',
       authoringDoctorId: doctor.getId(),
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE-2',
       status: PrescriptionStatus.Signed,
       signedAt: sixtyDaysAgo,
       lineItems: [
@@ -315,7 +329,10 @@ describe('PatientDashboardController (integration)', () => {
     clinicalNote = ClinicalNote.author({
       consultationSessionId: session.getId(),
       authoringDoctorId: doctor.getId(),
-      content: 'Patient reports improvement in symptoms.',
+      subjective: 'Patient reports improvement in symptoms.',
+      objective: 'Vitals stable.',
+      assessment: 'Improving as expected.',
+      plan: 'Continue current treatment.',
     });
 
     const healthGraph = HealthGraph.create(patient.getId());
@@ -583,7 +600,7 @@ describe('PatientDashboardController (integration)', () => {
     assert.ok(visit);
     assert.equal(visit.type, 'visit');
     assert.equal(visit.title, 'Clinical visit');
-    assert.equal(visit.description, 'Patient reports improvement in symptoms.');
+    assert.match(visit.description, /Patient reports improvement in symptoms\./);
     assert.equal(visit.doctorName, 'Dr. Karim Hassan');
 
     const condition = response.body.data.find((item: { id: string }) => item.id === conditionNode.getId());

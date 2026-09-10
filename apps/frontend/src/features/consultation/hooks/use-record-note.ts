@@ -8,7 +8,8 @@ export function useRecordNote(consultationSessionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (content: string) => consultationApi.recordNote(consultationSessionId, content),
+    mutationFn: (soap: { subjective: string; objective: string; assessment: string; plan: string }) =>
+      consultationApi.recordNote(consultationSessionId, soap),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: consultationSummaryKeys.detail(consultationSessionId) });
     },

@@ -15,6 +15,10 @@ class FakeAuditLogRepository implements AuditLogRepository {
   async record(entry: AuditLog): Promise<void> {
     this.recorded.push(entry);
   }
+
+  async findMany(): Promise<{ entries: AuditLog[]; total: number }> {
+    return { entries: this.recorded, total: this.recorded.length };
+  }
 }
 
 describe('RecordAuditLogUseCase', () => {

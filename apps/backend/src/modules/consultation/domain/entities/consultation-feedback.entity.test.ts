@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
+import { ReviewModerationStatus } from '../enums/review-moderation-status.enum.js';
 
 import { ConsultationFeedback } from './consultation-feedback.entity.js';
 
@@ -84,7 +85,57 @@ describe('ConsultationFeedback', () => {
       id: '44444444-4444-4444-8444-444444444444',
       ...PROPS,
       createdAt: new Date(),
+      moderationStatus: ReviewModerationStatus.Visible,
     });
     assert.equal(feedback.releaseDomainEvents().length, 0);
+  });
+
+  describe('I11 -- content moderation', () => {
+    it('is Visible by default', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      assert.equal(feedback.getModerationStatus(), ReviewModerationStatus.Visible);
+    });
+
+    it('flag() moves a Visible review to Flagged and stores the reason', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      feedback.flag('Contains a patient name.');
+      assert.equal(feedback.getModerationStatus(), ReviewModerationStatus.Flagged);
+      assert.equal(feedback.getModerationReason(), 'Contains a patient name.');
+    });
+
+    it('flag() throws when the review is not currently Visible', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      feedback.flag('First flag.');
+      assert.throws(() => feedback.flag('Second flag.'), ConsultationDomainError);
+    });
+
+    it('flag() throws on an empty reason', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      assert.throws(() => feedback.flag('   '), ConsultationDomainError);
+    });
+
+    it('moderate() restores a Flagged review to Visible, recording who and when', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      feedback.flag('Contains a patient name.');
+      feedback.moderate(ReviewModerationStatus.Visible, 'No PHI found on review.', 'admin-account-1');
+      assert.equal(feedback.getModerationStatus(), ReviewModerationStatus.Visible);
+      assert.equal(feedback.getModerationReason(), 'No PHI found on review.');
+      assert.equal(feedback.getModeratedByAccountId(), 'admin-account-1');
+      assert.ok(feedback.getModeratedAt());
+    });
+
+    it('moderate() can hide a review directly, without a prior flag', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      feedback.moderate(ReviewModerationStatus.Hidden, 'Contains identifying details.', 'admin-account-1');
+      assert.equal(feedback.getModerationStatus(), ReviewModerationStatus.Hidden);
+    });
+
+    it('moderate() throws on an empty reason', () => {
+      const feedback = ConsultationFeedback.submit(PROPS);
+      assert.throws(
+        () => feedback.moderate(ReviewModerationStatus.Hidden, '', 'admin-account-1'),
+        ConsultationDomainError,
+      );
+    });
   });
 });

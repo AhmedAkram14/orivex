@@ -129,4 +129,12 @@ export class UpdateDoctorProfileRequestDto {
   @IsOptional()
   @IsUUID('4')
   departmentId?: string;
+
+  // I8 -- Free-tier abuse controls: the doctor's own daily cap on FREE
+  // availability windows. Omit/null = no cap.
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  maxFreeSlotsPerDay?: number;
 }

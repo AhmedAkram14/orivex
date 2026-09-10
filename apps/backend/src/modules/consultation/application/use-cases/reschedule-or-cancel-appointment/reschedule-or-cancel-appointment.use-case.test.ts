@@ -33,6 +33,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   private readonly byId = new Map<string, Appointment>();
   public readonly saved: Appointment[] = [];
   public failOnSaveCount = 0;

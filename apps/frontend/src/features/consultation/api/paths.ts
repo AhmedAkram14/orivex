@@ -25,4 +25,14 @@ export const CONSULTATION_PATHS = {
   // suggestion's own id.
   aiSuggestions: () => '/ai/suggestions',
   aiSuggestionDecision: (suggestionId: string) => `/ai/suggestions/${suggestionId}`,
+  // I11 -- Admin content moderation: matches DoctorReviewFlagController's
+  // own @Controller('reviews') shape exactly.
+  flagReview: (feedbackId: string) => `/reviews/${feedbackId}/flag`,
+  // I11 -- Admin dispute resolution: matches DisputeController's own
+  // @Controller('disputes') shape exactly.
+  disputes: () => '/disputes',
+  dispute: (id: string) => `/disputes/${id}`,
+  // I12 -- Prescription digital signature and verification marker: matches
+  // PrescriptionVerificationController's own @Controller('prescriptions/verify') shape exactly.
+  verifyPrescription: (code: string) => `/prescriptions/verify/${code}`,
 } as const;

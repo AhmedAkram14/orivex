@@ -237,7 +237,9 @@ import { NotificationController } from './presentation/controllers/notification.
         getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
         listPrescriptionsForConsultationSessionUseCase: ListPrescriptionsForConsultationSessionUseCase,
         getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -247,7 +249,9 @@ import { NotificationController } from './presentation/controllers/notification.
           getPatientProfileByIdUseCase,
           listPrescriptionsForConsultationSessionUseCase,
           getFollowUpRecommendationForSessionUseCase,
+          getAccountByIdUseCase,
           notificationRepository,
+          emailSender,
           logger,
         );
         dispatcher.subscribe('consultation.session.completed', (event: DomainEvent) =>
@@ -261,7 +265,9 @@ import { NotificationController } from './presentation/controllers/notification.
         GetPatientProfileByIdUseCase,
         ListPrescriptionsForConsultationSessionUseCase,
         GetFollowUpRecommendationForSessionUseCase,
+        GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],

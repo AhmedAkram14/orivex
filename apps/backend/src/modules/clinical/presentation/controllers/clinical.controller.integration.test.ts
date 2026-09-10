@@ -119,6 +119,12 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointment: Appointment) {}
   async findById(id: string): Promise<Appointment | null> {
     return this.appointment.getId() === id ? this.appointment : null;
@@ -175,6 +181,9 @@ class InMemoryAuditLogRepository implements AuditLogRepository {
   public readonly recorded: AuditLog[] = [];
   async record(entry: AuditLog): Promise<void> {
     this.recorded.push(entry);
+  }
+  async findMany(): Promise<{ entries: AuditLog[]; total: number }> {
+    return { entries: this.recorded, total: this.recorded.length };
   }
 }
 
@@ -306,7 +315,7 @@ describe('Clinical controllers (integration)', () => {
   it('POST /consultations/:id/notes rejects a request with no bearer token', async () => {
     const response = await request(app.getHttpServer())
       .post(`/consultations/${session.getId()}/notes`)
-      .send({ content: 'SOAP note content' })
+      .send({ subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic' })
       .expect(401);
 
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
@@ -316,10 +325,10 @@ describe('Clinical controllers (integration)', () => {
     const response = await request(app.getHttpServer())
       .post(`/consultations/${session.getId()}/notes`)
       .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
-      .send({ content: 'SOAP note content' })
+      .send({ subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic' })
       .expect(201);
 
-    assert.equal(response.body.data.content, 'SOAP note content');
+    assert.match(response.body.data.content, /Reports headache/);
 
     // Audit trail gap fix (ORIVEX Remaining Work Audit, P0 C2): a real
     // clinical write must leave a real audit row.
@@ -333,7 +342,7 @@ describe('Clinical controllers (integration)', () => {
     const response = await request(app.getHttpServer())
       .post('/consultations/99999999-9999-4999-8999-999999999999/notes')
       .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
-      .send({ content: 'SOAP note content' })
+      .send({ subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic' })
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
@@ -343,7 +352,7 @@ describe('Clinical controllers (integration)', () => {
     const response = await request(app.getHttpServer())
       .post(`/consultations/${session.getId()}/notes`)
       .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
-      .send({ content: 'SOAP note content' })
+      .send({ subjective: 'Reports headache', objective: 'BP 120/80', assessment: 'Tension headache', plan: 'OTC analgesic' })
       .expect(403);
 
     assert.equal(response.body.error.code, 'FORBIDDEN');

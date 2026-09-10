@@ -3,6 +3,7 @@ import { before, describe, it } from 'node:test';
 
 import { Reflector } from '@nestjs/core';
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
@@ -25,14 +26,20 @@ import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import type { Account } from '../../../identity/domain/entities/account.entity.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import type { AccountRepository } from '../../../identity/domain/repositories/account.repository.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
+import { GeneratePrescriptionPdfUseCase } from '../../application/use-cases/generate-prescription-pdf/generate-prescription-pdf.use-case.js';
 import { GetPrescriptionByIdUseCase } from '../../application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
 import { SignPrescriptionUseCase } from '../../application/use-cases/sign-prescription/sign-prescription.use-case.js';
+import type { PrescriptionPdfGeneratorPort } from '../../application/ports/prescription-pdf-generator.port.js';
+import type { PrescriptionSignerPort, SignPrescriptionContentResult } from '../../application/ports/prescription-signer.port.js';
 import type { HealthGraphNode } from '../../domain/entities/health-graph-node.entity.js';
 import { HealthGraph } from '../../domain/entities/health-graph.entity.js';
 import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
@@ -115,6 +122,12 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointment: Appointment) {}
   async findById(id: string): Promise<Appointment | null> {
     return this.appointment.getId() === id ? this.appointment : null;
@@ -155,6 +168,9 @@ class InMemoryHealthGraphRepository implements HealthGraphRepository {
 }
 
 class InMemoryPrescriptionRepository implements PrescriptionRepository {
+  async findByVerificationCode(): Promise<Prescription | null> {
+    return null;
+  }
   private readonly byId = new Map<string, Prescription>();
   async findById(id: string): Promise<Prescription | null> {
     return this.byId.get(id) ?? null;
@@ -175,6 +191,39 @@ class NoopDomainEventDispatcher {
   subscribe(): void {}
 }
 
+class FakePrescriptionSignerPort implements PrescriptionSignerPort {
+  private counter = 0;
+  sign(): SignPrescriptionContentResult {
+    this.counter += 1;
+    return { signatureHash: 'test-signature-hash', verificationCode: `TEST-CODE-${this.counter}` };
+  }
+}
+
+class FakePrescriptionPdfGeneratorPort implements PrescriptionPdfGeneratorPort {
+  async generate(): Promise<Buffer> {
+    return Buffer.from('%PDF-fake');
+  }
+}
+
+class NullAccountRepository implements AccountRepository {
+  async findById(): Promise<Account | null> {
+    return null;
+  }
+  async findByEmail(): Promise<Account | null> {
+    return null;
+  }
+  async findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return { accounts: [], total: 0 };
+  }
+  async save(): Promise<void> {}
+}
+
+class FakeConfigService {
+  get(): unknown {
+    return undefined;
+  }
+}
+
 class InMemoryPendingAISuggestionAcknowledgmentRepository implements PendingAISuggestionAcknowledgmentRepository {
   async createPending(): Promise<void> {}
   async acknowledge(): Promise<void> {}
@@ -187,6 +236,9 @@ class InMemoryAuditLogRepository implements AuditLogRepository {
   public readonly recorded: AuditLog[] = [];
   async record(entry: AuditLog): Promise<void> {
     this.recorded.push(entry);
+  }
+  async findMany(): Promise<{ entries: AuditLog[]; total: number }> {
+    return { entries: this.recorded, total: this.recorded.length };
   }
 }
 
@@ -238,8 +290,19 @@ describe('PrescriptionController (integration)', () => {
         new GetPatientProfileByIdUseCase(patientProfileRepo),
       ),
       new InMemoryPendingAISuggestionAcknowledgmentRepository(),
+      new FakePrescriptionSignerPort(),
     );
     const getPrescriptionByIdUseCase = new GetPrescriptionByIdUseCase(prescriptionRepo);
+    const accountRepository = new NullAccountRepository();
+    const generatePrescriptionPdfUseCase = new GeneratePrescriptionPdfUseCase(
+      prescriptionRepo,
+      new FakePrescriptionPdfGeneratorPort(),
+      new GetDoctorProfileByIdUseCase(doctorProfileRepo),
+      new GetPatientProfileByIdUseCase(patientProfileRepo),
+      new GetAccountByIdUseCase(accountRepository),
+      new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)),
+      new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)),
+    );
     auditLogRepository = new InMemoryAuditLogRepository();
 
     const jwtSigner = new FakeJwtSigner(
@@ -267,6 +330,8 @@ describe('PrescriptionController (integration)', () => {
         { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(new InMemoryConsultationSessionRepository(session)) },
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(new InMemoryAppointmentRepository(appointment)) },
         { provide: RecordAuditLogUseCase, useFactory: () => new RecordAuditLogUseCase(auditLogRepository) },
+        { provide: GeneratePrescriptionPdfUseCase, useValue: generatePrescriptionPdfUseCase },
+        { provide: ConfigService, useClass: FakeConfigService },
       ],
     }).compile();
 

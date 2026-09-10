@@ -46,7 +46,10 @@ export class RecordClinicalNoteUseCase {
     const note = ClinicalNote.author({
       consultationSessionId: command.consultationSessionId,
       authoringDoctorId: command.authoringDoctorId,
-      content: command.content,
+      subjective: command.subjective,
+      objective: command.objective,
+      assessment: command.assessment,
+      plan: command.plan,
       addendumOfNoteId: command.addendumOfNoteId,
     });
 

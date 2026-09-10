@@ -9,6 +9,10 @@ export interface UpdatePatientProfileCommandProps {
   allergies?: string | null;
   chronicDiseases?: string | null;
   insuranceProviderId?: string | null;
+  lifestyleNotes?: string | null;
+  nutritionNotes?: string | null;
+  exerciseNotes?: string | null;
+  mentalHealthNotes?: string | null;
 }
 
 // Commands are application messages, not structural types — immutable by
@@ -20,6 +24,10 @@ export class UpdatePatientProfileCommand {
   readonly allergies?: string | null;
   readonly chronicDiseases?: string | null;
   readonly insuranceProviderId?: string | null;
+  readonly lifestyleNotes?: string | null;
+  readonly nutritionNotes?: string | null;
+  readonly exerciseNotes?: string | null;
+  readonly mentalHealthNotes?: string | null;
 
   constructor(props: UpdatePatientProfileCommandProps) {
     this.patientProfileId = props.patientProfileId;
@@ -28,5 +36,9 @@ export class UpdatePatientProfileCommand {
     this.allergies = props.allergies;
     this.chronicDiseases = props.chronicDiseases;
     this.insuranceProviderId = props.insuranceProviderId;
+    this.lifestyleNotes = props.lifestyleNotes;
+    this.nutritionNotes = props.nutritionNotes;
+    this.exerciseNotes = props.exerciseNotes;
+    this.mentalHealthNotes = props.mentalHealthNotes;
   }
 }

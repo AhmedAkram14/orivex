@@ -30,5 +30,7 @@ export function toDomainPrescription(row: PersistedPrescriptionRow): Prescriptio
     ),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    signatureHash: row.signatureHash ?? undefined,
+    verificationCode: row.verificationCode ?? undefined,
   });
 }

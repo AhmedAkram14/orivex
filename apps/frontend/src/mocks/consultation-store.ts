@@ -73,6 +73,10 @@ function seedFeedback(): ConsultationFeedback[] {
       createdAt: daysAgo(6),
       patientProfileId: 'patient-profile-1',
       patientName: 'Amina Youssef',
+      moderationStatus: 'visible',
+      moderationReason: null,
+      moderatedByAccountId: null,
+      moderatedAt: null,
     },
     {
       id: 'feedback-seed-2',
@@ -83,6 +87,10 @@ function seedFeedback(): ConsultationFeedback[] {
       createdAt: daysAgo(15),
       patientProfileId: 'patient-profile-1',
       patientName: 'Amina Youssef',
+      moderationStatus: 'visible',
+      moderationReason: null,
+      moderatedByAccountId: null,
+      moderatedAt: null,
     },
     {
       id: 'feedback-seed-3',
@@ -93,6 +101,10 @@ function seedFeedback(): ConsultationFeedback[] {
       createdAt: daysAgo(29),
       patientProfileId: 'patient-profile-1',
       patientName: 'Amina Youssef',
+      moderationStatus: 'visible',
+      moderationReason: null,
+      moderatedByAccountId: null,
+      moderatedAt: null,
     },
   ];
 }
@@ -143,6 +155,10 @@ function seedDemoFeedback(): ConsultationFeedback[] {
         patientProfileId: `patient-profile-demo-${reviewerIndex + 1}`,
         patientName: reviewer.displayName,
         patientAvatarUrl: reviewer.avatarUrl,
+        moderationStatus: 'visible',
+        moderationReason: null,
+        moderatedByAccountId: null,
+        moderatedAt: null,
       });
     }
   });
@@ -188,11 +204,22 @@ export function startConsultation(consultationSessionId: string): ConsultationSe
   return started;
 }
 
-export function recordConsultationNote(consultationSessionId: string, content: string): ClinicalNote {
+export interface RecordConsultationNoteSoapInput {
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+}
+
+export function recordConsultationNote(consultationSessionId: string, soap: RecordConsultationNoteSoapInput): ClinicalNote {
   const note: ClinicalNote = {
     id: `note-${Date.now()}`,
     consultationSessionId,
-    content,
+    content: `S: ${soap.subjective}\n\nO: ${soap.objective}\n\nA: ${soap.assessment}\n\nP: ${soap.plan}`,
+    subjective: soap.subjective,
+    objective: soap.objective,
+    assessment: soap.assessment,
+    plan: soap.plan,
     addendumOfNoteId: null,
     createdAt: new Date().toISOString(),
   };
@@ -308,12 +335,52 @@ export function recordConsultationPrescription(
       },
     ],
     signedAt: new Date().toISOString(),
+    verificationCode: `TEST-${Math.random().toString(36).slice(2, 10).toUpperCase()}`,
   };
   prescriptionsBySessionId.set(consultationSessionId, [
     ...(prescriptionsBySessionId.get(consultationSessionId) ?? []),
     prescription,
   ]);
   return prescription;
+}
+
+function findPrescriptionById(prescriptionId: string): ConsultationPrescription | undefined {
+  for (const prescriptions of prescriptionsBySessionId.values()) {
+    const found = prescriptions.find((prescription) => prescription.id === prescriptionId);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** I12 -- Prescription digital signature and verification marker: the public verify lookup. */
+export function verifyPrescriptionByCode(code: string) {
+  for (const prescriptions of prescriptionsBySessionId.values()) {
+    const found = prescriptions.find((prescription) => prescription.verificationCode === code);
+    if (found) {
+      return {
+        valid: true as const,
+        doctorName: 'Dr. Sarah Ahmed',
+        doctorLicenseNumber: 'LIC-1000',
+        patientName: getPatientProfile()?.fullName ?? 'Amina Youssef',
+        signedAt: found.signedAt ?? new Date().toISOString(),
+        lineItems: found.lineItems.map((item) => ({
+          drugName: item.drugName ?? item.drugCatalogId,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          durationDays: item.durationDays,
+          instructions: item.instructions ?? undefined,
+        })),
+      };
+    }
+  }
+  return { valid: false as const };
+}
+
+/** I12 -- Prescription PDF generation: a tiny, real, well-formed PDF byte sequence -- not real content, but a real binary the browser can genuinely open, matching this mock layer's "real shape, fixture content" convention. */
+export function getPrescriptionPdfBytes(prescriptionId: string): Uint8Array | null {
+  if (!findPrescriptionById(prescriptionId)) return null;
+  const minimalPdf = '%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R>>';
+  return new TextEncoder().encode(minimalPdf);
 }
 
 export function recordLabRequest(
@@ -465,6 +532,10 @@ export function submitConsultationFeedback(
     patientProfileId: reviewer?.id ?? 'patient-profile-1',
     patientName: reviewer?.fullName ?? 'Amina Youssef',
     patientAvatarUrl: reviewer?.avatarUrl,
+    moderationStatus: 'visible',
+    moderationReason: null,
+    moderatedByAccountId: null,
+    moderatedAt: null,
   };
   feedbackBySessionId.set(consultationSessionId, feedback);
   return feedback;
@@ -490,6 +561,45 @@ export function updateConsultationFeedback(
 
 export function deleteConsultationFeedback(consultationSessionId: string): boolean {
   return feedbackBySessionId.delete(consultationSessionId);
+}
+
+function findFeedbackById(feedbackId: string): ConsultationFeedback | undefined {
+  return Array.from(feedbackBySessionId.values()).find((review) => review.id === feedbackId);
+}
+
+// I11 -- Admin content moderation: the reviewed doctor's own precautionary
+// flag -- mirrors the real backend's FlagConsultationFeedbackUseCase.
+export function flagConsultationFeedback(feedbackId: string, reason: string): ConsultationFeedback | null {
+  const existing = findFeedbackById(feedbackId);
+  if (!existing || existing.moderationStatus !== 'visible') return null;
+  const updated: ConsultationFeedback = { ...existing, moderationStatus: 'flagged', moderationReason: reason };
+  feedbackBySessionId.set(existing.consultationSessionId, updated);
+  return updated;
+}
+
+/** I11 -- Admin content moderation: the SuperAdmin's own decision. */
+export function moderateConsultationFeedback(
+  feedbackId: string,
+  status: 'visible' | 'hidden',
+  reason: string,
+  moderatorAccountId: string,
+): ConsultationFeedback | null {
+  const existing = findFeedbackById(feedbackId);
+  if (!existing) return null;
+  const updated: ConsultationFeedback = {
+    ...existing,
+    moderationStatus: status,
+    moderationReason: reason,
+    moderatedByAccountId: moderatorAccountId,
+    moderatedAt: new Date().toISOString(),
+  };
+  feedbackBySessionId.set(existing.consultationSessionId, updated);
+  return updated;
+}
+
+/** I11 -- Admin content moderation: the admin moderation queue. */
+export function listConsultationFeedbackByModerationStatus(status: 'visible' | 'flagged' | 'hidden'): ConsultationFeedback[] {
+  return Array.from(feedbackBySessionId.values()).filter((review) => review.moderationStatus === status);
 }
 
 export function recommendFollowUp(
@@ -527,7 +637,11 @@ export function getDoctorReviews(doctorProfileId: string, page: number, limit: n
       averageThoroughnessRating: null,
     };
   }
-  const reviews = Array.from(feedbackBySessionId.values()).filter((review) => review.doctorId === doctorProfileId);
+  // I11 -- Admin content moderation: matches the real backend's own
+  // listForDoctor -- a Flagged/Hidden review never shows on the public list.
+  const reviews = Array.from(feedbackBySessionId.values()).filter(
+    (review) => review.doctorId === doctorProfileId && review.moderationStatus === 'visible',
+  );
   const reviewCount = reviews.length;
   const writtenReviewCount = reviews.filter((review) => review.comment).length;
   const averageRating =

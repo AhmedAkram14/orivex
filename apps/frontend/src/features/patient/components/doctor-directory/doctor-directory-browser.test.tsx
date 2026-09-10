@@ -70,4 +70,25 @@ describe('DoctorDirectoryBrowser', () => {
 
     await waitFor(() => expect(screen.getByText('No doctors found')).toBeInTheDocument());
   });
+
+  // I10 -- Doctor discovery filters (rating): the backend is the sole
+  // authority on filtering (docs/01-prd.md's rating filter) -- this proves
+  // the real query parameter reaches the real GET /doctors request, never
+  // a client-side/React-only filter over an already-fetched page.
+  it('sends the selected rating threshold as a real minRating query parameter', async () => {
+    let lastRequestUrl: URL | undefined;
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctors`, ({ request }) => {
+        lastRequestUrl = new URL(request.url);
+        return HttpResponse.json({ data: { doctors: [], total: 0, page: 1, limit: 12 } });
+      }),
+    );
+
+    renderBrowser();
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }));
+    await userEvent.click(screen.getByLabelText('Rating'));
+    await userEvent.click(await screen.findByText('4+ stars'));
+
+    await waitFor(() => expect(lastRequestUrl?.searchParams.get('minRating')).toBe('4'));
+  });
 });

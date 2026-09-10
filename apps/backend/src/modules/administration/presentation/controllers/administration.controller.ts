@@ -15,9 +15,11 @@ import { ConfigService } from '@nestjs/config';
 
 import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
+import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
+import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { ListAccountsQuery } from '../../../identity/application/use-cases/list-accounts/list-accounts.query.js';
 import { ListAccountsUseCase } from '../../../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
@@ -25,7 +27,31 @@ import { UpdateAccountRoleCommand } from '../../../identity/application/use-case
 import { UpdateAccountRoleUseCase } from '../../../identity/application/use-cases/update-account-role/update-account-role.use-case.js';
 import { AccountResponseDto } from '../../../identity/presentation/dto/account-response.dto.js';
 import { mapIdentityError } from '../../../identity/presentation/mappers/identity-exception.mapper.js';
+import { ListArticlesByStatusQuery } from '../../../knowledge/application/use-cases/list-articles-by-status/list-articles-by-status.query.js';
+import { ListArticlesByStatusUseCase } from '../../../knowledge/application/use-cases/list-articles-by-status/list-articles-by-status.use-case.js';
+import { ModerateArticleCommand } from '../../../knowledge/application/use-cases/moderate-article/moderate-article.command.js';
+import { ModerateArticleUseCase } from '../../../knowledge/application/use-cases/moderate-article/moderate-article.use-case.js';
+import { KnowledgeArticleStatus } from '../../../knowledge/domain/enums/knowledge-article-status.enum.js';
+import { KnowledgeArticleResponseDto } from '../../../knowledge/presentation/dto/knowledge-article-response.dto.js';
+import { mapKnowledgeError } from '../../../knowledge/presentation/mappers/knowledge-exception.mapper.js';
+import { GetDisputeByIdUseCase } from '../../../consultation/application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
+import { ListDisputesByStatusQuery } from '../../../consultation/application/use-cases/list-disputes-by-status/list-disputes-by-status.query.js';
+import { ListDisputesByStatusUseCase } from '../../../consultation/application/use-cases/list-disputes-by-status/list-disputes-by-status.use-case.js';
+import { ResolveDisputeCommand } from '../../../consultation/application/use-cases/resolve-dispute/resolve-dispute.command.js';
+import { ResolveDisputeUseCase } from '../../../consultation/application/use-cases/resolve-dispute/resolve-dispute.use-case.js';
+import { DisputeResponseDto } from '../../../consultation/presentation/dto/dispute-response.dto.js';
+import { DisputeStatus } from '../../../consultation/domain/enums/dispute-status.enum.js';
+import { ListConsultationFeedbackByModerationStatusQuery } from '../../../consultation/application/use-cases/list-consultation-feedback-by-moderation-status/list-consultation-feedback-by-moderation-status.query.js';
+import { ListConsultationFeedbackByModerationStatusUseCase } from '../../../consultation/application/use-cases/list-consultation-feedback-by-moderation-status/list-consultation-feedback-by-moderation-status.use-case.js';
+import { ModerateConsultationFeedbackCommand } from '../../../consultation/application/use-cases/moderate-consultation-feedback/moderate-consultation-feedback.command.js';
+import { ModerateConsultationFeedbackUseCase } from '../../../consultation/application/use-cases/moderate-consultation-feedback/moderate-consultation-feedback.use-case.js';
+import { ConsultationFeedbackResponseDto } from '../../../consultation/presentation/dto/consultation-feedback-response.dto.js';
+import { ModerateConsultationFeedbackRequestDto } from '../../../consultation/presentation/dto/moderate-consultation-feedback-request.dto.js';
+import { mapConsultationError } from '../../../consultation/presentation/mappers/consultation-exception.mapper.js';
+import { ReviewModerationStatus } from '../../../consultation/domain/enums/review-moderation-status.enum.js';
 import { GetVerificationCaseByIdUseCase } from '../../../trust/application/use-cases/get-verification-case-by-id/get-verification-case-by-id.use-case.js';
+import { ListAuditLogEntriesQuery } from '../../../trust/application/use-cases/list-audit-log-entries/list-audit-log-entries.query.js';
+import { ListAuditLogEntriesUseCase } from '../../../trust/application/use-cases/list-audit-log-entries/list-audit-log-entries.use-case.js';
 import { ListSecurityEventsForAccountUseCase } from '../../../trust/application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
 import { SuspendVerificationCaseCommand } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.command.js';
 import { SuspendVerificationCaseUseCase } from '../../../trust/application/use-cases/suspend-verification-case/suspend-verification-case.use-case.js';
@@ -53,6 +79,7 @@ import { DecideVerificationRequestDto } from '../../../trust/presentation/dto/de
 import { SuspendVerificationRequestDto } from '../../../trust/presentation/dto/suspend-verification-request.dto.js';
 import { mapTrustError } from '../../../trust/presentation/mappers/trust-exception.mapper.js';
 import { AdminVerificationCaseResponseDto } from '../dto/admin-verification-case-response.dto.js';
+import { AuditLogQueryDto } from '../dto/audit-log-query.dto.js';
 import { CreateDepartmentRequestDto } from '../dto/create-department-request.dto.js';
 import { CreateHospitalRequestDto } from '../dto/create-hospital-request.dto.js';
 import { DepartmentResponseDto } from '../dto/department-response.dto.js';
@@ -61,6 +88,12 @@ import { HospitalResponseDto } from '../dto/hospital-response.dto.js';
 import { ListAccountsQueryDto } from '../dto/list-accounts-query.dto.js';
 import { ListAccountsResponseDto } from '../dto/list-accounts-response.dto.js';
 import { ListAdminPaymentTransactionsResponseDto } from '../dto/list-admin-payment-transactions-response.dto.js';
+import { ListAuditLogResponseDto } from '../dto/list-audit-log-response.dto.js';
+import { ListDisputesQueryDto } from '../dto/list-disputes-query.dto.js';
+import { ListKnowledgeArticlesQueryDto } from '../dto/list-knowledge-articles-query.dto.js';
+import { ModerateKnowledgeArticleRequestDto } from '../dto/moderate-knowledge-article-request.dto.js';
+import { ListReviewsQueryDto } from '../dto/list-reviews-query.dto.js';
+import { ResolveDisputeRequestDto } from '../dto/resolve-dispute-request.dto.js';
 import { PlatformKpisResponseDto } from '../dto/platform-kpis-response.dto.js';
 import { SecurityEventResponseDto } from '../dto/security-event-response.dto.js';
 import { UpdateAccountRoleRequestDto } from '../dto/update-account-role-request.dto.js';
@@ -95,6 +128,14 @@ export class AdministrationController {
     private readonly listSecurityEventsForAccountUseCase: ListSecurityEventsForAccountUseCase,
     private readonly listPaymentTransactionsForAdminUseCase: ListPaymentTransactionsForAdminUseCase,
     private readonly refundPaymentUseCase: RefundPaymentUseCase,
+    private readonly listAuditLogEntriesUseCase: ListAuditLogEntriesUseCase,
+    private readonly listConsultationFeedbackByModerationStatusUseCase: ListConsultationFeedbackByModerationStatusUseCase,
+    private readonly moderateConsultationFeedbackUseCase: ModerateConsultationFeedbackUseCase,
+    private readonly listDisputesByStatusUseCase: ListDisputesByStatusUseCase,
+    private readonly getDisputeByIdUseCase: GetDisputeByIdUseCase,
+    private readonly resolveDisputeUseCase: ResolveDisputeUseCase,
+    private readonly listArticlesByStatusUseCase: ListArticlesByStatusUseCase,
+    private readonly moderateArticleUseCase: ModerateArticleUseCase,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
 
@@ -242,15 +283,37 @@ export class AdministrationController {
     }
   }
 
-  // Per-account audit-log lookup, not a global cross-account feed -- see
-  // GetPlatformKpisUseCase-adjacent limitation note in Stage 4's roadmap
-  // completion note for why a true unscoped audit trail is deferred.
+  // Authentication-only events for one account -- see /admin/audit-log
+  // below for the real, cross-account PHI/clinical audit feed (I11).
   @Get('accounts/:id/security-events')
   async getSecurityEventsForAccount(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ResponseEnvelope<SecurityEventResponseDto[]>> {
     const events = await this.listSecurityEventsForAccountUseCase.execute({ accountId: id });
     return envelope(events.map((event) => SecurityEventResponseDto.fromDomain(event)));
+  }
+
+  // I11 -- Admin audit-log viewer (ORIVEX Remaining Work Audit): the real,
+  // global, cross-account feed AuditLogRepository's own comment named as
+  // not-yet-built -- every PHI read and clinical/administrative write,
+  // searchable by actor/subject/action, closing the release checklist's
+  // "audit logging live on every PHI access path" requirement all the way
+  // through to something a SuperAdmin can actually search.
+  @Get('audit-log')
+  async getAuditLog(@Query() query: AuditLogQueryDto): Promise<ResponseEnvelope<ListAuditLogResponseDto>> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const result = await this.listAuditLogEntriesUseCase.execute(
+      new ListAuditLogEntriesQuery({
+        page,
+        limit,
+        actorAccountId: query.actorAccountId,
+        subjectType: query.subjectType,
+        subjectId: query.subjectId,
+        action: query.action,
+      }),
+    );
+    return envelope(ListAuditLogResponseDto.fromResult(result, page, limit));
   }
 
   // ORIVEX Roadmap Phase 3, Critical Lifecycle Gaps, Step 4: SuperAdmin's
@@ -282,6 +345,126 @@ export class AdministrationController {
       return envelope(PaymentTransactionResponseDto.fromDomain(transaction));
     } catch (error) {
       throw mapPaymentError(error);
+    }
+  }
+
+  // I11 -- Admin content moderation (ORIVEX Remaining Work Audit): the
+  // moderation queue -- defaults to Flagged (what an admin actually needs
+  // to act on) when no status is given.
+  @Get('reviews')
+  async listReviews(@Query() query: ListReviewsQueryDto): Promise<ResponseEnvelope<ConsultationFeedbackResponseDto[]>> {
+    const result = await this.listConsultationFeedbackByModerationStatusUseCase.execute(
+      new ListConsultationFeedbackByModerationStatusQuery({
+        status: query.status ?? ReviewModerationStatus.Flagged,
+        page: query.page ?? 1,
+        limit: query.limit ?? 50,
+      }),
+    );
+    return envelope(result.feedback.map((feedback) => ConsultationFeedbackResponseDto.fromDomain(feedback)));
+  }
+
+  @Patch('reviews/:id/moderate')
+  async moderateReview(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ModerateConsultationFeedbackRequestDto,
+  ): Promise<ResponseEnvelope<ConsultationFeedbackResponseDto>> {
+    try {
+      const feedback = await this.moderateConsultationFeedbackUseCase.execute(
+        new ModerateConsultationFeedbackCommand({
+          feedbackId: id,
+          status: body.status,
+          reason: body.reason,
+          moderatorAccountId: user.accountId,
+        }),
+      );
+      return envelope(ConsultationFeedbackResponseDto.fromDomain(feedback));
+    } catch (error) {
+      throw mapConsultationError(error);
+    }
+  }
+
+  // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit): defaults
+  // to Open (what an admin actually needs to act on) when no status is
+  // given.
+  @Get('disputes')
+  async listDisputes(@Query() query: ListDisputesQueryDto): Promise<ResponseEnvelope<DisputeResponseDto[]>> {
+    const result = await this.listDisputesByStatusUseCase.execute(
+      new ListDisputesByStatusQuery({
+        status: query.status ?? DisputeStatus.Open,
+        page: query.page ?? 1,
+        limit: query.limit ?? 50,
+      }),
+    );
+    return envelope(result.disputes.map((dispute) => DisputeResponseDto.fromDomain(dispute)));
+  }
+
+  @Get('disputes/:id')
+  async getDispute(@Param('id', ParseUUIDPipe) id: string): Promise<ResponseEnvelope<DisputeResponseDto>> {
+    const dispute = await this.getDisputeByIdUseCase.execute({ disputeId: id });
+    if (!dispute) {
+      throw new NotFoundError(`Dispute "${id}" not found.`);
+    }
+    return envelope(DisputeResponseDto.fromDomain(dispute));
+  }
+
+  @Patch('disputes/:id/resolve')
+  async resolveDispute(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ResolveDisputeRequestDto,
+  ): Promise<ResponseEnvelope<DisputeResponseDto>> {
+    try {
+      const dispute = await this.resolveDisputeUseCase.execute(
+        new ResolveDisputeCommand({
+          disputeId: id,
+          status: body.status,
+          resolutionNotes: body.resolutionNotes,
+          resolverAccountId: user.accountId,
+        }),
+      );
+      return envelope(DisputeResponseDto.fromDomain(dispute));
+    } catch (error) {
+      throw mapConsultationError(error);
+    }
+  }
+
+  // I13 -- Knowledge Center (docs/01.1-prd-update.md §6): the content-
+  // moderation queue -- defaults to PendingReview (what an admin actually
+  // needs to act on) when no status is given. Same "seriousness as doctor
+  // credential verification itself" the PRD's own business rule demands.
+  @Get('knowledge/articles')
+  async listKnowledgeArticles(
+    @Query() query: ListKnowledgeArticlesQueryDto,
+  ): Promise<ResponseEnvelope<KnowledgeArticleResponseDto[]>> {
+    const result = await this.listArticlesByStatusUseCase.execute(
+      new ListArticlesByStatusQuery({
+        status: query.status ?? KnowledgeArticleStatus.PendingReview,
+        page: query.page ?? 1,
+        limit: query.limit ?? 50,
+      }),
+    );
+    return envelope(result.articles.map((article) => KnowledgeArticleResponseDto.fromDomain(article)));
+  }
+
+  @Patch('knowledge/articles/:id/moderate')
+  async moderateKnowledgeArticle(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ModerateKnowledgeArticleRequestDto,
+  ): Promise<ResponseEnvelope<KnowledgeArticleResponseDto>> {
+    try {
+      const article = await this.moderateArticleUseCase.execute(
+        new ModerateArticleCommand({
+          articleId: id,
+          status: body.status,
+          reason: body.reason,
+          moderatorAccountId: user.accountId,
+        }),
+      );
+      return envelope(KnowledgeArticleResponseDto.fromDomain(article));
+    } catch (error) {
+      throw mapKnowledgeError(error);
     }
   }
 

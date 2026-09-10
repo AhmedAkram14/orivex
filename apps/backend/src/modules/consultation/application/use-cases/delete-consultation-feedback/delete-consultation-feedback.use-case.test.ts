@@ -16,6 +16,12 @@ import { DeleteConsultationFeedbackCommand } from './delete-consultation-feedbac
 import { DeleteConsultationFeedbackUseCase } from './delete-consultation-feedback.use-case.js';
 
 class FakeConsultationFeedbackRepository implements ConsultationFeedbackRepository {
+  async findById(): Promise<ConsultationFeedback | null> {
+    return null;
+  }
+  async listByModerationStatus(): Promise<{ feedback: ConsultationFeedback[]; total: number }> {
+    return { feedback: [], total: 0 };
+  }
   public deletedIds: string[] = [];
   constructor(private existing: ConsultationFeedback | null) {}
   async findByConsultationSessionId(): Promise<ConsultationFeedback | null> {

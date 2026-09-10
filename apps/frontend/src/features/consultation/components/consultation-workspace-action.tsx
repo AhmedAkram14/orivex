@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCloseConsultation } from '@/features/consultation/hooks/use-close-consultation';
 import { useConsultationSummary } from '@/features/consultation/hooks/use-consultation-summary';
+import { useDownloadPrescriptionPdf } from '@/features/consultation/hooks/use-download-prescription-pdf';
 import { useRecordDiagnosis } from '@/features/consultation/hooks/use-record-diagnosis';
 import { useRecordNote } from '@/features/consultation/hooks/use-record-note';
 import { useRecordVitals } from '@/features/consultation/hooks/use-record-vitals';
@@ -72,7 +73,10 @@ const JOURNEY_STAGE_TRANSITIONS: Record<JourneyStage, JourneyStage[]> = {
 export function ConsultationWorkspaceAction({ consultationSessionId }: ConsultationWorkspaceActionProps) {
   const t = useTranslations('consultation.workspace');
   const [open, setOpen] = useState(false);
-  const [noteContent, setNoteContent] = useState('');
+  const [noteSubjective, setNoteSubjective] = useState('');
+  const [noteObjective, setNoteObjective] = useState('');
+  const [noteAssessment, setNoteAssessment] = useState('');
+  const [notePlan, setNotePlan] = useState('');
   const [diagnosisText, setDiagnosisText] = useState('');
   const [certaintyLevel, setCertaintyLevel] = useState<'suspected' | 'confirmed' | 'ruled_out'>('suspected');
   const [startJourney, setStartJourney] = useState(false);
@@ -103,6 +107,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const recordVitals = useRecordVitals(consultationSessionId);
   const recommendFollowUp = useRecommendFollowUp(consultationSessionId);
   const signPrescription = useSignPrescription(consultationSessionId);
+  const downloadPrescriptionPdf = useDownloadPrescriptionPdf();
   const recordLabRequest = useRecordLabRequest(consultationSessionId);
   const updateJourneyStage = useUpdateJourneyStage(consultationSessionId);
   const closeConsultation = useCloseConsultation();
@@ -235,8 +240,14 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   }
 
   const hasAnyJourneySelection = Object.values(journeyStageSelections).some(Boolean);
+  const hasAnyNoteInput = Boolean(
+    noteSubjective.trim() || noteObjective.trim() || noteAssessment.trim() || notePlan.trim(),
+  );
+  const canSaveNote = Boolean(
+    noteSubjective.trim() && noteObjective.trim() && noteAssessment.trim() && notePlan.trim(),
+  );
   const hasUnsavedInput = Boolean(
-    noteContent.trim() ||
+    hasAnyNoteInput ||
       diagnosisText.trim() ||
       followUpReason.trim() ||
       hasAnyVitalInput ||
@@ -283,26 +294,85 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                   <ul className="flex flex-col gap-2">
                     {summary.clinicalNotes.map((note) => (
                       <li key={note.id} className="rounded-lg border border-border-default p-3 text-sm text-text-secondary">
-                        {note.content}
+                        {note.subjective || note.objective || note.assessment || note.plan ? (
+                          <div className="flex flex-col gap-1.5">
+                            {note.subjective && (
+                              <p><span className="font-medium text-text-primary">{t('soapSubjective')}: </span>{note.subjective}</p>
+                            )}
+                            {note.objective && (
+                              <p><span className="font-medium text-text-primary">{t('soapObjective')}: </span>{note.objective}</p>
+                            )}
+                            {note.assessment && (
+                              <p><span className="font-medium text-text-primary">{t('soapAssessment')}: </span>{note.assessment}</p>
+                            )}
+                            {note.plan && (
+                              <p><span className="font-medium text-text-primary">{t('soapPlan')}: </span>{note.plan}</p>
+                            )}
+                          </div>
+                        ) : (
+                          note.content
+                        )}
                       </li>
                     ))}
                   </ul>
                 )}
-                <Textarea
-                  value={noteContent}
-                  onChange={(event) => setNoteContent(event.target.value)}
-                  placeholder={t('notesPlaceholder')}
-                  rows={4}
-                />
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="note-subjective" className="text-sm font-medium text-text-primary">{t('soapSubjective')}</label>
+                  <Textarea
+                    id="note-subjective"
+                    value={noteSubjective}
+                    onChange={(event) => setNoteSubjective(event.target.value)}
+                    placeholder={t('soapSubjectivePlaceholder')}
+                    rows={2}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="note-objective" className="text-sm font-medium text-text-primary">{t('soapObjective')}</label>
+                  <Textarea
+                    id="note-objective"
+                    value={noteObjective}
+                    onChange={(event) => setNoteObjective(event.target.value)}
+                    placeholder={t('soapObjectivePlaceholder')}
+                    rows={2}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="note-assessment" className="text-sm font-medium text-text-primary">{t('soapAssessment')}</label>
+                  <Textarea
+                    id="note-assessment"
+                    value={noteAssessment}
+                    onChange={(event) => setNoteAssessment(event.target.value)}
+                    placeholder={t('soapAssessmentPlaceholder')}
+                    rows={2}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="note-plan" className="text-sm font-medium text-text-primary">{t('soapPlan')}</label>
+                  <Textarea
+                    id="note-plan"
+                    value={notePlan}
+                    onChange={(event) => setNotePlan(event.target.value)}
+                    placeholder={t('soapPlanPlaceholder')}
+                    rows={2}
+                  />
+                </div>
                 {recordNote.isError && <Alert variant="danger">{t('saveError')}</Alert>}
                 <Button
                   type="button"
                   size="sm"
                   loading={recordNote.isPending}
-                  disabled={!noteContent.trim()}
+                  disabled={!canSaveNote}
                   onClick={async () => {
-                    await recordNote.mutateAsync(noteContent);
-                    setNoteContent('');
+                    await recordNote.mutateAsync({
+                      subjective: noteSubjective.trim(),
+                      objective: noteObjective.trim(),
+                      assessment: noteAssessment.trim(),
+                      plan: notePlan.trim(),
+                    });
+                    setNoteSubjective('');
+                    setNoteObjective('');
+                    setNoteAssessment('');
+                    setNotePlan('');
                   }}
                 >
                   {t('saveNote')}
@@ -518,12 +588,23 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {summary.prescriptions.map((prescription) => (
-                      <li key={prescription.id} className="rounded-lg border border-border-default p-3 text-sm">
-                        {prescription.lineItems.map((item) => (
-                          <div key={`${prescription.id}-${item.drugName ?? item.drugCatalogId}`}>
-                            {item.drugName ?? item.drugCatalogId} — {item.dosage}, {item.frequency}
-                          </div>
-                        ))}
+                      <li key={prescription.id} className="flex items-start justify-between gap-3 rounded-lg border border-border-default p-3 text-sm">
+                        <div>
+                          {prescription.lineItems.map((item) => (
+                            <div key={`${prescription.id}-${item.drugName ?? item.drugCatalogId}`}>
+                              {item.drugName ?? item.drugCatalogId} — {item.dosage}, {item.frequency}
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          loading={downloadPrescriptionPdf.isPending}
+                          onClick={() => downloadPrescriptionPdf.mutate(prescription.id)}
+                        >
+                          {t('downloadPrescriptionPdf')}
+                        </Button>
                       </li>
                     ))}
                   </ul>

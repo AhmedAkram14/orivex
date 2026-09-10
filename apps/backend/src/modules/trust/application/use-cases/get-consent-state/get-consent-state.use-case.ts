@@ -7,6 +7,11 @@ export interface GetConsentStateQuery {
   patientId: string;
   doctorId: string;
   scopeCode: string;
+  // I6 -- Health Passport: the mental-health scope is the one exception to
+  // "no row means Granted" -- it defaults to Revoked instead, so a doctor
+  // only ever sees mental-health data after an explicit patient grant.
+  // Every existing caller omits this and keeps the original default.
+  defaultState?: ConsentState;
 }
 
 // Matches docs/10-backend-architecture.md's TrustModule public interface
@@ -33,6 +38,6 @@ export class GetConsentStateUseCase {
     }
 
     const current = await this.consentRecordRepository.findCurrent(query.patientId, query.doctorId, scopeCategory.getId());
-    return current?.getState() ?? ConsentState.Granted;
+    return current?.getState() ?? query.defaultState ?? ConsentState.Granted;
   }
 }

@@ -164,6 +164,9 @@ class InMemoryConsultationSessionRepository implements ConsultationSessionReposi
 }
 
 class InMemoryPrescriptionRepository implements PrescriptionRepository {
+  async findByVerificationCode(): Promise<Prescription | null> {
+    return null;
+  }
   constructor(private readonly prescriptions: Prescription[]) {}
   async findById(id: string): Promise<Prescription | null> {
     return this.prescriptions.find((p) => p.getId() === id) ?? null;
@@ -213,6 +216,9 @@ class InMemoryAuditLogRepository implements AuditLogRepository {
   public readonly recorded: AuditLog[] = [];
   async record(entry: AuditLog): Promise<void> {
     this.recorded.push(entry);
+  }
+  async findMany(): Promise<{ entries: AuditLog[]; total: number }> {
+    return { entries: this.recorded, total: this.recorded.length };
   }
 }
 
@@ -323,18 +329,27 @@ describe('DoctorPatientChartController (integration)', () => {
     noteA = ClinicalNote.author({
       consultationSessionId: sessionA.getId(),
       authoringDoctorId: doctorA.getId(),
-      content: 'Doctor A note.',
+      subjective: 'Doctor A note.',
+      objective: 'Doctor A note.',
+      assessment: 'Doctor A note.',
+      plan: 'Doctor A note.',
     });
     noteB = ClinicalNote.author({
       consultationSessionId: sessionB.getId(),
       authoringDoctorId: doctorB.getId(),
-      content: 'Doctor B note.',
+      subjective: 'Doctor B note.',
+      objective: 'Doctor B note.',
+      assessment: 'Doctor B note.',
+      plan: 'Doctor B note.',
     });
 
     prescriptionA = Prescription.sign({
       consultationSessionId: sessionA.getId(),
       diagnosisNodeId: '44444444-4444-4444-8444-444444444444',
       authoringDoctorId: doctorA.getId(),
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE-3',
+      signedAt: new Date(),
       lineItems: [
         { drugCatalogId: '55555555-5555-4555-8555-555555555555', drugName: 'Drug A', dosage: '5mg', frequency: 'once daily', durationDays: 30 },
       ],
@@ -343,6 +358,9 @@ describe('DoctorPatientChartController (integration)', () => {
       consultationSessionId: sessionB.getId(),
       diagnosisNodeId: '44444444-4444-4444-8444-444444444445',
       authoringDoctorId: doctorB.getId(),
+      signatureHash: 'test-signature-hash',
+      verificationCode: 'TEST-CODE-4',
+      signedAt: new Date(),
       lineItems: [
         { drugCatalogId: '55555555-5555-4555-8555-555555555556', drugName: 'Drug B', dosage: '10mg', frequency: 'twice daily', durationDays: 14 },
       ],

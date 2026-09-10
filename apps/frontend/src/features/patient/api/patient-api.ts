@@ -7,6 +7,7 @@ import type {
   BookedAppointment,
   CancelledAppointment,
   HealthDashboardResponse,
+  HealthPassportEntry,
   IdentityVerificationStatus,
   MedicalRecordsResponse,
   PatientDashboardSummary,
@@ -14,6 +15,7 @@ import type {
   PatientProfileExistsResponse,
   PatientProfileUpdateRequest,
   PrescriptionsResponse,
+  RecordHealthPassportEntryInput,
   RescheduledAppointment,
   SubmitPatientVerificationRequest,
   UpcomingAppointmentsResponse,
@@ -39,6 +41,15 @@ export const patientApi = {
 
   updateProfile: (request: PatientProfileUpdateRequest) =>
     apiFetch<PatientProfile>({ method: 'PATCH', path: PATIENT_PATHS.profile, body: request }),
+
+  // I6 -- Health Passport.
+  listHealthPassportEntries: () => apiFetch<HealthPassportEntry[]>({ path: PATIENT_PATHS.healthPassportEntries }),
+
+  recordHealthPassportEntry: (request: RecordHealthPassportEntryInput) =>
+    apiFetch<HealthPassportEntry>({ method: 'POST', path: PATIENT_PATHS.healthPassportEntries, body: request }),
+
+  deleteHealthPassportEntry: (id: string) =>
+    apiFetch<void>({ method: 'DELETE', path: PATIENT_PATHS.healthPassportEntry(id) }),
 
   getAppointments: () => apiFetch<AppointmentsResponse>({ path: PATIENT_PATHS.appointments }),
 

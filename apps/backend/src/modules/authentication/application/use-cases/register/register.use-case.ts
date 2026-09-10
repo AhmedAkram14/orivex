@@ -13,6 +13,7 @@ import { TokenHash } from '../../../domain/value-objects/token-hash.value-object
 import type { AuthTokenRepository } from '../../../domain/repositories/auth-token.repository.js';
 import type { CredentialRepository } from '../../../domain/repositories/credential.repository.js';
 import type { EmailSenderPort } from '../../ports/email-sender.port.js';
+import { toEmailLocale } from '../../../infrastructure/email/templates/email-locale.js';
 import type { PasswordHasherPort } from '../../ports/password-hasher.port.js';
 import type { TokenGeneratorPort } from '../../ports/token-generator.port.js';
 
@@ -69,9 +70,12 @@ export class RegisterUseCase {
     });
     await this.authTokenRepository.save(verificationToken);
 
-    await this.emailSender.send(account.getEmail().toString(), 'email-verification', {
-      token: plainToken.toString(),
-    });
+    await this.emailSender.send(
+      account.getEmail().toString(),
+      'email-verification',
+      { token: plainToken.toString() },
+      toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+    );
 
     return { accountId: account.getId().toString(), email: account.getEmail().toString() };
   }

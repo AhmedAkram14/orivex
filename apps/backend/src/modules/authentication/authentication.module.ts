@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import sgMail from '@sendgrid/mail';
+import { createTransport } from 'nodemailer';
 
 import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
@@ -49,6 +50,7 @@ import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-ha
 import { NodeTokenGenerator } from './infrastructure/crypto/node-token-generator.js';
 import { LoggingEmailSender } from './infrastructure/email/logging-email-sender.js';
 import { SendGridEmailSender } from './infrastructure/email/sendgrid-email-sender.js';
+import { SmtpEmailSender } from './infrastructure/email/smtp-email-sender.js';
 import { PrismaAuthTokenRepository } from './infrastructure/prisma/prisma-auth-token.repository.js';
 import { PrismaCredentialRepository } from './infrastructure/prisma/prisma-credential.repository.js';
 import { PrismaSessionRepository } from './infrastructure/prisma/prisma-session.repository.js';
@@ -87,6 +89,16 @@ import { LoginHistoryController } from './presentation/controllers/login-history
         if (apiKey && fromEmail) {
           sgMail.setApiKey(apiKey);
           return new SendGridEmailSender(sgMail, fromEmail, frontendUrl);
+        }
+        // I3 -- Notification email delivery: local-dev real transport via
+        // the already-provisioned Mailpit service, so email is genuinely
+        // verifiable (http://localhost:8025) without a real SendGrid key.
+        // Only reached when SendGrid isn't configured; SendGrid always wins.
+        const smtpHost = configService.get('SMTP_HOST', { infer: true });
+        if (smtpHost) {
+          const smtpPort = configService.get('SMTP_PORT', { infer: true });
+          const transport = createTransport({ host: smtpHost, port: smtpPort, secure: false });
+          return new SmtpEmailSender(transport, fromEmail ?? 'noreply@orivex.dev', frontendUrl);
         }
         return new LoggingEmailSender(logger, configService);
       },

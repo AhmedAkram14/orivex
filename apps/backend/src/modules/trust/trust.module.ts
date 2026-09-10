@@ -22,6 +22,7 @@ import { ListPendingVerificationCasesUseCase } from './application/use-cases/lis
 import { ListRevokedDoctorsForPatientUseCase } from './application/use-cases/list-revoked-doctors-for-patient/list-revoked-doctors-for-patient.use-case.js';
 import { ListSecurityEventsForAccountUseCase } from './application/use-cases/list-security-events-for-account/list-security-events-for-account.use-case.js';
 import { ListVerificationCasesForSubjectUseCase } from './application/use-cases/list-verification-cases-for-subject/list-verification-cases-for-subject.use-case.js';
+import { ListAuditLogEntriesUseCase } from './application/use-cases/list-audit-log-entries/list-audit-log-entries.use-case.js';
 import { RecordAuditLogUseCase } from './application/use-cases/record-audit-log/record-audit-log.use-case.js';
 import { RecordSecurityEventUseCase } from './application/use-cases/record-security-event/record-security-event.use-case.js';
 import { RevokeConsentUseCase } from './application/use-cases/revoke-consent/revoke-consent.use-case.js';
@@ -82,6 +83,11 @@ import { TrustGuardsModule } from './trust-guards.module.js';
     {
       provide: RecordAuditLogUseCase,
       useFactory: (repository: AuditLogRepository) => new RecordAuditLogUseCase(repository),
+      inject: [AUDIT_LOG_REPOSITORY],
+    },
+    {
+      provide: ListAuditLogEntriesUseCase,
+      useFactory: (repository: AuditLogRepository) => new ListAuditLogEntriesUseCase(repository),
       inject: [AUDIT_LOG_REPOSITORY],
     },
     {
@@ -181,6 +187,7 @@ import { TrustGuardsModule } from './trust-guards.module.js';
     RecordSecurityEventUseCase,
     ListSecurityEventsForAccountUseCase,
     RecordAuditLogUseCase,
+    ListAuditLogEntriesUseCase,
     GetConsentStateUseCase,
   ],
 })

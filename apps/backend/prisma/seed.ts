@@ -1574,7 +1574,10 @@ async function main(): Promise<void> {
               new RecordClinicalNoteCommand({
                 consultationSessionId: sessionId,
                 authoringDoctorId: doctor.doctorProfileId,
-                content: pick(CLINICAL_NOTE_TEMPLATES),
+                subjective: pick(CLINICAL_NOTE_TEMPLATES),
+                objective: 'Vitals within normal limits.',
+                assessment: 'Consistent with presenting symptoms.',
+                plan: 'Continue current treatment; follow up as needed.',
               }),
             );
             await closeConsultation.execute(
@@ -1855,8 +1858,19 @@ function buildWindowStartTimes(count: number, template: WorkingHoursTemplate): D
  * Ratings are weighted per doctor rather than globally, so different
  * doctors genuinely settle at different averages (roughly 4.2-4.9) instead
  * of every profile showing an identical score.
+ *
+ * I10 -- Doctor discovery filters: real rating-filter verification needs at
+ * least one doctor whose real average genuinely falls below the 3.5/4.0/4.5
+ * thresholds the directory's own filter offers -- doctor04's own bio
+ * ("early-career psychiatrist building a practice... while building a
+ * patient base", demo-people.ts) already narratively fits a doctor still
+ * earning their reputation, so this is the one deliberate exception to the
+ * "everyone clusters high" range above, not an arbitrary special case.
  */
 function ratingFor(demo: DemoDoctor): number {
+  if (demo.email === 'doctor04@orivex.dev') {
+    return randomInt(1, 3);
+  }
   const bias = demo.licenseNumber.charCodeAt(demo.licenseNumber.length - 1) % 3;
   const chanceOfFive = 0.45 + bias * 0.18;
   const roll = nextRandom();

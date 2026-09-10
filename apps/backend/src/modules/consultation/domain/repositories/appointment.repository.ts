@@ -35,6 +35,17 @@ export interface AppointmentRepository {
   // ever actually joined). Mirrors ConsultationSessionRepository.findStale's
   // "system sweep" precedent.
   findConfirmedPastJoinWindowMissed(cutoff: Date): Promise<Appointment[]>;
+  // I8 -- Free-tier abuse controls (docs/01-prd.md §7, release checklist:
+  // "implemented before public launch, not added reactively"). Computed at
+  // read time from real Appointment rows -- matches this codebase's own
+  // established idiom (doctor ratings, countByStatusForDoctor) of never
+  // storing a separately-editable counter that can drift from reality.
+  // Excludes Cancelled -- a cancelled free booking never actually consumed
+  // the patient's monthly allowance.
+  countFreeConsultationsForPatientSince(patientId: string, since: Date): Promise<number>;
+  // All-time count of this patient's own NO_SHOW appointments -- the signal
+  // that reduces their free-tier booking privilege.
+  countNoShowsForPatient(patientId: string): Promise<number>;
   // Throws on a stale version (optimistic locking) -- callers must reload
   // and retry rather than treat this as a generic failure.
   save(appointment: Appointment): Promise<void>;

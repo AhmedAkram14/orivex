@@ -8,3 +8,7 @@ export const adminDepartmentsKeys = createQueryKeyFactory('admin-departments');
 export const adminVerificationQueueKeys = createQueryKeyFactory('admin-verification-queue');
 export const adminFeatureFlagsKeys = createQueryKeyFactory('admin-feature-flags');
 export const adminPaymentsKeys = createQueryKeyFactory('admin-payments');
+export const adminAuditLogKeys = createQueryKeyFactory('admin-audit-log');
+export const adminReviewsKeys = createQueryKeyFactory('admin-reviews');
+export const adminDisputesKeys = createQueryKeyFactory('admin-disputes');
+export const adminKnowledgeArticlesKeys = createQueryKeyFactory('admin-knowledge-articles');

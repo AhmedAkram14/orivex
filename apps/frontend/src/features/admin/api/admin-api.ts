@@ -2,6 +2,8 @@ import { apiFetch } from '@/shared/lib/api/client';
 import { ADMIN_PATHS } from '@/features/admin/api/paths';
 import type { Role } from '@/shared/auth/types';
 import type { PaymentTransaction } from '@/features/payment/api/types';
+import type { ConsultationFeedback, Dispute } from '@/features/consultation/api/types';
+import type { KnowledgeArticle, KnowledgeArticleStatus } from '@/features/knowledge/api/types';
 import type {
   AdminAccount,
   CreateDepartmentRequest,
@@ -13,6 +15,8 @@ import type {
   ListAccountsResult,
   ListAdminPaymentTransactionsParams,
   ListAdminPaymentTransactionsResult,
+  ListAuditLogParams,
+  ListAuditLogResult,
   PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
@@ -44,6 +48,18 @@ function buildPaymentsQuery(params: ListAdminPaymentTransactionsParams): string 
   if (params.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
   return qs ? `${ADMIN_PATHS.payments}?${qs}` : ADMIN_PATHS.payments;
+}
+
+function buildAuditLogQuery(params: ListAuditLogParams): string {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  if (params.actorAccountId) query.set('actorAccountId', params.actorAccountId);
+  if (params.subjectType) query.set('subjectType', params.subjectType);
+  if (params.subjectId) query.set('subjectId', params.subjectId);
+  if (params.action) query.set('action', params.action);
+  const qs = query.toString();
+  return qs ? `${ADMIN_PATHS.auditLog}?${qs}` : ADMIN_PATHS.auditLog;
 }
 
 /**
@@ -101,4 +117,38 @@ export const adminApi = {
 
   refundPayment: (id: string) =>
     apiFetch<PaymentTransaction>({ method: 'POST', path: ADMIN_PATHS.refundPayment(id) }),
+
+  // I11 -- Admin audit-log viewer.
+  getAuditLog: (params: ListAuditLogParams = {}) => apiFetch<ListAuditLogResult>({ path: buildAuditLogQuery(params) }),
+
+  // I11 -- Admin content moderation: defaults to the Flagged queue when no status is given (matches the real backend's own default).
+  listReviews: (status?: 'visible' | 'flagged' | 'hidden') =>
+    apiFetch<ConsultationFeedback[]>({ path: status ? `${ADMIN_PATHS.reviews}?status=${status}` : ADMIN_PATHS.reviews }),
+
+  moderateReview: (id: string, status: 'visible' | 'hidden', reason: string) =>
+    apiFetch<ConsultationFeedback>({ method: 'PATCH', path: ADMIN_PATHS.moderateReview(id), body: { status, reason } }),
+
+  // I11 -- Admin dispute resolution: defaults to the Open queue when no status is given.
+  listDisputes: (status?: 'open' | 'resolved' | 'dismissed') =>
+    apiFetch<Dispute[]>({ path: status ? `${ADMIN_PATHS.disputes}?status=${status}` : ADMIN_PATHS.disputes }),
+
+  resolveDispute: (id: string, status: 'resolved' | 'dismissed', resolutionNotes: string) =>
+    apiFetch<Dispute>({ method: 'PATCH', path: ADMIN_PATHS.resolveDispute(id), body: { status, resolutionNotes } }),
+
+  // I13 -- Knowledge Center: defaults to the PendingReview queue when no status is given (matches the real backend's own default).
+  listKnowledgeArticles: (status?: KnowledgeArticleStatus) =>
+    apiFetch<KnowledgeArticle[]>({
+      path: status ? `${ADMIN_PATHS.knowledgeArticles}?status=${status}` : ADMIN_PATHS.knowledgeArticles,
+    }),
+
+  moderateKnowledgeArticle: (
+    id: string,
+    status: 'published' | 'rejected' | 'archived',
+    reason: string,
+  ) =>
+    apiFetch<KnowledgeArticle>({
+      method: 'PATCH',
+      path: ADMIN_PATHS.moderateKnowledgeArticle(id),
+      body: { status, reason },
+    }),
 };

@@ -29,6 +29,7 @@ export function PrescriptionList({ prescriptions, emptyTitle, emptyDescription, 
       {prescriptions.map((prescription) => (
         <li key={prescription.id}>
           <PrescriptionCard
+            id={prescription.id}
             medicationName={prescription.medicationName}
             dosageAmount={prescription.dosageAmount}
             frequencyLabel={prescription.frequencyLabel}

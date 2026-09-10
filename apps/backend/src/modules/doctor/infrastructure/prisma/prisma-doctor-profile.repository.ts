@@ -85,6 +85,7 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             professionalRank: profile.getProfessionalRank() ?? null,
             licenseExpiryDate: profile.getLicenseExpiryDate() ?? null,
             departmentId: profile.getDepartmentId() ?? null,
+            maxFreeSlotsPerDay: profile.getMaxFreeSlotsPerDay() ?? null,
           },
           update: {
             licenseNumber: profile.getLicenseNumber(),
@@ -98,6 +99,7 @@ export class PrismaDoctorProfileRepository implements DoctorProfileRepository {
             professionalRank: profile.getProfessionalRank() ?? null,
             licenseExpiryDate: profile.getLicenseExpiryDate() ?? null,
             departmentId: profile.getDepartmentId() ?? null,
+            maxFreeSlotsPerDay: profile.getMaxFreeSlotsPerDay() ?? null,
           },
         }),
         this.prisma.portfolioPublication.deleteMany({ where: { doctorProfileId: id } }),

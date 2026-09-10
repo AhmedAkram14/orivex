@@ -11,12 +11,14 @@ import type { VitalReadingType } from '@/features/consultation/api/types';
 import {
   closeConsultation,
   deleteConsultationFeedback,
+  flagConsultationFeedback,
   getConsultationSummary,
   getDoctorReviews,
   recommendFollowUp,
   recordAIDecision,
   recordConsultationDiagnosis,
   recordConsultationNote,
+  type RecordConsultationNoteSoapInput,
   recordConsultationPrescription,
   recordLabRequest,
   recordConsultationVital,
@@ -26,7 +28,12 @@ import {
   type SubmitConsultationFeedbackMockInput,
   updateConsultationFeedback,
   updateConsultationJourneyStage,
+  verifyPrescriptionByCode,
+  getPrescriptionPdfBytes,
 } from '@/mocks/consultation-store';
+import { listDisputesForAccount, raiseDispute } from '@/mocks/disputes-store';
+import { resolveRequestAccountId } from '@/mocks/request-account';
+import { LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -103,8 +110,8 @@ export const consultationHandlers = [
   }),
 
   http.post(`${base()}/consultations/:id/notes`, async ({ request, params }) => {
-    const body = (await request.json()) as { content: string };
-    return HttpResponse.json({ data: recordConsultationNote(params.id as string, body.content) }, { status: 201 });
+    const body = (await request.json()) as RecordConsultationNoteSoapInput;
+    return HttpResponse.json({ data: recordConsultationNote(params.id as string, body) }, { status: 201 });
   }),
 
   http.post(`${base()}/consultations/:id/vitals`, async ({ request, params }) => {
@@ -167,6 +174,20 @@ export const consultationHandlers = [
     return HttpResponse.json({ data: getDoctorReviews(params.id as string, page, limit) });
   }),
 
+  // I11 -- Admin content moderation: matches DoctorReviewFlagController's
+  // own @Controller('reviews') shape exactly.
+  http.patch(`${base()}/reviews/:id/flag`, async ({ request, params }) => {
+    const body = (await request.json()) as { reason: string };
+    const updated = flagConsultationFeedback(params.id as string, body.reason);
+    if (!updated) {
+      return HttpResponse.json(
+        { error: { code: 'VALIDATION_FAILED', message: 'Only a visible review can be flagged.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 422 },
+      );
+    }
+    return HttpResponse.json({ data: updated });
+  }),
+
   // AI Copilot (docs/01.1-prd-update.md §4, ORIVEX Remaining Work Audit C7):
   // matches AISuggestionController's own @Controller('ai/suggestions') shape
   // exactly.
@@ -186,5 +207,42 @@ export const consultationHandlers = [
       );
     }
     return HttpResponse.json({ data: updated });
+  }),
+
+  // I11 -- Admin dispute resolution: matches DisputeController's own
+  // @Controller('disputes') shape exactly.
+  http.post(`${base()}/disputes`, async ({ request }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
+    const body = (await request.json()) as { appointmentId: string; reason: string };
+    const result = raiseDispute(body.appointmentId, accountId, body.reason);
+    if (!result.ok) {
+      return HttpResponse.json(
+        { error: { code: 'CONFLICT', message: 'A dispute has already been raised for this appointment.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 409 },
+      );
+    }
+    return HttpResponse.json({ data: result.dispute }, { status: 201 });
+  }),
+
+  http.get(`${base()}/disputes`, ({ request }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
+    return HttpResponse.json({ data: listDisputesForAccount(accountId) });
+  }),
+
+  // I12 -- Prescription digital signature and verification marker: matches
+  // PrescriptionVerificationController's own @Controller('prescriptions/verify') shape exactly.
+  http.get(`${base()}/prescriptions/verify/:code`, ({ params }) =>
+    HttpResponse.json({ data: verifyPrescriptionByCode(params.code as string) }),
+  ),
+
+  http.get(`${base()}/prescriptions/:id/pdf`, ({ params }) => {
+    const bytes = getPrescriptionPdfBytes(params.id as string);
+    if (!bytes) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Prescription not found.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    return new HttpResponse(bytes, { headers: { 'Content-Type': 'application/pdf' } });
   }),
 ];

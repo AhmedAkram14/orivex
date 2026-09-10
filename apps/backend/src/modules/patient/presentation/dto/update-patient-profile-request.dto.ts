@@ -48,4 +48,26 @@ export class UpdatePatientProfileRequestDto {
   @IsOptional()
   @IsUUID('4')
   insuranceProviderId?: string;
+
+  // I6 -- Health Passport (docs/01.1-prd-update.md §17-30). Same free-text
+  // convention as allergies/chronicDiseases above.
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  lifestyleNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  nutritionNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  exerciseNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  mentalHealthNotes?: string;
 }

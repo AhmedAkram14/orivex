@@ -22,6 +22,7 @@ import type { Prescription } from '../../../domain/entities/prescription.entity.
 import type { HealthGraphRepository } from '../../../domain/repositories/health-graph.repository.js';
 import type { PendingAISuggestionAcknowledgmentRepository } from '../../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from '../../../domain/repositories/prescription.repository.js';
+import type { PrescriptionSignerPort, SignPrescriptionContentResult } from '../../ports/prescription-signer.port.js';
 import { GetHealthGraphSubgraphUseCase } from '../get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 
 import { SignPrescriptionCommand } from './sign-prescription.command.js';
@@ -67,6 +68,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async countFreeConsultationsForPatientSince(): Promise<number> {
+    return 0;
+  }
+  async countNoShowsForPatient(): Promise<number> {
+    return 0;
+  }
   constructor(private readonly appointment: Appointment | null) {}
   async findById(): Promise<Appointment | null> {
     return this.appointment;
@@ -107,6 +114,9 @@ class FakeHealthGraphRepository implements HealthGraphRepository {
 }
 
 class FakePrescriptionRepository implements PrescriptionRepository {
+  async findByVerificationCode(): Promise<Prescription | null> {
+    return null;
+  }
   public readonly saved: Prescription[] = [];
   async findById(): Promise<Prescription | null> {
     return null;
@@ -116,6 +126,12 @@ class FakePrescriptionRepository implements PrescriptionRepository {
   }
   async save(prescription: Prescription): Promise<void> {
     this.saved.push(prescription);
+  }
+}
+
+class FakePrescriptionSignerPort implements PrescriptionSignerPort {
+  sign(): SignPrescriptionContentResult {
+    return { signatureHash: 'test-signature-hash', verificationCode: 'TEST-CODE' };
   }
 }
 
@@ -167,6 +183,7 @@ function buildUseCase(props: {
       new GetPatientProfileByIdUseCase(new FakePatientProfileRepository({} as PatientProfile)),
     ),
     new FakePendingAISuggestionAcknowledgmentRepository(props.hasUnacknowledgedWarning ?? false),
+    new FakePrescriptionSignerPort(),
   );
 }
 

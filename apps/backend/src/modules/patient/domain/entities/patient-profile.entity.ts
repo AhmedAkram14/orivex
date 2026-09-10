@@ -21,6 +21,12 @@ export interface UpdatePatientProfileProps {
   allergies?: string | null;
   chronicDiseases?: string | null;
   insuranceProviderId?: string | null;
+  // I6 -- Health Passport (docs/01.1-prd-update.md §17-30). Same free-text
+  // convention as allergies/chronicDiseases above.
+  lifestyleNotes?: string | null;
+  nutritionNotes?: string | null;
+  exerciseNotes?: string | null;
+  mentalHealthNotes?: string | null;
 }
 
 export interface ReconstitutePatientProfileProps {
@@ -33,6 +39,10 @@ export interface ReconstitutePatientProfileProps {
   allergies?: string;
   chronicDiseases?: string;
   insuranceProviderId?: string;
+  lifestyleNotes?: string;
+  nutritionNotes?: string;
+  exerciseNotes?: string;
+  mentalHealthNotes?: string;
 }
 
 // Aggregate root of PatientModule (docs/10-backend-architecture.md's
@@ -58,6 +68,10 @@ export class PatientProfile {
     private allergies: string | undefined,
     private chronicDiseases: string | undefined,
     private insuranceProviderId: string | undefined,
+    private lifestyleNotes: string | undefined,
+    private nutritionNotes: string | undefined,
+    private exerciseNotes: string | undefined,
+    private mentalHealthNotes: string | undefined,
   ) {}
 
   // Created explicitly via an internal application use case for now
@@ -72,6 +86,10 @@ export class PatientProfile {
       (props.emergencyContacts ?? []).map((contact) => EmergencyContact.create(contact)),
       now,
       now,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
       undefined,
       undefined,
       undefined,
@@ -93,6 +111,10 @@ export class PatientProfile {
       props.allergies,
       props.chronicDiseases,
       props.insuranceProviderId,
+      props.lifestyleNotes,
+      props.nutritionNotes,
+      props.exerciseNotes,
+      props.mentalHealthNotes,
     );
   }
 
@@ -111,6 +133,18 @@ export class PatientProfile {
     }
     if (props.insuranceProviderId !== undefined) {
       this.insuranceProviderId = props.insuranceProviderId ?? undefined;
+    }
+    if (props.lifestyleNotes !== undefined) {
+      this.lifestyleNotes = props.lifestyleNotes ?? undefined;
+    }
+    if (props.nutritionNotes !== undefined) {
+      this.nutritionNotes = props.nutritionNotes ?? undefined;
+    }
+    if (props.exerciseNotes !== undefined) {
+      this.exerciseNotes = props.exerciseNotes ?? undefined;
+    }
+    if (props.mentalHealthNotes !== undefined) {
+      this.mentalHealthNotes = props.mentalHealthNotes ?? undefined;
     }
 
     this.updatedAt = new Date();
@@ -151,6 +185,22 @@ export class PatientProfile {
 
   getInsuranceProviderId(): string | undefined {
     return this.insuranceProviderId;
+  }
+
+  getLifestyleNotes(): string | undefined {
+    return this.lifestyleNotes;
+  }
+
+  getNutritionNotes(): string | undefined {
+    return this.nutritionNotes;
+  }
+
+  getExerciseNotes(): string | undefined {
+    return this.exerciseNotes;
+  }
+
+  getMentalHealthNotes(): string | undefined {
+    return this.mentalHealthNotes;
   }
 
   releaseDomainEvents(): DomainEvent[] {

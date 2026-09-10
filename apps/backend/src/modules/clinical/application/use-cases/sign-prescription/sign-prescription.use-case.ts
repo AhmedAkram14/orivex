@@ -6,6 +6,7 @@ import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-
 import { Prescription } from '../../../domain/entities/prescription.entity.js';
 import type { PendingAISuggestionAcknowledgmentRepository } from '../../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
 import type { PrescriptionRepository } from '../../../domain/repositories/prescription.repository.js';
+import type { PrescriptionSignerPort } from '../../ports/prescription-signer.port.js';
 import { GetHealthGraphSubgraphUseCase } from '../get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 
 import type { SignPrescriptionCommand } from './sign-prescription.command.js';
@@ -33,6 +34,7 @@ export class SignPrescriptionUseCase {
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
     private readonly pendingAISuggestionAcknowledgmentRepository: PendingAISuggestionAcknowledgmentRepository,
+    private readonly prescriptionSignerPort: PrescriptionSignerPort,
   ) {}
 
   async execute(command: SignPrescriptionCommand): Promise<Prescription> {
@@ -82,11 +84,23 @@ export class SignPrescriptionUseCase {
       throw new NotFoundError(`HealthGraphNode "${command.diagnosisNodeId}" not found for this patient.`);
     }
 
+    const signedAt = new Date();
+    const { signatureHash, verificationCode } = this.prescriptionSignerPort.sign({
+      consultationSessionId: command.consultationSessionId,
+      diagnosisNodeId: command.diagnosisNodeId,
+      authoringDoctorId: command.authoringDoctorId,
+      lineItems: command.lineItems,
+      signedAt,
+    });
+
     const prescription = Prescription.sign({
       consultationSessionId: command.consultationSessionId,
       diagnosisNodeId: command.diagnosisNodeId,
       authoringDoctorId: command.authoringDoctorId,
       lineItems: command.lineItems,
+      signatureHash,
+      verificationCode,
+      signedAt,
     });
 
     await this.prescriptionRepository.save(prescription);

@@ -159,3 +159,36 @@ export interface FeatureFlags {
   emailProviderConfigured: boolean;
   notificationQueueConfigured: boolean;
 }
+
+// I11 -- Admin audit-log viewer (ORIVEX Remaining Work Audit, P0 C2): matches
+// AuditLogEntryResponseDto exactly. `action` is left as a plain string here
+// (not a mirrored TS enum) -- the table renders it through a translation
+// lookup keyed by the raw value, same convention as SecurityEvent's own
+// `eventType` above.
+export interface AuditLogEntry {
+  id: string;
+  actorAccountId: string;
+  actorRole: string;
+  action: string;
+  subjectType: string;
+  subjectId: string;
+  reason: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ListAuditLogResult {
+  entries: AuditLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListAuditLogParams {
+  page?: number;
+  limit?: number;
+  actorAccountId?: string;
+  subjectType?: string;
+  subjectId?: string;
+  action?: string;
+}
