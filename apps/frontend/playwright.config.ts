@@ -45,8 +45,17 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       PORT: '3100',
-      NEXT_PUBLIC_API_BASE_URL: 'http://localhost:4000',
-      NEXT_PUBLIC_ENABLE_API_MOCKS: 'true',
+      // Overridable, not hardcoded -- this header comment has long
+      // documented "set these two before running next build && next
+      // start, no spec/config changes needed" as the way to point this at
+      // a real backend (N1, ORIVEX Remaining Work Audit's real-stack E2E
+      // job does exactly that), but a bare string literal here would have
+      // silently overridden whatever the shell already exported, making
+      // that documented escape hatch untrue. Falls back to the original
+      // MSW defaults when unset, so every existing (mocked) spec run is
+      // unaffected.
+      NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000',
+      NEXT_PUBLIC_ENABLE_API_MOCKS: process.env.NEXT_PUBLIC_ENABLE_API_MOCKS ?? 'true',
     },
   },
 });

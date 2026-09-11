@@ -20,6 +20,7 @@ import { Badge, type BadgeProps } from '@/shared/ui/badge';
 import { Container } from '@/shared/ui/container';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
+import { env } from '@/shared/lib/env';
 
 import { FAQ_KEYS } from './faq-keys';
 
@@ -119,7 +120,7 @@ export function FaqSection() {
           </div>
         </div>
         <a
-          href="mailto:ahmed.akram7474@gmail.com"
+          href={`mailto:${env.supportEmail}`}
           className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
         >
           {t('support.cta')}

@@ -17,6 +17,19 @@ This repository now contains the initial monorepo scaffold for Sprint 0:
 4. Generate Prisma client with `pnpm backend:prisma:generate`.
 5. Run the backend scaffold with `pnpm --filter @orivex/backend dev`.
 
+## Demo accounts
+
+After seeding (`pnpm backend:prisma:seed` or equivalent), every demo account shares the password `Password123!`. Emails follow `{role}{NN}@orivex.dev`:
+
+| Role | Emails | Count |
+|---|---|---|
+| Super Admin | `admin@orivex.dev` | 1 |
+| Hospital Admin | `hospitaladmin@orivex.dev` | 1 |
+| Doctor | `doctor01@orivex.dev` … `doctor20@orivex.dev` | 20 |
+| Patient | `patient01@orivex.dev` … `patient20@orivex.dev` | 20 |
+
+These are seed-only demo credentials (`apps/backend/prisma/demo-data/demo-people.ts`) — never used against a real deployment with real patient data.
+
 ## Documentation Index
 
 See [docs/README.md](docs/README.md) for the full, authoritative documentation index. Keep that file as the single source of truth for doc paths — this section intentionally doesn't duplicate the list to avoid the two drifting apart.

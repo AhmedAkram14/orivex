@@ -23,6 +23,44 @@ jobs:
   verify:
     name: Install, generate, lint, typecheck, test
     runs-on: ubuntu-latest
+    # N1 -- real-stack E2E in CI (ORIVEX Remaining Work Audit) surfaced that
+    # this job's "Test" step needs a genuinely reachable Postgres --
+    # apps/backend's *.repository.integration.test.ts files (I8's free-tier
+    # concurrency test, N8-Waitlist's own claim-concurrency test, etc.) open
+    # a real PrismaClient and were, before this fix, running against
+    # whatever DATABASE_URL happened to be in this runner's environment --
+    # i.e. nothing, since no service container was ever declared here.
+    # Controller-level *.controller.integration.test.ts files build a scoped
+    # NestJS TestingModule with fake providers (confirmed by inspection, e.g.
+    # consultation.controller.integration.test.ts's own Test.createTestingModule
+    # call) and need no real infrastructure at all, so only Postgres is
+    # declared below -- Redis/S3 are never touched by `pnpm run test`, and
+    # every env var below is present in schema-valid *format* only, not
+    # meant to be a working credential (see env.schema.ts for what's
+    # actually required to satisfy config validation at boot).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: orivex
+          POSTGRES_USER: orivex
+          POSTGRES_PASSWORD: orivex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orivex -d orivex"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://orivex:orivex@localhost:5432/orivex
+      CORS_ORIGINS: http://localhost:3000
+      JWT_ACCESS_SECRET: ci-only-placeholder-not-a-real-secret-32chars
+      PRESCRIPTION_SIGNING_SECRET: ci-only-placeholder-not-a-real-secret-32c
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: ci-placeholder
+      S3_SECRET_ACCESS_KEY: ci-placeholder
+      S3_BUCKET: ci-placeholder
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +76,9 @@ jobs:
 
       - name: Prisma generate
         run: pnpm --filter @orivex/backend run prisma:generate
+
+      - name: Prisma migrate deploy
+        run: pnpm --filter @orivex/backend run prisma:migrate:deploy
 
       - name: Lint
         run: pnpm --filter @orivex/backend run lint

@@ -22,6 +22,7 @@ import { ReportingModule } from './modules/reporting/reporting.module.js';
 import { SchedulingModule } from './modules/scheduling/scheduling.module.js';
 import { SearchModule } from './modules/search/search.module.js';
 import { TrustModule } from './modules/trust/trust.module.js';
+import { WaitlistModule } from './modules/waitlist/waitlist.module.js';
 import { PrismaModule } from './platform/database/prisma.module.js';
 import { EventsModule } from './platform/events/events.module.js';
 import { AllExceptionsFilter } from './platform/filters/all-exceptions.filter.js';
@@ -55,6 +56,7 @@ import { RealtimeModule } from './platform/realtime/realtime.module.js';
     AIModule,
     MessagingModule,
     KnowledgeModule,
+    WaitlistModule,
     NotificationModule,
     PublicModule,
     ReportingModule,

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { SessionProvider } from '@/features/auth/providers/session-provider';
 import { AppProviders } from '@/shared/providers/app-providers';
 import { MockProvider } from '@/shared/providers/mock-provider';
+import { ServiceWorkerRegistration } from '@/shared/providers/service-worker-registration';
 import { ThemeScript } from '@/shared/providers/theme-provider';
 import { plexSansArabic, plexSansLatin } from '@/design-system/fonts';
 import { routing, isRtlLocale, type AppLocale } from '@/shared/i18n/routing';
@@ -52,6 +53,7 @@ export default async function LocaleLayout({
         <ThemeScript />
       </head>
       <body className="antialiased" suppressHydrationWarning>
+        <ServiceWorkerRegistration />
         <NextIntlClientProvider>
           <MockProvider>
             <AppProviders>

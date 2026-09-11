@@ -209,6 +209,8 @@ model DoctorProfile {
   recordedVitalReadings           VitalReading[]
   // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3).
   consentRecords                  ConsentRecord[]
+  // N8-Waitlist (ORIVEX Remaining Work Audit).
+  waitlistEntries                 WaitlistEntry[]
 
   @@index([hospitalId])
   @@index([specialtyId])
@@ -664,6 +666,8 @@ model PatientProfile {
   submittedFeedback   ConsultationFeedback[]
   // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3).
   consentRecords      ConsentRecord[]
+  // N8-Waitlist (ORIVEX Remaining Work Audit).
+  waitlistEntries     WaitlistEntry[]
 
   @@index([insuranceProviderId])
 }
@@ -717,6 +721,42 @@ enum AvailabilityWindowStatus {
 enum ConsultationType {
   FREE
   PAID
+}
+
+enum WaitlistEntryStatus {
+  WAITING
+  NOTIFIED
+  FULFILLED
+  CANCELLED
+}
+
+// N8-Waitlist (ORIVEX Remaining Work Audit): a patient's standing request
+// to be told when a slot opens for a specific doctor within a date range,
+// when nothing bookable exists today. Deliberately its own aggregate, not
+// a field on AvailabilityWindow/Appointment -- it has no slot of its own
+// until one is found, and its own lifecycle (Waiting -> Notified ->
+// Fulfilled/Cancelled) is independent of any single window's lifecycle.
+// consultationType is nullable -- "no preference" is a valid, common case.
+model WaitlistEntry {
+  id                   String              @id @default(uuid())
+  patientId            String
+  patientProfile       PatientProfile      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId             String
+  doctorProfile        DoctorProfile       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  consultationType     ConsultationType?
+  earliestAcceptableAt DateTime
+  latestAcceptableAt   DateTime
+  status               WaitlistEntryStatus @default(WAITING)
+  notifiedAt           DateTime?
+  fulfilledAt          DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  // Backs "find the earliest-created still-Waiting entry for this doctor"
+  // (the matching use case's hot-path query) and "list my own entries".
+  @@index([doctorId, status, createdAt])
+  @@index([patientId])
 }
 
 // Sprint 7 (revised roadmap): DoctorModule's own aggregate root

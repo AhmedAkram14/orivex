@@ -4,6 +4,7 @@ import { LandingLocaleSwitcher } from '@/features/landing/components/landing-loc
 import { Icon } from '@/shared/icons/icon';
 import { Text } from '@/design-system/typography';
 import { Link } from '@/shared/i18n/navigation';
+import { env } from '@/shared/lib/env';
 import { Container } from '@/shared/ui/container';
 import { Footer } from '@/shared/ui/layout/footer';
 import { Logo } from '@/shared/ui/logo';
@@ -97,7 +98,7 @@ export function LandingFooter() {
               {t('company.heading')}
             </span>
             <a
-              href="mailto:ahmed.akram7474@gmail.com"
+              href={`mailto:${env.supportEmail}`}
               className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary"
             >
               {t('company.contactUs')}

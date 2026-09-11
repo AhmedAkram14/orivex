@@ -3,8 +3,7 @@
 import { AlertTriangle, Bell, HelpCircle, Info } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Icon } from '@/shared/icons/icon';
-
-const SUPPORT_EMAIL = 'ahmed.akram7474@gmail.com';
+import { env } from '@/shared/lib/env';
 
 /**
  * The Prescriptions page's supporting sidebar — informational-only cards.
@@ -52,7 +51,7 @@ export function PrescriptionSidebar() {
       </div>
 
       <a
-        href={`mailto:${SUPPORT_EMAIL}`}
+        href={`mailto:${env.supportEmail}`}
         className="flex items-start gap-3 rounded-lg border border-border-default bg-surface p-4 transition-colors duration-(--duration-fast) hover:bg-secondary-subtle"
       >
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-subtle text-text-secondary">

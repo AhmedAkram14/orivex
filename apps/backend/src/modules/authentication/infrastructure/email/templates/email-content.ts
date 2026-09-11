@@ -83,6 +83,13 @@ const EN: Record<string, TemplateBuilder> = {
     text: 'Your consultation is complete. Log in to Orivex to rate your experience and see any next steps your doctor recommended.',
     cta: frontendUrl ? { label: 'Rate your consultation', url: `${frontendUrl}/patient/appointments` } : undefined,
   }),
+  // N8-Waitlist (ORIVEX Remaining Work Audit). PHI-light: no reason for
+  // visit or other clinical detail, matching every other template here.
+  'waitlist-opportunity': (_data, frontendUrl) => ({
+    subject: 'A slot just opened up on Orivex',
+    text: 'A doctor you were waiting for now has an opening in your requested date range. Book soon -- it may not stay available for long.',
+    cta: frontendUrl ? { label: 'Book now', url: `${frontendUrl}/patient/doctors` } : undefined,
+  }),
 };
 
 const AR: Record<string, TemplateBuilder> = {
@@ -138,6 +145,11 @@ const AR: Record<string, TemplateBuilder> = {
     subject: 'كيف كانت استشارتك في أوريفكس؟',
     text: 'اكتملت استشارتك. سجّل الدخول إلى أوريفكس لتقييم تجربتك والاطلاع على أي خطوات تالية أوصى بها طبيبك.',
     cta: frontendUrl ? { label: 'قيّم استشارتك', url: `${frontendUrl}/patient/appointments` } : undefined,
+  }),
+  'waitlist-opportunity': (_data, frontendUrl) => ({
+    subject: 'أصبح هناك موعد متاح على أوريفكس',
+    text: 'أصبح لدى الطبيب الذي كنت تنتظره موعد متاح ضمن النطاق الزمني الذي طلبته. احجز قريبًا -- قد لا يبقى متاحًا لفترة طويلة.',
+    cta: frontendUrl ? { label: 'احجز الآن', url: `${frontendUrl}/patient/doctors` } : undefined,
   }),
 };
 

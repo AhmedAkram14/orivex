@@ -542,6 +542,7 @@
       "patientRecords": "Medical Records",
       "patientMessages": "Messages",
       "patientDisputes": "Disputes",
+      "patientWaitlist": "Waitlist",
       "patientKnowledge": "Knowledge Center",
       "patientPrescriptions": "Prescriptions",
       "patientHealth": "Health Dashboard",
@@ -658,6 +659,37 @@
       "open": "Open",
       "resolved": "Resolved",
       "dismissed": "Dismissed"
+    }
+  },
+  "waitlist": {
+    "title": "Waitlist",
+    "subtitle": "Get notified when a doctor you're waiting for has a new opening.",
+    "loadError": "Couldn't load your waitlist.",
+    "joinAction": "Join a waitlist",
+    "myWaitlistTitle": "My waitlist",
+    "emptyTitle": "No waitlist entries",
+    "emptyDescription": "Doctors you're waiting for will appear here.",
+    "unknownDoctor": "Doctor",
+    "rangeLabel": "Between {from} and {to}",
+    "cancelAction": "Cancel",
+    "joinDialogTitle": "Join a waitlist",
+    "joinDialogDescription": "Choose a doctor and the date range you're available. We'll notify you the moment an opening matches.",
+    "doctorLabel": "Doctor",
+    "doctorPlaceholder": "Select a doctor",
+    "consultationTypeLabel": "Consultation type",
+    "consultationTypeAny": "Either",
+    "consultationTypeFree": "Free",
+    "consultationTypePaid": "Paid",
+    "earliestLabel": "Earliest date",
+    "latestLabel": "Latest date",
+    "cancel": "Cancel",
+    "confirmJoin": "Join waitlist",
+    "joinError": "Couldn't join this waitlist. Please try again.",
+    "status": {
+      "waiting": "Waiting",
+      "notified": "Opening available",
+      "fulfilled": "Booked",
+      "cancelled": "Cancelled"
     }
   },
   "knowledge": {

@@ -3,6 +3,7 @@
 import { ChevronRight, Headphones } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Icon } from '@/shared/icons/icon';
+import { env } from '@/shared/lib/env';
 
 /**
  * The sidebar's bottom "get in touch" card. No help-center page exists
@@ -16,7 +17,7 @@ export function HelpCenterCard() {
 
   return (
     <a
-      href="mailto:ahmed.akram7474@gmail.com"
+      href={`mailto:${env.supportEmail}`}
       className="flex items-center gap-3 rounded-lg bg-primary-subtle p-3 transition-colors duration-(--duration-fast) hover:bg-primary-subtle/70"
     >
       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-primary">

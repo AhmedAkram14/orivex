@@ -91,3 +91,126 @@ jobs:
           name: playwright-report
           path: apps/frontend/playwright-report/
           retention-days: 7
+
+  e2e-real-stack:
+    # N1 -- real-stack E2E coverage (ORIVEX Remaining Work Audit): the `e2e`
+    # job above proves the UI against MSW; this job instead builds the
+    # frontend with mocks OFF and runs it against a genuinely live NestJS
+    # backend + real Postgres, exercising the actual frontend<->backend<->
+    # database seam the mocked suite never touches. Scoped to exactly
+    # tests/e2e/real-stack-smoke.spec.ts -- every other spec in this
+    # directory depends on MSW-only seams (window.__mockScheduling, etc.)
+    # that do not exist against a real backend and would fail here, not
+    # because anything is broken but because they were never written for
+    # this mode (see real-stack-smoke.spec.ts's own header comment).
+    #
+    # Stripe/LiveKit: intentionally left unset. Both are optional at the
+    # backend's own config layer (env.schema.ts), so the app boots and
+    # this spec's login/real-data-rendering path runs correctly without
+    # them -- extending real-stack coverage into payment/consultation
+    # requires real Stripe test-mode and LiveKit credentials as repository
+    # secrets, which this pass does not fabricate or silently substitute.
+    name: Real-stack E2E (real backend + Postgres)
+    runs-on: ubuntu-latest
+    needs: verify
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: orivex
+          POSTGRES_USER: orivex
+          POSTGRES_PASSWORD: orivex
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orivex -d orivex"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # env.schema.ts defaults PORT to 3000, not 4000 -- every step below
+      # (the wait-loop, the frontend's NEXT_PUBLIC_API_BASE_URL, the spec
+      # itself) assumes 4000, matching this repo's own local-dev
+      # convention (.env.development). Without this, `node dist/main.js`
+      # would bind 3000 and the wait-loop would fail this job every time.
+      PORT: "4000"
+      DATABASE_URL: postgresql://orivex:orivex@localhost:5432/orivex
+      CORS_ORIGINS: http://localhost:3100
+      FRONTEND_URL: http://localhost:3100
+      JWT_ACCESS_SECRET: ci-only-placeholder-not-a-real-secret-32chars
+      JWT_ACCESS_TTL_SECONDS: "900"
+      PRESCRIPTION_SIGNING_SECRET: ci-only-placeholder-not-a-real-secret-32c
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: ci-placeholder
+      S3_SECRET_ACCESS_KEY: ci-placeholder
+      S3_BUCKET: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install backend dependencies
+        run: pnpm install --frozen-lockfile --filter @orivex/backend...
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile --filter @orivex/frontend...
+
+      - name: Backend -- Prisma generate + migrate deploy
+        run: |
+          pnpm --filter @orivex/backend run prisma:generate
+          pnpm --filter @orivex/backend run prisma:migrate:deploy
+
+      - name: Backend -- seed demo data
+        run: pnpm --filter @orivex/backend run seed
+
+      - name: Backend -- build
+        run: pnpm --filter @orivex/backend run build
+
+      - name: Backend -- start (background)
+        run: nohup node apps/backend/dist/main.js > backend.log 2>&1 &
+
+      - name: Backend -- wait for real auth endpoint to answer
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:4000/auth/login \
+              -H "Content-Type: application/json" -d '{"email":"nonexistent@orivex.dev","password":"wrong"}')
+            if [ "$code" != "000" ]; then echo "Backend is up (auth endpoint responded $code)"; exit 0; fi
+            sleep 2
+          done
+          echo "Backend never became reachable" && cat backend.log && exit 1
+
+      - name: Frontend -- build (mocks disabled, pointed at the real backend above)
+        run: pnpm --filter @orivex/frontend run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+          NEXT_PUBLIC_ENABLE_API_MOCKS: "false"
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @orivex/frontend exec playwright install --with-deps chromium
+
+      - name: Run real-stack smoke spec
+        run: pnpm --filter @orivex/frontend exec playwright test real-stack-smoke.spec.ts
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+          NEXT_PUBLIC_ENABLE_API_MOCKS: "false"
+
+      - name: Upload backend log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-stack-backend-log
+          path: backend.log
+          retention-days: 7
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-stack-playwright-report
+          path: apps/frontend/playwright-report/
+          retention-days: 7

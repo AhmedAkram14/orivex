@@ -19,6 +19,7 @@ import { UserMenu } from '@/features/shell/components/user-menu';
 import { useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
+import { env } from '@/shared/lib/env';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -111,7 +112,7 @@ export function JourneyScreen() {
           {tCommon('appName')}
         </div>
         <div className="flex items-center gap-6">
-          <a href="mailto:ahmed.akram7474@gmail.com" className="hidden items-center gap-2 sm:flex">
+          <a href={`mailto:${env.supportEmail}`} className="hidden items-center gap-2 sm:flex">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
               <Icon icon={Headphones} size="sm" />
             </span>

@@ -51,7 +51,20 @@ const preview: Preview = {
     locale: {
       name: 'Locale',
       description: 'Locale (drives direction and translated strings)',
-      defaultValue: 'en',
+      // Interactive dev use always starts in English -- overridable via
+      // VITE_STORYBOOK_DEFAULT_LOCALE=ar (see the "storybook:rtl" script)
+      // to open straight into Arabic/RTL, so the addon-a11y
+      // panel's checks (a11y.test: 'error' below) can be reviewed manually
+      // under RTL without switching the toolbar per story. NOT wired into
+      // an automated CI gate: @storybook/test-runner (tried 0.22.0 and
+      // 0.23.0, the two releases compatible with this project's
+      // storybook@8.6 + @storybook/react-vite) fails "React is not
+      // defined" inside every play-function story's headless evaluation --
+      // a real incompatibility between test-runner's interaction bridge
+      // and this project's Vite builder, not a config issue here. Until
+      // upstream fixes that, N3's a11y coverage is manual-only (Storybook's
+      // own UI), not enforced in CI.
+      defaultValue: (import.meta.env.VITE_STORYBOOK_DEFAULT_LOCALE as 'en' | 'ar' | undefined) ?? 'en',
       toolbar: {
         icon: 'globe',
         items: [

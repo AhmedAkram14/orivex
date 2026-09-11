@@ -552,6 +552,7 @@
       "patientRecords": "السجلات الطبية",
       "patientMessages": "الرسائل",
       "patientDisputes": "النزاعات",
+      "patientWaitlist": "قائمة الانتظار",
       "patientKnowledge": "مركز المعرفة",
       "patientPrescriptions": "الوصفات الطبية",
       "patientHealth": "لوحة الصحة",
@@ -658,6 +659,37 @@
       "open": "مفتوح",
       "resolved": "تم الحل",
       "dismissed": "مرفوض"
+    }
+  },
+  "waitlist": {
+    "title": "قائمة الانتظار",
+    "subtitle": "تلقَّ إشعارًا عند توفر موعد جديد لدى الطبيب الذي تنتظره.",
+    "loadError": "تعذّر تحميل قائمة انتظارك.",
+    "joinAction": "الانضمام إلى قائمة انتظار",
+    "myWaitlistTitle": "قائمة انتظاري",
+    "emptyTitle": "لا توجد عناصر في قائمة الانتظار",
+    "emptyDescription": "سيظهر هنا الأطباء الذين تنتظرهم.",
+    "unknownDoctor": "طبيب",
+    "rangeLabel": "بين {from} و {to}",
+    "cancelAction": "إلغاء",
+    "joinDialogTitle": "الانضمام إلى قائمة انتظار",
+    "joinDialogDescription": "اختر طبيبًا والنطاق الزمني المتاح لك. سنخطرك فور توفر موعد مناسب.",
+    "doctorLabel": "الطبيب",
+    "doctorPlaceholder": "اختر طبيبًا",
+    "consultationTypeLabel": "نوع الاستشارة",
+    "consultationTypeAny": "أي نوع",
+    "consultationTypeFree": "مجانية",
+    "consultationTypePaid": "مدفوعة",
+    "earliestLabel": "أقرب تاريخ",
+    "latestLabel": "أبعد تاريخ",
+    "cancel": "إلغاء",
+    "confirmJoin": "الانضمام لقائمة الانتظار",
+    "joinError": "تعذّر الانضمام إلى قائمة الانتظار هذه. يرجى المحاولة مرة أخرى.",
+    "status": {
+      "waiting": "بانتظار",
+      "notified": "يوجد موعد متاح",
+      "fulfilled": "تم الحجز",
+      "cancelled": "ملغى"
     }
   },
   "knowledge": {

@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarDays,
   CalendarRange,
+  Clock3,
   Contact,
   FileText,
   Flag,
@@ -231,6 +232,13 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         labelKey: 'patientDisputes',
         icon: AlertTriangle,
         href: '/patient/disputes',
+        roles: ['patient'],
+      },
+      {
+        id: 'patient-workspace-waitlist',
+        labelKey: 'patientWaitlist',
+        icon: Clock3,
+        href: '/patient/waitlist',
         roles: ['patient'],
       },
       {

@@ -31,6 +31,7 @@ export function buildPageMetadata({ locale, path, title, description }: PageMeta
   return {
     title,
     description,
+    manifest: '/manifest.webmanifest',
     alternates: {
       canonical: canonicalUrl,
       languages: languageAlternates,

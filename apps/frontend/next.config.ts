@@ -5,12 +5,18 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig: NextConfig = {
   // AssetModule serves media via signed, time-limited S3 URLs
   // (docs/10-backend-architecture.md's AssetModule entry) -- the actual
-  // bucket/CDN domain isn't chosen yet (no S3 provider has been selected
-  // for production, per the backend's own NotConfigured*Adapter pattern).
-  // Add the real domain here once one exists; next/image will reject any
-  // remote image host not listed below.
+  // production bucket/CDN domain isn't chosen yet (no S3 provider has been
+  // selected for production, per the backend's own NotConfigured*Adapter
+  // pattern). Add the real domain here once one exists; next/image will
+  // reject any remote image host not listed below.
+  //
+  // Local dev (docker-compose's `minio` service, infrastructure/docker/
+  // docker-compose.yml) already serves real signed URLs off
+  // localhost:9000, so that host is allowlisted unconditionally -- it's
+  // never reachable outside a developer's own machine, so there's no
+  // production-security tradeoff in listing it.
   images: {
-    remotePatterns: [],
+    remotePatterns: [{ protocol: 'http', hostname: 'localhost', port: '9000' }],
   },
 
   // Proxies /auth/* through this app's own origin to the backend

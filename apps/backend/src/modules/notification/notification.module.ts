@@ -63,6 +63,10 @@ import {
   type PaymentCompletedEventPayload,
 } from './application/event-handlers/notify-patient-of-payment-completed.handler.js';
 import {
+  NotifyPatientOfWaitlistOpportunityHandler,
+  type WaitlistOpportunityMatchedEventPayload,
+} from './application/event-handlers/notify-patient-of-waitlist-opportunity.handler.js';
+import {
   NotifyPatientOfRefundIssuedHandler,
   type RefundIssuedEventPayload,
 } from './application/event-handlers/notify-patient-of-refund-issued.handler.js';
@@ -767,6 +771,40 @@ import { NotificationController } from './presentation/controllers/notification.
         GetPatientProfileByIdUseCase,
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // N8-Waitlist (ORIVEX Remaining Work Audit). Reacts to WaitlistModule's
+      // 'waitlist.opportunity.matched' event -- a Waiting entry was just
+      // matched to a newly-opened slot and transitioned to Notified.
+      provide: NotifyPatientOfWaitlistOpportunityHandler,
+      useFactory: (
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfWaitlistOpportunityHandler(
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('waitlist.opportunity.matched', (event: DomainEvent) =>
+          handler.handle(event as unknown as WaitlistOpportunityMatchedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],

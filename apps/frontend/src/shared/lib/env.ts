@@ -37,6 +37,11 @@ const envSchema = z.object({
   // broken card field, mirroring the backend's own not-configured-adapter
   // idiom rather than crashing.
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  // The address every "Contact support" mailto: link in the app points
+  // to. Optional -- falls back to a neutral placeholder rather than a
+  // real person's inbox when unset, so a fresh clone/deploy never leaks
+  // one developer's personal email to patients.
+  NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().optional(),
 });
 
 type ParsedEnv = z.infer<typeof envSchema>;
@@ -68,6 +73,7 @@ function readEnv(): ParsedEnv {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? toAbsoluteUrl(process.env.NEXT_PUBLIC_VERCEL_URL),
     NEXT_PUBLIC_ENABLE_API_MOCKS: process.env.NEXT_PUBLIC_ENABLE_API_MOCKS,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_SUPPORT_EMAIL: process.env.NEXT_PUBLIC_SUPPORT_EMAIL,
   });
 
   if (!parsed.success) {
@@ -94,5 +100,8 @@ export const env = {
   },
   get stripePublishableKey(): string | undefined {
     return readEnv().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  },
+  get supportEmail(): string {
+    return readEnv().NEXT_PUBLIC_SUPPORT_EMAIL ?? 'support@orivex.dev';
   },
 };

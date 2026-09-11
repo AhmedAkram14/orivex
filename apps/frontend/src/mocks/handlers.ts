@@ -16,6 +16,7 @@ import { referenceHandlers } from '@/mocks/handlers/reference';
 import { schedulingHandlers } from '@/mocks/handlers/scheduling';
 import { searchHandlers } from '@/mocks/handlers/search';
 import { telemedicineHandlers } from '@/mocks/handlers/telemedicine';
+import { waitlistHandlers } from '@/mocks/handlers/waitlist';
 import { seedDemoData } from '@/mocks/demo-data/demo-seeder';
 
 // Demo Data & Profile Avatar Pass: fills the (now account-keyed) mock stores
@@ -53,4 +54,5 @@ export const handlers = [
   ...schedulingHandlers,
   ...searchHandlers,
   ...telemedicineHandlers,
+  ...waitlistHandlers,
 ];
