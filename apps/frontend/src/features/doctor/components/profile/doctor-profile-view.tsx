@@ -512,25 +512,36 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             <Card className={CARD_CLASS}>
               <CardContent className="flex flex-col gap-3 p-6">
                 <Heading as="h3" level={4}>{t('sidebar.quickActions')}</Heading>
-                <div className="flex flex-col gap-2">
+                {/* Borderless hover-row list, matching the Schedule page's
+                    own "Quick Actions" widget -- previously this stacked
+                    bordered `outline` buttons instead, which read as a
+                    different component for the same concept once both
+                    pages existed side by side. */}
+                <div className="flex flex-col">
                   {onEdit && (
-                    <Button variant="outline" className="justify-start" onClick={onEdit}>
-                      <Icon icon={Pencil} size="sm" className="me-2" />
+                    <button
+                      type="button"
+                      onClick={onEdit}
+                      className="flex items-center gap-2 rounded-md px-2 py-2 text-start text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                    >
+                      <Icon icon={Pencil} size="sm" className="text-text-tertiary" />
                       {t('editProfile')}
-                    </Button>
+                    </button>
                   )}
-                  <Button variant="outline" className="justify-start" asChild>
-                    <Link href="/doctor/schedule">
-                      <Icon icon={CalendarClock} size="sm" className="me-2" />
-                      {t('sidebar.manageSchedule')}
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="justify-start" asChild>
-                    <Link href="/security">
-                      <Icon icon={Lock} size="sm" className="me-2" />
-                      {t('sidebar.security')}
-                    </Link>
-                  </Button>
+                  <Link
+                    href="/doctor/schedule"
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  >
+                    <Icon icon={CalendarClock} size="sm" className="text-text-tertiary" />
+                    {t('sidebar.manageSchedule')}
+                  </Link>
+                  <Link
+                    href="/security"
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  >
+                    <Icon icon={Lock} size="sm" className="text-text-tertiary" />
+                    {t('sidebar.security')}
+                  </Link>
                 </div>
               </CardContent>
             </Card>

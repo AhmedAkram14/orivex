@@ -312,6 +312,7 @@ export default function DoctorSchedulePage() {
                             locale,
                             t('upcomingSlots.free'),
                           )}
+                          priceIsFree={day.pricing.pricingType === 'free'}
                           notWorkingLabel={t('noAvailability')}
                         />
                       ))}
@@ -346,7 +347,14 @@ export default function DoctorSchedulePage() {
               starts expanded too but a real collapse control (the summary) lets the doctor tuck
               these four widgets away instead of them permanently competing with the schedule
               itself for scroll space. */}
-          <details open className="flex min-w-0 flex-col gap-6">
+          {/* gap-4 on mobile, gap-6 from lg up: on a narrow single-column
+              stack, four separately-bordered/shadowed cards each already
+              carrying 24px of their own internal padding (Card's p-6) read
+              as too much repeated whitespace between fairly sparse content
+              (a ring + legend, a few lines of text, a short list) at the
+              same 24px external gap -- tightened for mobile only, desktop's
+              3-column grid is unaffected. */}
+          <details open className="flex min-w-0 flex-col gap-4 lg:gap-6">
             <summary className="cursor-pointer list-none rounded-lg border border-border-default bg-surface px-4 py-3 text-sm font-medium text-text-primary marker:hidden lg:hidden">
               {t('scheduleToolsTitle')}
             </summary>

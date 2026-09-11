@@ -12,6 +12,8 @@ export interface AvailabilityCardProps {
   breaksLabel?: string;
   /** Consultation Pricing Redesign: this day's default price (e.g. "FREE", "500 EGP") — only meaningful when `isWorkingDay` is true. Pre-formatted, never computed here. */
   priceLabel?: string;
+  /** Whether `priceLabel` represents a free day — renders it in `text-success` instead of the neutral price color, matching the Doctor Profile page's own free-vs-paid convention (`consultationFeeAmount === 0 ? 'text-success' : ...'`), so "free" reads as a distinct, scannable signal here too rather than looking identical to a real price. */
+  priceIsFree?: boolean;
   notWorkingLabel: string;
   className?: string;
 }
@@ -29,6 +31,7 @@ export function AvailabilityCard({
   hoursLabel,
   breaksLabel,
   priceLabel,
+  priceIsFree = false,
   notWorkingLabel,
   className,
 }: AvailabilityCardProps) {
@@ -50,7 +53,9 @@ export function AvailabilityCard({
             {hoursLabel}
           </span>
           {breaksLabel && <span className="text-text-tertiary">{breaksLabel}</span>}
-          {priceLabel && <span className="font-medium text-text-primary">{priceLabel}</span>}
+          {priceLabel && (
+            <span className={cn('font-medium', priceIsFree ? 'text-success' : 'text-text-primary')}>{priceLabel}</span>
+          )}
         </div>
       ) : (
         <span className="text-sm text-text-tertiary">{notWorkingLabel}</span>
