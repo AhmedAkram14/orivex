@@ -72,7 +72,10 @@ export function TodaysSummary() {
       <LinkableStatCard
         size="lg"
         icon={Star}
-        iconClassName="bg-primary-subtle text-primary-emphasis"
+        // Amber, not blue -- matches the Star icon everywhere else it
+        // appears (Profile page's hero rating stat, the actual review
+        // stars), so "rating" reads as one consistent accent across pages.
+        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('averageRating')}
         value={ratingValue}
         helperText={helperText}

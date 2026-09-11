@@ -226,7 +226,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                 {(profile.languages ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {profile.languages.map((language) => (
-                      <Badge key={language} variant="neutral">
+                      <Badge key={language} variant="info">
                         {language.toUpperCase()}
                       </Badge>
                     ))}
@@ -235,8 +235,13 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
               </div>
             </div>
 
+            {/* This page's one real primary action -- filled `primary`
+                (not `outline`, unlike the Quick Actions sidebar's echo of
+                the same action) so it reads as the obvious thing to do
+                here, especially given Profile Completion below actively
+                encourages finishing the profile out. */}
             {isWorkspace && onEdit && (
-              <Button variant="outline" onClick={onEdit} className="self-start sm:self-center">
+              <Button variant="primary" onClick={onEdit} className="self-start sm:self-center">
                 <Icon icon={Pencil} size="sm" className="me-2" />
                 {t('editProfile')}
               </Button>
@@ -316,6 +321,40 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                 value={profile.consultationFeeAmount !== undefined ? t('hero.consultationFee', { amount: profile.consultationFeeAmount }) : t('notOnRecord')}
               />
               {hospital?.address && <InfoRow icon={MapPin} label={t('clinicAddress')} value={hospital.address} />}
+              <InfoRow
+                icon={LanguagesIcon}
+                label={t('languages')}
+                value={
+                  (profile.languages ?? []).length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {profile.languages.map((language) => (
+                        <Badge key={language} variant="info">
+                          {language.toUpperCase()}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    t('notOnRecord')
+                  )
+                }
+              />
+              <InfoRow
+                icon={ShieldCheck}
+                label={t('insurance')}
+                value={
+                  (profile.insuranceProviders ?? []).length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {profile.insuranceProviders.map((provider) => (
+                        <Badge key={provider} variant="success">
+                          {provider}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    t('notOnRecord')
+                  )
+                }
+              />
             </div>
           </ProfileSectionCard>
 
@@ -371,34 +410,6 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                   ) : undefined
                 }
               />
-            )}
-          </ProfileSectionCard>
-
-          <ProfileSectionCard title={t('languages')} icon={LanguagesIcon} iconClassName="bg-info-subtle text-info-emphasis">
-            {(profile.languages ?? []).length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {profile.languages.map((language) => (
-                  <Badge key={language} variant="info" className="px-3 py-1 text-sm">
-                    {language.toUpperCase()}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">{t('notOnRecord')}</p>
-            )}
-          </ProfileSectionCard>
-
-          <ProfileSectionCard title={t('insurance')} icon={ShieldCheck} iconClassName="bg-success-subtle text-success-emphasis">
-            {(profile.insuranceProviders ?? []).length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {profile.insuranceProviders.map((provider) => (
-                  <Badge key={provider} variant="success" className="px-3 py-1 text-sm">
-                    {provider}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <EmptyState icon={ShieldCheck} title={t('insuranceEmptyTitle')} description={t('insuranceEmptyDescription')} />
             )}
           </ProfileSectionCard>
 
