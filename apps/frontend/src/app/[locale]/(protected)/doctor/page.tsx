@@ -27,12 +27,17 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
  * genuinely absent.
  */
 export default function DoctorDashboardPage() {
-  const t = useTranslations('doctor.dashboard');
+  const tNav = useTranslations('shell.nav');
 
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page className="gap-8 lg:px-10">
-        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
+        {/* Title matches the breadcrumb's own leaf label ("Overview"), same
+            as every other doctor page (Schedule, Queue, Patients, ...) --
+            `doctor.dashboard.title` ("Doctor Workspace") is the *section*
+            name the breadcrumb's first segment already shows, so reusing it
+            here duplicated that segment instead of naming this specific page. */}
+        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={tNav('overview')} />
         <DashboardHero />
         <TodaysSummary />
 

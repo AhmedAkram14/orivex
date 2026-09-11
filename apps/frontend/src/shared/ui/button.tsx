@@ -5,15 +5,25 @@ import { cn } from '@/shared/lib/cn';
 import { Spinner } from '@/shared/ui/spinner';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors duration-(--duration-fast) ease-(--ease-standard) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-(--opacity-disabled)',
+  // No blanket `disabled:opacity-*` here (unlike most other form controls) --
+  // for a *solid-fill* button, dimming background and text by the same
+  // opacity washes white label text out against an already-lightened brand
+  // color, which reads poorly even though disabled controls are exempt from
+  // WCAG contrast minimums. Each solid variant instead swaps to an explicit
+  // muted flat treatment below, so the label stays legible.
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors duration-(--duration-fast) ease-(--ease-standard) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 disabled:pointer-events-none',
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary-hover',
-        outline: 'border border-border-strong bg-transparent text-text-primary hover:bg-secondary-subtle',
-        ghost: 'bg-transparent text-text-primary hover:bg-secondary-subtle',
-        danger: 'bg-danger text-danger-foreground hover:bg-danger/90',
+        primary:
+          'bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active disabled:border disabled:border-border-default disabled:bg-secondary-subtle disabled:text-text-tertiary',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary-hover disabled:border disabled:border-border-default disabled:bg-secondary-subtle disabled:text-text-tertiary',
+        outline:
+          'border border-border-strong bg-transparent text-text-primary hover:bg-secondary-subtle disabled:border-border-default disabled:text-text-tertiary',
+        ghost: 'bg-transparent text-text-primary hover:bg-secondary-subtle disabled:text-text-tertiary',
+        danger:
+          'bg-danger text-danger-foreground hover:bg-danger/90 disabled:border disabled:border-border-default disabled:bg-secondary-subtle disabled:text-text-tertiary',
       },
       size: {
         sm: 'h-8 px-3 text-sm',

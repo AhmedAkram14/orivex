@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, FileText, Users, Video, type LucideIcon } from 'lucide-react';
+import { CalendarClock, Clock, FileText, Users, Video, type LucideIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
@@ -11,7 +11,6 @@ import { useDoctorUpcomingWork } from '@/features/doctor/hooks/use-doctor-upcomi
 import { WelcomeHeader } from '@/features/doctor/components/welcome-header';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
 import { cn } from '@/shared/lib/cn';
 import { getCairoNow } from '@/shared/lib/date/timezone';
@@ -106,9 +105,14 @@ export function DashboardHero() {
             {startableEntry ? (
               <StartConsultationAction consultationSessionId={startableEntry.id} />
             ) : (
-              <Button type="button" disabled>
+              // A status message, not a disabled button: nothing here can
+              // become clickable this session, so button chrome would only
+              // invite a click that does nothing and dilute the real CTAs
+              // (Quick Actions) below it.
+              <div className="inline-flex items-center gap-2 rounded-md border border-border-default bg-secondary-subtle px-4 py-2.5 text-sm font-medium text-text-secondary">
+                <Icon icon={Clock} size="sm" />
                 {t('hero.noStartableConsultation')}
-              </Button>
+              </div>
             )}
           </div>
 
