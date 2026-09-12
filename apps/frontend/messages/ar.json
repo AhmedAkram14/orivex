@@ -12,6 +12,17 @@
     "appLoading": {
       "title": "نجهّز تجربتك الصحية",
       "subtitle": "لحظة من فضلك..."
+    },
+    "pagination": {
+      "label": "الترقيم بين الصفحات",
+      "previousPage": "الصفحة السابقة",
+      "nextPage": "الصفحة التالية",
+      "pageOf": "صفحة {page} من {pageCount}"
+    },
+    "carousel": {
+      "pagesLabel": "صفحات العرض",
+      "previous": "السابق",
+      "next": "التالي"
     }
   },
   "landing": {
@@ -981,9 +992,16 @@
       "agendaTab": "جدول الأعمال",
       "upcomingSlotsTab": "المواعيد القادمة",
       "scheduleToolsTitle": "أدوات الجدول",
-      "workingHoursTitle": "الأوقات المتاحة",
-      "editWorkingHours": "تعديل الأوقات المتاحة",
+      "subtitle": "إدارة أوقات توفرك ومواعيدك",
+      "addAvailability": "إضافة توفر",
+      "workingHoursTitle": "التوفر الأسبوعي",
+      "workingHoursDescription": "حدد ساعات عملك المعتادة لكل يوم",
+      "editWorkingHours": "تعديل التوفر",
+      "editRowHours": "تعديل الساعات",
+      "rowActionsFor": "إجراءات الصف لـ {day}",
       "timeOffTitle": "الإجازات",
+      "timeOffDescription": "أضف أيام إجازة أو حدد تواريخ غير متاحة",
+      "addTimeOff": "إضافة إجازة",
       "agendaEmptyTitle": "لا يوجد شيء مجدول",
       "agendaEmptyDescription": "ستظهر هنا الأوقات المتاحة والمحجوزة للأسبوعين القادمين.",
       "agendaSlotTitle": {
@@ -996,10 +1014,20 @@
       "noAvailabilityConfiguredDescription": "حدد ساعات عملك أدناه لبدء إظهار الأوقات المتاحة في هذا التقويم.",
       "breaksCount": "{count, plural, zero {لا استراحات} one {استراحة واحدة} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}",
       "timezoneNote": "الأوقات المعروضة بتوقيت {timezone}.",
-      "weeklySummaryTitle": "ملخص الأسبوع",
-      "weeklySummaryLabel": "{count} {count, plural, one {يوم متاح} other {أيام متاحة}}",
-      "weeklySummaryAvailable": "متاح ({count})",
-      "weeklySummaryUnavailable": "غير متاح ({count})",
+      "thisWeek": {
+        "title": "هذا الأسبوع",
+        "viewReports": "عرض التقارير",
+        "workingDays": "أيام العمل",
+        "availableHours": "الساعات المتاحة",
+        "appointments": "المواعيد",
+        "hoursBlocked": "ساعات محجوبة"
+      },
+      "appointmentType": {
+        "consultation": "استشارة",
+        "follow_up": "متابعة",
+        "new_patient": "مريض جديد",
+        "procedure": "إجراء طبي"
+      },
       "nextAvailableSlotTitle": "أقرب موعد متاح",
       "viewFullCalendar": "عرض التقويم الكامل",
       "noUpcomingSlots": "لا توجد أوقات متاحة قادمة خلال الأسبوعين القادمين.",
@@ -1609,6 +1637,9 @@
         "previousWeek": "الأسبوع السابق",
         "nextWeek": "الأسبوع التالي"
       },
+      "addToCalendar": {
+        "button": "إضافة إلى التقويم"
+      },
       "reschedule": {
         "button": "إعادة الجدولة",
         "dialogTitle": "إعادة جدولة الموعد",
@@ -1941,6 +1972,9 @@
       "date": "التاريخ",
       "typeLabel": "النوع",
       "reason": "السبب (اختياري)",
+      "reasonColumnLabel": "السبب",
+      "actionsColumnLabel": "الإجراءات",
+      "rowActionsFor": "إجراءات الصف لـ {date}",
       "add": "إضافة",
       "remove": "إزالة الإجازة",
       "emptyTitle": "لا توجد إجازات مجدولة",
@@ -1974,6 +2008,13 @@
       "consultationType": {
         "free": "استشارة مجانية",
         "paid": "استشارة مدفوعة"
+      },
+      "appointmentType": {
+        "label": "نوع الزيارة",
+        "consultation": "استشارة",
+        "follow_up": "متابعة",
+        "new_patient": "مريض جديد",
+        "procedure": "إجراء طبي"
       },
       "paymentStepTitle": "أكمل الدفع لتأكيد حجزك",
       "paymentStepDescription": "تم حجز موعدك. أكمل الدفع الآن لتأكيد هذا الموعد.",

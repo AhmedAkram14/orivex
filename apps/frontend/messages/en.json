@@ -12,6 +12,17 @@
     "appLoading": {
       "title": "Preparing your healthcare experience",
       "subtitle": "Just a moment..."
+    },
+    "pagination": {
+      "label": "Pagination",
+      "previousPage": "Previous page",
+      "nextPage": "Next page",
+      "pageOf": "Page {page} of {pageCount}"
+    },
+    "carousel": {
+      "pagesLabel": "Carousel pages",
+      "previous": "Previous",
+      "next": "Next"
     }
   },
   "landing": {
@@ -981,9 +992,16 @@
       "agendaTab": "Agenda",
       "upcomingSlotsTab": "Upcoming Slots",
       "scheduleToolsTitle": "Schedule tools",
-      "workingHoursTitle": "Available hours",
-      "editWorkingHours": "Edit available hours",
-      "timeOffTitle": "Time off",
+      "subtitle": "Manage your availability and appointments",
+      "addAvailability": "Add availability",
+      "workingHoursTitle": "Weekly Availability",
+      "workingHoursDescription": "Set your regular working hours for each day",
+      "editWorkingHours": "Edit availability",
+      "editRowHours": "Edit hours",
+      "rowActionsFor": "Row actions for {day}",
+      "timeOffTitle": "Time Off",
+      "timeOffDescription": "Add vacation days or block specific dates",
+      "addTimeOff": "Add time off",
       "agendaEmptyTitle": "Nothing scheduled",
       "agendaEmptyDescription": "Your available and booked slots for the next two weeks will appear here.",
       "agendaSlotTitle": {
@@ -996,10 +1014,20 @@
       "noAvailabilityConfiguredDescription": "Set your working hours below to start showing availability on this calendar.",
       "breaksCount": "{count, plural, one {# break} other {# breaks}}",
       "timezoneNote": "Times shown in {timezone}.",
-      "weeklySummaryTitle": "Weekly Summary",
-      "weeklySummaryLabel": "{count} {count, plural, one {Day} other {Days}} available",
-      "weeklySummaryAvailable": "Available ({count})",
-      "weeklySummaryUnavailable": "Not available ({count})",
+      "thisWeek": {
+        "title": "This Week",
+        "viewReports": "View reports",
+        "workingDays": "Working days",
+        "availableHours": "Available hours",
+        "appointments": "Appointments",
+        "hoursBlocked": "Hours blocked"
+      },
+      "appointmentType": {
+        "consultation": "Consultation",
+        "follow_up": "Follow up",
+        "new_patient": "New Patient",
+        "procedure": "Procedure"
+      },
       "nextAvailableSlotTitle": "Next Available Slot",
       "viewFullCalendar": "View full calendar",
       "noUpcomingSlots": "No upcoming available slots in the next two weeks.",
@@ -1609,6 +1637,9 @@
         "previousWeek": "Previous week",
         "nextWeek": "Next week"
       },
+      "addToCalendar": {
+        "button": "Add to calendar"
+      },
       "reschedule": {
         "button": "Reschedule",
         "dialogTitle": "Reschedule appointment",
@@ -1941,6 +1972,9 @@
       "date": "Date",
       "typeLabel": "Type",
       "reason": "Reason (optional)",
+      "reasonColumnLabel": "Reason",
+      "actionsColumnLabel": "Actions",
+      "rowActionsFor": "Row actions for {date}",
       "add": "Add",
       "remove": "Remove time off",
       "emptyTitle": "No time off scheduled",
@@ -1974,6 +2008,13 @@
       "consultationType": {
         "free": "Free consultation",
         "paid": "Paid consultation"
+      },
+      "appointmentType": {
+        "label": "Visit type",
+        "consultation": "Consultation",
+        "follow_up": "Follow-up",
+        "new_patient": "New Patient",
+        "procedure": "Procedure"
       },
       "paymentStepTitle": "Complete payment to confirm your booking",
       "paymentStepDescription": "Your slot is reserved. Complete payment now to confirm this appointment.",
