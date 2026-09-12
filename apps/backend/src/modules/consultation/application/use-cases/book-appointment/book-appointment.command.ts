@@ -1,8 +1,11 @@
+import type { AppointmentType } from '../../../domain/enums/appointment-type.enum.js';
+
 export interface BookAppointmentCommandProps {
   patientId: string;
   doctorId: string;
   availabilityWindowId: string;
   reasonForVisit?: string;
+  appointmentType?: AppointmentType;
 }
 
 // Commands are application messages, not structural types — immutable by
@@ -22,11 +25,13 @@ export class BookAppointmentCommand {
   readonly doctorId: string;
   readonly availabilityWindowId: string;
   readonly reasonForVisit?: string;
+  readonly appointmentType?: AppointmentType;
 
   constructor(props: BookAppointmentCommandProps) {
     this.patientId = props.patientId;
     this.doctorId = props.doctorId;
     this.availabilityWindowId = props.availabilityWindowId;
     this.reasonForVisit = props.reasonForVisit;
+    this.appointmentType = props.appointmentType;
   }
 }

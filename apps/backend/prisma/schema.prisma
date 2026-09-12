@@ -802,6 +802,17 @@ enum AppointmentStatus {
   COMPLETED
 }
 
+// Doctor Schedule redesign: the visit-modality category the patient selects
+// at booking time -- distinct from ConsultationType (Free/Paid pricing
+// tier) above. Nullable -- existing rows predate this field and are never
+// backfilled with an invented value.
+enum AppointmentType {
+  CONSULTATION
+  FOLLOW_UP
+  NEW_PATIENT
+  PROCEDURE
+}
+
 enum ConsultationState {
   WAITING_ROOM
   IN_PROGRESS
@@ -841,6 +852,15 @@ model Appointment {
   feeCurrency          String?
   status               AppointmentStatus    @default(REQUESTED)
   scheduledAt          DateTime
+  // Doctor Schedule redesign: server-computed from the booked
+  // AvailabilityWindow's own endTime, never client-supplied. Nullable --
+  // existing rows predate this field.
+  endTime              DateTime?
+  // Doctor Schedule redesign: patient-supplied visit-modality category
+  // (same tier as reasonForVisit), not to be confused with
+  // consultationType's Free/Paid pricing above. Nullable -- existing rows
+  // predate this field and are never backfilled with an invented value.
+  appointmentType      AppointmentType?
   reasonForVisit       String?
   rescheduledFromId    String?
   rescheduledFrom      Appointment?         @relation("AppointmentReschedule", fields: [rescheduledFromId], references: [id], onDelete: Restrict)
@@ -1459,6 +1479,21 @@ enum VitalType {
   BLOOD_SUGAR
 }
 
+// K10 -- Wearables integration boundary (ORIVEX Remaining Work Audit,
+// "Known Limitations" list). CLINICAL/PATIENT_REPORTED cover every reading
+// this system produces today; DEVICE is the real, provider-agnostic slot a
+// future wearable sync (Apple Health/Fitbit/Google Fit -- none integrated
+// yet, no credentials exist) would use. Mirrors HealthGraphNode's own
+// NodeSource enum shape/values deliberately, but kept as this module's own
+// copy rather than a cross-enum reference (domain layers never import
+// across module boundaries, matching every other duplicated small enum in
+// this codebase, e.g. SchedulingModule's own ConsultationType copy).
+enum VitalReadingSource {
+  CLINICAL
+  PATIENT_REPORTED
+  DEVICE
+}
+
 // The Patient Portal Health Dashboard's own vitals surface (docs/05-
 // information-architecture.md's Health Dashboard concept). Real Clinical
 // Vitals Demo pass: a real write path now exists (RecordVitalReadingUseCase,
@@ -1483,7 +1518,20 @@ model VitalReading {
   recordedByDoctor      DoctorProfile?       @relation(fields: [recordedByDoctorId], references: [id], onDelete: SetNull)
   consultationSessionId String?
   consultationSession   ConsultationSession? @relation(fields: [consultationSessionId], references: [id], onDelete: SetNull)
+  // K10 -- Wearables integration boundary. `source` defaults to CLINICAL so
+  // every existing row/producer is unaffected. `sourceProvider` +
+  // `externalObservationId` together are the idempotency key a real device
+  // sync would use to safely re-deliver the same observation without
+  // creating a duplicate row (e.g. a webhook retry, or a daily re-sync
+  // window overlapping a prior one) -- both null for every non-DEVICE
+  // reading, which Postgres's own unique-index semantics already treat as
+  // "no conflict" (multiple NULLs never collide), so this adds no
+  // constraint on the existing clinical/patient-reported paths.
+  source                VitalReadingSource   @default(CLINICAL)
+  sourceProvider        String?
+  externalObservationId String?
 
+  @@unique([sourceProvider, externalObservationId])
   @@index([patientId])
   @@index([type])
   @@index([recordedByDoctorId])

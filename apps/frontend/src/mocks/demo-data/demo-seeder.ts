@@ -1,6 +1,6 @@
-import type { Appointment, PatientProfile } from '@/features/patient/api/types';
+import type { Appointment, AppointmentType, PatientProfile } from '@/features/patient/api/types';
 import type { NotificationEntry } from '@/features/notifications/api/types';
-import type { DoctorPatientListItem, QueueEntry, UpcomingWorkItem } from '@/features/doctor/api/types';
+import type { DoctorPatientListItem, DoctorScheduleAppointment, QueueEntry, UpcomingWorkItem } from '@/features/doctor/api/types';
 import {
   DEMO_DOCTORS,
   DEMO_DOCTORS_WITH_NO_CANCELLATIONS,
@@ -32,6 +32,19 @@ import { listSpecialties } from '@/mocks/reference-store';
  * `demo-mode.ts` for why).
  */
 const DAY_MS = 86_400_000;
+// Doctor Schedule redesign: no doctor-specific slot duration is easily
+// accessible in this seeder's context (that's `scheduling-store.ts`'s own
+// concern, seeded separately) -- 30 minutes is a reasonable default, same
+// as `getSchedulingRules()`'s real seeded value.
+const DEFAULT_SLOT_DURATION_MINUTES = 30;
+// Rotated deterministically (never `Math.random()`) across every seeded
+// appointment so the redesigned calendar shows a real mix of visit types,
+// not one repeated value.
+const APPOINTMENT_TYPES: readonly AppointmentType[] = ['consultation', 'follow_up', 'new_patient', 'procedure'];
+
+function endTimeFrom(scheduledAt: string, minutes: number = DEFAULT_SLOT_DURATION_MINUTES): string {
+  return new Date(new Date(scheduledAt).getTime() + minutes * 60_000).toISOString();
+}
 
 const REASONS = [
   'Follow-up on ongoing treatment',
@@ -197,9 +210,11 @@ export function seedDemoData(): void {
       appointmentSeq += 1;
       const dayOffset = isUpcoming ? 2 + (index + patientIndex) % 12 : -(7 * index + (patientIndex % 9) + 3);
       const isPaid = (demo.consultationFeeAmount ?? 0) > 0;
+      const scheduledAt = isoOffsetDays(dayOffset, 9 + ((index + patientIndex) % 8));
       const appointment: Appointment = {
         id: `appointment-demo-${appointmentSeq}`,
-        scheduledAt: isoOffsetDays(dayOffset, 9 + ((index + patientIndex) % 8)),
+        scheduledAt,
+        endTime: endTimeFrom(scheduledAt),
         doctorId: profile.id,
         doctorName: profile.fullName,
         doctorAvatarUrl: profile.avatarUrl,
@@ -208,6 +223,7 @@ export function seedDemoData(): void {
         status,
         consultationType: isPaid ? 'paid' : 'free',
         reasonForVisit: pick(REASONS, patientIndex + index),
+        appointmentType: pick(APPOINTMENT_TYPES, appointmentSeq),
         consultationSessionId: status === 'completed' || status === 'confirmed' ? `session-demo-a${appointmentSeq}` : null,
         paymentRequired: isPaid && status === 'requested',
         feeAmount: isPaid ? { amount: demo.consultationFeeAmount as number, currency: 'EGP' } : null,
@@ -283,9 +299,11 @@ export function seedDemoData(): void {
       .map(({ appointment, patientProfile }, index) => ({
         id: `upcoming-work-demo-${profile.id}-${index + 1}`,
         scheduledAt: appointment.scheduledAt,
+        endTime: appointment.endTime,
         title: patientProfile.fullName,
         avatarUrl: patientProfile.avatarUrl,
         description: appointment.reasonForVisit,
+        appointmentType: appointment.appointmentType,
         status:
           appointment.status === 'completed'
             ? ('completed' as const)
@@ -294,6 +312,22 @@ export function seedDemoData(): void {
               : ('upcoming' as const),
       }))
       .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
+
+    // Doctor Schedule redesign: the FULL owned list (not the upcoming-work
+    // widget's 12-item slice) -- the weekly calendar grid needs every real
+    // appointment in whatever date range the caller asks for, past or
+    // future, same as the real backend's date-ranged query.
+    const schedule: DoctorScheduleAppointment[] = owned.map(({ appointment, patientProfile }) => ({
+      id: appointment.id,
+      patientId: patientProfile.id,
+      patientName: patientProfile.fullName,
+      avatarUrl: patientProfile.avatarUrl,
+      scheduledAt: appointment.scheduledAt,
+      endTime: appointment.endTime,
+      appointmentType: appointment.appointmentType,
+      status: appointment.status,
+      reasonForVisit: appointment.reasonForVisit,
+    }));
 
     const queue: QueueEntry[] = pendingToday.slice(0, 4).map(({ appointment, patientProfile }, index) => ({
       id: `queue-demo-${profile.id}-${index + 1}`,
@@ -368,6 +402,7 @@ export function seedDemoData(): void {
       },
       upcomingWork,
       queue,
+      schedule,
       patients: [...patientsByProfileId.values()],
       reportsSummary: {
         totalAppointments: confirmed + completed + cancelled,

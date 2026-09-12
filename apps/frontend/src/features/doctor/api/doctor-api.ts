@@ -5,6 +5,7 @@ import type {
   DepartmentOption,
   DoctorDashboardSummary,
   DoctorDirectoryResult,
+  DoctorScheduleAppointment,
   DoctorPatientChartAppointment,
   DoctorPatientChartDocument,
   DoctorPatientChartMedicalRecordEntry,
@@ -67,6 +68,11 @@ export const doctorApi = {
     apiFetch<DoctorProfile>({ method: 'PATCH', path: DOCTOR_PATHS.profile, body: request }),
 
   getQueue: () => apiFetch<QueueResponse>({ path: DOCTOR_PATHS.queue }),
+
+  // Doctor Schedule Redesign: the doctor's real appointments over an
+  // arbitrary date range, backing the weekly calendar grid.
+  getSchedule: (from: string, to: string) =>
+    apiFetch<DoctorScheduleAppointment[]>({ path: DOCTOR_PATHS.schedule(from, to) }),
 
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
   // Requested and waits here until the doctor approves it.

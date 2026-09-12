@@ -8,6 +8,7 @@ import type { AppointmentRepository } from '../../domain/repositories/appointmen
 
 import { toDomainAppointment } from './appointment.mapper.js';
 import { toDomainAppointmentStatus, toPrismaAppointmentStatus } from './appointment-status.mapper.js';
+import { toPrismaAppointmentType } from './appointment-type.mapper.js';
 import { toPersistedConsultationPricing } from './consultation-pricing.mapper.js';
 
 @Injectable()
@@ -119,7 +120,9 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       ...toPersistedConsultationPricing(appointment.getPricing()),
       status: toPrismaAppointmentStatus(appointment.getStatus()),
       scheduledAt: appointment.getScheduledAt(),
+      endTime: appointment.getEndTime() ?? null,
       reasonForVisit: appointment.getReasonForVisit() ?? null,
+      appointmentType: toPrismaAppointmentType(appointment.getAppointmentType()) ?? null,
       rescheduledFromId: appointment.getRescheduledFromId() ?? null,
     };
 

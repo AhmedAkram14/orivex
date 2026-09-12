@@ -1,10 +1,12 @@
 import type {
+  AppointmentType,
   DoctorDashboardSummary,
   DoctorDirectoryEntry,
   DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
   DoctorReportsSummary,
+  DoctorScheduleAppointment,
   ListDoctorDirectoryParams,
   QueueEntry,
   RegisterDoctorProfileRequest,
@@ -99,8 +101,17 @@ function seedSummary(): DoctorDashboardSummary {
   };
 }
 
+// Doctor Schedule redesign: rotated deterministically across the seeded
+// list below (never `Math.random()`) so the legacy fixture exercises every
+// visit-modality category, not just one repeated value.
+const APPOINTMENT_TYPES: readonly AppointmentType[] = ['consultation', 'follow_up', 'new_patient', 'procedure'];
+
+function endTimeFrom(scheduledAt: string, minutes = 30): string {
+  return new Date(new Date(scheduledAt).getTime() + minutes * 60_000).toISOString();
+}
+
 function seedUpcomingWork(): UpcomingWorkItem[] {
-  return [
+  const items: Omit<UpcomingWorkItem, 'endTime' | 'appointmentType'>[] = [
     { id: 'upcoming-work-1', scheduledAt: offsetFromNow(-180), title: SEEDED_PATIENT_NAMES[0], description: 'Follow-up: hypertension management', status: 'completed' },
     { id: 'upcoming-work-2', scheduledAt: offsetFromNow(-150), title: SEEDED_PATIENT_NAMES[1], description: 'Annual physical exam', status: 'completed' },
     { id: 'upcoming-work-3', scheduledAt: offsetFromNow(-120), title: SEEDED_PATIENT_NAMES[2], description: 'Chest pain evaluation', status: 'completed' },
@@ -114,6 +125,38 @@ function seedUpcomingWork(): UpcomingWorkItem[] {
     { id: 'upcoming-work-11', scheduledAt: offsetFromNow(200), title: SEEDED_PATIENT_NAMES[10], description: 'Seasonal allergy symptoms', status: 'cancelled' },
     { id: 'upcoming-work-12', scheduledAt: offsetFromNow(230), title: SEEDED_PATIENT_NAMES[11], description: 'Cardiac follow-up, post-stent', status: 'upcoming' },
   ];
+  return items.map((item, index) => ({
+    ...item,
+    endTime: endTimeFrom(item.scheduledAt),
+    appointmentType: APPOINTMENT_TYPES[index % APPOINTMENT_TYPES.length],
+  }));
+}
+
+/**
+ * Doctor Schedule redesign: `GET /appointments/doctor/schedule`'s legacy
+ * fallback -- derived from `seedUpcomingWork()` (never a second, possibly-
+ * disagreeing roster) with a synthesized `patientId` per seeded name, since
+ * that lighter dashboard type never carried one.
+ */
+function seedSchedule(): DoctorScheduleAppointment[] {
+  return seedUpcomingWork().map((item, index) => ({
+    id: item.id,
+    patientId: `patient-legacy-${index + 1}`,
+    patientName: item.title,
+    avatarUrl: item.avatarUrl,
+    scheduledAt: item.scheduledAt,
+    endTime: item.endTime,
+    appointmentType: item.appointmentType,
+    status:
+      item.status === 'in-progress'
+        ? 'confirmed'
+        : item.status === 'upcoming'
+          ? 'confirmed'
+          : item.status === 'cancelled'
+            ? 'cancelled'
+            : 'completed',
+    reasonForVisit: item.description,
+  }));
 }
 
 /**
@@ -362,6 +405,7 @@ const upcomingWorkByAccountId = new Map<string, UpcomingWorkItem[]>();
 const queueByAccountId = new Map<string, QueueEntry[]>();
 const patientsByAccountId = new Map<string, DoctorPatientListItem[]>();
 const reportsSummaryByAccountId = new Map<string, DoctorReportsSummary>();
+const scheduleByAccountId = new Map<string, DoctorScheduleAppointment[]>();
 
 export function getDashboardSummary(accountId?: string): DoctorDashboardSummary {
   return summaryByAccountId.get(resolveAccountId(accountId)) ?? seedSummary();
@@ -369,6 +413,22 @@ export function getDashboardSummary(accountId?: string): DoctorDashboardSummary 
 
 export function getUpcomingWork(accountId?: string): UpcomingWorkItem[] {
   return upcomingWorkByAccountId.get(resolveAccountId(accountId)) ?? seedUpcomingWork();
+}
+
+/**
+ * Doctor Schedule redesign: `GET /appointments/doctor/schedule?from=&to=` --
+ * the real backend's `findByDoctorIdForDateRange` is an inclusive-start,
+ * exclusive-end `[from, to)` filter (`prisma-appointment.repository.ts`),
+ * mirrored here exactly.
+ */
+export function getScheduleAppointments(accountId: string | undefined, from: string, to: string): DoctorScheduleAppointment[] {
+  const all = scheduleByAccountId.get(resolveAccountId(accountId)) ?? seedSchedule();
+  const start = new Date(from).getTime();
+  const end = new Date(to).getTime();
+  return all.filter((appointment) => {
+    const scheduledAtMs = new Date(appointment.scheduledAt).getTime();
+    return scheduledAtMs >= start && scheduledAtMs < end;
+  });
 }
 
 /** `undefined` when the caller's account has no doctor profile (e.g. a patient hitting `/doctors/me`) -- the handler maps that to the real backend's own 404. */
@@ -406,6 +466,7 @@ export function setDoctorOperationalState(
     queue?: QueueEntry[];
     patients?: DoctorPatientListItem[];
     reportsSummary?: DoctorReportsSummary;
+    schedule?: DoctorScheduleAppointment[];
   },
 ): void {
   if (state.summary) summaryByAccountId.set(accountId, state.summary);
@@ -413,6 +474,7 @@ export function setDoctorOperationalState(
   if (state.queue) queueByAccountId.set(accountId, state.queue);
   if (state.patients) patientsByAccountId.set(accountId, state.patients);
   if (state.reportsSummary) reportsSummaryByAccountId.set(accountId, state.reportsSummary);
+  if (state.schedule) scheduleByAccountId.set(accountId, state.schedule);
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.5): the Browse/Search

@@ -1,4 +1,6 @@
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+
+import { AppointmentType } from '../../domain/enums/appointment-type.enum.js';
 
 // Matches docs/12-openapi.md's BookAppointment request body, minus patientId
 // -- the controller derives it from the authenticated caller's JWT
@@ -21,6 +23,10 @@ export class BookAppointmentRequestDto {
   @IsString()
   @MaxLength(1000)
   reasonForVisit?: string;
+
+  @IsOptional()
+  @IsEnum(AppointmentType)
+  appointmentType?: AppointmentType;
 
   @IsOptional()
   @IsUUID()

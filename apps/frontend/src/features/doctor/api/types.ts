@@ -12,9 +12,13 @@ export interface UpcomingWorkItem {
   id: string;
   /** ISO timestamp — components format it for display, this type never carries pre-formatted text. */
   scheduledAt: string;
+  /** Doctor Schedule redesign: server-computed end time. Undefined for an appointment booked before this field existed. */
+  endTime?: string;
   title: string;
   avatarUrl?: string;
   description?: string;
+  /** Doctor Schedule redesign: undefined for an appointment booked before this field existed. */
+  appointmentType?: AppointmentType;
   status: UpcomingWorkStatus;
 }
 
@@ -255,6 +259,33 @@ export interface DoctorDirectoryResult {
   total: number;
   page: number;
   limit: number;
+}
+
+/** Matches ConsultationModule's real AppointmentType enum exactly -- a visit-modality category, distinct from `consultationType`'s Free/Paid pricing tier. Optional: only appointments booked after this field existed carry one. */
+export type AppointmentType = 'consultation' | 'follow_up' | 'new_patient' | 'procedure';
+
+/**
+ * Doctor Schedule Redesign: a doctor's real appointments over an arbitrary
+ * date range (`GET /appointments/doctor/schedule?from=&to=`), backing the
+ * weekly calendar grid. Distinct from `UpcomingWorkItem` (unbounded, no
+ * `endTime`/`appointmentType`) and `QueueEntry` (today-only) -- this is the
+ * one real feed with both a proper date range and enough per-appointment
+ * detail (patient name, start AND end time, visit type) to position a block
+ * on an hour grid.
+ */
+export interface DoctorScheduleAppointment {
+  id: string;
+  patientId: string;
+  patientName: string;
+  avatarUrl?: string;
+  /** ISO timestamp. */
+  scheduledAt: string;
+  /** ISO timestamp. Undefined for an appointment booked before this field existed -- never a fabricated computed duration. */
+  endTime?: string;
+  /** Undefined for an appointment booked before this field existed -- never a fabricated guess. */
+  appointmentType?: AppointmentType;
+  status: AppointmentStatus;
+  reasonForVisit?: string;
 }
 
 export type QueueEntryStatus = 'waiting' | 'in-consultation' | 'completed';

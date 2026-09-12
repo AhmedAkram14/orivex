@@ -10,6 +10,7 @@ import type {
 
 import { toPersistedConsultationPricing } from './consultation-pricing.mapper.js';
 import { toPrismaAppointmentStatus } from './appointment-status.mapper.js';
+import { toPrismaAppointmentType } from './appointment-type.mapper.js';
 
 @Injectable()
 export class PrismaFreeTierBookingRepository implements FreeTierBookingRepository {
@@ -57,7 +58,9 @@ export class PrismaFreeTierBookingRepository implements FreeTierBookingRepositor
           ...toPersistedConsultationPricing(appointment.getPricing()),
           status: toPrismaAppointmentStatus(appointment.getStatus()),
           scheduledAt: appointment.getScheduledAt(),
+          endTime: appointment.getEndTime() ?? null,
           reasonForVisit: appointment.getReasonForVisit() ?? null,
+          appointmentType: toPrismaAppointmentType(appointment.getAppointmentType()) ?? null,
           rescheduledFromId: appointment.getRescheduledFromId() ?? null,
           version: appointment.getVersion(),
         },

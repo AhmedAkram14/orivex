@@ -14,6 +14,7 @@ import {
   getProfile,
   getQueue,
   getReportsSummary,
+  getScheduleAppointments,
   getUpcomingWork,
   listDoctors,
   listVerifications,
@@ -62,6 +63,18 @@ export const doctorHandlers = [
   http.get(`${base()}${DOCTOR_PATHS.upcomingWork}`, ({ request }) =>
     HttpResponse.json({ data: getUpcomingWork(resolveRequestAccountId(request)) }),
   ),
+
+  // Doctor Schedule redesign: the weekly calendar grid's real data source --
+  // registered before `${base()}/doctors/:id` below's generic-looking
+  // neighbors so this literal-path route always wins, matching every other
+  // handler on this controller. `from`/`to` are required ISO instants
+  // (DoctorScheduleQueryDto's real `@IsISO8601()` contract).
+  http.get(`${base()}/appointments/doctor/schedule`, ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get('from') ?? new Date().toISOString();
+    const to = url.searchParams.get('to') ?? new Date().toISOString();
+    return HttpResponse.json({ data: getScheduleAppointments(resolveRequestAccountId(request), from, to) });
+  }),
 
   http.get(`${base()}${DOCTOR_PATHS.profile}`, ({ request }) => {
     const found = getProfile(resolveRequestAccountId(request));

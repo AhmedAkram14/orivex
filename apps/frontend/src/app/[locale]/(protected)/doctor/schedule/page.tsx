@@ -1,24 +1,25 @@
 'use client';
 
-import { CalendarOff, Download, Lightbulb, RefreshCw, Repeat } from 'lucide-react';
+import { ArrowRight, CalendarClock, Info, MoreVertical, Plus } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { UpcomingSlotsPanel } from '@/features/scheduling/components/upcoming-slots-panel';
 import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
-import { ScheduleExceptionsManager } from '@/features/scheduling/components/schedule-exceptions-manager';
+import { ScheduleExceptionForm, ScheduleExceptionsTable } from '@/features/scheduling/components/schedule-exceptions-manager';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
 import { useHolidays } from '@/features/scheduling/hooks/use-holidays';
 import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-rules';
 import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
-import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
+import { useDoctorScheduleAppointments } from '@/features/doctor/hooks/use-doctor-schedule-appointments';
+import type { AppointmentType } from '@/features/doctor/api/types';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
-import { addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
+import { addDays, addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { addMonths, getMonthGridDays, isSameMonth } from '@/shared/lib/date/month';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { RequireRole } from '@/shared/auth/require-role';
@@ -26,10 +27,12 @@ import { useMediaQuery } from '@/shared/hooks/use-media-query';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { Card, CardContent } from '@/shared/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Sheet } from '@/shared/ui/side-panel';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { AvailabilityBlock } from '@/shared/ui/schedule/availability-block';
-import { AvailabilityCard } from '@/shared/ui/schedule/availability-card';
 import { CalendarHeader } from '@/shared/ui/schedule/calendar-header';
 import { CalendarSidebar } from '@/shared/ui/schedule/calendar-sidebar';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
@@ -38,27 +41,94 @@ import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
 import { MonthCalendar, type MonthCalendarDay } from '@/shared/ui/schedule/month-calendar';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
-import { CircularProgress } from '@/shared/ui/charts/circular-progress';
+import { WeekTimeGrid, type WeekTimeGridAccent, type WeekTimeGridDay } from '@/shared/ui/schedule/week-time-grid';
+import { Link } from '@/shared/i18n/navigation';
 import { Page } from '@/shared/ui/layout/page';
 import { Section } from '@/shared/ui/layout/section';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
+import { cn } from '@/shared/lib/cn';
+import type { Holiday, RecurringWeeklySchedule, ScheduleException } from '@/features/scheduling/types';
+
+const GRID_START_HOUR = 8;
+const GRID_END_HOUR = 20;
+
+// Mockup-driven redesign: the active tab is a solid brand pill, not the
+// shared Tabs primitive's default white-on-gray active state -- scoped to
+// this page only (`className` wins over the primitive's own classes via
+// tailwind-merge) since Tabs is used on 6+ other pages that keep their
+// current look.
+const ACTIVE_PILL_TAB = 'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none';
+
+const ACCENT_BY_APPOINTMENT_TYPE: Record<AppointmentType, WeekTimeGridAccent> = {
+  consultation: 'info',
+  follow_up: 'success',
+  new_patient: 'danger',
+  procedure: 'warning',
+};
+
+function parseTimeMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+/** Real hours from the doctor's own recurring schedule, minus real breaks -- never a fabricated ratio. */
+function computeAvailableHoursThisWeek(schedule: RecurringWeeklySchedule): number {
+  const totalMinutes = schedule.reduce((sum, day) => {
+    if (!day.isWorkingDay) return sum;
+    const dayMinutes = parseTimeMinutes(day.hours.end) - parseTimeMinutes(day.hours.start);
+    const breakMinutes = day.breaks.reduce(
+      (breakSum, brk) => breakSum + Math.max(0, parseTimeMinutes(brk.end) - parseTimeMinutes(brk.start)),
+      0,
+    );
+    return sum + Math.max(0, dayMinutes - breakMinutes);
+  }, 0);
+  return Math.round(totalMinutes / 60);
+}
+
+function toIsoDateOnly(date: Date): string {
+  const cairo = getCairoNow(date);
+  return `${cairo.getFullYear()}-${String(cairo.getMonth() + 1).padStart(2, '0')}-${String(cairo.getDate()).padStart(2, '0')}`;
+}
+
+/** Real vacation/unavailable exceptions plus real holidays that fall within the visible week, translated into hours using that weekday's own normal working hours (0 when the day wasn't a working day anyway) -- never a fabricated block duration. */
+function computeHoursBlockedThisWeek(
+  schedule: RecurringWeeklySchedule,
+  exceptions: ScheduleException[],
+  holidays: Holiday[],
+  weekDays: Date[],
+): number {
+  const blockedDates = new Set<string>();
+  for (const exception of exceptions) {
+    if (exception.type === 'vacation' || exception.type === 'unavailable') blockedDates.add(exception.date.slice(0, 10));
+  }
+  for (const holiday of holidays) blockedDates.add(holiday.date.slice(0, 10));
+
+  let totalMinutes = 0;
+  for (const date of weekDays) {
+    if (!blockedDates.has(toIsoDateOnly(date))) continue;
+    const day = schedule.find((d) => d.dayOfWeek === getWeekDayName(date));
+    if (!day || !day.isWorkingDay) continue;
+    totalMinutes += Math.max(0, parseTimeMinutes(day.hours.end) - parseTimeMinutes(day.hours.start));
+  }
+  return Math.round(totalMinutes / 60);
+}
 
 /**
- * The Doctor Availability / Appointment Calendar page (Phase 9, Milestones
- * 2–3) — Week/Month/Day/Agenda calendar views over the doctor's real
- * (mocked) recurring weekly schedule, plus the editing architecture Phase
- * 7's read-only Schedule Foundation anticipated: `WorkingHoursForm`
- * (working hours + breaks) and `ScheduleExceptionsManager`
- * (vacation/unavailable dates). The Day view is a real `TimeGrid` of
- * generated slots (with hover detail and a status `Legend`), the Agenda
- * view flattens the same generated slots across the next two weeks — every
- * view resolves through `resolveDayForDate`/`generateDaySlots` so no view
- * ever disagrees with another about the same date.
+ * The Doctor Availability / Appointment Calendar page — Week/Month/Day/
+ * Agenda/Upcoming-Slots calendar views over the doctor's real recurring
+ * weekly schedule, plus a real hour-positioned weekly grid of the doctor's
+ * real booked appointments (`WeekTimeGrid`, fed by `useDoctorScheduleAppointments`)
+ * for the Week tab specifically. Working-hours and time-off editing both
+ * moved from always-inline to a real `Dialog` flow, matching the mockup's
+ * card + "+ Add ..." CTA pattern rather than replacing the read-only list in
+ * place. Every view resolves through `resolveDayForDate`/`generateDaySlots`
+ * so no view ever disagrees with another about the same date.
  */
 export default function DoctorSchedulePage() {
   const t = useTranslations('doctor.schedule');
+  const tAppointmentType = useTranslations('doctor.schedule.appointmentType');
   const tSlotStatus = useTranslations('scheduling.slotStatus');
   const format = useFormatter();
   const locale = useLocale();
@@ -72,6 +142,7 @@ export default function DoctorSchedulePage() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(today);
   const [isEditingHours, setIsEditingHours] = useState(false);
+  const [isAddingTimeOff, setIsAddingTimeOff] = useState(false);
   // Desktop keeps working-hours editing inline (plenty of width for it);
   // mobile opens the same form in a bottom Sheet instead, so editing never
   // pushes the whole page's primary schedule content out of view.
@@ -79,6 +150,7 @@ export default function DoctorSchedulePage() {
 
   const weekStart = useMemo(() => addWeeks(startOfWeek(today), weekOffset), [today, weekOffset]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
+  const weekEnd = useMemo(() => addDays(weekStart, 7), [weekStart]);
   const monthDate = useMemo(() => addMonths(today, monthOffset), [today, monthOffset]);
   const monthGridDays = useMemo(() => getMonthGridDays(monthDate), [monthDate]);
 
@@ -139,10 +211,64 @@ export default function DoctorSchedulePage() {
     detail: slot.status === 'available' ? undefined : tSlotStatus(slot.status),
   }));
 
-  // Weekly Summary widget: how many of the doctor's 7 recurring weekdays
-  // are configured as working days -- a real count from `schedule` itself,
-  // not a fabricated ratio.
+  // "This Week" sidebar stats.
   const workingDaysCount = schedule?.filter((day) => day.isWorkingDay).length ?? 0;
+  const availableHoursThisWeek = schedule ? computeAvailableHoursThisWeek(schedule) : 0;
+  const hoursBlockedThisWeek =
+    schedule && exceptions ? computeHoursBlockedThisWeek(schedule, exceptions, holidays ?? [], weekDays) : 0;
+
+  // The Week tab's real appointment grid.
+  const { data: scheduleAppointments, isLoading: isLoadingScheduleAppointments } = useDoctorScheduleAppointments(
+    weekStart.toISOString(),
+    weekEnd.toISOString(),
+  );
+  const appointmentsThisWeekCount = scheduleAppointments?.length ?? 0;
+
+  const weekGridHourLabels = useMemo(
+    () =>
+      Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) =>
+        format.dateTime(new Date(2026, 0, 1, GRID_START_HOUR + i), { hour: 'numeric' }),
+      ),
+    [format],
+  );
+
+  const weekGridDays: WeekTimeGridDay[] = weekDays.map((date, dayIndex) => {
+    const appointmentsForDay = (scheduleAppointments ?? []).filter((appointment) =>
+      isSameDay(getCairoNow(new Date(appointment.scheduledAt)), getCairoNow(date)),
+    );
+
+    return {
+      id: `${dayIndex}-${date.toISOString()}`,
+      appointments: appointmentsForDay
+        .map((appointment) => {
+          const scheduledCairo = getCairoNow(new Date(appointment.scheduledAt));
+          const startOfDayMinutes = scheduledCairo.getHours() * 60 + scheduledCairo.getMinutes();
+          // Legacy appointments booked before `endTime` existed fall back to
+          // the doctor's own configured slot duration purely so the block
+          // still renders at a sane height -- never presented as a real
+          // recorded end time.
+          const durationMinutes = appointment.endTime
+            ? Math.max(
+                15,
+                Math.round((new Date(appointment.endTime).getTime() - new Date(appointment.scheduledAt).getTime()) / 60000),
+              )
+            : (rules?.slotDurationMinutes ?? 30);
+          return {
+            id: appointment.id,
+            startMinutes: startOfDayMinutes - GRID_START_HOUR * 60,
+            endMinutes: startOfDayMinutes - GRID_START_HOUR * 60 + durationMinutes,
+            primaryLabel: appointment.patientName,
+            secondaryLabel: appointment.appointmentType ? tAppointmentType(appointment.appointmentType) : undefined,
+            timeLabel: format.dateTime(new Date(appointment.scheduledAt), { hour: 'numeric', minute: 'numeric' }),
+            accent: appointment.appointmentType ? ACCENT_BY_APPOINTMENT_TYPE[appointment.appointmentType] : 'neutral',
+          };
+        })
+        // Appointments outside the grid's displayed hour range are omitted
+        // rather than rendered clipped/overlapping the gutter -- a real but
+        // rare edge case (working hours here run inside 8AM-8PM today).
+        .filter((appointment) => appointment.startMinutes >= 0 && appointment.endMinutes <= (GRID_END_HOUR - GRID_START_HOUR) * 60),
+    };
+  });
 
   // Next Available Slot widget: the same authoritative, backend-materialized
   // `AvailabilityWindow`s a patient would see for this doctor (real
@@ -163,291 +289,335 @@ export default function DoctorSchedulePage() {
     )[0];
   }, [bookableWindows]);
 
-  const timeOffSectionRef = useRef<HTMLDivElement>(null);
   const calendarSectionRef = useRef<HTMLDivElement>(null);
 
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page>
-        <WorkspaceHeader
-          breadcrumbs={<AppBreadcrumbs />}
-          title={t('title')}
-          description={t('timezoneNote', { timezone: timezoneLabel })}
-        />
+        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} description={t('subtitle')} />
 
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
-        {isLoading || !schedule ? (
-          <LoadingCalendar />
-        ) : !schedule.some((day) => day.isWorkingDay) ? (
-          <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
-        ) : (
-          <Tabs defaultValue="week" ref={calendarSectionRef}>
-            <TabsList className="max-w-full overflow-x-auto">
-              <TabsTrigger value="week">{t('weekTab')}</TabsTrigger>
-              <TabsTrigger value="month">{t('monthTab')}</TabsTrigger>
-              <TabsTrigger value="day">{t('dayTab')}</TabsTrigger>
-              <TabsTrigger value="agenda">{t('agendaTab')}</TabsTrigger>
-              <TabsTrigger value="upcoming-slots">{t('upcomingSlotsTab')}</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="week">
-              <CalendarHeader
-                label={weekRangeLabel}
-                navigation={
-                  <DateNavigation
-                    onPrevious={() => setWeekOffset((value) => value - 1)}
-                    onNext={() => setWeekOffset((value) => value + 1)}
-                    onToday={() => {
-                      setWeekOffset(0);
-                      setSelectedDate(today);
-                    }}
-                    todayLabel={t('today')}
-                    previousLabel={t('previousWeek')}
-                    nextLabel={t('nextWeek')}
-                  />
-                }
-              />
-              <WeeklyCalendar days={weekCalendarDays} todayAnnouncement={t('today')} />
-            </TabsContent>
-
-            <TabsContent value="month">
-              <CalendarHeader
-                label={monthLabel}
-                navigation={
-                  <DateNavigation
-                    onPrevious={() => setMonthOffset((value) => value - 1)}
-                    onNext={() => setMonthOffset((value) => value + 1)}
-                    onToday={() => {
-                      setMonthOffset(0);
-                      setSelectedDate(today);
-                    }}
-                    todayLabel={t('today')}
-                    previousLabel={t('previousMonth')}
-                    nextLabel={t('nextMonth')}
-                  />
-                }
-              />
-              <MonthCalendar
-                days={monthCalendarDays}
-                weekDayLabels={weekDays.map((date) => format.dateTime(date, { weekday: 'short' }))}
-              />
-            </TabsContent>
-
-            <TabsContent value="day">
-              <div className="flex flex-col gap-3 md:flex-row">
-                <div className="flex flex-1 flex-col gap-3">
-                  <p className="text-sm font-medium text-text-primary">
-                    {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </p>
-                  {daySlots.length > 0 ? (
-                    <TimeGrid slots={daySlots} />
-                  ) : (
-                    <p className="text-sm text-text-tertiary">{t('noAvailability')}</p>
-                  )}
-                </div>
-                {daySlots.length > 0 && (
-                  <CalendarSidebar
-                    className="md:w-56"
-                    legendItems={[
-                      { id: 'available', label: tSlotStatus('available'), colorClassName: 'bg-success' },
-                      { id: 'booked', label: tSlotStatus('booked'), colorClassName: 'bg-primary' },
-                    ]}
-                  />
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="agenda">
-              {rules && (
-                <ScheduleAgenda
-                  schedule={schedule}
-                  exceptions={exceptions ?? []}
-                  holidays={holidays ?? []}
-                  rules={rules}
-                  startDate={today}
-                />
-              )}
-            </TabsContent>
-
-            <TabsContent value="upcoming-slots">
-              <UpcomingSlotsPanel />
-            </TabsContent>
-          </Tabs>
-        )}
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-            <Section
-              title={t('workingHoursTitle')}
-              actions={
-                !isEditingHours && schedule ? (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditingHours(true)}>
-                    {t('editWorkingHours')}
-                  </Button>
-                ) : undefined
-              }
-            >
-              {schedule && (
-                <>
-                  {/* Desktop: editing replaces the read-only list in place (plenty of width for it).
-                      Mobile: the read-only list always stays visible; editing opens in the Sheet below instead. */}
-                  {isEditingHours && isDesktop ? (
-                    <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {schedule.map((day) => (
-                        <AvailabilityCard
-                          key={day.dayOfWeek}
-                          dayLabel={format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' })}
-                          isWorkingDay={day.isWorkingDay}
-                          hoursLabel={`${day.hours.start} – ${day.hours.end}`}
-                          breaksLabel={day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : undefined}
-                          priceLabel={formatConsultationPrice(
-                            {
-                              consultationType: day.pricing.pricingType,
-                              feeAmount: day.pricing.feeAmount,
-                              feeCurrency: day.pricing.feeCurrency,
-                            },
-                            locale,
-                            t('upcomingSlots.free'),
-                          )}
-                          priceIsFree={day.pricing.pricingType === 'free'}
-                          notWorkingLabel={t('noAvailability')}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  <Sheet open={isEditingHours && !isDesktop} onOpenChange={setIsEditingHours}>
-                    <Sheet.Content>
-                      <Sheet.Header>
-                        <Sheet.Title>{t('workingHoursTitle')}</Sheet.Title>
-                      </Sheet.Header>
-                      <div className="mt-4 max-h-[65vh] overflow-y-auto">
-                        <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
-                      </div>
-                    </Sheet.Content>
-                  </Sheet>
-                </>
-              )}
-            </Section>
+            {isLoading || !schedule ? (
+              <LoadingCalendar />
+            ) : !schedule.some((day) => day.isWorkingDay) ? (
+              <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
+            ) : (
+              <Tabs defaultValue="week" ref={calendarSectionRef}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <TabsList className="max-w-full overflow-x-auto">
+                    <TabsTrigger value="week" className={ACTIVE_PILL_TAB}>{t('weekTab')}</TabsTrigger>
+                    <TabsTrigger value="month" className={ACTIVE_PILL_TAB}>{t('monthTab')}</TabsTrigger>
+                    <TabsTrigger value="day" className={ACTIVE_PILL_TAB}>{t('dayTab')}</TabsTrigger>
+                    <TabsTrigger value="agenda" className={ACTIVE_PILL_TAB}>{t('agendaTab')}</TabsTrigger>
+                    <TabsTrigger value="upcoming-slots" className={ACTIVE_PILL_TAB}>{t('upcomingSlotsTab')}</TabsTrigger>
+                  </TabsList>
+                  <span className="flex items-center gap-1.5 text-sm text-text-tertiary">
+                    <Icon icon={Info} size="sm" />
+                    {t('timezoneNote', { timezone: timezoneLabel })}
+                  </span>
+                </div>
 
-            <div ref={timeOffSectionRef}>
-              <Section title={t('timeOffTitle')}>
-                {isLoadingExceptions ? (
-                  <Skeleton className="h-16 w-full" />
-                ) : (
-                  <ScheduleExceptionsManager exceptions={exceptions ?? []} />
+                <TabsContent value="week">
+                  <CalendarHeader
+                    label={weekRangeLabel}
+                    navigation={
+                      <DateNavigation
+                        onPrevious={() => setWeekOffset((value) => value - 1)}
+                        onNext={() => setWeekOffset((value) => value + 1)}
+                        onToday={() => {
+                          setWeekOffset(0);
+                          setSelectedDate(today);
+                        }}
+                        todayLabel={t('today')}
+                        previousLabel={t('previousWeek')}
+                        nextLabel={t('nextWeek')}
+                      />
+                    }
+                    actions={
+                      <Button size="sm" onClick={() => setIsEditingHours(true)}>
+                        <Icon icon={Plus} size="sm" className="me-2" />
+                        {t('addAvailability')}
+                      </Button>
+                    }
+                  />
+                  <WeeklyCalendar days={weekCalendarDays} todayAnnouncement={t('today')} />
+                  <div className="mt-4 overflow-x-auto rounded-lg border border-border-default p-4">
+                    {isLoadingScheduleAppointments ? (
+                      <Skeleton className="h-64 w-full" />
+                    ) : (
+                      <WeekTimeGrid days={weekGridDays} hourLabels={weekGridHourLabels} className="min-w-[640px]" />
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="month">
+                  <CalendarHeader
+                    label={monthLabel}
+                    navigation={
+                      <DateNavigation
+                        onPrevious={() => setMonthOffset((value) => value - 1)}
+                        onNext={() => setMonthOffset((value) => value + 1)}
+                        onToday={() => {
+                          setMonthOffset(0);
+                          setSelectedDate(today);
+                        }}
+                        todayLabel={t('today')}
+                        previousLabel={t('previousMonth')}
+                        nextLabel={t('nextMonth')}
+                      />
+                    }
+                  />
+                  <MonthCalendar
+                    days={monthCalendarDays}
+                    weekDayLabels={weekDays.map((date) => format.dateTime(date, { weekday: 'short' }))}
+                  />
+                </TabsContent>
+
+                <TabsContent value="day">
+                  <div className="flex flex-col gap-3 md:flex-row">
+                    <div className="flex flex-1 flex-col gap-3">
+                      <p className="text-sm font-medium text-text-primary">
+                        {format.dateTime(selectedDate, { weekday: 'long', month: 'long', day: 'numeric' })}
+                      </p>
+                      {daySlots.length > 0 ? (
+                        <TimeGrid slots={daySlots} />
+                      ) : (
+                        <p className="text-sm text-text-tertiary">{t('noAvailability')}</p>
+                      )}
+                    </div>
+                    {daySlots.length > 0 && (
+                      <CalendarSidebar
+                        className="md:w-56"
+                        legendItems={[
+                          { id: 'available', label: tSlotStatus('available'), colorClassName: 'bg-success' },
+                          { id: 'booked', label: tSlotStatus('booked'), colorClassName: 'bg-primary' },
+                        ]}
+                      />
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="agenda">
+                  {rules && (
+                    <ScheduleAgenda
+                      schedule={schedule}
+                      exceptions={exceptions ?? []}
+                      holidays={holidays ?? []}
+                      rules={rules}
+                      startDate={today}
+                    />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="upcoming-slots">
+                  <UpcomingSlotsPanel />
+                </TabsContent>
+              </Tabs>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <Section
+                title={t('workingHoursTitle')}
+                description={t('workingHoursDescription')}
+                actions={
+                  schedule ? (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingHours(true)}>
+                      {t('editWorkingHours')}
+                    </Button>
+                  ) : undefined
+                }
+              >
+                {schedule && (
+                  <div className="flex flex-col gap-2">
+                    {schedule.map((day) => {
+                      const dayName = format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' });
+                      return (
+                      <div
+                        key={day.dayOfWeek}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border-default p-3"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={cn('size-2 shrink-0 rounded-full', day.isWorkingDay ? 'bg-success' : 'bg-danger')}
+                            aria-hidden="true"
+                          />
+                          <span className="text-sm font-medium text-text-primary">{dayName}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-text-secondary">
+                          {day.isWorkingDay ? (
+                            <>
+                              <span>{`${day.hours.start} – ${day.hours.end}`}</span>
+                              <span className="text-text-tertiary">
+                                {day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : '—'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-text-tertiary">{t('noAvailability')}</span>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                aria-label={t('rowActionsFor', { day: dayName })}
+                                className="inline-flex size-8 items-center justify-center rounded-md text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-secondary"
+                              >
+                                <Icon icon={MoreVertical} size="sm" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => setIsEditingHours(true)}>{t('editRowHours')}</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      );
+                    })}
+                  </div>
                 )}
+              </Section>
+
+              <Section
+                title={t('timeOffTitle')}
+                description={t('timeOffDescription')}
+                actions={
+                  <Button size="sm" onClick={() => setIsAddingTimeOff(true)}>
+                    <Icon icon={Plus} size="sm" className="me-2" />
+                    {t('addTimeOff')}
+                  </Button>
+                }
+              >
+                {isLoadingExceptions ? <Skeleton className="h-16 w-full" /> : <ScheduleExceptionsTable exceptions={exceptions ?? []} />}
               </Section>
             </div>
           </div>
 
-          {/* Tertiary content -- always expanded on desktop (no summary shown there); on mobile it
-              starts expanded too but a real collapse control (the summary) lets the doctor tuck
-              these four widgets away instead of them permanently competing with the schedule
-              itself for scroll space. */}
-          {/* gap-4 on mobile, gap-6 from lg up: on a narrow single-column
-              stack, four separately-bordered/shadowed cards each already
-              carrying 24px of their own internal padding (Card's p-6) read
-              as too much repeated whitespace between fairly sparse content
-              (a ring + legend, a few lines of text, a short list) at the
-              same 24px external gap -- tightened for mobile only, desktop's
-              3-column grid is unaffected. */}
-          <details open className="flex min-w-0 flex-col gap-4 lg:gap-6">
-            <summary className="cursor-pointer list-none rounded-lg border border-border-default bg-surface px-4 py-3 text-sm font-medium text-text-primary marker:hidden lg:hidden">
-              {t('scheduleToolsTitle')}
-            </summary>
-            <WidgetContainer title={t('weeklySummaryTitle')} loading={isLoading}>
-              {schedule && (
-                <div className="flex flex-col items-center gap-3">
-                  <CircularProgress
-                    value={workingDaysCount}
-                    max={7}
-                    label={t('weeklySummaryLabel', { count: workingDaysCount })}
-                    size={100}
-                  />
-                  <div className="flex items-center gap-4 text-xs">
-                    <span className="flex items-center gap-1.5 text-text-secondary">
-                      <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-                      {t('weeklySummaryAvailable', { count: workingDaysCount })}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-text-secondary">
-                      <span className="size-2 rounded-full bg-secondary-subtle" aria-hidden="true" />
-                      {t('weeklySummaryUnavailable', { count: 7 - workingDaysCount })}
-                    </span>
-                  </div>
+          <div className="flex min-w-0 flex-col gap-6">
+            <Card className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+              <CardContent className="flex flex-col gap-4 p-6">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-lg font-semibold text-text-primary">{t('thisWeek.title')}</p>
+                  <Link href="/doctor/reports" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                    {t('thisWeek.viewReports')}
+                    <Icon icon={ArrowRight} size="sm" flipRtl />
+                  </Link>
                 </div>
-              )}
-            </WidgetContainer>
+                <div className="grid grid-cols-2 gap-3">
+                  <ThisWeekStat accent="success" label={t('thisWeek.workingDays')} value={String(workingDaysCount)} loading={isLoading} />
+                  <ThisWeekStat accent="info" label={t('thisWeek.availableHours')} value={String(availableHoursThisWeek)} loading={isLoading} />
+                  <ThisWeekStat
+                    accent="primary"
+                    label={t('thisWeek.appointments')}
+                    value={String(appointmentsThisWeekCount)}
+                    loading={isLoadingScheduleAppointments}
+                  />
+                  <ThisWeekStat
+                    accent="warning"
+                    label={t('thisWeek.hoursBlocked')}
+                    value={String(hoursBlockedThisWeek)}
+                    loading={isLoading || isLoadingExceptions}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            <WidgetContainer title={t('nextAvailableSlotTitle')} loading={isLoading || isLoadingBookableWindows}>
+            <WidgetContainer
+              title={<span className="text-lg font-semibold">{t('nextAvailableSlotTitle')}</span>}
+              className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+              loading={isLoading || isLoadingBookableWindows}
+            >
               {nextAvailableSlot ? (
-                <div className="flex flex-col gap-1">
-                  <p className="text-sm text-text-secondary">
-                    {format.dateTime(new Date(nextAvailableSlot.startTime), { weekday: 'long', month: 'short', day: 'numeric' })}
-                  </p>
-                  <p className="text-2xl font-semibold text-primary">
-                    {format.dateTime(new Date(nextAvailableSlot.startTime), { hour: 'numeric', minute: 'numeric' })}
-                  </p>
-                  <button
-                    type="button"
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-info-subtle text-info-emphasis">
+                      <Icon icon={CalendarClock} size="md" />
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-text-secondary">
+                        {format.dateTime(new Date(nextAvailableSlot.startTime), { weekday: 'long', month: 'short', day: 'numeric' })}
+                      </span>
+                      <span className="text-xl font-semibold text-text-primary">
+                        {format.dateTime(new Date(nextAvailableSlot.startTime), { hour: 'numeric', minute: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full"
                     onClick={() => calendarSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                    className="mt-1 text-start text-sm font-medium text-primary hover:underline"
                   >
-                    {t('viewFullCalendar')} →
-                  </button>
+                    {t('viewFullCalendar')}
+                    <Icon icon={ArrowRight} size="sm" className="ms-2" flipRtl />
+                  </Button>
                 </div>
               ) : (
                 <p className="text-sm text-text-tertiary">{t('noUpcomingSlots')}</p>
               )}
             </WidgetContainer>
-
-            <WidgetContainer title={t('quickActionsTitle')}>
-              <div className="flex flex-col">
-                <button
-                  type="button"
-                  onClick={() => timeOffSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className="flex items-center gap-2 rounded-md px-2 py-2 text-start text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                >
-                  <Icon icon={CalendarOff} size="sm" className="text-text-tertiary" />
-                  {t('quickActionBlockTimeOff')}
-                </button>
-                {[
-                  { key: 'quickActionRecurringSchedule', icon: Repeat },
-                  { key: 'quickActionSyncCalendar', icon: RefreshCw },
-                  { key: 'quickActionExportSchedule', icon: Download },
-                ].map(({ key, icon }) => (
-                  <span
-                    key={key}
-                    aria-disabled="true"
-                    className="flex items-center justify-between gap-2 rounded-md px-2 py-2 text-sm text-text-tertiary opacity-(--opacity-disabled)"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Icon icon={icon} size="sm" />
-                      {t(key)}
-                    </span>
-                    <span className="text-xs">{t('comingSoon')}</span>
-                  </span>
-                ))}
-              </div>
-            </WidgetContainer>
-
-            <WidgetContainer contentClassName="pt-6">
-              <div className="flex items-start gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-subtle text-primary-emphasis">
-                  <Icon icon={Lightbulb} size="md" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{t('tipsTitle')}</p>
-                  <p className="text-xs text-text-secondary">{t('tipsDescription')}</p>
-                </div>
-              </div>
-            </WidgetContainer>
-          </details>
+          </div>
         </div>
+
+        {schedule &&
+          (isDesktop ? (
+            <Dialog open={isEditingHours} onOpenChange={setIsEditingHours}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{t('workingHoursTitle')}</DialogTitle>
+                </DialogHeader>
+                <div className="mt-2">
+                  <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Sheet open={isEditingHours} onOpenChange={setIsEditingHours}>
+              <Sheet.Content>
+                <Sheet.Header>
+                  <Sheet.Title>{t('workingHoursTitle')}</Sheet.Title>
+                </Sheet.Header>
+                <div className="mt-4 max-h-[65vh] overflow-y-auto">
+                  <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                </div>
+              </Sheet.Content>
+            </Sheet>
+          ))}
+
+        <Dialog open={isAddingTimeOff} onOpenChange={setIsAddingTimeOff}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('addTimeOff')}</DialogTitle>
+            </DialogHeader>
+            <div className="mt-2">
+              <ScheduleExceptionForm onAdded={() => setIsAddingTimeOff(false)} />
+            </div>
+          </DialogContent>
+        </Dialog>
       </Page>
     </RequireRole>
+  );
+}
+
+interface ThisWeekStatProps {
+  accent: 'success' | 'info' | 'primary' | 'warning';
+  label: string;
+  value: string;
+  loading?: boolean;
+}
+
+const THIS_WEEK_ACCENT_CLASSES: Record<ThisWeekStatProps['accent'], string> = {
+  success: 'bg-success-subtle text-success-emphasis',
+  info: 'bg-info-subtle text-info-emphasis',
+  primary: 'bg-primary-subtle text-primary-emphasis',
+  warning: 'bg-warning-subtle text-warning-emphasis',
+};
+
+function ThisWeekStat({ accent, label, value, loading }: ThisWeekStatProps) {
+  return (
+    <div className={cn('flex flex-col gap-1 rounded-xl p-3', THIS_WEEK_ACCENT_CLASSES[accent])}>
+      {loading ? <Skeleton className="h-6 w-10" /> : <span className="text-xl font-semibold text-text-primary">{value}</span>}
+      <span className="text-xs text-text-secondary">{label}</span>
+    </div>
   );
 }
 

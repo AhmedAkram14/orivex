@@ -9,7 +9,7 @@ import { SHARED_ERROR_CODES } from '@/shared/lib/api/error-codes';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
 import { useBookAppointment } from '@/features/patient/hooks/use-book-appointment';
-import type { BookedAppointment } from '@/features/patient/api/types';
+import type { AppointmentType, BookedAppointment } from '@/features/patient/api/types';
 import type { AvailabilityWindowData } from '@/features/scheduling/types';
 import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
@@ -19,10 +19,13 @@ import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { BookingSummaryCard } from '@/shared/ui/schedule/booking-summary-card';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
 import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
+
+const APPOINTMENT_TYPES: readonly AppointmentType[] = ['consultation', 'follow_up', 'new_patient', 'procedure'];
 
 export interface BookingFlowProps {
   doctorId: string;
@@ -53,6 +56,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const today = useMemo(() => new Date(), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedWindow, setSelectedWindow] = useState<AvailabilityWindowData | null>(null);
+  const [appointmentType, setAppointmentType] = useState<AppointmentType>('consultation');
   const [bookedAppointment, setBookedAppointment] = useState<BookedAppointment | null>(null);
   const [step, setStep] = useState<Step>('select');
 
@@ -125,6 +129,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
       const appointment = await bookAppointment.mutateAsync({
         doctorId,
         availabilityWindowId: selectedWindow.id,
+        appointmentType,
       });
       if (appointment.consultationType === 'paid' && appointment.feeAmount !== null && appointment.feeCurrency !== null) {
         setBookedAppointment(appointment);
@@ -170,6 +175,21 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
                     : t('bookingFailed')}
           </Alert>
         )}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-text-primary">{t('appointmentType.label')}</label>
+          <Select value={appointmentType} onValueChange={(value) => setAppointmentType(value as AppointmentType)}>
+            <SelectTrigger aria-label={t('appointmentType.label')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {APPOINTMENT_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {t(`appointmentType.${type}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <BookingSummaryCard
           dateLabel={summary.dateLabel}
           timeLabel={summary.timeLabel}

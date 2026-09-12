@@ -105,7 +105,12 @@ export class RescheduleOrCancelAppointmentUseCase {
       availabilityWindowId: newAvailabilityWindowId,
       pricing: toConsultationModulePricing(newWindow.getPricing()),
       scheduledAt: newWindow.getStartTime(),
+      endTime: newWindow.getEndTime(),
       reasonForVisit: appointment.getReasonForVisit(),
+      // Snapshotted from the original appointment -- forward-only rule,
+      // same precedent as reasonForVisit above (carried forward, not
+      // re-derived).
+      appointmentType: appointment.getAppointmentType(),
       rescheduledFromId: appointment.getId(),
     });
 

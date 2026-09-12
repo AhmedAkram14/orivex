@@ -177,6 +177,14 @@ export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'can
 export type ConsultationType = 'free' | 'paid';
 
 /**
+ * Doctor Schedule redesign: the visit-modality category selected at booking
+ * time -- matches ConsultationModule's real `AppointmentType` enum exactly.
+ * Distinct from `ConsultationType` above, which is a Free/Paid pricing tier,
+ * not a visit modality.
+ */
+export type AppointmentType = 'consultation' | 'follow_up' | 'new_patient' | 'procedure';
+
+/**
  * The full appointment record — backed by the real `GET /appointments/me`
  * endpoint. Deliberately no `type`/`location` fields (in-person vs. video,
  * physical address) — no backend concept of either exists yet, only
@@ -186,6 +194,8 @@ export interface Appointment {
   id: string;
   /** ISO timestamp — components format it for display, this type never carries pre-formatted text. */
   scheduledAt: string;
+  /** Doctor Schedule redesign: server-computed from the booked window's own end time. Undefined for appointments booked before this field existed -- never fabricated. */
+  endTime?: string;
   /** Patient-Facing Reschedule (Phase 3 Step 2): the same doctor's real id, so the reschedule flow can fetch their availability windows (`GET /doctors/:doctorId/availability-windows`) -- matches `AppointmentListItemResponseDto.doctorId` exactly. */
   doctorId: string;
   doctorName: string;
@@ -196,6 +206,8 @@ export interface Appointment {
   status: AppointmentStatus;
   consultationType: ConsultationType;
   reasonForVisit?: string;
+  /** Doctor Schedule redesign: patient-supplied visit-modality category. Undefined for appointments booked before this field existed. */
+  appointmentType?: AppointmentType;
   /**
    * Real once a Paid appointment is booked (opened at booking time, not
    * after payment — ORIVEX Roadmap 2.0 Stage 1) — the id PayNowForm charges
@@ -227,6 +239,8 @@ export interface BookAppointmentRequest {
   doctorId: string;
   availabilityWindowId: string;
   reasonForVisit?: string;
+  /** Doctor Schedule redesign: patient-supplied visit-modality category, same tier as `reasonForVisit`. */
+  appointmentType?: AppointmentType;
 }
 
 /**
@@ -250,7 +264,11 @@ export interface BookedAppointment {
   status: AppointmentStatus;
   /** ISO timestamp. */
   scheduledAt: string;
+  /** ISO timestamp, server-computed from the booked window's own end time. Null for appointments booked before this field existed. */
+  endTime: string | null;
   reasonForVisit: string | null;
+  /** Doctor Schedule redesign: patient-supplied visit-modality category. Null for appointments booked before this field existed. */
+  appointmentType: AppointmentType | null;
   rescheduledFromId: string | null;
 }
 

@@ -23,6 +23,10 @@ export const DOCTOR_PATHS = {
   // AppointmentController).
   patients: '/appointments/doctor/patients',
   reportsSummary: '/appointments/doctor/reports-summary',
+  // Doctor Schedule Redesign: the one real doctor-appointments route that
+  // accepts a caller-supplied date range, backing the weekly calendar grid.
+  schedule: (from: string, to: string) =>
+    `/appointments/doctor/schedule?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
   approveAppointment: (appointmentId: string) => `/appointments/${appointmentId}/approve`,
   // Doctor Onboarding (Phase 4 continuation) -- the same DoctorProfileController
   // real backend routes, reused as-is: POST /doctors (register), and the

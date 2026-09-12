@@ -5,6 +5,7 @@ import { AppointmentBookedEvent } from '../events/appointment-booked.event.js';
 import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
+import type { AppointmentType } from '../enums/appointment-type.enum.js';
 import type { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
 
@@ -18,7 +19,14 @@ export interface RequestAppointmentProps {
   // change what this appointment was agreed to cost.
   pricing: ConsultationPricing;
   scheduledAt: Date;
+  // Doctor Schedule redesign: server-computed from the booked
+  // AvailabilityWindow's own endTime, never client-supplied.
+  endTime?: Date;
   reasonForVisit?: string;
+  // Doctor Schedule redesign: patient-supplied visit-modality category
+  // (same tier as reasonForVisit) -- distinct from ConsultationPricing's
+  // Free/Paid pricing tier above.
+  appointmentType?: AppointmentType;
   rescheduledFromId?: string;
 }
 
@@ -30,7 +38,9 @@ export interface ReconstituteAppointmentProps {
   pricing: ConsultationPricing;
   status: AppointmentStatus;
   scheduledAt: Date;
+  endTime?: Date;
   reasonForVisit?: string;
+  appointmentType?: AppointmentType;
   rescheduledFromId?: string;
   version: number;
   createdAt: Date;
@@ -54,7 +64,9 @@ export class Appointment {
     private readonly pricing: ConsultationPricing,
     private status: AppointmentStatus,
     private readonly scheduledAt: Date,
+    private readonly endTime: Date | undefined,
     private readonly reasonForVisit: string | undefined,
+    private readonly appointmentType: AppointmentType | undefined,
     private readonly rescheduledFromId: string | undefined,
     private readonly version: number,
     private readonly createdAt: Date,
@@ -70,7 +82,9 @@ export class Appointment {
       props.pricing,
       AppointmentStatus.Requested,
       props.scheduledAt,
+      props.endTime,
       props.reasonForVisit,
+      props.appointmentType,
       props.rescheduledFromId,
       1,
       new Date(),
@@ -90,7 +104,9 @@ export class Appointment {
       props.pricing,
       props.status,
       props.scheduledAt,
+      props.endTime,
       props.reasonForVisit,
+      props.appointmentType,
       props.rescheduledFromId,
       props.version,
       props.createdAt,
@@ -197,8 +213,16 @@ export class Appointment {
     return this.scheduledAt;
   }
 
+  getEndTime(): Date | undefined {
+    return this.endTime;
+  }
+
   getReasonForVisit(): string | undefined {
     return this.reasonForVisit;
+  }
+
+  getAppointmentType(): AppointmentType | undefined {
+    return this.appointmentType;
   }
 
   getRescheduledFromId(): string | undefined {

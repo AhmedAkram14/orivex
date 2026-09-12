@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -27,6 +27,8 @@ import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
 import { DoctorPatientListItemResponseDto } from '../dto/doctor-patient-list-item-response.dto.js';
 import { DoctorReportsSummaryResponseDto } from '../dto/doctor-reports-summary-response.dto.js';
+import { DoctorScheduleAppointmentResponseDto } from '../dto/doctor-schedule-appointment-response.dto.js';
+import { DoctorScheduleQueryDto } from '../dto/doctor-schedule-query.dto.js';
 import { DoctorUpcomingWorkItemResponseDto } from '../dto/doctor-upcoming-work-item-response.dto.js';
 import { PendingApprovalAppointmentResponseDto } from '../dto/pending-approval-appointment-response.dto.js';
 import { QueueEntryResponseDto } from '../dto/queue-entry-response.dto.js';
@@ -126,6 +128,33 @@ export class DoctorAppointmentsController {
     const items = await Promise.all(upcoming.map((appointment) => this.toUpcomingWorkItem(appointment)));
 
     return envelope(items.filter((item): item is DoctorUpcomingWorkItemResponseDto => item !== null));
+  }
+
+  // Doctor Schedule redesign: a real weekly calendar grid needs an
+  // arbitrary caller-supplied date range (unlike every other route on this
+  // controller, which computes its own internal bounds) -- reuses the
+  // already-wired ListAppointmentsForDoctorUseCase's date-ranged query path
+  // (findByDoctorIdForDateRange), not a new use case.
+  @Get('doctor/schedule')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorSchedule(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query() query: DoctorScheduleQueryDto,
+  ): Promise<ResponseEnvelope<DoctorScheduleAppointmentResponseDto[]>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      return envelope([]);
+    }
+
+    const appointments = await this.listAppointmentsForDoctorUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      scheduledFrom: new Date(query.from),
+      scheduledTo: new Date(query.to),
+    });
+
+    const items = await Promise.all(appointments.map((appointment) => this.toScheduleItem(appointment)));
+    return envelope(items.filter((item): item is DoctorScheduleAppointmentResponseDto => item !== null));
   }
 
   // Doctor-scoped Patient Queue (Doctor Workspace's "Patient Queue" page).
@@ -338,9 +367,38 @@ export class DoctorAppointmentsController {
     const dto = new DoctorUpcomingWorkItemResponseDto();
     dto.id = appointment.getId();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
+    dto.endTime = appointment.getEndTime()?.toISOString();
     dto.title = patientAccount.getUserProfile().getDisplayName().toString();
     dto.description = appointment.getReasonForVisit() ?? undefined;
+    dto.appointmentType = appointment.getAppointmentType();
     dto.status = toUpcomingWorkStatus(appointment.getStatus());
+    return dto;
+  }
+
+  private async toScheduleItem(appointment: Appointment): Promise<DoctorScheduleAppointmentResponseDto | null> {
+    const patientProfile = await this.getPatientProfileByIdUseCase.execute({
+      patientProfileId: appointment.getPatientId(),
+    });
+    if (!patientProfile) {
+      return null;
+    }
+    const patientAccount: Account | null = await this.getAccountByIdUseCase.execute({
+      accountId: patientProfile.getAccountId(),
+    });
+    if (!patientAccount) {
+      return null;
+    }
+
+    const dto = new DoctorScheduleAppointmentResponseDto();
+    dto.id = appointment.getId();
+    dto.patientId = appointment.getPatientId();
+    dto.patientName = patientAccount.getUserProfile().getDisplayName().toString();
+    dto.avatarUrl = patientAccount.getUserProfile().getAvatarUrl();
+    dto.scheduledAt = appointment.getScheduledAt().toISOString();
+    dto.endTime = appointment.getEndTime()?.toISOString();
+    dto.appointmentType = appointment.getAppointmentType();
+    dto.status = appointment.getStatus();
+    dto.reasonForVisit = appointment.getReasonForVisit() ?? undefined;
     return dto;
   }
 

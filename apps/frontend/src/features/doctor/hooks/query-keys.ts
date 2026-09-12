@@ -4,6 +4,8 @@ export const doctorDashboardKeys = createQueryKeyFactory('doctor-dashboard');
 export const doctorUpcomingWorkKeys = createQueryKeyFactory('doctor-upcoming-work');
 export const doctorProfileKeys = createQueryKeyFactory('doctor-profile');
 export const doctorQueueKeys = createQueryKeyFactory('doctor-queue');
+// Doctor Schedule Redesign.
+export const doctorScheduleKeys = createQueryKeyFactory('doctor-schedule');
 // Doctor-approval-workflow fix.
 export const doctorPendingApprovalKeys = createQueryKeyFactory('doctor-pending-approval');
 // Doctor Onboarding (Phase 4 continuation).

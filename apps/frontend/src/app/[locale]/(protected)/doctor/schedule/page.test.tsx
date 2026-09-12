@@ -85,61 +85,57 @@ describe('DoctorSchedulePage', () => {
     expect(screen.queryByRole('button', { name: 'Previous week' })).not.toBeInTheDocument();
   });
 
-  it('shows the working-hours editor when Edit available hours is clicked', async () => {
+  it('shows the working-hours editor dialog when Edit availability is clicked', async () => {
     renderPage();
     await screen.findByRole('button', { name: 'Today' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Edit available hours' }));
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Edit availability' }));
+    expect(await screen.findByRole('button', { name: 'Save' })).toBeInTheDocument();
   });
 
-  it('saves a working-hours change and reflects it in the read-only summary', async () => {
+  it('saves a working-hours change, reflects it in the read-only list, and closes the dialog', async () => {
     renderPage();
     await screen.findByRole('button', { name: 'Today' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Edit available hours' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit availability' }));
     await userEvent.click(screen.getByRole('switch', { name: 'Monday working day' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-    // Back in the read-only summary, Monday now shows as not working. The
-    // "Monday" label and its status text are sibling sections within the
-    // AvailabilityCard row, so the shared ancestor is two levels up.
+    // The dialog closes on save.
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+
+    // Back in the read-only list, Monday now shows as not working. The
+    // "Monday" label and its status text are sibling groups within the same
+    // row, so the shared ancestor is two levels up.
     const mondayLabel = await screen.findByText('Monday');
     const mondayRow = mondayLabel.closest('div')?.parentElement;
     expect(mondayRow).toHaveTextContent('Not available');
   });
 
-  it("shows each working day's default price in the read-only summary, and reflects a saved pricing change", async () => {
-    renderPage();
-    await screen.findByRole('button', { name: 'Today' });
-
-    // The seeded demo doctor's working days default to Paid 500 EGP.
-    expect(screen.getAllByText(/EGP/).length).toBeGreaterThan(0);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Edit available hours' }));
-    const freeTabs = screen.getAllByRole('tab', { name: 'Free' });
-    await userEvent.click(freeTabs[0]);
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    expect(await screen.findByText('FREE')).toBeInTheDocument();
-  });
-
-  it('renders the honest-empty time-off manager', async () => {
+  it('renders the honest-empty time-off table', async () => {
     renderPage();
     expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();
   });
 
-  it('adds and then removes a vacation date (Time Off architecture)', async () => {
+  it('adds and then removes a vacation date via the Add time off dialog', async () => {
     renderPage();
     await screen.findByText('No time off scheduled');
 
-    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-08-15' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Add time off' }));
+    fireEvent.change(await screen.findByLabelText('Date'), { target: { value: '2026-08-15' } });
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
 
-    expect(await screen.findByRole('button', { name: 'Remove time off' })).toBeInTheDocument();
+    // The dialog closes and the new row appears in the table.
+    expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
     expect(screen.queryByText('No time off scheduled')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Remove time off' }));
+    // The row-actions trigger's accessible name includes the row's own date
+    // (`"Row actions for {date}"`) so it's unambiguous from the Weekly
+    // Availability section's own per-weekday row-actions buttons on the
+    // same page.
+    await userEvent.click(screen.getByRole('button', { name: 'Row actions for Aug 15, 2026' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Remove time off' }));
+
     expect(await screen.findByText('No time off scheduled')).toBeInTheDocument();
   });
 
@@ -152,5 +148,17 @@ describe('DoctorSchedulePage', () => {
     // The seeded schedule (Sun-Thu, 9-5) guarantees at least one working
     // day within the next 14 days, so the agenda is never empty here.
     expect(screen.queryByText('Nothing scheduled')).not.toBeInTheDocument();
+  });
+
+  it('renders the This Week summary and Next Available Slot sidebar widgets', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    expect(screen.getByText('This Week')).toBeInTheDocument();
+    expect(screen.getByText('Working days')).toBeInTheDocument();
+    expect(screen.getByText('Available hours')).toBeInTheDocument();
+    expect(screen.getByText('Appointments')).toBeInTheDocument();
+    expect(screen.getByText('Hours blocked')).toBeInTheDocument();
+    expect(screen.getByText('Next Available Slot')).toBeInTheDocument();
   });
 });

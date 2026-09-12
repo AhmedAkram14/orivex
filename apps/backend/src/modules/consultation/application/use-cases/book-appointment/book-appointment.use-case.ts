@@ -99,7 +99,9 @@ export class BookAppointmentUseCase {
       availabilityWindowId: command.availabilityWindowId,
       pricing: toConsultationModulePricing(window.getPricing()),
       scheduledAt: window.getStartTime(),
+      endTime: window.getEndTime(),
       reasonForVisit: command.reasonForVisit,
+      appointmentType: command.appointmentType,
     });
 
     if (isFree) {

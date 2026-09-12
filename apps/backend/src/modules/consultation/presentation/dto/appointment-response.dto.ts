@@ -1,5 +1,6 @@
 import type { Appointment } from '../../domain/entities/appointment.entity.js';
 import type { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js';
+import type { AppointmentType } from '../../domain/enums/appointment-type.enum.js';
 import type { ConsultationType } from '../../domain/enums/consultation-type.enum.js';
 
 // Own additive shape, not the full documented AppointmentSummary --
@@ -17,7 +18,9 @@ export class AppointmentResponseDto {
   feeCurrency!: string | null;
   status!: AppointmentStatus;
   scheduledAt!: string;
+  endTime!: string | null;
   reasonForVisit!: string | null;
+  appointmentType!: AppointmentType | null;
   rescheduledFromId!: string | null;
 
   static fromDomain(appointment: Appointment): AppointmentResponseDto {
@@ -32,7 +35,9 @@ export class AppointmentResponseDto {
     dto.feeCurrency = fee?.getCurrency() ?? null;
     dto.status = appointment.getStatus();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
+    dto.endTime = appointment.getEndTime()?.toISOString() ?? null;
     dto.reasonForVisit = appointment.getReasonForVisit() ?? null;
+    dto.appointmentType = appointment.getAppointmentType() ?? null;
     dto.rescheduledFromId = appointment.getRescheduledFromId() ?? null;
     return dto;
   }

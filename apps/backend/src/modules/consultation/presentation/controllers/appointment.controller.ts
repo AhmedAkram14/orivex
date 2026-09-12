@@ -95,6 +95,7 @@ export class AppointmentController {
           doctorId: body.doctorId,
           availabilityWindowId: body.availabilityWindowId,
           reasonForVisit: body.reasonForVisit,
+          appointmentType: body.appointmentType,
         }),
       );
       return envelope(AppointmentResponseDto.fromDomain(appointment));

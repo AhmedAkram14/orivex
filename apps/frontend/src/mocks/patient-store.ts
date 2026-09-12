@@ -23,7 +23,12 @@ import { listSpecialties } from '@/mocks/reference-store';
 import { getCurrentAccountId, LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
 import { DEMO_SEED_ENABLED } from '@/mocks/demo-mode';
 import { DEMO_PATIENTS, type DemoPatient } from '@/mocks/demo-data/demo-people';
-import { isAvailabilityWindowBooked, markAvailabilityWindowBooked, resolveWindowPricing } from '@/mocks/scheduling-store';
+import {
+  getSchedulingRules,
+  isAvailabilityWindowBooked,
+  markAvailabilityWindowBooked,
+  resolveWindowPricing,
+} from '@/mocks/scheduling-store';
 import {
   findAllVerificationCasesBySubject,
   decideVerificationCase,
@@ -430,6 +435,12 @@ export function bookAppointment(request: BookAppointmentRequest, accountId?: str
   const pricing = resolveWindowPricing(request.doctorId, scheduledAt);
   const isPaid = pricing.pricingType === 'paid';
   const id = `appointment-${Date.now()}`;
+  // Doctor Schedule redesign: server-computed from the booked window's own
+  // duration, never client-supplied -- mirrors the real
+  // BookAppointmentUseCase's `window.getEndTime()`.
+  const endTime = new Date(
+    new Date(scheduledAt).getTime() + getSchedulingRules().slotDurationMinutes * 60_000,
+  ).toISOString();
 
   markAvailabilityWindowBooked(request.availabilityWindowId);
 
@@ -449,6 +460,8 @@ export function bookAppointment(request: BookAppointmentRequest, accountId?: str
     status: 'requested',
     consultationType: pricing.pricingType,
     reasonForVisit: request.reasonForVisit,
+    appointmentType: request.appointmentType,
+    endTime,
     consultationSessionId: null,
     paymentRequired: isPaid,
     feeAmount: isPaid && pricing.feeAmount !== null && pricing.feeCurrency !== null ? { amount: pricing.feeAmount, currency: pricing.feeCurrency } : null,
@@ -465,7 +478,9 @@ export function bookAppointment(request: BookAppointmentRequest, accountId?: str
     feeCurrency: pricing.feeCurrency,
     status: listItem.status,
     scheduledAt,
+    endTime,
     reasonForVisit: request.reasonForVisit ?? null,
+    appointmentType: request.appointmentType ?? null,
     rescheduledFromId: null,
   };
 }
@@ -515,6 +530,11 @@ export function rescheduleAppointment(appointmentId: string, newAvailabilityWind
   const isPaid = pricing.pricingType === 'paid';
   const newId = `appointment-${Date.now()}`;
   const newStatus: Appointment['status'] = isPaid ? 'requested' : 'confirmed';
+  // Doctor Schedule redesign: server-computed from the new window's own
+  // duration, never client-supplied. appointmentType is carried forward
+  // from the original appointment (forward-only snapshot, same precedent
+  // as reasonForVisit above), not re-derived.
+  const endTime = new Date(new Date(scheduledAt).getTime() + getSchedulingRules().slotDurationMinutes * 60_000).toISOString();
 
   markAvailabilityWindowBooked(newAvailabilityWindowId);
   existing.status = 'rescheduled';
@@ -523,6 +543,7 @@ export function rescheduleAppointment(appointmentId: string, newAvailabilityWind
   const listItem: Appointment = {
     id: newId,
     scheduledAt,
+    endTime,
     doctorId,
     doctorName: doctor?.fullName ?? existing.doctorName,
     doctorAvatarUrl: doctor?.avatarUrl ?? existing.doctorAvatarUrl,
@@ -531,6 +552,7 @@ export function rescheduleAppointment(appointmentId: string, newAvailabilityWind
     status: newStatus,
     consultationType: pricing.pricingType,
     reasonForVisit: existing.reasonForVisit,
+    appointmentType: existing.appointmentType,
     consultationSessionId: newStatus === 'confirmed' ? `session-${newId}` : null,
     paymentRequired: isPaid,
     feeAmount:
@@ -550,7 +572,9 @@ export function rescheduleAppointment(appointmentId: string, newAvailabilityWind
     feeCurrency: pricing.feeCurrency,
     status: newStatus,
     scheduledAt,
+    endTime,
     reasonForVisit: existing.reasonForVisit ?? null,
+    appointmentType: existing.appointmentType ?? null,
     rescheduledFromId: appointmentId,
   };
 }
@@ -591,7 +615,9 @@ export function cancelAppointment(appointmentId: string, accountId?: string): Bo
     feeCurrency: existing.feeAmount?.currency ?? null,
     status: existing.status,
     scheduledAt: existing.scheduledAt,
+    endTime: existing.endTime ?? null,
     reasonForVisit: existing.reasonForVisit ?? null,
+    appointmentType: existing.appointmentType ?? null,
     rescheduledFromId: null,
   };
 }
