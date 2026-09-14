@@ -68,7 +68,9 @@ describe('DoctorPatientsPage', () => {
               patientProfileId: 'patient-1',
               patientName: 'Amina Youssef',
               visitCount: 3,
-              lastVisitAt: '2026-01-15T10:00:00.000Z',
+              // Recent enough to fall inside derivePatientStatus's 90-day
+              // "still Completed, not yet Inactive" window.
+              lastVisitAt: new Date(Date.now() - 10 * 24 * 60 * 60_000).toISOString(),
               lastVisitStatus: 'completed',
             },
           ],
@@ -81,5 +83,30 @@ describe('DoctorPatientsPage', () => {
     expect(await screen.findByText('Amina Youssef')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('Completed')).toBeInTheDocument();
+  });
+
+  it('shows an honest "None yet" for a patient with no completed visit -- regression: lastVisitAt used to be the most recently *scheduled* appointment regardless of status, so a Cancelled or still-pending one rendered its date labelled as a "visit"', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/appointments/doctor/patients`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              patientProfileId: 'patient-1',
+              patientName: 'Iman Rashad',
+              visitCount: 0,
+              nextAppointmentAt: undefined,
+              hasFollowUpRecommendation: false,
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText('Iman Rashad')).toBeInTheDocument();
+    expect(screen.getByText('None yet')).toBeInTheDocument();
+    expect(screen.queryByText('Invalid Date')).not.toBeInTheDocument();
+    expect(screen.getByText('Inactive')).toBeInTheDocument();
   });
 });

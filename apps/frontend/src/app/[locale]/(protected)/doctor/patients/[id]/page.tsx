@@ -55,6 +55,11 @@ const CARD_CLASSNAME = 'rounded-2xl border-border-default/60 shadow-[0_10px_30px
 
 const NON_TERMINAL_STATUSES = new Set(['requested', 'confirmed', 'rescheduled']);
 
+/** A human-shaped stand-in for the real UUID (never truncated/altered anywhere it's actually used for a lookup -- display only, this page's own header). Matches the short-SHA convention: first 8 hex characters, uppercased. */
+function shortId(id: string): string {
+  return id.replace(/-/g, '').slice(0, 8).toUpperCase();
+}
+
 function initialsFor(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
   const first = parts[0]?.[0] ?? '';
@@ -187,11 +192,24 @@ export default function DoctorPatientChartPage() {
 
       {!profileLoading && profile && (() => {
         const age = profile.dateOfBirth ? ageFrom(profile.dateOfBirth) : undefined;
+        const now = new Date();
+        // "Upcoming" means genuinely still ahead of us -- a non-terminal
+        // (Requested/Confirmed/Rescheduled) appointment whose own date has
+        // already passed is stale, not upcoming, regardless of whether it
+        // was ever formally resolved. Previously this bucketed on status
+        // alone, so a Requested appointment days in the past (nobody ever
+        // approved or declined it) stayed "upcoming" forever -- the same
+        // fact DoctorAppointmentsController's nextAppointmentAt already got
+        // right (it requires scheduledAt in the future too), which is why
+        // this page and the Patients list used to disagree about the exact
+        // same appointment.
+        const isUpcoming = (appointment: DoctorPatientChartAppointment) =>
+          NON_TERMINAL_STATUSES.has(appointment.status) && new Date(appointment.scheduledAt) > now;
         const upcomingAppointments = (appointments ?? [])
-          .filter((appointment) => NON_TERMINAL_STATUSES.has(appointment.status))
+          .filter(isUpcoming)
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
         const pastAppointments = (appointments ?? [])
-          .filter((appointment) => !NON_TERMINAL_STATUSES.has(appointment.status))
+          .filter((appointment) => !isUpcoming(appointment))
           .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
         const completedCount = pastAppointments.filter((appointment) => appointment.status === 'completed').length;
         const activePrescriptionsCount = (prescriptions ?? []).filter((prescription) => prescription.status === 'active').length;
@@ -216,7 +234,7 @@ export default function DoctorPatientChartPage() {
                         {profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}
                         {age !== undefined && ` · ${t('ageYearsOld', { age })}`}
                       </p>
-                      <p className="text-xs text-text-tertiary">{t('patientId', { id: profile.id })}</p>
+                      <p className="text-xs text-text-tertiary">{t('patientId', { id: shortId(profile.id) })}</p>
                     </div>
                   </div>
 

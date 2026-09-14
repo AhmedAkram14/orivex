@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -175,6 +175,90 @@ describe('DoctorPatientChartPage', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
 
     expect(await screen.findByText('No clinical documents uploaded')).toBeInTheDocument();
+  });
+
+  it('treats a Requested appointment whose date has already passed as a past appointment, not "upcoming" -- regression: this used to bucket on status alone, so a stale request that was never approved or declined stayed "upcoming" forever, disagreeing with the Patients list page\'s own (date-aware) count for the exact same appointment', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () => HttpResponse.json({ data: PROFILE_RESPONSE })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appointment-stale',
+              scheduledAt: '2020-01-01T10:00:00.000Z',
+              doctorId: 'doctor-profile-1',
+              doctorName: 'Dr. Sarah Ahmed',
+              specialization: 'Cardiology',
+              specializationAr: null,
+              status: 'requested',
+              consultationType: 'paid',
+              reasonForVisit: null,
+              consultationSessionId: null,
+              paymentRequired: true,
+            },
+            {
+              id: 'appointment-real-upcoming',
+              scheduledAt: new Date(Date.now() + 7 * 24 * 60 * 60_000).toISOString(),
+              doctorId: 'doctor-profile-1',
+              doctorName: 'Dr. Sarah Ahmed',
+              specialization: 'Cardiology',
+              specializationAr: null,
+              status: 'confirmed',
+              consultationType: 'free',
+              reasonForVisit: null,
+              consultationSessionId: null,
+              paymentRequired: false,
+            },
+          ],
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/medical-records`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/prescriptions`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/documents`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctors/me`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'doctor-profile-1',
+            accountId: '1',
+            fullName: 'Dr. Sarah Ahmed',
+            email: 'doctor@orivex.dev',
+            licenseNumber: 'LIC-1',
+            specialtyId: 'specialty-cardiology',
+            languages: [],
+            insuranceProviders: [],
+            publications: [],
+            awards: [],
+            workExperience: [],
+            createdAt: '2020-01-15T00:00:00.000Z',
+            updatedAt: '2020-01-15T00:00:00.000Z',
+          },
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({
+          data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0, writtenReviewCount: 0 },
+        }),
+      ),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+
+    // The stat strip's "Upcoming appointments" count only counts the one
+    // genuinely future appointment, not the stale Requested one.
+    const upcomingStat = (await screen.findByText('Upcoming appointments')).closest('div');
+    expect(upcomingStat).not.toBeNull();
+    expect(within(upcomingStat as HTMLElement).getByText('1')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+
+    const upcomingSection = (await screen.findByRole('heading', { name: 'Upcoming appointments' })).closest('.rounded-2xl');
+    expect(upcomingSection).not.toBeNull();
+    expect(within(upcomingSection as HTMLElement).queryByText('Waiting doctor approval')).not.toBeInTheDocument();
+
+    const previousSection = screen.getByRole('heading', { name: 'Previous visits' }).closest('.rounded-2xl');
+    expect(previousSection).not.toBeNull();
+    expect(within(previousSection as HTMLElement).getByText('Waiting doctor approval')).toBeInTheDocument();
   });
 
   it('shows an ownership-safe not-found state when the doctor has no relationship with this patient', async () => {
