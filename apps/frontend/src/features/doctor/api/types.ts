@@ -330,10 +330,11 @@ export interface DoctorPatientListItem {
   /** ISO date string. */
   dateOfBirth?: string;
   gender?: string;
+  /** Completed appointments only -- a Cancelled or still-pending appointment never counts as a visit. */
   visitCount: number;
-  /** ISO timestamp of the most recent visit. */
-  lastVisitAt: string;
-  lastVisitStatus: AppointmentStatus;
+  /** ISO timestamp of the most recent Completed appointment. Absent when the patient has no completed visit yet -- never the date of a Cancelled/pending one. */
+  lastVisitAt?: string;
+  lastVisitStatus?: AppointmentStatus;
   /** ISO timestamp of the soonest still-upcoming appointment, if any. */
   nextAppointmentAt?: string;
   /** Real -- reuses ClinicalModule's own FollowUpRecommendation, only meaningful when there's no nextAppointmentAt yet. */

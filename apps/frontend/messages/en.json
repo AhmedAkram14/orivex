@@ -1297,16 +1297,20 @@
         "thisWeek": "This Week",
         "thisWeekHelper": "Seen this week",
         "averageRating": "Average Rating",
+        "averageRatingHelper": "All time · {count, plural, one {# rating} other {# ratings}}",
+        "averageRatingHelperNoCount": "All time",
         "noRatingsYet": "No ratings yet"
       },
       "searchPlaceholder": "Search by name, phone, or email...",
+      "clearSearch": "Clear search",
+      "clearFilters": "Clear search and filters",
       "filterType": {
         "all": "All Patients",
         "new": "New Patients",
         "returning": "Returning Patients"
       },
       "filterStatus": {
-        "all": "All Status"
+        "all": "All Statuses"
       },
       "sortLastVisit": {
         "newest": "Last Visit (Newest)",
@@ -1316,10 +1320,11 @@
       "noUpcoming": "No upcoming",
       "columns": {
         "name": "Patient",
-        "ageGender": "Age / Gender",
+        "ageGender": "Age • Gender",
         "visitCount": "Visits",
         "lastVisit": "Last Visit",
         "lastVisitStatus": "Status",
+        "lastVisitNone": "None yet",
         "nextAppointment": "Next Appointment",
         "patientStatus": "Status",
         "actions": "Actions"
@@ -1350,7 +1355,7 @@
         "no_show": "No-show",
         "completed": "Completed"
       },
-      "showingRange": "Showing {from}-{to} of {total} patients",
+      "showingRange": "Showing {from}-{to} of {total, plural, one {# patient} other {# patients}}",
       "perPage": "{count} / page"
     },
     "reports": {

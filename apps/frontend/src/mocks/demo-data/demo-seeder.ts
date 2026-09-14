@@ -342,15 +342,17 @@ export function seedDemoData(): void {
     // Account-Consistency Fix: keyed by the REAL patientProfile.id (the same
     // id patient-store.ts, consultation-store.ts's reviews, and every other
     // mock store already uses for this exact patient) -- never a fabricated
-    // id/email/phone invented just for this list. `lastVisitAt`/
-    // `lastVisitStatus` reflect the most recent appointment by date (not
-    // just the first one encountered), and `nextAppointmentAt` is the
-    // soonest still-upcoming one, mirroring the real backend's own
-    // DoctorAppointmentsController.getDoctorPatients computation.
+    // id/email/phone invented just for this list. `visitCount`/
+    // `lastVisitAt`/`lastVisitStatus` are Completed-appointments only (a
+    // Cancelled or still-pending appointment is not a visit that happened),
+    // and `nextAppointmentAt` is the soonest still-upcoming
+    // Requested/Confirmed one, mirroring the real backend's own
+    // DoctorAppointmentsController.getDoctorPatients computation exactly.
     const patientsByProfileId = new Map<string, DoctorPatientListItem>();
     owned.forEach(({ appointment, patientProfile }) => {
       const existing = patientsByProfileId.get(patientProfile.id);
       const isNonTerminal = appointment.status === 'confirmed' || appointment.status === 'requested';
+      const isCompleted = appointment.status === 'completed';
 
       if (!existing) {
         patientsByProfileId.set(patientProfile.id, {
@@ -361,23 +363,25 @@ export function seedDemoData(): void {
           phoneNumber: patientProfile.phoneNumber,
           dateOfBirth: patientProfile.dateOfBirth,
           gender: patientProfile.gender,
-          visitCount: 1,
-          lastVisitAt: appointment.scheduledAt,
-          lastVisitStatus: appointment.status,
+          visitCount: isCompleted ? 1 : 0,
+          lastVisitAt: isCompleted ? appointment.scheduledAt : undefined,
+          lastVisitStatus: isCompleted ? appointment.status : undefined,
           nextAppointmentAt: isNonTerminal ? appointment.scheduledAt : undefined,
           hasFollowUpRecommendation: false,
         });
         return;
       }
 
-      existing.visitCount += 1;
       if (isNonTerminal) {
         if (!existing.nextAppointmentAt || appointment.scheduledAt < existing.nextAppointmentAt) {
           existing.nextAppointmentAt = appointment.scheduledAt;
         }
-      } else if (appointment.scheduledAt > existing.lastVisitAt) {
-        existing.lastVisitAt = appointment.scheduledAt;
-        existing.lastVisitStatus = appointment.status;
+      } else if (isCompleted) {
+        existing.visitCount += 1;
+        if (!existing.lastVisitAt || appointment.scheduledAt > existing.lastVisitAt) {
+          existing.lastVisitAt = appointment.scheduledAt;
+          existing.lastVisitStatus = appointment.status;
+        }
       }
     });
     // A deterministic (never `Math.random()`), plausibly-varied stand-in for

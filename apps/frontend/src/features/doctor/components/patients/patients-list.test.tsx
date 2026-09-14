@@ -25,13 +25,32 @@ function renderList() {
 }
 
 describe('PatientsList', () => {
-  it('renders real KPI counts and paginates the seeded busy-practice roster', async () => {
+  it('renders real KPI counts and the full seeded roster on one page (page size 25)', async () => {
     renderList();
 
     expect(await screen.findByText('Total Patients')).toBeInTheDocument();
-    // 12 seeded patients, page size 5 -- pagination must appear.
-    expect(await screen.findByText(/Showing 1-5 of 12 patients/)).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Pagination' })).toBeInTheDocument();
+    // 12 seeded patients, page size 25 -- all fit on one page.
+    expect(await screen.findByText(/Showing 1-12 of 12 patients/)).toBeInTheDocument();
+    // Regression: "Last Visit" used to be the most recently *scheduled*
+    // appointment regardless of status, so a Cancelled/still-pending
+    // appointment's date rendered as `new Date(undefined)` once the backend
+    // started omitting it for a patient with no completed visit -- never a
+    // silent "Invalid Date" anywhere on the page.
+    expect(screen.queryByText('Invalid Date')).not.toBeInTheDocument();
+  });
+
+  it('clears the search field via the clear button', async () => {
+    renderList();
+    await screen.findByText('Total Patients');
+
+    const searchInput = screen.getByPlaceholderText('Search by name, phone, or email...');
+    await userEvent.type(searchInput, 'Mona Farouk');
+    expect(await screen.findByText('Mona Farouk')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    expect(searchInput).toHaveValue('');
+    expect(await screen.findByText('Layla Ibrahim')).toBeInTheDocument();
   });
 
   it('filters the table by a real search term, matching against name/email/phone', async () => {

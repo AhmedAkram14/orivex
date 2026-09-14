@@ -1297,9 +1297,13 @@
         "thisWeek": "هذا الأسبوع",
         "thisWeekHelper": "تمت رؤيتهم هذا الأسبوع",
         "averageRating": "متوسط التقييم",
+        "averageRatingHelper": "منذ البداية · {count, plural, one {تقييم واحد} two {تقييمان} few {# تقييمات} other {# تقييمًا}}",
+        "averageRatingHelperNoCount": "منذ البداية",
         "noRatingsYet": "لا توجد تقييمات بعد"
       },
       "searchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد الإلكتروني...",
+      "clearSearch": "مسح البحث",
+      "clearFilters": "مسح البحث والفلاتر",
       "filterType": {
         "all": "كل المرضى",
         "new": "مرضى جدد",
@@ -1316,10 +1320,11 @@
       "noUpcoming": "لا يوجد قادم",
       "columns": {
         "name": "المريض",
-        "ageGender": "العمر / الجنس",
+        "ageGender": "العمر • الجنس",
         "visitCount": "عدد الزيارات",
         "lastVisit": "آخر زيارة",
         "lastVisitStatus": "الحالة",
+        "lastVisitNone": "لا توجد بعد",
         "nextAppointment": "الموعد القادم",
         "patientStatus": "الحالة",
         "actions": "إجراءات"

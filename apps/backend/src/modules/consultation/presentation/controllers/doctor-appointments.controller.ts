@@ -224,7 +224,17 @@ export class DoctorAppointmentsController {
 
     const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
     const items = await this.toPatientListItems(appointments);
-    return envelope(items.sort((a, b) => new Date(b.lastVisitAt).getTime() - new Date(a.lastVisitAt).getTime()));
+    // lastVisitAt is absent for a patient with no completed visit yet (see
+    // toPatientListItems) -- sorts after every real visit date rather than
+    // crashing `new Date(undefined)` or collapsing to epoch 0.
+    return envelope(
+      items.sort((a, b) => {
+        if (!a.lastVisitAt && !b.lastVisitAt) return 0;
+        if (!a.lastVisitAt) return 1;
+        if (!b.lastVisitAt) return -1;
+        return new Date(b.lastVisitAt).getTime() - new Date(a.lastVisitAt).getTime();
+      }),
+    );
   }
 
   // Doctor Workspace's "Reports" page -- real appointment-status counts +
@@ -424,9 +434,17 @@ export class DoctorAppointmentsController {
           return null;
         }
 
-        const mostRecent = [...patientAppointments].sort(
+        // "Last visit" means a visit that actually happened -- Completed
+        // appointments only, never the most recently *scheduled* one
+        // regardless of status (that previously showed a Cancelled or
+        // still-pending appointment's date labelled as a "visit"). Matches
+        // the Patient Chart's own identical Completed-only definition.
+        const completedAppointments = patientAppointments.filter(
+          (appointment) => appointment.getStatus() === AppointmentStatus.Completed,
+        );
+        const lastCompletedVisit = [...completedAppointments].sort(
           (a, b) => b.getScheduledAt().getTime() - a.getScheduledAt().getTime(),
-        )[0]!;
+        )[0];
         const now = new Date();
         const upcomingStatuses = new Set([AppointmentStatus.Requested, AppointmentStatus.Confirmed, AppointmentStatus.Rescheduled]);
         const nextAppointment = [...patientAppointments]
@@ -441,8 +459,10 @@ export class DoctorAppointmentsController {
         // booked follow-up visit is just "Active" again once it's on the
         // calendar.
         let hasFollowUpRecommendation = false;
-        if (!nextAppointment && mostRecent.getStatus() === AppointmentStatus.Completed) {
-          const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({ appointmentId: mostRecent.getId() });
+        if (!nextAppointment && lastCompletedVisit) {
+          const session = await this.getConsultationSessionByAppointmentIdUseCase.execute({
+            appointmentId: lastCompletedVisit.getId(),
+          });
           if (session) {
             const followUp = await this.getFollowUpRecommendationForSessionUseCase.execute({
               consultationSessionId: session.getId(),
@@ -459,9 +479,9 @@ export class DoctorAppointmentsController {
         dto.phoneNumber = userProfile.getPhoneNumber();
         dto.dateOfBirth = userProfile.getDateOfBirth()?.toISOString();
         dto.gender = userProfile.getGender();
-        dto.visitCount = patientAppointments.length;
-        dto.lastVisitAt = mostRecent.getScheduledAt().toISOString();
-        dto.lastVisitStatus = mostRecent.getStatus();
+        dto.visitCount = completedAppointments.length;
+        dto.lastVisitAt = lastCompletedVisit?.getScheduledAt().toISOString();
+        dto.lastVisitStatus = lastCompletedVisit?.getStatus();
         dto.nextAppointmentAt = nextAppointment?.getScheduledAt().toISOString();
         dto.hasFollowUpRecommendation = hasFollowUpRecommendation;
         return dto;

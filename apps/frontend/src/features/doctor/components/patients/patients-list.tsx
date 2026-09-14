@@ -1,17 +1,18 @@
 'use client';
 
-import { Calendar, Eye, FileText, MessageSquare, MoreVertical, Search, Star, TrendingUp, UserCheck, Users } from 'lucide-react';
+import { Calendar, Eye, Search, Star, TrendingUp, UserCheck, Users, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
 import { useDoctorReportsSummary } from '@/features/doctor/hooks/use-doctor-reports-summary';
-import type { AppointmentStatus, DoctorPatientListItem } from '@/features/doctor/api/types';
+import type { DoctorPatientListItem } from '@/features/doctor/api/types';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Input } from '@/shared/ui/input';
@@ -21,21 +22,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 
-const badgeVariantByStatus: Record<AppointmentStatus, 'neutral' | 'primary' | 'success' | 'warning' | 'danger'> = {
-  requested: 'warning',
-  confirmed: 'primary',
-  rescheduled: 'warning',
-  cancelled: 'neutral',
-  no_show: 'danger',
-  completed: 'success',
-};
-
 type PatientType = 'all' | 'new' | 'returning';
 type PatientStatus = 'all' | 'active' | 'follow_up' | 'completed' | 'inactive';
 type LastVisitSort = 'newest' | 'oldest';
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 25;
 const INACTIVE_AFTER_DAYS = 90;
+// Threshold below which a rating count reads as marketing rather than
+// evidence, same reasoning as the Doctor Card's Top Rated/Most Booked
+// ribbons and the Profile page's own rating tile.
+const MIN_RATING_COUNT_TO_DISPLAY = 5;
 
 /**
  * A real, non-fabricated status derived from real fields only -- never a
@@ -45,13 +41,18 @@ const INACTIVE_AFTER_DAYS = 90;
  * reused via `hasFollowUpRecommendation`) but nothing booked yet --
  * becomes 'active' again the moment that follow-up is actually scheduled.
  * 'completed': finished with no follow-up recommended and nothing booked.
- * 'inactive': no visit in the last 90 days and nothing booked.
+ * 'inactive': no completed visit in the last 90 days (or ever) and nothing
+ * booked. `lastVisitAt`/`lastVisitStatus` are Completed-only now (see
+ * DoctorPatientListItemResponseDto's own comment) -- absent entirely for a
+ * patient with no completed visit yet, which reads as 'inactive' here
+ * rather than crashing on `new Date(undefined)`.
  */
 function derivePatientStatus(patient: DoctorPatientListItem, now: Date): Exclude<PatientStatus, 'all'> {
   if (patient.nextAppointmentAt) return 'active';
   if (patient.hasFollowUpRecommendation) return 'follow_up';
+  if (!patient.lastVisitAt) return 'inactive';
   const daysSinceLastVisit = (now.getTime() - new Date(patient.lastVisitAt).getTime()) / (1000 * 60 * 60 * 24);
-  if (patient.lastVisitStatus === 'completed' && daysSinceLastVisit <= INACTIVE_AFTER_DAYS) return 'completed';
+  if (daysSinceLastVisit <= INACTIVE_AFTER_DAYS) return 'completed';
   return 'inactive';
 }
 
@@ -90,7 +91,6 @@ const patientStatusBadgeVariant: Record<Exclude<PatientStatus, 'all'>, 'success'
  */
 export function PatientsList() {
   const t = useTranslations('doctor.patients');
-  const tStatus = useTranslations('doctor.patients.status');
   const tPatientStatus = useTranslations('doctor.patients.patientStatus');
   const tGender = useTranslations('doctor.patients.gender');
   const format = useFormatter();
@@ -112,6 +112,7 @@ export function PatientsList() {
       total: patients.length,
       active: patients.filter((patient) => Boolean(patient.nextAppointmentAt)).length,
       thisMonth: patients.filter((patient) => {
+        if (!patient.lastVisitAt) return false;
         // Cairo-anchored: "this month" must agree with Egypt's calendar,
         // not the viewer's browser timezone (`now` above is already
         // shifted; the visit date must be shifted the same way for a
@@ -119,7 +120,7 @@ export function PatientsList() {
         const visit = getCairoNow(new Date(patient.lastVisitAt));
         return visit.getFullYear() === now.getFullYear() && visit.getMonth() === now.getMonth();
       }).length,
-      thisWeek: patients.filter((patient) => new Date(patient.lastVisitAt) >= weekAgo).length,
+      thisWeek: patients.filter((patient) => patient.lastVisitAt && new Date(patient.lastVisitAt) >= weekAgo).length,
     };
   }, [patients, now]);
 
@@ -138,6 +139,12 @@ export function PatientsList() {
         return true;
       })
       .sort((a, b) => {
+        // A patient with no completed visit yet has nothing to compare --
+        // sorts after every real visit date regardless of direction,
+        // rather than collapsing to epoch 0 and reading as "ancient".
+        if (!a.lastVisitAt && !b.lastVisitAt) return 0;
+        if (!a.lastVisitAt) return 1;
+        if (!b.lastVisitAt) return -1;
         const diff = new Date(a.lastVisitAt).getTime() - new Date(b.lastVisitAt).getTime();
         return sort === 'newest' ? -diff : diff;
       });
@@ -187,7 +194,7 @@ export function PatientsList() {
           label={t('kpis.thisMonth')}
           value={String(kpis.thisMonth)}
           helperText={t('kpis.thisMonthHelper')}
-          iconClassName="bg-purple-50 text-purple-600"
+          iconClassName="bg-primary-subtle text-primary-emphasis"
         />
         <LinkableStatCard
           icon={TrendingUp}
@@ -200,8 +207,14 @@ export function PatientsList() {
           icon={Star}
           label={t('kpis.averageRating')}
           value={reportsSummary?.averageRating != null ? reportsSummary.averageRating.toFixed(1) : '—'}
-          helperText={reportsSummary?.averageRating == null ? t('kpis.noRatingsYet') : undefined}
-          iconClassName="bg-teal-50 text-teal-600"
+          helperText={
+            reportsSummary?.averageRating == null
+              ? t('kpis.noRatingsYet')
+              : reportsSummary.reviewCount >= MIN_RATING_COUNT_TO_DISPLAY
+                ? t('kpis.averageRatingHelper', { count: reportsSummary.reviewCount })
+                : t('kpis.averageRatingHelperNoCount')
+          }
+          iconClassName="bg-secondary-subtle text-text-secondary"
         />
       </div>
 
@@ -215,8 +228,21 @@ export function PatientsList() {
               setPage(1);
             }}
             placeholder={t('searchPlaceholder')}
-            className="ps-9"
+            className="ps-9 pe-9"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
+              aria-label={t('clearSearch')}
+              className="absolute end-3 top-1/2 flex -translate-y-1/2 items-center justify-center text-text-tertiary hover:text-text-primary"
+            >
+              <Icon icon={X} size="sm" />
+            </button>
+          )}
         </div>
         <Select value={typeFilter} onValueChange={(value) => { setTypeFilter(value as PatientType); setPage(1); }}>
           <SelectTrigger className="w-44" aria-label={t('filterType.all')}>
@@ -252,7 +278,26 @@ export function PatientsList() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title={t('noResultsTitle')} description={t('noResultsDescription')} />
+        <Card>
+          <div className="flex flex-col items-center gap-4 p-6">
+            <EmptyState title={t('noResultsTitle')} description={t('noResultsDescription')} />
+            {(search || typeFilter !== 'all' || statusFilter !== 'all') && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearch('');
+                  setTypeFilter('all');
+                  setStatusFilter('all');
+                  setPage(1);
+                }}
+              >
+                {t('clearFilters')}
+              </Button>
+            )}
+          </div>
+        </Card>
       ) : (
         <Card className="overflow-hidden">
           <Table>
@@ -298,12 +343,16 @@ export function PatientsList() {
                     </TableCell>
                     <TableCell className="text-sm text-text-secondary">{patient.visitCount}</TableCell>
                     <TableCell className="text-sm text-text-secondary">
-                      {format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })}
-                      <div>
-                        <Badge variant={badgeVariantByStatus[patient.lastVisitStatus]} className="mt-1">
-                          {tStatus(patient.lastVisitStatus)}
-                        </Badge>
-                      </div>
+                      {/* Completed-only now (see DoctorPatientListItem's own
+                          comment) -- when present this can only ever read
+                          "Completed", so the old per-row status badge here
+                          (Waiting doctor approval/Cancelled/Confirmed) was
+                          dropped: it was never actually describing a visit,
+                          just whatever appointment happened to be most
+                          recently scheduled. */}
+                      {patient.lastVisitAt
+                        ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
+                        : t('columns.lastVisitNone')}
                     </TableCell>
                     <TableCell className="text-sm text-text-secondary">
                       {patient.nextAppointmentAt
@@ -314,30 +363,21 @@ export function PatientsList() {
                       <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/doctor/patients/${patient.patientProfileId}`}
-                          title={t('actions.view')}
-                          className="flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary"
-                        >
-                          <Icon icon={Eye} size="sm" label={t('actions.view')} />
-                        </Link>
-                        {[
-                          { icon: FileText, label: t('actions.notes') },
-                          { icon: MessageSquare, label: t('actions.message') },
-                          { icon: MoreVertical, label: t('actions.more') },
-                        ].map(({ icon, label }) => (
-                          <span
-                            key={label}
-                            role="button"
-                            aria-disabled="true"
-                            title={t('actions.comingSoon')}
-                            className="flex size-7 cursor-not-allowed items-center justify-center rounded-md text-text-tertiary opacity-(--opacity-disabled)"
-                          >
-                            <Icon icon={icon} size="sm" label={label} />
-                          </span>
-                        ))}
-                      </div>
+                      {/* The three placeholder actions (notes/message/more)
+                          are gone -- no clinical-notes editor or messaging
+                          feature exists yet, and a permanently-disabled
+                          "Coming soon" icon (no accessible name, unreachable
+                          by keyboard) was worse than not offering it at all.
+                          `aria-label` on the anchor itself, not just its
+                          inner icon/title, so the link has a real
+                          accessible name of its own. */}
+                      <Link
+                        href={`/doctor/patients/${patient.patientProfileId}`}
+                        aria-label={t('actions.view')}
+                        className="flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary"
+                      >
+                        <Icon icon={Eye} size="sm" />
+                      </Link>
                     </TableCell>
                   </TableRow>
                 );

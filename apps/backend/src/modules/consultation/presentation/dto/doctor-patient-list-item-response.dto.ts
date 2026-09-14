@@ -3,9 +3,19 @@ import type { AppointmentStatus } from '../../domain/enums/appointment-status.en
 // Backs GET /appointments/doctor/patients, matching the frontend's
 // `DoctorPatientListItem` shape (`apps/frontend/src/features/doctor/api/types.ts`)
 // exactly. One row per distinct patient the doctor has ever had an
-// appointment with -- visitCount and lastVisit* are computed from every
-// real appointment on record (see DoctorAppointmentsController's
-// toPatientListItems), never a fabricated figure.
+// appointment with.
+//
+// visitCount/lastVisitAt/lastVisitStatus are Completed-appointments only
+// (see DoctorAppointmentsController.toPatientListItems) -- a Cancelled or
+// still-pending appointment is not a visit that happened, so it must never
+// inflate visitCount or be reported as the patient's "last visit". This
+// mirrors the doctor-facing Patient Chart's own definition exactly
+// (DoctorPatientChartController's appointments endpoint, filtered
+// client-side to status === 'completed' for the same "last visit" concept)
+// -- before this fix the two disagreed because this endpoint took the most
+// recently *scheduled* appointment regardless of status. lastVisitAt/
+// lastVisitStatus are both absent (never a fabricated date) when the
+// patient has no completed appointment yet.
 //
 // Patients page redesign: email/phoneNumber/dateOfBirth/gender come straight
 // off the patient's own Account (already fetched in toPatientListItems for
@@ -24,12 +34,12 @@ export class DoctorPatientListItemResponseDto {
   dateOfBirth?: string;
   gender?: string;
   visitCount!: number;
-  lastVisitAt!: string;
-  lastVisitStatus!: AppointmentStatus;
+  lastVisitAt?: string;
+  lastVisitStatus?: AppointmentStatus;
   nextAppointmentAt?: string;
   // Real -- reuses ClinicalModule's own FollowUpRecommendation (via
   // GetFollowUpRecommendationForSessionUseCase), never a guessed status.
-  // Only meaningful when nextAppointmentAt is absent and lastVisitStatus is
-  // Completed; see DoctorAppointmentsController.toPatientListItems.
+  // Only meaningful when nextAppointmentAt is absent and lastVisitAt is
+  // present; see DoctorAppointmentsController.toPatientListItems.
   hasFollowUpRecommendation!: boolean;
 }
