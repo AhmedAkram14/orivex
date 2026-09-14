@@ -1080,7 +1080,7 @@
     "queue": {
       "title": "قائمة انتظار المرضى",
       "description": "إدارة طلبات المواعيد والاستشارات الجارية.",
-      "queueSettings": "إعدادات القائمة",
+      "queueSettings": "إدارة الجدول",
       "currentPatientTitle": "المريض الحالي",
       "noCurrentPatientTitle": "لا يوجد أحد في استشارة",
       "noCurrentPatientDescription": "سيظهر المريض الحالي هنا بمجرد بدء استشارة.",
@@ -1090,6 +1090,12 @@
       "waitMinutes": "انتظار ~{minutes} دقيقة",
       "loadError": "تعذّر تحميل قائمة انتظار المرضى.",
       "joinCountdownLabel": "يبدأ خلال",
+      "lastUpdated": "آخر تحديث {time}",
+      "arrival": {
+        "toastTitle": "وصل المريض",
+        "toastDescription": "{name} ينتظر الآن في قائمتك.",
+        "announcement": "سجّل {name} حضوره وهو الآن في الانتظار."
+      },
       "stats": {
         "pendingApproval": {
           "title": "بانتظار الموافقة",

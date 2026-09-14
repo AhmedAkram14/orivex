@@ -1080,7 +1080,7 @@
     "queue": {
       "title": "Patient Queue",
       "description": "Manage appointment requests and ongoing consultations.",
-      "queueSettings": "Queue settings",
+      "queueSettings": "Manage Schedule",
       "currentPatientTitle": "Current patient",
       "noCurrentPatientTitle": "No one in consultation",
       "noCurrentPatientDescription": "The current patient will appear here once a consultation is in progress.",
@@ -1090,6 +1090,12 @@
       "waitMinutes": "~{minutes} min wait",
       "loadError": "Couldn't load the patient queue.",
       "joinCountdownLabel": "Joins in",
+      "lastUpdated": "Updated {time}",
+      "arrival": {
+        "toastTitle": "Patient checked in",
+        "toastDescription": "{name} is now waiting in your queue.",
+        "announcement": "{name} has checked in and is now waiting."
+      },
       "stats": {
         "pendingApproval": {
           "title": "Pending approval",

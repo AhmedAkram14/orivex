@@ -37,7 +37,11 @@ export function PendingApprovalSection() {
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
       {!isError && (!pending || pending.length === 0) && (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <Card>
+          <CardContent className="pt-6">
+            <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+          </CardContent>
+        </Card>
       )}
 
       {!isError && pending && pending.length > 0 && (

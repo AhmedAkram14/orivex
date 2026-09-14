@@ -11,8 +11,10 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
 
+const replace = vi.fn();
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/doctor/queue',
   useParams: () => ({ locale: 'en' }),
   useSearchParams: () => new URLSearchParams(),
@@ -22,7 +24,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  replace.mockClear();
+});
 afterAll(() => server.close());
 
 const doctorState: AuthState = {
@@ -49,20 +54,54 @@ describe('DoctorQueuePage', () => {
     expect(screen.getByText('Karim Mostafa')).toBeInTheDocument();
 
     expect(screen.getByText('All consultations are secure and confidential.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Queue settings/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Manage Schedule/ })).toHaveAttribute(
       'href',
       expect.stringContaining('/doctor/schedule'),
     );
 
+    // Real, working tabs: role=tab/tablist/tabpanel, a real aria-controls
+    // target, and aria-selected reflecting the actual active tab -- this
+    // page used to have none of that (no TabsContent anywhere at all).
+    const allTab = screen.getByRole('tab', { name: 'All' });
+    expect(allTab).toHaveAttribute('aria-selected', 'true');
+    const panel = screen.getByRole('tabpanel');
+    expect(panel).toHaveAttribute('id', allTab.getAttribute('aria-controls'));
+
     // Real non-zero stats derived from the seeded queue + pending-approval
-    // responses -- "Waiting"/"In consultation" also label the filter tab and
-    // the stats-row card title, on top of one status badge per matching
-    // queue entry (4 waiting entries, 1 in-consultation entry), so these
-    // assert the full expected count rather than risking an ambiguous
-    // single-match query.
+    // responses -- "Waiting"/"In consultation" also label the filter tab (In
+    // Consultation no longer has one -- it can never show anything but 0 in
+    // this list, Current Patient is its own authoritative surface) and the
+    // stats-row card title, on top of one status badge per matching queue
+    // entry (4 waiting entries, 1 in-consultation entry), so these assert
+    // the full expected count rather than risking an ambiguous single-match
+    // query.
     expect(screen.getAllByText('Waiting').length).toBe(6);
-    expect(screen.getAllByText('In consultation').length).toBe(3);
+    expect(screen.getAllByText('In consultation').length).toBe(2);
     expect(screen.getByText('Completed today')).toBeInTheDocument();
+  });
+
+  it('switches tabs on click, moving aria-selected and updating the visible panel -- and reflects the choice in the URL', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={doctorState}>
+            <DoctorQueuePage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    await screen.findByText('Karim Mostafa');
+    const completedTab = screen.getByRole('tab', { name: 'Completed' });
+
+    await userEvent.click(completedTab);
+
+    expect(completedTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('id', completedTab.getAttribute('aria-controls'));
+    expect(replace).toHaveBeenCalled();
+    expect(String(replace.mock.calls[0]?.[0])).toContain('tab=completed');
   });
 
   it('still renders the honest empty states when a real doctor genuinely has no one in consultation or waiting', async () => {
