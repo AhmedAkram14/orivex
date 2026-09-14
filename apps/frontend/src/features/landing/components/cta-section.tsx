@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, LayoutDashboard, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Heading, Text } from '@/design-system/typography';

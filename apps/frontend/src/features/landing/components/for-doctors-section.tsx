@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, Check, LayoutDashboard, Stethoscope, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';

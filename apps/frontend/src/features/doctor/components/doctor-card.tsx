@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, BadgeCheck, Briefcase, CalendarCheck, Flame, MapPin, Stethoscope, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';

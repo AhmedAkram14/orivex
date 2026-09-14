@@ -1,3 +1,5 @@
+'use client';
+
 import { Building2, CalendarCheck, HelpCircle, LayoutDashboard, LogIn, Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { LandingLocaleSwitcher } from '@/features/landing/components/landing-locale-switcher';
