@@ -146,10 +146,20 @@ function ProfileSectionCard({ title, icon, iconClassName, actions, children, cla
  */
 export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: DoctorProfileViewProps) {
   const t = useTranslations('doctor.profile');
+  const tLanguages = useTranslations('doctor.profile.languageNames');
   const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
   const format = useFormatter();
   const locale = useLocale();
   const isWorkspace = variant === 'workspace';
+
+  // `doctor.profile.languageNames` only has real translations for the two
+  // codes the edit form's own checkboxes support ('en'/'ar'); a stray
+  // third value on an older record (never editable/removable from the UI)
+  // falls back to the raw code rather than throwing on a missing message
+  // key -- honest about not having a label for it, not a crash.
+  function languageLabel(code: string): string {
+    return tLanguages.has(code) ? tLanguages(code) : code.toUpperCase();
+  }
 
   const { data: specialties } = useSpecialtiesList();
   const { data: hospitals } = useHospitalsList();
@@ -227,7 +237,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                   <div className="flex flex-wrap gap-1.5">
                     {profile.languages.map((language) => (
                       <Badge key={language} variant="info">
-                        {language.toUpperCase()}
+                        {languageLabel(language)}
                       </Badge>
                     ))}
                   </div>
@@ -329,7 +339,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                     <div className="flex flex-wrap gap-1.5">
                       {profile.languages.map((language) => (
                         <Badge key={language} variant="info">
-                          {language.toUpperCase()}
+                          {languageLabel(language)}
                         </Badge>
                       ))}
                     </div>

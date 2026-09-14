@@ -98,6 +98,19 @@ describe('DoctorProfileView', () => {
     expect(screen.getByText('No awards on record')).toBeInTheDocument();
   });
 
+  it('renders language codes as their real translated names, not the raw code -- an unmapped code still falls back honestly instead of crashing', async () => {
+    renderWithProviders(<DoctorProfileView profile={buildProfile({ languages: ['ar', 'en', 'fr'] })} />);
+
+    expect(await screen.findAllByText('Arabic')).not.toHaveLength(0);
+    expect(screen.getAllByText('English')).not.toHaveLength(0);
+    expect(screen.queryByText('AR')).not.toBeInTheDocument();
+    expect(screen.queryByText('EN')).not.toBeInTheDocument();
+    // 'fr' has no translation key (no third-language UI exists anywhere in
+    // the app yet) -- falls back to the raw code, uppercased, rather than
+    // throwing on a missing message.
+    expect(screen.getAllByText('FR')).not.toHaveLength(0);
+  });
+
   it('omits every workspace-only affordance (Edit, Quick Actions, Profile Completion) in the public/patient-facing variant', async () => {
     renderWithProviders(<DoctorProfileView profile={buildProfile()} variant="public" />);
 

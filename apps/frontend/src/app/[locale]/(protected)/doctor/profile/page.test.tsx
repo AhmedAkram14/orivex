@@ -95,6 +95,21 @@ describe('DoctorProfilePage', () => {
     expect(screen.getByDisplayValue('Excellence in Patient Care')).toBeInTheDocument();
   });
 
+  it('hydrates the language checkboxes from the real profile (regression: a stale full-word DB value like "Arabic"/"English" instead of "ar"/"en" left every checkbox unchecked, and saving then silently wiped the field)', async () => {
+    renderPage();
+    await screen.findAllByText('Dr. Sarah Ahmed');
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
+
+    // The seeded mock doctor's languages are the real ['en', 'ar'] codes
+    // (doctor-store.ts) -- both checkboxes must reflect that on mount, not
+    // render unchecked despite the profile genuinely having both set.
+    const arabicCheckbox = screen.getByRole('checkbox', { name: 'Arabic' });
+    const englishCheckbox = screen.getByRole('checkbox', { name: 'English' });
+    expect(arabicCheckbox).toHaveAttribute('aria-checked', 'true');
+    expect(englishCheckbox).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('unchecking "I currently work here" stays unchecked and reveals a real end-date input (regression: falsy-string bug)', async () => {
     const user = userEvent.setup();
     renderPage();
