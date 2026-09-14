@@ -808,6 +808,8 @@
       "patientsInQueue": "Patients in queue",
       "completedToday": "Completed today",
       "averageRating": "Average rating",
+      "allTime": "All time",
+      "allTimeReviewCount": "All time · {count, plural, one {# rating} other {# ratings}}",
       "nextAvailableSlot": "Next available slot",
       "noAvailabilityTitle": "No availability configured",
       "today": "Today",
@@ -836,7 +838,8 @@
           "startConsultation": "Start Consultation",
           "viewQueue": "View Patient Queue",
           "updateSchedule": "Update Schedule",
-          "writePrescription": "Write Prescription"
+          "writePrescription": "Write Prescription",
+          "writePrescriptionUnavailable": "Prescriptions are written from within an active consultation"
         }
       },
       "patientQueueMini": {
@@ -852,7 +855,9 @@
         "title": "Today's Progress",
         "completedOfTotal": "{completed} of {total} done",
         "remaining": "{count, plural, =0 {No consultations remaining today} one {# consultation remaining} other {# consultations remaining}}",
-        "loadError": "Couldn't load today's progress."
+        "loadError": "Couldn't load today's progress.",
+        "emptyTitle": "Nothing scheduled yet",
+        "emptyDescription": "Your progress ring will fill in once today has appointments to complete."
       },
       "availability": {
         "title": "Upcoming Availability",

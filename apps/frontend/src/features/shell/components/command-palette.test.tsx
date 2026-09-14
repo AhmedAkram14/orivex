@@ -147,6 +147,27 @@ describe('CommandPalette', () => {
     expect(screen.getByText('Recent')).toBeInTheDocument();
   });
 
+  it('does not render a command twice on one screen once it is Recent -- it disappears from its own original group', async () => {
+    renderPalette();
+    await userEvent.click(screen.getByRole('button', { name: /Search/ }));
+    await screen.findByRole('dialog');
+    await userEvent.click(screen.getByText('Switch to dark theme'));
+
+    await userEvent.click(screen.getByRole('button', { name: /Search/ }));
+    await screen.findByRole('dialog');
+
+    expect(screen.getByText('Recent')).toBeInTheDocument();
+    expect(screen.getAllByText('Switch to dark theme')).toHaveLength(1);
+  });
+
+  it("finds a doctor's real Schedule page from the full sidebar destination list, not just the 2-item Dashboard/Security stand-in", async () => {
+    renderPalette(doctorState);
+    await userEvent.click(screen.getByRole('button', { name: /Search/ }));
+    await screen.findByRole('dialog');
+
+    expect(await screen.findByText('Schedule')).toBeInTheDocument();
+  });
+
   // ORIVEX Roadmap Phase 2 -- Real Global Search: the palette now fires a
   // real (MSW-backed) `GET /search` once 2+ characters are typed, in
   // addition to the always-present static commands above.

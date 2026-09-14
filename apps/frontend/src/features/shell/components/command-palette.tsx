@@ -5,7 +5,11 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useLogout } from '@/features/auth/hooks/use-logout';
 import { COMMANDS, type CommandDefinition } from '@/features/shell/config/commands';
+import { NAVIGATION_CONFIG } from '@/features/shell/config/navigation';
 import { useCommandPalette } from '@/features/shell/hooks/use-command-palette';
+import { useNavigationFeatureFlags } from '@/features/shell/hooks/use-navigation-feature-flags';
+import { filterNavigationByAccess } from '@/features/shell/lib/filter-navigation';
+import { flattenNavLeaves } from '@/features/shell/lib/nav-active-match';
 import { getRecentCommandIds, recordRecentCommand } from '@/features/shell/lib/recent-searches';
 import type { SearchResultDto, SearchResultType } from '@/features/search/api/types';
 import { useGlobalSearch } from '@/features/search/hooks/use-global-search';
@@ -76,7 +80,9 @@ export function CommandPalette() {
   const logout = useLogout();
   const recentIds = getRecentCommandIds();
   const { user } = useAuth();
-  const isDoctor = user?.roles.includes('doctor') ?? false;
+  const userRoles = user?.roles ?? [];
+  const isDoctor = userRoles.includes('doctor');
+  const isFeatureEnabled = useNavigationFeatureFlags();
   const [query, setQuery] = useState('');
   const trimmedQuery = query.trim();
   const isSearchActive = trimmedQuery.length >= 2;
@@ -113,11 +119,33 @@ export function CommandPalette() {
     if (href) router.push(href);
   }
 
+  // The full real destination list, not a hand-maintained stand-in: every
+  // leaf `NAVIGATION_CONFIG` actually shows this viewer in the sidebar
+  // (Schedule, Queue, Patients, Settings, Security, ...), flattened out of
+  // its group nesting and filtered by the same role/permission/feature-flag
+  // rules the sidebar itself uses -- so a query like "sched" can actually
+  // find Schedule instead of coming up empty because the palette's own list
+  // never knew that page existed.
+  const filteredNavItems = filterNavigationByAccess(NAVIGATION_CONFIG, userRoles, isFeatureEnabled);
+  const dynamicNavCommands: CommandDefinition[] = flattenNavLeaves(filteredNavItems, userRoles).map((item) => ({
+    id: item.id,
+    labelKey: item.labelKey,
+    icon: item.icon,
+    group: 'navigation',
+    href: item.href,
+  }));
+  const allCommands = [...COMMANDS, ...dynamicNavCommands];
+
   const recentCommands = recentIds
-    .map((id) => COMMANDS.find((command) => command.id === id))
+    .map((id) => allCommands.find((command) => command.id === id))
     .filter((command): command is CommandDefinition => command !== undefined);
-  const navigationCommands = COMMANDS.filter((command) => command.group === 'navigation');
-  const actionCommands = COMMANDS.filter((command) => command.group === 'actions');
+  const recentIdSet = new Set(recentCommands.map((command) => command.id));
+  // Anything already rendered under Recent is dropped from its own group
+  // below -- otherwise a just-used theme toggle (or any command) renders
+  // twice on the same screen, highlighted in both places at once.
+  const navigationCommands = COMMANDS.filter((command) => command.group === 'navigation' && !recentIdSet.has(command.id));
+  const dynamicNavigationCommands = dynamicNavCommands.filter((command) => !recentIdSet.has(command.id));
+  const actionCommands = COMMANDS.filter((command) => command.group === 'actions' && !recentIdSet.has(command.id));
 
   return (
     <>
@@ -215,6 +243,12 @@ export function CommandPalette() {
           )}
           <CommandGroup heading={t('navigationHeading')}>
             {navigationCommands.map((command) => (
+              <CommandItem key={command.id} onSelect={() => handleSelect(command)}>
+                <Icon icon={command.icon} size="sm" className="me-2" />
+                {tNav(command.labelKey)}
+              </CommandItem>
+            ))}
+            {dynamicNavigationCommands.map((command) => (
               <CommandItem key={command.id} onSelect={() => handleSelect(command)}>
                 <Icon icon={command.icon} size="sm" className="me-2" />
                 {tNav(command.labelKey)}

@@ -57,7 +57,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Topbar>
       <div className="flex flex-1 overflow-hidden">
         <Sidebar className="hidden lg:flex">
-          <div className="flex-1 overflow-y-auto">
+          {/* The app-wide "quiet" scrollbar (globals.css) is a deliberate,
+              near-invisible-until-hovered treatment everywhere else -- but
+              here it's the only hint that Settings/Security exist below the
+              fold at a normal laptop height, which isn't enough. A visible
+              track (not the global's transparent one) makes the sidebar's
+              own scroll region legible as "there's more" without touching
+              that global default anywhere else. */}
+          <div className="flex-1 overflow-y-auto [scrollbar-color:var(--color-border-strong)_var(--color-secondary-subtle)] [&::-webkit-scrollbar-track]:bg-secondary-subtle">
             <SidebarNav />
           </div>
           <div className="flex flex-col gap-3 border-t border-border-default pt-3">

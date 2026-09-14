@@ -63,6 +63,13 @@ describe('AppBreadcrumbs', () => {
     expect(screen.queryByText('Overview')).not.toBeInTheDocument();
   });
 
+  it('renders nothing at a workspace root (Doctor Overview) -- its only ancestor is its own non-clickable group label, and the leaf duplicates the page\'s own H1 below it', () => {
+    mockPathname = '/doctor';
+    const { container } = renderBreadcrumbs();
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('renders nothing for a workspace route with no nav entry of its own, rather than misattributing it to Overview', () => {
     // /doctor/consultation has no nav-config entry (a placeholder page,
     // deliberately not linked from the sidebar yet). Overview's href

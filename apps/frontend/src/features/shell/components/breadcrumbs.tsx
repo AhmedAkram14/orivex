@@ -16,6 +16,7 @@ import {
 interface Trail {
   labelKey: string;
   href?: string;
+  exactMatchOnly?: boolean;
 }
 
 /**
@@ -36,7 +37,7 @@ interface Trail {
 function findAllMatches(items: NavItemConfig[], pathname: string, ancestors: Trail[] = []): Trail[][] {
   const matches: Trail[][] = [];
   for (const item of items) {
-    const chain = [...ancestors, { labelKey: item.labelKey, href: item.href }];
+    const chain = [...ancestors, { labelKey: item.labelKey, href: item.href, exactMatchOnly: item.exactMatchOnly }];
     if (item.href) {
       const isExact = pathname === item.href;
       const isPrefix = !item.exactMatchOnly && pathname.startsWith(`${item.href}/`);
@@ -74,13 +75,21 @@ function findTrail(items: NavItemConfig[], pathname: string): Trail[] | null {
   });
 }
 
-/** The breadcrumb trail for the current route, derived from `NAVIGATION_CONFIG` — see `findTrail`. Renders nothing at the dashboard root (a single "Dashboard" crumb has no navigational value) or for a route not represented in the nav config. */
+/** The breadcrumb trail for the current route, derived from `NAVIGATION_CONFIG` — see `findTrail`. Renders nothing at the dashboard root (a single "Dashboard" crumb has no navigational value), at a workspace root (e.g. Doctor Overview: the trail is just the workspace's own non-clickable group label plus the current leaf -- nothing to actually navigate to), or for a route not represented in the nav config. */
 export function AppBreadcrumbs() {
   const t = useTranslations('shell.nav');
   const pathname = usePathname();
   const trail = findTrail(NAVIGATION_CONFIG, pathname);
 
   if (!trail || trail.length < 2) return null;
+  // A workspace root (e.g. Doctor Overview, `exactMatchOnly`) with no
+  // navigable ancestor of its own: the trail would just be the group's
+  // plain-text label plus this same leaf's name repeated as the page's own
+  // H1 immediately below -- the same non-value as the single-crumb
+  // dashboard-root case above, not a real trail to anywhere.
+  const leaf = trail[trail.length - 1];
+  const hasNavigableAncestor = trail.slice(0, -1).some((crumb) => crumb.href);
+  if (leaf?.exactMatchOnly && !hasNavigableAncestor) return null;
 
   return (
     <Breadcrumb>

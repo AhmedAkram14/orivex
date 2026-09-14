@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-dashboard-summary';
 import { Alert } from '@/shared/ui/alert';
 import { CircularProgress } from '@/shared/ui/charts/circular-progress';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
@@ -11,8 +12,9 @@ import { WidgetContainer } from '@/shared/ui/layout/widget-container';
  * The redesigned Overview page's "Today's Progress" widget — a real ratio
  * (`completedToday / consultationsToday`, both from the same real
  * `useDoctorDashboardSummary()` the stats row already uses), rendered as a
- * plain-SVG circular-progress ring. Honest 0/0 state when nothing is
- * scheduled today, never a fabricated percentage.
+ * plain-SVG circular-progress ring. A 0/0 day renders the same empty state
+ * as every other "nothing today" widget on this page instead of a ring that
+ * can only ever read 0% -- there is nothing to divide.
  */
 export function TodaysProgress() {
   const t = useTranslations('doctor.dashboard.progress');
@@ -64,13 +66,17 @@ export function TodaysProgress() {
       className={widgetClassName}
       contentClassName={contentClassName}
     >
-      <div className="flex flex-col items-center gap-3 py-2">
-        <CircularProgress value={completed} max={total} size={176} strokeWidth={14} />
-        <div className="flex flex-col items-center gap-1 text-center">
-          <p className="text-sm font-medium text-text-primary">{t('completedOfTotal', { completed, total })}</p>
-          <p className="text-xs text-text-tertiary">{t('remaining', { count: remaining })}</p>
+      {total === 0 ? (
+        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+      ) : (
+        <div className="flex flex-col items-center gap-3 py-2">
+          <CircularProgress value={completed} max={total} size={176} strokeWidth={14} />
+          <div className="flex flex-col items-center gap-1 text-center">
+            <p className="text-sm font-medium text-text-primary">{t('completedOfTotal', { completed, total })}</p>
+            <p className="text-xs text-text-tertiary">{t('remaining', { count: remaining })}</p>
+          </div>
         </div>
-      </div>
+      )}
     </WidgetContainer>
   );
 }

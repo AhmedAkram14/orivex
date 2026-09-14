@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogOut, Monitor, Moon, ShieldAlert, Sun, type LucideIcon } from 'lucide-react';
+import { LayoutDashboard, LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 
 export type CommandGroup = 'navigation' | 'actions';
 
@@ -13,16 +13,17 @@ export interface CommandDefinition {
 }
 
 /**
- * Every command the palette can execute — real navigation and real
- * account actions only, same as `QuickActions`. No business-entity search
- * results here yet — a real search endpoint (Doctors/Patients/Appointments)
- * is real, not-yet-built work (see the roadmap's Search phase); this is
- * the command/navigation architecture that phase will add real search
- * results alongside, not a stand-in pretending to be one.
+ * The palette's non-navigation commands (real account actions only) plus
+ * the one navigation entry with no `NAVIGATION_CONFIG` entry of its own:
+ * `/dashboard`, kept only as a defensive redirect target (see that config's
+ * own comment), not sidebar-reachable. Every other navigable destination —
+ * Schedule, Queue, Patients, Settings, Security, all of it — comes from
+ * `NAVIGATION_CONFIG` itself via `flattenNavLeaves` in `CommandPalette`, so
+ * the palette can never drift out of sync with the real sidebar the way a
+ * second hand-maintained list did.
  */
 export const COMMANDS: CommandDefinition[] = [
   { id: 'nav-dashboard', labelKey: 'dashboard', icon: LayoutDashboard, group: 'navigation', href: '/dashboard' },
-  { id: 'nav-security', labelKey: 'security', icon: ShieldAlert, group: 'navigation', href: '/security' },
   { id: 'action-theme-light', labelKey: 'themeLight', icon: Sun, group: 'actions' },
   { id: 'action-theme-dark', labelKey: 'themeDark', icon: Moon, group: 'actions' },
   { id: 'action-theme-system', labelKey: 'themeSystem', icon: Monitor, group: 'actions' },

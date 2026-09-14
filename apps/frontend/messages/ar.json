@@ -808,6 +808,8 @@
       "patientsInQueue": "المرضى في قائمة الانتظار",
       "completedToday": "المكتملة اليوم",
       "averageRating": "متوسط التقييم",
+      "allTime": "منذ البداية",
+      "allTimeReviewCount": "منذ البداية · {count, plural, one {تقييم واحد} two {تقييمان} few {# تقييمات} other {# تقييمًا}}",
       "nextAvailableSlot": "الموعد المتاح التالي",
       "noAvailabilityTitle": "لم يتم تحديد أوقات توفر",
       "today": "اليوم",
@@ -836,7 +838,8 @@
           "startConsultation": "بدء الاستشارة",
           "viewQueue": "عرض قائمة انتظار المرضى",
           "updateSchedule": "تحديث الجدول الزمني",
-          "writePrescription": "كتابة وصفة طبية"
+          "writePrescription": "كتابة وصفة طبية",
+          "writePrescriptionUnavailable": "تُكتب الوصفات الطبية أثناء استشارة نشطة فقط"
         }
       },
       "patientQueueMini": {
@@ -852,7 +855,9 @@
         "title": "تقدّم اليوم",
         "completedOfTotal": "{completed} من {total} مكتملة",
         "remaining": "{count, plural, =0 {لا توجد استشارات متبقية اليوم} one {استشارة واحدة متبقية} two {استشارتان متبقيتان} few {# استشارات متبقية} many {# استشارة متبقية} other {# استشارة متبقية}}",
-        "loadError": "تعذّر تحميل تقدّم اليوم."
+        "loadError": "تعذّر تحميل تقدّم اليوم.",
+        "emptyTitle": "لا يوجد شيء مجدول بعد",
+        "emptyDescription": "ستمتلئ حلقة التقدم عندما يتضمن اليوم مواعيد لإكمالها."
       },
       "availability": {
         "title": "أوقات التوفر القادمة",

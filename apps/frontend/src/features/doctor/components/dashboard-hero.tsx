@@ -16,17 +16,34 @@ import { cn } from '@/shared/lib/cn';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 
 interface QuickActionTileProps {
-  href: string;
   icon: LucideIcon;
   label: string;
   accentClassName: string;
+  href?: string;
+  /** Renders the same tile as an inert, muted panel with a title tooltip explaining why -- for an action with no real destination reachable right now, rather than a link that goes somewhere but does nothing useful. */
+  disabledReason?: string;
 }
 
-/** One Quick Actions tile — a real destination link styled as a dashboard action card (icon in a soft colored circle, hover elevation), never a plain outlined button. */
-function QuickActionTile({ href, icon, label, accentClassName }: QuickActionTileProps) {
+/** One Quick Actions tile — a real destination link styled as a dashboard action card (icon in a soft colored circle, hover elevation), never a plain outlined button. When `disabledReason` is set instead of `href`, renders as a non-interactive, muted tile with that reason as its title -- honest about having nowhere to send the doctor right now, rather than linking to a page that can't do what the label promises. */
+function QuickActionTile({ href, icon, label, accentClassName, disabledReason }: QuickActionTileProps) {
+  if (disabledReason) {
+    return (
+      <div
+        title={disabledReason}
+        aria-disabled="true"
+        className="flex cursor-not-allowed flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed border-border-default bg-surface p-4 text-center opacity-60"
+      >
+        <span className="flex size-12 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
+          <Icon icon={icon} size="lg" />
+        </span>
+        <span className="text-xs font-medium text-text-tertiary">{label}</span>
+      </div>
+    );
+  }
+
   return (
     <Link
-      href={href}
+      href={href ?? '#'}
       className="group flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-border-default bg-surface p-4 text-center transition-all duration-(--duration-fast) hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
     >
       <span className={cn('flex size-12 items-center justify-center rounded-full transition-transform duration-(--duration-fast) group-hover:scale-105', accentClassName)}>
@@ -118,10 +135,10 @@ export function DashboardHero() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <QuickActionTile
-              href="/doctor/queue"
               icon={Video}
               label={t('hero.quickActions.startConsultation')}
               accentClassName="bg-primary-subtle text-primary-emphasis"
+              {...(startableEntry ? { href: '/doctor/queue' } : { disabledReason: t('hero.noStartableConsultation') })}
             />
             <QuickActionTile
               href="/doctor/queue"
@@ -136,10 +153,10 @@ export function DashboardHero() {
               accentClassName="bg-info-subtle text-info-emphasis"
             />
             <QuickActionTile
-              href="/doctor/queue"
               icon={FileText}
               label={t('hero.quickActions.writePrescription')}
               accentClassName="bg-success-subtle text-success-emphasis"
+              disabledReason={t('hero.quickActions.writePrescriptionUnavailable')}
             />
           </div>
         </div>

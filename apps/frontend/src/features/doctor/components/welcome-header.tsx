@@ -49,7 +49,10 @@ export function WelcomeHeader() {
         <AvatarFallback className="text-lg">{initialsFor(user.fullName)}</AvatarFallback>
       </Avatar>
       <div className="flex flex-col gap-1">
-        <Heading as="p" level={2}>
+        {/* A real <h2>, not styled-to-look-like-one text -- Overview's own
+            <h1> otherwise jumps straight to the widget cards' <h3>
+            CardTitles below with nothing in between. */}
+        <Heading level={2}>
           {t('welcome', { name: toDisplayCase(stripExistingTitle(user.fullName)) })}
         </Heading>
         <p className="text-sm text-text-secondary">
