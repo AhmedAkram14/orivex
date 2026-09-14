@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
+import { Money } from '../../../consultation/domain/value-objects/money.value-object.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -167,6 +168,40 @@ describe('NotifyDoctorOfAppointmentRequestedHandler', () => {
     assert.equal(notification.getAccountId(), doctorAccount.getId().toString());
     assert.match(notification.getDescription(), /Amina Youssef/);
     assert.equal(notification.getActionUrl(), '/doctor/queue');
+    assert.equal(logger.errors.length, 0);
+  });
+
+  it('is a silent no-op for a Paid appointment -- Paid bookings confirm automatically on payment and never wait on doctor approval', async () => {
+    const doctorAccount = buildAccount(AccountRole.Doctor, 'Dr. Sarah Ahmed');
+    const patientAccount = buildAccount(AccountRole.Patient, 'Amina Youssef');
+    const doctorProfile = DoctorProfile.register({
+      accountId: doctorAccount.getId().toString(),
+      licenseNumber: 'LIC-1',
+      specialtyId: '11111111-1111-4111-8111-111111111111',
+    });
+    const patientProfile = PatientProfile.create({ accountId: patientAccount.getId().toString() });
+    const appointment = Appointment.request({
+      patientId: patientProfile.getId(),
+      doctorId: doctorProfile.getId(),
+      availabilityWindowId: '22222222-2222-4222-8222-222222222222',
+      pricing: ConsultationPricing.paid(Money.create(150, 'EGP')),
+      scheduledAt: new Date(Date.now() + 24 * 60 * 60_000),
+    });
+
+    const notificationRepo = new FakeNotificationRepository();
+    const logger = new FakeLogger();
+    const handler = new NotifyDoctorOfAppointmentRequestedHandler(
+      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(appointment)),
+      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctorProfile)),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patientProfile)),
+      new GetAccountByIdUseCase(new FakeAccountRepository([doctorAccount, patientAccount])),
+      notificationRepo,
+      logger as never,
+    );
+
+    await handler.handle({ appointmentId: appointment.getId() });
+
+    assert.equal(notificationRepo.saved.length, 0);
     assert.equal(logger.errors.length, 0);
   });
 

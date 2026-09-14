@@ -16,9 +16,15 @@ export interface AppointmentRequestedEventPayload {
 // this same event but only ever schedules the PATIENT's own reminder).
 // NotificationModule reacting to ConsultationModule's already-published
 // 'consultation.appointment.booked' event by name only, mirroring every
-// other handler's cross-module boundary. Every booking (Free or Paid) now
-// starts Requested and needs the doctor's own approval (§3 of this fix) --
-// this is the doctor's cue to go approve it.
+// other handler's cross-module boundary.
+//
+// Free-only, matching DoctorAppointmentsController#getPendingApproval's own
+// filter (Consultation Pricing Lifecycle Completion): Paid bookings confirm
+// automatically once payment succeeds and never wait on doctor approval, so
+// a Paid+Requested appointment is nothing for the doctor to act on -- this
+// handler used to notify for every booking regardless of pricing, which sent
+// the doctor an "Approve it" cue for something the Pending Approval queue
+// would never actually surface.
 export class NotifyDoctorOfAppointmentRequestedHandler {
   constructor(
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
@@ -32,7 +38,7 @@ export class NotifyDoctorOfAppointmentRequestedHandler {
   async handle(event: AppointmentRequestedEventPayload): Promise<void> {
     try {
       const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: event.appointmentId });
-      if (!appointment) {
+      if (!appointment || !appointment.getPricing().isFree()) {
         return;
       }
 

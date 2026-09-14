@@ -261,10 +261,11 @@ export class DoctorAppointmentsController {
     return envelope(dto);
   }
 
-  // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
-  // Requested and stays there until this list surfaces it and the doctor
-  // approves it below -- not date-scoped like the Patient Queue above,
-  // since a request isn't necessarily for today.
+  // Doctor-approval-workflow: Free bookings land Requested and stay there
+  // until this list surfaces them and the doctor approves them below -- not
+  // date-scoped like the Patient Queue above, since a request isn't
+  // necessarily for today. Paid bookings never appear here; see the
+  // isFree() filter below.
   @Get('doctor/pending-approval')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(AccountRole.Doctor)
