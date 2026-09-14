@@ -58,6 +58,7 @@ import {
   NotifyPatientOfAppointmentConfirmedHandler,
   type AppointmentConfirmedEventPayload,
 } from './application/event-handlers/notify-patient-of-appointment-confirmed.handler.js';
+import { NotifyDoctorOfAppointmentConfirmedHandler } from './application/event-handlers/notify-doctor-of-appointment-confirmed.handler.js';
 import {
   NotifyPatientOfPaymentCompletedHandler,
   type PaymentCompletedEventPayload,
@@ -385,6 +386,44 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Reacts to the same 'consultation.appointment.confirmed' event as
+      // NotifyPatientOfAppointmentConfirmedHandler above, but tells the
+      // doctor a patient is now waiting in today's queue (see that
+      // handler's own comment for the today-only scoping and why).
+      provide: NotifyDoctorOfAppointmentConfirmedHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyDoctorOfAppointmentConfirmedHandler(
+          getAppointmentByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.confirmed', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentConfirmedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
