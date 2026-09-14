@@ -798,7 +798,8 @@
       "viewProfile": "View Profile",
       "bookAppointment": "Book Appointment",
       "topRated": "Top Rated",
-      "mostBooked": "Most Booked"
+      "mostBooked": "Most Booked",
+      "patientAccountRequired": "Booking is available for patient accounts"
     },
     "dashboard": {
       "title": "Doctor Workspace",

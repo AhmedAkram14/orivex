@@ -1,8 +1,9 @@
-import { ArrowRight, Check, Stethoscope, UserPlus } from 'lucide-react';
+import { ArrowRight, Check, LayoutDashboard, Stethoscope, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import { Heading, Text } from '@/design-system/typography';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
@@ -19,6 +20,9 @@ const BULLET_KEYS = [
 
 export function ForDoctorsSection() {
   const t = useTranslations('landing.forDoctors');
+  const tNav = useTranslations('landing.nav');
+  const { status } = useAuth();
+  const isAuthenticated = status === 'authenticated';
 
   return (
     <Container id="for-doctors" size="lg" className="scroll-mt-16 py-16">
@@ -45,11 +49,18 @@ export function ForDoctorsSection() {
               size="lg"
               className="mt-2 w-fit gap-2 rounded-xl bg-success text-success-foreground hover:bg-success/90"
             >
-              <Link href="/register">
-                <Icon icon={UserPlus} size="sm" />
-                {t('cta')}
-                <Icon icon={ArrowRight} size="sm" flipRtl />
-              </Link>
+              {isAuthenticated ? (
+                <Link href="/dashboard">
+                  <Icon icon={LayoutDashboard} size="sm" />
+                  {tNav('goToDashboard')}
+                </Link>
+              ) : (
+                <Link href="/register">
+                  <Icon icon={UserPlus} size="sm" />
+                  {t('cta')}
+                  <Icon icon={ArrowRight} size="sm" flipRtl />
+                </Link>
+              )}
             </Button>
           </div>
 

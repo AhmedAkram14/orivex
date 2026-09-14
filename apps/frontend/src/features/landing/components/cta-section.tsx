@@ -1,6 +1,7 @@
-import { ArrowRight, Stethoscope, UserPlus, Users } from 'lucide-react';
+import { ArrowRight, LayoutDashboard, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Heading, Text } from '@/design-system/typography';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Badge } from '@/shared/ui/badge';
@@ -16,6 +17,9 @@ import { Container } from '@/shared/ui/container';
  */
 export function CtaSection() {
   const t = useTranslations('landing.cta');
+  const tNav = useTranslations('landing.nav');
+  const { status } = useAuth();
+  const isAuthenticated = status === 'authenticated';
 
   return (
     <Container size="lg" className="py-16">
@@ -45,18 +49,29 @@ export function CtaSection() {
             </Text>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link href="/register">
-                  <Icon icon={UserPlus} size="sm" />
-                  {t('primaryCta')}
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/login">
-                  {t('secondaryCta')}
-                  <Icon icon={ArrowRight} size="sm" flipRtl />
-                </Link>
-              </Button>
+              {isAuthenticated ? (
+                <Button asChild size="lg">
+                  <Link href="/dashboard">
+                    <Icon icon={LayoutDashboard} size="sm" />
+                    {tNav('goToDashboard')}
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild size="lg">
+                    <Link href="/register">
+                      <Icon icon={UserPlus} size="sm" />
+                      {t('primaryCta')}
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/login">
+                      {t('secondaryCta')}
+                      <Icon icon={ArrowRight} size="sm" flipRtl />
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

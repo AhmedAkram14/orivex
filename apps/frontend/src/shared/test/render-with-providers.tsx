@@ -2,8 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactElement } from 'react';
+import { AuthContext } from '@/shared/auth/auth-context';
+import type { AuthState } from '@/shared/auth/types';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 import enMessages from '../../../messages/en.json';
+
+const DEFAULT_AUTH_STATE: AuthState = { status: 'unauthenticated', user: null };
 
 /**
  * The one place a test wraps a component in `NextIntlClientProvider` +
@@ -12,14 +16,21 @@ import enMessages from '../../../messages/en.json';
  * keeps that setup in one file instead of copy-pasted per test. English
  * messages only: locale-switching itself is Phase 3's concern, already
  * covered there, not re-tested per feature.
+ *
+ * Also wraps `AuthContext` (defaulting to a signed-out visitor) since any
+ * component may call `useAuth()` -- e.g. landing components branching on
+ * whether the viewer is signed in. Pass `authState` to render as a signed-in
+ * user of a given role instead.
  */
-export function renderWithProviders(ui: ReactElement) {
+export function renderWithProviders(ui: ReactElement, options?: { authState?: AuthState }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
-        <TooltipProvider delayDuration={200}>{ui}</TooltipProvider>
-      </NextIntlClientProvider>
+      <AuthContext.Provider value={options?.authState ?? DEFAULT_AUTH_STATE}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <TooltipProvider delayDuration={200}>{ui}</TooltipProvider>
+        </NextIntlClientProvider>
+      </AuthContext.Provider>
     </QueryClientProvider>,
   );
 }

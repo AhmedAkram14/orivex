@@ -798,7 +798,8 @@
       "viewProfile": "عرض الملف الشخصي",
       "bookAppointment": "حجز موعد",
       "topRated": "الأعلى تقييمًا",
-      "mostBooked": "الأكثر حجزًا"
+      "mostBooked": "الأكثر حجزًا",
+      "patientAccountRequired": "الحجز متاح لحسابات المرضى فقط"
     },
     "dashboard": {
       "title": "مساحة عمل الطبيب",

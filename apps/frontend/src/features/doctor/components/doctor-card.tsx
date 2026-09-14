@@ -1,6 +1,7 @@
 import { ArrowRight, BadgeCheck, Briefcase, CalendarCheck, Flame, MapPin, Stethoscope, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
@@ -64,6 +65,12 @@ export function DoctorCard({
   className,
 }: DoctorCardProps) {
   const t = useTranslations('doctor.card');
+  const { status, user } = useAuth();
+  // A signed-in visitor who isn't a patient (doctor, admin, staff) has no
+  // reachable destination behind these links -- /patient/doctors/:id and
+  // /patient/appointments/book are both RequireRole(['patient'])-gated, so
+  // routing them there is a dead end, not a real action.
+  const canBookAsPatient = status !== 'authenticated' || (user?.roles.includes('patient') ?? false);
 
   return (
     <Card className={cn('relative flex h-full flex-col gap-4 rounded-2xl p-6 pb-4 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md', className)}>
@@ -131,21 +138,30 @@ export function DoctorCard({
         </div>
       )}
 
-      <div className="mt-auto flex items-center justify-between gap-8">
-        <Link
-          href={`/patient/doctors/${doctorProfileId}`}
-          className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
-        >
-          {t('viewProfile')}
-          <Icon icon={ArrowRight} size="sm" flipRtl />
-        </Link>
-        <Button asChild size="sm" className="flex-1 gap-1.5">
-          <Link href={`/patient/appointments/book?doctorId=${doctorProfileId}`}>
-            <Icon icon={CalendarCheck} size="sm" />
-            {t('bookAppointment')}
+      {canBookAsPatient ? (
+        <div className="mt-auto flex items-center justify-between gap-8">
+          <Link
+            href={`/patient/doctors/${doctorProfileId}`}
+            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
+          >
+            {t('viewProfile')}
+            <Icon icon={ArrowRight} size="sm" flipRtl />
           </Link>
-        </Button>
-      </div>
+          <Button asChild size="sm" className="flex-1 gap-1.5">
+            <Link href={`/patient/appointments/book?doctorId=${doctorProfileId}`}>
+              <Icon icon={CalendarCheck} size="sm" />
+              {t('bookAppointment')}
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-auto flex items-center justify-center">
+          <Button size="sm" className="w-full gap-1.5" disabled title={t('patientAccountRequired')}>
+            <Icon icon={CalendarCheck} size="sm" />
+            {t('patientAccountRequired')}
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }

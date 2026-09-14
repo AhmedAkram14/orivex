@@ -1,11 +1,12 @@
 'use client';
 
-import { Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
+import { LayoutDashboard, Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import { Display, Text } from '@/design-system/typography';
 import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
@@ -31,9 +32,13 @@ import { Container } from '@/shared/ui/container';
  */
 export function HeroSection() {
   const t = useTranslations('landing.hero');
+  const tNav = useTranslations('landing.nav');
+  const { status, user } = useAuth();
   const { data: specialties } = usePublicSpecialties();
   const visible = specialties?.filter((specialty) => specialty.doctorCount > 0) ?? [];
   const totalDoctors = visible.reduce((sum, specialty) => sum + specialty.doctorCount, 0);
+  const isAuthenticated = status === 'authenticated';
+  const isPatient = user?.roles.includes('patient') ?? false;
 
   return (
     <Container size="lg" className="pb-20 pt-24 lg:pb-28 lg:pt-28">
@@ -65,18 +70,38 @@ export function HeroSection() {
           </Text>
 
           <div className="flex flex-col gap-4 sm:flex-row">
-            <Button asChild size="lg">
-              <Link href="/patient/doctors">
-                <Icon icon={Search} size="sm" />
-                {t('primaryCta')}
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/register">
-                <Icon icon={UserPlus} size="sm" />
-                {t('secondaryCta')}
-              </Link>
-            </Button>
+            {isAuthenticated && !isPatient ? (
+              <Button asChild size="lg">
+                <Link href="/dashboard">
+                  <Icon icon={LayoutDashboard} size="sm" />
+                  {tNav('goToDashboard')}
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild size="lg">
+                  <Link href="/patient/doctors">
+                    <Icon icon={Search} size="sm" />
+                    {t('primaryCta')}
+                  </Link>
+                </Button>
+                {isAuthenticated ? (
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/dashboard">
+                      <Icon icon={LayoutDashboard} size="sm" />
+                      {tNav('goToDashboard')}
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button asChild size="lg" variant="outline">
+                    <Link href="/register">
+                      <Icon icon={UserPlus} size="sm" />
+                      {t('secondaryCta')}
+                    </Link>
+                  </Button>
+                )}
+              </>
+            )}
           </div>
 
           {visible.length > 0 && (

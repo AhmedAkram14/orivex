@@ -1,6 +1,7 @@
-import { Building2, CalendarCheck, HelpCircle, LogIn, Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
+import { Building2, CalendarCheck, HelpCircle, LayoutDashboard, LogIn, Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { LandingLocaleSwitcher } from '@/features/landing/components/landing-locale-switcher';
+import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Text } from '@/design-system/typography';
 import { Link } from '@/shared/i18n/navigation';
@@ -19,21 +20,46 @@ import { Logo } from '@/shared/ui/logo';
  * `HowItWorksSection`), so -- like the navbar's own section links -- it's a
  * bare `<a>`, not the locale-aware `Link`.
  */
-const patientLinks = [
-  { href: '/patient/doctors', icon: Search, key: 'findDoctor' as const },
-  { href: '/patient/appointments/book', icon: CalendarCheck, key: 'bookAppointment' as const },
-  { href: '#how-it-works', icon: HelpCircle, key: 'howItWorks' as const, anchor: true },
-  { href: '/login', icon: LogIn, key: 'signIn' as const },
-];
+type FooterLink = {
+  href: string;
+  icon: typeof Search;
+  key: 'findDoctor' | 'bookAppointment' | 'howItWorks' | 'signIn' | 'becomeDoctor';
+  anchor?: boolean;
+  label?: string;
+};
 
-const doctorLinks = [
-  { href: '/register', icon: UserPlus, key: 'becomeDoctor' as const },
-  { href: '#how-it-works', icon: HelpCircle, key: 'howItWorks' as const, anchor: true },
-  { href: '/login', icon: LogIn, key: 'signIn' as const },
+const PATIENT_ROUTES: FooterLink[] = [
+  { href: '/patient/doctors', icon: Search, key: 'findDoctor' },
+  { href: '/patient/appointments/book', icon: CalendarCheck, key: 'bookAppointment' },
 ];
 
 export function LandingFooter() {
   const t = useTranslations('landing.footer');
+  const tNav = useTranslations('landing.nav');
+  const { status, user } = useAuth();
+  const isAuthenticated = status === 'authenticated';
+  const isPatient = user?.roles.includes('patient') ?? false;
+
+  // Signed in: "Sign In" is dead weight and, for a non-patient account,
+  // /patient/doctors and /patient/appointments/book are role-walled --
+  // swap the account link for "Go to Dashboard" and drop the links that
+  // would 403 this specific viewer, rather than showing them regardless
+  // of who's signed in.
+  const patientLinks: FooterLink[] = [
+    ...(isAuthenticated && !isPatient ? [] : PATIENT_ROUTES),
+    { href: '#how-it-works', icon: HelpCircle, key: 'howItWorks', anchor: true },
+    isAuthenticated
+      ? { href: '/dashboard', icon: LayoutDashboard, key: 'signIn', label: tNav('goToDashboard') }
+      : { href: '/login', icon: LogIn, key: 'signIn' },
+  ];
+
+  const doctorLinks: FooterLink[] = [
+    ...(isAuthenticated ? [] : [{ href: '/register', icon: UserPlus, key: 'becomeDoctor' as const }]),
+    { href: '#how-it-works', icon: HelpCircle, key: 'howItWorks', anchor: true },
+    isAuthenticated
+      ? { href: '/dashboard', icon: LayoutDashboard, key: 'signIn' as const, label: tNav('goToDashboard') }
+      : { href: '/login', icon: LogIn, key: 'signIn' as const },
+  ];
 
   return (
     <Footer className="py-12">
@@ -62,7 +88,7 @@ export function LandingFooter() {
               ) : (
                 <Link key={link.key} href={link.href} className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary">
                   <Icon icon={link.icon} size="xs" />
-                  {t(`patients.${link.key}`)}
+                  {'label' in link ? link.label : t(`patients.${link.key}`)}
                 </Link>
               ),
             )}
@@ -84,7 +110,7 @@ export function LandingFooter() {
               ) : (
                 <Link key={link.key} href={link.href} className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary">
                   <Icon icon={link.icon} size="xs" />
-                  {t(`doctors.${link.key}`)}
+                  {'label' in link ? link.label : t(`doctors.${link.key}`)}
                 </Link>
               ),
             )}
