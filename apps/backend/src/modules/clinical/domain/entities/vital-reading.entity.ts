@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { ClinicalDomainError } from '../exceptions/clinical-domain.error.js';
 import { VitalType } from '../enums/vital-type.enum.js';
+import { VitalReadingSource } from '../enums/vital-reading-source.enum.js';
 
 export interface CreateVitalReadingProps {
   patientId: string;
@@ -17,6 +18,21 @@ export interface CreateVitalReadingProps {
   consultationSessionId?: string;
 }
 
+// K10 -- Wearables integration boundary. A separate factory (rather than
+// widening CreateVitalReadingProps) because a device-ingested reading is
+// never doctor-authored and always carries the dedup key -- keeping the
+// two shapes distinct stops a caller from accidentally minting a
+// "clinical" reading with no doctor, or a "device" reading with one.
+export interface IngestDeviceVitalReadingProps {
+  patientId: string;
+  type: VitalType;
+  value: number;
+  diastolicValue?: number;
+  recordedAt: Date;
+  sourceProvider: string;
+  externalObservationId: string;
+}
+
 export interface ReconstituteVitalReadingProps {
   id: string;
   patientId: string;
@@ -27,6 +43,9 @@ export interface ReconstituteVitalReadingProps {
   createdAt: Date;
   recordedByDoctorId?: string;
   consultationSessionId?: string;
+  source?: VitalReadingSource;
+  sourceProvider?: string;
+  externalObservationId?: string;
 }
 
 // A single recorded vital-sign reading (docs/05-information-architecture.md's
@@ -45,22 +64,29 @@ export class VitalReading {
     private readonly createdAt: Date,
     private readonly recordedByDoctorId: string | undefined,
     private readonly consultationSessionId: string | undefined,
+    private readonly source: VitalReadingSource,
+    private readonly sourceProvider: string | undefined,
+    private readonly externalObservationId: string | undefined,
   ) {}
 
-  static create(props: CreateVitalReadingProps): VitalReading {
-    if (props.value <= 0) {
+  private static assertValidValue(type: VitalType, value: number, diastolicValue: number | undefined): void {
+    if (value <= 0) {
       throw new ClinicalDomainError('A vital reading value must be positive.');
     }
-    const requiresDiastolic = props.type === VitalType.BloodPressure;
-    if (requiresDiastolic && (props.diastolicValue === undefined || props.diastolicValue === null)) {
+    const requiresDiastolic = type === VitalType.BloodPressure;
+    if (requiresDiastolic && (diastolicValue === undefined || diastolicValue === null)) {
       throw new ClinicalDomainError('A blood-pressure reading requires a diastolic value.');
     }
-    if (!requiresDiastolic && props.diastolicValue !== undefined) {
+    if (!requiresDiastolic && diastolicValue !== undefined) {
       throw new ClinicalDomainError('Only a blood-pressure reading may carry a diastolic value.');
     }
-    if (requiresDiastolic && props.diastolicValue !== undefined && props.diastolicValue <= 0) {
+    if (requiresDiastolic && diastolicValue !== undefined && diastolicValue <= 0) {
       throw new ClinicalDomainError('A vital reading diastolic value must be positive.');
     }
+  }
+
+  static create(props: CreateVitalReadingProps): VitalReading {
+    VitalReading.assertValidValue(props.type, props.value, props.diastolicValue);
 
     return new VitalReading(
       randomUUID(),
@@ -72,6 +98,40 @@ export class VitalReading {
       new Date(),
       props.recordedByDoctorId,
       props.consultationSessionId,
+      VitalReadingSource.Clinical,
+      undefined,
+      undefined,
+    );
+  }
+
+  // K10 -- Wearables integration boundary. Never doctor-authored, never
+  // linked to a consultation session -- a device reading is patient-owned
+  // telemetry, not a clinical act. `sourceProvider` + `externalObservationId`
+  // are the caller-supplied idempotency key; the use case (not this entity)
+  // is responsible for checking them against the repository before calling
+  // this factory, and the DB's own unique constraint is the final backstop.
+  static ingestFromDevice(props: IngestDeviceVitalReadingProps): VitalReading {
+    VitalReading.assertValidValue(props.type, props.value, props.diastolicValue);
+    if (!props.sourceProvider.trim()) {
+      throw new ClinicalDomainError('A device-ingested vital reading requires a source provider.');
+    }
+    if (!props.externalObservationId.trim()) {
+      throw new ClinicalDomainError('A device-ingested vital reading requires an external observation id.');
+    }
+
+    return new VitalReading(
+      randomUUID(),
+      props.patientId,
+      props.type,
+      props.value,
+      props.diastolicValue,
+      props.recordedAt,
+      new Date(),
+      undefined,
+      undefined,
+      VitalReadingSource.Device,
+      props.sourceProvider,
+      props.externalObservationId,
     );
   }
 
@@ -86,6 +146,9 @@ export class VitalReading {
       props.createdAt,
       props.recordedByDoctorId,
       props.consultationSessionId,
+      props.source ?? VitalReadingSource.Clinical,
+      props.sourceProvider,
+      props.externalObservationId,
     );
   }
 
@@ -123,5 +186,17 @@ export class VitalReading {
 
   getConsultationSessionId(): string | undefined {
     return this.consultationSessionId;
+  }
+
+  getSource(): VitalReadingSource {
+    return this.source;
+  }
+
+  getSourceProvider(): string | undefined {
+    return this.sourceProvider;
+  }
+
+  getExternalObservationId(): string | undefined {
+    return this.externalObservationId;
   }
 }

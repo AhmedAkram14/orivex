@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, type HTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 import { Button } from '@/shared/ui/button';
@@ -14,6 +15,7 @@ import { Button } from '@/shared/ui/button';
  * arrows or a page dot, to reach the next page.
  */
 export function Carousel({ className, children, showControls = false, ...props }: CarouselProps) {
+  const t = useTranslations('common.carousel');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
   const [activePage, setActivePage] = useState(0);
@@ -101,7 +103,7 @@ export function Carousel({ className, children, showControls = false, ...props }
             type="button"
             variant="outline"
             size="icon"
-            aria-label="Previous"
+            aria-label={t('previous')}
             disabled={activePage === 0}
             onClick={() => scrollToPage(activePage - 1)}
             className="absolute top-1/2 left-0 -translate-y-1/2 rounded-full border-border-default bg-surface text-primary shadow-md hover:border-primary hover:bg-primary-subtle hover:text-primary-emphasis"
@@ -112,7 +114,7 @@ export function Carousel({ className, children, showControls = false, ...props }
             type="button"
             variant="outline"
             size="icon"
-            aria-label="Next"
+            aria-label={t('next')}
             disabled={activePage === pageCount - 1}
             onClick={() => scrollToPage(activePage + 1)}
             className="absolute top-1/2 right-0 -translate-y-1/2 rounded-full border-border-default bg-surface text-primary shadow-md hover:border-primary hover:bg-primary-subtle hover:text-primary-emphasis"
@@ -120,14 +122,14 @@ export function Carousel({ className, children, showControls = false, ...props }
             <ChevronRight className="size-5" aria-hidden="true" />
           </Button>
 
-          <div className="mt-4 flex justify-center gap-2" role="tablist" aria-label="Carousel pages">
+          <div className="mt-4 flex justify-center gap-2" role="tablist" aria-label={t('pagesLabel')}>
             {Array.from({ length: pageCount }).map((_, page) => (
               <button
                 key={page}
                 type="button"
                 role="tab"
                 aria-selected={page === activePage}
-                aria-label={`Go to page ${page + 1} of ${pageCount}`}
+                aria-label={t('goToPage', { page: page + 1, pageCount })}
                 onClick={() => scrollToPage(page)}
                 className={cn(
                   'size-2 rounded-full transition-colors duration-(--duration-fast) ease-standard',

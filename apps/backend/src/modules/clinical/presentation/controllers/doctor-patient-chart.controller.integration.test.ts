@@ -478,6 +478,7 @@ describe('DoctorPatientChartController (integration)', () => {
             new ListVitalReadingsForPatientUseCase({
               findByPatientId: async () => [],
               findByConsultationSessionId: async () => [],
+              findBySourceAndExternalId: async () => null,
               save: async () => {},
             }),
         },

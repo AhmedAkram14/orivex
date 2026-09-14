@@ -12,6 +12,7 @@ import { GetAvailabilityWindowByIdUseCase } from '../doctor/application/use-case
 import { GetDoctorProfileByAccountIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetPatientProfileByAccountIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
@@ -45,6 +46,7 @@ import { BookAppointmentUseCase } from './application/use-cases/book-appointment
 import { CloseConsultationUseCase } from './application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from './application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from './application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { GenerateAppointmentCalendarInviteUseCase } from './application/use-cases/generate-appointment-calendar-invite/generate-appointment-calendar-invite.use-case.js';
 import { GetConsultationFeedbackForSessionUseCase } from './application/use-cases/get-consultation-feedback-for-session/get-consultation-feedback-for-session.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from './application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from './application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
@@ -194,6 +196,30 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       provide: GetAppointmentByIdUseCase,
       useFactory: (repository: AppointmentRepository) => new GetAppointmentByIdUseCase(repository),
       inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
+      provide: GenerateAppointmentCalendarInviteUseCase,
+      useFactory: (
+        appointmentRepository: AppointmentRepository,
+        getAvailabilityWindowByIdUseCase: GetAvailabilityWindowByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+      ) =>
+        new GenerateAppointmentCalendarInviteUseCase(
+          appointmentRepository,
+          getAvailabilityWindowByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+        ),
+      inject: [
+        APPOINTMENT_REPOSITORY,
+        GetAvailabilityWindowByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+      ],
     },
     {
       provide: ListAppointmentsForPatientUseCase,

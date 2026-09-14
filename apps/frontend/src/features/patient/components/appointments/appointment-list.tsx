@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { ConsultationOutcomeAction } from '@/features/consultation/components/consultation-outcome-action';
 import { PayNowAction } from '@/features/payment/components/pay-now-action';
+import { AddToCalendarAction } from '@/features/patient/components/appointments/add-to-calendar-action';
 import { CancelAction } from '@/features/patient/components/appointments/cancel-action';
 import { RescheduleAction } from '@/features/patient/components/appointments/reschedule-action';
 import type { Appointment } from '@/features/patient/api/types';
@@ -59,6 +60,17 @@ function cancelWillRefund(appointment: Appointment): boolean {
   return appointment.consultationType === 'paid' && (appointment.status === 'confirmed' || appointment.status === 'no_show');
 }
 
+/**
+ * K11 -- Calendar sync boundary: an "Add to calendar" download only makes
+ * sense for a still-upcoming, still-scheduled appointment -- the same
+ * eligibility window as Reschedule/Cancel, minus the No-show carve-out
+ * (a No-show appointment already happened; there is nothing left to add to
+ * a calendar).
+ */
+function canAddToCalendar(appointment: Appointment): boolean {
+  return (appointment.status === 'requested' || appointment.status === 'confirmed') && isAppointmentStillUpcoming(appointment.scheduledAt);
+}
+
 export interface AppointmentListProps {
   appointments: Appointment[];
   emptyTitle: string;
@@ -109,9 +121,10 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
           ) : null;
 
         const actions =
-          primaryAction || canReschedule(appointment) || canCancel(appointment) ? (
+          primaryAction || canAddToCalendar(appointment) || canReschedule(appointment) || canCancel(appointment) ? (
             <>
               {primaryAction}
+              {canAddToCalendar(appointment) && <AddToCalendarAction appointmentId={appointment.id} />}
               {canReschedule(appointment) && (
                 <RescheduleAction appointmentId={appointment.id} doctorId={appointment.doctorId} />
               )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -16,6 +17,7 @@ import { toUserMessage } from '@/shared/lib/api/error';
  * throw that would otherwise blank the page.
  */
 export default function LocaleError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const t = useTranslations('common');
   useEffect(() => {
     // No error-tracking provider chosen yet (Section 1.2); console is the only sink until Phase 30 wires one.
     console.error(error);
@@ -24,11 +26,11 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
   return (
     <PageContainer size="sm">
       <Logo size="md" className="self-start" />
-      <Alert variant="danger" title="Something went wrong">
+      <Alert variant="danger" title={t('error')}>
         {toUserMessage(error)}
       </Alert>
       <Button onClick={reset} className="self-start">
-        Try again
+        {t('retry')}
       </Button>
     </PageContainer>
   );

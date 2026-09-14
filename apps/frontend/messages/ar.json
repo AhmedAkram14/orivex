@@ -22,7 +22,8 @@
     "carousel": {
       "pagesLabel": "صفحات العرض",
       "previous": "السابق",
-      "next": "التالي"
+      "next": "التالي",
+      "goToPage": "الانتقال إلى الصفحة {page} من {pageCount}"
     }
   },
   "landing": {

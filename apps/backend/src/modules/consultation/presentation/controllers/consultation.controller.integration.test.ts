@@ -52,6 +52,7 @@ import type {
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { GenerateAppointmentCalendarInviteUseCase } from '../../application/use-cases/generate-appointment-calendar-invite/generate-appointment-calendar-invite.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
@@ -576,6 +577,13 @@ describe('Consultation controllers (integration)', () => {
       new InMemoryPatientProfileRepository(patient),
     );
     const getPatientProfileByIdUseCase = new GetPatientProfileByIdUseCase(new InMemoryPatientProfileRepository(patient));
+    const generateAppointmentCalendarInviteUseCase = new GenerateAppointmentCalendarInviteUseCase(
+      appointmentRepo,
+      new GetAvailabilityWindowByIdUseCase(availabilityWindowRepo),
+      new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor)),
+      getPatientProfileByIdUseCase,
+      getAccountByIdUseCase,
+    );
     const getDoctorProfileByIdUseCase = new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor));
     const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(
       new InMemoryDoctorProfileRepository(doctor),
@@ -694,6 +702,7 @@ describe('Consultation controllers (integration)', () => {
         },
         { provide: GetSchedulingRulesUseCase, useValue: new GetSchedulingRulesUseCase() },
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(appointmentRepo) },
+        { provide: GenerateAppointmentCalendarInviteUseCase, useValue: generateAppointmentCalendarInviteUseCase },
         { provide: ConfirmAppointmentUseCase, useValue: confirmAppointmentUseCase },
         { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(sessionRepo) },
         {
@@ -781,6 +790,31 @@ describe('Consultation controllers (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  // K11 -- Calendar sync (ORIVEX Remaining Work Audit): a real, complete
+  // .ics deliverable requiring zero external provider/credential -- these
+  // are the ownership (404, never leaking existence to a non-owner) and
+  // happy-path checks for it.
+  it('GET /appointments/:id/calendar.ics returns 404 for a caller who does not own the appointment', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/appointments/${bookedAppointmentId}/calendar.ics`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('GET /appointments/:id/calendar.ics returns a real .ics file for the owning patient', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/appointments/${bookedAppointmentId}/calendar.ics`)
+      .set('Authorization', `Bearer ${VALID_PATIENT_TOKEN}`)
+      .expect(200);
+
+    assert.match(response.headers['content-type'], /text\/calendar/);
+    assert.match(response.headers['content-disposition'], new RegExp(`orivex-appointment-${bookedAppointmentId}\\.ics`));
+    assert.match(response.text, /^BEGIN:VCALENDAR\r\n/);
+    assert.match(response.text, new RegExp(`UID:${bookedAppointmentId}@orivex\\.dev`));
   });
 
   it('POST /appointments rejects a caller with no patient profile with 404', async () => {

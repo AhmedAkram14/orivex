@@ -3,6 +3,7 @@ import type { VitalReading as PrismaVitalReadingRow } from '@prisma/client';
 import { VitalReading } from '../../domain/entities/vital-reading.entity.js';
 
 import { toDomainVitalType, toPrismaVitalType } from './vital-type.mapper.js';
+import { toDomainVitalReadingSource, toPrismaVitalReadingSource } from './vital-reading-source.mapper.js';
 
 export function toDomainVitalReading(row: PrismaVitalReadingRow): VitalReading {
   return VitalReading.reconstitute({
@@ -15,6 +16,9 @@ export function toDomainVitalReading(row: PrismaVitalReadingRow): VitalReading {
     createdAt: row.createdAt,
     recordedByDoctorId: row.recordedByDoctorId ?? undefined,
     consultationSessionId: row.consultationSessionId ?? undefined,
+    source: toDomainVitalReadingSource(row.source),
+    sourceProvider: row.sourceProvider ?? undefined,
+    externalObservationId: row.externalObservationId ?? undefined,
   });
 }
 
@@ -29,5 +33,8 @@ export function toPersistedVitalReading(vitalReading: VitalReading) {
     createdAt: vitalReading.getCreatedAt(),
     recordedByDoctorId: vitalReading.getRecordedByDoctorId() ?? null,
     consultationSessionId: vitalReading.getConsultationSessionId() ?? null,
+    source: toPrismaVitalReadingSource(vitalReading.getSource()),
+    sourceProvider: vitalReading.getSourceProvider() ?? null,
+    externalObservationId: vitalReading.getExternalObservationId() ?? null,
   };
 }

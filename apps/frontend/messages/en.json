@@ -22,7 +22,8 @@
     "carousel": {
       "pagesLabel": "Carousel pages",
       "previous": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "goToPage": "Go to page {page} of {pageCount}"
     }
   },
   "landing": {

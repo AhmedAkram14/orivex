@@ -34,6 +34,9 @@ class FakeVitalReadingRepository implements VitalReadingRepository {
   async findByConsultationSessionId(): Promise<VitalReading[]> {
     return this.saved;
   }
+  async findBySourceAndExternalId(): Promise<VitalReading | null> {
+    return null;
+  }
   async save(vitalReading: VitalReading): Promise<void> {
     this.saved.push(vitalReading);
   }

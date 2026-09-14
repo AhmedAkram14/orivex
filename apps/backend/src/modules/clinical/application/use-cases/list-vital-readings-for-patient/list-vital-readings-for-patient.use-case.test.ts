@@ -15,6 +15,9 @@ class FakeVitalReadingRepository implements VitalReadingRepository {
   async findByConsultationSessionId(consultationSessionId: string): Promise<VitalReading[]> {
     return this.readings.filter((r) => r.getConsultationSessionId() === consultationSessionId);
   }
+  async findBySourceAndExternalId(): Promise<VitalReading | null> {
+    return null;
+  }
   async save(): Promise<void> {}
 }
 

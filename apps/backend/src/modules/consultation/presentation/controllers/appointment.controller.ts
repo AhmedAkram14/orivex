@@ -1,5 +1,6 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -24,6 +25,7 @@ import { BookAppointmentCommand } from '../../application/use-cases/book-appoint
 import { BookAppointmentUseCase } from '../../application/use-cases/book-appointment/book-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
+import { GenerateAppointmentCalendarInviteUseCase } from '../../application/use-cases/generate-appointment-calendar-invite/generate-appointment-calendar-invite.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from '../../application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
 import { RescheduleOrCancelAppointmentCommand } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.command.js';
 import { RescheduleOrCancelAppointmentUseCase } from '../../application/use-cases/reschedule-or-cancel-appointment/reschedule-or-cancel-appointment.use-case.js';
@@ -58,6 +60,7 @@ export class AppointmentController {
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
     private readonly listMedicalSpecialtiesUseCase: ListMedicalSpecialtiesUseCase,
+    private readonly generateAppointmentCalendarInviteUseCase: GenerateAppointmentCalendarInviteUseCase,
   ) {}
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): DoctorProfile no
@@ -160,6 +163,36 @@ export class AppointmentController {
         }),
       );
       return envelope(AppointmentResponseDto.fromDomain(appointment));
+    } catch (error) {
+      throw mapConsultationError(error);
+    }
+  }
+
+  // K11 -- Calendar sync (ORIVEX Remaining Work Audit, "Known Limitations"
+  // list). A real .ics download, not active two-way OAuth sync (see
+  // build-appointment-ics.ts's own header comment for exactly what this
+  // does and does not cover). Same ownership check as reschedule/cancel.
+  @Get(':id/calendar.ics')
+  @UseGuards(JwtAuthGuard)
+  async getCalendarInvite(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<string> {
+    try {
+      const existing = await this.getAppointmentByIdUseCase.execute({ appointmentId: id });
+      if (!existing || !(await this.isOwnedByCaller(existing, user))) {
+        throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
+      const ics = await this.generateAppointmentCalendarInviteUseCase.execute({ appointmentId: id });
+      // Set only on the success path -- a class-level/decorator-level
+      // Content-Type would also stamp the error branch below, corrupting
+      // the JSON error envelope AllExceptionsFilter writes (a real bug this
+      // suite's ownership-rejection test caught: supertest couldn't parse
+      // the JSON error body because the response claimed text/calendar).
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="orivex-appointment-${id}.ics"`);
+      return ics;
     } catch (error) {
       throw mapConsultationError(error);
     }
