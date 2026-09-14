@@ -63,11 +63,34 @@ describe('DoctorProfilePage', () => {
     // sidebar's Quick Actions card rather than the page header -- either one
     // opens the same edit mode, so this clicks the first match.
     await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
-    expect(screen.getByLabelText('Professional information')).toBeInTheDocument();
+    // Regression: the edit form's bio field used to also be labeled
+    // "Professional information" -- the same label the read view uses for
+    // its specialty/fee/license card, a different thing this field doesn't
+    // edit. The bio field is "About" now, matching the view's own "About"
+    // section it actually edits.
+    expect(screen.getByLabelText('About')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Professional information')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(await screen.findByText('Professional information')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Professional information')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('About')).not.toBeInTheDocument();
+  });
+
+  it('previews the profile as a patient would see it, then returns to the normal workspace view on exit', async () => {
+    renderPage();
+    await screen.findAllByText('Dr. Sarah Ahmed');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Preview as Patient' }));
+
+    expect(screen.getByText("Previewing as a patient would see your profile.")).toBeInTheDocument();
+    // The public variant never shows workspace-only affordances.
+    expect(screen.queryByRole('button', { name: /Edit profile/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Quick Actions')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Exit preview' }));
+
+    expect(screen.queryByText("Previewing as a patient would see your profile.")).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Edit profile/ }).length).toBeGreaterThan(0);
   });
 
   it('edit mode renders a real "Experience" label (not a raw translation key) and the seeded work-experience entries', async () => {
@@ -129,5 +152,46 @@ describe('DoctorProfilePage', () => {
 
     expect(firstCheckbox).toHaveAttribute('data-state', 'unchecked');
     expect(screen.getAllByLabelText('End date').length).toBeGreaterThan(0);
+  });
+
+  it('edit mode now lets a doctor change their consultation fee, hospital, and insurance providers -- previously view-only fields with no way to edit them from this page', async () => {
+    renderPage();
+    await screen.findAllByText('Dr. Sarah Ahmed');
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
+
+    expect(screen.getByLabelText('Consultation fee')).toBeInTheDocument();
+    expect(screen.getByLabelText('Hospital')).toBeInTheDocument();
+    expect(screen.getByText('Insurance providers')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('e.g. Misr Insurance')).toBeInTheDocument();
+  });
+
+  it('disables Save until a real edit is made', async () => {
+    renderPage();
+    await screen.findAllByText('Dr. Sarah Ahmed');
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
+
+    const saveButton = screen.getByRole('button', { name: 'Save' });
+    expect(saveButton).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText('About'), ' Updated.');
+
+    expect(saveButton).toBeEnabled();
+  });
+
+  it('asks for confirmation before removing a work-experience entry, and does nothing if the doctor cancels', async () => {
+    renderPage();
+    await screen.findAllByText('Dr. Sarah Ahmed');
+    await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const before = screen.getAllByDisplayValue('Cairo University Hospitals').length;
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Remove work experience entry' })[0]);
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getAllByDisplayValue('Cairo University Hospitals').length).toBe(before);
+    confirmSpy.mockRestore();
   });
 });

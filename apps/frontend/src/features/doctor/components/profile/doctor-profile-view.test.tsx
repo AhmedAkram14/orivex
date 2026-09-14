@@ -122,9 +122,10 @@ describe('DoctorProfileView', () => {
   });
 
   it('shows the workspace sidebar (Quick Actions, Profile Completion) when an onEdit handler is provided', async () => {
-    renderWithProviders(<DoctorProfileView profile={buildProfile()} onEdit={() => {}} />);
+    renderWithProviders(<DoctorProfileView profile={buildProfile()} onEdit={() => {}} onPreview={() => {}} />);
 
     expect(await screen.findByText('Quick Actions')).toBeInTheDocument();
+    expect(screen.getByText('Preview as Patient')).toBeInTheDocument();
     expect(screen.getByText('Profile Completion')).toBeInTheDocument();
   });
 });

@@ -34,7 +34,7 @@ describe('DoctorReviewsList', () => {
     expect(await screen.findByText('No written reviews yet.')).toBeInTheDocument();
   });
 
-  it('renders only reviews that have a written comment, never rating-only ones', async () => {
+  it('renders every real review, including a rating-only one with no written comment -- a review used to be dropped from this list entirely once it had no comment, even though it still counted toward the header\'s rating/review count, so it was invisible anywhere on the page', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
         HttpResponse.json({
@@ -80,13 +80,17 @@ describe('DoctorReviewsList', () => {
 
     // Reviewer identity is real and public: name is shown and links to the
     // minimal public patient-profile page, never an anonymous placeholder.
-    // Both the avatar and the name render as separate links to that page.
-    const reviewerLinks = screen.getAllByRole('link', { name: 'Amina Youssef' });
-    expect(reviewerLinks.length).toBeGreaterThan(0);
-    for (const link of reviewerLinks) {
-      expect(link).toHaveAttribute('href', `/en/patients/patient-profile-1?doctorId=${DOCTOR_PROFILE_ID}`);
-    }
-    expect(screen.queryByText('Karim Fathy')).not.toBeInTheDocument();
+    // The name is the one accessible link to that page -- the avatar beside
+    // it links to the same destination but is `aria-hidden` (a decorative
+    // duplicate, not a second unlabeled stop).
+    const reviewerLink = screen.getByRole('link', { name: 'Amina Youssef' });
+    expect(reviewerLink).toHaveAttribute('href', `/en/patients/patient-profile-1?doctorId=${DOCTOR_PROFILE_ID}`);
+
+    // Karim Fathy's review has no written comment, but it's still a real
+    // review -- shown with its stars, just no comment paragraph.
+    const karimLink = screen.getByRole('link', { name: 'Karim Fathy' });
+    expect(karimLink).toHaveAttribute('href', `/en/patients/patient-profile-2?doctorId=${DOCTOR_PROFILE_ID}`);
+    expect(screen.getByLabelText('3/5')).toBeInTheDocument();
   });
 
   it('links reviewers to the real, authorized Doctor-facing Patient Chart when rendered in the workspace variant', async () => {
@@ -120,10 +124,7 @@ describe('DoctorReviewsList', () => {
     renderWithProviders(<DoctorReviewsList doctorProfileId={DOCTOR_PROFILE_ID} variant="workspace" />);
 
     await screen.findByText('Excellent bedside manner.');
-    const reviewerLinks = screen.getAllByRole('link', { name: 'Amina Youssef' });
-    expect(reviewerLinks.length).toBeGreaterThan(0);
-    for (const link of reviewerLinks) {
-      expect(link).toHaveAttribute('href', '/en/doctor/patients/patient-profile-1');
-    }
+    const reviewerLink = screen.getByRole('link', { name: 'Amina Youssef' });
+    expect(reviewerLink).toHaveAttribute('href', '/en/doctor/patients/patient-profile-1');
   });
 });

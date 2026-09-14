@@ -1,20 +1,25 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import type { DoctorProfile } from '@/features/doctor/api/types';
+import { useDepartmentsList } from '@/features/doctor/hooks/use-departments-list';
+import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useUpdateDoctorProfile } from '@/features/doctor/hooks/use-update-doctor-profile';
 import {
   createDoctorProfileSchema,
   type DoctorProfileFormValues,
 } from '@/features/doctor/schemas/profile.schema';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { ApiError } from '@/shared/lib/api/client';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
+import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
@@ -27,6 +32,12 @@ const PROFESSIONAL_RANKS = ['resident', 'registrar', 'specialist', 'consultant',
 const MAX_WORK_EXPERIENCE_ENTRIES = 10;
 const MAX_PUBLICATION_ENTRIES = 20;
 const MAX_AWARD_ENTRIES = 20;
+// Doctor Onboarding's hospital dropdown needs an explicit "Independent
+// Practice" option alongside real hospitals -- a Select item can't carry an
+// empty-string value, so this sentinel maps to `hospitalId: undefined` at
+// the form-state level (see onValueChange below). Mirrors ProfileStep's own
+// identical sentinel exactly.
+const INDEPENDENT_PRACTICE_VALUE = '__independent_practice__';
 
 export interface DoctorProfileFormProps {
   profile: DoctorProfile;
@@ -35,16 +46,18 @@ export interface DoctorProfileFormProps {
 }
 
 /**
- * The Doctor Profile's edit architecture — only the fields
- * `DoctorProfileUpdateRequest` actually allows (specialtyId, biography,
- * years of experience, languages). Identity fields (`fullName`, `email`,
- * `phoneNumber`) are Account-owned (Identity has no update-profile endpoint
- * yet) and `licenseNumber`/`publications`/`awards` are excluded from this
- * phase's edit architecture — mirrors `PatientProfileForm`'s own identity-
- * field exclusion rationale exactly. Onboarding Redesign Stage O.9: this is
- * now a reference-data dropdown (mirrors the Doctor Onboarding wizard's own
- * Professional Info step), not a free-text input -- DoctorProfile no longer
- * carries its own free-text specialty at all.
+ * The Doctor Profile's edit architecture — every field
+ * `DoctorProfileUpdateRequest` actually allows: specialtyId, biography,
+ * years of experience, languages, consultation fee, hospital/department
+ * affiliation, insurance providers, and the work-experience/publications/
+ * awards lists. Identity fields (`fullName`, `email`, `phoneNumber`) are
+ * Account-owned (Identity has no update-profile endpoint yet) and
+ * `licenseNumber` is excluded on purpose (the backend's update DTO never
+ * accepts it -- only set once at registration) — mirrors
+ * `PatientProfileForm`'s own identity-field exclusion rationale exactly.
+ * Specialty/hospital/department are reference-data dropdowns (mirrors the
+ * Doctor Onboarding wizard's own Professional Info step, `ProfileStep`),
+ * not free-text inputs.
  */
 export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileFormProps) {
   const t = useTranslations('doctor.profile');
@@ -55,6 +68,8 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
   const locale = useLocale();
   const updateProfile = useUpdateDoctorProfile();
   const { data: specialties, isLoading: specialtiesLoading } = useSpecialtiesList();
+  const { data: hospitals, isLoading: hospitalsLoading } = useHospitalsList();
+  const [insuranceDraft, setInsuranceDraft] = useState('');
 
   const form = useForm<DoctorProfileFormValues>({
     resolver: zodResolver(createDoctorProfileSchema(tValidation)),
@@ -63,6 +78,10 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
       biography: profile.biography,
       yearsOfExperience: profile.yearsOfExperience,
       languages: profile.languages,
+      insuranceProviders: profile.insuranceProviders,
+      consultationFeeAmount: profile.consultationFeeAmount,
+      hospitalId: profile.hospitalId,
+      departmentId: profile.departmentId,
       workExperience: profile.workExperience.map((entry) => ({
         organizationName: entry.organizationName,
         position: entry.position,
@@ -76,6 +95,10 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
     },
   });
 
+  useUnsavedChangesGuard(form.formState.isDirty, t('unsavedChangesWarning'));
+
+  const selectedHospitalId = form.watch('hospitalId');
+  const { data: departments, isLoading: departmentsLoading } = useDepartmentsList(selectedHospitalId);
   const workExperience = useFieldArray({ control: form.control, name: 'workExperience' });
   const publications = useFieldArray({ control: form.control, name: 'publications' });
   const awards = useFieldArray({ control: form.control, name: 'awards' });
@@ -128,7 +151,11 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
           name="biography"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('professionalInformation')}</FormLabel>
+              {/* "About" -- not "Professional information", which the read
+                  view uses for the specialty/fee/license card just above
+                  the "About" section this field actually edits. The same
+                  label on two different things was its own bug. */}
+              <FormLabel>{t('about')}</FormLabel>
               <FormControl>
                 <Textarea {...field} value={field.value ?? ''} />
               </FormControl>
@@ -149,6 +176,139 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
               <FormMessage />
             </FormItem>
           )}
+        />
+
+        <FormField
+          control={form.control}
+          name="consultationFeeAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('consultationFee')}</FormLabel>
+              <FormControl>
+                <Input type="number" min={0} step="0.01" {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="hospitalId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{tShared('hospital')}</FormLabel>
+              <Select
+                value={field.value ?? INDEPENDENT_PRACTICE_VALUE}
+                onValueChange={(value) => {
+                  const nextHospitalId = value === INDEPENDENT_PRACTICE_VALUE ? undefined : value;
+                  field.onChange(nextHospitalId);
+                  if (!nextHospitalId) {
+                    form.setValue('departmentId', undefined);
+                  }
+                }}
+                disabled={hospitalsLoading}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={tShared('hospitalPlaceholder')} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={INDEPENDENT_PRACTICE_VALUE}>{tShared('independentPractice')}</SelectItem>
+                  {(hospitals ?? []).map((hospital) => (
+                    <SelectItem key={hospital.id} value={hospital.id}>
+                      {hospital.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {selectedHospitalId && (
+          <FormField
+            control={form.control}
+            name="departmentId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{tShared('department')}</FormLabel>
+                <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={departmentsLoading}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={tShared('departmentPlaceholder')} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {(departments ?? []).map((department) => (
+                      <SelectItem key={department.id} value={department.id}>
+                        {department.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <FormField
+          control={form.control}
+          name="insuranceProviders"
+          render={({ field }) => {
+            const providers = field.value ?? [];
+            function addProvider() {
+              const trimmed = insuranceDraft.trim();
+              if (!trimmed || providers.includes(trimmed)) return;
+              field.onChange([...providers, trimmed]);
+              setInsuranceDraft('');
+            }
+            return (
+              <FormItem>
+                <FormLabel>{tShared('insuranceProviders')}</FormLabel>
+                <FormControl>
+                  <div className="flex flex-col gap-2">
+                    {providers.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {providers.map((provider) => (
+                          <Badge key={provider} variant="neutral" className="gap-1.5">
+                            {provider}
+                            <button
+                              type="button"
+                              aria-label={tShared('removeInsuranceProvider', { provider })}
+                              onClick={() => field.onChange(providers.filter((value) => value !== provider))}
+                            >
+                              <Icon icon={X} size="xs" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        value={insuranceDraft}
+                        onChange={(event) => setInsuranceDraft(event.target.value)}
+                        placeholder={tShared('insuranceProvidersPlaceholder')}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            addProvider();
+                          }
+                        }}
+                      />
+                      <Button type="button" variant="outline" onClick={addProvider}>
+                        {tShared('addInsuranceProvider')}
+                      </Button>
+                    </div>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
         />
 
         <FormField
@@ -326,7 +486,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                         variant="ghost"
                         size="icon"
                         aria-label={tShared('removeWorkExperience')}
-                        onClick={() => workExperience.remove(index)}
+                        onClick={() => window.confirm(t('confirmRemoveWorkExperience')) && workExperience.remove(index)}
                       >
                         <Icon icon={Trash2} size="sm" />
                       </Button>
@@ -394,7 +554,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                       variant="ghost"
                       size="icon"
                       aria-label={t('removePublication')}
-                      onClick={() => publications.remove(index)}
+                      onClick={() => window.confirm(t('confirmRemovePublication')) && publications.remove(index)}
                     >
                       <Icon icon={Trash2} size="sm" />
                     </Button>
@@ -461,7 +621,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                       variant="ghost"
                       size="icon"
                       aria-label={t('removeAward')}
-                      onClick={() => awards.remove(index)}
+                      onClick={() => window.confirm(t('confirmRemoveAward')) && awards.remove(index)}
                     >
                       <Icon icon={Trash2} size="sm" />
                     </Button>
@@ -472,8 +632,15 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button type="submit" loading={updateProfile.isPending}>
+        {/* Sticky, not static at the bottom of a form long enough to need
+            real scrolling to reach -- every save shouldn't cost a long
+            scroll back down. Save is disabled until something has actually
+            changed (`isDirty`); an invalid-but-dirty submit still goes
+            through to `handleSubmit` so its real field errors surface,
+            rather than a permanently-disabled button that never explains
+            why. */}
+        <div className="sticky bottom-0 flex items-center gap-2 border-t border-border-default bg-surface/95 py-3 backdrop-blur-sm">
+          <Button type="submit" loading={updateProfile.isPending} disabled={!form.formState.isDirty}>
             {t('save')}
           </Button>
           <Button type="button" variant="outline" onClick={onCancel}>

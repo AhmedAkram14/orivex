@@ -52,9 +52,14 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
     return <Skeleton className="h-24 w-full" />;
   }
 
-  const reviewsWithComments = data?.reviews.filter((review) => review.comment) ?? [];
+  // Every real review, not only the ones with a written comment -- a
+  // rating-only review used to be silently dropped from this list while
+  // still counting toward the header's aggregate rating/count, so a doctor
+  // with (say) 3 ratings and 2 written comments would see only 2 reviews
+  // here with the third nowhere to be found.
+  const reviews = data?.reviews ?? [];
 
-  if (reviewsWithComments.length === 0) {
+  if (reviews.length === 0) {
     return <EmptyState title={t('reviewsEmptyTitle')} description={t('reviewsEmptyDescription')} />;
   }
 
@@ -80,11 +85,15 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
           ))}
         </li>
       )}
-      {reviewsWithComments.map((review) => (
+      {reviews.map((review) => (
         <li key={review.id} className="flex gap-3 rounded-2xl border border-border-default p-4">
-          <Link href={hrefFor(review.patientProfileId)} className="shrink-0">
+          {/* Same destination as the name link right beside it -- an
+              adjacent duplicate, not two different actions, so it's an
+              `aria-hidden` decorative link rather than a second
+              screen-reader stop announcing nothing. */}
+          <Link href={hrefFor(review.patientProfileId)} className="shrink-0" aria-hidden="true" tabIndex={-1}>
             <Avatar size="sm">
-              {review.patientAvatarUrl && <AvatarImage src={review.patientAvatarUrl} alt={review.patientName} />}
+              {review.patientAvatarUrl && <AvatarImage src={review.patientAvatarUrl} alt="" />}
               <AvatarFallback>{initialsFor(review.patientName)}</AvatarFallback>
             </Avatar>
           </Link>
@@ -107,7 +116,7 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
                 />
               ))}
             </div>
-            <p className="text-sm text-text-secondary">{review.comment}</p>
+            {review.comment && <p className="text-sm text-text-secondary">{review.comment}</p>}
             {variant === 'workspace' && (
               <div className="mt-1">
                 <FlagReviewAction feedbackId={review.id} doctorProfileId={doctorProfileId} />

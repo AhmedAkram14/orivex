@@ -7,9 +7,9 @@ import {
   Briefcase,
   Building2,
   CalendarClock,
+  Eye,
   History,
   Languages as LanguagesIcon,
-  Lock,
   Mail,
   MapPin,
   Pencil,
@@ -76,6 +76,8 @@ export interface DoctorProfileViewProps {
   variant?: 'workspace' | 'public';
   /** Only used in the 'workspace' variant -- opens the page's existing edit mode. */
   onEdit?: () => void;
+  /** Only used in the 'workspace' variant -- switches the page to render this same profile as `variant="public"`, the one real answer to "what do patients actually see here". */
+  onPreview?: () => void;
 }
 
 interface InfoRowProps {
@@ -144,7 +146,7 @@ function ProfileSectionCard({ title, icon, iconClassName, actions, children, cla
  * component's own prop doc for exactly which pieces are workspace-only and
  * why.
  */
-export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: DoctorProfileViewProps) {
+export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPreview }: DoctorProfileViewProps) {
   const t = useTranslations('doctor.profile');
   const tLanguages = useTranslations('doctor.profile.languageNames');
   const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
@@ -204,7 +206,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
               </Avatar>
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-2xl font-semibold text-text-primary sm:text-[2rem]">{profile.fullName}</p>
+                  {/* The largest text on the page -- a real <h2> under the
+                      page's own <h1> ("Profile"), not a <p> styled to look
+                      like a heading. */}
+                  <Heading as="h2" level={2} className="text-2xl sm:text-[2rem]">
+                    {profile.fullName}
+                  </Heading>
                   {isWorkspace && isVerified && (
                     <Badge variant="success" className="gap-1">
                       <Icon icon={BadgeCheck} size="xs" />
@@ -518,40 +525,28 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
             </Card>
           )}
 
-          {isWorkspace && (
+          {isWorkspace && onPreview && (
             <Card className={CARD_CLASS}>
               <CardContent className="flex flex-col gap-3 p-6">
                 <Heading as="h3" level={4}>{t('sidebar.quickActions')}</Heading>
-                {/* Borderless hover-row list, matching the Schedule page's
-                    own "Quick Actions" widget -- previously this stacked
-                    bordered `outline` buttons instead, which read as a
-                    different component for the same concept once both
-                    pages existed side by side. */}
+                {/* Edit profile/Manage Schedule/Security used to live here
+                    too -- all three are real destinations, but every one of
+                    them already has its own primary affordance elsewhere on
+                    this exact page (the hero's Edit button, the Availability
+                    card's own "View full schedule" link, the sidebar nav's
+                    Security item), so this card was three duplicate links
+                    and nothing else. "Preview as patient" is the one action
+                    here with no other entry point: the actual answer to
+                    "what do patients see when they open my profile". */}
                 <div className="flex flex-col">
-                  {onEdit && (
-                    <button
-                      type="button"
-                      onClick={onEdit}
-                      className="flex items-center gap-2 rounded-md px-2 py-2 text-start text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                    >
-                      <Icon icon={Pencil} size="sm" className="text-text-tertiary" />
-                      {t('editProfile')}
-                    </button>
-                  )}
-                  <Link
-                    href="/doctor/schedule"
-                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                  <button
+                    type="button"
+                    onClick={onPreview}
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-start text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                   >
-                    <Icon icon={CalendarClock} size="sm" className="text-text-tertiary" />
-                    {t('sidebar.manageSchedule')}
-                  </Link>
-                  <Link
-                    href="/security"
-                    className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-text-primary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  >
-                    <Icon icon={Lock} size="sm" className="text-text-tertiary" />
-                    {t('sidebar.security')}
-                  </Link>
+                    <Icon icon={Eye} size="sm" className="text-text-tertiary" />
+                    {t('sidebar.previewAsPatient')}
+                  </button>
                 </div>
               </CardContent>
             </Card>
@@ -566,7 +561,9 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit }: Do
                   </span>
                   <Heading as="h3" level={4}>{t('sidebar.profileCompletion')}</Heading>
                 </div>
-                <p className="text-sm text-text-secondary">{t('sidebar.profileCompletionDescription')}</p>
+                <p className="text-sm text-text-secondary">
+                  {completion.percent >= 100 ? t('sidebar.profileCompletionDone') : t('sidebar.profileCompletionDescription')}
+                </p>
                 <div className="flex justify-center py-2">
                   <CircularProgress value={completion.percent} max={100} size={140} strokeWidth={12} />
                 </div>
