@@ -6,6 +6,7 @@ import { GetAppointmentByIdUseCase } from '../../../../consultation/application/
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { Appointment } from '../../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../../../../consultation/domain/entities/consultation-session.entity.js';
+import { ConsultationCompletionReason } from '../../../../consultation/domain/enums/consultation-completion-reason.enum.js';
 import { ConsultationPricing } from '../../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import type { AppointmentRepository } from '../../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../../consultation/domain/repositories/consultation-session.repository.js';
@@ -159,6 +160,7 @@ function buildScenario() {
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
   const session = ConsultationSession.open(appointment.getId());
+  session.start();
   const graph = HealthGraph.create(appointment.getPatientId());
   const node = graph.addNode({ nodeType: HealthGraphNodeType.Condition, authoringDoctorId: appointment.getDoctorId() });
   return { appointment, session, graph, node };
@@ -317,6 +319,89 @@ describe('SignPrescriptionUseCase', () => {
       graph,
       prescriptionRepo: new FakePrescriptionRepository(),
       hasUnacknowledgedWarning: true,
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new SignPrescriptionCommand({
+            consultationSessionId: session.getId(),
+            diagnosisNodeId: node.getId(),
+            authoringDoctorId: appointment.getDoctorId(),
+            lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
+          }),
+        ),
+      ValidationError,
+    );
+  });
+
+  it('signs a prescription for a session that has been properly Closed as Completed', async () => {
+    const { appointment, session, graph, node } = buildScenario();
+    session.close(ConsultationCompletionReason.Completed);
+    const prescriptionRepo = new FakePrescriptionRepository();
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: {} as DoctorProfile,
+      graph,
+      prescriptionRepo,
+    });
+
+    const prescription = await useCase.execute(
+      new SignPrescriptionCommand({
+        consultationSessionId: session.getId(),
+        diagnosisNodeId: node.getId(),
+        authoringDoctorId: appointment.getDoctorId(),
+        lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
+      }),
+    );
+
+    assert.equal(prescription.getStatus(), PrescriptionStatus.Signed);
+    assert.equal(prescriptionRepo.saved.length, 1);
+  });
+
+  it('throws ValidationError when the session was closed for a reason other than Completed (never properly closed)', async () => {
+    const { appointment, session, graph, node } = buildScenario();
+    session.close(ConsultationCompletionReason.InterruptedOther);
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: {} as DoctorProfile,
+      graph,
+      prescriptionRepo: new FakePrescriptionRepository(),
+    });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new SignPrescriptionCommand({
+            consultationSessionId: session.getId(),
+            diagnosisNodeId: node.getId(),
+            authoringDoctorId: appointment.getDoctorId(),
+            lineItems: [{ drugCatalogId: '44444444-4444-4444-8444-444444444444', dosage: '5mg', frequency: 'once daily', durationDays: 30 }],
+          }),
+        ),
+      ValidationError,
+    );
+  });
+
+  it('throws ValidationError when the session is still in the waiting room and never started', async () => {
+    const appointment = Appointment.request({
+      patientId: '11111111-1111-4111-8111-111111111111',
+      doctorId: '22222222-2222-4222-8222-222222222222',
+      availabilityWindowId: '33333333-3333-4333-8333-333333333333',
+      pricing: ConsultationPricing.free(),
+      scheduledAt: new Date(Date.now() + 60 * 60_000),
+    });
+    const session = ConsultationSession.open(appointment.getId());
+    const graph = HealthGraph.create(appointment.getPatientId());
+    const node = graph.addNode({ nodeType: HealthGraphNodeType.Condition, authoringDoctorId: appointment.getDoctorId() });
+    const useCase = buildUseCase({
+      appointment,
+      session,
+      doctor: {} as DoctorProfile,
+      graph,
+      prescriptionRepo: new FakePrescriptionRepository(),
     });
 
     await assert.rejects(

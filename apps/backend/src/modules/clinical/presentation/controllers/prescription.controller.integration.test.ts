@@ -272,6 +272,7 @@ describe('PrescriptionController (integration)', () => {
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     session = ConsultationSession.open(appointment.getId());
+    session.start();
     const graph = HealthGraph.create(patient.getId());
     node = graph.addNode({ nodeType: HealthGraphNodeType.Condition, authoringDoctorId: doctor.getId() });
 

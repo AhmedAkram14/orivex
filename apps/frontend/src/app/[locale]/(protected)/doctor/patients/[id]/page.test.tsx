@@ -512,6 +512,145 @@ describe('DoctorPatientChartPage', () => {
     expect(declineBody).toEqual({ reason: 'Fully booked that week' });
   });
 
+  // Write Prescription (Phase 3.2): reuses the extracted PrescriptionPanel
+  // (Phase 3.1) in a Dialog, launched from the Prescriptions tab against a
+  // past completed appointment's ConsultationSession.
+  describe('Write prescription', () => {
+    function mockOneCompletedAppointment() {
+      server.use(
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () =>
+          HttpResponse.json({
+            data: [
+              {
+                id: 'appointment-completed-1',
+                scheduledAt: '2026-08-01T10:00:00.000Z',
+                doctorId: 'doctor-profile-1',
+                doctorName: 'Dr. Sarah Ahmed',
+                specialization: 'Cardiology',
+                specializationAr: null,
+                status: 'completed',
+                consultationType: 'paid',
+                reasonForVisit: 'Follow-up chest pain',
+                consultationSessionId: 'session-1',
+                paymentRequired: false,
+              },
+            ],
+          }),
+        ),
+        http.get(`${env.apiBaseUrl}/consultations/:id/summary`, () =>
+          HttpResponse.json({
+            data: {
+              session: { id: 'session-1', appointmentId: 'appointment-completed-1', state: 'completed', completionReason: 'completed', startedAt: '2026-08-01T10:00:00.000Z', closedAt: '2026-08-01T10:30:00.000Z' },
+              appointment: { id: 'appointment-completed-1', patientId: 'patient-profile-1', doctorId: 'doctor-profile-1', availabilityWindowId: 'window-1', consultationType: 'paid', status: 'completed', scheduledAt: '2026-08-01T10:00:00.000Z', reasonForVisit: 'Follow-up chest pain', rescheduledFromId: null },
+              clinicalNotes: [],
+              prescriptions: [],
+              labRequests: [],
+              diagnoses: [],
+              vitalReadings: [],
+              followUpRecommendation: null,
+              feedback: null,
+              journeys: [],
+            },
+          }),
+        ),
+      );
+    }
+
+    function mockTwoCompletedAppointments() {
+      server.use(
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () =>
+          HttpResponse.json({
+            data: [
+              {
+                id: 'appointment-completed-1',
+                scheduledAt: '2026-08-01T10:00:00.000Z',
+                doctorId: 'doctor-profile-1',
+                doctorName: 'Dr. Sarah Ahmed',
+                specialization: 'Cardiology',
+                specializationAr: null,
+                status: 'completed',
+                consultationType: 'paid',
+                reasonForVisit: 'Follow-up chest pain',
+                consultationSessionId: 'session-1',
+                paymentRequired: false,
+              },
+              {
+                id: 'appointment-completed-2',
+                scheduledAt: '2026-08-10T10:00:00.000Z',
+                doctorId: 'doctor-profile-1',
+                doctorName: 'Dr. Sarah Ahmed',
+                specialization: 'Cardiology',
+                specializationAr: null,
+                status: 'completed',
+                consultationType: 'free',
+                reasonForVisit: 'Routine check-up',
+                consultationSessionId: 'session-2',
+                paymentRequired: false,
+              },
+            ],
+          }),
+        ),
+        http.get(`${env.apiBaseUrl}/consultations/:id/summary`, ({ params }) =>
+          HttpResponse.json({
+            data: {
+              session: { id: params.id, appointmentId: 'appointment-completed-1', state: 'completed', completionReason: 'completed', startedAt: '2026-08-01T10:00:00.000Z', closedAt: '2026-08-01T10:30:00.000Z' },
+              appointment: { id: 'appointment-completed-1', patientId: 'patient-profile-1', doctorId: 'doctor-profile-1', availabilityWindowId: 'window-1', consultationType: 'paid', status: 'completed', scheduledAt: '2026-08-01T10:00:00.000Z', reasonForVisit: 'Follow-up chest pain', rescheduledFromId: null },
+              clinicalNotes: [],
+              prescriptions: [],
+              labRequests: [],
+              diagnoses: [],
+              vitalReadings: [],
+              followUpRecommendation: null,
+              feedback: null,
+              journeys: [],
+            },
+          }),
+        ),
+      );
+    }
+
+    it('auto-selects the session and opens PrescriptionPanel directly when exactly one eligible completed appointment exists', async () => {
+      mockChartEndpoints();
+      mockOneCompletedAppointment();
+      renderPage();
+
+      await screen.findByText('Fady Nassar');
+      await userEvent.click(screen.getByRole('tab', { name: 'Prescriptions' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
+
+      expect(screen.queryByLabelText('Select a past visit')).not.toBeInTheDocument();
+      expect(await screen.findByText('Record a diagnosis first to prescribe against it.')).toBeInTheDocument();
+    });
+
+    it('shows a session picker when multiple eligible completed appointments exist, then opens PrescriptionPanel for the chosen one', async () => {
+      mockChartEndpoints();
+      mockTwoCompletedAppointments();
+      renderPage();
+
+      await screen.findByText('Fady Nassar');
+      await userEvent.click(screen.getByRole('tab', { name: 'Prescriptions' }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
+
+      const picker = await screen.findByRole('combobox', { name: 'Select a past visit' });
+      expect(screen.queryByText('Record a diagnosis first to prescribe against it.')).not.toBeInTheDocument();
+
+      await userEvent.click(picker);
+      await userEvent.click(await screen.findByRole('option', { name: /Follow-up chest pain/ }));
+
+      expect(await screen.findByText('Record a diagnosis first to prescribe against it.')).toBeInTheDocument();
+    });
+
+    it('does not show a Write prescription button when there is no eligible completed appointment', async () => {
+      mockChartEndpoints();
+      renderPage();
+
+      await screen.findByText('Fady Nassar');
+      await userEvent.click(screen.getByRole('tab', { name: 'Prescriptions' }));
+
+      expect(screen.queryByRole('button', { name: 'Write prescription' })).not.toBeInTheDocument();
+    });
+  });
+
   it('shows an ownership-safe not-found state when the doctor has no relationship with this patient', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () =>

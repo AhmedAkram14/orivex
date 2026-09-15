@@ -36,6 +36,7 @@ import {
 import { useApproveAppointment } from '@/features/doctor/hooks/use-approve-appointment';
 import { useDeclineAppointment } from '@/features/doctor/hooks/use-decline-appointment';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
+import { PrescriptionPanel } from '@/features/consultation/components/prescription-panel';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
@@ -45,8 +46,10 @@ import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Heading } from '@/design-system/typography';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Page } from '@/shared/ui/layout/page';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { Textarea } from '@/shared/ui/textarea';
@@ -165,6 +168,13 @@ export default function DoctorPatientChartPage() {
   const tabParam = searchParams.get('tab');
   const initialTab: TabValue = TAB_VALUES.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'overview';
   const [activeTab, setActiveTab] = useState<TabValue>(initialTab);
+  // Write Prescription (Phase 3.2): opens PrescriptionPanel (extracted in
+  // Phase 3.1 for exactly this reuse) against a past completed appointment's
+  // ConsultationSession -- deliberately relies on SignPrescriptionUseCase's
+  // own InProgress-or-Completed session-state check (Phase 3.3) rather than
+  // this page re-deriving that rule.
+  const [prescriptionDialogOpen, setPrescriptionDialogOpen] = useState(false);
+  const [selectedPrescriptionAppointmentId, setSelectedPrescriptionAppointmentId] = useState('');
 
   // Shareable/restorable tab state (?tab=consultations), not just component
   // state that resets to Overview on every reload or shared link -- mirrors
@@ -245,6 +255,32 @@ export default function DoctorPatientChartPage() {
         const completedCount = pastAppointments.filter((appointment) => appointment.status === 'completed').length;
         const activePrescriptionsCount = (prescriptions ?? []).filter((prescription) => prescription.status === 'active').length;
         const lastVisit = pastAppointments.find((appointment) => appointment.status === 'completed');
+        // Write Prescription session selection (Phase 3.2): any completed
+        // appointment with a real ConsultationSession -- deliberately not
+        // pre-filtered by "has a diagnosis" (no aggregate endpoint exists for
+        // that); PrescriptionPanel's own empty state handles a session with
+        // no diagnosis yet.
+        const eligiblePrescriptionAppointments = (appointments ?? []).filter(
+          (appointment): appointment is DoctorPatientChartAppointment & { consultationSessionId: string } =>
+            appointment.status === 'completed' && appointment.consultationSessionId !== null,
+        );
+        const selectedPrescriptionAppointment = eligiblePrescriptionAppointments.find(
+          (appointment) => appointment.id === selectedPrescriptionAppointmentId,
+        );
+
+        function openPrescriptionDialog() {
+          setPrescriptionDialogOpen(true);
+          if (eligiblePrescriptionAppointments.length === 1) {
+            setSelectedPrescriptionAppointmentId(eligiblePrescriptionAppointments[0].id);
+          }
+        }
+
+        function handlePrescriptionDialogOpenChange(open: boolean) {
+          setPrescriptionDialogOpen(open);
+          if (!open) {
+            setSelectedPrescriptionAppointmentId('');
+          }
+        }
 
         return (
           <Page>
@@ -529,8 +565,13 @@ export default function DoctorPatientChartPage() {
 
                 <TabsContent value="prescriptions">
                   <Card className={CARD_CLASSNAME}>
-                    <CardHeader className="px-7 py-6">
+                    <CardHeader className="flex flex-row items-center justify-between gap-3 px-7 py-6">
                       <CardTitle>{t('prescriptions')}</CardTitle>
+                      {eligiblePrescriptionAppointments.length > 0 && (
+                        <Button type="button" size="sm" onClick={openPrescriptionDialog}>
+                          {t('writePrescription')}
+                        </Button>
+                      )}
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
                       {prescriptionsLoading && <Skeleton className="h-24 w-full" />}
@@ -561,6 +602,39 @@ export default function DoctorPatientChartPage() {
                       )}
                     </CardContent>
                   </Card>
+
+                  <Dialog open={prescriptionDialogOpen} onOpenChange={handlePrescriptionDialogOpenChange}>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>{t('writePrescriptionDialogTitle')}</DialogTitle>
+                      </DialogHeader>
+
+                      {eligiblePrescriptionAppointments.length > 1 && (
+                        <div className="flex flex-col gap-1.5">
+                          <label htmlFor="prescription-appointment-select" className="text-sm font-medium text-text-primary">
+                            {t('selectPastAppointmentLabel')}
+                          </label>
+                          <Select value={selectedPrescriptionAppointmentId} onValueChange={setSelectedPrescriptionAppointmentId}>
+                            <SelectTrigger id="prescription-appointment-select">
+                              <SelectValue placeholder={t('selectPastAppointmentPlaceholder')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {eligiblePrescriptionAppointments.map((appointment) => (
+                                <SelectItem key={appointment.id} value={appointment.id}>
+                                  {format.dateTime(new Date(appointment.scheduledAt), { dateStyle: 'medium' })} —{' '}
+                                  {appointment.reasonForVisit ?? t('reasonForVisitFallback')}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      {selectedPrescriptionAppointment && (
+                        <PrescriptionPanel consultationSessionId={selectedPrescriptionAppointment.consultationSessionId} />
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </TabsContent>
 
                 <TabsContent value="documents">

@@ -2,6 +2,8 @@ import { ForbiddenError, NotFoundError, ValidationError } from '../../../../../s
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { ConsultationCompletionReason } from '../../../../consultation/domain/enums/consultation-completion-reason.enum.js';
+import { ConsultationState } from '../../../../consultation/domain/enums/consultation-state.enum.js';
 import { GetDoctorProfileByIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { Prescription } from '../../../domain/entities/prescription.entity.js';
 import type { PendingAISuggestionAcknowledgmentRepository } from '../../../domain/repositories/pending-ai-suggestion-acknowledgment.repository.js';
@@ -43,6 +45,20 @@ export class SignPrescriptionUseCase {
     });
     if (!session) {
       throw new NotFoundError(`ConsultationSession "${command.consultationSessionId}" not found.`);
+    }
+
+    // A prescription can only be signed while the consultation is actively
+    // in progress, or after it has properly closed as Completed. A session
+    // still in the waiting room (never started) or closed for any other
+    // reason (interrupted/abandoned) is not a valid signing context.
+    const isSessionOpenOrProperlyClosed =
+      session.getState() === ConsultationState.InProgress ||
+      (session.getState() === ConsultationState.Closed &&
+        session.getCompletionReason() === ConsultationCompletionReason.Completed);
+    if (!isSessionOpenOrProperlyClosed) {
+      throw new ValidationError(
+        `ConsultationSession "${session.getId()}" is not in progress or properly completed; a prescription cannot be signed against it.`,
+      );
     }
 
     const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: session.getAppointmentId() });

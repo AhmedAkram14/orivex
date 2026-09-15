@@ -4,16 +4,15 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCloseConsultation } from '@/features/consultation/hooks/use-close-consultation';
 import { useConsultationSummary } from '@/features/consultation/hooks/use-consultation-summary';
-import { useDownloadPrescriptionPdf } from '@/features/consultation/hooks/use-download-prescription-pdf';
 import { useRecordDiagnosis } from '@/features/consultation/hooks/use-record-diagnosis';
 import { useRecordNote } from '@/features/consultation/hooks/use-record-note';
 import { useRecordVitals } from '@/features/consultation/hooks/use-record-vitals';
 import { useRecommendFollowUp } from '@/features/consultation/hooks/use-recommend-follow-up';
 import { useRecordLabRequest } from '@/features/consultation/hooks/use-record-lab-request';
-import { useSignPrescription } from '@/features/consultation/hooks/use-sign-prescription';
 import { useUpdateJourneyStage } from '@/features/consultation/hooks/use-update-journey-stage';
 import type { JourneyStage } from '@/features/consultation/api/types';
 import { ConsultationCopilotPanel } from '@/features/consultation/components/copilot/consultation-copilot-panel';
+import { PrescriptionPanel } from '@/features/consultation/components/prescription-panel';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
@@ -87,13 +86,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const [diastolicInput, setDiastolicInput] = useState('');
   const [bloodSugarInput, setBloodSugarInput] = useState('');
   const [vitalsJustSaved, setVitalsJustSaved] = useState(false);
-  const [prescriptionDiagnosisNodeId, setPrescriptionDiagnosisNodeId] = useState('');
-  const [medicationName, setMedicationName] = useState('');
-  const [dosage, setDosage] = useState('');
-  const [frequency, setFrequency] = useState('');
-  const [durationDaysInput, setDurationDaysInput] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [prescriptionJustSaved, setPrescriptionJustSaved] = useState(false);
+  const [prescriptionDirty, setPrescriptionDirty] = useState(false);
   const [labTestName, setLabTestName] = useState('');
   const [labClinicalReason, setLabClinicalReason] = useState('');
   const [labInstructions, setLabInstructions] = useState('');
@@ -106,8 +99,6 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
   const recordDiagnosis = useRecordDiagnosis(consultationSessionId);
   const recordVitals = useRecordVitals(consultationSessionId);
   const recommendFollowUp = useRecommendFollowUp(consultationSessionId);
-  const signPrescription = useSignPrescription(consultationSessionId);
-  const downloadPrescriptionPdf = useDownloadPrescriptionPdf();
   const recordLabRequest = useRecordLabRequest(consultationSessionId);
   const updateJourneyStage = useUpdateJourneyStage(consultationSessionId);
   const closeConsultation = useCloseConsultation();
@@ -155,51 +146,6 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
     setBloodSugarInput('');
     setVitalsJustSaved(true);
     window.setTimeout(() => setVitalsJustSaved(false), 4000);
-  }
-
-  const durationDaysValue = durationDaysInput.trim() ? Number(durationDaysInput) : undefined;
-  const durationDaysInvalid =
-    durationDaysInput.trim() !== '' && !(Number.isInteger(durationDaysValue) && durationDaysValue! > 0);
-  const hasAnyPrescriptionInput = Boolean(
-    medicationName.trim() || dosage.trim() || frequency.trim() || durationDaysInput.trim() || instructions.trim(),
-  );
-  const canSavePrescription = Boolean(
-    prescriptionDiagnosisNodeId &&
-      medicationName.trim() &&
-      dosage.trim() &&
-      frequency.trim() &&
-      !durationDaysInvalid &&
-      durationDaysValue,
-  );
-
-  async function handleSavePrescription() {
-    if (!prescriptionDiagnosisNodeId || !durationDaysValue) {
-      return;
-    }
-    try {
-      await signPrescription.mutateAsync({
-        diagnosisNodeId: prescriptionDiagnosisNodeId,
-        lineItem: {
-          drugCatalogId: crypto.randomUUID(),
-          drugName: medicationName.trim(),
-          dosage: dosage.trim(),
-          frequency: frequency.trim(),
-          durationDays: durationDaysValue,
-          instructions: instructions.trim() || undefined,
-        },
-      });
-    } catch {
-      // Surfaced via signPrescription.isError below -- entered values stay
-      // in place so nothing already typed is lost on a failed save.
-      return;
-    }
-    setMedicationName('');
-    setDosage('');
-    setFrequency('');
-    setDurationDaysInput('');
-    setInstructions('');
-    setPrescriptionJustSaved(true);
-    window.setTimeout(() => setPrescriptionJustSaved(false), 4000);
   }
 
   const canSaveLabRequest = Boolean(labTestName.trim());
@@ -251,7 +197,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
       diagnosisText.trim() ||
       followUpReason.trim() ||
       hasAnyVitalInput ||
-      hasAnyPrescriptionInput ||
+      prescriptionDirty ||
       hasAnyJourneySelection,
   );
 
@@ -583,135 +529,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
               </TabsContent>
 
               <TabsContent value="prescriptions" className="flex flex-col gap-4">
-                {summary.prescriptions.length === 0 ? (
-                  <p className="text-sm text-text-secondary">{t('noPrescriptions')}</p>
-                ) : (
-                  <ul className="flex flex-col gap-2">
-                    {summary.prescriptions.map((prescription) => (
-                      <li key={prescription.id} className="flex items-start justify-between gap-3 rounded-lg border border-border-default p-3 text-sm">
-                        <div>
-                          {prescription.lineItems.map((item) => (
-                            <div key={`${prescription.id}-${item.drugName ?? item.drugCatalogId}`}>
-                              {item.drugName ?? item.drugCatalogId} — {item.dosage}, {item.frequency}
-                            </div>
-                          ))}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          loading={downloadPrescriptionPdf.isPending}
-                          onClick={() => downloadPrescriptionPdf.mutate(prescription.id)}
-                        >
-                          {t('downloadPrescriptionPdf')}
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {summary.diagnoses.length === 0 ? (
-                  <p className="text-sm text-text-secondary">{t('prescriptionNeedsDiagnosis')}</p>
-                ) : (
-                  <div className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="prescription-diagnosis" className="text-sm font-medium text-text-primary">
-                        {t('prescriptionDiagnosisLabel')}
-                      </label>
-                      <Select value={prescriptionDiagnosisNodeId} onValueChange={setPrescriptionDiagnosisNodeId}>
-                        <SelectTrigger id="prescription-diagnosis">
-                          <SelectValue placeholder={t('prescriptionDiagnosisPlaceholder')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {summary.diagnoses.map((node) => (
-                            <SelectItem key={node.id} value={node.id}>
-                              {node.description ?? node.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="prescription-medication" className="text-sm font-medium text-text-primary">
-                        {t('prescriptionMedicationLabel')}
-                      </label>
-                      <Input
-                        id="prescription-medication"
-                        value={medicationName}
-                        onChange={(event) => setMedicationName(event.target.value)}
-                        placeholder={t('prescriptionMedicationPlaceholder')}
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <label htmlFor="prescription-dosage" className="text-sm font-medium text-text-primary">
-                          {t('prescriptionDosageLabel')}
-                        </label>
-                        <Input
-                          id="prescription-dosage"
-                          value={dosage}
-                          onChange={(event) => setDosage(event.target.value)}
-                          placeholder={t('prescriptionDosagePlaceholder')}
-                        />
-                      </div>
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <label htmlFor="prescription-frequency" className="text-sm font-medium text-text-primary">
-                          {t('prescriptionFrequencyLabel')}
-                        </label>
-                        <Input
-                          id="prescription-frequency"
-                          value={frequency}
-                          onChange={(event) => setFrequency(event.target.value)}
-                          placeholder={t('prescriptionFrequencyPlaceholder')}
-                        />
-                      </div>
-                      <div className="flex flex-1 flex-col gap-1.5">
-                        <label htmlFor="prescription-duration" className="text-sm font-medium text-text-primary">
-                          {t('prescriptionDurationLabel')}
-                        </label>
-                        <Input
-                          id="prescription-duration"
-                          type="number"
-                          inputMode="numeric"
-                          min="1"
-                          step="1"
-                          value={durationDaysInput}
-                          onChange={(event) => setDurationDaysInput(event.target.value)}
-                          aria-invalid={durationDaysInvalid}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label htmlFor="prescription-instructions" className="text-sm font-medium text-text-primary">
-                        {t('prescriptionInstructionsLabel')}
-                      </label>
-                      <Textarea
-                        id="prescription-instructions"
-                        value={instructions}
-                        onChange={(event) => setInstructions(event.target.value)}
-                        placeholder={t('prescriptionInstructionsPlaceholder')}
-                        rows={2}
-                      />
-                    </div>
-
-                    {signPrescription.isError && <Alert variant="danger">{t('saveError')}</Alert>}
-                    {prescriptionJustSaved && !signPrescription.isError && (
-                      <Alert variant="success">{t('prescriptionSaveSuccess')}</Alert>
-                    )}
-                    <Button
-                      type="button"
-                      size="sm"
-                      loading={signPrescription.isPending}
-                      disabled={!canSavePrescription}
-                      onClick={handleSavePrescription}
-                    >
-                      {t('savePrescription')}
-                    </Button>
-                  </div>
-                )}
+                <PrescriptionPanel consultationSessionId={consultationSessionId} onDirtyChange={setPrescriptionDirty} />
               </TabsContent>
 
               <TabsContent value="labRequests" className="flex flex-col gap-4">
