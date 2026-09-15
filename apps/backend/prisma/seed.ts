@@ -115,6 +115,7 @@ import { APPOINTMENT_REPOSITORY, CONSULTATION_SESSION_REPOSITORY, CONSULTATION_F
 import { Appointment as AppointmentEntity } from '../src/modules/consultation/domain/entities/appointment.entity.js';
 import { ConsultationSession } from '../src/modules/consultation/domain/entities/consultation-session.entity.js';
 import { ConsultationFeedback } from '../src/modules/consultation/domain/entities/consultation-feedback.entity.js';
+import { ReviewModerationStatus } from '../src/modules/consultation/domain/enums/review-moderation-status.enum.js';
 import type { AppointmentRepository } from '../src/modules/consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../src/modules/consultation/domain/repositories/consultation-session.repository.js';
 import type { ConsultationFeedbackRepository } from '../src/modules/consultation/domain/repositories/consultation-feedback.repository.js';
@@ -1275,6 +1276,7 @@ async function main(): Promise<void> {
         // "Same day or shortly after" (docs section 7) -- a few hours after
         // the consultation closed, still the same calendar day.
         createdAt: plusMinutes(base, 4 * 60 + randomInt(0, 90)),
+        moderationStatus: ReviewModerationStatus.Visible,
       });
       await consultationFeedbackRepository.save(feedback);
     }
