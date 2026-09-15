@@ -3,6 +3,7 @@
 import {
   Activity,
   CalendarDays,
+  CheckCircle2,
   ClipboardList,
   Droplet,
   Droplets,
@@ -13,16 +14,18 @@ import {
   MapPin,
   Phone,
   Pill,
+  Plus,
   Scale,
   Shield,
   Star,
   Stethoscope,
+  Upload,
   UserRoundPlus,
   type LucideIcon,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import {
@@ -36,6 +39,9 @@ import {
 import { useApproveAppointment } from '@/features/doctor/hooks/use-approve-appointment';
 import { useDeclineAppointment } from '@/features/doctor/hooks/use-decline-appointment';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
+import { useAddPatientCondition } from '@/features/doctor/hooks/use-add-patient-condition';
+import { useConfirmNoKnownAllergies } from '@/features/doctor/hooks/use-confirm-no-known-allergies';
+import { useUploadPatientDocument } from '@/features/doctor/hooks/use-upload-patient-document';
 import { PrescriptionPanel } from '@/features/consultation/components/prescription-panel';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
@@ -46,7 +52,7 @@ import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Heading } from '@/design-system/typography';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Page } from '@/shared/ui/layout/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -60,7 +66,14 @@ import type {
   DoctorPatientChartAppointment,
   DoctorPatientChartMedicalRecordEntry,
   DoctorPatientChartPrescription,
+  DoctorPatientChartProfile,
+  DoctorPatientDocumentPurpose,
 } from '@/features/doctor/api/types';
+
+const CERTAINTY_LEVELS = ['suspected', 'confirmed', 'ruled_out'] as const;
+type CertaintyLevelValue = (typeof CERTAINTY_LEVELS)[number];
+
+const DOCUMENT_PURPOSES: readonly DoctorPatientDocumentPurpose[] = ['clinical_attachment', 'lab_report'];
 
 const CARD_CLASSNAME = 'rounded-2xl border-border-default/60 shadow-[0_10px_30px_rgba(15,23,42,0.05)]';
 
@@ -357,14 +370,11 @@ export default function DoctorPatientChartPage() {
                   Tabs, not inside any TabsContent, so it stays visible no
                   matter which tab the doctor is on -- the two Overview-tab
                   InfoTiles for the same fields are removed below so this
-                  isn't a duplicate. */}
+                  isn't a duplicate. Phase 4.3: three real states -- has
+                  allergies / confirmed none / not yet asked -- the last one
+                  is the only one that shows the confirm action. */}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <InfoTile
-                  icon={Flower2}
-                  iconClassName="bg-warning-subtle text-warning-emphasis"
-                  label={t('allergies')}
-                  value={profile.allergies || t('noAllergiesOnRecord')}
-                />
+                <AllergyTile profile={profile} patientProfileId={patientProfileId} />
                 <InfoTile
                   icon={HeartPulse}
                   iconClassName="bg-neutral-subtle text-neutral"
@@ -493,8 +503,9 @@ export default function DoctorPatientChartPage() {
 
                 <TabsContent value="history">
                   <Card className={CARD_CLASSNAME}>
-                    <CardHeader className="px-7 py-6">
+                    <CardHeader className="flex flex-row items-center justify-between gap-3 px-7 py-6">
                       <CardTitle>{t('medicalHistory')}</CardTitle>
+                      <AddConditionButton patientProfileId={patientProfileId} />
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
                       {medicalRecordsLoading && <Skeleton className="h-32 w-full" />}
@@ -639,8 +650,9 @@ export default function DoctorPatientChartPage() {
 
                 <TabsContent value="documents">
                   <Card className={CARD_CLASSNAME}>
-                    <CardHeader className="px-7 py-6">
+                    <CardHeader className="flex flex-row items-center justify-between gap-3 px-7 py-6">
                       <CardTitle>{t('documents')}</CardTitle>
+                      <UploadDocumentControl patientProfileId={patientProfileId} />
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
                       {documentsLoading && <Skeleton className="h-24 w-full" />}
@@ -688,6 +700,183 @@ export default function DoctorPatientChartPage() {
         );
       })()}
     </RequireRole>
+  );
+}
+
+// Persistent allergy strip (Phase 4.3): three real states instead of two --
+// has allergies (from `profile.allergies`), confirmed none (a doctor has
+// explicitly set `allergiesConfirmedNoneAt`), or not yet asked (neither is
+// set, the only state that shows the confirm action).
+function AllergyTile({
+  profile,
+  patientProfileId,
+}: {
+  profile: DoctorPatientChartProfile;
+  patientProfileId: string;
+}) {
+  const t = useTranslations('publicPatient');
+  const confirmNoKnownAllergies = useConfirmNoKnownAllergies(patientProfileId);
+  const hasAllergies = Boolean(profile.allergies);
+  const confirmedNone = !hasAllergies && Boolean(profile.allergiesConfirmedNoneAt);
+  const notYetAsked = !hasAllergies && !confirmedNone;
+
+  const value = hasAllergies ? profile.allergies! : confirmedNone ? t('allergiesConfirmedNone') : t('noAllergiesOnRecord');
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border-default/70 bg-surface p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-2">
+          <div
+            className={cn(
+              'flex size-8 items-center justify-center rounded-lg',
+              confirmedNone ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis',
+            )}
+          >
+            <Icon icon={confirmedNone ? CheckCircle2 : Flower2} size="sm" />
+          </div>
+          <div>
+            <p className="text-xs text-text-tertiary">{t('allergies')}</p>
+            <p className="text-sm font-medium text-text-primary">{value}</p>
+          </div>
+        </div>
+        {notYetAsked && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            loading={confirmNoKnownAllergies.isPending}
+            onClick={() => confirmNoKnownAllergies.mutate()}
+          >
+            {t('confirmNoKnownAllergies')}
+          </Button>
+        )}
+      </div>
+      {confirmNoKnownAllergies.isError && <Alert variant="danger">{t('confirmNoKnownAllergiesError')}</Alert>}
+    </div>
+  );
+}
+
+// Add condition (Phase 4.1): a doctor-authored condition entry added
+// directly from the chart, outside any consultation session.
+function AddConditionButton({ patientProfileId }: { patientProfileId: string }) {
+  const t = useTranslations('publicPatient');
+  const [open, setOpen] = useState(false);
+  const [description, setDescription] = useState('');
+  const [certaintyLevel, setCertaintyLevel] = useState<CertaintyLevelValue>('suspected');
+  const addCondition = useAddPatientCondition(patientProfileId);
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setDescription('');
+      setCertaintyLevel('suspected');
+      addCondition.reset();
+    }
+  }
+
+  function handleSave() {
+    const trimmed = description.trim();
+    if (!trimmed) return;
+    addCondition.mutate(
+      { freeTextDescription: trimmed, certaintyLevel },
+      { onSuccess: () => handleOpenChange(false) },
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <Button type="button" size="sm">
+          <Icon icon={Plus} size="sm" />
+          {t('addCondition')}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('addConditionDialogTitle')}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="condition-description" className="text-sm font-medium text-text-primary">
+              {t('conditionDescriptionLabel')}
+            </label>
+            <Textarea
+              id="condition-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder={t('conditionDescriptionPlaceholder')}
+              className="min-h-20"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="condition-certainty" className="text-sm font-medium text-text-primary">
+              {t('certaintyLevelLabel')}
+            </label>
+            <Select value={certaintyLevel} onValueChange={(value) => setCertaintyLevel(value as CertaintyLevelValue)}>
+              <SelectTrigger id="condition-certainty">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CERTAINTY_LEVELS.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {t(`certaintyLevelOptions.${level}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {addCondition.isError && <Alert variant="danger">{t('addConditionError')}</Alert>}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)}>
+              {t('cancelDeclineAppointment')}
+            </Button>
+            <Button type="button" size="sm" loading={addCondition.isPending} disabled={!description.trim()} onClick={handleSave}>
+              {t('saveCondition')}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Document upload (Phase 4.2): purpose selector limited to the two clinical
+// purposes, file picker, progress -- reuses the same upload-intent -> PUT ->
+// confirm flow the self-upload flows use, wired to the doctor-only routes.
+function UploadDocumentControl({ patientProfileId }: { patientProfileId: string }) {
+  const t = useTranslations('publicPatient');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [purpose, setPurpose] = useState<DoctorPatientDocumentPurpose>('clinical_attachment');
+  const upload = useUploadPatientDocument(patientProfileId);
+
+  function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    upload.mutate({ file, purpose });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Select value={purpose} onValueChange={(value) => setPurpose(value as DoctorPatientDocumentPurpose)}>
+        <SelectTrigger className="w-44" aria-label={t('uploadDocumentPurposeLabel')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {DOCUMENT_PURPOSES.map((option) => (
+            <SelectItem key={option} value={option}>
+              {t(`documentPurpose.${option}`)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <input ref={inputRef} type="file" className="hidden" onChange={handleFileSelected} />
+      <Button type="button" variant="outline" size="sm" loading={upload.isPending} onClick={() => inputRef.current?.click()}>
+        <Icon icon={Upload} size="sm" />
+        {t('uploadDocument')}
+      </Button>
+      {upload.isError && <Alert variant="danger">{t('uploadDocumentError')}</Alert>}
+    </div>
   );
 }
 

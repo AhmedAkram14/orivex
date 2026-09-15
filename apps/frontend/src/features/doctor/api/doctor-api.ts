@@ -1,5 +1,6 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
+import type { MediaAsset } from '@/shared/media/types';
 import type {
   ApprovedAppointment,
   DeclinedAppointment,
@@ -13,6 +14,8 @@ import type {
   DoctorPatientChartPrescription,
   DoctorPatientChartProfile,
   DoctorPatientChartVitalSummary,
+  DoctorPatientConditionNode,
+  DoctorPatientDocumentPurpose,
   DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
@@ -145,4 +148,48 @@ export const doctorApi = {
 
   getPatientChartVitals: (patientProfileId: string) =>
     apiFetch<DoctorPatientChartVitalSummary[]>({ path: DOCTOR_PATHS.patientChartVitals(patientProfileId) }),
+
+  // Doctor Patient Chart Phase 4.1: doctor-authored condition entry, added
+  // outside any consultation session -- HealthGraphController's new write
+  // route, authorized via the same shared treating-relationship check as
+  // every read above.
+  addPatientCondition: (
+    patientProfileId: string,
+    freeTextDescription: string,
+    certaintyLevel?: 'suspected' | 'confirmed' | 'ruled_out',
+  ) =>
+    apiFetch<{ node: DoctorPatientConditionNode }>({
+      method: 'POST',
+      path: DOCTOR_PATHS.addPatientCondition(patientProfileId),
+      body: { freeTextDescription, certaintyLevel },
+    }),
+
+  // Doctor Patient Chart Phase 4.2: the two-step upload-intent/confirm flow,
+  // scoped under /doctor/patients so ownerAccountId is always resolved
+  // server-side to the PATIENT's account, never the calling doctor's --
+  // distinct from mediaApi's own /media-assets/* (always owned by the caller).
+  createPatientDocumentUploadIntent: (
+    patientProfileId: string,
+    request: { contentType: string; purpose: DoctorPatientDocumentPurpose; sizeEstimate?: number },
+  ) =>
+    apiFetch<MediaAsset>({
+      method: 'POST',
+      path: DOCTOR_PATHS.patientChartDocumentUploadIntent(patientProfileId),
+      body: request,
+    }),
+
+  confirmPatientDocumentUpload: (patientProfileId: string, documentId: string) =>
+    apiFetch<MediaAsset>({
+      method: 'POST',
+      path: DOCTOR_PATHS.patientChartDocumentConfirm(patientProfileId, documentId),
+    }),
+
+  // Doctor Patient Chart Phase 4.3: rejects (422) if the patient already has
+  // a positive `allergies` value on record -- this route only ever sets
+  // "confirmed none."
+  confirmNoKnownAllergies: (patientProfileId: string) =>
+    apiFetch<DoctorPatientChartProfile>({
+      method: 'PATCH',
+      path: DOCTOR_PATHS.confirmNoKnownAllergies(patientProfileId),
+    }),
 };

@@ -4,7 +4,14 @@ import { useMutation } from '@tanstack/react-query';
 import { mediaApi } from '@/shared/media/media-api';
 import type { MediaAsset, MediaAssetPurpose } from '@/shared/media/types';
 
-async function putFileToSignedUrl(signedUrl: string, file: File): Promise<void> {
+/**
+ * The one place that actually PUTs a file's bytes to an S3-compatible
+ * presigned URL. Exported so other "upload a file for someone else's
+ * MediaAsset" flows (e.g. the doctor uploading a document to a patient's
+ * chart, Doctor Patient Chart plan 4.2) can reuse this exact step instead
+ * of reimplementing it -- only the intent/confirm calls around it differ.
+ */
+export async function putFileToSignedUrl(signedUrl: string, file: File): Promise<void> {
   const response = await fetch(signedUrl, {
     method: 'PUT',
     headers: { 'Content-Type': file.type },

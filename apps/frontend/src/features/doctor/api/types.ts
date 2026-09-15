@@ -369,6 +369,8 @@ export interface DoctorPatientChartProfile {
   address?: string;
   bloodType?: string;
   allergies?: string;
+  /** Doctor Patient Chart plan, 4.3: set only when a doctor has explicitly confirmed no known allergies AND `allergies` is empty. */
+  allergiesConfirmedNoneAt?: string;
   chronicDiseases?: string;
   insuranceProviderId?: string;
   insuranceProviderName?: string;
@@ -427,6 +429,18 @@ export interface DoctorPatientChartDocument {
   createdAt: string;
   signedUrl: string | null;
 }
+
+/** Doctor Patient Chart Phase 4.1: matches HealthGraphNodeResponseDto exactly (same shape consultation/api/types.ts's own DiagnosisNode uses). */
+export interface DoctorPatientConditionNode {
+  id: string;
+  nodeType: string;
+  description: string | null;
+  certaintyLevel: 'suspected' | 'confirmed' | 'ruled_out';
+  createdAt: string;
+}
+
+/** Doctor Patient Chart Phase 4.2: the two clinical-document purposes a doctor may upload to a patient's chart -- mirrors AssetModule's CLINICAL_MEDIA_ASSET_PURPOSES exactly, never the full MediaAssetPurpose union. */
+export type DoctorPatientDocumentPurpose = 'clinical_attachment' | 'lab_report';
 
 /** Same shape as the patient portal's own VitalType/VitalReading/HealthVitalSummary (apps/frontend/src/features/patient/api/types.ts) -- one real source of truth, GET :id/vitals just scopes it to this doctor's own recorded readings. */
 export type DoctorPatientChartVitalType = 'weight' | 'blood-pressure' | 'blood-sugar';

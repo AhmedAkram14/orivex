@@ -651,6 +651,130 @@ describe('DoctorPatientChartPage', () => {
     });
   });
 
+  // Doctor Patient Chart Phase 4.1: doctor-authored condition entry, added
+  // directly from the Medical History tab.
+  it('lets the doctor add a condition from the Medical History tab', async () => {
+    let addConditionBody: unknown;
+    mockChartEndpoints();
+    server.use(
+      http.post(`${env.apiBaseUrl}/patients/:id/health-graph/conditions`, async ({ request }) => {
+        addConditionBody = await request.json();
+        return HttpResponse.json(
+          { data: { node: { id: 'node-1', nodeType: 'condition', description: 'Type 2 diabetes', certaintyLevel: 'confirmed', createdAt: new Date().toISOString() } } },
+          { status: 201 },
+        );
+      }),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByRole('tab', { name: 'Medical History' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Add condition' }));
+
+    await userEvent.type(screen.getByLabelText('Condition description'), 'Type 2 diabetes');
+    await userEvent.click(screen.getByRole('button', { name: 'Save condition' }));
+
+    await waitFor(() => expect(addConditionBody).toEqual({ freeTextDescription: 'Type 2 diabetes', certaintyLevel: 'suspected' }));
+  });
+
+  // Doctor Patient Chart Phase 4.3: three real allergy-strip states.
+  describe('Confirm no known allergies', () => {
+    it('shows the confirm action only when neither allergies nor allergiesConfirmedNoneAt is set, and hides it once confirmed', async () => {
+      let confirmCallCount = 0;
+      server.use(
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () =>
+          HttpResponse.json({
+            data: {
+              ...PROFILE_RESPONSE,
+              allergies: undefined,
+              allergiesConfirmedNoneAt: confirmCallCount > 0 ? new Date().toISOString() : undefined,
+            },
+          }),
+        ),
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () => HttpResponse.json({ data: [] })),
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/medical-records`, () => HttpResponse.json({ data: [] })),
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/prescriptions`, () => HttpResponse.json({ data: [] })),
+        http.get(`${env.apiBaseUrl}/doctor/patients/:id/documents`, () => HttpResponse.json({ data: [] })),
+        http.get(`${env.apiBaseUrl}/doctors/me`, () =>
+          HttpResponse.json({
+            data: {
+              id: 'doctor-profile-1',
+              accountId: '1',
+              fullName: 'Dr. Sarah Ahmed',
+              email: 'doctor@orivex.dev',
+              licenseNumber: 'LIC-1',
+              specialtyId: 'specialty-cardiology',
+              languages: [],
+              insuranceProviders: [],
+              publications: [],
+              awards: [],
+              workExperience: [],
+              createdAt: '2020-01-15T00:00:00.000Z',
+              updatedAt: '2020-01-15T00:00:00.000Z',
+            },
+          }),
+        ),
+        http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+          HttpResponse.json({
+            data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0, writtenReviewCount: 0 },
+          }),
+        ),
+        http.patch(`${env.apiBaseUrl}/patients/:id/allergies/confirm-none`, () => {
+          confirmCallCount += 1;
+          return HttpResponse.json({ data: { ...PROFILE_RESPONSE, allergies: undefined, allergiesConfirmedNoneAt: new Date().toISOString() } });
+        }),
+      );
+      renderPage();
+
+      await screen.findByText('Fady Nassar');
+      const confirmButton = await screen.findByRole('button', { name: 'Confirm: no known allergies' });
+      await userEvent.click(confirmButton);
+
+      await waitFor(() => expect(confirmCallCount).toBe(1));
+      expect(await screen.findByText('Confirmed: no known allergies')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Confirm: no known allergies' })).not.toBeInTheDocument();
+    });
+
+    it('never shows the confirm action when the patient already has a real allergy on record', async () => {
+      mockChartEndpoints();
+      renderPage();
+
+      await screen.findByText('Fady Nassar');
+      expect(screen.getByText('Penicillin')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Confirm: no known allergies' })).not.toBeInTheDocument();
+    });
+  });
+
+  // Doctor Patient Chart Phase 4.2: two-step upload-intent/confirm flow.
+  it('lets the doctor upload a clinical document from the Documents tab', async () => {
+    let confirmCallCount = 0;
+    mockChartEndpoints({ documents: [] });
+    server.use(
+      http.post(`${env.apiBaseUrl}/doctor/patients/:id/documents/upload-intent`, () =>
+        HttpResponse.json({
+          data: { id: 'document-1', purpose: 'clinical_attachment', contentType: 'application/pdf', status: 'pending', signedUrl: 'https://storage.example.com/mock-upload' },
+        }),
+      ),
+      http.put('https://storage.example.com/mock-upload', () => new HttpResponse(null, { status: 200 })),
+      http.post(`${env.apiBaseUrl}/doctor/patients/:id/documents/:documentId/confirm`, () => {
+        confirmCallCount += 1;
+        return HttpResponse.json({
+          data: { id: 'document-1', purpose: 'clinical_attachment', contentType: 'application/pdf', status: 'confirmed', signedUrl: 'https://storage.example.com/mock-download' },
+        });
+      }),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
+
+    const file = new File(['%PDF-1.4'], 'lab-result.pdf', { type: 'application/pdf' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, file);
+
+    await waitFor(() => expect(confirmCallCount).toBe(1));
+  });
+
   it('shows an ownership-safe not-found state when the doctor has no relationship with this patient', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () =>

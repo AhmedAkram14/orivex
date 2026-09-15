@@ -68,4 +68,17 @@ export const DOCTOR_PATHS = {
   patientChartPrescriptions: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/prescriptions`,
   patientChartDocuments: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/documents`,
   patientChartVitals: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/vitals`,
+  // Doctor Patient Chart Phase 4.1: doctor-only write, HealthGraphController
+  // (not the read-only DoctorPatientChartController above) -- lives under
+  // /patients, not /doctor/patients.
+  addPatientCondition: (patientProfileId: string) => `/patients/${patientProfileId}/health-graph/conditions`,
+  // Phase 4.2: ClinicalModule's own wrapper over AssetModule, distinct from
+  // /media-assets/* -- ownerAccountId is always resolved server-side to the
+  // patient's own account, never the calling doctor's.
+  patientChartDocumentUploadIntent: (patientProfileId: string) => `/doctor/patients/${patientProfileId}/documents/upload-intent`,
+  patientChartDocumentConfirm: (patientProfileId: string, documentId: string) =>
+    `/doctor/patients/${patientProfileId}/documents/${documentId}/confirm`,
+  // Phase 4.3: PatientModule's own doctor-write route, authorized via the
+  // same shared treating-relationship check as the two routes above.
+  confirmNoKnownAllergies: (patientProfileId: string) => `/patients/${patientProfileId}/allergies/confirm-none`,
 } as const;
