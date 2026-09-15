@@ -42,8 +42,8 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
   const t = useTranslations('messaging.inbox');
   const [selectedThreadId, setSelectedThreadId] = useState<string | undefined>(undefined);
 
-  const patientAppointments = usePatientAppointments();
-  const doctorUpcomingWork = useDoctorUpcomingWork();
+  const patientAppointments = usePatientAppointments({ enabled: role === 'patient' });
+  const doctorUpcomingWork = useDoctorUpcomingWork({ enabled: role === 'doctor' });
   const threadsQuery = useMessageThreads();
   const startOrGetThread = useStartOrGetThread();
 

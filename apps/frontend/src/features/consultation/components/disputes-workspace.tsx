@@ -42,8 +42,8 @@ export function DisputesWorkspace({ role }: DisputesWorkspaceProps) {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState('');
   const [reason, setReason] = useState('');
 
-  const patientAppointments = usePatientAppointments();
-  const doctorUpcomingWork = useDoctorUpcomingWork();
+  const patientAppointments = usePatientAppointments({ enabled: role === 'patient' });
+  const doctorUpcomingWork = useDoctorUpcomingWork({ enabled: role === 'doctor' });
   const disputesQuery = useMyDisputes();
   const raiseDispute = useRaiseDispute();
 
