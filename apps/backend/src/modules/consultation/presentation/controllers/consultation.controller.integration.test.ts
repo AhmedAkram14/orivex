@@ -51,6 +51,7 @@ import type {
 } from '../../domain/repositories/free-tier-booking.repository.js';
 import { CloseConsultationUseCase } from '../../application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { DeclineAppointmentUseCase } from '../../application/use-cases/decline-appointment/decline-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GenerateAppointmentCalendarInviteUseCase } from '../../application/use-cases/generate-appointment-calendar-invite/generate-appointment-calendar-invite.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
@@ -538,6 +539,11 @@ describe('Consultation controllers (integration)', () => {
       confirmSlotUseCase,
       new NoopDomainEventDispatcher(),
     );
+    const declineAppointmentUseCase = new DeclineAppointmentUseCase(
+      appointmentRepo,
+      releaseSlotUseCase,
+      new NoopDomainEventDispatcher(),
+    );
     const bookAppointmentUseCase = new BookAppointmentUseCase(
       appointmentRepo,
       new NoopDomainEventDispatcher(),
@@ -704,6 +710,7 @@ describe('Consultation controllers (integration)', () => {
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(appointmentRepo) },
         { provide: GenerateAppointmentCalendarInviteUseCase, useValue: generateAppointmentCalendarInviteUseCase },
         { provide: ConfirmAppointmentUseCase, useValue: confirmAppointmentUseCase },
+        { provide: DeclineAppointmentUseCase, useValue: declineAppointmentUseCase },
         { provide: GetConsultationSessionByIdUseCase, useValue: new GetConsultationSessionByIdUseCase(sessionRepo) },
         {
           provide: ListMedicalSpecialtiesUseCase,
@@ -790,6 +797,65 @@ describe('Consultation controllers (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  // Doctor Patient Chart Phase 2: the doctor's explicit rejection of a
+  // Requested booking, before ever approving it -- distinct from approve()
+  // above (which this suite's `bookedAppointmentId` already went through
+  // and is now Confirmed). Seeds the Requested appointment directly into
+  // the repositories (same precedent as this file's own
+  // "GET /appointments/me marks a Paid, unconfirmed appointment..." test
+  // further down) rather than booking it through POST /appointments -- this
+  // patient's real monthly free-consultation cap is already exhausted this
+  // deep into the suite, and going through decline() itself (not booking)
+  // is what this test is actually about.
+  it('PATCH /appointments/:id/decline cancels a Requested appointment, releases its slot, and never opens a ConsultationSession', async () => {
+    secondFreeWindow.hold();
+    const requestedAppointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: secondFreeWindow.getId(),
+      pricing: ConsultationPricing.free(),
+      scheduledAt: secondFreeWindow.getStartTime(),
+      reasonForVisit: 'Second opinion',
+    });
+    await appointmentRepo.save(requestedAppointment);
+    const declinedAppointmentId = requestedAppointment.getId();
+
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${declinedAppointmentId}/decline`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .send({ reason: 'Fully booked that week' })
+      .expect(200);
+
+    assert.equal(response.body.data.status, 'cancelled');
+    const session = await sessionRepo.findByAppointmentId(declinedAppointmentId);
+    assert.equal(session, null, 'a declined appointment must never get a ConsultationSession opened');
+
+    // The slot must be released back to Open, not left Held -- `secondFreeWindow`
+    // is the same in-memory entity instance the repository mutated in place,
+    // so re-reading its own status is a direct check.
+    assert.equal(secondFreeWindow.getStatus(), 'open');
+  });
+
+  it('PATCH /appointments/:id/decline rejects a doctor who does not own the appointment (404, not 403)', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${bookedAppointmentId}/decline`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(404);
+
+    assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('PATCH /appointments/:id/decline rejects declining an already-Confirmed appointment', async () => {
+    // bookedAppointmentId was already approved (Confirmed) above -- decline()
+    // only allows the Requested -> Cancelled transition.
+    const response = await request(app.getHttpServer())
+      .patch(`/appointments/${bookedAppointmentId}/decline`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(422);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
   });
 
   // K11 -- Calendar sync (ORIVEX Remaining Work Audit): a real, complete

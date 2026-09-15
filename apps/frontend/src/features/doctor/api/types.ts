@@ -320,6 +320,12 @@ export interface ApprovedAppointment {
   status: string;
 }
 
+/** Doctor Patient Chart Phase 2: the real AppointmentResponseDto's shape, narrowed to what the decline action's caller needs -- mirrors ApprovedAppointment exactly. */
+export interface DeclinedAppointment {
+  id: string;
+  status: string;
+}
+
 /** Matches DoctorAppointmentsController's real DoctorPatientListItemResponseDto exactly -- one row per distinct patient the doctor has ever had a real appointment with. No "last diagnosis" field: that lives in ClinicalModule, which the backend endpoint can't reach without a circular module dependency (see the DTO's own comment). */
 export interface DoctorPatientListItem {
   patientProfileId: string;

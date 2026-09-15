@@ -4,17 +4,19 @@ import { describe, it } from 'node:test';
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
 import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
+import { AppointmentDeclinedEvent } from '../events/appointment-declined.event.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
 import { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
+import { Money } from '../value-objects/money.value-object.js';
 
 import { Appointment } from './appointment.entity.js';
 
-function requestAppointment(): Appointment {
+function requestAppointment(pricing: ConsultationPricing = ConsultationPricing.free()): Appointment {
   return Appointment.request({
     patientId: '11111111-1111-4111-8111-111111111111',
     doctorId: '22222222-2222-4222-8222-222222222222',
     availabilityWindowId: '33333333-3333-4333-8333-333333333333',
-    pricing: ConsultationPricing.free(),
+    pricing,
     scheduledAt: new Date(Date.now() + 60 * 60_000),
   });
 }
@@ -74,6 +76,53 @@ describe('Appointment', () => {
     assert.ok(events[0] instanceof AppointmentCancelledEvent);
     assert.equal((events[0] as AppointmentCancelledEvent).appointmentId, appointment.getId());
     assert.equal((events[0] as AppointmentCancelledEvent).cancelledBy, 'doctor');
+  });
+
+  it('declines a Requested appointment', () => {
+    const appointment = requestAppointment();
+    appointment.decline('Not accepting new patients this week');
+    assert.equal(appointment.getStatus(), AppointmentStatus.Cancelled);
+  });
+
+  it('declines a Requested PAID appointment too -- unlike approve(), decline is not restricted to Free-only pricing', () => {
+    const appointment = requestAppointment(ConsultationPricing.paid(Money.create(500, 'EGP')));
+    appointment.decline();
+    assert.equal(appointment.getStatus(), AppointmentStatus.Cancelled);
+  });
+
+  it('decline() raises AppointmentDeclinedEvent carrying the appointment id and reason', () => {
+    const appointment = requestAppointment();
+    appointment.releaseDomainEvents(); // clears AppointmentBooked -- decline() is a separate transaction in real usage
+
+    appointment.decline('Schedule conflict');
+
+    const events = appointment.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof AppointmentDeclinedEvent);
+    assert.equal((events[0] as AppointmentDeclinedEvent).appointmentId, appointment.getId());
+    assert.equal((events[0] as AppointmentDeclinedEvent).reason, 'Schedule conflict');
+  });
+
+  it('decline() works without a reason -- it is optional', () => {
+    const appointment = requestAppointment();
+    appointment.releaseDomainEvents();
+
+    appointment.decline();
+
+    const events = appointment.releaseDomainEvents();
+    assert.equal((events[0] as AppointmentDeclinedEvent).reason, undefined);
+  });
+
+  it('rejects declining a non-Requested appointment', () => {
+    const appointment = requestAppointment();
+    appointment.confirm();
+    assert.throws(() => appointment.decline(), ConsultationDomainError);
+  });
+
+  it('rejects declining an already-cancelled appointment', () => {
+    const appointment = requestAppointment();
+    appointment.cancel('doctor');
+    assert.throws(() => appointment.decline(), ConsultationDomainError);
   });
 
   it('marks an appointment as Rescheduled', () => {

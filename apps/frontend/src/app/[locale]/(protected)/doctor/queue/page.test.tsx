@@ -226,6 +226,56 @@ describe('DoctorQueuePage', () => {
     await waitFor(() => expect(approveCallCount).toBe(1));
   });
 
+  // Doctor Patient Chart Phase 2: the doctor's explicit rejection of a
+  // Requested booking -- not restricted to Free-only pricing, unlike
+  // approve (mirrored below with a Paid request to prove it's offered
+  // there too).
+  it('lets the doctor decline a pending request with an optional reason', async () => {
+    let declineCallCount = 0;
+    let declineBody: unknown;
+    server.use(
+      http.get(`${env.apiBaseUrl}/appointments/doctor/pending-approval`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appointment-2',
+              patientName: 'Yasmin Adel',
+              scheduledAt: new Date().toISOString(),
+              reasonForVisit: 'Specialist consultation',
+              consultationType: 'paid',
+            },
+          ],
+        }),
+      ),
+      http.patch(`${env.apiBaseUrl}/appointments/:id/decline`, async ({ params, request }) => {
+        declineCallCount += 1;
+        declineBody = await request.json();
+        return HttpResponse.json({ data: { id: params.id, status: 'cancelled' } });
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={doctorState}>
+            <DoctorQueuePage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Yasmin Adel')).toBeInTheDocument();
+    // Offered for a Paid request too -- decline has no isFree() guard.
+    expect(screen.getByText('Paid')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Decline' }));
+    await userEvent.type(screen.getByLabelText('Reason (optional)'), 'Fully booked that week');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm decline' }));
+
+    await waitFor(() => expect(declineCallCount).toBe(1));
+    expect(declineBody).toEqual({ reason: 'Fully booked that week' });
+  });
+
   it('shows an honest empty state when there are no pending requests', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(

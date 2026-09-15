@@ -2,6 +2,7 @@ import { apiFetch } from '@/shared/lib/api/client';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
 import type {
   ApprovedAppointment,
+  DeclinedAppointment,
   DepartmentOption,
   DoctorDashboardSummary,
   DoctorDirectoryResult,
@@ -80,6 +81,15 @@ export const doctorApi = {
 
   approveAppointment: (appointmentId: string) =>
     apiFetch<ApprovedAppointment>({ method: 'PATCH', path: DOCTOR_PATHS.approveAppointment(appointmentId) }),
+
+  // Doctor Patient Chart Phase 2: not restricted to Free-only pricing,
+  // unlike approveAppointment above.
+  declineAppointment: (appointmentId: string, reason?: string) =>
+    apiFetch<DeclinedAppointment>({
+      method: 'PATCH',
+      path: DOCTOR_PATHS.declineAppointment(appointmentId),
+      body: reason ? { reason } : undefined,
+    }),
 
   // Doctor Workspace dashboard redesign's Patients/Reports pages.
   getPatients: () => apiFetch<DoctorPatientListItem[]>({ path: DOCTOR_PATHS.patients }),

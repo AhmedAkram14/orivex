@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -18,6 +18,8 @@ import { AppointmentStatus } from '../../domain/enums/appointment-status.enum.js
 import { ConsultationDomainError } from '../../domain/exceptions/consultation-domain.error.js';
 import { ConfirmAppointmentCommand } from '../../application/use-cases/confirm-appointment/confirm-appointment.command.js';
 import { ConfirmAppointmentUseCase } from '../../application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
+import { DeclineAppointmentCommand } from '../../application/use-cases/decline-appointment/decline-appointment.command.js';
+import { DeclineAppointmentUseCase } from '../../application/use-cases/decline-appointment/decline-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
@@ -26,6 +28,7 @@ import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/li
 import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
 import { DoctorPatientListItemResponseDto } from '../dto/doctor-patient-list-item-response.dto.js';
+import { DeclineAppointmentRequestDto } from '../dto/decline-appointment-request.dto.js';
 import { DoctorReportsSummaryResponseDto } from '../dto/doctor-reports-summary-response.dto.js';
 import { DoctorScheduleAppointmentResponseDto } from '../dto/doctor-schedule-appointment-response.dto.js';
 import { DoctorScheduleQueryDto } from '../dto/doctor-schedule-query.dto.js';
@@ -53,6 +56,7 @@ export class DoctorAppointmentsController {
     private readonly getSchedulingRulesUseCase: GetSchedulingRulesUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
+    private readonly declineAppointmentUseCase: DeclineAppointmentUseCase,
     private readonly getDoctorReportsSummaryUseCase: GetDoctorReportsSummaryUseCase,
     private readonly getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
   ) {}
@@ -333,6 +337,42 @@ export class DoctorAppointmentsController {
 
       const result = await this.confirmAppointmentUseCase.execute(new ConfirmAppointmentCommand({ appointmentId: id }));
       return envelope(AppointmentResponseDto.fromDomain(result.appointment));
+    } catch (error) {
+      throw mapConsultationError(error);
+    }
+  }
+
+  // Doctor Patient Chart Phase 2: the doctor's explicit rejection of a
+  // Requested booking, before ever approving it -- unlike approve() above,
+  // this is NOT restricted to Free-only pricing (confirmed decision): a
+  // doctor previously had no way to reject an unwanted Paid-but-unpaid
+  // request at all, only to `cancel` (a different, broader action) once it
+  // eventually confirmed. Mirrors approve()'s exact guard/error-handling
+  // shape.
+  @Patch(':id/decline')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async decline(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: DeclineAppointmentRequestDto,
+  ): Promise<ResponseEnvelope<AppointmentResponseDto>> {
+    try {
+      const existing = await this.getAppointmentByIdUseCase.execute({ appointmentId: id });
+      if (!existing) {
+        throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
+      const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+      if (!doctorProfile || doctorProfile.getId() !== existing.getDoctorId()) {
+        // 404, not 403 -- never confirms to a caller whether an appointment
+        // id belonging to someone else's queue exists at all.
+        throw new NotFoundError(`Appointment "${id}" not found.`);
+      }
+
+      const declined = await this.declineAppointmentUseCase.execute(
+        new DeclineAppointmentCommand({ appointmentId: id, reason: body.reason }),
+      );
+      return envelope(AppointmentResponseDto.fromDomain(declined));
     } catch (error) {
       throw mapConsultationError(error);
     }

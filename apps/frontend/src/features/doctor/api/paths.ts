@@ -28,6 +28,10 @@ export const DOCTOR_PATHS = {
   schedule: (from: string, to: string) =>
     `/appointments/doctor/schedule?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
   approveAppointment: (appointmentId: string) => `/appointments/${appointmentId}/approve`,
+  // Doctor Patient Chart Phase 2: the doctor's explicit rejection of a
+  // Requested booking, before ever approving it -- applies to any Requested
+  // appointment regardless of Free/Paid pricing tier (unlike approve above).
+  declineAppointment: (appointmentId: string) => `/appointments/${appointmentId}/decline`,
   // Doctor Onboarding (Phase 4 continuation) -- the same DoctorProfileController
   // real backend routes, reused as-is: POST /doctors (register), and the
   // caller's own verification history under /doctors/:id/verifications.

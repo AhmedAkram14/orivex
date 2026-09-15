@@ -1136,6 +1136,12 @@
         "loadError": "تعذّر تحميل الطلبات المعلّقة.",
         "approve": "الموافقة",
         "approveError": "تعذرت الموافقة على هذا الموعد. حاول مرة أخرى.",
+        "decline": "رفض",
+        "declineReasonLabel": "السبب (اختياري)",
+        "declineReasonPlaceholder": "أخبر المريض بالسبب، مثل عدم توفر مواعيد هذا الأسبوع",
+        "cancel": "إلغاء",
+        "confirmDecline": "تأكيد الرفض",
+        "declineError": "تعذّر رفض هذا الموعد. حاول مرة أخرى.",
         "consultationType": {
           "free": "مجانية",
           "paid": "مدفوعة"
@@ -1953,6 +1959,14 @@
     "noDocuments": "لا توجد مستندات سريرية مرفوعة",
     "documentPurpose": { "clinical_attachment": "مرفق سريري", "lab_report": "تقرير مخبري" },
     "view": "عرض",
+    "approveAppointment": "الموافقة",
+    "declineAppointment": "رفض",
+    "declineReasonLabel": "السبب (اختياري)",
+    "declineReasonPlaceholder": "أخبر المريض بالسبب، مثل عدم توفر مواعيد هذا الأسبوع",
+    "cancelDeclineAppointment": "إلغاء",
+    "confirmDeclineAppointment": "تأكيد الرفض",
+    "approveAppointmentError": "تعذرت الموافقة على هذا الموعد. حاول مرة أخرى.",
+    "declineAppointmentError": "تعذّر رفض هذا الموعد. حاول مرة أخرى.",
     "appointmentStatus": {
       "requested": "بانتظار موافقة الطبيب",
       "confirmed": "مؤكد",

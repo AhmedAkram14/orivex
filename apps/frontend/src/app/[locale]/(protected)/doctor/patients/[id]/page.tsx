@@ -33,12 +33,15 @@ import {
   useDoctorPatientChartProfile,
   useDoctorPatientChartVitals,
 } from '@/features/doctor/hooks/use-doctor-patient-chart';
+import { useApproveAppointment } from '@/features/doctor/hooks/use-approve-appointment';
+import { useDeclineAppointment } from '@/features/doctor/hooks/use-decline-appointment';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Heading } from '@/design-system/typography';
@@ -46,6 +49,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Page } from '@/shared/ui/layout/page';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { Textarea } from '@/shared/ui/textarea';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
@@ -619,14 +623,34 @@ export default function DoctorPatientChartPage() {
 // instead: reason for visit, consultation type (free/paid -- there is no
 // "booking channel" concept anywhere in this domain), and duration when the
 // appointment's endTime is known.
+// Audit finding #4 (the reason Phase 2 of this page's plan exists): the
+// doctor previously had no way to approve/decline a pending request from
+// the patient's own chart, only from the separate Queue page. Reuses the
+// exact same hooks the Queue's PendingApprovalSection uses, so approving/
+// declining here invalidates the same caches (Queue/Dashboard/Pending
+// Approval/this chart's own appointments) either surface was already
+// wired to.
 function AppointmentRow({ appointment }: { appointment: DoctorPatientChartAppointment }) {
   const t = useTranslations('publicPatient');
   const format = useFormatter();
+  const approveAppointment = useApproveAppointment();
+  const declineAppointment = useDeclineAppointment();
+  const [isDeclining, setIsDeclining] = useState(false);
+  const [declineReason, setDeclineReason] = useState('');
   const durationMinutes = appointment.endTime
     ? Math.round((new Date(appointment.endTime).getTime() - new Date(appointment.scheduledAt).getTime()) / 60_000)
     : undefined;
+  const isPending = appointment.status === 'requested';
+
+  function submitDecline() {
+    declineAppointment.mutate(
+      { appointmentId: appointment.id, reason: declineReason.trim() || undefined },
+      { onSuccess: () => setIsDeclining(false) },
+    );
+  }
+
   return (
-    <li className="flex flex-col gap-1 rounded-xl border border-border-default/70 p-4">
+    <li className="flex flex-col gap-2 rounded-xl border border-border-default/70 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-medium text-text-primary">
           {format.dateTime(new Date(appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}
@@ -640,6 +664,56 @@ function AppointmentRow({ appointment }: { appointment: DoctorPatientChartAppoin
           <span className="text-xs text-text-tertiary">{t('durationMinutes', { minutes: durationMinutes })}</span>
         )}
       </div>
+
+      {isPending && (
+        <div className="flex flex-col gap-2 border-t border-border-default pt-3">
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={declineAppointment.isPending}
+              onClick={() => setIsDeclining((prev) => !prev)}
+            >
+              {t('declineAppointment')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              loading={approveAppointment.isPending}
+              onClick={() => approveAppointment.mutate(appointment.id)}
+            >
+              {t('approveAppointment')}
+            </Button>
+          </div>
+
+          {isDeclining && (
+            <div className="flex flex-col gap-2">
+              <label htmlFor={`chart-decline-reason-${appointment.id}`} className="text-xs font-medium text-text-tertiary">
+                {t('declineReasonLabel')}
+              </label>
+              <Textarea
+                id={`chart-decline-reason-${appointment.id}`}
+                value={declineReason}
+                onChange={(event) => setDeclineReason(event.target.value)}
+                placeholder={t('declineReasonPlaceholder')}
+                className="min-h-16"
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setIsDeclining(false)}>
+                  {t('cancelDeclineAppointment')}
+                </Button>
+                <Button type="button" variant="danger" size="sm" loading={declineAppointment.isPending} onClick={submitDecline}>
+                  {t('confirmDeclineAppointment')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {approveAppointment.isError && <Alert variant="danger">{t('approveAppointmentError')}</Alert>}
+          {declineAppointment.isError && <Alert variant="danger">{t('declineAppointmentError')}</Alert>}
+        </div>
+      )}
     </li>
   );
 }

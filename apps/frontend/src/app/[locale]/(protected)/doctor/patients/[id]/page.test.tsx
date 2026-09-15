@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -370,6 +370,146 @@ describe('DoctorPatientChartPage', () => {
     expect(section.getByText('30 min')).toBeInTheDocument();
     expect(section.queryByText('Dr. Sarah Ahmed')).not.toBeInTheDocument();
     expect(section.queryByText('Cardiology')).not.toBeInTheDocument();
+  });
+
+  // Audit finding #4 / Phase 2: the doctor must be able to approve/decline a
+  // pending request from the patient's own chart (Consultations tab), not
+  // only from the separate Queue page.
+  it('lets the doctor approve a Requested appointment from the Consultations tab', async () => {
+    let approveCallCount = 0;
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () => HttpResponse.json({ data: PROFILE_RESPONSE })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appointment-pending-1',
+              scheduledAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+              doctorId: 'doctor-profile-1',
+              doctorName: 'Dr. Sarah Ahmed',
+              specialization: 'Cardiology',
+              specializationAr: null,
+              status: 'requested',
+              consultationType: 'free',
+              reasonForVisit: 'Follow-up',
+              consultationSessionId: null,
+              paymentRequired: false,
+            },
+          ],
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/medical-records`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/prescriptions`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/documents`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctors/me`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'doctor-profile-1',
+            accountId: '1',
+            fullName: 'Dr. Sarah Ahmed',
+            email: 'doctor@orivex.dev',
+            licenseNumber: 'LIC-1',
+            specialtyId: 'specialty-cardiology',
+            languages: [],
+            insuranceProviders: [],
+            publications: [],
+            awards: [],
+            workExperience: [],
+            createdAt: '2020-01-15T00:00:00.000Z',
+            updatedAt: '2020-01-15T00:00:00.000Z',
+          },
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({
+          data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0, writtenReviewCount: 0 },
+        }),
+      ),
+      http.patch(`${env.apiBaseUrl}/appointments/:id/approve`, ({ params }) => {
+        approveCallCount += 1;
+        return HttpResponse.json({ data: { id: params.id, status: 'confirmed' } });
+      }),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+    expect(await screen.findByText('Follow-up')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+
+    await waitFor(() => expect(approveCallCount).toBe(1));
+  });
+
+  it('lets the doctor decline a Requested appointment (with an optional reason) from the Consultations tab', async () => {
+    let declineCallCount = 0;
+    let declineBody: unknown;
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () => HttpResponse.json({ data: PROFILE_RESPONSE })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appointment-pending-2',
+              scheduledAt: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
+              doctorId: 'doctor-profile-1',
+              doctorName: 'Dr. Sarah Ahmed',
+              specialization: 'Cardiology',
+              specializationAr: null,
+              status: 'requested',
+              consultationType: 'paid',
+              reasonForVisit: 'Specialist consultation',
+              consultationSessionId: null,
+              paymentRequired: true,
+            },
+          ],
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/medical-records`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/prescriptions`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/documents`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctors/me`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'doctor-profile-1',
+            accountId: '1',
+            fullName: 'Dr. Sarah Ahmed',
+            email: 'doctor@orivex.dev',
+            licenseNumber: 'LIC-1',
+            specialtyId: 'specialty-cardiology',
+            languages: [],
+            insuranceProviders: [],
+            publications: [],
+            awards: [],
+            workExperience: [],
+            createdAt: '2020-01-15T00:00:00.000Z',
+            updatedAt: '2020-01-15T00:00:00.000Z',
+          },
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({
+          data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0, writtenReviewCount: 0 },
+        }),
+      ),
+      http.patch(`${env.apiBaseUrl}/appointments/:id/decline`, async ({ params, request }) => {
+        declineCallCount += 1;
+        declineBody = await request.json();
+        return HttpResponse.json({ data: { id: params.id, status: 'cancelled' } });
+      }),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+    expect(await screen.findByText('Specialist consultation')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Decline' }));
+    await userEvent.type(screen.getByLabelText('Reason (optional)'), 'Fully booked that week');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm decline' }));
+
+    await waitFor(() => expect(declineCallCount).toBe(1));
+    expect(declineBody).toEqual({ reason: 'Fully booked that week' });
   });
 
   it('shows an ownership-safe not-found state when the doctor has no relationship with this patient', async () => {

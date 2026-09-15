@@ -1136,6 +1136,12 @@
         "loadError": "Couldn't load pending requests.",
         "approve": "Approve",
         "approveError": "Couldn't approve this appointment. Please try again.",
+        "decline": "Decline",
+        "declineReasonLabel": "Reason (optional)",
+        "declineReasonPlaceholder": "Let the patient know why, e.g. fully booked that week",
+        "cancel": "Cancel",
+        "confirmDecline": "Confirm decline",
+        "declineError": "Couldn't decline this appointment. Please try again.",
         "consultationType": {
           "free": "Free",
           "paid": "Paid"
@@ -1953,6 +1959,14 @@
     "noDocuments": "No clinical documents uploaded",
     "documentPurpose": { "clinical_attachment": "Clinical attachment", "lab_report": "Lab report" },
     "view": "View",
+    "approveAppointment": "Approve",
+    "declineAppointment": "Decline",
+    "declineReasonLabel": "Reason (optional)",
+    "declineReasonPlaceholder": "Let the patient know why, e.g. fully booked that week",
+    "cancelDeclineAppointment": "Cancel",
+    "confirmDeclineAppointment": "Confirm decline",
+    "approveAppointmentError": "Couldn't approve this appointment. Please try again.",
+    "declineAppointmentError": "Couldn't decline this appointment. Please try again.",
     "appointmentStatus": {
       "requested": "Waiting doctor approval",
       "confirmed": "Confirmed",

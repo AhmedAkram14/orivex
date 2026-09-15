@@ -4,6 +4,7 @@ import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { AppointmentBookedEvent } from '../events/appointment-booked.event.js';
 import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
+import { AppointmentDeclinedEvent } from '../events/appointment-declined.event.js';
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
 import type { AppointmentType } from '../enums/appointment-type.enum.js';
 import type { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
@@ -142,6 +143,25 @@ export class Appointment {
     this.status = AppointmentStatus.Cancelled;
     this.updatedAt = new Date();
     this.record(new AppointmentCancelledEvent(this.id, cancelledBy));
+  }
+
+  // Doctor Patient Chart Phase 2: a pre-approval rejection, distinct from
+  // cancel() -- only valid from Requested (a doctor can't "decline" an
+  // appointment they, or an automatic paid-charge, already confirmed; that
+  // is what cancel() is for). Reuses the same terminal Cancelled status
+  // (no new AppointmentStatus member, zero impact on Payment/Notification/
+  // Scheduling, which only ever switch on Cancelled) but records a distinct
+  // AppointmentDeclinedEvent so those consumers can still tell the two
+  // apart when they care to. Confirmed decision: applies to ANY Requested
+  // appointment regardless of pricing tier -- unlike approve(), no
+  // pricing.isFree() guard here.
+  decline(reason?: string): void {
+    if (this.status !== AppointmentStatus.Requested) {
+      throw new ConsultationDomainError(`Appointment "${this.id}" is not Requested and cannot be declined.`);
+    }
+    this.status = AppointmentStatus.Cancelled;
+    this.updatedAt = new Date();
+    this.record(new AppointmentDeclinedEvent(this.id, reason));
   }
 
   // Marks this appointment as superseded by a new one on a different slot

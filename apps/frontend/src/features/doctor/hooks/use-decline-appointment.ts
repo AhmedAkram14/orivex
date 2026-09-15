@@ -9,19 +9,23 @@ import {
   doctorQueueKeys,
 } from '@/features/doctor/hooks/query-keys';
 
-export function useApproveAppointment() {
+/**
+ * Doctor Patient Chart Phase 2: mirrors useApproveAppointment's exact shape
+ * and invalidations -- a decline moves an appointment out of Pending
+ * Approval the same way an approve does, it just lands on Cancelled instead
+ * of Confirmed, so it never enters the Queue/Dashboard, but invalidating
+ * those two anyway costs nothing and keeps this hook a true mirror.
+ */
+export function useDeclineAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (appointmentId: string) => doctorApi.approveAppointment(appointmentId),
+    mutationFn: ({ appointmentId, reason }: { appointmentId: string; reason?: string }) =>
+      doctorApi.declineAppointment(appointmentId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: doctorPendingApprovalKeys.all });
       queryClient.invalidateQueries({ queryKey: doctorQueueKeys.all });
       queryClient.invalidateQueries({ queryKey: doctorDashboardKeys.all });
-      // Phase 2.1 fix: approving from the Queue previously left a stale
-      // "Requested" row on that patient's chart page if it was already
-      // cached -- broadly invalidated (no patientId is threaded through
-      // this mutation today), same coarse granularity as the three above.
       queryClient.invalidateQueries({ queryKey: doctorPatientChartAppointmentsKeys.all });
     },
   });
