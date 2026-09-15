@@ -11,18 +11,25 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../../messages/en.json';
 
+const replace = vi.fn();
+let mockSearchParams = new URLSearchParams();
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/doctor/patients/patient-profile-1',
   useParams: () => ({ locale: 'en', id: 'patient-profile-1' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockSearchParams,
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
 }));
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  replace.mockClear();
+  mockSearchParams = new URLSearchParams();
+});
 afterAll(() => server.close());
 
 const doctorState: AuthState = {
@@ -259,6 +266,110 @@ describe('DoctorPatientChartPage', () => {
     const previousSection = screen.getByRole('heading', { name: 'Previous visits' }).closest('.rounded-2xl');
     expect(previousSection).not.toBeNull();
     expect(within(previousSection as HTMLElement).getByText('Waiting doctor approval')).toBeInTheDocument();
+  });
+
+  it('renders a breadcrumb trail back to the Patients list', async () => {
+    mockChartEndpoints();
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(breadcrumb).getByText('Patients')).toBeInTheDocument();
+  });
+
+  it("uses the patient's real name as the page's H1, not the static word \"Patient\"", async () => {
+    mockChartEndpoints();
+    renderPage();
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Fady Nassar' })).toBeInTheDocument();
+  });
+
+  it('seeds the active tab from ?tab= so a refresh (or a shared link) lands on the same tab, not always Overview', async () => {
+    mockSearchParams = new URLSearchParams('tab=consultations');
+    mockChartEndpoints();
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    expect(screen.getByRole('tab', { name: 'Consultations' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('keeps the allergy/condition strip visible on every tab, not just Overview', async () => {
+    mockChartEndpoints();
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    expect(screen.getByText('Penicillin')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
+    expect(await screen.findByText('No clinical documents uploaded')).toBeInTheDocument();
+    expect(screen.getByText('Penicillin')).toBeInTheDocument();
+  });
+
+  it("shows reason for visit, consultation type, and duration on a consultations row -- never the viewing doctor's own name/specialization back to themselves", async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () => HttpResponse.json({ data: PROFILE_RESPONSE })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appointment-past-1',
+              scheduledAt: '2026-08-01T10:00:00.000Z',
+              endTime: '2026-08-01T10:30:00.000Z',
+              doctorId: 'doctor-profile-1',
+              doctorName: 'Dr. Sarah Ahmed',
+              specialization: 'Cardiology',
+              specializationAr: null,
+              status: 'completed',
+              consultationType: 'paid',
+              reasonForVisit: 'Follow-up chest pain',
+              consultationSessionId: 'session-1',
+              paymentRequired: false,
+            },
+          ],
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/medical-records`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/prescriptions`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/documents`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctors/me`, () =>
+        HttpResponse.json({
+          data: {
+            id: 'doctor-profile-1',
+            accountId: '1',
+            fullName: 'Dr. Sarah Ahmed',
+            email: 'doctor@orivex.dev',
+            licenseNumber: 'LIC-1',
+            specialtyId: 'specialty-cardiology',
+            languages: [],
+            insuranceProviders: [],
+            publications: [],
+            awards: [],
+            workExperience: [],
+            createdAt: '2020-01-15T00:00:00.000Z',
+            updatedAt: '2020-01-15T00:00:00.000Z',
+          },
+        }),
+      ),
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({
+          data: { reviews: [], total: 0, page: 1, limit: 20, averageRating: null, reviewCount: 0, writtenReviewCount: 0 },
+        }),
+      ),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+
+    const previousSection = (await screen.findByRole('heading', { name: 'Previous visits' })).closest('.rounded-2xl');
+    expect(previousSection).not.toBeNull();
+    const section = within(previousSection as HTMLElement);
+    expect(section.getByText('Follow-up chest pain')).toBeInTheDocument();
+    expect(section.getByText('Paid consultation')).toBeInTheDocument();
+    expect(section.getByText('30 min')).toBeInTheDocument();
+    expect(section.queryByText('Dr. Sarah Ahmed')).not.toBeInTheDocument();
+    expect(section.queryByText('Cardiology')).not.toBeInTheDocument();
   });
 
   it('shows an ownership-safe not-found state when the doctor has no relationship with this patient', async () => {

@@ -375,6 +375,8 @@ export interface DoctorPatientChartProfile {
 export interface DoctorPatientChartAppointment {
   id: string;
   scheduledAt: string;
+  /** Additive/optional (Doctor Patient Chart Phase 1.6): mirrors the backend's `appointment.entity.ts` `getEndTime()`, undefined for appointments booked before this field existed -- used to compute a real consultation duration. */
+  endTime?: string;
   doctorId: string;
   doctorName: string;
   doctorAvatarUrl?: string;

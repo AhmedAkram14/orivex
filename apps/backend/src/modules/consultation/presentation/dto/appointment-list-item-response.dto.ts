@@ -27,6 +27,8 @@ export interface AppointmentFeeDto {
 export class AppointmentListItemResponseDto {
   id!: string;
   scheduledAt!: string;
+  /** Doctor Patient Chart (Phase 1.6): additive/optional, mirrors `DoctorUpcomingWorkItemResponseDto.endTime` -- undefined for appointments booked before this field existed. Lets the chart show a real consultation duration instead of fabricating one. */
+  endTime?: string;
   /** Patient-Facing Reschedule (Phase 3 Step 2): additive field so the frontend can look up the same doctor's real availability windows (`GET /doctors/:doctorId/availability-windows`) when rescheduling -- `Appointment.getDoctorId()` already existed on the domain entity, this just maps it through. */
   doctorId!: string;
   doctorName!: string;
@@ -51,6 +53,7 @@ export class AppointmentListItemResponseDto {
     const dto = new AppointmentListItemResponseDto();
     dto.id = appointment.getId();
     dto.scheduledAt = appointment.getScheduledAt().toISOString();
+    dto.endTime = appointment.getEndTime()?.toISOString();
     dto.doctorId = appointment.getDoctorId();
     dto.doctorName = doctorAccount.getUserProfile().getDisplayName().toString();
     dto.doctorAvatarUrl = doctorAccount.getUserProfile().getAvatarUrl();

@@ -21,7 +21,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import {
   useDoctorPatientChartAppointments,
@@ -39,10 +41,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
 import { Icon } from '@/shared/icons/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Heading } from '@/design-system/typography';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Page } from '@/shared/ui/layout/page';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
 import type {
@@ -54,6 +58,12 @@ import type {
 const CARD_CLASSNAME = 'rounded-2xl border-border-default/60 shadow-[0_10px_30px_rgba(15,23,42,0.05)]';
 
 const NON_TERMINAL_STATUSES = new Set(['requested', 'confirmed', 'rescheduled']);
+
+// Tabs -> URL (Phase 1.3): mirrors doctor/queue/page.tsx's exact pattern so
+// `?tab=` is shareable/restorable the same way there, e.g. deep-linking
+// straight to `?tab=consultations` from the Queue or Dashboard.
+type TabValue = 'overview' | 'history' | 'consultations' | 'prescriptions' | 'documents';
+const TAB_VALUES: readonly TabValue[] = ['overview', 'history', 'consultations', 'prescriptions', 'documents'];
 
 /** A human-shaped stand-in for the real UUID (never truncated/altered anywhere it's actually used for a lookup -- display only, this page's own header). Matches the short-SHA convention: first 8 hex characters, uppercased. */
 function shortId(id: string): string {
@@ -144,6 +154,23 @@ export default function DoctorPatientChartPage() {
   const format = useFormatter();
   const params = useParams<{ id: string }>();
   const patientProfileId = params.id;
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const tabParam = searchParams.get('tab');
+  const initialTab: TabValue = TAB_VALUES.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'overview';
+  const [activeTab, setActiveTab] = useState<TabValue>(initialTab);
+
+  // Shareable/restorable tab state (?tab=consultations), not just component
+  // state that resets to Overview on every reload or shared link -- mirrors
+  // doctor/queue/page.tsx's exact handleFilterChange pattern.
+  function handleTabChange(next: TabValue) {
+    setActiveTab(next);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set('tab', next);
+    router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }
 
   const { data: profile, isLoading: profileLoading, error: profileError } = useDoctorPatientChartProfile(patientProfileId);
   const { data: appointments, isLoading: appointmentsLoading } = useDoctorPatientChartAppointments(patientProfileId);
@@ -167,7 +194,7 @@ export default function DoctorPatientChartPage() {
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       {profileLoading && (
         <Page>
-          <WorkspaceHeader title={t('title')} />
+          <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
           <div className="flex flex-col gap-4">
             <Skeleton className="h-40 w-full" />
             <Skeleton className="h-24 w-full" />
@@ -178,14 +205,14 @@ export default function DoctorPatientChartPage() {
 
       {!profileLoading && notFound && (
         <Page>
-          <WorkspaceHeader title={t('title')} />
+          <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
           <EmptyState title={t('notFoundTitle')} description={t('notFoundDescription')} />
         </Page>
       )}
 
       {!profileLoading && !notFound && (!profile || profileError) && (
         <Page>
-          <WorkspaceHeader title={t('title')} />
+          <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
           <Alert variant="danger">{t('loadError')}</Alert>
         </Page>
       )}
@@ -217,7 +244,7 @@ export default function DoctorPatientChartPage() {
 
         return (
           <Page>
-            <WorkspaceHeader title={t('title')} />
+            <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={profile.fullName} description={t('workspaceEyebrow')} />
 
             <div className="flex flex-col gap-6">
               <Card className={cn('relative isolate overflow-hidden bg-gradient-to-br from-primary-subtle/40 to-surface', CARD_CLASSNAME)}>
@@ -229,11 +256,19 @@ export default function DoctorPatientChartPage() {
                       <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
                     </Avatar>
                     <div className="flex min-w-0 flex-col gap-0.5">
-                      <p className="text-xl font-semibold text-text-primary">{profile.fullName}</p>
-                      <p className="text-sm text-text-secondary">
-                        {profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}
-                        {age !== undefined && ` · ${t('ageYearsOld', { age })}`}
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-text-secondary">
+                        <span>{profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}</span>
+                        {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
+                        {profile.dateOfBirth && (
+                          <span>
+                            · {t('dateOfBirthLabel')}: {format.dateTime(new Date(profile.dateOfBirth), { dateStyle: 'medium' })}
+                          </span>
+                        )}
                       </p>
+                      {/* De-emphasized (Phase 1.4): no MRN field exists in this
+                          domain -- only this UUID, kept small/tertiary and
+                          moved off its own line under the name so it reads as
+                          a minor identifier, not a primary label. */}
                       <p className="text-xs text-text-tertiary">{t('patientId', { id: shortId(profile.id) })}</p>
                     </div>
                   </div>
@@ -278,7 +313,36 @@ export default function DoctorPatientChartPage() {
                 </Card>
               )}
 
-              <Tabs defaultValue="overview">
+              {/* Persistent allergy/condition strip (Phase 1.5): a sibling of
+                  Tabs, not inside any TabsContent, so it stays visible no
+                  matter which tab the doctor is on -- the two Overview-tab
+                  InfoTiles for the same fields are removed below so this
+                  isn't a duplicate. */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <InfoTile
+                  icon={Flower2}
+                  iconClassName="bg-warning-subtle text-warning-emphasis"
+                  label={t('allergies')}
+                  value={profile.allergies || t('noAllergiesOnRecord')}
+                />
+                <InfoTile
+                  icon={HeartPulse}
+                  iconClassName="bg-neutral-subtle text-neutral"
+                  label={t('chronicConditions')}
+                  value={profile.chronicDiseases || t('noConditionsOnRecord')}
+                />
+              </div>
+
+              {/* Heading-hierarchy fix (Phase 1.2): the workspace H1 above is
+                  the patient's name and every card title (`CardTitle`) below
+                  is a real H3 -- this sr-only H2 keeps the document outline
+                  H1 -> H2 -> H3 with no skip, without changing the page's
+                  visual design. */}
+              <Heading level={2} className="sr-only">
+                {t('clinicalRecordHeading')}
+              </Heading>
+
+              <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as TabValue)}>
                 <TabsList className="max-w-full overflow-x-auto rounded-xl p-1.5">
                   <TabsTrigger value="overview" className="whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary">
                     {t('tabs.overview')}
@@ -330,18 +394,6 @@ export default function DoctorPatientChartPage() {
                             iconClassName="bg-danger-subtle text-danger"
                             label={t('bloodType')}
                             value={profile.bloodType ?? t('notOnRecord')}
-                          />
-                          <InfoTile
-                            icon={Flower2}
-                            iconClassName="bg-warning-subtle text-warning-emphasis"
-                            label={t('allergies')}
-                            value={profile.allergies || t('noAllergiesOnRecord')}
-                          />
-                          <InfoTile
-                            icon={HeartPulse}
-                            iconClassName="bg-neutral-subtle text-neutral"
-                            label={t('chronicConditions')}
-                            value={profile.chronicDiseases || t('noConditionsOnRecord')}
                           />
                           <InfoTile
                             icon={Shield}
@@ -561,24 +613,32 @@ export default function DoctorPatientChartPage() {
   );
 }
 
+// Consultations tab (Phase 1.6): the doctor's own name/specialization used
+// to be shown back to themselves here, which is pointless -- this doctor
+// already knows who they are. Shows the actual clinically useful fields
+// instead: reason for visit, consultation type (free/paid -- there is no
+// "booking channel" concept anywhere in this domain), and duration when the
+// appointment's endTime is known.
 function AppointmentRow({ appointment }: { appointment: DoctorPatientChartAppointment }) {
   const t = useTranslations('publicPatient');
   const format = useFormatter();
+  const durationMinutes = appointment.endTime
+    ? Math.round((new Date(appointment.endTime).getTime() - new Date(appointment.scheduledAt).getTime()) / 60_000)
+    : undefined;
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-border-default/70 p-4">
-      <Avatar size="sm" className="shrink-0">
-        {appointment.doctorAvatarUrl && <AvatarImage src={appointment.doctorAvatarUrl} alt={appointment.doctorName} />}
-        <AvatarFallback>{initialsFor(appointment.doctorName)}</AvatarFallback>
-      </Avatar>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-text-primary">{appointment.doctorName}</p>
-          <Badge variant={appointmentBadgeVariant[appointment.status]}>{t(`appointmentStatus.${appointment.status}`)}</Badge>
-        </div>
-        <p className="text-sm text-text-secondary">{appointment.specialization}</p>
-        <p className="text-xs text-text-tertiary">
+    <li className="flex flex-col gap-1 rounded-xl border border-border-default/70 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium text-text-primary">
           {format.dateTime(new Date(appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
+        <Badge variant={appointmentBadgeVariant[appointment.status]}>{t(`appointmentStatus.${appointment.status}`)}</Badge>
+      </div>
+      <p className="text-sm text-text-secondary">{appointment.reasonForVisit ?? t('reasonForVisitFallback')}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="neutral">{t(`consultationType.${appointment.consultationType}`)}</Badge>
+        {durationMinutes !== undefined && (
+          <span className="text-xs text-text-tertiary">{t('durationMinutes', { minutes: durationMinutes })}</span>
+        )}
       </div>
     </li>
   );
