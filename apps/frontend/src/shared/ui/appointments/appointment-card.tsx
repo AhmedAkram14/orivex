@@ -3,7 +3,14 @@ import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/cn';
 
 // Matches ConsultationModule's real AppointmentStatus enum exactly.
-export type AppointmentCardStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
+export type AppointmentCardStatus =
+  | 'requested'
+  | 'confirmed'
+  | 'rescheduled'
+  | 'cancelled'
+  | 'no_show'
+  | 'completed'
+  | 'expired';
 
 const badgeVariantByStatus: Record<AppointmentCardStatus, 'info' | 'warning' | 'success' | 'neutral'> = {
   requested: 'info',
@@ -12,6 +19,7 @@ const badgeVariantByStatus: Record<AppointmentCardStatus, 'info' | 'warning' | '
   cancelled: 'neutral',
   no_show: 'neutral',
   completed: 'success',
+  expired: 'neutral',
 };
 
 export interface AppointmentCardProps {

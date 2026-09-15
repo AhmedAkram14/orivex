@@ -5,6 +5,7 @@ import { AppointmentBookedEvent } from '../events/appointment-booked.event.js';
 import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { AppointmentDeclinedEvent } from '../events/appointment-declined.event.js';
+import { AppointmentExpiredEvent } from '../events/appointment-expired.event.js';
 import { AppointmentStatus } from '../enums/appointment-status.enum.js';
 import type { AppointmentType } from '../enums/appointment-type.enum.js';
 import type { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
@@ -162,6 +163,24 @@ export class Appointment {
     this.status = AppointmentStatus.Cancelled;
     this.updatedAt = new Date();
     this.record(new AppointmentDeclinedEvent(this.id, reason));
+  }
+
+  // Phase 0 (stale-request terminal state): a Requested appointment whose
+  // scheduledAt has passed with nobody ever approving, declining, or paying
+  // for it -- previously it just silently disappeared from every "upcoming
+  // work" view instead of ever reaching a real terminal state. Only valid
+  // from Requested, mirroring decline()'s exact guard -- once Confirmed
+  // (or beyond), the request has already been answered and this no longer
+  // applies. Only ever called by the system sweep
+  // (ExpireStaleAppointmentsUseCase), never a direct patient/doctor action,
+  // matching markNoShow()'s own "system, not user" precedent.
+  expire(): void {
+    if (this.status !== AppointmentStatus.Requested) {
+      throw new ConsultationDomainError(`Appointment "${this.id}" is not Requested and cannot be expired.`);
+    }
+    this.status = AppointmentStatus.Expired;
+    this.updatedAt = new Date();
+    this.record(new AppointmentExpiredEvent(this.id));
   }
 
   // Marks this appointment as superseded by a new one on a different slot

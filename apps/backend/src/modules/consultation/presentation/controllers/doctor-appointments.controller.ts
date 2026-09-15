@@ -108,8 +108,14 @@ export class DoctorAppointmentsController {
   }
 
   // Doctor-scoped "what's coming up" list (Doctor Workspace's "Upcoming Work
-  // Area"). Excludes Completed/Cancelled/NoShow appointments -- a dashboard
-  // "upcoming work" view should show what's still ahead, not terminal noise.
+  // Area"). Excludes Completed/Cancelled/NoShow/Expired appointments -- a
+  // dashboard "upcoming work" view should show what's still ahead, not
+  // terminal noise. Phase 0 (stale-request terminal state): the
+  // `scheduledAt > now` filter below is a defensive belt-and-suspenders
+  // fallback for the window between a Requested appointment going stale and
+  // AppointmentExpiryReconciliationService's sweep actually running -- the
+  // real fix is that sweep transitioning it to Expired, not this filter,
+  // which only ever hides the symptom in this one view.
   @Get('doctor/upcoming-work')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(AccountRole.Doctor)
@@ -121,12 +127,15 @@ export class DoctorAppointmentsController {
       return envelope([]);
     }
 
+    const now = new Date();
     const appointments = await this.listAppointmentsForDoctorUseCase.execute({ doctorId: doctorProfile.getId() });
     const upcoming = appointments.filter(
       (appointment) =>
         appointment.getStatus() !== AppointmentStatus.Completed &&
         appointment.getStatus() !== AppointmentStatus.Cancelled &&
-        appointment.getStatus() !== AppointmentStatus.NoShow,
+        appointment.getStatus() !== AppointmentStatus.NoShow &&
+        appointment.getStatus() !== AppointmentStatus.Expired &&
+        (appointment.getStatus() !== AppointmentStatus.Requested || appointment.getScheduledAt() > now),
     );
 
     const items = await Promise.all(upcoming.map((appointment) => this.toUpcomingWorkItem(appointment)));

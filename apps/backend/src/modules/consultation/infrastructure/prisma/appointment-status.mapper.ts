@@ -12,6 +12,7 @@ const DOMAIN_TO_PRISMA: Record<AppointmentStatus, PrismaAppointmentStatus> = {
   [AppointmentStatus.Cancelled]: PrismaAppointmentStatus.CANCELLED,
   [AppointmentStatus.NoShow]: PrismaAppointmentStatus.NO_SHOW,
   [AppointmentStatus.Completed]: PrismaAppointmentStatus.COMPLETED,
+  [AppointmentStatus.Expired]: PrismaAppointmentStatus.EXPIRED,
 };
 
 const PRISMA_TO_DOMAIN: Record<PrismaAppointmentStatus, AppointmentStatus> = {
@@ -21,6 +22,7 @@ const PRISMA_TO_DOMAIN: Record<PrismaAppointmentStatus, AppointmentStatus> = {
   [PrismaAppointmentStatus.CANCELLED]: AppointmentStatus.Cancelled,
   [PrismaAppointmentStatus.NO_SHOW]: AppointmentStatus.NoShow,
   [PrismaAppointmentStatus.COMPLETED]: AppointmentStatus.Completed,
+  [PrismaAppointmentStatus.EXPIRED]: AppointmentStatus.Expired,
 };
 
 export function toPrismaAppointmentStatus(status: AppointmentStatus): PrismaAppointmentStatus {

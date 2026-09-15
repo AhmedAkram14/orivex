@@ -114,6 +114,7 @@ const appointmentBadgeVariant: Record<DoctorPatientChartAppointment['status'], N
   completed: 'primary',
   cancelled: 'danger',
   no_show: 'danger',
+  expired: 'danger',
 };
 
 const prescriptionBadgeVariant: Record<DoctorPatientChartPrescription['status'], NonNullable<BadgeProps['variant']>> = {

@@ -202,6 +202,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async findRequestedPastScheduledAt(): Promise<Appointment[]> {
+    return [];
+  }
   async countFreeConsultationsForPatientSince(): Promise<number> {
     return 0;
   }
@@ -265,10 +268,15 @@ class InMemoryFreeTierBookingRepository implements FreeTierBookingRepository {
     if (noShowCount >= caps.maxNoShowsBeforeBlocked) {
       return 'no_show_blocked';
     }
+    // Phase 0 (stale-request terminal state): an Expired free booking never
+    // actually consumed the patient's monthly allowance either -- same
+    // reasoning as excluding Cancelled above, mirrors the real
+    // PrismaAppointmentRepository.countFreeConsultationsForPatientSince fix.
     const freeThisMonth = existing.filter(
       (a) =>
         a.getPricing().isFree() &&
         a.getStatus() !== AppointmentStatus.Cancelled &&
+        a.getStatus() !== AppointmentStatus.Expired &&
         a.getCreatedAt() >= caps.freeConsultationsWindowStart,
     ).length;
     if (freeThisMonth >= caps.maxFreeConsultationsPerMonth) {
@@ -523,6 +531,21 @@ describe('Consultation controllers (integration)', () => {
     await appointmentRepo.save(completedAppointment);
     await sessionRepo.save(completedSession);
     completedConsultationSessionId = completedSession.getId();
+
+    // Phase 0 (stale-request terminal state): a Requested appointment that
+    // went stale and was expired by the system sweep -- backs the
+    // doctor/upcoming-work test asserting Expired is excluded exactly like
+    // Cancelled/NoShow, not silently included as "upcoming".
+    const expiredAppointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: secondFreeWindow.getId(),
+      pricing: ConsultationPricing.free(),
+      scheduledAt: new Date(Date.now() - 48 * 60 * 60_000),
+      reasonForVisit: 'Never answered before it went stale',
+    });
+    expiredAppointment.expire();
+    await appointmentRepo.save(expiredAppointment);
 
     const reserveSlotUseCase = new ReserveSlotUseCase(
       new ReserveAvailabilityWindowUseCase(availabilityWindowRepo, new NoopDomainEventDispatcher()),
@@ -1058,7 +1081,9 @@ describe('Consultation controllers (integration)', () => {
       assert.equal(item.doctorName, 'Dr. Karim Adel');
       assert.equal(item.specialization, 'Cardiology');
       assert.ok(item.scheduledAt);
-      assert.ok(['requested', 'confirmed', 'rescheduled', 'cancelled', 'no_show', 'completed'].includes(item.status));
+      assert.ok(
+        ['requested', 'confirmed', 'rescheduled', 'cancelled', 'no_show', 'completed', 'expired'].includes(item.status),
+      );
     }
     assert.equal(response.body.meta.page, 1);
     assert.equal(response.body.meta.limit, 50);
@@ -1186,6 +1211,13 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(entry.title, 'Amina Youssef');
     assert.equal(entry.status, 'upcoming');
     assert.ok(entry.scheduledAt);
+
+    // Phase 0 (stale-request terminal state): Expired is terminal exactly
+    // like Cancelled/NoShow -- it must never surface in "upcoming work".
+    const expiredEntry = response.body.data.find(
+      (item: { description?: string }) => item.description === 'Never answered before it went stale',
+    );
+    assert.equal(expiredEntry, undefined);
   });
 
   it('GET /appointments/doctor/queue rejects a request with no bearer token', async () => {

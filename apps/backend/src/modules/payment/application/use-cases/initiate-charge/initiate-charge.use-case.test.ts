@@ -34,6 +34,9 @@ class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
     return [];
   }
+  async findRequestedPastScheduledAt(): Promise<Appointment[]> {
+    return [];
+  }
   async countFreeConsultationsForPatientSince(): Promise<number> {
     return 0;
   }

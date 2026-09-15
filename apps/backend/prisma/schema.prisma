@@ -813,6 +813,11 @@ enum AppointmentStatus {
   CANCELLED
   NO_SHOW
   COMPLETED
+  // Phase 0 (stale-request terminal state): a Requested appointment nobody
+  // ever answered before its scheduledAt passed. See the domain enum's own
+  // comment (appointment-status.enum.ts) for why this is distinct from
+  // CANCELLED/NO_SHOW.
+  EXPIRED
 }
 
 // Doctor Schedule redesign: the visit-modality category the patient selects

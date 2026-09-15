@@ -216,6 +216,22 @@ describe('DoctorPatientChartPage', () => {
               consultationSessionId: null,
               paymentRequired: false,
             },
+            // Phase 0 (stale-request terminal state): an Expired appointment
+            // is terminal exactly like Cancelled/NoShow -- it must never
+            // count as "upcoming" regardless of its scheduledAt.
+            {
+              id: 'appointment-expired',
+              scheduledAt: '2020-02-01T10:00:00.000Z',
+              doctorId: 'doctor-profile-1',
+              doctorName: 'Dr. Sarah Ahmed',
+              specialization: 'Cardiology',
+              specializationAr: null,
+              status: 'expired',
+              consultationType: 'free',
+              reasonForVisit: null,
+              consultationSessionId: null,
+              paymentRequired: false,
+            },
           ],
         }),
       ),
@@ -262,10 +278,12 @@ describe('DoctorPatientChartPage', () => {
     const upcomingSection = (await screen.findByRole('heading', { name: 'Upcoming appointments' })).closest('.rounded-2xl');
     expect(upcomingSection).not.toBeNull();
     expect(within(upcomingSection as HTMLElement).queryByText('Waiting doctor approval')).not.toBeInTheDocument();
+    expect(within(upcomingSection as HTMLElement).queryByText('Expired')).not.toBeInTheDocument();
 
     const previousSection = screen.getByRole('heading', { name: 'Previous visits' }).closest('.rounded-2xl');
     expect(previousSection).not.toBeNull();
     expect(within(previousSection as HTMLElement).getByText('Waiting doctor approval')).toBeInTheDocument();
+    expect(within(previousSection as HTMLElement).getByText('Expired')).toBeInTheDocument();
   });
 
   it('renders a breadcrumb trail back to the Patients list', async () => {

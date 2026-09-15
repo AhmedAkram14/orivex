@@ -1359,7 +1359,8 @@
         "rescheduled": "أُعيدت جدولته",
         "cancelled": "ملغى",
         "no_show": "لم يحضر",
-        "completed": "مكتمل"
+        "completed": "مكتمل",
+        "expired": "منتهي الصلاحية"
       },
       "showingRange": "عرض {from}-{to} من {total} مريض",
       "perPage": "{count} / صفحة"
@@ -1659,7 +1660,8 @@
         "rescheduled": "أُعيدت جدولته",
         "cancelled": "ملغى",
         "no_show": "لم يحضر",
-        "completed": "مكتمل"
+        "completed": "مكتمل",
+        "expired": "منتهي الصلاحية"
       },
       "consultationType": {
         "free": "استشارة مجانية",
@@ -1991,7 +1993,8 @@
       "rescheduled": "أُعيدت جدولته",
       "completed": "مكتمل",
       "cancelled": "ملغى",
-      "no_show": "لم يحضر"
+      "no_show": "لم يحضر",
+      "expired": "منتهي الصلاحية"
     }
   },
   "scheduling": {

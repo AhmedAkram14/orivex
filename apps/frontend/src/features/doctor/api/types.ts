@@ -347,7 +347,7 @@ export interface DoctorPatientListItem {
   hasFollowUpRecommendation: boolean;
 }
 
-export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
+export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed' | 'expired';
 
 // Doctor-facing Patient Chart (protected -- `/doctor/patients/:id/*`,
 // JwtAuthGuard + RolesGuard(Doctor) + a real doctor-patient relationship

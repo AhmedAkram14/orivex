@@ -74,6 +74,21 @@ const EN: Record<string, TemplateBuilder> = {
     text: 'Your doctor has signed a new prescription for you. Log in to Orivex to view it.',
     cta: frontendUrl ? { label: 'View prescription', url: `${frontendUrl}/patient/prescriptions` } : undefined,
   }),
+  // Phase 0 (stale-request terminal state).
+  'appointment-expired': (_data, frontendUrl) => ({
+    subject: 'Your Orivex appointment request expired',
+    text: 'Your appointment request expired unanswered. You can book a new appointment with this doctor.',
+    cta: frontendUrl ? { label: 'View appointments', url: `${frontendUrl}/patient/appointments` } : undefined,
+  }),
+  // Doctor Patient Chart Phase 2 follow-up -- closes the previously-open
+  // "no notification on decline" gap alongside Phase 0.
+  'appointment-declined': (data, frontendUrl) => ({
+    subject: 'Your Orivex appointment request was declined',
+    text: data.reason
+      ? `Your doctor declined your appointment request: ${String(data.reason)}`
+      : 'Your doctor declined your appointment request.',
+    cta: frontendUrl ? { label: 'View appointments', url: `${frontendUrl}/patient/appointments` } : undefined,
+  }),
   // New for I3 -- the PRD's "review requests" email type. Matches
   // NotifyConsultationCompletedHandler's own in-app notification (a
   // prescription/follow-up mention lives there) but deliberately does not
@@ -140,6 +155,18 @@ const AR: Record<string, TemplateBuilder> = {
     subject: 'لديك وصفة طبية جديدة',
     text: 'وقّع طبيبك وصفة طبية جديدة لك. سجّل الدخول إلى أوريفكس للاطلاع عليها.',
     cta: frontendUrl ? { label: 'عرض الوصفة الطبية', url: `${frontendUrl}/patient/prescriptions` } : undefined,
+  }),
+  'appointment-expired': (_data, frontendUrl) => ({
+    subject: 'انتهت صلاحية طلب موعدك في أوريفكس',
+    text: 'انتهت صلاحية طلب موعدك دون رد. يمكنك حجز موعد جديد مع هذا الطبيب.',
+    cta: frontendUrl ? { label: 'عرض المواعيد', url: `${frontendUrl}/patient/appointments` } : undefined,
+  }),
+  'appointment-declined': (data, frontendUrl) => ({
+    subject: 'تم رفض طلب موعدك في أوريفكس',
+    text: data.reason
+      ? `رفض طبيبك طلب حجزك: ${String(data.reason)}`
+      : 'رفض طبيبك طلب حجزك.',
+    cta: frontendUrl ? { label: 'عرض المواعيد', url: `${frontendUrl}/patient/appointments` } : undefined,
   }),
   'consultation-completed': (_data, frontendUrl) => ({
     subject: 'كيف كانت استشارتك في أوريفكس؟',

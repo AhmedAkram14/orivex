@@ -35,6 +35,11 @@ export interface AppointmentRepository {
   // ever actually joined). Mirrors ConsultationSessionRepository.findStale's
   // "system sweep" precedent.
   findConfirmedPastJoinWindowMissed(cutoff: Date): Promise<Appointment[]>;
+  // Phase 0 (stale-request terminal state): backs the ExpireStaleAppointments
+  // sweep -- a `Requested` appointment whose scheduledAt has already passed
+  // with nobody ever approving, declining, or paying for it. Mirrors
+  // findConfirmedPastJoinWindowMissed's exact "system sweep" shape.
+  findRequestedPastScheduledAt(cutoff: Date): Promise<Appointment[]>;
   // I8 -- Free-tier abuse controls (docs/01-prd.md §7, release checklist:
   // "implemented before public launch, not added reactively"). Computed at
   // read time from real Appointment rows -- matches this codebase's own

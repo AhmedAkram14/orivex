@@ -171,7 +171,7 @@ export interface SubmitPatientVerificationRequest {
 }
 
 /** Matches ConsultationModule's real `AppointmentStatus` enum exactly. */
-export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
+export type AppointmentStatus = 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed' | 'expired';
 
 /** Matches ConsultationModule's real `ConsultationType` enum exactly — free vs. paid, not in-person vs. video. */
 export type ConsultationType = 'free' | 'paid';

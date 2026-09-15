@@ -1359,7 +1359,8 @@
         "rescheduled": "Rescheduled",
         "cancelled": "Cancelled",
         "no_show": "No-show",
-        "completed": "Completed"
+        "completed": "Completed",
+        "expired": "Expired"
       },
       "showingRange": "Showing {from}-{to} of {total, plural, one {# patient} other {# patients}}",
       "perPage": "{count} / page"
@@ -1659,7 +1660,8 @@
         "rescheduled": "Rescheduled",
         "cancelled": "Cancelled",
         "no_show": "No-show",
-        "completed": "Completed"
+        "completed": "Completed",
+        "expired": "Expired"
       },
       "consultationType": {
         "free": "Free consultation",
@@ -1991,7 +1993,8 @@
       "rescheduled": "Rescheduled",
       "completed": "Completed",
       "cancelled": "Cancelled",
-      "no_show": "No-show"
+      "no_show": "No-show",
+      "expired": "Expired"
     }
   },
   "scheduling": {

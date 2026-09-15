@@ -5,6 +5,7 @@ import { AppointmentStatus } from '../enums/appointment-status.enum.js';
 import { AppointmentCancelledEvent } from '../events/appointment-cancelled.event.js';
 import { AppointmentConfirmedEvent } from '../events/appointment-confirmed.event.js';
 import { AppointmentDeclinedEvent } from '../events/appointment-declined.event.js';
+import { AppointmentExpiredEvent } from '../events/appointment-expired.event.js';
 import { ConsultationDomainError } from '../exceptions/consultation-domain.error.js';
 import { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 import { Money } from '../value-objects/money.value-object.js';
@@ -123,6 +124,42 @@ describe('Appointment', () => {
     const appointment = requestAppointment();
     appointment.cancel('doctor');
     assert.throws(() => appointment.decline(), ConsultationDomainError);
+  });
+
+  it('expires a Requested appointment', () => {
+    const appointment = requestAppointment();
+    appointment.expire();
+    assert.equal(appointment.getStatus(), AppointmentStatus.Expired);
+  });
+
+  it('expire() raises AppointmentExpiredEvent carrying the appointment id', () => {
+    const appointment = requestAppointment();
+    appointment.releaseDomainEvents(); // clears AppointmentBooked -- expire() is a separate transaction (the system sweep) in real usage
+
+    appointment.expire();
+
+    const events = appointment.releaseDomainEvents();
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof AppointmentExpiredEvent);
+    assert.equal((events[0] as AppointmentExpiredEvent).appointmentId, appointment.getId());
+  });
+
+  it('rejects expiring a non-Requested appointment', () => {
+    const appointment = requestAppointment();
+    appointment.confirm();
+    assert.throws(() => appointment.expire(), ConsultationDomainError);
+  });
+
+  it('rejects expiring an already-cancelled appointment', () => {
+    const appointment = requestAppointment();
+    appointment.cancel('doctor');
+    assert.throws(() => appointment.expire(), ConsultationDomainError);
+  });
+
+  it('rejects expiring an already-expired appointment', () => {
+    const appointment = requestAppointment();
+    appointment.expire();
+    assert.throws(() => appointment.expire(), ConsultationDomainError);
   });
 
   it('marks an appointment as Rescheduled', () => {

@@ -47,7 +47,11 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
       where: {
         patientId,
         consultationType: 'FREE',
-        status: { not: 'CANCELLED' },
+        // Phase 0 (stale-request terminal state): an Expired free booking
+        // never actually consumed the patient's monthly allowance either --
+        // same reasoning as excluding CANCELLED above, nobody ever answered
+        // the request, let alone held a consultation.
+        status: { notIn: ['CANCELLED', 'EXPIRED'] },
         createdAt: { gte: since },
       },
     });
@@ -104,6 +108,16 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
         status: 'CONFIRMED',
         scheduledAt: { lt: cutoff },
         consultationSession: { state: 'WAITING_ROOM' },
+      },
+    });
+    return rows.map(toDomainAppointment);
+  }
+
+  async findRequestedPastScheduledAt(cutoff: Date): Promise<Appointment[]> {
+    const rows = await this.prisma.appointment.findMany({
+      where: {
+        status: 'REQUESTED',
+        scheduledAt: { lt: cutoff },
       },
     });
     return rows.map(toDomainAppointment);

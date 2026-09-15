@@ -48,6 +48,7 @@ import { BookAppointmentUseCase } from './application/use-cases/book-appointment
 import { CloseConsultationUseCase } from './application/use-cases/close-consultation/close-consultation.use-case.js';
 import { ConfirmAppointmentUseCase } from './application/use-cases/confirm-appointment/confirm-appointment.use-case.js';
 import { DeclineAppointmentUseCase } from './application/use-cases/decline-appointment/decline-appointment.use-case.js';
+import { ExpireStaleAppointmentsUseCase } from './application/use-cases/expire-stale-appointments/expire-stale-appointments.use-case.js';
 import { GetAppointmentByIdUseCase } from './application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GenerateAppointmentCalendarInviteUseCase } from './application/use-cases/generate-appointment-calendar-invite/generate-appointment-calendar-invite.use-case.js';
 import { GetConsultationFeedbackForSessionUseCase } from './application/use-cases/get-consultation-feedback-for-session/get-consultation-feedback-for-session.use-case.js';
@@ -91,6 +92,7 @@ import { NotConfiguredRoomTokenAdapter } from './infrastructure/livekit/not-conf
 import { LiveKitRoomTokenAdapter } from './infrastructure/livekit/livekit-room-token.adapter.js';
 import { StaleConsultationSessionReconciliationService } from './infrastructure/jobs/stale-consultation-session-reconciliation.service.js';
 import { AppointmentNoShowReconciliationService } from './infrastructure/jobs/appointment-no-show-reconciliation.service.js';
+import { AppointmentExpiryReconciliationService } from './infrastructure/jobs/appointment-expiry-reconciliation.service.js';
 import { AppointmentController } from './presentation/controllers/appointment.controller.js';
 import { ConsultationFeedbackController } from './presentation/controllers/consultation-feedback.controller.js';
 import { DoctorReviewFlagController } from './presentation/controllers/doctor-review-flag.controller.js';
@@ -373,6 +375,21 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         logger: PinoLoggerService,
       ) => new AppointmentNoShowReconciliationService(markMissedAppointmentsNoShowUseCase, logger),
       inject: [MarkMissedAppointmentsNoShowUseCase, PinoLoggerService],
+    },
+    {
+      provide: ExpireStaleAppointmentsUseCase,
+      useFactory: (
+        appointmentRepository: AppointmentRepository,
+        releaseSlotUseCase: ReleaseSlotUseCase,
+        eventDispatcher: DomainEventDispatcher,
+      ) => new ExpireStaleAppointmentsUseCase(appointmentRepository, releaseSlotUseCase, eventDispatcher),
+      inject: [APPOINTMENT_REPOSITORY, ReleaseSlotUseCase, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      provide: AppointmentExpiryReconciliationService,
+      useFactory: (expireStaleAppointmentsUseCase: ExpireStaleAppointmentsUseCase, logger: PinoLoggerService) =>
+        new AppointmentExpiryReconciliationService(expireStaleAppointmentsUseCase, logger),
+      inject: [ExpireStaleAppointmentsUseCase, PinoLoggerService],
     },
     {
       provide: RecordSessionConnectionLogUseCase,

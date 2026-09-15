@@ -84,6 +84,14 @@ import {
   type AppointmentCancelledEventPayload,
 } from './application/event-handlers/notify-patient-of-appointment-cancelled.handler.js';
 import {
+  NotifyPatientOfAppointmentExpiredHandler,
+  type AppointmentExpiredEventPayload,
+} from './application/event-handlers/notify-patient-of-appointment-expired.handler.js';
+import {
+  NotifyPatientOfAppointmentDeclinedHandler,
+  type AppointmentDeclinedEventPayload,
+} from './application/event-handlers/notify-patient-of-appointment-declined.handler.js';
+import {
   NotifyDoctorOfAppointmentCancelledHandler,
   type DoctorAppointmentCancelledEventPayload,
 } from './application/event-handlers/notify-doctor-of-appointment-cancelled.handler.js';
@@ -556,6 +564,80 @@ import { NotificationController } from './presentation/controllers/notification.
         return handler;
       },
       inject: [GetAppointmentByIdUseCase, GetDoctorProfileByIdUseCase, NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Phase 0 (stale-request terminal state): a patient previously had no
+      // notification at all when their request went stale -- it just
+      // silently disappeared from every doctor-side view.
+      provide: NotifyPatientOfAppointmentExpiredHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfAppointmentExpiredHandler(
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.expired', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentExpiredEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Doctor Patient Chart Phase 2 left 'consultation.appointment.declined'
+      // with no subscriber at all -- closed alongside the Phase 0 expiry
+      // notification since it's the same small, contained pattern.
+      provide: NotifyPatientOfAppointmentDeclinedHandler,
+      useFactory: (
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPatientOfAppointmentDeclinedHandler(
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('consultation.appointment.declined', (event: DomainEvent) =>
+          handler.handle(event as unknown as AppointmentDeclinedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
     },
     {
       // Critical Lifecycle Gaps (Phase 3, Step 2): reacts to

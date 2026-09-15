@@ -18,7 +18,7 @@ export interface ConsultationAppointment {
   doctorId: string;
   availabilityWindowId: string;
   consultationType: 'free' | 'paid';
-  status: 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed';
+  status: 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed' | 'expired';
   scheduledAt: string;
   reasonForVisit: string | null;
   rescheduledFromId: string | null;

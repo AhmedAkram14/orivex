@@ -5,13 +5,21 @@ import { Appointment } from '../../../consultation/domain/entities/appointment.e
 import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
+import { Account } from '../../../identity/domain/entities/account.entity.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import type { AccountRepository, ListAccountsResult } from '../../../identity/domain/repositories/account.repository.js';
+import type { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
+import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
+import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
+import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
 import type { Notification } from '../../domain/entities/notification.entity.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
-import { NotifyPatientOfAppointmentRescheduledHandler } from './notify-patient-of-appointment-rescheduled.handler.js';
+import { NotifyPatientOfAppointmentDeclinedHandler } from './notify-patient-of-appointment-declined.handler.js';
 
 class FakeAppointmentRepository implements AppointmentRepository {
   async findConfirmedPastJoinWindowMissed(): Promise<Appointment[]> {
@@ -84,6 +92,35 @@ class FakeNotificationRepository implements NotificationRepository {
   }
 }
 
+class FakeAccountRepository implements AccountRepository {
+  constructor(private readonly accounts: Account[]) {}
+  async findById(id: AccountId): Promise<Account | null> {
+    return this.accounts.find((account) => account.getId().equals(id)) ?? null;
+  }
+  async findByEmail(): Promise<Account | null> {
+    return null;
+  }
+  async findAll(): Promise<ListAccountsResult> {
+    return { accounts: this.accounts, total: this.accounts.length };
+  }
+  async save(): Promise<void> {}
+}
+
+class FakeEmailSender implements EmailSenderPort {
+  public sent: { to: string; template: string; data: Record<string, unknown> }[] = [];
+  async send(to: string, template: string, data: Record<string, unknown>): Promise<void> {
+    this.sent.push({ to, template, data });
+  }
+}
+
+function buildAccount(role: AccountRole, displayName: string): Account {
+  return Account.register({
+    email: EmailAddress.create(`${role}-${Math.random()}@orivex.dev`),
+    role,
+    displayName: DisplayName.create(displayName),
+  });
+}
+
 class FakeLogger {
   public errors: unknown[] = [];
   error(message: unknown, ...rest: unknown[]): void {
@@ -101,49 +138,78 @@ function buildAppointment(patientId: string): Appointment {
   });
 }
 
-describe('NotifyPatientOfAppointmentRescheduledHandler', () => {
-  it("notifies the patient's own account, resolved via the NEW appointment, with a link to their appointments", async () => {
-    const patient = PatientProfile.create({ accountId: '55555555-5555-4555-8555-555555555555' });
-    const newAppointment = buildAppointment(patient.getId());
+describe('NotifyPatientOfAppointmentDeclinedHandler', () => {
+  it('notifies the patient with the reason when the doctor gives one, and emails them', async () => {
+    const patientAccount = buildAccount(AccountRole.Patient, 'Amina Youssef');
+    const patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
+    const appointment = buildAppointment(patient.getId());
 
     const notificationRepo = new FakeNotificationRepository();
+    const emailSender = new FakeEmailSender();
     const logger = new FakeLogger();
-    const handler = new NotifyPatientOfAppointmentRescheduledHandler(
-      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(newAppointment)),
+    const handler = new NotifyPatientOfAppointmentDeclinedHandler(
+      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(appointment)),
       new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
+      new GetAccountByIdUseCase(new FakeAccountRepository([patientAccount])),
       notificationRepo,
+      emailSender,
       logger as never,
     );
 
-    await handler.handle({
-      oldAppointmentId: '99999999-9999-4999-8999-999999999999',
-      newAppointmentId: newAppointment.getId(),
-    });
+    await handler.handle({ appointmentId: appointment.getId(), reason: 'Fully booked that week' });
 
     assert.equal(notificationRepo.saved.length, 1);
     const notification = notificationRepo.saved[0];
     assert.equal(notification.getAccountId(), patient.getAccountId());
-    assert.equal(notification.getTitle(), 'Appointment rescheduled');
+    assert.equal(notification.getTitle(), 'Appointment request declined');
+    assert.match(notification.getDescription(), /Fully booked that week/);
     assert.equal(notification.getActionUrl(), '/patient/appointments');
     assert.equal(logger.errors.length, 0);
+
+    assert.equal(emailSender.sent.length, 1);
+    assert.equal(emailSender.sent[0]!.template, 'appointment-declined');
+    assert.equal(emailSender.sent[0]!.data.reason, 'Fully booked that week');
   });
 
-  it('is a silent no-op when the new appointment cannot be found (never throws)', async () => {
+  it('notifies the patient with generic copy when no reason was given', async () => {
+    const patientAccount = buildAccount(AccountRole.Patient, 'Amina Youssef');
+    const patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
+    const appointment = buildAppointment(patient.getId());
+
     const notificationRepo = new FakeNotificationRepository();
+    const emailSender = new FakeEmailSender();
     const logger = new FakeLogger();
-    const handler = new NotifyPatientOfAppointmentRescheduledHandler(
-      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(null)),
-      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(null)),
+    const handler = new NotifyPatientOfAppointmentDeclinedHandler(
+      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(appointment)),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
+      new GetAccountByIdUseCase(new FakeAccountRepository([patientAccount])),
       notificationRepo,
+      emailSender,
       logger as never,
     );
 
-    await handler.handle({
-      oldAppointmentId: '99999999-9999-4999-8999-999999999999',
-      newAppointmentId: '88888888-8888-4888-8888-888888888888',
-    });
+    await handler.handle({ appointmentId: appointment.getId() });
+
+    assert.equal(notificationRepo.saved[0]!.getDescription(), 'Your doctor declined your appointment request.');
+  });
+
+  it('is a silent no-op for an unknown appointment id (never throws)', async () => {
+    const notificationRepo = new FakeNotificationRepository();
+    const emailSender = new FakeEmailSender();
+    const logger = new FakeLogger();
+    const handler = new NotifyPatientOfAppointmentDeclinedHandler(
+      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(null)),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(null)),
+      new GetAccountByIdUseCase(new FakeAccountRepository([])),
+      notificationRepo,
+      emailSender,
+      logger as never,
+    );
+
+    await handler.handle({ appointmentId: '99999999-9999-4999-8999-999999999999' });
 
     assert.equal(notificationRepo.saved.length, 0);
+    assert.equal(emailSender.sent.length, 0);
     assert.equal(logger.errors.length, 0);
   });
 });
