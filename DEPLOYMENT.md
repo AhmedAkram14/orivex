@@ -20,9 +20,10 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 | `SENTRY_TRACES_SAMPLE_RATE` | optional (default `0.1`) | Yes, if `SENTRY_DSN` is set |
 | `OPENAPI_ENABLED` | optional (default `false`) | Only if you want `GET /docs` (Swagger UI) reachable in production — it's always on outside production regardless of this flag |
 | `DATABASE_URL` | **yes** | Yes — every request |
-| `REDIS_URL` | optional | **No code path connects to Redis yet.** Not validated at boot; omit entirely if unused. |
+| `REDIS_URL` | optional | NotificationModule binds `BullmqNotificationQueueAdapter` when set (falls back to `NotConfiguredNotificationQueueAdapter` otherwise) — the appointment-reminder worker connects to it |
 | `JWT_ACCESS_SECRET` | **yes** (min 32 chars) | Yes — AuthenticationModule signs/verifies every access token with it |
 | `JWT_ACCESS_TTL_SECONDS` | optional (default `900`) | Yes |
+| `PRESCRIPTION_SIGNING_SECRET` | **yes** (min 32 chars) | Yes — `HmacPrescriptionSignerAdapter` signs every prescription with it |
 | `ARGON2_MEMORY_COST_KIB`, `ARGON2_TIME_COST`, `ARGON2_PARALLELISM` | optional (OWASP-recommended defaults) | Yes, if set — tunes argon2id password-hashing cost |
 | `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_BUCKET` | **yes** | Yes — AssetModule's upload-intent/confirm flow genuinely calls S3 |
 | `S3_REGION` | optional (default `us-east-1`) | Yes |
@@ -31,7 +32,7 @@ Defined and validated by `apps/backend/src/core/configuration/env.schema.ts` —
 | `STRIPE_WEBHOOK_SECRET` | required if `STRIPE_SECRET_KEY` is set | Yes — verifies `POST /payments/webhook`'s signature |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Docker Compose only | Consumed only by `docker-compose.production.yml` to construct `DATABASE_URL` for the `postgres` service it starts; the app itself never reads these three directly |
 
-`REDIS_URL` is optional in `apps/backend/src/core/configuration/env.schema.ts` specifically because nothing in the codebase instantiates a client from it yet — restore it to required the moment that integration is actually wired up. `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail. Authentication is first-party (Sprint 15, docs/14-adrs.md ADR-005) — no external identity provider is used or required.
+`REDIS_URL` stays optional in `apps/backend/src/core/configuration/env.schema.ts` even though NotificationModule's BullMQ queue now depends on it in production — omitting it is still a valid, intentional configuration (the queue adapter falls back to a not-configured no-op) for environments that don't need appointment-reminder delivery. `S3_*` must point to a real, reachable S3-compatible endpoint or every asset-upload request will fail. Authentication is first-party (Sprint 15, docs/14-adrs.md ADR-005) — no external identity provider is used or required.
 
 ## 1. Local Docker (single container, no orchestration)
 
