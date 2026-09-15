@@ -35,5 +35,6 @@ export function toDomainPatientProfile(row: PersistedPatientProfileRow): Patient
     nutritionNotes: row.nutritionNotes ?? undefined,
     exerciseNotes: row.exerciseNotes ?? undefined,
     mentalHealthNotes: row.mentalHealthNotes ?? undefined,
+    allergiesConfirmedNoneAt: row.allergiesConfirmedNoneAt ?? null,
   });
 }

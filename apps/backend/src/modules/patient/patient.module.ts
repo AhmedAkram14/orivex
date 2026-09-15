@@ -1,12 +1,19 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 import type { DomainEventDispatcher } from '../../shared/domain/domain-event-dispatcher.js';
 import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
+// TreatingRelationshipService (Consultation) and RecordAuditLogUseCase
+// (Trust) are consumed only by DoctorPatientAllergiesController's own
+// constructor injection below -- Nest resolves them purely from the module
+// imports two lines down, so neither class is referenced by name here.
+import { ConsultationModule } from '../consultation/consultation.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
+import { TrustModule } from '../trust/trust.module.js';
 
 import { HEALTH_PASSPORT_ENTRY_REPOSITORY, PATIENT_PROFILE_REPOSITORY } from './application/ports/tokens.js';
+import { ConfirmNoKnownAllergiesUseCase } from './application/use-cases/confirm-no-known-allergies/confirm-no-known-allergies.use-case.js';
 import { CreatePatientProfileUseCase } from './application/use-cases/create-patient-profile/create-patient-profile.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from './application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from './application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
@@ -18,6 +25,7 @@ import type { HealthPassportEntryRepository } from './domain/repositories/health
 import type { PatientProfileRepository } from './domain/repositories/patient-profile.repository.js';
 import { PrismaHealthPassportEntryRepository } from './infrastructure/prisma/prisma-health-passport-entry.repository.js';
 import { PrismaPatientProfileRepository } from './infrastructure/prisma/prisma-patient-profile.repository.js';
+import { DoctorPatientAllergiesController } from './presentation/controllers/doctor-patient-allergies.controller.js';
 import { PatientProfileController } from './presentation/controllers/patient-profile.controller.js';
 
 // PatientProfileController is this module's first real HTTP surface (Vertical
@@ -34,9 +42,19 @@ import { PatientProfileController } from './presentation/controllers/patient-pro
 // Onboarding Redesign Stage O.2), and AuthenticationModule imports
 // TrustModule, so importing the full AuthenticationModule here would cycle:
 // AuthenticationModule -> TrustModule -> PatientModule -> AuthenticationModule.
+// forwardRef(ConsultationModule)/forwardRef(TrustModule) (Doctor Patient
+// Chart plan, decision 8/4.3): ConsultationModule and TrustModule both
+// already import PatientModule directly for its own exported profile-lookup
+// use cases, so PatientModule importing either back is a real cycle --
+// forwardRef() on this side is the same, already-established pattern
+// trust.module.ts uses for its own ConsultationModule edge (see that
+// module's comment for the full "Cannot access 'X' before initialization"
+// rationale). Needed here for DoctorPatientAllergiesController to consume
+// TreatingRelationshipService (Consultation) and RecordAuditLogUseCase
+// (Trust).
 @Module({
-  imports: [IdentityModule, AuthenticationGuardsModule],
-  controllers: [PatientProfileController],
+  imports: [IdentityModule, AuthenticationGuardsModule, forwardRef(() => ConsultationModule), forwardRef(() => TrustModule)],
+  controllers: [PatientProfileController, DoctorPatientAllergiesController],
   providers: [
     { provide: PATIENT_PROFILE_REPOSITORY, useClass: PrismaPatientProfileRepository },
     {
@@ -52,6 +70,12 @@ import { PatientProfileController } from './presentation/controllers/patient-pro
       provide: UpdatePatientProfileUseCase,
       useFactory: (repository: PatientProfileRepository, eventDispatcher: DomainEventDispatcher) =>
         new UpdatePatientProfileUseCase(repository, eventDispatcher),
+      inject: [PATIENT_PROFILE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      provide: ConfirmNoKnownAllergiesUseCase,
+      useFactory: (repository: PatientProfileRepository, eventDispatcher: DomainEventDispatcher) =>
+        new ConfirmNoKnownAllergiesUseCase(repository, eventDispatcher),
       inject: [PATIENT_PROFILE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
     {

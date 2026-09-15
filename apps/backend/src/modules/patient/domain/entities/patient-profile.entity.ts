@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { PatientProfileUpdatedEvent } from '../events/patient-profile-updated.event.js';
+import { PatientDomainError } from '../exceptions/patient-domain.error.js';
 import type { BloodType } from '../enums/blood-type.enum.js';
 
 import { EmergencyContact, type EmergencyContactProps } from './emergency-contact.entity.js';
@@ -43,6 +44,7 @@ export interface ReconstitutePatientProfileProps {
   nutritionNotes?: string;
   exerciseNotes?: string;
   mentalHealthNotes?: string;
+  allergiesConfirmedNoneAt?: Date | null;
 }
 
 // Aggregate root of PatientModule (docs/10-backend-architecture.md's
@@ -72,6 +74,7 @@ export class PatientProfile {
     private nutritionNotes: string | undefined,
     private exerciseNotes: string | undefined,
     private mentalHealthNotes: string | undefined,
+    private allergiesConfirmedNoneAt: Date | null = null,
   ) {}
 
   // Created explicitly via an internal application use case for now
@@ -94,6 +97,7 @@ export class PatientProfile {
       undefined,
       undefined,
       undefined,
+      null,
     );
 
     profile.record(new PatientProfileUpdatedEvent(profile.id));
@@ -115,6 +119,7 @@ export class PatientProfile {
       props.nutritionNotes,
       props.exerciseNotes,
       props.mentalHealthNotes,
+      props.allergiesConfirmedNoneAt ?? null,
     );
   }
 
@@ -127,6 +132,13 @@ export class PatientProfile {
     }
     if (props.allergies !== undefined) {
       this.allergies = props.allergies ?? undefined;
+      // A patient (or their care team) recording a real, positive allergy
+      // supersedes any earlier "confirmed none" attestation -- the two are
+      // mutually exclusive by construction (see confirmNoKnownAllergies()'s
+      // own guard).
+      if (this.allergies) {
+        this.allergiesConfirmedNoneAt = null;
+      }
     }
     if (props.chronicDiseases !== undefined) {
       this.chronicDiseases = props.chronicDiseases ?? undefined;
@@ -201,6 +213,28 @@ export class PatientProfile {
 
   getMentalHealthNotes(): string | undefined {
     return this.mentalHealthNotes;
+  }
+
+  getAllergiesConfirmedNoneAt(): Date | null {
+    return this.allergiesConfirmedNoneAt;
+  }
+
+  // Doctor Patient Chart plan, 4.3: a doctor-authored "confirmed no known
+  // allergies" attestation, modeled as its own nullable timestamp rather
+  // than a sentinel string in `allergies` (see the field's own schema
+  // comment for the full rationale). Guarded here, not just in the
+  // application layer, because "never overwrite a real positive allergy
+  // record with 'confirmed none'" is a genuine domain invariant of this
+  // aggregate, not merely a use-case-level check.
+  confirmNoKnownAllergies(): void {
+    if (this.allergies && this.allergies.trim().length > 0) {
+      throw new PatientDomainError(
+        'Cannot confirm no known allergies: this patient already has a recorded allergy.',
+      );
+    }
+    this.allergiesConfirmedNoneAt = new Date();
+    this.updatedAt = new Date();
+    this.record(new PatientProfileUpdatedEvent(this.id));
   }
 
   releaseDomainEvents(): DomainEvent[] {

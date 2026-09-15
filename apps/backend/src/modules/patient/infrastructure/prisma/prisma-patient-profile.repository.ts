@@ -56,6 +56,7 @@ export class PrismaPatientProfileRepository implements PatientProfileRepository 
             nutritionNotes: profile.getNutritionNotes() ?? null,
             exerciseNotes: profile.getExerciseNotes() ?? null,
             mentalHealthNotes: profile.getMentalHealthNotes() ?? null,
+            allergiesConfirmedNoneAt: profile.getAllergiesConfirmedNoneAt(),
           },
           update: {
             bloodType: profile.getBloodType() ?? null,
@@ -66,6 +67,7 @@ export class PrismaPatientProfileRepository implements PatientProfileRepository 
             nutritionNotes: profile.getNutritionNotes() ?? null,
             exerciseNotes: profile.getExerciseNotes() ?? null,
             mentalHealthNotes: profile.getMentalHealthNotes() ?? null,
+            allergiesConfirmedNoneAt: profile.getAllergiesConfirmedNoneAt(),
           },
         }),
         this.prisma.emergencyContact.deleteMany({ where: { patientProfileId: id } }),

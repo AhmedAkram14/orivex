@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { EmergencyRelationship } from '../enums/emergency-relationship.enum.js';
 import { BloodType } from '../enums/blood-type.enum.js';
+import { PatientDomainError } from '../exceptions/patient-domain.error.js';
 
 import { PatientProfile } from './patient-profile.entity.js';
 
@@ -66,5 +67,37 @@ describe('PatientProfile', () => {
 
     assert.equal(profile.getBloodType(), undefined);
     assert.equal(profile.getAllergies(), undefined);
+  });
+
+  // Doctor Patient Chart plan, 4.3.
+  describe('confirmNoKnownAllergies', () => {
+    it('sets allergiesConfirmedNoneAt when no allergies are on record', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+      profile.releaseDomainEvents();
+
+      profile.confirmNoKnownAllergies();
+
+      assert.ok(profile.getAllergiesConfirmedNoneAt() instanceof Date);
+      assert.equal(profile.releaseDomainEvents().length, 1);
+    });
+
+    it('throws PatientDomainError and never sets the confirmation when a real allergy is already on record', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+      profile.update({ allergies: 'Penicillin' });
+
+      assert.throws(() => profile.confirmNoKnownAllergies(), PatientDomainError);
+      assert.equal(profile.getAllergiesConfirmedNoneAt(), null);
+    });
+
+    it('is cleared again the moment a real allergy is recorded, since the two states are mutually exclusive', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+      profile.confirmNoKnownAllergies();
+      assert.ok(profile.getAllergiesConfirmedNoneAt() instanceof Date);
+
+      profile.update({ allergies: 'Latex' });
+
+      assert.equal(profile.getAllergiesConfirmedNoneAt(), null);
+      assert.equal(profile.getAllergies(), 'Latex');
+    });
   });
 });

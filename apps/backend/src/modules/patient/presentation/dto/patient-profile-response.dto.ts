@@ -33,6 +33,8 @@ export class PatientProfileResponseDto {
   bloodType?: BloodType;
   allergies?: string;
   chronicDiseases?: string;
+  /** Doctor Patient Chart plan, 4.3: set only when a doctor has explicitly confirmed no known allergies AND `allergies` is empty -- never both at once. */
+  allergiesConfirmedNoneAt?: string;
   insuranceProviderId?: string;
   /** Resolved by the caller when it already has ReferenceModule's provider list loaded (e.g. the public patient chart); omitted (not fabricated) when no resolver is passed in. */
   insuranceProviderName?: string;
@@ -76,6 +78,7 @@ export class PatientProfileResponseDto {
     dto.bloodType = profile.getBloodType();
     dto.allergies = profile.getAllergies();
     dto.chronicDiseases = profile.getChronicDiseases();
+    dto.allergiesConfirmedNoneAt = profile.getAllergiesConfirmedNoneAt()?.toISOString();
     dto.insuranceProviderId = profile.getInsuranceProviderId();
     dto.insuranceProviderName = insuranceProviderName;
     dto.lifestyleNotes = profile.getLifestyleNotes();
