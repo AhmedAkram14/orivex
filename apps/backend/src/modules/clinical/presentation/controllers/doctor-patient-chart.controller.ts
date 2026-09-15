@@ -5,19 +5,16 @@ import { Roles } from '../../../authentication/presentation/decorators/roles.dec
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
-import { ForbiddenError, NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { ListMediaAssetsForOwnerUseCase } from '../../../asset/application/use-cases/list-media-assets-for-owner/list-media-assets-for-owner.use-case.js';
 import { CLINICAL_MEDIA_ASSET_PURPOSES } from '../../../asset/domain/enums/media-asset-purpose.enum.js';
 import { MediaAssetListItemResponseDto } from '../../../asset/presentation/dto/media-asset-list-item-response.dto.js';
-import { GetAppointmentsForDoctorAndPatientUseCase } from '../../../consultation/application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
+import { TreatingRelationshipService } from '../../../consultation/application/services/treating-relationship.service.js';
 import type { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
 import { AppointmentListItemResponseDto } from '../../../consultation/presentation/dto/appointment-list-item-response.dto.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
-import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
-import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfileResponseDto } from '../../../patient/presentation/dto/patient-profile-response.dto.js';
 import { ListInsuranceProvidersUseCase } from '../../../reference/application/use-cases/list-insurance-providers/list-insurance-providers.use-case.js';
 import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
@@ -34,7 +31,7 @@ import { PatientPrescriptionResponseDto } from '../dto/patient-prescription-resp
 import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
 import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
 import { GetConsentStateUseCase } from '../../../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
-import { GENERAL_CONSENT_SCOPE_CODE, MENTAL_HEALTH_CONSENT_SCOPE_CODE } from '../../../trust/domain/constants/consent-scope-codes.js';
+import { MENTAL_HEALTH_CONSENT_SCOPE_CODE } from '../../../trust/domain/constants/consent-scope-codes.js';
 import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
 import { ConsentState } from '../../../trust/domain/enums/consent-state.enum.js';
 
@@ -81,9 +78,7 @@ interface PrescriptionView {
 @Roles(AccountRole.Doctor)
 export class DoctorPatientChartController {
   constructor(
-    private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
-    private readonly getAppointmentsForDoctorAndPatientUseCase: GetAppointmentsForDoctorAndPatientUseCase,
-    private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+    private readonly treatingRelationshipService: TreatingRelationshipService,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly listInsuranceProvidersUseCase: ListInsuranceProvidersUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
@@ -289,38 +284,7 @@ export class DoctorPatientChartController {
   // exactly matching HealthGraphController's own split and
   // docs/12-openapi.md's documented Forbidden response.
   private async requireRelationship(user: AccessTokenClaims, patientId: string) {
-    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
-    if (!doctorProfile) {
-      throw new NotFoundError(`Patient "${patientId}" not found.`);
-    }
-
-    const ownAppointments = await this.getAppointmentsForDoctorAndPatientUseCase.execute({
-      doctorId: doctorProfile.getId(),
-      patientId,
-    });
-    if (ownAppointments.length === 0) {
-      throw new NotFoundError(`Patient "${patientId}" not found.`);
-    }
-
-    const consentState = await this.getConsentStateUseCase.execute({
-      patientId,
-      doctorId: doctorProfile.getId(),
-      scopeCode: GENERAL_CONSENT_SCOPE_CODE,
-    });
-    if (consentState === ConsentState.Revoked) {
-      throw new ForbiddenError('This doctor does not have consent to view the requested data.', 'CONSENT_NOT_GRANTED');
-    }
-
-    const profile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId: patientId });
-    if (!profile) {
-      throw new NotFoundError(`Patient "${patientId}" not found.`);
-    }
-    const account = await this.getAccountByIdUseCase.execute({ accountId: profile.getAccountId() });
-    if (!account) {
-      throw new NotFoundError(`Patient "${patientId}" not found.`);
-    }
-
-    return { doctorProfile, profile, account, ownAppointments };
+    return this.treatingRelationshipService.assertActiveRelationship(user.accountId, patientId);
   }
 
   private async resolveSpecialtyNames(): Promise<Map<string, { name: string; nameAr: string | null }>> {

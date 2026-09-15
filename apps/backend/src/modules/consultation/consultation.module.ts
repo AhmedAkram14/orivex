@@ -22,7 +22,9 @@ import { ConfirmSlotUseCase } from '../scheduling/application/use-cases/confirm-
 import { ReleaseSlotUseCase } from '../scheduling/application/use-cases/release-slot/release-slot.use-case.js';
 import { ReserveSlotUseCase } from '../scheduling/application/use-cases/reserve-slot/reserve-slot.use-case.js';
 import { SchedulingModule } from '../scheduling/scheduling.module.js';
+import { GetConsentStateUseCase } from '../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
 import { TrustGuardsModule } from '../trust/trust-guards.module.js';
+import { TrustModule } from '../trust/trust.module.js';
 
 import type { RoomTokenGeneratorPort } from './application/ports/room-token-generator.port.js';
 import {
@@ -57,6 +59,7 @@ import { GetDoctorRatingAggregatesUseCase } from './application/use-cases/get-do
 import { GetFollowUpRecommendationForSessionUseCase } from './application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from './application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { GetAppointmentsForDoctorAndPatientUseCase } from './application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
+import { TreatingRelationshipService } from './application/services/treating-relationship.service.js';
 import { ListAppointmentsForDoctorUseCase } from './application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { ListAppointmentsForPatientUseCase } from './application/use-cases/list-appointments-for-patient/list-appointments-for-patient.use-case.js';
 import { ListAppointmentsForPatientPageUseCase } from './application/use-cases/list-appointments-for-patient-page/list-appointments-for-patient-page.use-case.js';
@@ -103,8 +106,23 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
 // module's repository — docs/10-backend-architecture.md Section 11). None of
 // those modules import Consultation back -- no circular imports, no
 // forwardRef().
+// TrustModule added for TreatingRelationshipService's consent check
+// (GetConsentStateUseCase) -- decision 8 of the Doctor Patient Chart plan.
+// TrustModule already forwardRef()s ConsultationModule for its own
+// ConsentController composition (see trust.module.ts's own comment), so
+// this edge is the safe, already-anticipated direction of that same real
+// cycle; nothing here needs its own forwardRef().
 @Module({
-  imports: [PatientModule, DoctorModule, SchedulingModule, IdentityModule, AuthenticationModule, TrustGuardsModule, ReferenceModule],
+  imports: [
+    PatientModule,
+    DoctorModule,
+    SchedulingModule,
+    IdentityModule,
+    AuthenticationModule,
+    TrustGuardsModule,
+    TrustModule,
+    ReferenceModule,
+  ],
   controllers: [
     AppointmentController,
     DoctorAppointmentsController,
@@ -251,6 +269,30 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       useFactory: (listAppointmentsForDoctorUseCase: ListAppointmentsForDoctorUseCase) =>
         new GetAppointmentsForDoctorAndPatientUseCase(listAppointmentsForDoctorUseCase),
       inject: [ListAppointmentsForDoctorUseCase],
+    },
+    {
+      provide: TreatingRelationshipService,
+      useFactory: (
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+        getAppointmentsForDoctorAndPatientUseCase: GetAppointmentsForDoctorAndPatientUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        getConsentStateUseCase: GetConsentStateUseCase,
+      ) =>
+        new TreatingRelationshipService(
+          getDoctorProfileByAccountIdUseCase,
+          getAppointmentsForDoctorAndPatientUseCase,
+          getPatientProfileByIdUseCase,
+          getAccountByIdUseCase,
+          getConsentStateUseCase,
+        ),
+      inject: [
+        GetDoctorProfileByAccountIdUseCase,
+        GetAppointmentsForDoctorAndPatientUseCase,
+        GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        GetConsentStateUseCase,
+      ],
     },
     {
       provide: GetDoctorReportsSummaryUseCase,
@@ -518,6 +560,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     ListDisputesByStatusUseCase,
     ResolveDisputeUseCase,
     GetDisputeByIdUseCase,
+    TreatingRelationshipService,
   ],
 })
 export class ConsultationModule {}

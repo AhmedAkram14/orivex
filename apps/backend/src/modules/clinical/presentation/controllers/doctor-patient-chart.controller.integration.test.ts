@@ -19,6 +19,7 @@ import { MediaAssetPurpose } from '../../../asset/domain/enums/media-asset-purpo
 import { MediaAssetStatus } from '../../../asset/domain/enums/media-asset-status.enum.js';
 import type { MediaAssetRepository } from '../../../asset/domain/repositories/media-asset.repository.js';
 import { GetAppointmentsForDoctorAndPatientUseCase } from '../../../consultation/application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
+import { TreatingRelationshipService } from '../../../consultation/application/services/treating-relationship.service.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../../consultation/application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
 import { Appointment } from '../../../consultation/domain/entities/appointment.entity.js';
@@ -447,6 +448,22 @@ describe('DoctorPatientChartController (integration)', () => {
         },
         { provide: GetPatientProfileByIdUseCase, useFactory: () => new GetPatientProfileByIdUseCase(patientProfileRepository) },
         { provide: GetAccountByIdUseCase, useFactory: () => new GetAccountByIdUseCase(accountRepository) },
+        // Decision 8 (Doctor Patient Chart plan): DoctorPatientChartController
+        // now delegates its whole relationship/consent check to the shared
+        // TreatingRelationshipService -- built here from the exact same
+        // in-memory fakes the standalone use-case providers above use, so
+        // every existing assertion below keeps exercising identical behavior.
+        {
+          provide: TreatingRelationshipService,
+          useFactory: () =>
+            new TreatingRelationshipService(
+              new GetDoctorProfileByAccountIdUseCase(doctorProfileRepository),
+              new GetAppointmentsForDoctorAndPatientUseCase(new ListAppointmentsForDoctorUseCase(appointmentRepository)),
+              new GetPatientProfileByIdUseCase(patientProfileRepository),
+              new GetAccountByIdUseCase(accountRepository),
+              { execute: async () => ConsentState.Granted } as unknown as GetConsentStateUseCase,
+            ),
+        },
         { provide: ListInsuranceProvidersUseCase, useFactory: () => new ListInsuranceProvidersUseCase(new InMemoryInsuranceProviderRepository()) },
         {
           provide: GetConsultationSessionByAppointmentIdUseCase,

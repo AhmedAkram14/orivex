@@ -18,16 +18,22 @@ import { Appointment } from '../../../consultation/domain/entities/appointment.e
 import { ConsultationPricing } from '../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { Account } from '../../../identity/domain/entities/account.entity.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import type { AccountRepository } from '../../../identity/domain/repositories/account.repository.js';
+import type { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
 import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
+import { TreatingRelationshipService } from '../../../consultation/application/services/treating-relationship.service.js';
+import { RecordDiagnosisUseCase } from '../../application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListHealthJourneysUseCase } from '../../application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
 import { HealthGraph } from '../../domain/entities/health-graph.entity.js';
@@ -149,6 +155,23 @@ class FakeConsentScopeCategoryRepository implements ConsentScopeCategoryReposito
   }
 }
 
+class InMemoryAccountRepository implements AccountRepository {
+  private readonly byId = new Map<string, Account>();
+  constructor(accounts: Account[]) {
+    for (const account of accounts) this.byId.set(account.getId().toString(), account);
+  }
+  async findById(id: AccountId): Promise<Account | null> {
+    return this.byId.get(id.toString()) ?? null;
+  }
+  async findByEmail(): Promise<Account | null> {
+    return null;
+  }
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
+  }
+  async save(): Promise<void> {}
+}
+
 class InMemoryConsentRecordRepository implements ConsentRecordRepository {
   public readonly saved: ConsentRecord[] = [];
   async findCurrent(patientId: string, doctorId: string, scopeCategoryId: string): Promise<ConsentRecord | null> {
@@ -268,6 +291,7 @@ describe('HealthGraphController (integration)', () => {
     const appointmentRepository = new InMemoryAppointmentRepository([appointmentA]) as unknown as AppointmentRepository;
     const doctorProfileRepository = new InMemoryDoctorProfileRepository([doctorA, doctorC]);
     const patientProfileRepository = new InMemoryPatientProfileRepository([patient, otherPatient]);
+    const accountRepository = new InMemoryAccountRepository([doctorAAccount, doctorCAccount, patientAccount, otherPatientAccount]);
     const healthGraphRepository = new InMemoryHealthGraphRepository(healthGraph);
     auditLogRepository = new InMemoryAuditLogRepository();
     consentRecordRepository = new InMemoryConsentRecordRepository();
@@ -322,6 +346,33 @@ describe('HealthGraphController (integration)', () => {
         },
         { provide: RecordAuditLogUseCase, useFactory: () => new RecordAuditLogUseCase(auditLogRepository) },
         { provide: GetConsentStateUseCase, useFactory: () => getConsentStateUseCase },
+        // Decision 8 (Doctor Patient Chart plan): HealthGraphController's
+        // doctor branch now delegates to the shared TreatingRelationshipService
+        // -- built from the exact same fakes/real consent use case above, so
+        // the existing revoke/re-grant test below keeps exercising real
+        // behavior end to end.
+        {
+          provide: TreatingRelationshipService,
+          useFactory: () =>
+            new TreatingRelationshipService(
+              new GetDoctorProfileByAccountIdUseCase(doctorProfileRepository),
+              new GetAppointmentsForDoctorAndPatientUseCase(new ListAppointmentsForDoctorUseCase(appointmentRepository)),
+              new GetPatientProfileByIdUseCase(patientProfileRepository),
+              new GetAccountByIdUseCase(accountRepository),
+              getConsentStateUseCase,
+            ),
+        },
+        {
+          provide: RecordDiagnosisUseCase,
+          useFactory: () =>
+            new RecordDiagnosisUseCase(
+              healthGraphRepository,
+              new EmptyHealthJourneyRepository(),
+              new NoopDomainEventDispatcher(),
+              new GetPatientProfileByIdUseCase(patientProfileRepository),
+              new GetDoctorProfileByIdUseCase(doctorProfileRepository),
+            ),
+        },
       ],
     }).compile();
 
@@ -405,6 +456,83 @@ describe('HealthGraphController (integration)', () => {
     assert.equal(response.body.error.code, 'UNAUTHORIZED');
   });
 
+  // Doctor Patient Chart plan, 4.1: doctor-only condition entry, added
+  // directly from the chart, using the shared TreatingRelationshipService.
+  describe('POST :id/health-graph/conditions (4.1)', () => {
+    it('a treating doctor can add a condition and it appears in a subsequent read', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/patients/${patient.getId()}/health-graph/conditions`)
+        .set('Authorization', `Bearer ${DOCTOR_A_TOKEN}`)
+        .send({ freeTextDescription: 'Type 2 diabetes', certaintyLevel: CertaintyLevel.Confirmed })
+        .expect(201);
+
+      assert.equal(response.body.data.node.description, 'Type 2 diabetes');
+
+      const entry = auditLogRepository.recorded.find((e) => e.getAction() === 'patient_chart_condition_added');
+      assert.ok(entry, 'expected an audit log entry for the new condition');
+
+      const readBack = await request(app.getHttpServer())
+        .get(`/patients/${patient.getId()}/health-graph`)
+        .set('Authorization', `Bearer ${DOCTOR_A_TOKEN}`)
+        .expect(200);
+      const descriptions = readBack.body.data.map((node: { description: string }) => node.description);
+      assert.ok(descriptions.includes('Type 2 diabetes'));
+    });
+
+    it('a doctor with no relationship to the patient gets an ownership-safe 404', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/patients/${patient.getId()}/health-graph/conditions`)
+        .set('Authorization', `Bearer ${DOCTOR_C_TOKEN}`)
+        .send({ freeTextDescription: 'Should not be recorded' })
+        .expect(404);
+
+      assert.equal(response.body.error.code, 'NOT_FOUND');
+    });
+
+    it('a patient cannot add a condition (doctor-only route)', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/patients/${patient.getId()}/health-graph/conditions`)
+        .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+        .send({ freeTextDescription: 'Should not be recorded' })
+        .expect(403);
+
+      assert.equal(response.body.error.code, 'FORBIDDEN');
+    });
+
+    it('blocks the treating doctor with 403 CONSENT_NOT_GRANTED once consent is revoked, then restores on re-grant', async () => {
+      await revokeConsentUseCase.execute(
+        new RevokeConsentCommand({
+          patientId: patient.getId(),
+          doctorId: doctorA.getId(),
+          scopeCode: 'general',
+          legalBasisVersion: 'v1',
+        }),
+      );
+
+      const revokedResponse = await request(app.getHttpServer())
+        .post(`/patients/${patient.getId()}/health-graph/conditions`)
+        .set('Authorization', `Bearer ${DOCTOR_A_TOKEN}`)
+        .send({ freeTextDescription: 'Should not be recorded while revoked' })
+        .expect(403);
+      assert.equal(revokedResponse.body.error.code, 'CONSENT_NOT_GRANTED');
+
+      await grantConsentUseCase.execute(
+        new GrantConsentCommand({
+          patientId: patient.getId(),
+          doctorId: doctorA.getId(),
+          scopeCode: 'general',
+          legalBasisVersion: 'v1',
+        }),
+      );
+
+      await request(app.getHttpServer())
+        .post(`/patients/${patient.getId()}/health-graph/conditions`)
+        .set('Authorization', `Bearer ${DOCTOR_A_TOKEN}`)
+        .send({ freeTextDescription: 'Recorded again once re-granted' })
+        .expect(201);
+    });
+  });
+
   // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3): a real
   // treating-doctor relationship is necessary but not sufficient -- an
   // explicit patient revoke must block access with a distinct 403, not the
@@ -431,7 +559,9 @@ describe('HealthGraphController (integration)', () => {
         .get(`/patients/${patient.getId()}/health-graph`)
         .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
         .expect(200);
-      assert.equal(patientResponse.body.data.length, 1);
+      // >= 1, not strictly 1: the 4.1 write-route tests above this one add
+      // real condition nodes to this same shared graph fixture.
+      assert.ok(patientResponse.body.data.length >= 1);
 
       await grantConsentUseCase.execute(
         new GrantConsentCommand({
@@ -446,7 +576,7 @@ describe('HealthGraphController (integration)', () => {
         .get(`/patients/${patient.getId()}/health-graph`)
         .set('Authorization', `Bearer ${DOCTOR_A_TOKEN}`)
         .expect(200);
-      assert.equal(restoredResponse.body.data.length, 1);
+      assert.ok(restoredResponse.body.data.length >= 1);
     });
   });
 });

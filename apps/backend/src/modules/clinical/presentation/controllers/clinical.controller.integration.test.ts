@@ -27,13 +27,18 @@ import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cas
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import type { Account } from '../../../identity/domain/entities/account.entity.js';
+import type { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
+import { TreatingRelationshipService } from '../../../consultation/application/services/treating-relationship.service.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListHealthJourneysUseCase } from '../../application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
 import { RecordClinicalNoteUseCase } from '../../application/use-cases/record-clinical-note/record-clinical-note.use-case.js';
+import { RecordDiagnosisUseCase } from '../../application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { HealthGraph } from '../../domain/entities/health-graph.entity.js';
 import { HealthJourney } from '../../domain/entities/health-journey.entity.js';
 import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
@@ -198,6 +203,23 @@ class InMemoryHealthJourneyRepository implements HealthJourneyRepository {
   async save(): Promise<void> {}
 }
 
+// Minimal fake -- this suite never inspects account fields, only that
+// TreatingRelationshipService's own findById call resolves successfully.
+class FakeAccountRepository {
+  private readonly byId = new Set<string>();
+  constructor(accountIds: string[]) {
+    for (const id of accountIds) this.byId.add(id);
+  }
+  async findById(id: AccountId): Promise<Account | null> {
+    return this.byId.has(id.toString()) ? ({} as Account) : null;
+  }
+}
+
+class NoopDomainEventDispatcher {
+  async dispatch(): Promise<void> {}
+  subscribe(): void {}
+}
+
 describe('Clinical controllers (integration)', () => {
   let app: INestApplication;
   let patient: PatientProfile;
@@ -296,6 +318,32 @@ describe('Clinical controllers (integration)', () => {
         // health-graph.controller.integration.test.ts and
         // doctor-patient-chart.controller.integration.test.ts.
         { provide: GetConsentStateUseCase, useValue: { execute: async () => ConsentState.Granted } },
+        // Decision 8 (Doctor Patient Chart plan): HealthGraphController now
+        // depends on the shared TreatingRelationshipService for its doctor
+        // branch and its new write route -- built from the exact same fakes
+        // the standalone use-case providers above use.
+        {
+          provide: TreatingRelationshipService,
+          useFactory: () =>
+            new TreatingRelationshipService(
+              new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo),
+              new GetAppointmentsForDoctorAndPatientUseCase(new ListAppointmentsForDoctorUseCase(appointmentRepo)),
+              new GetPatientProfileByIdUseCase(patientProfileRepo),
+              new GetAccountByIdUseCase(new FakeAccountRepository([patient.getAccountId(), otherPatient.getAccountId()]) as never),
+              { execute: async () => ConsentState.Granted } as never,
+            ),
+        },
+        {
+          provide: RecordDiagnosisUseCase,
+          useFactory: () =>
+            new RecordDiagnosisUseCase(
+              new InMemoryHealthGraphRepository(graph),
+              new InMemoryHealthJourneyRepository([journey]),
+              new NoopDomainEventDispatcher(),
+              new GetPatientProfileByIdUseCase(patientProfileRepo),
+              new GetDoctorProfileByIdUseCase(doctorProfileRepo),
+            ),
+        },
       ],
     }).compile();
 

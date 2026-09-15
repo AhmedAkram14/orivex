@@ -26,6 +26,10 @@ export const DOMAIN_TO_PRISMA_ACTION: Record<AuditAction, PrismaAuditAction> = {
   [AuditAction.AiSuggestionRequested]: PrismaAuditAction.AI_SUGGESTION_REQUESTED,
   [AuditAction.AiSuggestionDecided]: PrismaAuditAction.AI_SUGGESTION_DECIDED,
   [AuditAction.LabRequestOrdered]: PrismaAuditAction.LAB_REQUEST_ORDERED,
+  [AuditAction.PatientChartConditionAdded]: PrismaAuditAction.PATIENT_CHART_CONDITION_ADDED,
+  [AuditAction.PatientChartDocumentUploadIntentCreated]: PrismaAuditAction.PATIENT_CHART_DOCUMENT_UPLOAD_INTENT_CREATED,
+  [AuditAction.PatientChartDocumentUploaded]: PrismaAuditAction.PATIENT_CHART_DOCUMENT_UPLOADED,
+  [AuditAction.PatientAllergiesConfirmedNone]: PrismaAuditAction.PATIENT_ALLERGIES_CONFIRMED_NONE,
 };
 
 const PRISMA_TO_DOMAIN_ACTION: Record<PrismaAuditAction, AuditAction> = Object.fromEntries(

@@ -23,4 +23,11 @@ export enum AuditAction {
   AiSuggestionRequested = 'ai_suggestion_requested',
   AiSuggestionDecided = 'ai_suggestion_decided',
   LabRequestOrdered = 'lab_request_ordered',
+  // Doctor Patient Chart plan, Phase 4: doctor-authored writes from the
+  // chart page (distinct from DiagnosisRecorded, whose subjectType is
+  // consultation_session, not patient).
+  PatientChartConditionAdded = 'patient_chart_condition_added',
+  PatientChartDocumentUploadIntentCreated = 'patient_chart_document_upload_intent_created',
+  PatientChartDocumentUploaded = 'patient_chart_document_uploaded',
+  PatientAllergiesConfirmedNone = 'patient_allergies_confirmed_none',
 }

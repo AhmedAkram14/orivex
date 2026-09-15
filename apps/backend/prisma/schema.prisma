@@ -531,6 +531,11 @@ enum AuditAction {
   AI_SUGGESTION_REQUESTED
   AI_SUGGESTION_DECIDED
   LAB_REQUEST_ORDERED
+  // Doctor Patient Chart plan, Phase 4.
+  PATIENT_CHART_CONDITION_ADDED
+  PATIENT_CHART_DOCUMENT_UPLOAD_INTENT_CREATED
+  PATIENT_CHART_DOCUMENT_UPLOADED
+  PATIENT_ALLERGIES_CONFIRMED_NONE
 }
 
 model AuditLog {
@@ -641,6 +646,14 @@ model PatientProfile {
   bloodType           String?
   allergies           String?
   chronicDiseases     String?
+  // Doctor Patient Chart plan, 4.3: a doctor-authored "confirmed no known
+  // allergies" attestation -- deliberately a separate nullable timestamp,
+  // not a sentinel string, so "never asked" (both this and `allergies` are
+  // unset), "has allergies" (`allergies` set), and "asked, confirmed none"
+  // (this is set) stay unambiguous and queryable. Never set when
+  // `allergies` is already non-empty (ConfirmNoKnownAllergiesUseCase
+  // enforces this).
+  allergiesConfirmedNoneAt DateTime?
   // I6 -- Health Passport (docs/01.1-prd-update.md §17-30): lifestyle/
   // nutrition/exercise are free text, same convention as allergies/
   // chronicDiseases above (no structured taxonomy for V1). mentalHealthNotes

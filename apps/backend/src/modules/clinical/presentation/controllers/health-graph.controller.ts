@@ -1,25 +1,27 @@
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 
-import { ForbiddenError, NotFoundError } from '../../../../shared/errors/app-error.js';
+import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
+import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
-import { GetAppointmentsForDoctorAndPatientUseCase } from '../../../consultation/application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
-import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { TreatingRelationshipService } from '../../../consultation/application/services/treating-relationship.service.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { RecordAuditLogCommand } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.command.js';
 import { RecordAuditLogUseCase } from '../../../trust/application/use-cases/record-audit-log/record-audit-log.use-case.js';
-import { GetConsentStateUseCase } from '../../../trust/application/use-cases/get-consent-state/get-consent-state.use-case.js';
-import { GENERAL_CONSENT_SCOPE_CODE } from '../../../trust/domain/constants/consent-scope-codes.js';
 import { AuditAction } from '../../../trust/domain/enums/audit-action.enum.js';
-import { ConsentState } from '../../../trust/domain/enums/consent-state.enum.js';
+import { RecordDiagnosisCommand } from '../../application/use-cases/record-diagnosis/record-diagnosis.command.js';
+import { RecordDiagnosisUseCase } from '../../application/use-cases/record-diagnosis/record-diagnosis.use-case.js';
 import { GetHealthGraphSubgraphUseCase } from '../../application/use-cases/get-health-graph-subgraph/get-health-graph-subgraph.use-case.js';
 import { ListHealthJourneysUseCase } from '../../application/use-cases/list-health-journeys/list-health-journeys.use-case.js';
+import { HealthGraphNodeType } from '../../domain/enums/health-graph-node-type.enum.js';
+import { AddPatientConditionRequestDto } from '../dto/add-patient-condition-request.dto.js';
 import { HealthGraphNodeResponseDto } from '../dto/health-graph-node-response.dto.js';
 import { HealthJourneyResponseDto } from '../dto/health-journey-response.dto.js';
+import { RecordDiagnosisResponseDto } from '../dto/record-diagnosis-response.dto.js';
 import { mapClinicalError } from '../mappers/clinical-exception.mapper.js';
 
 // Matches docs/12-openapi.md's GET /patients/{id}/health-graph and
@@ -47,10 +49,9 @@ export class HealthGraphController {
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
     private readonly listHealthJourneysUseCase: ListHealthJourneysUseCase,
     private readonly getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
-    private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
-    private readonly getAppointmentsForDoctorAndPatientUseCase: GetAppointmentsForDoctorAndPatientUseCase,
+    private readonly treatingRelationshipService: TreatingRelationshipService,
+    private readonly recordDiagnosisUseCase: RecordDiagnosisUseCase,
     private readonly recordAuditLogUseCase: RecordAuditLogUseCase,
-    private readonly getConsentStateUseCase: GetConsentStateUseCase,
   ) {}
 
   @Get(':id/health-graph')
@@ -116,29 +117,52 @@ export class HealthGraphController {
     }
   }
 
+  // Doctor Patient Chart plan, 4.1: a doctor-authored condition entry added
+  // directly from the chart's Medical History tab, outside any consultation
+  // session. Doctor-only -- the existing GET routes above allow both roles
+  // via ensureReadableByCaller's own internal branch, but a write is never a
+  // patient action. Reuses RecordDiagnosisUseCase (already supports
+  // session-less recording) with nodeType=Condition, no consultationSessionId,
+  // no startJourney (this route must never silently start a Health Journey).
+  @Post(':id/health-graph/conditions')
+  @Roles(AccountRole.Doctor)
+  @HttpCode(HttpStatus.CREATED)
+  async addCondition(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: AddPatientConditionRequestDto,
+  ): Promise<ResponseEnvelope<RecordDiagnosisResponseDto>> {
+    try {
+      const { doctorProfile } = await this.treatingRelationshipService.assertActiveRelationship(user.accountId, id);
+      const result = await this.recordDiagnosisUseCase.execute(
+        new RecordDiagnosisCommand({
+          patientId: id,
+          doctorId: doctorProfile.getId(),
+          nodeType: HealthGraphNodeType.Condition,
+          freeTextDescription: body.freeTextDescription,
+          certaintyLevel: body.certaintyLevel,
+        }),
+      );
+      await this.recordAuditLogUseCase.execute(
+        new RecordAuditLogCommand({
+          actorAccountId: user.accountId,
+          actorRole: user.role,
+          action: AuditAction.PatientChartConditionAdded,
+          subjectType: 'patient',
+          subjectId: id,
+          metadata: { healthGraphNodeId: result.node.getId() },
+        }),
+      );
+      return envelope(RecordDiagnosisResponseDto.fromResult(result));
+    } catch (error) {
+      throw mapClinicalError(error);
+    }
+  }
+
   private async ensureReadableByCaller(patientId: string, user: AccessTokenClaims): Promise<void> {
     if (user.role === AccountRole.Doctor) {
-      const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
-      if (doctorProfile !== null) {
-        const ownAppointments = await this.getAppointmentsForDoctorAndPatientUseCase.execute({
-          doctorId: doctorProfile.getId(),
-          patientId,
-        });
-        if (ownAppointments.length > 0) {
-          const consentState = await this.getConsentStateUseCase.execute({
-            patientId,
-            doctorId: doctorProfile.getId(),
-            scopeCode: GENERAL_CONSENT_SCOPE_CODE,
-          });
-          if (consentState === ConsentState.Revoked) {
-            throw new ForbiddenError(
-              'This doctor does not have consent to view the requested data.',
-              'CONSENT_NOT_GRANTED',
-            );
-          }
-          return;
-        }
-      }
+      await this.treatingRelationshipService.assertActiveRelationship(user.accountId, patientId);
+      return;
     }
     if (user.role === AccountRole.Patient) {
       const patientProfile = await this.getPatientProfileByAccountIdUseCase.execute({ accountId: user.accountId });

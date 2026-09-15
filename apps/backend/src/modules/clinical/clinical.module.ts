@@ -81,6 +81,7 @@ import { ConsultationSummaryController } from './presentation/controllers/consul
 import { DiagnosisController } from './presentation/controllers/diagnosis.controller.js';
 import { VitalsController } from './presentation/controllers/vitals.controller.js';
 import { DoctorPatientChartController } from './presentation/controllers/doctor-patient-chart.controller.js';
+import { DoctorPatientDocumentController } from './presentation/controllers/doctor-patient-document.controller.js';
 import { HealthGraphController } from './presentation/controllers/health-graph.controller.js';
 import { JourneyController } from './presentation/controllers/journey.controller.js';
 import { LabRequestController } from './presentation/controllers/lab-request.controller.js';
@@ -106,6 +107,7 @@ import { PrescriptionVerificationController } from './presentation/controllers/p
     VitalsController,
     ConsultationSummaryController,
     DoctorPatientChartController,
+    DoctorPatientDocumentController,
     JourneyController,
     LabRequestController,
   ],
