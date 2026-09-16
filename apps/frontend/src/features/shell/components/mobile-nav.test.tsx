@@ -1,8 +1,11 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { MobileNav } from '@/features/shell/components/mobile-nav';
+import { server } from '@/mocks/server';
+import { resetMessagingStore } from '@/mocks/messaging-store';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../messages/en.json';
@@ -17,18 +20,28 @@ vi.mock('next/navigation', () => ({
   RedirectType: { push: 'push', replace: 'replace' },
 }));
 
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => {
+  server.resetHandlers();
+  resetMessagingStore();
+});
+afterAll(() => server.close());
+
 const patientState: AuthState = {
   status: 'authenticated',
   user: { id: '1', email: 'patient@orivex.dev', fullName: 'Amina Youssef', roles: ['patient'] },
 };
 
 function renderMobileNav() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <NextIntlClientProvider locale="en" messages={enMessages}>
-      <AuthContext.Provider value={patientState}>
-        <MobileNav />
-      </AuthContext.Provider>
-    </NextIntlClientProvider>,
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <AuthContext.Provider value={patientState}>
+          <MobileNav />
+        </AuthContext.Provider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>,
   );
 }
 

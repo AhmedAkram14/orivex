@@ -12,11 +12,24 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
 
+// `?thread=` URL state (Phase 3): `replace` writes back into the same
+// mutable `currentSearchParams` `useSearchParams` reads, mirroring a real
+// Next.js router closely enough that selecting a thread is actually
+// reflected on the next render, not just asserted via a `replace` spy.
+let currentSearchParams = new URLSearchParams();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn((url: string) => {
+      currentSearchParams = new URLSearchParams(url.split('?')[1] ?? '');
+    }),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
   usePathname: () => '/doctor/messages',
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => currentSearchParams,
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
@@ -34,6 +47,7 @@ const doctorState: AuthState = {
 afterEach(() => {
   resetDoctorStore();
   resetMessagingStore();
+  currentSearchParams = new URLSearchParams();
 });
 
 function renderPage() {
@@ -50,10 +64,13 @@ function renderPage() {
 }
 
 describe('DoctorMessagesPage', () => {
+  // Merged-inbox redesign (Phase 3): candidates now live inside the "New
+  // message" dialog, not a permanent "Start a conversation" card.
   it('lets a doctor start a conversation from their upcoming work list', async () => {
     const user = userEvent.setup();
     renderPage();
 
+    await user.click(await screen.findByRole('button', { name: 'New message' }));
     expect(await screen.findByText('Start a conversation')).toBeInTheDocument();
     const messageButtons = screen.getAllByRole('button', { name: 'Message' });
     expect(messageButtons.length).toBeGreaterThan(0);

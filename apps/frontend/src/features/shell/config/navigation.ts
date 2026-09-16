@@ -64,6 +64,14 @@ export interface NavItemConfig {
    * in the nav config -> no breadcrumb" fallback.
    */
   exactMatchOnly?: boolean;
+  /**
+   * Messages Page Overhaul (Phase 3): a symbolic tag naming a small live
+   * badge to render next to this item -- this is a static config file with
+   * no hook access, so it can't compute or embed the count itself.
+   * `sidebar-nav.tsx`'s render path maps the tag to a real component.
+   * `'unread-messages'` is the only value today (both Messages entries).
+   */
+  badge?: 'unread-messages';
   children?: NavItemConfig[];
 }
 
@@ -131,6 +139,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         icon: MessageCircle,
         href: '/doctor/messages',
         roles: ['doctor'],
+        badge: 'unread-messages',
       },
       {
         id: 'doctor-workspace-disputes',
@@ -226,6 +235,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         icon: MessageCircle,
         href: '/patient/messages',
         roles: ['patient'],
+        badge: 'unread-messages',
       },
       {
         id: 'patient-workspace-disputes',

@@ -756,10 +756,14 @@
       "noConversations": "No conversations yet.",
       "startConversation": "Message",
       "unknownCounterparty": "Conversation",
-      "appointmentLabel": "Appointment {id}",
       "selectConversationTitle": "Select a conversation",
       "selectConversationDescription": "Choose a conversation from the list, or start a new one from an appointment.",
-      "reconnecting": "Reconnecting…"
+      "reconnecting": "Reconnecting…",
+      "newMessage": "New message",
+      "noNewMessageCandidates": "No one to start a new conversation with yet.",
+      "searchPlaceholder": "Search conversations",
+      "noSearchResults": "No conversations match your search.",
+      "newMessageAnnouncement": "New message from {name}."
     },
     "thread": {
       "loadError": "Couldn't load this conversation.",

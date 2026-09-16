@@ -5,8 +5,10 @@ import { NAVIGATION_CONFIG, type NavItemConfig } from '@/features/shell/config/n
 import { useNavigationFeatureFlags } from '@/features/shell/hooks/use-navigation-feature-flags';
 import { filterNavigationByAccess } from '@/features/shell/lib/filter-navigation';
 import { flattenNavHrefs, getActiveNavHref } from '@/features/shell/lib/nav-active-match';
+import { useUnreadMessageCount } from '@/features/messaging/hooks/use-unread-message-count';
 import { useAuth } from '@/shared/auth/auth-context';
 import { usePathname } from '@/shared/i18n/navigation';
+import { Badge } from '@/shared/ui/badge';
 import { NavGroup, NavItem } from '@/shared/ui/layout/nav-item';
 
 export interface SidebarNavProps {
@@ -78,6 +80,25 @@ function NavEntry({
       active={item.href === activeHref}
       disabled={disabled}
       onClick={onNavigate}
+      badge={item.badge === 'unread-messages' ? <UnreadMessagesNavBadge /> : undefined}
     />
+  );
+}
+
+/**
+ * Messages Page Overhaul (Phase 3): the live unread-message count next to
+ * the doctor/patient "Messages" nav entries (both roles share this same
+ * render path via `NavItem`'s own `badge` slot -- `MobileNav` renders
+ * `SidebarNav` directly, so it gets this for free, no separate wiring).
+ * Renders nothing at zero, matching `NotificationBell`'s own "no badge at
+ * zero" convention.
+ */
+function UnreadMessagesNavBadge() {
+  const count = useUnreadMessageCount();
+  if (count === 0) return null;
+  return (
+    <Badge variant="danger" className="min-w-4 justify-center px-1 py-0 text-[10px]">
+      {count > 9 ? '9+' : count}
+    </Badge>
   );
 }

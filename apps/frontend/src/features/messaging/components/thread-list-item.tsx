@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import type { MessageThread } from '@/features/messaging/api/types';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { cn } from '@/shared/lib/cn';
@@ -11,16 +11,17 @@ export interface ThreadListItemProps {
   onSelect: () => void;
 }
 
-// Re-threading (Phase 1): `counterpartyDisplayName` now comes resolved
-// server-side on the thread itself -- the old client-side id-matching
-// against the caller's own appointments list, and the per-appointment
-// label line (no `appointmentId` exists anymore), are both gone. Phase 3
-// still owns the rest of this row's redesign (relative `lastMessageAt`
-// secondary line, merged-list sorting, aria-hidden avatar initial); this is
-// only the minimum change to keep this component compiling and honest
-// against the new DTO shape.
+// Re-threading (Phase 1) + merged-inbox redesign (Phase 3):
+// `counterpartyDisplayName` comes resolved server-side on the thread itself
+// -- the old client-side id-matching against the caller's own appointments
+// list is gone, and so is the per-appointment label line (no `appointmentId`
+// exists anymore). The secondary line is now a relative rendering of
+// `thread.lastMessageAt`, reusing `useFormatter().relativeTime()` -- the
+// same relative-time mechanism `notification-panel.tsx`/`recent-activity.tsx`
+// already use, rather than a new formatting utility.
 export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemProps) {
   const t = useTranslations('messaging.inbox');
+  const format = useFormatter();
   const displayName = thread.counterpartyDisplayName ?? t('unknownCounterparty');
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -39,6 +40,7 @@ export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemPro
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-text-primary">{displayName}</p>
+          <p className="truncate text-xs text-text-tertiary">{format.relativeTime(new Date(thread.lastMessageAt), new Date())}</p>
         </div>
       </button>
     </li>

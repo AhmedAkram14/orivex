@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { getOpenThreadId } from '@/features/messaging/hooks/open-thread-tracker';
-import { messageThreadsKeys, messagesKeys } from '@/features/messaging/hooks/query-keys';
+import { messageThreadsKeys, messagesKeys, unreadMessageCountKey } from '@/features/messaging/hooks/query-keys';
 import { useAuth } from '@/shared/auth/auth-context';
 import { tokenStorage } from '@/shared/auth/token-storage';
 import { env } from '@/shared/lib/env';
@@ -166,6 +166,10 @@ export function useRealtimeSocket(): void {
     // checking "is this the open thread" ourselves.
     socket.on('message.sent', (payload: { threadId: string; messageId?: string }) => {
       queryClient.invalidateQueries({ queryKey: messageThreadsKeys.list() });
+      // Sidebar unread badge (Phase 3): a new message always potentially
+      // changes the caller's own unread count, whether or not it's for the
+      // thread they currently have open.
+      queryClient.invalidateQueries({ queryKey: unreadMessageCountKey });
       if (payload?.threadId) {
         queryClient.invalidateQueries({ queryKey: messagesKeys.detail(payload.threadId) });
       }
@@ -187,6 +191,7 @@ export function useRealtimeSocket(): void {
     // checkmarks live instead of waiting on the ~60s fallback poll.
     socket.on('message.read', (payload: { threadId?: string }) => {
       queryClient.invalidateQueries({ queryKey: messageThreadsKeys.list() });
+      queryClient.invalidateQueries({ queryKey: unreadMessageCountKey });
       if (payload?.threadId) {
         queryClient.invalidateQueries({ queryKey: messagesKeys.detail(payload.threadId) });
       }

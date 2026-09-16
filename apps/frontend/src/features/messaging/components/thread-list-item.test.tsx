@@ -1,0 +1,53 @@
+import { render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import { describe, expect, it, vi } from 'vitest';
+
+import { ThreadListItem } from '@/features/messaging/components/thread-list-item';
+import type { MessageThread } from '@/features/messaging/api/types';
+import enMessages from '../../../../messages/en.json';
+
+function buildThread(overrides: Partial<MessageThread> = {}): MessageThread {
+  return {
+    id: 'thread-1',
+    patientId: 'patient-1',
+    doctorId: 'doctor-1',
+    createdAt: new Date().toISOString(),
+    lastMessageAt: new Date().toISOString(),
+    counterpartyDisplayName: 'Amina Youssef',
+    ...overrides,
+  };
+}
+
+function renderItem(thread: MessageThread, selected = false) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+      <ThreadListItem thread={thread} selected={selected} onSelect={vi.fn()} />
+    </NextIntlClientProvider>,
+  );
+}
+
+describe('ThreadListItem', () => {
+  it('shows the server-resolved counterparty name as the primary line', () => {
+    renderItem(buildThread({ counterpartyDisplayName: 'Amina Youssef' }));
+    expect(screen.getByText('Amina Youssef')).toBeInTheDocument();
+  });
+
+  it('never renders an appointment label -- no appointmentId exists on the thread anymore', () => {
+    renderItem(buildThread());
+    expect(screen.queryByText(/^Appointment /)).not.toBeInTheDocument();
+  });
+
+  it('shows a relative rendering of lastMessageAt as the secondary line', () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    renderItem(buildThread({ lastMessageAt: twoHoursAgo }));
+    // next-intl's relativeTime -- exact wording isn't this test's concern,
+    // only that *some* relative rendering (not a raw ISO timestamp) shows.
+    expect(screen.queryByText(twoHoursAgo)).not.toBeInTheDocument();
+    expect(screen.getByText(/ago|hour/i)).toBeInTheDocument();
+  });
+
+  it('falls back to a generic name when the counterparty lookup failed server-side', () => {
+    renderItem(buildThread({ counterpartyDisplayName: undefined }));
+    expect(screen.getByText('Conversation')).toBeInTheDocument();
+  });
+});

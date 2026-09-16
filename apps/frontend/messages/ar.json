@@ -756,10 +756,14 @@
       "noConversations": "لا توجد محادثات بعد.",
       "startConversation": "مراسلة",
       "unknownCounterparty": "محادثة",
-      "appointmentLabel": "الموعد {id}",
       "selectConversationTitle": "اختر محادثة",
       "selectConversationDescription": "اختر محادثة من القائمة، أو ابدأ محادثة جديدة من أحد المواعيد.",
-      "reconnecting": "جارٍ إعادة الاتصال…"
+      "reconnecting": "جارٍ إعادة الاتصال…",
+      "newMessage": "رسالة جديدة",
+      "noNewMessageCandidates": "لا يوجد أحد لبدء محادثة جديدة معه بعد.",
+      "searchPlaceholder": "البحث في المحادثات",
+      "noSearchResults": "لا توجد محادثات مطابقة لبحثك.",
+      "newMessageAnnouncement": "رسالة جديدة من {name}."
     },
     "thread": {
       "loadError": "تعذّر تحميل هذه المحادثة.",

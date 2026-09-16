@@ -1,7 +1,11 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
+import { server } from '@/mocks/server';
+import { resetMessagingStore, startOrGetThread, sendMessage } from '@/mocks/messaging-store';
+import { LEGACY_DOCTOR_ACCOUNT_ID, LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../messages/en.json';
@@ -18,13 +22,23 @@ vi.mock('next/navigation', () => ({
   RedirectType: { push: 'push', replace: 'replace' },
 }));
 
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => {
+  server.resetHandlers();
+  resetMessagingStore();
+});
+afterAll(() => server.close());
+
 function renderSidebar(state: AuthState) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <NextIntlClientProvider locale="en" messages={enMessages}>
-      <AuthContext.Provider value={state}>
-        <SidebarNav />
-      </AuthContext.Provider>
-    </NextIntlClientProvider>,
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider locale="en" messages={enMessages}>
+        <AuthContext.Provider value={state}>
+          <SidebarNav />
+        </AuthContext.Provider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -98,5 +112,25 @@ describe('SidebarNav', () => {
     expect(screen.getByRole('link', { name: 'Patients' })).toHaveAttribute('href', expect.stringContaining('/doctor/patients'));
     expect(screen.getByRole('link', { name: 'Reports' })).toHaveAttribute('href', expect.stringContaining('/doctor/reports'));
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', expect.stringContaining('/doctor/settings'));
+  });
+
+  // Messages Page Overhaul (Phase 3): the unread-message badge next to the
+  // Messages nav entry. `resolveRequestAccountId` falls back to
+  // `LEGACY_PATIENT_ACCOUNT_ID` when no bearer token/session marker exists
+  // (no login flow ran in this test) -- independent of this test's own
+  // `AuthContext` value, which only drives which nav items render.
+  it('shows no unread badge next to Messages when the resolved account has no unread messages', async () => {
+    renderSidebar(patientState);
+    await screen.findByRole('link', { name: 'Messages' });
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+  });
+
+  it('shows the live unread count next to Messages once the resolved account has an unread message', async () => {
+    const thread = startOrGetThread(LEGACY_DOCTOR_ACCOUNT_ID, LEGACY_PATIENT_ACCOUNT_ID);
+    sendMessage(thread.id, LEGACY_DOCTOR_ACCOUNT_ID, 'Please see the attached labs.');
+
+    renderSidebar(patientState);
+
+    expect(await screen.findByText('1')).toBeInTheDocument();
   });
 });

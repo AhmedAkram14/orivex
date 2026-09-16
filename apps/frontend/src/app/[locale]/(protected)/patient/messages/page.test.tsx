@@ -12,11 +12,24 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
 
+// `?thread=` URL state (Phase 3): `replace` writes back into the same
+// mutable `currentSearchParams` `useSearchParams` reads, mirroring a real
+// Next.js router closely enough that selecting a thread is actually
+// reflected on the next render, not just asserted via a `replace` spy.
+let currentSearchParams = new URLSearchParams();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn((url: string) => {
+      currentSearchParams = new URLSearchParams(url.split('?')[1] ?? '');
+    }),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
   usePathname: () => '/patient/messages',
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => currentSearchParams,
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
@@ -34,6 +47,7 @@ const patientState: AuthState = {
 afterEach(() => {
   resetPatientStore();
   resetMessagingStore();
+  currentSearchParams = new URLSearchParams();
 });
 
 function seedOneAppointment() {
@@ -68,14 +82,17 @@ function renderPage() {
 }
 
 describe('PatientMessagesPage', () => {
+  // Merged-inbox redesign (Phase 3): candidates now live inside the "New
+  // message" dialog, not a permanent "Start a conversation" card.
   it('lets a patient start a conversation from an appointment, then send a message in it', async () => {
     seedOneAppointment();
     const user = userEvent.setup();
     renderPage();
 
-    expect(await screen.findByText('Dr. Omar Hassan')).toBeInTheDocument();
-    expect(screen.getByText('No conversations yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No conversations yet.')).toBeInTheDocument();
 
+    await user.click(await screen.findByRole('button', { name: 'New message' }));
+    expect(await screen.findByText('Dr. Omar Hassan')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Message' }));
 
     // The started thread now shows in the Conversations list (no longer a "new conversation" candidate).
