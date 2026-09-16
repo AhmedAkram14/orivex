@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { useSendMessage } from '@/features/messaging/hooks/use-send-message';
 import { useUploadMediaAsset } from '@/shared/media/hooks/use-upload-media-asset';
+import { getRealtimeSocket } from '@/shared/lib/realtime/use-realtime-socket';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -12,10 +13,18 @@ import { Textarea } from '@/shared/ui/textarea';
 
 export interface MessageComposerProps {
   threadId: string;
+  /** Realtime layer (Phase 2): who a `messaging.typing` emit is addressed to. Typing is simply never emitted when this is unknown (a rare counterparty-lookup failure server-side) -- there's no meaningful fallback recipient. */
+  recipientAccountId?: string;
 }
 
+// Typing indicator: re-emit at most this often while the user keeps typing,
+// rather than on every keystroke -- ephemeral, low-stakes signal (per
+// docs/06-system-architecture.md §6), no need for finer granularity than
+// this.
+const TYPING_EMIT_INTERVAL_MS = 3000;
+
 /** The send form -- a body textarea plus one optional attachment, reusing the same real upload-intent -> PUT -> confirm flow (`useUploadMediaAsset`) every other attachment control in this app already uses. */
-export function MessageComposer({ threadId }: MessageComposerProps) {
+export function MessageComposer({ threadId, recipientAccountId }: MessageComposerProps) {
   const t = useTranslations('messaging.thread');
   const [body, setBody] = useState('');
   const [attachmentFileName, setAttachmentFileName] = useState<string | undefined>(undefined);
@@ -23,8 +32,17 @@ export function MessageComposer({ threadId }: MessageComposerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const upload = useUploadMediaAsset();
   const sendMessage = useSendMessage(threadId);
+  const lastTypingEmitAtRef = useRef(0);
 
   const canSend = (body.trim().length > 0 || Boolean(attachmentAssetId)) && !sendMessage.isPending && !upload.isPending;
+
+  function emitTyping() {
+    if (!recipientAccountId) return;
+    const now = Date.now();
+    if (now - lastTypingEmitAtRef.current < TYPING_EMIT_INTERVAL_MS) return;
+    lastTypingEmitAtRef.current = now;
+    getRealtimeSocket()?.emit('messaging.typing', { threadId, recipientAccountId });
+  }
 
   async function handleFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -91,7 +109,10 @@ export function MessageComposer({ threadId }: MessageComposerProps) {
         </Button>
         <Textarea
           value={body}
-          onChange={(event) => setBody(event.target.value)}
+          onChange={(event) => {
+            setBody(event.target.value);
+            emitTyping();
+          }}
           onKeyDown={handleKeyDown}
           placeholder={t('composerPlaceholder')}
           rows={1}

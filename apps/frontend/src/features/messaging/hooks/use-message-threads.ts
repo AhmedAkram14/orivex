@@ -9,10 +9,12 @@ export function useMessageThreads() {
   return useQuery({
     queryKey: messageThreadsKeys.list(),
     queryFn: () => messagingApi.listThreads(),
-    // Polling, not realtime -- I7 is deliberately asynchronous/administrative
-    // communication (docs/01-prd.md §2.13), not a live chat needing a
-    // socket. Refetches while the inbox tab is open so a new reply shows up
-    // without a manual refresh.
-    refetchInterval: 15_000,
+    // Messages Page Overhaul (Phase 2): sockets are now the primary delivery
+    // mechanism (`message.sent`/`message.read` invalidate this query --
+    // use-realtime-socket.ts) -- this interval is the "fail gracefully"
+    // fallback for a dropped/misbehaving socket, not the main path anymore,
+    // so it's lengthened from 15s to ~60s rather than removed entirely
+    // (decision 5 of the plan).
+    refetchInterval: 60_000,
   });
 }

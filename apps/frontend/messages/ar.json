@@ -758,7 +758,8 @@
       "unknownCounterparty": "محادثة",
       "appointmentLabel": "الموعد {id}",
       "selectConversationTitle": "اختر محادثة",
-      "selectConversationDescription": "اختر محادثة من القائمة، أو ابدأ محادثة جديدة من أحد المواعيد."
+      "selectConversationDescription": "اختر محادثة من القائمة، أو ابدأ محادثة جديدة من أحد المواعيد.",
+      "reconnecting": "جارٍ إعادة الاتصال…"
     },
     "thread": {
       "loadError": "تعذّر تحميل هذه المحادثة.",
@@ -775,7 +776,12 @@
       "attachmentAlt": "مرفق الرسالة",
       "sent": "أُرسلت",
       "read": "تمت القراءة",
-      "unknownCounterparty": "محادثة"
+      "unknownCounterparty": "محادثة",
+      "typingIndicator": "يكتب الآن…"
+    },
+    "toast": {
+      "newMessageTitle": "رسالة جديدة",
+      "newMessageDescription": "لديك رسالة جديدة في محادثة أخرى."
     }
   },
   "doctor": {

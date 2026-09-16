@@ -18,6 +18,8 @@ export interface MessageThread {
   lastMessageAt: string;
   /** Resolved server-side; undefined only if the counterparty's own profile/account lookup somehow fails. */
   counterpartyDisplayName?: string;
+  /** Realtime layer (Phase 2): the counterparty's own account id, for addressing a `messaging.typing` emit at them. Same undefined-only-on-lookup-failure guarantee as `counterpartyDisplayName`. */
+  counterpartyAccountId?: string;
 }
 
 /** Matches MessageResponseDto exactly (MessageThreadController). */

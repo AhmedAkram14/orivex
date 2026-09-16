@@ -41,6 +41,10 @@ function toThreadDto(thread: ThreadRecord, callerAccountId: string): MessageThre
     createdAt: thread.createdAt,
     lastMessageAt: thread.lastMessageAt,
     counterpartyDisplayName: displayNameFor(counterpartyAccountId),
+    // Realtime layer (Phase 2): the mock store's accounts already ARE the
+    // "profile ids" it keys threads by (see the module doc-comment), so the
+    // counterparty's own account id is simply the counterparty id itself.
+    counterpartyAccountId,
   };
 }
 

@@ -10,6 +10,7 @@ import { useStartOrGetThread } from '@/features/messaging/hooks/use-start-or-get
 import { NewConversationItem } from '@/features/messaging/components/new-conversation-item';
 import { ThreadListItem } from '@/features/messaging/components/thread-list-item';
 import { ThreadPanel } from '@/features/messaging/components/thread-panel';
+import { useRealtimeConnectionState } from '@/shared/lib/realtime/use-realtime-socket';
 import { Alert } from '@/shared/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -52,6 +53,10 @@ interface CandidateAppointment {
 export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
   const t = useTranslations('messaging.inbox');
   const [selectedThreadId, setSelectedThreadId] = useState<string | undefined>(undefined);
+  // Connection-state indicator (Phase 2 audit finding): a dropped socket
+  // otherwise silently degrades to the ~60s fallback poll with nothing on
+  // screen saying so.
+  const isRealtimeConnected = useRealtimeConnectionState();
 
   const patientAppointments = usePatientAppointments({ enabled: role === 'patient' });
   const doctorUpcomingWork = useDoctorUpcomingWork({ enabled: role === 'doctor' });
@@ -108,62 +113,73 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_1fr]" style={{ minHeight: '32rem' }}>
-      <div className="flex flex-col gap-4">
-        {newConversationCandidates.length > 0 && (
-          <Card>
+    <div className="flex flex-col gap-2">
+      {!isRealtimeConnected && (
+        <p className="text-xs text-text-tertiary" role="status">
+          {t('reconnecting')}
+        </p>
+      )}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_1fr]" style={{ minHeight: '32rem' }}>
+        <div className="flex flex-col gap-4">
+          {newConversationCandidates.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('newConversationTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="flex flex-col gap-1">
+                  {newConversationCandidates.map((appointment) => (
+                    <NewConversationItem
+                      key={appointment.id}
+                      counterpartyProfileId={appointment.id}
+                      counterpartyName={appointment.counterpartyName}
+                      scheduledAt={appointment.scheduledAt}
+                      onStart={handleStartConversation}
+                      starting={startOrGetThread.isPending && startOrGetThread.variables === appointment.id}
+                    />
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="flex-1">
             <CardHeader>
-              <CardTitle>{t('newConversationTitle')}</CardTitle>
+              <CardTitle>{t('conversationsTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="flex flex-col gap-1">
-                {newConversationCandidates.map((appointment) => (
-                  <NewConversationItem
-                    key={appointment.id}
-                    counterpartyProfileId={appointment.id}
-                    counterpartyName={appointment.counterpartyName}
-                    scheduledAt={appointment.scheduledAt}
-                    onStart={handleStartConversation}
-                    starting={startOrGetThread.isPending && startOrGetThread.variables === appointment.id}
-                  />
-                ))}
-              </ul>
+              {threads.length === 0 ? (
+                <p className="px-1 text-sm text-text-secondary">{t('noConversations')}</p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {threads.map((thread) => (
+                    <ThreadListItem
+                      key={thread.id}
+                      thread={thread}
+                      selected={thread.id === selectedThreadId}
+                      onSelect={() => setSelectedThreadId(thread.id)}
+                    />
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
-        )}
+        </div>
 
-        <Card className="flex-1">
-          <CardHeader>
-            <CardTitle>{t('conversationsTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {threads.length === 0 ? (
-              <p className="px-1 text-sm text-text-secondary">{t('noConversations')}</p>
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {threads.map((thread) => (
-                  <ThreadListItem
-                    key={thread.id}
-                    thread={thread}
-                    selected={thread.id === selectedThreadId}
-                    onSelect={() => setSelectedThreadId(thread.id)}
-                  />
-                ))}
-              </ul>
-            )}
-          </CardContent>
+        <Card className="overflow-hidden p-0">
+          {selectedThread ? (
+            <ThreadPanel
+              threadId={selectedThread.id}
+              counterpartyName={selectedThread.counterpartyDisplayName}
+              counterpartyAccountId={selectedThread.counterpartyAccountId}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center p-8">
+              <EmptyState icon={MessageCircle} title={t('selectConversationTitle')} description={t('selectConversationDescription')} />
+            </div>
+          )}
         </Card>
       </div>
-
-      <Card className="overflow-hidden p-0">
-        {selectedThread ? (
-          <ThreadPanel threadId={selectedThread.id} counterpartyName={selectedThread.counterpartyDisplayName} />
-        ) : (
-          <div className="flex h-full items-center justify-center p-8">
-            <EmptyState icon={MessageCircle} title={t('selectConversationTitle')} description={t('selectConversationDescription')} />
-          </div>
-        )}
-      </Card>
     </div>
   );
 }

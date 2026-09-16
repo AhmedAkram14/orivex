@@ -1,11 +1,50 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { getOpenThreadId } from '@/features/messaging/hooks/open-thread-tracker';
+import { messageThreadsKeys, messagesKeys } from '@/features/messaging/hooks/query-keys';
 import { useAuth } from '@/shared/auth/auth-context';
 import { tokenStorage } from '@/shared/auth/token-storage';
 import { env } from '@/shared/lib/env';
+import { toast } from '@/shared/ui/use-toast';
+
+// Messages Page Overhaul (Phase 2): `useRealtimeSocket` is mounted exactly
+// once app-wide (AppShell) and owns the one real connection -- everything
+// else that needs the live channel (the composer's typing-emit, the
+// connection-state indicator) reaches it through this tiny module-level
+// singleton instead of calling `io()` a second time. `getRealtimeSocket()`
+// is for one-off imperative use (emit a typing event); `useRealtimeConnectionState()`
+// is for anything that needs to reactively render connect/disconnect state.
+let sharedSocket: Socket | undefined;
+let isConnected = false;
+const connectionListeners = new Set<(connected: boolean) => void>();
+
+function setConnectionState(connected: boolean): void {
+  isConnected = connected;
+  connectionListeners.forEach((listener) => listener(connected));
+}
+
+export function getRealtimeSocket(): Socket | undefined {
+  return sharedSocket;
+}
+
+/** Reactive connect/disconnect state -- backs a subtle "Reconnecting…" indicator wherever the live channel matters (e.g. the messaging workspace). */
+export function useRealtimeConnectionState(): boolean {
+  const [connected, setConnected] = useState(isConnected);
+
+  useEffect(() => {
+    connectionListeners.add(setConnected);
+    setConnected(isConnected);
+    return () => {
+      connectionListeners.delete(setConnected);
+    };
+  }, []);
+
+  return connected;
+}
 
 /**
  * ORIVEX Roadmap 2.0 Stage 7 (real-time layer): a single socket for every
@@ -27,6 +66,7 @@ import { env } from '@/shared/lib/env';
 export function useRealtimeSocket(): void {
   const { status } = useAuth();
   const queryClient = useQueryClient();
+  const tToast = useTranslations('messaging.toast');
 
   useEffect(() => {
     // Never opens a real socket in the test environment (Vitest sets
@@ -48,6 +88,11 @@ export function useRealtimeSocket(): void {
       auth: { token },
       withCredentials: true,
     });
+    sharedSocket = socket;
+    setConnectionState(socket.connected);
+
+    socket.on('connect', () => setConnectionState(true));
+    socket.on('disconnect', () => setConnectionState(false));
 
     // The access token is only captured once, at connect time (`auth`
     // above) -- socket.io-client's automatic reconnection keeps resending
@@ -110,9 +155,50 @@ export function useRealtimeSocket(): void {
       queryClient.invalidateQueries({ queryKey: ['doctor-dashboard'] });
     });
 
+    // Messages Page Overhaul (Phase 2): `RealtimeNotifyingMessageRepository`
+    // emits `message.sent` to the RECIPIENT the instant a message is saved.
+    // The inbox list (`messageThreadsKeys.list()`) is always invalidated --
+    // it backs the unread badge/ordering regardless of which thread is
+    // open. The specific thread's own message list is invalidated by its
+    // exact key too; TanStack Query only actually refetches it if that
+    // query is currently mounted/observed, so invalidating a thread nobody
+    // has open costs nothing -- simpler and just as correct as first
+    // checking "is this the open thread" ourselves.
+    socket.on('message.sent', (payload: { threadId: string; messageId?: string }) => {
+      queryClient.invalidateQueries({ queryKey: messageThreadsKeys.list() });
+      if (payload?.threadId) {
+        queryClient.invalidateQueries({ queryKey: messagesKeys.detail(payload.threadId) });
+      }
+
+      // Background-thread notification: the aria-live announcer (Phase 3)
+      // only reaches screen-reader users -- a sighted doctor/patient who's
+      // looked away from the tab needs more than a hidden live region.
+      // Only toasts when the arriving message is for a thread OTHER than
+      // the one currently open (open-thread-tracker.ts) -- no need to tell
+      // someone about a message in the conversation they're already
+      // looking at, since ThreadPanel's own message list just updated.
+      if (payload?.threadId && payload.threadId !== getOpenThreadId()) {
+        toast({ title: tToast('newMessageTitle'), description: tToast('newMessageDescription') });
+      }
+    });
+
+    // `saveAllAndMarkThreadRead()` emits `message.read` to the SENDER of
+    // the now-read messages -- lets their own thread panel update its
+    // checkmarks live instead of waiting on the ~60s fallback poll.
+    socket.on('message.read', (payload: { threadId?: string }) => {
+      queryClient.invalidateQueries({ queryKey: messageThreadsKeys.list() });
+      if (payload?.threadId) {
+        queryClient.invalidateQueries({ queryKey: messagesKeys.detail(payload.threadId) });
+      }
+    });
+
     return () => {
       unsubscribe();
       socket.disconnect();
+      if (sharedSocket === socket) {
+        sharedSocket = undefined;
+      }
+      setConnectionState(false);
     };
-  }, [status, queryClient]);
+  }, [status, queryClient, tToast]);
 }
