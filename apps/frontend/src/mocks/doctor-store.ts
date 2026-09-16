@@ -111,7 +111,7 @@ function endTimeFrom(scheduledAt: string, minutes = 30): string {
 }
 
 function seedUpcomingWork(): UpcomingWorkItem[] {
-  const items: Omit<UpcomingWorkItem, 'endTime' | 'appointmentType'>[] = [
+  const items: Omit<UpcomingWorkItem, 'endTime' | 'appointmentType' | 'patientId'>[] = [
     { id: 'upcoming-work-1', scheduledAt: offsetFromNow(-180), title: SEEDED_PATIENT_NAMES[0], description: 'Follow-up: hypertension management', status: 'completed' },
     { id: 'upcoming-work-2', scheduledAt: offsetFromNow(-150), title: SEEDED_PATIENT_NAMES[1], description: 'Annual physical exam', status: 'completed' },
     { id: 'upcoming-work-3', scheduledAt: offsetFromNow(-120), title: SEEDED_PATIENT_NAMES[2], description: 'Chest pain evaluation', status: 'completed' },
@@ -129,6 +129,10 @@ function seedUpcomingWork(): UpcomingWorkItem[] {
     ...item,
     endTime: endTimeFrom(item.scheduledAt),
     appointmentType: APPOINTMENT_TYPES[index % APPOINTMENT_TYPES.length],
+    // Messages Page Overhaul (Phase 3): same synthesized-per-seeded-name id
+    // `seedSchedule()` below already used -- kept identical here so a given
+    // patient name resolves to the same `patientId` across both mocks.
+    patientId: `patient-legacy-${index + 1}`,
   }));
 }
 
@@ -141,7 +145,7 @@ function seedUpcomingWork(): UpcomingWorkItem[] {
 function seedSchedule(): DoctorScheduleAppointment[] {
   return seedUpcomingWork().map((item, index) => ({
     id: item.id,
-    patientId: `patient-legacy-${index + 1}`,
+    patientId: item.patientId ?? `patient-legacy-${index + 1}`,
     patientName: item.title,
     avatarUrl: item.avatarUrl,
     scheduledAt: item.scheduledAt,

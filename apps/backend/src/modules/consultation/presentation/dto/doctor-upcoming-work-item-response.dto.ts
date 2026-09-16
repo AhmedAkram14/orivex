@@ -7,6 +7,11 @@ import type { AppointmentType } from '../../domain/enums/appointment-type.enum.j
 // name). `description` is the appointment's reasonForVisit, never fabricated.
 // endTime/appointmentType (Doctor Schedule redesign) are additive and
 // optional -- undefined for appointments booked before these fields existed.
+// patientId (Messages Page Overhaul, Phase 3): additive, the PatientProfile
+// id behind this work item -- always present (every appointment has a real
+// patient). Added so the doctor's "start a conversation" candidate list can
+// key `StartOrGetMessageThreadUseCase` by a real counterparty PROFILE id
+// instead of misusing this item's own appointment id as if it were one.
 export class DoctorUpcomingWorkItemResponseDto {
   id!: string;
   scheduledAt!: string;
@@ -15,4 +20,5 @@ export class DoctorUpcomingWorkItemResponseDto {
   description?: string;
   appointmentType?: AppointmentType;
   status!: 'upcoming' | 'in-progress' | 'completed' | 'cancelled';
+  patientId!: string;
 }

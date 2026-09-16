@@ -302,6 +302,11 @@ export function seedDemoData(): void {
         endTime: appointment.endTime,
         title: patientProfile.fullName,
         avatarUrl: patientProfile.avatarUrl,
+        // Messages Page Overhaul (Phase 3): the real PatientProfile id
+        // behind this work item, same field/shape as `doctor-store.ts`'s
+        // own seeded `patientId` -- required so the doctor's "start a
+        // conversation" candidates key off a real counterparty profile id.
+        patientId: patientProfile.id,
         description: appointment.reasonForVisit,
         appointmentType: appointment.appointmentType,
         status:

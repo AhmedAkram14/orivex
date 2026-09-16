@@ -432,6 +432,7 @@ export class DoctorAppointmentsController {
     dto.description = appointment.getReasonForVisit() ?? undefined;
     dto.appointmentType = appointment.getAppointmentType();
     dto.status = toUpcomingWorkStatus(appointment.getStatus());
+    dto.patientId = appointment.getPatientId();
     return dto;
   }
 

@@ -20,6 +20,8 @@ export interface UpcomingWorkItem {
   /** Doctor Schedule redesign: undefined for an appointment booked before this field existed. */
   appointmentType?: AppointmentType;
   status: UpcomingWorkStatus;
+  /** Messages Page Overhaul (Phase 3): the PatientProfile id behind this item -- always present, used as the real counterparty profile id for "start a conversation" instead of misusing this item's own appointment `id`. */
+  patientId: string;
 }
 
 export type UpcomingWorkResponse = UpcomingWorkItem[];

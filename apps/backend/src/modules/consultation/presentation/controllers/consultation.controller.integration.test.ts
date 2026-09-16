@@ -1214,6 +1214,11 @@ describe('Consultation controllers (integration)', () => {
     assert.equal(entry.title, 'Amina Youssef');
     assert.equal(entry.status, 'upcoming');
     assert.ok(entry.scheduledAt);
+    // Messages Page Overhaul (Phase 3): additive `patientId` -- the real
+    // PatientProfile id behind this work item, needed so the doctor's
+    // "start a conversation" candidate list can key `StartOrGetMessageThreadUseCase`
+    // by a real counterparty profile id instead of this item's own appointment id.
+    assert.ok(entry.patientId);
 
     // Phase 0 (stale-request terminal state): Expired is terminal exactly
     // like Cancelled/NoShow -- it must never surface in "upcoming work".
