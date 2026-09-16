@@ -5,16 +5,17 @@ import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 
 export interface NewConversationItemProps {
-  appointmentId: string;
+  /** Re-threading (Phase 1): the counterparty's own profile id, not an appointment id -- see MessagingWorkspace's own doc-comment for a known gap on the doctor side. */
+  counterpartyProfileId: string;
   counterpartyName: string;
   /** ISO timestamp. */
   scheduledAt: string;
-  onStart: (appointmentId: string) => void;
+  onStart: (counterpartyProfileId: string) => void;
   starting: boolean;
 }
 
-/** One row in the "Start a conversation" picker -- an appointment with no thread yet. */
-export function NewConversationItem({ appointmentId, counterpartyName, scheduledAt, onStart, starting }: NewConversationItemProps) {
+/** One row in the "Start a conversation" picker -- an appointment whose counterparty has no thread yet. */
+export function NewConversationItem({ counterpartyProfileId, counterpartyName, scheduledAt, onStart, starting }: NewConversationItemProps) {
   const t = useTranslations('messaging.inbox');
   const format = useFormatter();
 
@@ -29,7 +30,7 @@ export function NewConversationItem({ appointmentId, counterpartyName, scheduled
           {format.dateTime(new Date(scheduledAt), { year: 'numeric', month: 'short', day: 'numeric' })}
         </p>
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={() => onStart(appointmentId)} loading={starting}>
+      <Button type="button" variant="outline" size="sm" onClick={() => onStart(counterpartyProfileId)} loading={starting}>
         {t('startConversation')}
       </Button>
     </li>

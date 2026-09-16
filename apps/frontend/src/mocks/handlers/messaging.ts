@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import {
+  getUnreadCountForAccount,
   listMessages,
   listThreadsForAccount,
   markThreadRead,
@@ -26,10 +27,19 @@ export const messagingHandlers = [
     return HttpResponse.json({ data: listThreadsForAccount(accountId) });
   }),
 
+  // Re-threading (Phase 1): the account-wide unread count backing the
+  // sidebar badge (Phase 3). Registered before the more general
+  // `/message-threads/:id/...` routes below so MSW's first-match-wins
+  // routing never mistakes "unread-count" for a thread id.
+  http.get(`${base()}/message-threads/unread-count`, ({ request }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
+    return HttpResponse.json({ data: { count: getUnreadCountForAccount(accountId) } });
+  }),
+
   http.post(`${base()}/message-threads`, async ({ request }) => {
     const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
-    const body = (await request.json()) as { appointmentId: string };
-    return HttpResponse.json({ data: startOrGetThread(body.appointmentId, accountId) }, { status: 201 });
+    const body = (await request.json()) as { counterpartyProfileId: string };
+    return HttpResponse.json({ data: startOrGetThread(body.counterpartyProfileId, accountId) }, { status: 201 });
   }),
 
   http.get(`${base()}/message-threads/:id/messages`, ({ params }) => {

@@ -11,9 +11,12 @@ import type { Message, MessageThread } from '@/features/messaging/api/types';
 export const messagingApi = {
   listThreads: () => apiFetch<MessageThread[]>({ path: MESSAGING_PATHS.threads() }),
 
-  /** Lazily creates the thread for this appointment the first time either party opens it, or returns the existing one. */
-  startOrGetThread: (appointmentId: string) =>
-    apiFetch<MessageThread>({ method: 'POST', path: MESSAGING_PATHS.threads(), body: { appointmentId } }),
+  /** Lazily creates the thread with this counterparty (a patient or doctor profile id) the first time either party opens it, or returns the existing one. Re-threading (Phase 1): keyed by counterparty profile id, not an appointment id. */
+  startOrGetThread: (counterpartyProfileId: string) =>
+    apiFetch<MessageThread>({ method: 'POST', path: MESSAGING_PATHS.threads(), body: { counterpartyProfileId } }),
+
+  /** Re-threading (Phase 1): the account-wide unread count backing the sidebar badge (Phase 3). */
+  getUnreadCount: () => apiFetch<{ count: number }>({ path: MESSAGING_PATHS.unreadCount() }),
 
   listMessages: (threadId: string) => apiFetch<Message[]>({ path: MESSAGING_PATHS.messages(threadId) }),
 

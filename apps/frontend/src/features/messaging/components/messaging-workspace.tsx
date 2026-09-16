@@ -27,16 +27,27 @@ interface CandidateAppointment {
 
 /**
  * I7 -- Messaging (docs/01-prd.md §2.13): the shared inbox+thread workspace
- * both `/patient/messages` and `/doctor/messages` render. One thread per
- * Appointment (matches the real backend exactly) -- since `MessageThread`
- * never carries a display name (only `patientId`/`doctorId`), the
- * counterparty name for both the inbox rows and the "start a new
- * conversation" picker is resolved client-side from each role's own real
- * appointments data (`usePatientAppointments`/`useDoctorUpcomingWork`,
- * both already keyed by real Appointment ids). A thread whose appointment
- * has fallen out of that list (a doctor's view only covers upcoming work)
- * still opens and works -- it just shows a generic counterparty label,
- * never a fabricated one.
+ * both `/patient/messages` and `/doctor/messages` render. Re-threaded
+ * (Messages Page Overhaul, Phase 1): one thread per (patientId, doctorId)
+ * pair, not per Appointment -- `thread.counterpartyDisplayName` is now
+ * resolved server-side, so the inbox rows/open thread panel no longer need
+ * any client-side id-matching against the caller's own appointments data.
+ * The "start a new conversation" picker still sources its CANDIDATES from
+ * each role's own appointments data (`usePatientAppointments`/
+ * `useDoctorUpcomingWork`) -- eligibility is still "has a real appointment
+ * with this counterparty" -- but starting a thread now needs the
+ * counterparty's own PROFILE id, not an appointment id.
+ *
+ * Known gap, left for Phase 3 (this phase is backend re-threading only,
+ * frontend changes here are the minimum needed to keep this page
+ * compiling/working against the new DTO shape -- the full merged-list/
+ * dedup-by-counterparty redesign is Phase 3's job): `UpcomingWorkItem`
+ * (the doctor's candidate source) does not carry a patient profile id
+ * today, only an appointment id, so a doctor's "start a conversation" row
+ * still passes that appointment id through as if it were a counterparty
+ * id. This was already the case before this phase's DTO change and is not
+ * newly broken by it; Phase 3's new-message-dialog is expected to source
+ * real counterparty ids instead of reusing an appointments feed at all.
  */
 export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
   const t = useTranslations('messaging.inbox');
@@ -50,10 +61,14 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
   const isLoading = role === 'patient' ? patientAppointments.isLoading : doctorUpcomingWork.isLoading;
   const isError = (role === 'patient' ? patientAppointments.isError : doctorUpcomingWork.isError) || threadsQuery.isError;
 
+  // `id` is a real counterparty PROFILE id for a patient caller (the
+  // doctor's own profile id) -- for a doctor caller it's still an
+  // appointment id (see the component doc-comment's "known gap" note),
+  // since `UpcomingWorkItem` doesn't carry a patient profile id yet.
   const appointments: CandidateAppointment[] = useMemo(() => {
     if (role === 'patient') {
       return (patientAppointments.data ?? []).map((appointment) => ({
-        id: appointment.id,
+        id: appointment.doctorId,
         counterpartyName: appointment.doctorName,
         scheduledAt: appointment.scheduledAt,
       }));
@@ -65,19 +80,17 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
     }));
   }, [role, patientAppointments.data, doctorUpcomingWork.data]);
 
-  const counterpartyNameByAppointmentId = useMemo(
-    () => new Map(appointments.map((appointment) => [appointment.id, appointment.counterpartyName])),
-    [appointments],
-  );
-
   const threads = useMemo(() => threadsQuery.data ?? [], [threadsQuery.data]);
-  const threadAppointmentIds = useMemo(() => new Set(threads.map((thread) => thread.appointmentId)), [threads]);
-  const newConversationCandidates = appointments.filter((appointment) => !threadAppointmentIds.has(appointment.id));
+  const threadCounterpartyIds = useMemo(
+    () => new Set(threads.map((thread) => (role === 'patient' ? thread.doctorId : thread.patientId))),
+    [threads, role],
+  );
+  const newConversationCandidates = appointments.filter((appointment) => !threadCounterpartyIds.has(appointment.id));
 
   const selectedThread = threads.find((thread) => thread.id === selectedThreadId);
 
-  async function handleStartConversation(appointmentId: string) {
-    const thread = await startOrGetThread.mutateAsync(appointmentId);
+  async function handleStartConversation(counterpartyProfileId: string) {
+    const thread = await startOrGetThread.mutateAsync(counterpartyProfileId);
     setSelectedThreadId(thread.id);
   }
 
@@ -107,7 +120,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
                 {newConversationCandidates.map((appointment) => (
                   <NewConversationItem
                     key={appointment.id}
-                    appointmentId={appointment.id}
+                    counterpartyProfileId={appointment.id}
                     counterpartyName={appointment.counterpartyName}
                     scheduledAt={appointment.scheduledAt}
                     onStart={handleStartConversation}
@@ -132,7 +145,6 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
                   <ThreadListItem
                     key={thread.id}
                     thread={thread}
-                    counterpartyName={counterpartyNameByAppointmentId.get(thread.appointmentId)}
                     selected={thread.id === selectedThreadId}
                     onSelect={() => setSelectedThreadId(thread.id)}
                   />
@@ -145,10 +157,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
 
       <Card className="overflow-hidden p-0">
         {selectedThread ? (
-          <ThreadPanel
-            threadId={selectedThread.id}
-            counterpartyName={counterpartyNameByAppointmentId.get(selectedThread.appointmentId)}
-          />
+          <ThreadPanel threadId={selectedThread.id} counterpartyName={selectedThread.counterpartyDisplayName} />
         ) : (
           <div className="flex h-full items-center justify-center p-8">
             <EmptyState icon={MessageCircle} title={t('selectConversationTitle')} description={t('selectConversationDescription')} />

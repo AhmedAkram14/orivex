@@ -3,20 +3,22 @@ import { findAccountById, LEGACY_DOCTOR_ACCOUNT_ID, LEGACY_PATIENT_ACCOUNT_ID } 
 
 /**
  * In-memory mock "backend" state for MessagingModule (I7, docs/01-prd.md
- * §2.13) -- mirrors `consultation-store.ts`'s own pattern. One thread per
- * appointment id, lazily created the first time either party opens it (same
- * "reuse if it already exists" idiom `StartOrGetMessageThreadUseCase`
- * implements for real). `patientAccountId`/`doctorAccountId` here are mock
- * accounts directly (this mock system's own simplification -- the real
- * backend keys threads by profile id, invisible to the frontend either way
- * since `GET /message-threads` only ever returns the caller's own threads).
+ * §2.13) -- mirrors `consultation-store.ts`'s own pattern. Re-threading
+ * (Messages Page Overhaul, Phase 1): one thread per (patientAccountId,
+ * doctorAccountId) pair, lazily created the first time either party opens
+ * it with a given counterparty (same "reuse if it already exists" idiom
+ * `StartOrGetMessageThreadUseCase` implements for real).
+ * `patientAccountId`/`doctorAccountId` here are mock accounts directly
+ * (this mock system's own simplification -- the real backend keys threads
+ * by profile id, invisible to the frontend either way since
+ * `GET /message-threads` only ever returns the caller's own threads).
  */
 interface ThreadRecord {
   id: string;
-  appointmentId: string;
   patientAccountId: string;
   doctorAccountId: string;
   createdAt: string;
+  lastMessageAt: string;
 }
 
 const threads: ThreadRecord[] = [];
@@ -26,17 +28,19 @@ function isDoctorAccount(accountId: string): boolean {
   return findAccountById(accountId)?.roles.includes('doctor') ?? false;
 }
 
+function displayNameFor(accountId: string): string | undefined {
+  return findAccountById(accountId)?.fullName;
+}
+
 function toThreadDto(thread: ThreadRecord, callerAccountId: string): MessageThread {
-  const unread = (messagesByThreadId.get(thread.id) ?? []).filter(
-    (message) => message.senderAccountId !== callerAccountId && !message.readAt,
-  ).length;
+  const counterpartyAccountId = thread.patientAccountId === callerAccountId ? thread.doctorAccountId : thread.patientAccountId;
   return {
     id: thread.id,
-    appointmentId: thread.appointmentId,
     patientId: thread.patientAccountId,
     doctorId: thread.doctorAccountId,
     createdAt: thread.createdAt,
-    unreadCount: unread,
+    lastMessageAt: thread.lastMessageAt,
+    counterpartyDisplayName: displayNameFor(counterpartyAccountId),
   };
 }
 
@@ -46,19 +50,24 @@ export function listThreadsForAccount(callerAccountId: string): MessageThread[] 
     .map((thread) => toThreadDto(thread, callerAccountId));
 }
 
-export function startOrGetThread(appointmentId: string, callerAccountId: string): MessageThread {
-  const existing = threads.find((thread) => thread.appointmentId === appointmentId);
+/** `counterpartyProfileId` here is a mock account id (this mock system's own simplification, see the module doc-comment). */
+export function startOrGetThread(counterpartyProfileId: string, callerAccountId: string): MessageThread {
+  const callerIsDoctor = isDoctorAccount(callerAccountId);
+  const patientAccountId = callerIsDoctor ? counterpartyProfileId : callerAccountId;
+  const doctorAccountId = callerIsDoctor ? callerAccountId : counterpartyProfileId;
+
+  const existing = threads.find((thread) => thread.patientAccountId === patientAccountId && thread.doctorAccountId === doctorAccountId);
   if (existing) {
     return toThreadDto(existing, callerAccountId);
   }
 
-  const callerIsDoctor = isDoctorAccount(callerAccountId);
+  const now = new Date().toISOString();
   const thread: ThreadRecord = {
-    id: `thread-${appointmentId}`,
-    appointmentId,
-    patientAccountId: callerIsDoctor ? LEGACY_PATIENT_ACCOUNT_ID : callerAccountId,
-    doctorAccountId: callerIsDoctor ? callerAccountId : LEGACY_DOCTOR_ACCOUNT_ID,
-    createdAt: new Date().toISOString(),
+    id: `thread-${patientAccountId}-${doctorAccountId}`,
+    patientAccountId: patientAccountId || LEGACY_PATIENT_ACCOUNT_ID,
+    doctorAccountId: doctorAccountId || LEGACY_DOCTOR_ACCOUNT_ID,
+    createdAt: now,
+    lastMessageAt: now,
   };
   threads.push(thread);
   messagesByThreadId.set(thread.id, []);
@@ -74,7 +83,8 @@ export function listMessages(threadId: string): Message[] {
 }
 
 export function sendMessage(threadId: string, senderAccountId: string, body: string, attachmentAssetId?: string): Message | null {
-  if (!findThread(threadId)) return null;
+  const thread = findThread(threadId);
+  if (!thread) return null;
   const message: Message = {
     id: `message-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     threadId,
@@ -85,6 +95,7 @@ export function sendMessage(threadId: string, senderAccountId: string, body: str
     createdAt: new Date().toISOString(),
   };
   messagesByThreadId.set(threadId, [...(messagesByThreadId.get(threadId) ?? []), message]);
+  thread.lastMessageAt = message.createdAt;
   return message;
 }
 
@@ -99,6 +110,16 @@ export function markThreadRead(threadId: string, callerAccountId: string): boole
     ),
   );
   return true;
+}
+
+/** Re-threading (Phase 1): the account-wide unread count backing the sidebar badge (Phase 3). */
+export function getUnreadCountForAccount(callerAccountId: string): number {
+  return threads
+    .filter((thread) => thread.patientAccountId === callerAccountId || thread.doctorAccountId === callerAccountId)
+    .reduce((total, thread) => {
+      const messages = messagesByThreadId.get(thread.id) ?? [];
+      return total + messages.filter((message) => message.senderAccountId !== callerAccountId && !message.readAt).length;
+    }, 0);
 }
 
 /** Test-only reset seam, matching every other mock store's own `resetX()` convention. */

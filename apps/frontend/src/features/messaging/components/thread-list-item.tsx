@@ -3,20 +3,25 @@
 import { useTranslations } from 'next-intl';
 import type { MessageThread } from '@/features/messaging/api/types';
 import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
-import { Badge } from '@/shared/ui/badge';
 import { cn } from '@/shared/lib/cn';
 
 export interface ThreadListItemProps {
   thread: MessageThread;
-  /** Resolved client-side from the caller's own appointments list (the API never returns a display name, only patientId/doctorId) -- falls back to a generic label when the source appointment has since fallen out of that list (e.g. an old appointment on a doctor's upcoming-only view). */
-  counterpartyName: string | undefined;
   selected: boolean;
   onSelect: () => void;
 }
 
-export function ThreadListItem({ thread, counterpartyName, selected, onSelect }: ThreadListItemProps) {
+// Re-threading (Phase 1): `counterpartyDisplayName` now comes resolved
+// server-side on the thread itself -- the old client-side id-matching
+// against the caller's own appointments list, and the per-appointment
+// label line (no `appointmentId` exists anymore), are both gone. Phase 3
+// still owns the rest of this row's redesign (relative `lastMessageAt`
+// secondary line, merged-list sorting, aria-hidden avatar initial); this is
+// only the minimum change to keep this component compiling and honest
+// against the new DTO shape.
+export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemProps) {
   const t = useTranslations('messaging.inbox');
-  const displayName = counterpartyName ?? t('unknownCounterparty');
+  const displayName = thread.counterpartyDisplayName ?? t('unknownCounterparty');
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
@@ -34,13 +39,7 @@ export function ThreadListItem({ thread, counterpartyName, selected, onSelect }:
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-text-primary">{displayName}</p>
-          <p className="truncate text-xs text-text-tertiary">{t('appointmentLabel', { id: thread.appointmentId.slice(0, 8) })}</p>
         </div>
-        {Boolean(thread.unreadCount) && (
-          <Badge variant="primary" className="shrink-0">
-            {thread.unreadCount}
-          </Badge>
-        )}
       </button>
     </li>
   );
