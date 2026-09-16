@@ -1,4 +1,4 @@
-import type { Message, MessageThread } from '@/features/messaging/api/types';
+import type { Message, MessageThread, MessageThreadAppointment } from '@/features/messaging/api/types';
 import { findAccountById, LEGACY_DOCTOR_ACCOUNT_ID, LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
 
 /**
@@ -23,6 +23,12 @@ interface ThreadRecord {
 
 const threads: ThreadRecord[] = [];
 const messagesByThreadId = new Map<string, Message[]>();
+// Thread header context (Phase 5): kept independent of the separate,
+// profile-id-keyed appointment mocks in `patient-store.ts`/`doctor-store.ts`
+// -- this mock system's own simplification (see the module doc-comment
+// above), same posture as `messagesByThreadId`. Empty by default; a test
+// seeds this explicitly via `seedThreadAppointments()`.
+const appointmentsByThreadId = new Map<string, MessageThreadAppointment[]>();
 
 function isDoctorAccount(accountId: string): boolean {
   return findAccountById(accountId)?.roles.includes('doctor') ?? false;
@@ -126,8 +132,19 @@ export function getUnreadCountForAccount(callerAccountId: string): number {
     }, 0);
 }
 
+/** Thread header context (Phase 5): `GET /message-threads/:id/appointments`'s mock backing -- every appointment this pair ever had, for the "Last appointment" line. */
+export function listAppointmentsForThread(threadId: string): MessageThreadAppointment[] {
+  return appointmentsByThreadId.get(threadId) ?? [];
+}
+
+/** Test-only seam, matching this store's own `resetMessagingStore()` convention -- lets a test control the "Last appointment" context for a thread directly. */
+export function seedThreadAppointments(threadId: string, appointments: MessageThreadAppointment[]): void {
+  appointmentsByThreadId.set(threadId, appointments);
+}
+
 /** Test-only reset seam, matching every other mock store's own `resetX()` convention. */
 export function resetMessagingStore(): void {
   threads.length = 0;
   messagesByThreadId.clear();
+  appointmentsByThreadId.clear();
 }

@@ -34,3 +34,17 @@ export interface Message {
   /** ISO timestamp. */
   createdAt: string;
 }
+
+/**
+ * Matches the small list returned by `GET /message-threads/:id/appointments`
+ * (Phase 1) -- just enough to render the thread header's "Last appointment"
+ * context (Phase 5). Mirrors ConsultationModule's real `AppointmentStatus`
+ * enum exactly (see `features/doctor/api/types.ts`'s own copy of the same
+ * union) -- `expired` is a real terminal status (Phase 0), not a stand-in.
+ */
+export interface MessageThreadAppointment {
+  id: string;
+  /** ISO timestamp. */
+  scheduledAt: string;
+  status: 'requested' | 'confirmed' | 'rescheduled' | 'cancelled' | 'no_show' | 'completed' | 'expired';
+}

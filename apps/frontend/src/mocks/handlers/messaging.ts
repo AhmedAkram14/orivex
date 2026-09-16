@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import {
   getUnreadCountForAccount,
+  listAppointmentsForThread,
   listMessages,
   listThreadsForAccount,
   markThreadRead,
@@ -40,6 +41,14 @@ export const messagingHandlers = [
     const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
     const body = (await request.json()) as { counterpartyProfileId: string };
     return HttpResponse.json({ data: startOrGetThread(body.counterpartyProfileId, accountId) }, { status: 201 });
+  }),
+
+  // Thread header context (Phase 5): the "Last appointment" line's backing
+  // endpoint -- registered before the plainer `/:id/messages` route only for
+  // readability, MSW itself is order-sensitive only against the earlier
+  // `/unread-count` literal route above.
+  http.get(`${base()}/message-threads/:id/appointments`, ({ params }) => {
+    return HttpResponse.json({ data: listAppointmentsForThread(params.id as string) });
   }),
 
   http.get(`${base()}/message-threads/:id/messages`, ({ params }) => {

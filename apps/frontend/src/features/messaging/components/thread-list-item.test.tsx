@@ -51,3 +51,15 @@ describe('ThreadListItem', () => {
     expect(screen.getByText('Conversation')).toBeInTheDocument();
   });
 });
+
+describe('ThreadListItem accessible name (Phase 5)', () => {
+  it("exposes the button's accessible name starting with the counterparty name, not the avatar's own initial-letter text", () => {
+    renderItem(buildThread({ counterpartyDisplayName: 'Ahmed Hassan' }));
+    // Before the fix, the avatar's own "A" fallback text node was the FIRST
+    // text node inside the button, so the accessible name started with it
+    // (e.g. "A, Ahmed Hassan now") -- aria-hidden on the avatar removes it
+    // from the name entirely, leaving it start with the real name text (the
+    // relative-timestamp line still legitimately follows it).
+    expect(screen.getByRole('button', { name: /^Ahmed Hassan/ })).toBeInTheDocument();
+  });
+});

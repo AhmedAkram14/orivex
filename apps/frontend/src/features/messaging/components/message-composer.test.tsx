@@ -31,22 +31,30 @@ const doctorState: AuthState = {
   user: { id: LEGACY_DOCTOR_ACCOUNT_ID, email: 'doctor@orivex.dev', fullName: 'Dr. Sarah Ahmed', roles: ['doctor'] },
 };
 
-function renderComposer(threadId: string) {
+function renderComposer(
+  threadId: string,
+  overrides: { role?: 'patient' | 'doctor'; isFirstMessage?: boolean } = {},
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
         <AuthContext.Provider value={doctorState}>
-          <MessageComposer threadId={threadId} recipientAccountId={LEGACY_PATIENT_ACCOUNT_ID} />
+          <MessageComposer
+            threadId={threadId}
+            recipientAccountId={LEGACY_PATIENT_ACCOUNT_ID}
+            role={overrides.role ?? 'doctor'}
+            isFirstMessage={overrides.isFirstMessage ?? false}
+          />
         </AuthContext.Provider>
       </NextIntlClientProvider>
     </QueryClientProvider>,
   );
 }
 
-function setup() {
+function setup(overrides: { role?: 'patient' | 'doctor'; isFirstMessage?: boolean } = {}) {
   const thread = startOrGetThread(LEGACY_PATIENT_ACCOUNT_ID, LEGACY_DOCTOR_ACCOUNT_ID);
-  renderComposer(thread.id);
+  renderComposer(thread.id, overrides);
   const textarea = screen.getByPlaceholderText('Write a message…') as HTMLTextAreaElement;
   return { thread, textarea };
 }
@@ -146,5 +154,41 @@ describe('MessageComposer file attachment constraints', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input.getAttribute('accept')).toBe('.pdf,.jpg,.jpeg,.png');
     expect(input.hasAttribute('multiple')).toBe(false);
+  });
+});
+
+describe('MessageComposer first-use hint (Phase 5)', () => {
+  it('shows the doctor-authored hint only when the thread has zero messages, for the doctor role', () => {
+    setup({ role: 'doctor', isFirstMessage: true });
+    expect(
+      screen.getByText(
+        'This is for follow-up and administrative messages — for urgent concerns, direct the patient to call the clinic or seek emergency care.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the patient-authored hint only when the thread has zero messages, for the patient role', () => {
+    setup({ role: 'patient', isFirstMessage: true });
+    expect(
+      screen.getByText(
+        "For follow-up questions only — for urgent concerns, contact your doctor's clinic directly or seek in-person/emergency care.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('never shows the doctor variant to a patient, or vice versa', () => {
+    setup({ role: 'doctor', isFirstMessage: true });
+    expect(
+      screen.queryByText("For follow-up questions only — for urgent concerns, contact your doctor's clinic directly or seek in-person/emergency care."),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the hint once the thread already has messages', () => {
+    setup({ role: 'doctor', isFirstMessage: false });
+    expect(
+      screen.queryByText(
+        'This is for follow-up and administrative messages — for urgent concerns, direct the patient to call the clinic or seek emergency care.',
+      ),
+    ).not.toBeInTheDocument();
   });
 });

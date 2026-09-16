@@ -26,6 +26,10 @@ export interface MessageComposerProps {
   threadId: string;
   /** Realtime layer (Phase 2): who a `messaging.typing` emit is addressed to. Typing is simply never emitted when this is unknown (a rare counterparty-lookup failure server-side) -- there's no meaningful fallback recipient. */
   recipientAccountId?: string;
+  /** Copy (Phase 5): who's typing -- picks between genuinely separate doctor/patient first-use hint copy. Threaded down from `ThreadPanel`'s own `role` prop (itself from `messaging-workspace.tsx`), never re-derived. */
+  role: 'patient' | 'doctor';
+  /** Copy (Phase 5): true only once the thread's message list has loaded and is empty -- gates the one-time hint so it disappears the moment either party has ever sent anything, rather than being a permanent disclaimer duplicating the page-level subtitle. */
+  isFirstMessage: boolean;
 }
 
 // Typing indicator: re-emit at most this often while the user keeps typing,
@@ -35,7 +39,7 @@ export interface MessageComposerProps {
 const TYPING_EMIT_INTERVAL_MS = 3000;
 
 /** The send form -- a body textarea plus one optional attachment, reusing the same real upload-intent -> PUT -> confirm flow (`useUploadMediaAsset`) every other attachment control in this app already uses. */
-export function MessageComposer({ threadId, recipientAccountId }: MessageComposerProps) {
+export function MessageComposer({ threadId, recipientAccountId, role, isFirstMessage }: MessageComposerProps) {
   const t = useTranslations('messaging.thread');
   const [body, setBody] = useState('');
   const [attachmentFileName, setAttachmentFileName] = useState<string | undefined>(undefined);
@@ -117,6 +121,17 @@ export function MessageComposer({ threadId, recipientAccountId }: MessageCompose
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 border-t border-border-default p-3">
+      {/* First-use-only hint (Phase 5): replaces the old permanent, patient-
+          facing `adminNotice` line that used to sit in `ThreadPanel`'s
+          header and was shown to both roles verbatim -- including a doctor
+          being told to "contact your clinic," which is themselves. Shown
+          only once, on an empty thread, with copy genuinely authored per
+          role. */}
+      {isFirstMessage && (
+        <p className="text-xs text-text-tertiary">
+          {role === 'doctor' ? t('firstMessageHintDoctor') : t('firstMessageHintPatient')}
+        </p>
+      )}
       {sendMessage.isError && <Alert variant="danger">{t('sendError')}</Alert>}
       {upload.isError && <Alert variant="danger">{t('attachmentUploadError')}</Alert>}
       {attachmentRejection === 'tooLarge' && <Alert variant="danger">{t('attachmentTooLarge')}</Alert>}

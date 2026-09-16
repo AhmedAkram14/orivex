@@ -230,6 +230,8 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
               threadId={selectedThread.id}
               counterpartyName={selectedThread.counterpartyDisplayName}
               counterpartyAccountId={selectedThread.counterpartyAccountId}
+              role={role}
+              patientId={selectedThread.patientId}
             />
           ) : (
             <div className="flex h-full items-center justify-center p-8">

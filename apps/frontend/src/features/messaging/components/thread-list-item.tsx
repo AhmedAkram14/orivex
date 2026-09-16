@@ -35,7 +35,11 @@ export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemPro
           selected ? 'bg-primary-subtle' : 'hover:bg-secondary-subtle',
         )}
       >
-        <Avatar size="md">
+        {/* Accessible name fix (Phase 5): without `aria-hidden`, the
+            fallback's single-letter text node concatenates into the
+            button's own accessible name (e.g. "A, Ahmed Hassan") -- the
+            avatar is purely decorative next to the adjacent name text. */}
+        <Avatar size="md" aria-hidden="true">
           <AvatarFallback>{initial}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">

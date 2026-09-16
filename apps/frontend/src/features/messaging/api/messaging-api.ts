@@ -1,6 +1,6 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { MESSAGING_PATHS } from '@/features/messaging/api/paths';
-import type { Message, MessageThread } from '@/features/messaging/api/types';
+import type { Message, MessageThread, MessageThreadAppointment } from '@/features/messaging/api/types';
 
 /**
  * I7 -- Messaging (docs/01-prd.md §2.13): asynchronous, administrative/
@@ -17,6 +17,10 @@ export const messagingApi = {
 
   /** Re-threading (Phase 1): the account-wide unread count backing the sidebar badge (Phase 3). */
   getUnreadCount: () => apiFetch<{ count: number }>({ path: MESSAGING_PATHS.unreadCount() }),
+
+  /** Thread header context (Phase 5): every appointment this pair ever had, for the "Last appointment" line -- small, unordered list, picking the most recent by `scheduledAt` is left to the caller (`use-thread-appointments.ts`). */
+  listThreadAppointments: (threadId: string) =>
+    apiFetch<MessageThreadAppointment[]>({ path: MESSAGING_PATHS.appointments(threadId) }),
 
   listMessages: (threadId: string) => apiFetch<Message[]>({ path: MESSAGING_PATHS.messages(threadId) }),
 
