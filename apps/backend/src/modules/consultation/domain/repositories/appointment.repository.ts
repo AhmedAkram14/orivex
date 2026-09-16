@@ -15,6 +15,11 @@ export interface AppointmentRepository {
   // Ordered by scheduledAt ascending (soonest first) -- backs a doctor's
   // "what's coming up" view, the opposite ordering need from a patient's list.
   findByDoctorId(doctorId: string): Promise<Appointment[]>;
+  // Messaging re-threading (Phase 1): backs StartOrGetMessageThreadUseCase's
+  // eligibility check -- "has this pair ever had any appointment, regardless
+  // of status/date." Returns just one (any) matching row; the use case only
+  // needs to know at least one exists, never the full history.
+  findByPatientAndDoctor(patientId: string, doctorId: string): Promise<Appointment | null>;
   // Same ordering as findByDoctorId, scoped to a [start, end) window at the
   // database level -- backs "today's appointments" (dashboard summary,
   // queue) without fetching a doctor's entire appointment history to filter

@@ -1,14 +1,14 @@
 export interface StartOrGetMessageThreadCommandProps {
-  appointmentId: string;
+  counterpartyProfileId: string;
   callerAccountId: string;
 }
 
 export class StartOrGetMessageThreadCommand {
-  readonly appointmentId: string;
+  readonly counterpartyProfileId: string;
   readonly callerAccountId: string;
 
   constructor(props: StartOrGetMessageThreadCommandProps) {
-    this.appointmentId = props.appointmentId;
+    this.counterpartyProfileId = props.counterpartyProfileId;
     this.callerAccountId = props.callerAccountId;
   }
 }

@@ -41,6 +41,15 @@ export class SendMessageUseCase {
       attachmentAssetId: command.attachmentAssetId,
     });
     await this.messageRepository.save(message);
+
+    // Re-threading (Phase 1): advance the thread's own lastMessageAt so the
+    // inbox lists most-recently-active conversations first. Deliberately
+    // NOT a read-marker update -- sending a message says nothing about
+    // having read the other party's messages, so *LastReadAt is untouched
+    // here (see MarkThreadMessagesReadUseCase for that).
+    thread.recordNewMessage(message.getCreatedAt());
+    await this.messageThreadRepository.save(thread);
+
     return message;
   }
 }

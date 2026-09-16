@@ -149,6 +149,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     return this.appointments.filter((a) => a.getDoctorId() === doctorId);
   }
+  async findByPatientAndDoctor(): Promise<Appointment | null> {
+    return null;
+  }
   async findByDoctorIdForDateRange(doctorId: string): Promise<Appointment[]> {
     return this.findByDoctorId(doctorId);
   }

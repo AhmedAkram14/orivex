@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
-import { GetAppointmentByIdUseCase } from '../../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { FindAppointmentByPatientAndDoctorUseCase } from '../../../../consultation/application/use-cases/find-appointment-by-patient-and-doctor/find-appointment-by-patient-and-doctor.use-case.js';
 import { Appointment } from '../../../../consultation/domain/entities/appointment.entity.js';
 import { ConsultationPricing } from '../../../../consultation/domain/value-objects/consultation-pricing.value-object.js';
 import type { AppointmentRepository } from '../../../../consultation/domain/repositories/appointment.repository.js';
@@ -13,6 +13,7 @@ import { GetPatientProfileByAccountIdUseCase } from '../../../../patient/applica
 import type { PatientProfile } from '../../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../../patient/domain/repositories/patient-profile.repository.js';
 import { MessageThread } from '../../../domain/entities/message-thread.entity.js';
+import { MessageThreadConflictError } from '../../../domain/exceptions/message-thread-conflict.error.js';
 import type { MessageThreadRepository } from '../../../domain/repositories/message-thread.repository.js';
 
 import { StartOrGetMessageThreadCommand } from './start-or-get-message-thread.command.js';
@@ -38,6 +39,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   }
   async findByDoctorId(): Promise<Appointment[]> {
     return [];
+  }
+  async findByPatientAndDoctor(patientId: string, doctorId: string): Promise<Appointment | null> {
+    if (!this.appointment) return null;
+    return this.appointment.getPatientId() === patientId && this.appointment.getDoctorId() === doctorId
+      ? this.appointment
+      : null;
   }
   async findByDoctorIdForDateRange(): Promise<Appointment[]> {
     return [];
@@ -87,12 +94,15 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 class FakeMessageThreadRepository implements MessageThreadRepository {
   public readonly saved: MessageThread[] = [];
+  // When set, the NEXT save() throws this once (models the P2002 race a
+  // concurrent StartOrGetMessageThread call can hit) then clears itself.
+  public conflictOnNextSave: MessageThreadConflictError | null = null;
   constructor(private existing: MessageThread | null = null) {}
   async findById(id: string): Promise<MessageThread | null> {
     return this.existing?.getId() === id ? this.existing : null;
   }
-  async findByAppointmentId(appointmentId: string): Promise<MessageThread | null> {
-    return this.existing?.getAppointmentId() === appointmentId ? this.existing : null;
+  async findByPatientAndDoctor(patientId: string, doctorId: string): Promise<MessageThread | null> {
+    return this.existing?.getPatientId() === patientId && this.existing?.getDoctorId() === doctorId ? this.existing : null;
   }
   async findByPatientId(): Promise<MessageThread[]> {
     return [];
@@ -101,6 +111,14 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
     return [];
   }
   async save(thread: MessageThread): Promise<void> {
+    if (this.conflictOnNextSave) {
+      const error = this.conflictOnNextSave;
+      this.conflictOnNextSave = null;
+      // The race winner's thread is already there once the loser's save()
+      // fails -- mirrors what the real compound-keyed upsert leaves behind.
+      this.existing = thread;
+      throw error;
+    }
     this.saved.push(thread);
     this.existing = thread;
   }
@@ -132,33 +150,45 @@ function buildUseCase(props: {
   }
   return new StartOrGetMessageThreadUseCase(
     props.threadRepository,
-    new GetAppointmentByIdUseCase(new FakeAppointmentRepository(props.appointment)),
+    new FindAppointmentByPatientAndDoctorUseCase(new FakeAppointmentRepository(props.appointment)),
     new GetPatientProfileByAccountIdUseCase(new FakePatientProfileRepository(patientProfiles)),
     new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(doctorProfiles)),
   );
 }
 
 describe('StartOrGetMessageThreadUseCase', () => {
-  it('creates a new thread the first time the patient opens it', async () => {
+  it('creates a new thread the first time the patient opens it with a counterparty they have a real appointment with', async () => {
     const appointment = buildAppointment();
     const threadRepository = new FakeMessageThreadRepository();
     const useCase = buildUseCase({ appointment, threadRepository, patientAccountId: 'patient-account' });
 
     const thread = await useCase.execute(
-      new StartOrGetMessageThreadCommand({ appointmentId: appointment.getId(), callerAccountId: 'patient-account' }),
+      new StartOrGetMessageThreadCommand({ counterpartyProfileId: DOCTOR_ID, callerAccountId: 'patient-account' }),
     );
 
-    assert.equal(thread.getAppointmentId(), appointment.getId());
     assert.equal(thread.getPatientId(), PATIENT_ID);
     assert.equal(thread.getDoctorId(), DOCTOR_ID);
     assert.equal(threadRepository.saved.length, 1);
+  });
+
+  it('creates a new thread the first time the doctor opens it', async () => {
+    const appointment = buildAppointment();
+    const threadRepository = new FakeMessageThreadRepository();
+    const useCase = buildUseCase({ appointment, threadRepository, doctorAccountId: 'doctor-account' });
+
+    const thread = await useCase.execute(
+      new StartOrGetMessageThreadCommand({ counterpartyProfileId: PATIENT_ID, callerAccountId: 'doctor-account' }),
+    );
+
+    assert.equal(thread.getPatientId(), PATIENT_ID);
+    assert.equal(thread.getDoctorId(), DOCTOR_ID);
   });
 
   it('returns the existing thread on a second call instead of creating a duplicate', async () => {
     const appointment = buildAppointment();
     const threadRepository = new FakeMessageThreadRepository();
     const useCase = buildUseCase({ appointment, threadRepository, doctorAccountId: 'doctor-account' });
-    const command = new StartOrGetMessageThreadCommand({ appointmentId: appointment.getId(), callerAccountId: 'doctor-account' });
+    const command = new StartOrGetMessageThreadCommand({ counterpartyProfileId: PATIENT_ID, callerAccountId: 'doctor-account' });
 
     const first = await useCase.execute(command);
     const second = await useCase.execute(command);
@@ -167,17 +197,17 @@ describe('StartOrGetMessageThreadUseCase', () => {
     assert.equal(threadRepository.saved.length, 1);
   });
 
-  it('throws NotFoundError when the appointment does not exist', async () => {
+  it('throws NotFoundError when the pair has never had any appointment together', async () => {
     const threadRepository = new FakeMessageThreadRepository();
     const useCase = buildUseCase({ appointment: null, threadRepository, patientAccountId: 'patient-account' });
 
     await assert.rejects(
-      () => useCase.execute(new StartOrGetMessageThreadCommand({ appointmentId: 'missing-id', callerAccountId: 'patient-account' })),
+      () => useCase.execute(new StartOrGetMessageThreadCommand({ counterpartyProfileId: DOCTOR_ID, callerAccountId: 'patient-account' })),
       NotFoundError,
     );
   });
 
-  it('throws NotFoundError (never a distinguishing 403) when the caller is neither the patient nor the doctor', async () => {
+  it('throws NotFoundError (never a distinguishing 403) when the caller has neither a patient nor a doctor profile', async () => {
     const appointment = buildAppointment();
     const threadRepository = new FakeMessageThreadRepository();
     const useCase = buildUseCase({ appointment, threadRepository });
@@ -185,9 +215,31 @@ describe('StartOrGetMessageThreadUseCase', () => {
     await assert.rejects(
       () =>
         useCase.execute(
-          new StartOrGetMessageThreadCommand({ appointmentId: appointment.getId(), callerAccountId: OTHER_ACCOUNT_ID }),
+          new StartOrGetMessageThreadCommand({ counterpartyProfileId: DOCTOR_ID, callerAccountId: OTHER_ACCOUNT_ID }),
         ),
       NotFoundError,
     );
+  });
+
+  // Verification checklist item: "race-test (or at minimum unit-test with a
+  // mocked P2002) two concurrent StartOrGetMessageThread calls for the same
+  // pair resolving to one thread." The compound-keyed upsert closes the
+  // common case; this exercises the documented fallback for the rarer
+  // conflict that still surfaces one.
+  it('recovers from a concurrent creation race by re-reading the winning thread instead of throwing', async () => {
+    const appointment = buildAppointment();
+    const threadRepository = new FakeMessageThreadRepository();
+    threadRepository.conflictOnNextSave = new MessageThreadConflictError(PATIENT_ID, DOCTOR_ID);
+    const useCase = buildUseCase({ appointment, threadRepository, patientAccountId: 'patient-account' });
+
+    const thread = await useCase.execute(
+      new StartOrGetMessageThreadCommand({ counterpartyProfileId: DOCTOR_ID, callerAccountId: 'patient-account' }),
+    );
+
+    assert.equal(thread.getPatientId(), PATIENT_ID);
+    assert.equal(thread.getDoctorId(), DOCTOR_ID);
+    // The loser's own in-flight thread was never added to `saved` -- only
+    // the race winner's (simulated by the fake leaving `existing` set).
+    assert.equal(threadRepository.saved.length, 0);
   });
 });

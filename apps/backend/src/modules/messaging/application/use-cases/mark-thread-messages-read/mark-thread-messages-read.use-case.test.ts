@@ -24,7 +24,7 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
   async findById(id: string): Promise<MessageThread | null> {
     return this.thread?.getId() === id ? this.thread : null;
   }
-  async findByAppointmentId(): Promise<MessageThread | null> {
+  async findByPatientAndDoctor(): Promise<MessageThread | null> {
     return null;
   }
   async findByPatientId(): Promise<MessageThread[]> {
@@ -37,7 +37,10 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
 }
 
 class FakeMessageRepository implements MessageRepository {
-  public readonly savedAll: Message[][] = [];
+  // Tracks calls to the combined transactional write -- the only path
+  // MarkThreadMessagesReadUseCase is allowed to use (see its own
+  // load-bearing-invariant comment).
+  public readonly saveAllAndMarkThreadReadCalls: { messages: Message[]; thread: MessageThread }[] = [];
   constructor(private readonly messages: Message[]) {}
   async findById(): Promise<Message | null> {
     return null;
@@ -48,9 +51,15 @@ class FakeMessageRepository implements MessageRepository {
   async countUnreadForRecipient(): Promise<number> {
     return 0;
   }
+  async countUnreadForAccount(): Promise<number> {
+    return 0;
+  }
   async save(): Promise<void> {}
-  async saveAll(messages: Message[]): Promise<void> {
-    this.savedAll.push(messages);
+  async saveAll(): Promise<void> {
+    throw new Error('MarkThreadMessagesReadUseCase must use saveAllAndMarkThreadRead, never saveAll directly.');
+  }
+  async saveAllAndMarkThreadRead(messages: Message[], thread: MessageThread): Promise<void> {
+    this.saveAllAndMarkThreadReadCalls.push({ messages, thread });
   }
 }
 
@@ -78,7 +87,6 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 function buildThread(): MessageThread {
   return MessageThread.start({
-    appointmentId: '33333333-3333-4333-8333-333333333333',
     patientId: PATIENT_ID,
     doctorId: DOCTOR_ID,
   });
@@ -117,11 +125,38 @@ describe('MarkThreadMessagesReadUseCase', () => {
 
     await useCase.execute(new MarkThreadMessagesReadCommand({ threadId: thread.getId(), callerAccountId: 'patient-account' }));
 
-    assert.equal(messageRepository.savedAll.length, 1);
-    assert.equal(messageRepository.savedAll[0]?.length, 1);
-    assert.equal(messageRepository.savedAll[0]?.[0]?.getId(), fromDoctor.getId());
+    assert.equal(messageRepository.saveAllAndMarkThreadReadCalls.length, 1);
+    assert.equal(messageRepository.saveAllAndMarkThreadReadCalls[0]?.messages.length, 1);
+    assert.equal(messageRepository.saveAllAndMarkThreadReadCalls[0]?.messages[0]?.getId(), fromDoctor.getId());
     assert.ok(fromDoctor.getReadAt());
     assert.equal(fromPatient.getReadAt(), undefined);
+  });
+
+  it("updates the thread's patientLastReadAt (not doctorLastReadAt) when the patient marks read, in the same write as the messages", async () => {
+    const thread = buildThread();
+    const fromDoctor = Message.send({ threadId: thread.getId(), senderAccountId: 'doctor-account', body: 'How are you feeling?' });
+    const messageRepository = new FakeMessageRepository([fromDoctor]);
+    const useCase = buildUseCase({ thread, messages: [fromDoctor], messageRepository, patientAccountId: 'patient-account' });
+
+    await useCase.execute(new MarkThreadMessagesReadCommand({ threadId: thread.getId(), callerAccountId: 'patient-account' }));
+
+    const call = messageRepository.saveAllAndMarkThreadReadCalls[0];
+    assert.ok(call);
+    assert.equal(call.thread, thread);
+    assert.ok(thread.getPatientLastReadAt());
+    assert.equal(thread.getDoctorLastReadAt(), undefined);
+  });
+
+  it("updates the thread's doctorLastReadAt (not patientLastReadAt) when the doctor marks read", async () => {
+    const thread = buildThread();
+    const fromPatient = Message.send({ threadId: thread.getId(), senderAccountId: 'patient-account', body: 'Better, thanks.' });
+    const messageRepository = new FakeMessageRepository([fromPatient]);
+    const useCase = buildUseCase({ thread, messages: [fromPatient], messageRepository, doctorAccountId: 'doctor-account' });
+
+    await useCase.execute(new MarkThreadMessagesReadCommand({ threadId: thread.getId(), callerAccountId: 'doctor-account' }));
+
+    assert.ok(thread.getDoctorLastReadAt());
+    assert.equal(thread.getPatientLastReadAt(), undefined);
   });
 
   it('is a no-op when there is nothing unread from the other party', async () => {
@@ -131,7 +166,7 @@ describe('MarkThreadMessagesReadUseCase', () => {
 
     await useCase.execute(new MarkThreadMessagesReadCommand({ threadId: thread.getId(), callerAccountId: 'patient-account' }));
 
-    assert.equal(messageRepository.savedAll.length, 0);
+    assert.equal(messageRepository.saveAllAndMarkThreadReadCalls.length, 0);
   });
 
   it('throws NotFoundError when the thread does not exist', async () => {

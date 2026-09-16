@@ -2,14 +2,18 @@ import { Module } from '@nestjs/common';
 
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
-import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { FindAppointmentByPatientAndDoctorUseCase } from '../consultation/application/use-cases/find-appointment-by-patient-and-doctor/find-appointment-by-patient-and-doctor.use-case.js';
+import { GetAppointmentsForDoctorAndPatientUseCase } from '../consultation/application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { IdentityModule } from '../identity/identity.module.js';
 import { PatientModule } from '../patient/patient.module.js';
 import { GetPatientProfileByAccountIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
 
 import { MESSAGE_REPOSITORY, MESSAGE_THREAD_REPOSITORY } from './application/ports/tokens.js';
 import { GetMessageThreadByIdUseCase } from './application/use-cases/get-message-thread-by-id/get-message-thread-by-id.use-case.js';
+import { GetUnreadCountForAccountUseCase } from './application/use-cases/get-unread-count-for-account/get-unread-count-for-account.use-case.js';
+import { ListAppointmentsForThreadUseCase } from './application/use-cases/list-appointments-for-thread/list-appointments-for-thread.use-case.js';
 import { ListMessageThreadsForAccountUseCase } from './application/use-cases/list-message-threads-for-account/list-message-threads-for-account.use-case.js';
 import { ListMessagesForThreadUseCase } from './application/use-cases/list-messages-for-thread/list-messages-for-thread.use-case.js';
 import { MarkThreadMessagesReadUseCase } from './application/use-cases/mark-thread-messages-read/mark-thread-messages-read.use-case.js';
@@ -22,14 +26,16 @@ import { PrismaMessageThreadRepository } from './infrastructure/prisma/prisma-me
 import { MessageThreadController } from './presentation/controllers/message-thread.controller.js';
 
 // I7 -- Messaging (docs/01-prd.md §2.13). Imports ConsultationModule (the
-// Appointment relationship a thread is anchored to), DoctorModule, and
-// PatientModule (resolving a caller's own account id to their profile id)
-// only to consume their own exported use cases (module-to-module calls only
-// through a published interface, never another module's repository --
+// re-threading (Phase 1) eligibility check and thread-header appointment
+// context), DoctorModule, PatientModule (resolving a caller's own account id
+// to their profile id, and a counterparty profile id to its display name),
+// and IdentityModule (resolving an account's own display name) only to
+// consume their own exported use cases (module-to-module calls only through
+// a published interface, never another module's repository --
 // docs/10-backend-architecture.md Section 11). None of those modules import
 // MessagingModule back -- no circular imports, no forwardRef().
 @Module({
-  imports: [ConsultationModule, DoctorModule, PatientModule, AuthenticationGuardsModule],
+  imports: [ConsultationModule, DoctorModule, PatientModule, IdentityModule, AuthenticationGuardsModule],
   controllers: [MessageThreadController],
   providers: [
     { provide: MESSAGE_THREAD_REPOSITORY, useClass: PrismaMessageThreadRepository },
@@ -38,17 +44,22 @@ import { MessageThreadController } from './presentation/controllers/message-thre
       provide: StartOrGetMessageThreadUseCase,
       useFactory: (
         threadRepository: MessageThreadRepository,
-        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        findAppointmentByPatientAndDoctorUseCase: FindAppointmentByPatientAndDoctorUseCase,
         getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
         getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
       ) =>
         new StartOrGetMessageThreadUseCase(
           threadRepository,
-          getAppointmentByIdUseCase,
+          findAppointmentByPatientAndDoctorUseCase,
           getPatientProfileByAccountIdUseCase,
           getDoctorProfileByAccountIdUseCase,
         ),
-      inject: [MESSAGE_THREAD_REPOSITORY, GetAppointmentByIdUseCase, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
+      inject: [
+        MESSAGE_THREAD_REPOSITORY,
+        FindAppointmentByPatientAndDoctorUseCase,
+        GetPatientProfileByAccountIdUseCase,
+        GetDoctorProfileByAccountIdUseCase,
+      ],
     },
     {
       provide: ListMessageThreadsForAccountUseCase,
@@ -112,7 +123,44 @@ import { MessageThreadController } from './presentation/controllers/message-thre
         ),
       inject: [MESSAGE_REPOSITORY, MESSAGE_THREAD_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
     },
+    {
+      provide: GetUnreadCountForAccountUseCase,
+      useFactory: (
+        messageRepository: MessageRepository,
+        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+      ) => new GetUnreadCountForAccountUseCase(messageRepository, getPatientProfileByAccountIdUseCase, getDoctorProfileByAccountIdUseCase),
+      inject: [MESSAGE_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: ListAppointmentsForThreadUseCase,
+      useFactory: (
+        threadRepository: MessageThreadRepository,
+        getAppointmentsForDoctorAndPatientUseCase: GetAppointmentsForDoctorAndPatientUseCase,
+        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+      ) =>
+        new ListAppointmentsForThreadUseCase(
+          threadRepository,
+          getAppointmentsForDoctorAndPatientUseCase,
+          getPatientProfileByAccountIdUseCase,
+          getDoctorProfileByAccountIdUseCase,
+        ),
+      inject: [
+        MESSAGE_THREAD_REPOSITORY,
+        GetAppointmentsForDoctorAndPatientUseCase,
+        GetPatientProfileByAccountIdUseCase,
+        GetDoctorProfileByAccountIdUseCase,
+      ],
+    },
   ],
   exports: [],
 })
 export class MessagingModule {}
+
+// Re-export note: the controller also directly injects
+// GetPatientProfileByIdUseCase, GetDoctorProfileByIdUseCase, and
+// GetAccountByIdUseCase (all already provided by PatientModule/DoctorModule/
+// IdentityModule respectively, imported above) to resolve
+// counterpartyDisplayName -- no additional provider registration is needed
+// here since Nest resolves them from the imported modules' own exports.

@@ -227,6 +227,9 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async findByDoctorId(doctorId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((appointment) => appointment.getDoctorId() === doctorId);
   }
+  async findByPatientAndDoctor(): Promise<Appointment | null> {
+    return null;
+  }
   async findByDoctorIdForDateRange(doctorId: string, start: Date, end: Date): Promise<Appointment[]> {
     return (await this.findByDoctorId(doctorId)).filter(
       (appointment) => appointment.getScheduledAt() >= start && appointment.getScheduledAt() < end,

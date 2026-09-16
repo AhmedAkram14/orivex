@@ -23,7 +23,7 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
   async findById(id: string): Promise<MessageThread | null> {
     return this.thread?.getId() === id ? this.thread : null;
   }
-  async findByAppointmentId(): Promise<MessageThread | null> {
+  async findByPatientAndDoctor(): Promise<MessageThread | null> {
     return null;
   }
   async findByPatientId(): Promise<MessageThread[]> {
@@ -46,8 +46,12 @@ class FakeMessageRepository implements MessageRepository {
   async countUnreadForRecipient(): Promise<number> {
     return 0;
   }
+  async countUnreadForAccount(): Promise<number> {
+    return 0;
+  }
   async save(): Promise<void> {}
   async saveAll(): Promise<void> {}
+  async saveAllAndMarkThreadRead(): Promise<void> {}
 }
 
 class FakePatientProfileRepository implements PatientProfileRepository {
@@ -74,7 +78,6 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 function buildThread(): MessageThread {
   return MessageThread.start({
-    appointmentId: '33333333-3333-4333-8333-333333333333',
     patientId: PATIENT_ID,
     doctorId: DOCTOR_ID,
   });

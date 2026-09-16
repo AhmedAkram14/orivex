@@ -50,6 +50,7 @@ import { ConfirmAppointmentUseCase } from './application/use-cases/confirm-appoi
 import { DeclineAppointmentUseCase } from './application/use-cases/decline-appointment/decline-appointment.use-case.js';
 import { ExpireStaleAppointmentsUseCase } from './application/use-cases/expire-stale-appointments/expire-stale-appointments.use-case.js';
 import { GetAppointmentByIdUseCase } from './application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
+import { FindAppointmentByPatientAndDoctorUseCase } from './application/use-cases/find-appointment-by-patient-and-doctor/find-appointment-by-patient-and-doctor.use-case.js';
 import { GenerateAppointmentCalendarInviteUseCase } from './application/use-cases/generate-appointment-calendar-invite/generate-appointment-calendar-invite.use-case.js';
 import { GetConsultationFeedbackForSessionUseCase } from './application/use-cases/get-consultation-feedback-for-session/get-consultation-feedback-for-session.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from './application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
@@ -225,6 +226,11 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     {
       provide: GetAppointmentByIdUseCase,
       useFactory: (repository: AppointmentRepository) => new GetAppointmentByIdUseCase(repository),
+      inject: [APPOINTMENT_REPOSITORY],
+    },
+    {
+      provide: FindAppointmentByPatientAndDoctorUseCase,
+      useFactory: (repository: AppointmentRepository) => new FindAppointmentByPatientAndDoctorUseCase(repository),
       inject: [APPOINTMENT_REPOSITORY],
     },
     {
@@ -559,6 +565,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     RescheduleOrCancelAppointmentUseCase,
     ConfirmAppointmentUseCase,
     GetAppointmentByIdUseCase,
+    FindAppointmentByPatientAndDoctorUseCase,
     ListAppointmentsForPatientUseCase,
     ListAppointmentsForPatientPageUseCase,
     GetConsultationSessionByIdUseCase,

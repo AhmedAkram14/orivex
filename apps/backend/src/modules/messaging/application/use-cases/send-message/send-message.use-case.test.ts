@@ -24,7 +24,7 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
   async findById(id: string): Promise<MessageThread | null> {
     return this.thread?.getId() === id ? this.thread : null;
   }
-  async findByAppointmentId(): Promise<MessageThread | null> {
+  async findByPatientAndDoctor(): Promise<MessageThread | null> {
     return null;
   }
   async findByPatientId(): Promise<MessageThread[]> {
@@ -33,7 +33,10 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
   async findByDoctorId(): Promise<MessageThread[]> {
     return [];
   }
-  async save(): Promise<void> {}
+  public readonly saved: MessageThread[] = [];
+  async save(thread: MessageThread): Promise<void> {
+    this.saved.push(thread);
+  }
 }
 
 class FakeMessageRepository implements MessageRepository {
@@ -47,10 +50,16 @@ class FakeMessageRepository implements MessageRepository {
   async countUnreadForRecipient(): Promise<number> {
     return 0;
   }
+  async countUnreadForAccount(): Promise<number> {
+    return 0;
+  }
   async save(message: Message): Promise<void> {
     this.saved.push(message);
   }
   async saveAll(messages: Message[]): Promise<void> {
+    this.saved.push(...messages);
+  }
+  async saveAllAndMarkThreadRead(messages: Message[]): Promise<void> {
     this.saved.push(...messages);
   }
 }
@@ -79,7 +88,6 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 function buildThread(): MessageThread {
   return MessageThread.start({
-    appointmentId: '33333333-3333-4333-8333-333333333333',
     patientId: PATIENT_ID,
     doctorId: DOCTOR_ID,
   });
@@ -90,7 +98,7 @@ function buildUseCase(props: {
   messageRepository: FakeMessageRepository;
   patientAccountId?: string;
   doctorAccountId?: string;
-}): SendMessageUseCase {
+}): { useCase: SendMessageUseCase; threadRepository: FakeMessageThreadRepository } {
   const patientProfiles = new Map<string, PatientProfile>();
   if (props.patientAccountId) {
     patientProfiles.set(props.patientAccountId, { getId: () => PATIENT_ID } as PatientProfile);
@@ -99,19 +107,21 @@ function buildUseCase(props: {
   if (props.doctorAccountId) {
     doctorProfiles.set(props.doctorAccountId, { getId: () => DOCTOR_ID } as DoctorProfile);
   }
-  return new SendMessageUseCase(
+  const threadRepository = new FakeMessageThreadRepository(props.thread);
+  const useCase = new SendMessageUseCase(
     props.messageRepository,
-    new FakeMessageThreadRepository(props.thread),
+    threadRepository,
     new GetPatientProfileByAccountIdUseCase(new FakePatientProfileRepository(patientProfiles)),
     new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(doctorProfiles)),
   );
+  return { useCase, threadRepository };
 }
 
 describe('SendMessageUseCase', () => {
   it('lets the patient party send a message', async () => {
     const thread = buildThread();
     const messageRepository = new FakeMessageRepository();
-    const useCase = buildUseCase({ thread, messageRepository, patientAccountId: 'patient-account' });
+    const { useCase } = buildUseCase({ thread, messageRepository, patientAccountId: 'patient-account' });
 
     const message = await useCase.execute(
       new SendMessageCommand({ threadId: thread.getId(), senderAccountId: 'patient-account', body: 'When should I take the medicine?' }),
@@ -124,7 +134,7 @@ describe('SendMessageUseCase', () => {
   it('lets the doctor party send a message', async () => {
     const thread = buildThread();
     const messageRepository = new FakeMessageRepository();
-    const useCase = buildUseCase({ thread, messageRepository, doctorAccountId: 'doctor-account' });
+    const { useCase } = buildUseCase({ thread, messageRepository, doctorAccountId: 'doctor-account' });
 
     const message = await useCase.execute(
       new SendMessageCommand({ threadId: thread.getId(), senderAccountId: 'doctor-account', body: 'Twice daily after meals.' }),
@@ -133,9 +143,23 @@ describe('SendMessageUseCase', () => {
     assert.equal(message.getSenderAccountId(), 'doctor-account');
   });
 
+  it("advances the thread's lastMessageAt and persists it (re-threading, Phase 1)", async () => {
+    const thread = buildThread();
+    const originalLastMessageAt = thread.getLastMessageAt();
+    const messageRepository = new FakeMessageRepository();
+    const { useCase, threadRepository } = buildUseCase({ thread, messageRepository, patientAccountId: 'patient-account' });
+
+    await useCase.execute(
+      new SendMessageCommand({ threadId: thread.getId(), senderAccountId: 'patient-account', body: 'hello' }),
+    );
+
+    assert.equal(threadRepository.saved.length, 1);
+    assert.ok(threadRepository.saved[0]!.getLastMessageAt().getTime() >= originalLastMessageAt.getTime());
+  });
+
   it('throws NotFoundError when the thread does not exist', async () => {
     const messageRepository = new FakeMessageRepository();
-    const useCase = buildUseCase({ thread: null, messageRepository, patientAccountId: 'patient-account' });
+    const { useCase } = buildUseCase({ thread: null, messageRepository, patientAccountId: 'patient-account' });
 
     await assert.rejects(
       () => useCase.execute(new SendMessageCommand({ threadId: 'missing-id', senderAccountId: 'patient-account', body: 'hello' })),
@@ -146,7 +170,7 @@ describe('SendMessageUseCase', () => {
   it('throws ForbiddenError when the sender is not a party to the thread', async () => {
     const thread = buildThread();
     const messageRepository = new FakeMessageRepository();
-    const useCase = buildUseCase({ thread, messageRepository });
+    const { useCase } = buildUseCase({ thread, messageRepository });
 
     await assert.rejects(
       () => useCase.execute(new SendMessageCommand({ threadId: thread.getId(), senderAccountId: 'stranger-account', body: 'hello' })),

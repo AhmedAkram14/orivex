@@ -23,7 +23,7 @@ class FakeMessageThreadRepository implements MessageThreadRepository {
   async findById(): Promise<MessageThread | null> {
     return null;
   }
-  async findByAppointmentId(): Promise<MessageThread | null> {
+  async findByPatientAndDoctor(): Promise<MessageThread | null> {
     return null;
   }
   async findByPatientId(patientId: string): Promise<MessageThread[]> {
@@ -59,7 +59,6 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 
 function buildThread(): MessageThread {
   return MessageThread.start({
-    appointmentId: '33333333-3333-4333-8333-333333333333',
     patientId: PATIENT_ID,
     doctorId: DOCTOR_ID,
   });
