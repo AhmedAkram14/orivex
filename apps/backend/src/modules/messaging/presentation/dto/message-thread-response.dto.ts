@@ -15,6 +15,17 @@ export class MessageThreadResponseDto {
    * account/profile lookup fails; never fabricated.
    */
   counterpartyDisplayName?: string;
+  /**
+   * Realtime layer (Messages Page Overhaul, Phase 2): the counterparty's own
+   * ACCOUNT id (not their patient/doctor profile id) -- the frontend needs
+   * this to address a `messaging.typing` emit at the right person via
+   * `RealtimeGateway.emitToAccount`. Resolved server-side alongside
+   * `counterpartyDisplayName`, same privacy posture: it's the other party's
+   * own identifier, not a read-activity timestamp, so exposing it here
+   * carries none of the concern the *LastReadAt omission below guards
+   * against.
+   */
+  counterpartyAccountId?: string;
 
   // Deliberately carries no per-thread unread count and does NOT expose
   // patientLastReadAt/doctorLastReadAt: (1) those are the *other* party's
@@ -27,7 +38,10 @@ export class MessageThreadResponseDto {
   // GET /message-threads/unread-count (GetUnreadCountForAccountUseCase,
   // one join query, never a per-thread loop) -- see
   // MessageThreadController.listMyThreads/getUnreadCount.
-  static fromDomain(thread: MessageThread, options?: { counterpartyDisplayName?: string }): MessageThreadResponseDto {
+  static fromDomain(
+    thread: MessageThread,
+    options?: { counterpartyDisplayName?: string; counterpartyAccountId?: string },
+  ): MessageThreadResponseDto {
     const dto = new MessageThreadResponseDto();
     dto.id = thread.getId();
     dto.patientId = thread.getPatientId();
@@ -35,6 +49,7 @@ export class MessageThreadResponseDto {
     dto.createdAt = thread.getCreatedAt().toISOString();
     dto.lastMessageAt = thread.getLastMessageAt().toISOString();
     dto.counterpartyDisplayName = options?.counterpartyDisplayName;
+    dto.counterpartyAccountId = options?.counterpartyAccountId;
     return dto;
   }
 }

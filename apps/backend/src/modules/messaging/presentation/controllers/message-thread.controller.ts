@@ -57,8 +57,8 @@ export class MessageThreadController {
     const threads = await this.listMessageThreadsForAccountUseCase.execute({ callerAccountId: user.accountId });
     const dtos = await Promise.all(
       threads.map(async (thread) => {
-        const counterpartyDisplayName = await this.resolveCounterpartyDisplayName(thread, user.accountId);
-        return MessageThreadResponseDto.fromDomain(thread, { counterpartyDisplayName });
+        const counterparty = await this.resolveCounterpartyInfo(thread, user.accountId);
+        return MessageThreadResponseDto.fromDomain(thread, counterparty);
       }),
     );
     return envelope(dtos);
@@ -83,8 +83,8 @@ export class MessageThreadController {
       const thread = await this.startOrGetMessageThreadUseCase.execute(
         new StartOrGetMessageThreadCommand({ counterpartyProfileId: body.counterpartyProfileId, callerAccountId: user.accountId }),
       );
-      const counterpartyDisplayName = await this.resolveCounterpartyDisplayName(thread, user.accountId);
-      return envelope(MessageThreadResponseDto.fromDomain(thread, { counterpartyDisplayName }));
+      const counterparty = await this.resolveCounterpartyInfo(thread, user.accountId);
+      return envelope(MessageThreadResponseDto.fromDomain(thread, counterparty));
     } catch (error) {
       throw mapMessagingError(error);
     }
@@ -158,9 +158,14 @@ export class MessageThreadController {
 
   // Decision 3 of the Messages Page Overhaul plan: resolved server-side,
   // eliminating the previous fragile client-side id-matching against the
-  // caller's own appointments list entirely. Undefined (never fabricated)
-  // if the counterparty's own profile/account lookup somehow fails.
-  private async resolveCounterpartyDisplayName(thread: MessageThread, callerAccountId: string): Promise<string | undefined> {
+  // caller's own appointments list entirely. Both fields undefined (never
+  // fabricated) if the counterparty's own profile/account lookup somehow
+  // fails. `counterpartyAccountId` (Phase 2) is what the frontend targets a
+  // `messaging.typing` emit at -- see MessageThreadResponseDto's own comment.
+  private async resolveCounterpartyInfo(
+    thread: MessageThread,
+    callerAccountId: string,
+  ): Promise<{ counterpartyDisplayName?: string; counterpartyAccountId?: string }> {
     const patientProfile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId: thread.getPatientId() });
     const callerIsPatient = patientProfile?.getAccountId() === callerAccountId;
 
@@ -169,9 +174,12 @@ export class MessageThreadController {
       : patientProfile?.getAccountId();
 
     if (!counterpartyAccountId) {
-      return undefined;
+      return {};
     }
     const counterpartyAccount = await this.getAccountByIdUseCase.execute({ accountId: counterpartyAccountId });
-    return counterpartyAccount?.getUserProfile().getDisplayName().toString();
+    return {
+      counterpartyAccountId,
+      counterpartyDisplayName: counterpartyAccount?.getUserProfile().getDisplayName().toString(),
+    };
   }
 }

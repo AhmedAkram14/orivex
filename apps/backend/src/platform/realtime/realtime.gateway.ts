@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ConnectedSocket,
+  MessageBody,
   type OnGatewayConnection,
   type OnGatewayDisconnect,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
@@ -56,6 +59,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     try {
       const claims = await this.jwtSigner.verify(token);
+      // Messages Page Overhaul (Phase 2): stashed on the socket itself so
+      // the inbound `messaging.typing` handler below always has this
+      // socket's own authenticated identity to hand -- never trusting
+      // whatever a client claims about itself in a message payload.
+      socket.data.accountId = claims.accountId;
       await socket.join(accountRoom(claims.accountId));
     } catch {
       socket.disconnect(true);
@@ -65,6 +73,26 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   handleDisconnect(): void {
     // Nothing to clean up -- socket.io removes the disconnected socket from
     // every room it joined automatically.
+  }
+
+  // Typing indicator (Messages Page Overhaul, Phase 2): ephemeral, never
+  // persisted -- pre-approved in docs/06-system-architecture.md §6 ("Simple
+  // ephemeral pub/sub signal, not persisted"). `fromAccountId` is always
+  // this socket's OWN authenticated accountId (set in handleConnection
+  // above), never taken from the inbound payload -- a socket cannot claim
+  // to be typing as anyone else. Silently drops a malformed/pre-auth
+  // payload rather than throwing, matching emitToAccount's own
+  // fail-quiet-not-fail-loud posture for a low-stakes realtime signal.
+  @SubscribeMessage('messaging.typing')
+  handleTyping(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() body: { threadId?: string; recipientAccountId?: string },
+  ): void {
+    const fromAccountId = socket.data?.accountId as string | undefined;
+    if (!fromAccountId || !body?.threadId || !body?.recipientAccountId) {
+      return;
+    }
+    this.emitToAccount(body.recipientAccountId, 'messaging.typing', { threadId: body.threadId, fromAccountId });
   }
 
   // Never called before the app has an initialized Nest module graph
