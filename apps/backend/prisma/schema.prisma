@@ -888,8 +888,6 @@ model Appointment {
   updatedAt            DateTime             @updatedAt
   consultationSession  ConsultationSession?
   paymentTransactions  PaymentTransaction[]
-  // I7 -- Messaging (docs/01-prd.md §2.13).
-  messageThread        MessageThread?
   // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit).
   dispute              Dispute?
 
@@ -1557,28 +1555,35 @@ model VitalReading {
 }
 
 // I7 -- Messaging (docs/01-prd.md §2.13, in-scope list "in-consultation
-// chat" and this module's own async follow-up thread). One thread per
-// Appointment (a patient/doctor pair may have several threads over time,
-// one per booking, never one long-running thread across every visit --
-// matches this schema's "forward-only, never a literal rollback" data
-// model applied to relationships: each booking is its own real-world
-// encounter). patientId/doctorId are denormalized off the Appointment they
-// belong to, purely so "list my threads" never needs to join through
-// Appointment -- same snapshotting precedent AppointmentPricing already
-// sets on PaymentTransaction.
+// chat" and this module's own async follow-up thread). Re-threaded
+// (Messages Page Overhaul, Phase 1) from the original one-thread-per-
+// Appointment shape to one thread per (patientId, doctorId) PAIR --
+// appointments are in-thread context, never thread identity, so a
+// patient/doctor relationship carries exactly one continuous conversation
+// across every booking they've ever had together, not one fragment per
+// encounter. `lastMessageAt` backs inbox ordering (most recently active
+// conversation first); `patientLastReadAt`/`doctorLastReadAt` back the
+// unread-badge/realtime "has new activity" signal ONLY -- `Message.readAt`
+// remains the separate, authoritative per-message read-receipt mechanism
+// (two mechanisms, deliberately not unified). See the migration under
+// `prisma/migrations/` for how pre-existing per-appointment threads were
+// merged.
 model MessageThread {
-  id            String         @id @default(uuid())
-  appointmentId String         @unique
-  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  patientId     String
-  patientProfile PatientProfile @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctorId      String
-  doctorProfile DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  createdAt     DateTime       @default(now())
-  messages      Message[]
+  id                String         @id @default(uuid())
+  patientId         String
+  patientProfile    PatientProfile @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctorId          String
+  doctorProfile     DoctorProfile  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  createdAt         DateTime       @default(now())
+  lastMessageAt     DateTime       @default(now())
+  patientLastReadAt DateTime?
+  doctorLastReadAt  DateTime?
+  messages          Message[]
 
+  @@unique([patientId, doctorId])
   @@index([patientId])
   @@index([doctorId])
+  @@index([lastMessageAt])
 }
 
 // Explicitly administrative/follow-up communication (docs/01-prd.md L112:
@@ -1604,9 +1609,12 @@ model Message {
 }
 
 // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit): one
-// dispute per Appointment (matches MessageThread's own one-per-appointment
-// shape) -- a patient or doctor raises a concern about a specific real
-// encounter, an admin resolves it with a logged reason (release checklist
+// dispute per Appointment -- unlike MessageThread (re-threaded to one
+// conversation per patient/doctor pair, Messages Page Overhaul Phase 1), a
+// dispute is deliberately scoped to a single real encounter, never merged
+// across a relationship's whole history -- a patient or doctor raises a
+// concern about a specific real encounter, an admin resolves it with a
+// logged reason (release checklist
 // L118: admin actions "must be audit-logged with actor, timestamp, and
 // reason"). raisedByAccountId is a real Account id, not a profile id --
 // either party on the appointment can raise one, so the entity needs to
@@ -1693,8 +1701,9 @@ model KnowledgeArticleSave {
 // only -- explicitly NOT an implicit clinical relationship or messaging
 // channel (docs/01.1-prd-update.md §6's own business rule). Never joined
 // with MessageThread/Dispute eligibility checks anywhere in this codebase;
-// a patient must still have a real Appointment with a doctor to message or
-// dispute with them, following or not.
+// a patient must still have had a real Appointment with a doctor (any
+// status/date -- Messages Page Overhaul Phase 1's eligibility rule) to
+// message or dispute with them, following or not.
 model DoctorFollow {
   id             String         @id @default(uuid())
   patientId      String

@@ -107,9 +107,9 @@ Pushback: Your brief calls this "Version 1.0, not an MVP, flagship production-re
    Business rules: Medical-content notifications (e.g., "your prescription is ready") must not leak PHI into the notification preview text itself (a common real-world privacy bug — e.g., a push notification showing a diagnosis on a lock screen).
    2.13 Messaging (Asynchronous Chat)
    Purpose: Lightweight pre/post-consultation communication, NOT a substitute for clinical consultation.
-   Main features: Text messaging tied to a booking/consultation thread, attachments, read receipts.
+   Main features: Text messaging threaded per patient/doctor relationship (one continuous conversation per pair, not one per booking), with individual appointments surfaced as in-thread context rather than separate threads; attachments; read receipts. Re-threaded from the original per-booking model (Messages Page Overhaul) once real usage showed a single relationship fragmenting into an unnavigable one-thread-per-appointment history; eligibility to start a thread still requires that the pair has had at least one real appointment together (any status/date).
    Dependencies: Booking.
-   Business rules: Must be clearly scoped as administrative/follow-up communication, not diagnosis-via-chat — this is both a UX clarity issue and a liability issue (a doctor should not be diagnosing over unstructured chat outside a formal consultation record).
+   Business rules: Must be clearly scoped as administrative/follow-up communication, not diagnosis-via-chat — this is both a UX clarity issue and a liability issue (a doctor should not be diagnosing over unstructured chat outside a formal consultation record). Threading conversations by relationship rather than by booking does not change this: the thread still exists to support a real clinical relationship's logistics, never as a channel for clinical advice untethered from a formal consultation.
    2.14 Patient Dashboard / Doctor Dashboard
    Aggregation layers over the above modules — patient's home base (upcoming appointments, timeline, prescriptions, notifications) and doctor's home base (calendar, patient queue, earnings, analytics). Not separate systems; UX composition layers.
    2.15 Admin Portal
