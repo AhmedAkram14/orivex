@@ -30,6 +30,7 @@ import { PatientModule } from '../patient/patient.module.js';
 import { GetPaymentTransactionByIdUseCase } from '../payment/application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { PaymentModule } from '../payment/payment.module.js';
 import { GetPrescriptionByIdUseCase } from '../clinical/application/use-cases/get-prescription-by-id/get-prescription-by-id.use-case.js';
+import { GetDisputeByIdUseCase } from '../consultation/application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 
 import { NOTIFICATION_QUEUE, NOTIFICATION_REPOSITORY } from './application/ports/tokens.js';
@@ -127,6 +128,22 @@ import {
   NotifyApplicantOfVerificationSuspensionHandler,
   type VerificationCaseSuspendedEventPayload,
 } from './application/event-handlers/notify-applicant-of-verification-suspension.handler.js';
+import {
+  NotifyCounterpartyOfDisputeRaisedHandler,
+  type DisputeRaisedEventPayload,
+} from './application/event-handlers/notify-counterparty-of-dispute-raised.handler.js';
+import {
+  NotifyPartiesOfDisputeResolvedHandler,
+  type DisputeResolvedEventPayload,
+} from './application/event-handlers/notify-parties-of-dispute-resolved.handler.js';
+import {
+  NotifyPartiesOfDisputeDismissedHandler,
+  type DisputeDismissedEventPayload,
+} from './application/event-handlers/notify-parties-of-dispute-dismissed.handler.js';
+import {
+  NotifyCounterpartyOfDisputeWithdrawnHandler,
+  type DisputeWithdrawnEventPayload,
+} from './application/event-handlers/notify-counterparty-of-dispute-withdrawn.handler.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
@@ -923,6 +940,183 @@ import { NotificationController } from './presentation/controllers/notification.
       },
       inject: [
         GetPatientProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Dispute System Hardening Phase 2: reacts to ConsultationModule's
+      // 'consultation.dispute.raised' event -- previously a dispute was
+      // visible only to whoever raised it, with no way for the counterparty
+      // to ever find out one existed.
+      provide: NotifyCounterpartyOfDisputeRaisedHandler,
+      useFactory: (
+        getDisputeByIdUseCase: GetDisputeByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyCounterpartyOfDisputeRaisedHandler(
+          getDisputeByIdUseCase,
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('consultation.dispute.raised', (event: DomainEvent) =>
+          handler.handle(event as unknown as DisputeRaisedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetDisputeByIdUseCase,
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Dispute System Hardening Phase 2: reacts to ConsultationModule's
+      // 'consultation.dispute.resolved' event, notifying both parties --
+      // deliberately never subscribes to 'consultation.dispute.dismissed'
+      // (see NotifyPartiesOfDisputeDismissedHandler below), same "distinct
+      // event per distinct fact" precedent as the two Appointment handlers.
+      provide: NotifyPartiesOfDisputeResolvedHandler,
+      useFactory: (
+        getDisputeByIdUseCase: GetDisputeByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPartiesOfDisputeResolvedHandler(
+          getDisputeByIdUseCase,
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('consultation.dispute.resolved', (event: DomainEvent) =>
+          handler.handle(event as unknown as DisputeResolvedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetDisputeByIdUseCase,
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Dispute System Hardening Phase 2: the counterpart to
+      // NotifyPartiesOfDisputeResolvedHandler above, reacting to
+      // 'consultation.dispute.dismissed' instead.
+      provide: NotifyPartiesOfDisputeDismissedHandler,
+      useFactory: (
+        getDisputeByIdUseCase: GetDisputeByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyPartiesOfDisputeDismissedHandler(
+          getDisputeByIdUseCase,
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('consultation.dispute.dismissed', (event: DomainEvent) =>
+          handler.handle(event as unknown as DisputeDismissedEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetDisputeByIdUseCase,
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetDoctorProfileByIdUseCase,
+        GetAccountByIdUseCase,
+        NOTIFICATION_REPOSITORY,
+        EMAIL_SENDER,
+        PinoLoggerService,
+        DOMAIN_EVENT_DISPATCHER,
+      ],
+    },
+    {
+      // Dispute System Hardening Phase 2: reacts to ConsultationModule's
+      // 'consultation.dispute.withdrawn' event -- notifies only the
+      // counterparty, since the raiser already knows (they're the one who
+      // withdrew it); exists so the counterparty's own view updates without
+      // polling.
+      provide: NotifyCounterpartyOfDisputeWithdrawnHandler,
+      useFactory: (
+        getDisputeByIdUseCase: GetDisputeByIdUseCase,
+        getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
+        getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+        getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        notificationRepository: NotificationRepository,
+        emailSender: EmailSenderPort,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyCounterpartyOfDisputeWithdrawnHandler(
+          getDisputeByIdUseCase,
+          getAppointmentByIdUseCase,
+          getPatientProfileByIdUseCase,
+          getDoctorProfileByIdUseCase,
+          getAccountByIdUseCase,
+          notificationRepository,
+          emailSender,
+          logger,
+        );
+        dispatcher.subscribe('consultation.dispute.withdrawn', (event: DomainEvent) =>
+          handler.handle(event as unknown as DisputeWithdrawnEventPayload),
+        );
+        return handler;
+      },
+      inject: [
+        GetDisputeByIdUseCase,
+        GetAppointmentByIdUseCase,
+        GetPatientProfileByIdUseCase,
+        GetDoctorProfileByIdUseCase,
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,

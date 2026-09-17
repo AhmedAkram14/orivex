@@ -105,6 +105,32 @@ const EN: Record<string, TemplateBuilder> = {
     text: 'A doctor you were waiting for now has an opening in your requested date range. Book soon -- it may not stay available for long.',
     cta: frontendUrl ? { label: 'Book now', url: `${frontendUrl}/patient/doctors` } : undefined,
   }),
+  // Dispute System Hardening Phase 2. Conduct-neutral: never presumes
+  // fault, matching the handler's own copy discipline. No login-context
+  // path here (unlike the patient-only templates above) since the
+  // recipient may be either a patient or a doctor.
+  'dispute-raised': (_data, frontendUrl) => ({
+    subject: 'A dispute was raised on Orivex',
+    text: 'A dispute was raised about one of your appointments. An admin will review it.',
+    cta: frontendUrl ? { label: 'View disputes', url: `${frontendUrl}` } : undefined,
+  }),
+  // PHI-light: no resolution notes here -- a secure link back to the
+  // authenticated Disputes page is how the recipient gets the real detail.
+  'dispute-resolved': (_data, frontendUrl) => ({
+    subject: 'A dispute was resolved on Orivex',
+    text: 'A dispute involving one of your appointments has been resolved by an admin. Log in to see the outcome.',
+    cta: frontendUrl ? { label: 'View disputes', url: `${frontendUrl}` } : undefined,
+  }),
+  'dispute-dismissed': (_data, frontendUrl) => ({
+    subject: 'A dispute was dismissed on Orivex',
+    text: 'A dispute involving one of your appointments has been reviewed and dismissed by an admin.',
+    cta: frontendUrl ? { label: 'View disputes', url: `${frontendUrl}` } : undefined,
+  }),
+  'dispute-withdrawn': (_data, frontendUrl) => ({
+    subject: 'A dispute was withdrawn on Orivex',
+    text: 'A dispute involving one of your appointments was withdrawn by the party who raised it.',
+    cta: frontendUrl ? { label: 'View disputes', url: `${frontendUrl}` } : undefined,
+  }),
 };
 
 const AR: Record<string, TemplateBuilder> = {
@@ -177,6 +203,26 @@ const AR: Record<string, TemplateBuilder> = {
     subject: 'أصبح هناك موعد متاح على أوريفكس',
     text: 'أصبح لدى الطبيب الذي كنت تنتظره موعد متاح ضمن النطاق الزمني الذي طلبته. احجز قريبًا -- قد لا يبقى متاحًا لفترة طويلة.',
     cta: frontendUrl ? { label: 'احجز الآن', url: `${frontendUrl}/patient/doctors` } : undefined,
+  }),
+  'dispute-raised': (_data, frontendUrl) => ({
+    subject: 'تم رفع نزاع على أوريفكس',
+    text: 'تم رفع نزاع بخصوص أحد مواعيدك. سيقوم أحد المشرفين بمراجعته.',
+    cta: frontendUrl ? { label: 'عرض النزاعات', url: `${frontendUrl}` } : undefined,
+  }),
+  'dispute-resolved': (_data, frontendUrl) => ({
+    subject: 'تم حل نزاع على أوريفكس',
+    text: 'تم حل نزاع بخصوص أحد مواعيدك من قبل أحد المشرفين. سجّل الدخول للاطلاع على النتيجة.',
+    cta: frontendUrl ? { label: 'عرض النزاعات', url: `${frontendUrl}` } : undefined,
+  }),
+  'dispute-dismissed': (_data, frontendUrl) => ({
+    subject: 'تم رفض نزاع على أوريفكس',
+    text: 'تمت مراجعة نزاع بخصوص أحد مواعيدك ورفضه من قبل أحد المشرفين.',
+    cta: frontendUrl ? { label: 'عرض النزاعات', url: `${frontendUrl}` } : undefined,
+  }),
+  'dispute-withdrawn': (_data, frontendUrl) => ({
+    subject: 'تم سحب نزاع على أوريفكس',
+    text: 'تم سحب نزاع بخصوص أحد مواعيدك من قبل الطرف الذي رفعه.',
+    cta: frontendUrl ? { label: 'عرض النزاعات', url: `${frontendUrl}` } : undefined,
   }),
 };
 
