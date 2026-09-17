@@ -216,16 +216,29 @@ export type VerifyPrescriptionResult =
     };
 
 /**
+ * Dispute System Hardening Phase 0: matches DisputeCategory's real backend
+ * enum values exactly (`domain/enums/dispute-category.enum.ts`).
+ */
+export type DisputeCategory = 'no_show' | 'payment_refund' | 'conduct' | 'technical_issue' | 'other';
+
+/**
  * I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit): matches
  * DisputeController/DisputeResponseDto exactly. One dispute per appointment,
- * raised by either genuine party on it.
+ * raised by either genuine party on it. Dispute System Hardening: visibility
+ * is bidirectional (both the raiser and the counterparty on the underlying
+ * appointment can see it, not just whoever raised it) -- `raisedByAccountId`
+ * still identifies who filed it, but its presence in "my disputes" no longer
+ * means "I raised this."
  */
 export interface Dispute {
   id: string;
   appointmentId: string;
   raisedByAccountId: string;
   reason: string;
-  status: 'open' | 'resolved' | 'dismissed';
+  /** `category`/`attachmentAssetId` are nullable -- a dispute raised before Phase 0 predates both fields. */
+  category: DisputeCategory | null;
+  attachmentAssetId: string | null;
+  status: 'open' | 'resolved' | 'dismissed' | 'withdrawn';
   resolutionNotes: string | null;
   resolvedByAccountId: string | null;
   resolvedAt: string | null;

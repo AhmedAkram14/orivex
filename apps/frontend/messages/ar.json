@@ -661,16 +661,45 @@
     "resolutionLabel": "الحل",
     "raiseDialogTitle": "إثارة نزاع",
     "raiseDialogDescription": "اختر الموعد المعني واشرح المشكلة. سيراجعها أحد المسؤولين.",
+    "scopeNote": "لعدم حضور الطرف الآخر، أو مشكلة في الدفع أو الاسترداد، أو مخاوف تتعلق بالسلوك، أو مشكلة تقنية في المكالمة -- وليس للاعتراض على القرار الطبي نفسه. سيراجعها أحد المسؤولين وسيتم إعلامك بالنتيجة.",
     "appointmentLabel": "الموعد",
     "appointmentPlaceholder": "اختر موعدًا",
+    "categoryLabel": "الفئة",
+    "categoryPlaceholder": "اختر فئة",
+    "reasonLabel": "ماذا حدث؟",
     "reasonPlaceholder": "صف المشكلة",
+    "reasonCounter": "{length}/{max}",
+    "attachFile": "إرفاق ملف",
+    "attachmentHint": "PDF أو صورة، حتى 10 ميجابايت",
+    "attachmentUploadError": "تعذّر رفع هذا الملف. يرجى المحاولة مرة أخرى.",
+    "attachmentTooLarge": "هذا الملف كبير جدًا. الحد الأقصى 10 ميجابايت.",
+    "attachmentTypeNotAllowed": "نوع هذا الملف غير مدعوم. أرفق ملف PDF أو صورة (JPG/PNG).",
+    "removeAttachment": "إزالة المرفق",
+    "acknowledgment": "أؤكد أن هذا البلاغ دقيق وأتفهم أنه سيتم مراجعته من قِبل أحد المسؤولين.",
     "cancel": "إلغاء",
     "confirmRaise": "إثارة النزاع",
     "raiseError": "تعذّر إثارة هذا النزاع. يرجى المحاولة مرة أخرى.",
+    "statusFilterLabel": "تصفية حسب الحالة",
+    "statusFilterAll": "الكل",
+    "totalCount": "{count, plural, =0 {لا توجد نزاعات} one {نزاع واحد} two {نزاعان} few {# نزاعات} many {# نزاعًا} other {# نزاع}}",
+    "noFilterResults": "لا توجد نزاعات مطابقة لهذا الفلتر.",
+    "withdrawAction": "سحب",
+    "withdrawDialogTitle": "سحب هذا النزاع؟",
+    "withdrawDialogDescription": "سيؤدي هذا إلى سحب نزاعك طالما كان لا يزال مفتوحًا. يمكنك إثارة نزاع جديد لاحقًا إذا لم تُحل المشكلة.",
+    "confirmWithdraw": "سحب النزاع",
+    "withdrawError": "تعذّر سحب هذا النزاع. يرجى المحاولة مرة أخرى.",
     "status": {
       "open": "مفتوح",
       "resolved": "تم الحل",
-      "dismissed": "مرفوض"
+      "dismissed": "مرفوض",
+      "withdrawn": "مسحوب"
+    },
+    "category": {
+      "no_show": "عدم حضور",
+      "payment_refund": "دفع أو استرداد",
+      "conduct": "سلوك",
+      "technical_issue": "مشكلة تقنية",
+      "other": "أخرى"
     }
   },
   "waitlist": {
@@ -2173,7 +2202,24 @@
       "cancel": "إلغاء",
       "confirmResolve": "حل النزاع",
       "confirmDismiss": "رفض النزاع",
-      "resolveError": "تعذّر حفظ هذا القرار. يرجى المحاولة مرة أخرى."
+      "resolveError": "تعذّر حفظ هذا القرار. يرجى المحاولة مرة أخرى.",
+      "statusFilterLabel": "تصفية حسب الحالة",
+      "statusFilterAll": "الكل",
+      "categoryFilterLabel": "تصفية حسب الفئة",
+      "categoryFilterAll": "كل الفئات",
+      "status": {
+        "open": "مفتوح",
+        "resolved": "تم الحل",
+        "dismissed": "مرفوض",
+        "withdrawn": "مسحوب"
+      },
+      "category": {
+        "no_show": "عدم حضور",
+        "payment_refund": "دفع أو استرداد",
+        "conduct": "سلوك",
+        "technical_issue": "مشكلة تقنية",
+        "other": "أخرى"
+      }
     },
     "reviewModeration": {
       "title": "مراجعة التقييمات",

@@ -11,6 +11,7 @@ import type {
   VerificationSubjectType,
 } from '@/features/admin/api/types';
 import type { Role } from '@/shared/auth/types';
+import type { DisputeCategory } from '@/features/consultation/api/types';
 import {
   createDepartment,
   createHospital,
@@ -172,11 +173,13 @@ export const adminHandlers = [
     return HttpResponse.json({ data: updated });
   }),
 
-  // I11 -- Admin dispute resolution.
+  // I11 -- Admin dispute resolution. Dispute System Hardening Phase 1:
+  // optional category filter, additive alongside status.
   http.get(`${base()}${ADMIN_PATHS.disputes}`, ({ request }) => {
     const url = new URL(request.url);
-    const status = (url.searchParams.get('status') ?? 'open') as 'open' | 'resolved' | 'dismissed';
-    return HttpResponse.json({ data: listDisputesByStatus(status) });
+    const status = (url.searchParams.get('status') ?? 'open') as 'open' | 'resolved' | 'dismissed' | 'withdrawn';
+    const category = (url.searchParams.get('category') ?? undefined) as DisputeCategory | undefined;
+    return HttpResponse.json({ data: listDisputesByStatus(status, category) });
   }),
 
   http.patch(`${base()}/admin/disputes/:id/resolve`, async ({ request, params }) => {

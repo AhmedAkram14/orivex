@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -70,19 +70,30 @@ function renderPage() {
 describe('PatientDisputesPage', () => {
   it('raises a dispute against a real appointment and shows it in the list', async () => {
     seedOneAppointment();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderPage();
 
     expect(await screen.findByText('No disputes raised')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Raise a dispute' }));
-    await user.click(screen.getByRole('combobox', { name: 'Appointment' }));
-    await user.click(await screen.findByText(/Dr. Omar Hassan/));
-    await user.type(screen.getByPlaceholderText('Describe the issue'), 'The doctor never joined the call.');
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('combobox', { name: 'Appointment' }));
+    // `getByRole('option', ...)` (not `getByText`) -- Radix Select also
+    // mirrors its items into a hidden native `<select>` for form semantics,
+    // and `getByText` matches that hidden option's text too (ambiguous
+    // "multiple elements" match), while role queries correctly exclude it.
+    await user.click(await screen.findByRole('option', { name: /Dr\. Omar Hassan/ }));
+    // Dispute System Hardening Phase 3: category and the acknowledgment
+    // checkbox are now required before the submit button enables, and the
+    // minimum reason length is 30 chars (the string below already clears it).
+    await user.click(screen.getByRole('combobox', { name: 'Category' }));
+    await user.click(await screen.findByRole('option', { name: 'No-show' }));
+    await user.type(screen.getByPlaceholderText('Describe the issue'), 'The doctor never joined the call at all.');
+    await user.click(screen.getByLabelText('I confirm this report is accurate and understand it will be reviewed by an admin.'));
     await user.click(screen.getByRole('button', { name: 'Raise dispute' }));
 
     await waitFor(() => expect(screen.queryByText('No disputes raised')).not.toBeInTheDocument());
-    expect(screen.getByText('The doctor never joined the call.')).toBeInTheDocument();
+    expect(screen.getByText(/The doctor never joined the call at all\./)).toBeInTheDocument();
     expect(screen.getByText('Open')).toBeInTheDocument();
-  });
+  }, 15000);
 });

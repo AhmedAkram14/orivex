@@ -32,6 +32,8 @@ export const CONSULTATION_PATHS = {
   // @Controller('disputes') shape exactly.
   disputes: () => '/disputes',
   dispute: (id: string) => `/disputes/${id}`,
+  // Dispute System Hardening Phase 1: the raiser's own retraction action.
+  withdrawDispute: (id: string) => `/disputes/${id}/withdraw`,
   // I12 -- Prescription digital signature and verification marker: matches
   // PrescriptionVerificationController's own @Controller('prescriptions/verify') shape exactly.
   verifyPrescription: (code: string) => `/prescriptions/verify/${code}`,

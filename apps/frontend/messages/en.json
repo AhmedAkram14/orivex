@@ -661,16 +661,45 @@
     "resolutionLabel": "Resolution",
     "raiseDialogTitle": "Raise a dispute",
     "raiseDialogDescription": "Choose the appointment this is about and explain the issue. An admin will review it.",
+    "scopeNote": "For a no-show, a payment or refund issue, a conduct concern, or a technical problem with the call -- not for disagreement with clinical judgment. An admin will review it and you'll be notified of the outcome.",
     "appointmentLabel": "Appointment",
     "appointmentPlaceholder": "Select an appointment",
+    "categoryLabel": "Category",
+    "categoryPlaceholder": "Select a category",
+    "reasonLabel": "What happened?",
     "reasonPlaceholder": "Describe the issue",
+    "reasonCounter": "{length}/{max}",
+    "attachFile": "Attach a file",
+    "attachmentHint": "PDF or image, up to 10MB",
+    "attachmentUploadError": "Couldn't upload this file. Please try again.",
+    "attachmentTooLarge": "That file is too large. The limit is 10MB.",
+    "attachmentTypeNotAllowed": "That file type isn't supported. Attach a PDF or image (JPG/PNG).",
+    "removeAttachment": "Remove attachment",
+    "acknowledgment": "I confirm this report is accurate and understand it will be reviewed by an admin.",
     "cancel": "Cancel",
     "confirmRaise": "Raise dispute",
     "raiseError": "Couldn't raise this dispute. Please try again.",
+    "statusFilterLabel": "Filter by status",
+    "statusFilterAll": "All",
+    "totalCount": "{count, plural, =0 {No disputes} one {# dispute} other {# disputes}}",
+    "noFilterResults": "No disputes match this filter.",
+    "withdrawAction": "Withdraw",
+    "withdrawDialogTitle": "Withdraw this dispute?",
+    "withdrawDialogDescription": "This retracts your dispute while it's still open. You can raise a new one later if the issue isn't resolved.",
+    "confirmWithdraw": "Withdraw dispute",
+    "withdrawError": "Couldn't withdraw this dispute. Please try again.",
     "status": {
       "open": "Open",
       "resolved": "Resolved",
-      "dismissed": "Dismissed"
+      "dismissed": "Dismissed",
+      "withdrawn": "Withdrawn"
+    },
+    "category": {
+      "no_show": "No-show",
+      "payment_refund": "Payment or refund",
+      "conduct": "Conduct",
+      "technical_issue": "Technical issue",
+      "other": "Other"
     }
   },
   "waitlist": {
@@ -2173,7 +2202,24 @@
       "cancel": "Cancel",
       "confirmResolve": "Resolve dispute",
       "confirmDismiss": "Dismiss dispute",
-      "resolveError": "Couldn't save this decision. Please try again."
+      "resolveError": "Couldn't save this decision. Please try again.",
+      "statusFilterLabel": "Filter by status",
+      "statusFilterAll": "All",
+      "categoryFilterLabel": "Filter by category",
+      "categoryFilterAll": "All categories",
+      "status": {
+        "open": "Open",
+        "resolved": "Resolved",
+        "dismissed": "Dismissed",
+        "withdrawn": "Withdrawn"
+      },
+      "category": {
+        "no_show": "No-show",
+        "payment_refund": "Payment or refund",
+        "conduct": "Conduct",
+        "technical_issue": "Technical issue",
+        "other": "Other"
+      }
     },
     "reviewModeration": {
       "title": "Review Moderation",

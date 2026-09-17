@@ -2,7 +2,7 @@ import { apiFetch } from '@/shared/lib/api/client';
 import { ADMIN_PATHS } from '@/features/admin/api/paths';
 import type { Role } from '@/shared/auth/types';
 import type { PaymentTransaction } from '@/features/payment/api/types';
-import type { ConsultationFeedback, Dispute } from '@/features/consultation/api/types';
+import type { ConsultationFeedback, Dispute, DisputeCategory } from '@/features/consultation/api/types';
 import type { KnowledgeArticle, KnowledgeArticleStatus } from '@/features/knowledge/api/types';
 import type {
   AdminAccount,
@@ -129,8 +129,14 @@ export const adminApi = {
     apiFetch<ConsultationFeedback>({ method: 'PATCH', path: ADMIN_PATHS.moderateReview(id), body: { status, reason } }),
 
   // I11 -- Admin dispute resolution: defaults to the Open queue when no status is given.
-  listDisputes: (status?: 'open' | 'resolved' | 'dismissed') =>
-    apiFetch<Dispute[]>({ path: status ? `${ADMIN_PATHS.disputes}?status=${status}` : ADMIN_PATHS.disputes }),
+  // Dispute System Hardening Phase 1: optional category filter, additive alongside status.
+  listDisputes: (status?: 'open' | 'resolved' | 'dismissed' | 'withdrawn', category?: DisputeCategory) => {
+    const query = new URLSearchParams();
+    if (status) query.set('status', status);
+    if (category) query.set('category', category);
+    const qs = query.toString();
+    return apiFetch<Dispute[]>({ path: qs ? `${ADMIN_PATHS.disputes}?${qs}` : ADMIN_PATHS.disputes });
+  },
 
   resolveDispute: (id: string, status: 'resolved' | 'dismissed', resolutionNotes: string) =>
     apiFetch<Dispute>({ method: 'PATCH', path: ADMIN_PATHS.resolveDispute(id), body: { status, resolutionNotes } }),

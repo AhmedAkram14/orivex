@@ -4,6 +4,7 @@ import type {
   AISuggestionDecision,
   AISuggestionType,
   ConsultationCompletionReason,
+  DisputeCategory,
   JourneyStage,
   SignPrescriptionLineItemInput,
 } from '@/features/consultation/api/types';
@@ -31,7 +32,7 @@ import {
   verifyPrescriptionByCode,
   getPrescriptionPdfBytes,
 } from '@/mocks/consultation-store';
-import { listDisputesForAccount, raiseDispute } from '@/mocks/disputes-store';
+import { listDisputesForAccount, raiseDispute, withdrawDispute } from '@/mocks/disputes-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
 import { LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
 
@@ -213,8 +214,13 @@ export const consultationHandlers = [
   // @Controller('disputes') shape exactly.
   http.post(`${base()}/disputes`, async ({ request }) => {
     const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
-    const body = (await request.json()) as { appointmentId: string; reason: string };
-    const result = raiseDispute(body.appointmentId, accountId, body.reason);
+    const body = (await request.json()) as {
+      appointmentId: string;
+      reason: string;
+      category: DisputeCategory;
+      attachmentAssetId?: string;
+    };
+    const result = raiseDispute(body.appointmentId, accountId, body.reason, body.category, body.attachmentAssetId);
     if (!result.ok) {
       return HttpResponse.json(
         { error: { code: 'CONFLICT', message: 'A dispute has already been raised for this appointment.', requestId: 'mock', timestamp: new Date().toISOString() } },
@@ -227,6 +233,20 @@ export const consultationHandlers = [
   http.get(`${base()}/disputes`, ({ request }) => {
     const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
     return HttpResponse.json({ data: listDisputesForAccount(accountId) });
+  }),
+
+  // Dispute System Hardening Phase 1: the raiser's own retraction -- matches
+  // DisputeController's own @Patch(':id/withdraw') shape exactly.
+  http.patch(`${base()}/disputes/:id/withdraw`, ({ request, params }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
+    const updated = withdrawDispute(params.id as string, accountId);
+    if (!updated) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Dispute not found.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({ data: updated });
   }),
 
   // I12 -- Prescription digital signature and verification marker: matches

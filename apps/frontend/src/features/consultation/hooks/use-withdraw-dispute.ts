@@ -3,23 +3,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { consultationApi } from '@/features/consultation/api/consultation-api';
 import { myDisputesKeys } from '@/features/consultation/hooks/query-keys';
-import type { DisputeCategory } from '@/features/consultation/api/types';
 
-export function useRaiseDispute() {
+/** Dispute System Hardening Phase 1: the raiser retracting their own dispute while it's still Open. */
+export function useWithdrawDispute() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      appointmentId,
-      reason,
-      category,
-      attachmentAssetId,
-    }: {
-      appointmentId: string;
-      reason: string;
-      category: DisputeCategory;
-      attachmentAssetId?: string;
-    }) => consultationApi.raiseDispute(appointmentId, reason, category, attachmentAssetId),
+    mutationFn: (disputeId: string) => consultationApi.withdrawDispute(disputeId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: myDisputesKeys.lists() });
     },

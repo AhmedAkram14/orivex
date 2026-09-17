@@ -19,7 +19,8 @@ export type MediaAssetPurpose =
   | 'graduation_certificate'
   | 'board_certificate'
   | 'professional_membership_card'
-  | 'message_attachment';
+  | 'message_attachment'
+  | 'dispute_attachment';
 
 export type MediaAssetStatus = 'pending' | 'confirmed' | 'rejected';
 

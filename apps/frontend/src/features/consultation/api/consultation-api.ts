@@ -14,6 +14,7 @@ import type {
   ConsultationVitalReading,
   DiagnosisNode,
   Dispute,
+  DisputeCategory,
   DoctorReviewsResult,
   FollowUpRecommendation,
   HealthJourney,
@@ -186,10 +187,21 @@ export const consultationApi = {
     apiFetch<ConsultationFeedback>({ method: 'PATCH', path: CONSULTATION_PATHS.flagReview(feedbackId), body: { reason } }),
 
   // I11 -- Admin dispute resolution: raised by either genuine party on a real appointment.
-  raiseDispute: (appointmentId: string, reason: string) =>
-    apiFetch<Dispute>({ method: 'POST', path: CONSULTATION_PATHS.disputes(), body: { appointmentId, reason } }),
+  // Dispute System Hardening Phase 1: category is required, attachmentAssetId optional
+  // (matches RaiseDisputeRequestDto exactly).
+  raiseDispute: (appointmentId: string, reason: string, category: DisputeCategory, attachmentAssetId?: string) =>
+    apiFetch<Dispute>({
+      method: 'POST',
+      path: CONSULTATION_PATHS.disputes(),
+      body: { appointmentId, reason, category, attachmentAssetId },
+    }),
 
   listMyDisputes: () => apiFetch<Dispute[]>({ path: CONSULTATION_PATHS.disputes() }),
+
+  // Dispute System Hardening Phase 1: the raiser retracting their own dispute
+  // while it's still Open -- matches `PATCH /disputes/:id/withdraw` exactly.
+  withdrawDispute: (disputeId: string) =>
+    apiFetch<Dispute>({ method: 'PATCH', path: CONSULTATION_PATHS.withdrawDispute(disputeId) }),
 
   /** I12 -- Prescription digital signature and verification marker: public, no auth required. */
   verifyPrescription: (code: string) =>
