@@ -39,7 +39,16 @@ export const SelectContent = forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        'z-(--z-dropdown) overflow-hidden rounded-md border border-border-default bg-surface shadow-lg',
+        // Radix's Select.Portal appends to document.body as a sibling of
+        // Dialog.Portal's own container, so paint order between them is
+        // decided purely by z-index, not DOM order. `--z-dropdown` (1000)
+        // sits below `--z-dialog` (1400), so a Select opened inside a Dialog
+        // (see DisputesWorkspace's appointment picker) rendered correctly in
+        // the DOM but painted underneath the dialog and was invisible to a
+        // mouse click. `PopoverContent` already solves this exact problem
+        // with `--z-popover` (1500, above every dialog/drawer layer) --
+        // reuse that same token here instead of inventing a new one.
+        'z-(--z-popover) overflow-hidden rounded-md border border-border-default bg-surface shadow-lg',
         position === 'popper' && 'w-(--radix-select-trigger-width)',
         className,
       )}
