@@ -22,6 +22,12 @@ export enum MediaAssetPurpose {
   // added to CLINICAL_MEDIA_ASSET_PURPOSES below, so it carries no
   // identity-verification gate.
   MessageAttachment = 'message_attachment',
+  // I11 -- Admin dispute resolution (Dispute System Hardening, Phase 0): an
+  // attachment on a Dispute. Evidence submitted for an admin's review, not a
+  // clinical record -- never added to CLINICAL_MEDIA_ASSET_PURPOSES below,
+  // so it carries no identity-verification gate (disputes can be raised by
+  // doctors too, who the gate was never meant to apply to).
+  DisputeAttachment = 'dispute_attachment',
 }
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.4): the subset of

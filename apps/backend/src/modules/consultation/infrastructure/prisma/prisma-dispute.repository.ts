@@ -5,7 +5,7 @@ import type { Dispute } from '../../domain/entities/dispute.entity.js';
 import type { DisputeStatus } from '../../domain/enums/dispute-status.enum.js';
 import type { DisputeRepository } from '../../domain/repositories/dispute.repository.js';
 
-import { toDomainDispute, toPrismaDisputeStatus } from './dispute.mapper.js';
+import { toDomainDispute, toPrismaDisputeCategory, toPrismaDisputeStatus } from './dispute.mapper.js';
 
 @Injectable()
 export class PrismaDisputeRepository implements DisputeRepository {
@@ -51,6 +51,8 @@ export class PrismaDisputeRepository implements DisputeRepository {
         raisedByAccountId: dispute.getRaisedByAccountId(),
         reason: dispute.getReason(),
         status: toPrismaDisputeStatus(dispute.getStatus()),
+        category: dispute.getCategory() ? toPrismaDisputeCategory(dispute.getCategory()!) : null,
+        attachmentAssetId: dispute.getAttachmentAssetId() ?? null,
         resolutionNotes: dispute.getResolutionNotes() ?? null,
         resolvedByAccountId: dispute.getResolvedByAccountId() ?? null,
         resolvedAt: dispute.getResolvedAt() ?? null,

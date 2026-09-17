@@ -1623,6 +1623,15 @@ enum DisputeStatus {
   OPEN
   RESOLVED
   DISMISSED
+  WITHDRAWN
+}
+
+enum DisputeCategory {
+  NO_SHOW
+  PAYMENT_REFUND
+  CONDUCT
+  TECHNICAL_ISSUE
+  OTHER
 }
 
 model Dispute {
@@ -1633,6 +1642,12 @@ model Dispute {
   raisedByAccount    Account        @relation(fields: [raisedByAccountId], references: [id], onDelete: Restrict)
   reason             String
   status             DisputeStatus  @default(OPEN)
+  // Nullable -- existing rows predate this field and have none; required
+  // going forward only at the domain/DTO layer (RaiseDisputeUseCase), not
+  // backfilled, mirroring how appointmentType was added as optional-nullable
+  // rather than backfilled in a prior migration.
+  category           DisputeCategory?
+  attachmentAssetId  String?
   resolutionNotes    String?
   resolvedByAccountId String?
   resolvedAt         DateTime?
