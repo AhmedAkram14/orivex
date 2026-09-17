@@ -65,6 +65,7 @@ export function ArticleComposer() {
             </label>
             <Input
               id="knowledge-article-title"
+              dir="auto"
               value={title}
               onChange={(event) => {
                 setTitle(event.target.value);
@@ -81,6 +82,7 @@ export function ArticleComposer() {
             </label>
             <Textarea
               id="knowledge-article-body"
+              dir="auto"
               value={body}
               onChange={(event) => {
                 setBody(event.target.value);
@@ -132,12 +134,12 @@ export function ArticleComposer() {
             {articles.map((article) => (
               <li key={article.id} className="flex flex-col gap-2 rounded-2xl border border-border-default p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-text-primary">{article.title}</span>
+                  <span dir="auto" className="font-medium text-text-primary">{article.title}</span>
                   <Badge variant={STATUS_BADGE_VARIANT[article.status]}>
                     {tStatus(article.status)}
                   </Badge>
                 </div>
-                <p className="line-clamp-2 text-sm text-text-secondary">{article.body}</p>
+                <p dir="auto" className="line-clamp-2 text-sm text-text-secondary">{article.body}</p>
                 {article.moderationReason && (
                   <p className="text-xs text-text-tertiary">
                     {t('moderationReasonLabel')}: {article.moderationReason}

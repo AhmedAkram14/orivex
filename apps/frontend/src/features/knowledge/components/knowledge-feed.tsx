@@ -45,11 +45,11 @@ function ArticleCard({
   const t = useTranslations('knowledge.patient');
   return (
     <li className="flex flex-col gap-2 rounded-2xl border border-border-default p-4">
-      <span className="font-medium text-text-primary">{article.title}</span>
+      <span dir="auto" className="font-medium text-text-primary">{article.title}</span>
       <span className="text-xs text-text-tertiary">
         <ArticleAuthorName doctorProfileId={article.authoringDoctorId} />
       </span>
-      <p className="line-clamp-3 text-sm text-text-secondary">{article.body}</p>
+      <p dir="auto" className="line-clamp-3 text-sm text-text-secondary">{article.body}</p>
       <div className="flex gap-2">
         <Button type="button" variant={isSaved ? 'outline' : 'primary'} size="sm" loading={saving} onClick={onToggleSave}>
           {isSaved ? t('unsaveAction') : t('saveAction')}
@@ -67,7 +67,7 @@ function SavedArticleRow({ articleId, onUnsave, unsaving }: { articleId: string;
   const { data: article } = useArticle(articleId);
   return (
     <li className="flex items-center justify-between gap-2 rounded-2xl border border-border-default p-4">
-      <span className="text-sm text-text-secondary">{article?.title ?? '…'}</span>
+      <span dir="auto" className="text-sm text-text-secondary">{article?.title ?? '…'}</span>
       <Button type="button" variant="outline" size="sm" loading={unsaving} onClick={onUnsave}>
         {t('unsaveAction')}
       </Button>
