@@ -61,7 +61,9 @@ import type {
 } from '../../../consultation/domain/repositories/consultation-feedback.repository.js';
 import { ListConsultationFeedbackByModerationStatusUseCase } from '../../../consultation/application/use-cases/list-consultation-feedback-by-moderation-status/list-consultation-feedback-by-moderation-status.use-case.js';
 import { ModerateConsultationFeedbackUseCase } from '../../../consultation/application/use-cases/moderate-consultation-feedback/moderate-consultation-feedback.use-case.js';
-import type { Dispute } from '../../../consultation/domain/entities/dispute.entity.js';
+import { Dispute } from '../../../consultation/domain/entities/dispute.entity.js';
+import { DisputeCategory } from '../../../consultation/domain/enums/dispute-category.enum.js';
+import { DisputeStatus } from '../../../consultation/domain/enums/dispute-status.enum.js';
 import type { DisputeRepository } from '../../../consultation/domain/repositories/dispute.repository.js';
 import { GetDisputeByIdUseCase } from '../../../consultation/application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
 import { ListDisputesByStatusUseCase } from '../../../consultation/application/use-cases/list-disputes-by-status/list-disputes-by-status.use-case.js';
@@ -340,21 +342,42 @@ class InMemoryKnowledgeArticleRepository implements KnowledgeArticleRepository {
   async update(): Promise<void> {}
 }
 
+// Dispute System Hardening Phase 1: stateful enough to exercise the admin
+// queue's status + category filters end-to-end (previously this fake was a
+// pure stub -- no test in this file actually read a seeded dispute back).
 class InMemoryDisputeRepository implements DisputeRepository {
-  async findById(): Promise<Dispute | null> {
-    return null;
+  private readonly disputes = new Map<string, Dispute>();
+
+  seed(dispute: Dispute): void {
+    this.disputes.set(dispute.getId(), dispute);
   }
-  async findByAppointmentId(): Promise<Dispute | null> {
-    return null;
+
+  async findById(id: string): Promise<Dispute | null> {
+    return this.disputes.get(id) ?? null;
   }
-  async listByRaisedByAccountId(): Promise<Dispute[]> {
+  async findByAppointmentId(appointmentId: string): Promise<Dispute | null> {
+    return [...this.disputes.values()].find((dispute) => dispute.getAppointmentId() === appointmentId) ?? null;
+  }
+  async listForParty(): Promise<Dispute[]> {
     return [];
   }
-  async listByStatus(): Promise<{ disputes: Dispute[]; total: number }> {
-    return { disputes: [], total: 0 };
+  async listByStatus(
+    status: DisputeStatus,
+    page: number,
+    limit: number,
+    category?: DisputeCategory,
+  ): Promise<{ disputes: Dispute[]; total: number }> {
+    const matches = [...this.disputes.values()].filter(
+      (dispute) => dispute.getStatus() === status && (!category || dispute.getCategory() === category),
+    );
+    return { disputes: matches.slice((page - 1) * limit, page * limit), total: matches.length };
   }
-  async save(): Promise<void> {}
-  async update(): Promise<void> {}
+  async save(dispute: Dispute): Promise<void> {
+    this.disputes.set(dispute.getId(), dispute);
+  }
+  async update(dispute: Dispute): Promise<void> {
+    this.disputes.set(dispute.getId(), dispute);
+  }
 }
 
 class NoopDomainEventDispatcher {
@@ -412,6 +435,7 @@ describe('AdministrationController (integration)', () => {
   let verificationCaseRepository: InMemoryVerificationCaseRepository;
   let paymentTransactionRepository: InMemoryPaymentTransactionRepository;
   let paymentGateway: FakePaymentGateway;
+  let disputeRepository: InMemoryDisputeRepository;
   let seededPatientProfileId: string;
   let seededDoctorProfileId: string;
 
@@ -463,7 +487,7 @@ describe('AdministrationController (integration)', () => {
     paymentGateway = new FakePaymentGateway();
     const auditLogRepository = new InMemoryAuditLogRepository();
     const consultationFeedbackRepository = new InMemoryConsultationFeedbackRepository();
-    const disputeRepository = new InMemoryDisputeRepository();
+    disputeRepository = new InMemoryDisputeRepository();
     const knowledgeArticleRepository = new InMemoryKnowledgeArticleRepository();
 
     const moduleRef = await Test.createTestingModule({
@@ -603,7 +627,7 @@ describe('AdministrationController (integration)', () => {
         },
         {
           provide: ResolveDisputeUseCase,
-          useFactory: () => new ResolveDisputeUseCase(disputeRepository),
+          useFactory: () => new ResolveDisputeUseCase(disputeRepository, new NoopDomainEventDispatcher()),
         },
         {
           provide: ListArticlesByStatusUseCase,
@@ -935,5 +959,38 @@ describe('AdministrationController (integration)', () => {
 
     assert.equal(response.body.error.code, 'VALIDATION_FAILED');
     assert.equal(paymentGateway.refundCallCount, gatewayCallsAfterFirstRefund, 'a rejected re-refund must never reach the gateway a second time');
+  });
+
+  // Dispute System Hardening Phase 1: admin-side category filter, additive
+  // alongside the existing status filter.
+  it('GET /admin/disputes?category=... narrows the queue to that category, alongside the existing status filter', async () => {
+    const noShowDispute = Dispute.raise({
+      appointmentId: '66666666-7777-4777-8777-777777777777',
+      raisedByAccountId: 'dispute-patient-account-1',
+      reason: 'Doctor never joined.',
+      category: DisputeCategory.NoShow,
+    });
+    const conductDispute = Dispute.raise({
+      appointmentId: '77777777-8888-4888-8888-888888888888',
+      raisedByAccountId: 'dispute-patient-account-2',
+      reason: 'Doctor was abusive.',
+      category: DisputeCategory.Conduct,
+    });
+    disputeRepository.seed(noShowDispute);
+    disputeRepository.seed(conductDispute);
+
+    const response = await request(app.getHttpServer())
+      .get('/admin/disputes')
+      .query({ status: DisputeStatus.Open, category: DisputeCategory.NoShow })
+      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
+      .expect(200);
+
+    assert.equal(response.body.data.length, 1);
+    assert.equal(response.body.data[0].id, noShowDispute.getId());
+    assert.equal(response.body.data[0].category, 'no_show');
+  });
+
+  it('GET /admin/disputes rejects a non-SuperAdmin caller with 403', async () => {
+    await request(app.getHttpServer()).get('/admin/disputes').set('Authorization', `Bearer ${DOCTOR_TOKEN}`).expect(403);
   });
 });

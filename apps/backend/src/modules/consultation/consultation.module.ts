@@ -7,6 +7,8 @@ import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
 import type { RealtimeEmitterPort } from '../../platform/realtime/ports/realtime-emitter.port.js';
 import { REALTIME_EMITTER } from '../../platform/realtime/ports/tokens.js';
+import { AssetModule } from '../asset/asset.module.js';
+import { GetMediaAssetUseCase } from '../asset/application/use-cases/get-media-asset/get-media-asset.use-case.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
 import { GetAvailabilityWindowByIdUseCase } from '../doctor/application/use-cases/get-availability-window-by-id/get-availability-window-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
@@ -36,11 +38,13 @@ import {
   FREE_TIER_BOOKING_REPOSITORY,
   ROOM_TOKEN_GENERATOR,
 } from './application/ports/tokens.js';
+import { AppointmentPartyResolver } from './application/services/appointment-party-resolver.service.js';
 import { GetDisputeByIdUseCase } from './application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
 import { ListDisputesByStatusUseCase } from './application/use-cases/list-disputes-by-status/list-disputes-by-status.use-case.js';
 import { ListDisputesForCallerUseCase } from './application/use-cases/list-disputes-for-caller/list-disputes-for-caller.use-case.js';
 import { RaiseDisputeUseCase } from './application/use-cases/raise-dispute/raise-dispute.use-case.js';
 import { ResolveDisputeUseCase } from './application/use-cases/resolve-dispute/resolve-dispute.use-case.js';
+import { WithdrawDisputeUseCase } from './application/use-cases/withdraw-dispute/withdraw-dispute.use-case.js';
 import type { DisputeRepository } from './domain/repositories/dispute.repository.js';
 import { PrismaDisputeRepository } from './infrastructure/prisma/prisma-dispute.repository.js';
 import { DisputeController } from './presentation/controllers/dispute.controller.js';
@@ -125,6 +129,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     TrustGuardsModule,
     TrustModule,
     ReferenceModule,
+    AssetModule,
   ],
   controllers: [
     AppointmentController,
@@ -277,6 +282,14 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       useFactory: (listAppointmentsForDoctorUseCase: ListAppointmentsForDoctorUseCase) =>
         new GetAppointmentsForDoctorAndPatientUseCase(listAppointmentsForDoctorUseCase),
       inject: [ListAppointmentsForDoctorUseCase],
+    },
+    {
+      provide: AppointmentPartyResolver,
+      useFactory: (
+        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+      ) => new AppointmentPartyResolver(getPatientProfileByAccountIdUseCase, getDoctorProfileByAccountIdUseCase),
+      inject: [GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
     },
     {
       provide: TreatingRelationshipService,
@@ -492,16 +505,18 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
       useFactory: (
         disputeRepository: DisputeRepository,
         appointmentRepository: AppointmentRepository,
-        getPatientProfileByAccountIdUseCase: GetPatientProfileByAccountIdUseCase,
-        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+        appointmentPartyResolver: AppointmentPartyResolver,
+        getMediaAssetUseCase: GetMediaAssetUseCase,
+        eventDispatcher: DomainEventDispatcher,
       ) =>
         new RaiseDisputeUseCase(
           disputeRepository,
           appointmentRepository,
-          getPatientProfileByAccountIdUseCase,
-          getDoctorProfileByAccountIdUseCase,
+          appointmentPartyResolver,
+          getMediaAssetUseCase,
+          eventDispatcher,
         ),
-      inject: [DISPUTE_REPOSITORY, APPOINTMENT_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
+      inject: [DISPUTE_REPOSITORY, APPOINTMENT_REPOSITORY, AppointmentPartyResolver, GetMediaAssetUseCase, DOMAIN_EVENT_DISPATCHER],
     },
     {
       provide: ListDisputesForCallerUseCase,
@@ -520,8 +535,15 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     },
     {
       provide: ResolveDisputeUseCase,
-      useFactory: (repository: DisputeRepository) => new ResolveDisputeUseCase(repository),
-      inject: [DISPUTE_REPOSITORY],
+      useFactory: (repository: DisputeRepository, eventDispatcher: DomainEventDispatcher) =>
+        new ResolveDisputeUseCase(repository, eventDispatcher),
+      inject: [DISPUTE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      provide: WithdrawDisputeUseCase,
+      useFactory: (repository: DisputeRepository, eventDispatcher: DomainEventDispatcher) =>
+        new WithdrawDisputeUseCase(repository, eventDispatcher),
+      inject: [DISPUTE_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
     {
       provide: GetDoctorRatingAggregateUseCase,

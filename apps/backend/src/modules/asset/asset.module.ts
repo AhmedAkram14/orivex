@@ -55,6 +55,13 @@ import { MediaAssetController } from './presentation/controllers/media-asset.con
   // OBJECT_STORAGE is also exported for HealthModule's readiness probe --
   // the only other consumer of this port outside AssetModule's own
   // use cases (Production Readiness Audit -- "add S3 reachability").
-  exports: [CreateUploadIntentUseCase, ConfirmUploadUseCase, ListMediaAssetsForOwnerUseCase, OBJECT_STORAGE],
+  // GetMediaAssetUseCase exported for Dispute System Hardening Phase 1:
+  // RaiseDisputeUseCase reuses its existing exists/owned-by-caller check
+  // (same NotFoundError-for-non-owner shape it already gives
+  // MediaAssetController) to validate a dispute's optional attachment,
+  // rather than a second, duplicated ownership check against
+  // MediaAssetRepository directly (module boundaries: only a published
+  // use case, never another module's repository).
+  exports: [CreateUploadIntentUseCase, ConfirmUploadUseCase, ListMediaAssetsForOwnerUseCase, GetMediaAssetUseCase, OBJECT_STORAGE],
 })
 export class AssetModule {}

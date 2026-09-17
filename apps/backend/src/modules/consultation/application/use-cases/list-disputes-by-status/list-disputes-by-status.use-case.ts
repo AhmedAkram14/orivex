@@ -14,7 +14,7 @@ export class ListDisputesByStatusUseCase {
   constructor(private readonly disputeRepository: DisputeRepository) {}
 
   async execute(query: ListDisputesByStatusQuery): Promise<ListDisputesByStatusResult> {
-    const { disputes, total } = await this.disputeRepository.listByStatus(query.status, query.page, query.limit);
+    const { disputes, total } = await this.disputeRepository.listByStatus(query.status, query.page, query.limit, query.category);
     return { disputes, total };
   }
 }

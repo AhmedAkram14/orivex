@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Dispute } from '../../../domain/entities/dispute.entity.js';
+import { DisputeCategory } from '../../../domain/enums/dispute-category.enum.js';
 import { DisputeStatus } from '../../../domain/enums/dispute-status.enum.js';
 import type { DisputeRepository } from '../../../domain/repositories/dispute.repository.js';
 
@@ -9,7 +10,7 @@ import { ListDisputesByStatusQuery } from './list-disputes-by-status.query.js';
 import { ListDisputesByStatusUseCase } from './list-disputes-by-status.use-case.js';
 
 class FakeDisputeRepository implements DisputeRepository {
-  public lastArgs?: { status: DisputeStatus; page: number; limit: number };
+  public lastArgs?: { status: DisputeStatus; page: number; limit: number; category?: DisputeCategory };
   constructor(private readonly result: { disputes: Dispute[]; total: number }) {}
   async findById(): Promise<Dispute | null> {
     return null;
@@ -17,11 +18,16 @@ class FakeDisputeRepository implements DisputeRepository {
   async findByAppointmentId(): Promise<Dispute | null> {
     return null;
   }
-  async listByRaisedByAccountId(): Promise<Dispute[]> {
+  async listForParty(): Promise<Dispute[]> {
     return [];
   }
-  async listByStatus(status: DisputeStatus, page: number, limit: number): Promise<{ disputes: Dispute[]; total: number }> {
-    this.lastArgs = { status, page, limit };
+  async listByStatus(
+    status: DisputeStatus,
+    page: number,
+    limit: number,
+    category?: DisputeCategory,
+  ): Promise<{ disputes: Dispute[]; total: number }> {
+    this.lastArgs = { status, page, limit, category };
     return this.result;
   }
   async save(): Promise<void> {}
@@ -42,6 +48,17 @@ describe('ListDisputesByStatusUseCase', () => {
 
     assert.equal(result.total, 1);
     assert.equal(result.disputes[0]?.getId(), dispute.getId());
-    assert.deepEqual(repository.lastArgs, { status: DisputeStatus.Open, page: 1, limit: 20 });
+    assert.deepEqual(repository.lastArgs, { status: DisputeStatus.Open, page: 1, limit: 20, category: undefined });
+  });
+
+  it('passes an optional category filter through to the repository', async () => {
+    const repository = new FakeDisputeRepository({ disputes: [], total: 0 });
+    const useCase = new ListDisputesByStatusUseCase(repository);
+
+    await useCase.execute(
+      new ListDisputesByStatusQuery({ status: DisputeStatus.Open, page: 1, limit: 20, category: DisputeCategory.NoShow }),
+    );
+
+    assert.equal(repository.lastArgs?.category, DisputeCategory.NoShow);
   });
 });

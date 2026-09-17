@@ -290,7 +290,7 @@ class InMemoryDisputeRepository implements DisputeRepository {
   async findByAppointmentId(): Promise<Dispute | null> {
     return null;
   }
-  async listByRaisedByAccountId(): Promise<Dispute[]> {
+  async listForParty(): Promise<Dispute[]> {
     return [];
   }
   async listByStatus(): Promise<{ disputes: Dispute[]; total: number }> {
@@ -524,7 +524,7 @@ describe('Verification resubmission lifecycle (integration)', () => {
         },
         {
           provide: ResolveDisputeUseCase,
-          useFactory: () => new ResolveDisputeUseCase(disputeRepository),
+          useFactory: () => new ResolveDisputeUseCase(disputeRepository, dispatcher),
         },
         {
           provide: ListArticlesByStatusUseCase,

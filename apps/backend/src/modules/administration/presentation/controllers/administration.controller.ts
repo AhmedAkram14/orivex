@@ -394,6 +394,7 @@ export class AdministrationController {
         status: query.status ?? DisputeStatus.Open,
         page: query.page ?? 1,
         limit: query.limit ?? 50,
+        category: query.category,
       }),
     );
     return envelope(result.disputes.map((dispute) => DisputeResponseDto.fromDomain(dispute)));
