@@ -1522,16 +1522,16 @@
     },
     "earnings": {
       "title": "الأرباح",
-      "description": "أرباحك الفعلية لكل استشارة وعمولة المنصة، في لمحة واحدة.",
+      "description": "أرباحك لكل استشارة وعمولة المنصة، في لمحة واحدة.",
       "loadError": "تعذّر تحميل أرباحك.",
       "seeReports": "اطّلع على تقاريرك لهذه الفترة",
       "stats": {
         "lifetimeNet": "صافي الأرباح الإجمالي",
         "lifetimeGross": "إجمالي الدخل",
-        "commissionRate": "عمولة المنصة",
-        "commissionRateValue": "{rate}%",
         "transactionCount": "الاستشارات المدفوعة"
       },
+      "commissionFootnote": "عمولة المنصة: {rate}%.",
+      "taxFootnote": "الصافي قبل خصم الضرائب — لا يشمل أي ضريبة أو استقطاع.",
       "cyclesTitle": "التفصيل الشهري",
       "cyclesEmptyTitle": "لا توجد أرباح بعد",
       "cyclesEmptyDescription": "ستظهر هنا الاستشارات المدفوعة المكتملة، مقسّمة حسب الشهر.",

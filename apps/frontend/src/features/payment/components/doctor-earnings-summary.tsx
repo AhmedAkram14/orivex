@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Banknote, PiggyBank, Receipt, Wallet } from 'lucide-react';
+import { ArrowRight, Banknote, PiggyBank, Wallet } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useDoctorEarningsSummary } from '@/features/payment/hooks/use-doctor-earnings-summary';
 import { Link } from '@/shared/i18n/navigation';
@@ -29,7 +29,23 @@ export function DoctorEarningsSummary() {
   }
 
   const currency = data?.currency ?? 'EGP';
-  const formatMoney = (amount: number) => format.number(amount, { style: 'currency', currency, currencyDisplay: 'code' });
+  // No `currencyDisplay` override -- matches the one other place this app
+  // formats a currency amount (`formatConsultationPrice`, scheduling/utils/
+  // pricing.ts): Intl's default 'symbol' behavior already renders "ج.م.‏"
+  // for EGP under an Arabic locale and falls back to the ISO code "EGP"
+  // under English (EGP has no simple Latin symbol), so both locales get the
+  // locale-appropriate string for free, with no per-locale branching here.
+  const formatMoney = (amount: number) => format.number(amount, { style: 'currency', currency });
+
+  // `cycleLabel` is a plain "YYYY-MM" string from the backend -- parse the
+  // parts directly (rather than `new Date(cycleLabel)`, which is prone to
+  // timezone-shifting the parsed date a day either way) and format via UTC
+  // so the displayed month/year can never drift with the viewer's timezone.
+  function formatCycleLabel(cycleLabel: string): string {
+    const [year, month] = cycleLabel.split('-').map(Number);
+    const cycleDate = new Date(Date.UTC(year, month - 1, 1));
+    return format.dateTime(cycleDate, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,7 +57,13 @@ export function DoctorEarningsSummary() {
         <Icon icon={ArrowRight} size="sm" flipRtl />
       </Link>
 
-      <DashboardGrid columns={4}>
+      {/*
+       * Commission rate is a fixed platform constant, not a per-doctor
+       * metric -- it doesn't belong in a KPI row next to real money figures,
+       * especially since the table's own Commission column already shows it
+       * in currency terms. Moved to a footnote under the table instead.
+       */}
+      <DashboardGrid columns={3}>
         <LinkableStatCard
           icon={Wallet}
           iconClassName="bg-success-subtle text-success-emphasis"
@@ -54,13 +76,6 @@ export function DoctorEarningsSummary() {
           iconClassName="bg-primary-subtle text-primary-emphasis"
           label={t('stats.lifetimeGross')}
           value={data ? formatMoney(data.lifetimeGrossAmount) : '—'}
-          loading={isLoading}
-        />
-        <LinkableStatCard
-          icon={Receipt}
-          iconClassName="bg-warning-subtle text-warning-emphasis"
-          label={t('stats.commissionRate')}
-          value={data ? t('stats.commissionRateValue', { rate: Math.round(data.commissionRate * 100) }) : '—'}
           loading={isLoading}
         />
         <LinkableStatCard
@@ -93,7 +108,7 @@ export function DoctorEarningsSummary() {
               <tbody>
                 {data.cycles.map((cycle) => (
                   <tr key={cycle.cycleLabel} className="border-b border-border-default last:border-0">
-                    <td className="px-4 py-2 font-medium text-text-primary">{cycle.cycleLabel}</td>
+                    <td className="px-4 py-2 font-medium text-text-primary">{formatCycleLabel(cycle.cycleLabel)}</td>
                     <td className="px-4 py-2 tabular-nums text-text-secondary">{formatMoney(cycle.grossAmount)}</td>
                     <td className="px-4 py-2 tabular-nums text-text-secondary">{formatMoney(cycle.commissionAmount)}</td>
                     <td className="px-4 py-2 tabular-nums font-medium text-text-primary">{formatMoney(cycle.netAmount)}</td>
@@ -103,6 +118,11 @@ export function DoctorEarningsSummary() {
               </tbody>
             </table>
           </div>
+        )}
+        {data && (
+          <p className="text-xs text-text-tertiary">
+            {t('commissionFootnote', { rate: Math.round(data.commissionRate * 100) })} {t('taxFootnote')}
+          </p>
         )}
       </div>
     </div>

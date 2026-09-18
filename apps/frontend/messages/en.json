@@ -1522,16 +1522,16 @@
     },
     "earnings": {
       "title": "Earnings",
-      "description": "Your real per-consultation earnings and platform commission, at a glance.",
+      "description": "Your per-consultation earnings and platform commission, at a glance.",
       "loadError": "Couldn't load your earnings.",
       "seeReports": "See your reports for this period",
       "stats": {
         "lifetimeNet": "Lifetime net earnings",
         "lifetimeGross": "Lifetime gross",
-        "commissionRate": "Platform commission",
-        "commissionRateValue": "{rate}%",
         "transactionCount": "Paid consultations"
       },
+      "commissionFootnote": "Platform commission: {rate}%.",
+      "taxFootnote": "Net is before tax — it does not account for any tax or withholding.",
       "cyclesTitle": "Monthly breakdown",
       "cyclesEmptyTitle": "No earnings yet",
       "cyclesEmptyDescription": "Completed paid consultations will appear here, broken down by month.",
