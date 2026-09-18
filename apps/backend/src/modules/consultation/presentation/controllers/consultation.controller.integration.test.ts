@@ -77,6 +77,7 @@ import { ConsultationPricing } from '../../domain/value-objects/consultation-pri
 import { Money } from '../../domain/value-objects/money.value-object.js';
 import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
+import { ExportDoctorReportsCsvUseCase } from '../../application/use-cases/export-doctor-reports-csv/export-doctor-reports-csv.use-case.js';
 import { GetDoctorReportsAnalyticsUseCase } from '../../application/use-cases/get-doctor-reports-analytics/get-doctor-reports-analytics.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from '../../application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
@@ -719,6 +720,10 @@ describe('Consultation controllers (integration)', () => {
         {
           provide: GetDoctorReportsAnalyticsUseCase,
           useValue: new GetDoctorReportsAnalyticsUseCase(appointmentRepo, feedbackRepo),
+        },
+        {
+          provide: ExportDoctorReportsCsvUseCase,
+          useValue: new ExportDoctorReportsCsvUseCase(new GetDoctorReportsAnalyticsUseCase(appointmentRepo, feedbackRepo)),
         },
         {
           provide: ListConsultationFeedbackForDoctorUseCase,
@@ -1399,6 +1404,74 @@ describe('Consultation controllers (integration)', () => {
       .expect(200);
     assert.ok(withCompare.body.data.previousPeriod);
     assert.equal(typeof withCompare.body.data.previousPeriod.totalAppointments, 'number');
+  });
+
+  it('GET /appointments/doctor/schedule with a status filter only returns appointments matching that status', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/schedule')
+      .query({ from: '2000-01-01T00:00:00.000Z', to: '2100-01-01T00:00:00.000Z', status: 'completed' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    const items = response.body.data as Array<{ status: string }>;
+    // >=1, not ===, for the same shared-fixture reason as the other "wide
+    // range" assertions in this suite -- completedAppointment above always
+    // qualifies.
+    assert.ok(items.length >= 1);
+    for (const item of items) {
+      assert.equal(item.status, 'completed');
+    }
+  });
+
+  it('GET /appointments/doctor/schedule without a status filter returns appointments of more than one status', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/schedule')
+      .query({ from: '2000-01-01T00:00:00.000Z', to: '2100-01-01T00:00:00.000Z' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    const statuses = new Set((response.body.data as Array<{ status: string }>).map((item) => item.status));
+    // The suite's own fixtures span Confirmed, Completed, and Expired --
+    // proves the unfiltered route never silently narrows to one status.
+    assert.ok(statuses.size >= 2);
+  });
+
+  it('GET /appointments/doctor/schedule rejects an unknown status value', async () => {
+    await request(app.getHttpServer())
+      .get('/appointments/doctor/schedule')
+      .query({ from: '2000-01-01T00:00:00.000Z', to: '2100-01-01T00:00:00.000Z', status: 'not-a-real-status' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(400);
+  });
+
+  it('GET /appointments/doctor/reports-export rejects a request with no bearer token', async () => {
+    await request(app.getHttpServer()).get('/appointments/doctor/reports-export').expect(401);
+  });
+
+  it('GET /appointments/doctor/reports-export streams real CSV text with attachment headers', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-export')
+      .query({ dateFrom: '2000-01-01T00:00:00.000Z', dateTo: '2100-01-01T00:00:00.000Z' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    assert.match(response.headers['content-type'], /text\/csv/);
+    assert.match(
+      response.headers['content-disposition'],
+      /attachment; filename="reports-.+-2000-01-01-to-2100-01-01\.csv"/,
+    );
+    assert.match(response.text, /^metric,value/);
+    assert.match(response.text, /Total appointments,\d+/);
+  });
+
+  it('GET /appointments/doctor/reports-export returns an honest empty CSV body for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-export')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.match(response.headers['content-disposition'], /attachment; filename="reports-none-/);
+    assert.equal(response.text, '');
   });
 
   describe('POST /consultations/:id/room-token', () => {

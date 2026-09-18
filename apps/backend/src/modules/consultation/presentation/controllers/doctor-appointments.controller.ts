@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, ParseUUIDPipe, Patch, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
 import { Roles } from '../../../authentication/presentation/decorators/roles.decorator.js';
@@ -22,6 +23,7 @@ import { DeclineAppointmentCommand } from '../../application/use-cases/decline-a
 import { DeclineAppointmentUseCase } from '../../application/use-cases/decline-appointment/decline-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
+import { ExportDoctorReportsCsvUseCase } from '../../application/use-cases/export-doctor-reports-csv/export-doctor-reports-csv.use-case.js';
 import { GetDoctorReportsAnalyticsUseCase } from '../../application/use-cases/get-doctor-reports-analytics/get-doctor-reports-analytics.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from '../../application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
@@ -62,6 +64,7 @@ export class DoctorAppointmentsController {
     private readonly declineAppointmentUseCase: DeclineAppointmentUseCase,
     private readonly getDoctorReportsSummaryUseCase: GetDoctorReportsSummaryUseCase,
     private readonly getDoctorReportsAnalyticsUseCase: GetDoctorReportsAnalyticsUseCase,
+    private readonly exportDoctorReportsCsvUseCase: ExportDoctorReportsCsvUseCase,
     private readonly getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
   ) {}
 
@@ -170,7 +173,16 @@ export class DoctorAppointmentsController {
       scheduledTo: new Date(query.to),
     });
 
-    const items = await Promise.all(appointments.map((appointment) => this.toScheduleItem(appointment)));
+    // Doctor Reports page rebuild (Phase 2): the reports-tile drill-down's
+    // `?status=` filter -- a pure in-memory filter on the already
+    // date-bounded array, same style as `getPendingApproval`'s own
+    // status/pricing filter above. No new use case/repository method: the
+    // date-ranged query already did the expensive fetch.
+    const statusFiltered = query.status
+      ? appointments.filter((appointment) => appointment.getStatus() === query.status)
+      : appointments;
+
+    const items = await Promise.all(statusFiltered.map((appointment) => this.toScheduleItem(appointment)));
     return envelope(items.filter((item): item is DoctorScheduleAppointmentResponseDto => item !== null));
   }
 
@@ -323,6 +335,42 @@ export class DoctorAppointmentsController {
       comparePrevious: filter.comparePrevious,
     });
     return envelope(DoctorReportsAnalyticsResponseDto.fromDomain(analytics));
+  }
+
+  // Doctor Reports page rebuild (Phase 2): CSV export of the same
+  // date-ranged analytics `reports-analytics` above returns -- deliberately
+  // bypasses the { data, meta } envelope, mirroring ReportingModule's own
+  // `GET /admin/analytics/export` route's exact response-handling shape
+  // (Content-Type/Content-Disposition set explicitly, a plain string body).
+  @Get('doctor/reports-export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async exportDoctorReports(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query() query: DoctorReportFilterQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<string> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    const filter = query.toFilter();
+    const dateFromLabel = filter.dateFrom.toISOString().slice(0, 10);
+    const dateToLabel = filter.dateTo.toISOString().slice(0, 10);
+
+    if (!doctorProfile) {
+      res.setHeader('Content-Disposition', `attachment; filename="reports-none-${dateFromLabel}-to-${dateToLabel}.csv"`);
+      return '';
+    }
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reports-${doctorProfile.getId()}-${dateFromLabel}-to-${dateToLabel}.csv"`,
+    );
+    return this.exportDoctorReportsCsvUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      dateFrom: filter.dateFrom,
+      dateTo: filter.dateTo,
+      comparePrevious: filter.comparePrevious,
+    });
   }
 
   // Doctor-approval-workflow: Free bookings land Requested and stay there

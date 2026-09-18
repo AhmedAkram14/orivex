@@ -63,6 +63,7 @@ import { GetDoctorRatingAggregateUseCase } from './application/use-cases/get-doc
 import { GetDoctorBookingCountsUseCase } from './application/use-cases/get-doctor-booking-counts/get-doctor-booking-counts.use-case.js';
 import { GetDoctorRatingAggregatesUseCase } from './application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregates.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from './application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
+import { ExportDoctorReportsCsvUseCase } from './application/use-cases/export-doctor-reports-csv/export-doctor-reports-csv.use-case.js';
 import { GetDoctorReportsAnalyticsUseCase } from './application/use-cases/get-doctor-reports-analytics/get-doctor-reports-analytics.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from './application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { GetAppointmentsForDoctorAndPatientUseCase } from './application/use-cases/get-appointments-for-doctor-and-patient/get-appointments-for-doctor-and-patient.use-case.js';
@@ -329,6 +330,12 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         consultationFeedbackRepository: ConsultationFeedbackRepository,
       ) => new GetDoctorReportsAnalyticsUseCase(appointmentRepository, consultationFeedbackRepository),
       inject: [APPOINTMENT_REPOSITORY, CONSULTATION_FEEDBACK_REPOSITORY],
+    },
+    {
+      provide: ExportDoctorReportsCsvUseCase,
+      useFactory: (getDoctorReportsAnalyticsUseCase: GetDoctorReportsAnalyticsUseCase) =>
+        new ExportDoctorReportsCsvUseCase(getDoctorReportsAnalyticsUseCase),
+      inject: [GetDoctorReportsAnalyticsUseCase],
     },
     {
       provide: GetConsultationSessionByIdUseCase,
