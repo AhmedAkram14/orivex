@@ -1,64 +1,167 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Heading } from '@/design-system/typography';
+import { useMyAccount } from '@/features/identity/hooks/use-my-account';
+import { ArticleCard } from '@/features/knowledge/components/article-card';
 import { useAuthorArticle } from '@/features/knowledge/hooks/use-author-article';
-import { useMyArticles } from '@/features/knowledge/hooks/use-my-articles';
-import type { KnowledgeArticleStatus } from '@/features/knowledge/api/types';
+import { useEditArticle } from '@/features/knowledge/hooks/use-edit-article';
+import { useSubmitArticle } from '@/features/knowledge/hooks/use-submit-article';
+import { useAutoGrowTextarea } from '@/shared/hooks/use-auto-grow-textarea';
+import type { KnowledgeArticle, KnowledgeArticleLanguage } from '@/features/knowledge/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { Badge, type badgeVariants } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
-import { EmptyState } from '@/shared/ui/empty-state';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
-import { Skeleton } from '@/shared/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
-import type { VariantProps } from 'class-variance-authority';
 
-const STATUS_BADGE_VARIANT: Record<KnowledgeArticleStatus, NonNullable<VariantProps<typeof badgeVariants>['variant']>> = {
-  pending_review: 'warning',
-  published: 'success',
-  rejected: 'danger',
-  archived: 'neutral',
-};
+const TITLE_MAX = 200;
+const BODY_MAX = 20000;
+const TITLE_MIN_FOR_SUBMIT = 10;
+const BODY_MIN_FOR_SUBMIT = 200;
+
+export type ComposerMode = 'create' | { editing: KnowledgeArticle };
+
+export interface ArticleComposerProps {
+  mode: ComposerMode;
+  onDone?: () => void;
+}
 
 /**
- * I13 -- Knowledge Center (docs/01.1-prd-update.md §6): the doctor's own
- * authoring surface -- a composer that submits `POST /knowledge/articles`
- * (pre-publication review gate and Syndicate-verification are enforced
- * entirely server-side, see AuthorArticleUseCase's own comment), plus the
- * doctor's "my articles" list showing each one's current status.
+ * Knowledge Center Hardening Phase 3: the doctor's authoring surface --
+ * rewritten from a single always-published "Publish article" button into a
+ * real draft/submit-for-review/edit/preview flow. The same component
+ * handles both "create a new article" (`mode: 'create'`) and "edit an
+ * existing one" (`mode: { editing: article }`), pre-filling from the
+ * article being edited and routing its submit actions through the edit
+ * mutation instead of the author one. Collapsed behind a "Write an
+ * article" trigger by the caller (`my-articles-list.tsx`) -- this
+ * component itself is just the expanded form, no collapse state of its own.
  */
-export function ArticleComposer() {
+export function ArticleComposer({ mode, onDone }: ArticleComposerProps) {
   const t = useTranslations('knowledge.doctor');
-  const tStatus = useTranslations('knowledge.statusLabels');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const author = useAuthorArticle();
-  const { data: articles, isLoading, isError } = useMyArticles();
+  const editingArticle = typeof mode === 'object' ? mode.editing : null;
 
-  async function handleSubmit() {
-    try {
-      const result = await author.mutateAsync({ title, body });
-      setTitle('');
-      setBody('');
-      setSuccessStatus(result.status);
-    } catch {
-      // Inline error rendered below from author.error.
+  const { data: account } = useMyAccount();
+  const [title, setTitle] = useState(editingArticle?.title ?? '');
+  const [body, setBody] = useState(editingArticle?.body ?? '');
+  const [language, setLanguage] = useState<KnowledgeArticleLanguage | ''>(
+    editingArticle?.language ??
+      (account?.preferredLanguage === 'Arabic' || account?.preferredLanguage === 'English' ? account.preferredLanguage : ''),
+  );
+  const [sourcesText, setSourcesText] = useState(editingArticle?.sourcesText ?? '');
+  const [showPreview, setShowPreview] = useState(false);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrowTextarea(bodyRef, body);
+
+  const author = useAuthorArticle();
+  const edit = useEditArticle();
+  const submit = useSubmitArticle();
+
+  const isEditing = editingArticle !== null;
+  const wasPublished = editingArticle?.status === 'published';
+  const isBusy = author.isPending || edit.isPending || submit.isPending;
+  const saveError = author.isError || edit.isError;
+
+  function clearMessages() {
+    setSuccessMessage(null);
+  }
+
+  function handleTitleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      bodyRef.current?.focus();
     }
   }
 
-  const [successStatus, setSuccessStatus] = useState<KnowledgeArticleStatus | null>(null);
+  // Both "Save draft" and "Submit for review" persist through the same
+  // path: `author()`'s `saveAsDraft: true` (creating) or `edit()` (editing
+  // in place, which never changes status except Published -> PendingReview)
+  // -- never `author({ saveAsDraft: false })` here, since that branch skips
+  // the 10/200-character length floor entirely (it's enforced only in
+  // `submitForReview()`, per the domain entity's own comment). "Submit for
+  // review" is this same persist step followed by an explicit `submit()`
+  // call when the result is still a Draft.
+  async function persistCurrentContent(): Promise<KnowledgeArticle | null> {
+    if (!language) return null;
+    if (isEditing && editingArticle) {
+      return edit.mutateAsync({
+        id: editingArticle.id,
+        input: { title, body, language, sourcesText: sourcesText || undefined },
+      });
+    }
+    return author.mutateAsync({ title, body, language, sourcesText: sourcesText || undefined, saveAsDraft: true });
+  }
+
+  async function handleSaveDraft() {
+    clearMessages();
+    try {
+      const result = await persistCurrentContent();
+      if (result) {
+        setSuccessMessage(t('draftSavedMessage'));
+        if (!isEditing) {
+          setTitle('');
+          setBody('');
+        }
+      }
+    } catch {
+      // Inline error rendered below from author.error/edit.error.
+    }
+  }
+
+  const meetsLengthFloor = title.trim().length >= TITLE_MIN_FOR_SUBMIT && body.trim().length >= BODY_MIN_FOR_SUBMIT;
+
+  async function handleConfirmSubmit() {
+    clearMessages();
+    try {
+      const saved = await persistCurrentContent();
+      if (!saved) return;
+
+      // Only a still-Draft result needs the explicit submit call --
+      // `edit()` on a Published article already reset it to PendingReview
+      // server-side by itself.
+      const finalArticle = saved.status === 'draft' ? await submit.mutateAsync(saved.id) : saved;
+
+      if (isEditing && wasPublished) {
+        setSuccessMessage(t('editResubmittedMessage'));
+      } else {
+        setSuccessMessage(finalArticle.status === 'published' ? t('submitSuccessPublished') : t('submitSuccessPending'));
+      }
+      if (!isEditing) {
+        setTitle('');
+        setBody('');
+      } else {
+        // Editing an existing article is a one-shot action from the list --
+        // collapse back to it once the edit is safely submitted. Creating
+        // (above) instead clears the fields and stays open, so the doctor
+        // can see the success message and start another article right away.
+        onDone?.();
+      }
+      setConfirmSubmitOpen(false);
+    } catch {
+      // Inline error rendered below from author.error/edit.error/submit.error.
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6">
-          <Heading as="h2" level={4}>
-            {t('composerTitle')}
-          </Heading>
+    <Card>
+      <CardContent className="flex flex-col gap-4 pt-6">
+        <Heading as="h2" level={4}>
+          {isEditing ? t('editArticleTitle') : t('composerTitle')}
+        </Heading>
 
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+          }}
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-2">
             <label htmlFor="knowledge-article-title" className="text-sm font-medium text-text-secondary">
               {t('titleLabel')}
@@ -69,11 +172,15 @@ export function ArticleComposer() {
               value={title}
               onChange={(event) => {
                 setTitle(event.target.value);
-                setSuccessStatus(null);
+                clearMessages();
               }}
+              onKeyDown={handleTitleKeyDown}
               placeholder={t('titlePlaceholder')}
-              maxLength={200}
+              maxLength={TITLE_MAX}
             />
+            <span className="text-xs text-text-tertiary">
+              {title.length}/{TITLE_MAX}
+            </span>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -82,74 +189,112 @@ export function ArticleComposer() {
             </label>
             <Textarea
               id="knowledge-article-body"
+              ref={bodyRef}
               dir="auto"
               value={body}
               onChange={(event) => {
                 setBody(event.target.value);
-                setSuccessStatus(null);
+                clearMessages();
               }}
               placeholder={t('bodyPlaceholder')}
-              rows={8}
-              maxLength={20000}
+              maxLength={BODY_MAX}
             />
+            <span className="text-xs text-text-tertiary">
+              {body.length}/{BODY_MAX}
+            </span>
           </div>
 
-          {author.isError && <Alert variant="danger">{t('submitError')}</Alert>}
-          {successStatus && (
-            <Alert variant="success">
-              {successStatus === 'published' ? t('submitSuccessPublished') : t('submitSuccessPending')}
-            </Alert>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="knowledge-article-language" className="text-sm font-medium text-text-secondary">
+              {t('languageLabel')}
+            </label>
+            <Select value={language} onValueChange={(value) => { setLanguage(value as KnowledgeArticleLanguage); clearMessages(); }}>
+              <SelectTrigger id="knowledge-article-language" className="w-56" aria-label={t('languageLabel')}>
+                <SelectValue placeholder={t('languagePlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Arabic">{t('languageOptions.Arabic')}</SelectItem>
+                <SelectItem value="English">{t('languageOptions.English')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="knowledge-article-sources" className="text-sm font-medium text-text-secondary">
+              {t('sourcesLabel')}
+            </label>
+            <Textarea
+              id="knowledge-article-sources"
+              dir="auto"
+              value={sourcesText}
+              onChange={(event) => setSourcesText(event.target.value)}
+              placeholder={t('sourcesPlaceholder')}
+              rows={3}
+              maxLength={2000}
+            />
+            <span className="text-xs text-text-tertiary">{t('sourcesHint')}</span>
+          </div>
+
+          <Alert variant="info">{t('composerDisclaimer')}</Alert>
+
+          {saveError && <Alert variant="danger">{t('submitError')}</Alert>}
+          {submit.isError && <Alert variant="danger">{t('submitError')}</Alert>}
+          {successMessage && <Alert variant="success">{successMessage}</Alert>}
+
+          {!meetsLengthFloor && (
+            <p className="text-xs text-text-tertiary">
+              {t('lengthFloorHelper', { titleMin: TITLE_MIN_FOR_SUBMIT, bodyMin: BODY_MIN_FOR_SUBMIT })}
+            </p>
           )}
 
-          <div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" loading={isBusy && !confirmSubmitOpen} disabled={!language} onClick={handleSaveDraft}>
+              {t('saveDraftAction')}
+            </Button>
             <Button
               type="button"
-              loading={author.isPending}
-              disabled={title.trim().length === 0 || body.trim().length === 0}
-              onClick={handleSubmit}
+              disabled={!meetsLengthFloor || !language}
+              onClick={() => setConfirmSubmitOpen(true)}
             >
-              {t('submitAction')}
+              {t('submitForReviewAction')}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setShowPreview((value) => !value)}>
+              {showPreview ? t('hidePreviewAction') : t('previewAction')}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </form>
 
-      <div className="flex flex-col gap-4">
-        <Heading as="h2" level={4}>
-          {t('myArticlesTitle')}
-        </Heading>
-
-        {isError && <Alert variant="danger">{t('loadError')}</Alert>}
-
-        {isLoading ? (
-          <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton key={index} className="h-20 w-full" />
-            ))}
+        {showPreview && language && (
+          <div className="flex flex-col gap-2">
+            <Heading as="h3" level={4}>
+              {t('previewHeading')}
+            </Heading>
+            <ul>
+              <ArticleCard article={{ title, body, language, sourcesText }} />
+            </ul>
           </div>
-        ) : !articles || articles.length === 0 ? (
-          <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {articles.map((article) => (
-              <li key={article.id} className="flex flex-col gap-2 rounded-2xl border border-border-default p-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span dir="auto" className="font-medium text-text-primary">{article.title}</span>
-                  <Badge variant={STATUS_BADGE_VARIANT[article.status]}>
-                    {tStatus(article.status)}
-                  </Badge>
-                </div>
-                <p dir="auto" className="line-clamp-2 text-sm text-text-secondary">{article.body}</p>
-                {article.moderationReason && (
-                  <p className="text-xs text-text-tertiary">
-                    {t('moderationReasonLabel')}: {article.moderationReason}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
         )}
-      </div>
-    </div>
+      </CardContent>
+
+      <Dialog open={confirmSubmitOpen} onOpenChange={(open) => !open && setConfirmSubmitOpen(false)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('confirmSubmitTitle')}</DialogTitle>
+            <DialogDescription>
+              {isEditing && wasPublished ? t('confirmSubmitDescriptionReReview') : t('confirmSubmitDescriptionFirstTime')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmSubmitOpen(false)}>
+              {t('cancel')}
+            </Button>
+            <Button loading={isBusy} onClick={handleConfirmSubmit}>
+              {t('confirmSubmitAction')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { Heading } from '@/design-system/typography';
 import { useDoctorById } from '@/features/doctor/hooks/use-doctor-by-id';
+import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { useArticle } from '@/features/knowledge/hooks/use-article';
 import { useFollowDoctor } from '@/features/knowledge/hooks/use-follow-doctor';
 import { useFollowedDoctors } from '@/features/knowledge/hooks/use-followed-doctors';
@@ -12,10 +13,12 @@ import { useSaveArticle } from '@/features/knowledge/hooks/use-save-article';
 import { useSavedArticles } from '@/features/knowledge/hooks/use-saved-articles';
 import { useUnfollowDoctor } from '@/features/knowledge/hooks/use-unfollow-doctor';
 import { useUnsaveArticle } from '@/features/knowledge/hooks/use-unsave-article';
-import type { KnowledgeArticle } from '@/features/knowledge/api/types';
+import { ArticleCard } from '@/features/knowledge/components/article-card';
+import type { KnowledgeArticle, KnowledgeArticleLanguage } from '@/features/knowledge/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
@@ -25,7 +28,7 @@ function ArticleAuthorName({ doctorProfileId }: { doctorProfileId: string }) {
   return <span>{t('byDoctor', { name: doctor?.fullName ?? '…' })}</span>;
 }
 
-function ArticleCard({
+function FeedArticleCard({
   article,
   isSaved,
   onToggleSave,
@@ -44,21 +47,24 @@ function ArticleCard({
 }) {
   const t = useTranslations('knowledge.patient');
   return (
-    <li className="flex flex-col gap-2 rounded-2xl border border-border-default p-4">
-      <span dir="auto" className="font-medium text-text-primary">{article.title}</span>
-      <span className="text-xs text-text-tertiary">
-        <ArticleAuthorName doctorProfileId={article.authoringDoctorId} />
-      </span>
-      <p dir="auto" className="line-clamp-3 text-sm text-text-secondary">{article.body}</p>
-      <div className="flex gap-2">
-        <Button type="button" variant={isSaved ? 'outline' : 'primary'} size="sm" loading={saving} onClick={onToggleSave}>
-          {isSaved ? t('unsaveAction') : t('saveAction')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" loading={followingPending} onClick={onToggleFollow}>
-          {isFollowing ? t('unfollowAction') : t('followAction')}
-        </Button>
-      </div>
-    </li>
+    <ArticleCard
+      article={article}
+      footer={
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-text-tertiary">
+            <ArticleAuthorName doctorProfileId={article.authoringDoctorId} />
+          </span>
+          <div className="flex gap-2">
+            <Button type="button" variant={isSaved ? 'outline' : 'primary'} size="sm" loading={saving} onClick={onToggleSave}>
+              {isSaved ? t('unsaveAction') : t('saveAction')}
+            </Button>
+            <Button type="button" variant="outline" size="sm" loading={followingPending} onClick={onToggleFollow}>
+              {isFollowing ? t('unfollowAction') : t('followAction')}
+            </Button>
+          </div>
+        </div>
+      }
+    />
   );
 }
 
@@ -100,7 +106,24 @@ function FollowedDoctorRow({ doctorProfileId, onUnfollow, unfollowing }: {
  */
 export function KnowledgeFeed() {
   const t = useTranslations('knowledge.patient');
-  const { data: feedResult, isLoading: feedLoading, isError: feedError } = usePublishedArticles();
+  const { data: account } = useMyAccount();
+  // Defaults the feed to the patient's own preferred language (Account's
+  // real `preferredLanguage`, `GET /accounts/me` -- already fetched
+  // elsewhere via this same hook, no new plumbing). `undefined` means "show
+  // all languages" (the toggle below), matching `ListArticlesQueryDto`'s
+  // own "language param omitted -> unfiltered" contract server-side.
+  // `null` = "the toggle has never been touched yet, still deciding based
+  // on the account fetch"; distinct from `undefined` = "all languages",
+  // which the toggle can explicitly select.
+  const [languageFilter, setLanguageFilter] = useState<KnowledgeArticleLanguage | 'all' | null>(null);
+  const effectiveLanguageFilter: KnowledgeArticleLanguage | 'all' =
+    languageFilter ?? (account?.preferredLanguage === 'Arabic' || account?.preferredLanguage === 'English'
+      ? account.preferredLanguage
+      : 'all');
+
+  const { data: feedResult, isLoading: feedLoading, isError: feedError } = usePublishedArticles({
+    language: effectiveLanguageFilter === 'all' ? undefined : effectiveLanguageFilter,
+  });
   const { data: saved, isLoading: savedLoading, isError: savedError } = useSavedArticles();
   const { data: followed, isLoading: followedLoading, isError: followedError } = useFollowedDoctors();
   const save = useSaveArticle();
@@ -136,6 +159,22 @@ export function KnowledgeFeed() {
       </TabsList>
 
       <TabsContent value="feed" className="flex flex-col gap-4">
+        <div className="flex items-center justify-end">
+          <Select
+            value={effectiveLanguageFilter}
+            onValueChange={(value) => setLanguageFilter(value as KnowledgeArticleLanguage | 'all')}
+          >
+            <SelectTrigger className="w-40" aria-label={t('languageFilterLabel')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('languageFilterAll')}</SelectItem>
+              <SelectItem value="Arabic">{t('languageLabels.Arabic')}</SelectItem>
+              <SelectItem value="English">{t('languageLabels.English')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {feedError && <Alert variant="danger">{t('loadError')}</Alert>}
         {feedLoading ? (
           <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
@@ -148,7 +187,7 @@ export function KnowledgeFeed() {
         ) : (
           <ul className="flex flex-col gap-3">
             {feedResult.articles.map((article) => (
-              <ArticleCard
+              <FeedArticleCard
                 key={article.id}
                 article={article}
                 isSaved={savedArticleIds.has(article.id)}

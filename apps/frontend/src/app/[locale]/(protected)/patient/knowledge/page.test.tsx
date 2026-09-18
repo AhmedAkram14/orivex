@@ -1,16 +1,19 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import PatientKnowledgePage from './page';
 import { server } from '@/mocks/server';
 import { LEGACY_DOCTOR_ACCOUNT_ID, LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
 import { authorArticle, moderateArticle, resetKnowledgeStore } from '@/mocks/knowledge-store';
+import { getMyAccount } from '@/mocks/identity-store';
 import { resetPatientStore } from '@/mocks/patient-store';
 import { decideVerificationCase, resetVerificationCaseStore, submitVerificationCase } from '@/mocks/verification-case-store';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
+import { env } from '@/shared/lib/env';
 import enMessages from '../../../../../../messages/en.json';
 
 vi.mock('next/navigation', () => ({
@@ -47,7 +50,12 @@ function seedPublishedArticle() {
     documentAssetIds: ['asset-1'],
   });
   decideVerificationCase(submitted.id, 'approved');
-  const result = authorArticle(LEGACY_DOCTOR_ACCOUNT_ID, 'Managing Hypertension at Home', 'Some real, doctor-authored content.');
+  const result = authorArticle(
+    LEGACY_DOCTOR_ACCOUNT_ID,
+    'Managing Hypertension at Home',
+    'Some real, doctor-authored content.',
+    'English',
+  );
   if (result.ok) {
     // A brand-new doctor's first article starts Pending Review (the pre-
     // publication threshold) -- approve it here to get a Published article
@@ -82,5 +90,41 @@ describe('PatientKnowledgePage', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Saved' }));
     await waitFor(() => expect(screen.queryByText('No articles yet')).not.toBeInTheDocument());
+  });
+
+  it('shows the article language badge and view count on each card', async () => {
+    seedPublishedArticle();
+    renderPage();
+
+    expect(await screen.findByText('Managing Hypertension at Home')).toBeInTheDocument();
+    expect(screen.getByText('English')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+  });
+
+  it('defaults the feed to the viewer\'s own preferred language, with a toggle to see all', async () => {
+    seedPublishedArticle();
+    const result2 = authorArticle(LEGACY_DOCTOR_ACCOUNT_ID, 'Arabic-only Article', 'محتوى طبي حقيقي باللغة العربية.', 'Arabic');
+    if (result2.ok) {
+      moderateArticle(result2.article.id, 'published', 'Meets content quality guidelines.', 'admin-account-1');
+    }
+    server.use(
+      http.get(`${env.apiBaseUrl}/accounts/me`, () =>
+        HttpResponse.json({ data: { ...getMyAccount(LEGACY_PATIENT_ACCOUNT_ID), preferredLanguage: 'Arabic' } }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderPage();
+
+    // Defaults to Arabic (the mocked preference) -- the English article is
+    // filtered out until the toggle is used.
+    await screen.findByText('Arabic-only Article');
+    expect(screen.queryByText('Managing Hypertension at Home')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('combobox', { name: 'Language' }));
+    await user.click(await screen.findByRole('option', { name: 'All languages' }));
+
+    await waitFor(() => expect(screen.getByText('Managing Hypertension at Home')).toBeInTheDocument());
+    expect(screen.getByText('Arabic-only Article')).toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import type {
   ArticleSave,
   AuthorArticleInput,
   DoctorFollow,
+  EditArticleInput,
   KnowledgeArticle,
   ListKnowledgeArticlesResult,
   ListPublishedArticlesParams,
@@ -12,6 +13,7 @@ import type {
 function buildListArticlesQuery(params: ListPublishedArticlesParams): string {
   const query = new URLSearchParams();
   if (params.doctorId) query.set('doctorId', params.doctorId);
+  if (params.language) query.set('language', params.language);
   if (params.page) query.set('page', String(params.page));
   if (params.limit) query.set('limit', String(params.limit));
   const qs = query.toString();
@@ -33,6 +35,14 @@ export const knowledgeApi = {
     apiFetch<ListKnowledgeArticlesResult>({ path: buildListArticlesQuery(params) }),
 
   getById: (id: string) => apiFetch<KnowledgeArticle>({ path: KNOWLEDGE_PATHS.article(id) }),
+
+  edit: (id: string, input: EditArticleInput) =>
+    apiFetch<KnowledgeArticle>({ method: 'PATCH', path: KNOWLEDGE_PATHS.editArticle(id), body: input }),
+
+  submit: (id: string) => apiFetch<KnowledgeArticle>({ method: 'POST', path: KNOWLEDGE_PATHS.submitArticle(id) }),
+
+  unpublish: (id: string, reason: string) =>
+    apiFetch<KnowledgeArticle>({ method: 'POST', path: KNOWLEDGE_PATHS.unpublishArticle(id), body: { reason } }),
 
   save: (id: string) => apiFetch<ArticleSave>({ method: 'POST', path: KNOWLEDGE_PATHS.saveArticle(id) }),
 

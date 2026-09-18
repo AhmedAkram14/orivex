@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import {
   authorArticle,
+  editArticle,
   findArticleById,
   followDoctor,
   listArticlesByStatus,
@@ -10,15 +11,18 @@ import {
   listPublishedArticles,
   listSavedArticles,
   moderateArticle,
+  recordArticleView,
   saveArticle,
+  submitArticleForReview,
   unfollowDoctor,
+  unpublishArticle,
   unsaveArticle,
 } from '@/mocks/knowledge-store';
 import { getDoctorByAccountId } from '@/mocks/doctor-store';
 import { getProfile as getPatientProfile } from '@/mocks/patient-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
 import { LEGACY_DOCTOR_ACCOUNT_ID, LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
-import type { KnowledgeArticleStatus } from '@/features/knowledge/api/types';
+import type { EditArticleInput, KnowledgeArticleLanguage, KnowledgeArticleStatus } from '@/features/knowledge/api/types';
 
 const base = () => env.apiBaseUrl;
 
@@ -44,14 +48,51 @@ function forbidden(message: string) {
 export const knowledgeHandlers = [
   http.post(`${base()}/knowledge/articles`, async ({ request }) => {
     const accountId = resolveRequestAccountId(request) ?? LEGACY_DOCTOR_ACCOUNT_ID;
-    const body = (await request.json()) as { title: string; body: string };
-    const result = authorArticle(accountId, body.title, body.body);
+    const body = (await request.json()) as {
+      title: string;
+      body: string;
+      language: KnowledgeArticleLanguage;
+      sourcesText?: string;
+      saveAsDraft?: boolean;
+    };
+    const result = authorArticle(accountId, body.title, body.body, body.language, body.sourcesText, body.saveAsDraft);
     if (!result.ok) {
       return result.reason === 'not_verified'
         ? forbidden('Only a Syndicate-verified doctor may publish Knowledge Center content.')
         : notFound('No doctor profile exists for this account.');
     }
     return HttpResponse.json({ data: result.article }, { status: 201 });
+  }),
+
+  http.patch(`${base()}/knowledge/articles/:id`, async ({ params, request }) => {
+    const body = (await request.json()) as EditArticleInput;
+    const result = editArticle(params.id as string, body);
+    if (!result.ok) {
+      return result.reason === 'not_found'
+        ? notFound('KnowledgeArticle not found.')
+        : forbidden('A rejected or archived article can no longer be edited.');
+    }
+    return HttpResponse.json({ data: result.article });
+  }),
+
+  http.post(`${base()}/knowledge/articles/:id/submit`, ({ params, request }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_DOCTOR_ACCOUNT_ID;
+    const doctorProfile = getDoctorByAccountId(accountId);
+    const result = submitArticleForReview(params.id as string, doctorProfile?.id ?? '');
+    if (!result.ok) {
+      return result.reason === 'not_found' ? notFound('KnowledgeArticle not found.') : forbidden(result.reason);
+    }
+    return HttpResponse.json({ data: result.article });
+  }),
+
+  http.post(`${base()}/knowledge/articles/:id/unpublish`, async ({ params, request }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_DOCTOR_ACCOUNT_ID;
+    const body = (await request.json()) as { reason: string };
+    const result = unpublishArticle(params.id as string, body.reason, accountId);
+    if (!result.ok) {
+      return result.reason === 'not_found' ? notFound('KnowledgeArticle not found.') : forbidden(result.reason);
+    }
+    return HttpResponse.json({ data: result.article });
   }),
 
   http.get(`${base()}/knowledge/articles/mine`, ({ request }) => {
@@ -62,9 +103,10 @@ export const knowledgeHandlers = [
   http.get(`${base()}/knowledge/articles`, ({ request }) => {
     const url = new URL(request.url);
     const doctorId = url.searchParams.get('doctorId') ?? undefined;
+    const language = (url.searchParams.get('language') as KnowledgeArticleLanguage | null) ?? undefined;
     const page = Number(url.searchParams.get('page') ?? '1');
     const limit = Number(url.searchParams.get('limit') ?? '20');
-    const all = listPublishedArticles(doctorId);
+    const all = listPublishedArticles(doctorId, language);
     const start = (page - 1) * limit;
     return HttpResponse.json({
       data: { articles: all.slice(start, start + limit), total: all.length, page, limit },
@@ -74,14 +116,21 @@ export const knowledgeHandlers = [
   http.get(`${base()}/knowledge/articles/:id`, ({ params, request }) => {
     const article = findArticleById(params.id as string);
     if (!article) return notFound('KnowledgeArticle not found.');
-    if (article.status === 'published') return HttpResponse.json({ data: article });
 
     const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
-    const doctorProfile = getDoctorByAccountId(accountId);
-    if (!doctorProfile || doctorProfile.id !== article.authoringDoctorId) {
-      return notFound('KnowledgeArticle not found.');
+    if (article.status !== 'published') {
+      const doctorProfile = getDoctorByAccountId(accountId);
+      if (!doctorProfile || doctorProfile.id !== article.authoringDoctorId) {
+        return notFound('KnowledgeArticle not found.');
+      }
+      return HttpResponse.json({ data: article });
     }
-    return HttpResponse.json({ data: article });
+
+    // Decision 7: the authoring doctor's own reads of their own published
+    // article never increment its view count.
+    const readerDoctorProfile = getDoctorByAccountId(accountId);
+    recordArticleView(article.id, readerDoctorProfile?.id);
+    return HttpResponse.json({ data: findArticleById(article.id) });
   }),
 
   http.post(`${base()}/knowledge/articles/:id/save`, ({ params, request }) => {

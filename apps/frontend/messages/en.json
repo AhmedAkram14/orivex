@@ -735,6 +735,7 @@
   },
   "knowledge": {
     "statusLabels": {
+      "draft": "Draft",
       "pending_review": "Pending Review",
       "published": "Published",
       "rejected": "Rejected",
@@ -744,19 +745,63 @@
       "title": "Knowledge Center",
       "subtitle": "Publish attributed health articles for patients to read.",
       "composerTitle": "Write a new article",
+      "editArticleTitle": "Edit article",
       "titleLabel": "Title",
       "titlePlaceholder": "e.g. Managing Hypertension at Home",
       "bodyLabel": "Body",
-      "bodyPlaceholder": "Write your article...",
-      "submitAction": "Publish article",
-      "submitError": "Couldn't submit this article. Please try again.",
+      "bodyPlaceholder": "Write your article... (Markdown supported)",
+      "languageLabel": "Language",
+      "languagePlaceholder": "Select a language",
+      "languageOptions": {
+        "Arabic": "Arabic",
+        "English": "English"
+      },
+      "sourcesLabel": "Sources / references (optional)",
+      "sourcesPlaceholder": "List any sources or references this article draws on...",
+      "sourcesHint": "Optional -- shown to readers alongside the article.",
+      "composerDisclaimer": "This article shares general health information and is not a diagnosis or personalized medical advice.",
+      "submitError": "Couldn't save this article. Please try again.",
       "submitSuccessPending": "Submitted for review. An admin will publish it once approved.",
       "submitSuccessPublished": "Published immediately.",
+      "draftSavedMessage": "Draft saved.",
+      "editResubmittedMessage": "Submitted for re-review. The previously-published version is no longer visible to patients until an admin approves this edit.",
+      "lengthFloorHelper": "Submitting for review needs a title of at least {titleMin} characters and a body of at least {bodyMin} characters. Save as a draft to keep working on it.",
+      "saveDraftAction": "Save draft",
+      "submitForReviewAction": "Submit for review",
+      "previewAction": "Preview",
+      "hidePreviewAction": "Hide preview",
+      "previewHeading": "Preview",
+      "confirmSubmitTitle": "Submit for review?",
+      "confirmSubmitDescriptionFirstTime": "This becomes visible to patients once approved.",
+      "confirmSubmitDescriptionReReview": "This replaces the currently-published version immediately upon submission and will not be visible to patients again until an admin re-approves it.",
+      "confirmSubmitAction": "Submit",
+      "cancel": "Cancel",
       "myArticlesTitle": "My articles",
       "loadError": "Couldn't load your articles.",
       "emptyTitle": "No articles yet",
       "emptyDescription": "Articles you write will appear here.",
-      "moderationReasonLabel": "Moderator note"
+      "moderationReasonLabel": "Moderator note",
+      "writeArticleAction": "Write an article",
+      "searchPlaceholder": "Search by title...",
+      "filterStatusLabel": "Filter by status",
+      "filterStatusAll": "All statuses",
+      "sortLabel": "Sort",
+      "sortOptions": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "mostViewed": "Most viewed"
+      },
+      "noResultsTitle": "No articles match your filters",
+      "noResultsDescription": "Try adjusting your search or filters.",
+      "clearFilters": "Clear filters",
+      "viewCountLabel": "{count, plural, one {# view} other {# views}}",
+      "editAction": "Edit",
+      "unpublishAction": "Unpublish",
+      "unpublishDialogTitle": "Unpublish this article?",
+      "unpublishDialogDescription": "It will be removed from the patient feed immediately. It stays visible to you as Archived, but an archived article can't be edited -- write a new one if you need to fix it.",
+      "unpublishReasonPlaceholder": "Why are you unpublishing this article?",
+      "unpublishError": "Couldn't unpublish this article. Please try again.",
+      "confirmUnpublishAction": "Unpublish"
     },
     "patient": {
       "title": "Knowledge Center",
@@ -771,7 +816,15 @@
       "followAction": "Follow",
       "unfollowAction": "Unfollow",
       "followedDoctorsTitle": "Followed doctors",
-      "byDoctor": "By Dr. {name}"
+      "byDoctor": "By Dr. {name}",
+      "languageLabels": {
+        "Arabic": "Arabic",
+        "English": "English"
+      },
+      "languageFilterLabel": "Language",
+      "languageFilterAll": "All languages",
+      "sourcesLabel": "Sources / references",
+      "disclaimer": "This article shares general health information and is not a diagnosis or personalized medical advice."
     }
   },
   "messaging": {

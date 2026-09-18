@@ -735,6 +735,7 @@
   },
   "knowledge": {
     "statusLabels": {
+      "draft": "مسودة",
       "pending_review": "قيد المراجعة",
       "published": "منشور",
       "rejected": "مرفوض",
@@ -744,19 +745,63 @@
       "title": "مركز المعرفة",
       "subtitle": "انشر مقالات صحية موثّقة باسمك ليقرأها المرضى.",
       "composerTitle": "اكتب مقالاً جديداً",
+      "editArticleTitle": "تعديل المقال",
       "titleLabel": "العنوان",
       "titlePlaceholder": "مثال: إدارة ضغط الدم في المنزل",
       "bodyLabel": "المحتوى",
-      "bodyPlaceholder": "اكتب مقالك...",
-      "submitAction": "نشر المقال",
-      "submitError": "تعذّر إرسال هذا المقال. يرجى المحاولة مرة أخرى.",
+      "bodyPlaceholder": "اكتب مقالك... (تُدعم لغة Markdown)",
+      "languageLabel": "اللغة",
+      "languagePlaceholder": "اختر لغة",
+      "languageOptions": {
+        "Arabic": "العربية",
+        "English": "الإنجليزية"
+      },
+      "sourcesLabel": "المصادر / المراجع (اختياري)",
+      "sourcesPlaceholder": "اذكر أي مصادر أو مراجع استند إليها هذا المقال...",
+      "sourcesHint": "اختياري -- يظهر للقرّاء مع المقال.",
+      "composerDisclaimer": "يقدّم هذا المقال معلومات صحية عامة، وليس تشخيصاً أو استشارة طبية شخصية.",
+      "submitError": "تعذّر حفظ هذا المقال. يرجى المحاولة مرة أخرى.",
       "submitSuccessPending": "تم إرساله للمراجعة. سينشره أحد المسؤولين بعد الموافقة.",
       "submitSuccessPublished": "تم النشر فوراً.",
+      "draftSavedMessage": "تم حفظ المسودة.",
+      "editResubmittedMessage": "تم إرساله لإعادة المراجعة. لن تظهر النسخة المنشورة سابقاً للمرضى حتى يوافق أحد المسؤولين على هذا التعديل.",
+      "lengthFloorHelper": "يتطلب الإرسال للمراجعة عنواناً لا يقل عن {titleMin} حرفاً ومحتوى لا يقل عن {bodyMin} حرفاً. يمكنك حفظه كمسودة لمواصلة العمل عليه.",
+      "saveDraftAction": "حفظ كمسودة",
+      "submitForReviewAction": "إرسال للمراجعة",
+      "previewAction": "معاينة",
+      "hidePreviewAction": "إخفاء المعاينة",
+      "previewHeading": "معاينة",
+      "confirmSubmitTitle": "إرسال للمراجعة؟",
+      "confirmSubmitDescriptionFirstTime": "سيصبح مرئياً للمرضى بعد الموافقة عليه.",
+      "confirmSubmitDescriptionReReview": "سيحل هذا محل النسخة المنشورة حالياً فور الإرسال، ولن يكون مرئياً للمرضى مجدداً حتى يوافق عليه أحد المسؤولين.",
+      "confirmSubmitAction": "إرسال",
+      "cancel": "إلغاء",
       "myArticlesTitle": "مقالاتي",
       "loadError": "تعذّر تحميل مقالاتك.",
       "emptyTitle": "لا توجد مقالات بعد",
       "emptyDescription": "ستظهر هنا المقالات التي تكتبها.",
-      "moderationReasonLabel": "ملاحظة المراجع"
+      "moderationReasonLabel": "ملاحظة المراجع",
+      "writeArticleAction": "اكتب مقالاً",
+      "searchPlaceholder": "ابحث بالعنوان...",
+      "filterStatusLabel": "التصفية حسب الحالة",
+      "filterStatusAll": "كل الحالات",
+      "sortLabel": "الترتيب",
+      "sortOptions": {
+        "newest": "الأحدث أولاً",
+        "oldest": "الأقدم أولاً",
+        "mostViewed": "الأكثر مشاهدة"
+      },
+      "noResultsTitle": "لا توجد مقالات مطابقة لعوامل التصفية",
+      "noResultsDescription": "جرّب تعديل البحث أو عوامل التصفية.",
+      "clearFilters": "مسح عوامل التصفية",
+      "viewCountLabel": "{count, plural, one {# مشاهدة} other {# مشاهدة}}",
+      "editAction": "تعديل",
+      "unpublishAction": "إلغاء النشر",
+      "unpublishDialogTitle": "إلغاء نشر هذا المقال؟",
+      "unpublishDialogDescription": "سيُزال فوراً من موجز المرضى. يبقى مرئياً لك بوصفه مؤرشفاً، لكن لا يمكن تعديل مقال مؤرشف -- اكتب مقالاً جديداً إذا احتجت لتصحيحه.",
+      "unpublishReasonPlaceholder": "لماذا تقوم بإلغاء نشر هذا المقال؟",
+      "unpublishError": "تعذّر إلغاء نشر هذا المقال. يرجى المحاولة مرة أخرى.",
+      "confirmUnpublishAction": "إلغاء النشر"
     },
     "patient": {
       "title": "مركز المعرفة",
@@ -771,7 +816,15 @@
       "followAction": "متابعة",
       "unfollowAction": "إلغاء المتابعة",
       "followedDoctorsTitle": "الأطباء المتابَعون",
-      "byDoctor": "بقلم د. {name}"
+      "byDoctor": "بقلم د. {name}",
+      "languageLabels": {
+        "Arabic": "العربية",
+        "English": "الإنجليزية"
+      },
+      "languageFilterLabel": "اللغة",
+      "languageFilterAll": "كل اللغات",
+      "sourcesLabel": "المصادر / المراجع",
+      "disclaimer": "يقدّم هذا المقال معلومات صحية عامة، وليس تشخيصاً أو استشارة طبية شخصية."
     }
   },
   "messaging": {
