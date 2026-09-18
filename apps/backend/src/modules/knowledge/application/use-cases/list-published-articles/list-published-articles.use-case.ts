@@ -14,7 +14,12 @@ export class ListPublishedArticlesUseCase {
   constructor(private readonly knowledgeArticleRepository: KnowledgeArticleRepository) {}
 
   async execute(query: ListPublishedArticlesQuery): Promise<ListPublishedArticlesResult> {
-    const { articles, total } = await this.knowledgeArticleRepository.listPublished(query.page, query.limit, query.doctorId);
+    const { articles, total } = await this.knowledgeArticleRepository.listPublished(
+      query.page,
+      query.limit,
+      query.doctorId,
+      query.language,
+    );
     return { articles, total };
   }
 }

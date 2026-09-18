@@ -1,29 +1,28 @@
 import type { KnowledgeArticleLanguage } from '../../../domain/enums/knowledge-article-language.enum.js';
 
-export interface AuthorArticleProps {
+export interface EditArticleProps {
+  articleId: string;
   callerAccountId: string;
   title: string;
   body: string;
   language: KnowledgeArticleLanguage;
   sourcesText?: string;
-  /** Knowledge Center Hardening Phase 1, decision 1: save as a Draft instead of submitting for review/publishing. Defaults to false (unchanged prior behavior). */
-  saveAsDraft?: boolean;
 }
 
-export class AuthorArticleCommand {
+export class EditArticleCommand {
+  readonly articleId: string;
   readonly callerAccountId: string;
   readonly title: string;
   readonly body: string;
   readonly language: KnowledgeArticleLanguage;
   readonly sourcesText?: string;
-  readonly saveAsDraft: boolean;
 
-  constructor(props: AuthorArticleProps) {
+  constructor(props: EditArticleProps) {
+    this.articleId = props.articleId;
     this.callerAccountId = props.callerAccountId;
     this.title = props.title;
     this.body = props.body;
     this.language = props.language;
     this.sourcesText = props.sourcesText;
-    this.saveAsDraft = props.saveAsDraft ?? false;
   }
 }

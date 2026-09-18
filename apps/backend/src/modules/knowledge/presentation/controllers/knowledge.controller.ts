@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import { CurrentUser } from '../../../authentication/presentation/decorators/current-user.decorator.js';
@@ -9,8 +9,14 @@ import type { AccessTokenClaims } from '../../../authentication/application/port
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { AuthorArticleCommand } from '../../application/use-cases/author-article/author-article.command.js';
 import { AuthorArticleUseCase } from '../../application/use-cases/author-article/author-article.use-case.js';
+import { EditArticleCommand } from '../../application/use-cases/edit-article/edit-article.command.js';
+import { EditArticleUseCase } from '../../application/use-cases/edit-article/edit-article.use-case.js';
 import { GetArticleByIdUseCase } from '../../application/use-cases/get-article-by-id/get-article-by-id.use-case.js';
 import { ListMyArticlesUseCase } from '../../application/use-cases/list-my-articles/list-my-articles.use-case.js';
+import { SubmitArticleForReviewCommand } from '../../application/use-cases/submit-article-for-review/submit-article-for-review.command.js';
+import { SubmitArticleForReviewUseCase } from '../../application/use-cases/submit-article-for-review/submit-article-for-review.use-case.js';
+import { UnpublishArticleCommand } from '../../application/use-cases/unpublish-article/unpublish-article.command.js';
+import { UnpublishArticleUseCase } from '../../application/use-cases/unpublish-article/unpublish-article.use-case.js';
 import { ListPublishedArticlesQuery } from '../../application/use-cases/list-published-articles/list-published-articles.query.js';
 import { ListPublishedArticlesUseCase } from '../../application/use-cases/list-published-articles/list-published-articles.use-case.js';
 import { FollowDoctorCommand } from '../../application/use-cases/follow-doctor/follow-doctor.command.js';
@@ -26,8 +32,10 @@ import { ListSavedArticlesUseCase } from '../../application/use-cases/list-saved
 import { ArticleSaveResponseDto } from '../dto/article-save-response.dto.js';
 import { AuthorArticleRequestDto } from '../dto/author-article-request.dto.js';
 import { DoctorFollowResponseDto } from '../dto/doctor-follow-response.dto.js';
+import { EditArticleRequestDto } from '../dto/edit-article-request.dto.js';
 import { KnowledgeArticleResponseDto } from '../dto/knowledge-article-response.dto.js';
 import { ListArticlesQueryDto } from '../dto/list-articles-query.dto.js';
+import { UnpublishArticleRequestDto } from '../dto/unpublish-article-request.dto.js';
 import { ListKnowledgeArticlesResponseDto } from '../dto/list-knowledge-articles-response.dto.js';
 import { mapKnowledgeError } from '../mappers/knowledge-exception.mapper.js';
 
@@ -46,6 +54,9 @@ import { mapKnowledgeError } from '../mappers/knowledge-exception.mapper.js';
 export class KnowledgeController {
   constructor(
     private readonly authorArticleUseCase: AuthorArticleUseCase,
+    private readonly editArticleUseCase: EditArticleUseCase,
+    private readonly submitArticleForReviewUseCase: SubmitArticleForReviewUseCase,
+    private readonly unpublishArticleUseCase: UnpublishArticleUseCase,
     private readonly listMyArticlesUseCase: ListMyArticlesUseCase,
     private readonly listPublishedArticlesUseCase: ListPublishedArticlesUseCase,
     private readonly getArticleByIdUseCase: GetArticleByIdUseCase,
@@ -66,7 +77,71 @@ export class KnowledgeController {
   ): Promise<ResponseEnvelope<KnowledgeArticleResponseDto>> {
     try {
       const article = await this.authorArticleUseCase.execute(
-        new AuthorArticleCommand({ callerAccountId: user.accountId, title: body.title, body: body.body }),
+        new AuthorArticleCommand({
+          callerAccountId: user.accountId,
+          title: body.title,
+          body: body.body,
+          language: body.language,
+          sourcesText: body.sourcesText,
+          saveAsDraft: body.saveAsDraft,
+        }),
+      );
+      return envelope(KnowledgeArticleResponseDto.fromDomain(article));
+    } catch (error) {
+      throw mapKnowledgeError(error);
+    }
+  }
+
+  @Patch('articles/:id')
+  @Roles(AccountRole.Doctor)
+  async edit(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: EditArticleRequestDto,
+  ): Promise<ResponseEnvelope<KnowledgeArticleResponseDto>> {
+    try {
+      const article = await this.editArticleUseCase.execute(
+        new EditArticleCommand({
+          articleId: id,
+          callerAccountId: user.accountId,
+          title: body.title,
+          body: body.body,
+          language: body.language,
+          sourcesText: body.sourcesText,
+        }),
+      );
+      return envelope(KnowledgeArticleResponseDto.fromDomain(article));
+    } catch (error) {
+      throw mapKnowledgeError(error);
+    }
+  }
+
+  @Post('articles/:id/submit')
+  @Roles(AccountRole.Doctor)
+  async submit(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ResponseEnvelope<KnowledgeArticleResponseDto>> {
+    try {
+      const article = await this.submitArticleForReviewUseCase.execute(
+        new SubmitArticleForReviewCommand({ articleId: id, callerAccountId: user.accountId }),
+      );
+      return envelope(KnowledgeArticleResponseDto.fromDomain(article));
+    } catch (error) {
+      throw mapKnowledgeError(error);
+    }
+  }
+
+  @Post('articles/:id/unpublish')
+  @Roles(AccountRole.Doctor)
+  async unpublish(
+    @CurrentUser() user: AccessTokenClaims,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UnpublishArticleRequestDto,
+  ): Promise<ResponseEnvelope<KnowledgeArticleResponseDto>> {
+    try {
+      const article = await this.unpublishArticleUseCase.execute(
+        new UnpublishArticleCommand({ articleId: id, callerAccountId: user.accountId, reason: body.reason }),
       );
       return envelope(KnowledgeArticleResponseDto.fromDomain(article));
     } catch (error) {
@@ -89,7 +164,7 @@ export class KnowledgeController {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const result = await this.listPublishedArticlesUseCase.execute(
-      new ListPublishedArticlesQuery({ page, limit, doctorId: query.doctorId }),
+      new ListPublishedArticlesQuery({ page, limit, doctorId: query.doctorId, language: query.language }),
     );
     return envelope(ListKnowledgeArticlesResponseDto.fromResult(result, page, limit));
   }

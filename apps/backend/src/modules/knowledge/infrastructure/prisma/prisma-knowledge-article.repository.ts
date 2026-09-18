@@ -3,6 +3,7 @@ import { KnowledgeArticleStatus as PrismaKnowledgeArticleStatus } from '@prisma/
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { KnowledgeArticle } from '../../domain/entities/knowledge-article.entity.js';
+import type { KnowledgeArticleLanguage } from '../../domain/enums/knowledge-article-language.enum.js';
 import type { KnowledgeArticleStatus } from '../../domain/enums/knowledge-article-status.enum.js';
 import type { KnowledgeArticleRepository } from '../../domain/repositories/knowledge-article.repository.js';
 
@@ -25,8 +26,13 @@ export class PrismaKnowledgeArticleRepository implements KnowledgeArticleReposit
     page: number,
     limit: number,
     doctorId?: string,
+    language?: KnowledgeArticleLanguage,
   ): Promise<{ articles: KnowledgeArticle[]; total: number }> {
-    const where = { status: PrismaKnowledgeArticleStatus.PUBLISHED, authoringDoctorId: doctorId };
+    const where = {
+      status: PrismaKnowledgeArticleStatus.PUBLISHED,
+      authoringDoctorId: doctorId,
+      language: language ? toPrismaKnowledgeArticleLanguage(language) : undefined,
+    };
     const [rows, total] = await Promise.all([
       this.prisma.knowledgeArticle.findMany({
         where,

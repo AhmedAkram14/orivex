@@ -11,8 +11,20 @@ export interface AuthorArticleProps {
   language: KnowledgeArticleLanguage;
   specialtyId: string;
   sourcesText?: string;
-  /** Whether this doctor has already cleared the pre-publication review threshold (computed by the application layer -- the entity has no repository access to count past articles itself). */
-  requiresPreReview: boolean;
+  /**
+   * Whether this doctor has already cleared the pre-publication review
+   * threshold (computed by the application layer -- the entity has no
+   * repository access to count past articles itself). Required unless
+   * `saveAsDraft` is true, in which case it's irrelevant (a Draft enters
+   * the review pipeline later, via submitForReview()) and may be omitted.
+   */
+  requiresPreReview?: boolean;
+  /**
+   * Knowledge Center Hardening Phase 1: save straight into Draft status
+   * instead of entering PendingReview/Published immediately. Defaults to
+   * false (unchanged prior behavior).
+   */
+  saveAsDraft?: boolean;
 }
 
 export interface ReconstituteKnowledgeArticleProps {
@@ -38,6 +50,10 @@ export interface ReconstituteKnowledgeArticleProps {
 // Knowledge Center Hardening Phase 0 widened this from a strictly one-way
 // machine to the following full set of legal edges:
 //
+//   (new)  -> Draft                      via author({ saveAsDraft: true, ... })
+//                                         (Phase 1) -- the entry point into the
+//                                         machine when a doctor saves without
+//                                         submitting.
 //   Draft -> PendingReview | Published   via submitForReview(requiresPreReview),
 //                                         enforcing the minimum-length floor
 //                                         (a Draft itself may be arbitrarily
@@ -99,9 +115,16 @@ export class KnowledgeArticle {
     if (!props.body || props.body.trim().length === 0) {
       throw new KnowledgeDomainError('An article requires body content.');
     }
+    if (!props.saveAsDraft && props.requiresPreReview === undefined) {
+      throw new KnowledgeDomainError('requiresPreReview must be provided unless saving as a draft.');
+    }
 
     const now = new Date();
-    const status = props.requiresPreReview ? KnowledgeArticleStatus.PendingReview : KnowledgeArticleStatus.Published;
+    const status = props.saveAsDraft
+      ? KnowledgeArticleStatus.Draft
+      : props.requiresPreReview
+        ? KnowledgeArticleStatus.PendingReview
+        : KnowledgeArticleStatus.Published;
     return new KnowledgeArticle(
       randomUUID(),
       props.authoringDoctorId,

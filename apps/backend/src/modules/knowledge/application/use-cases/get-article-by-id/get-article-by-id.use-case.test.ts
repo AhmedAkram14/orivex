@@ -26,6 +26,7 @@ class FakeDoctorProfileRepository implements DoctorProfileRepository {
 }
 
 class FakeKnowledgeArticleRepository implements KnowledgeArticleRepository {
+  public updated: KnowledgeArticle[] = [];
   constructor(private readonly article: KnowledgeArticle | null) {}
   async findById(): Promise<KnowledgeArticle | null> {
     return this.article;
@@ -43,7 +44,9 @@ class FakeKnowledgeArticleRepository implements KnowledgeArticleRepository {
     return 0;
   }
   async save(): Promise<void> {}
-  async update(): Promise<void> {}
+  async update(article: KnowledgeArticle): Promise<void> {
+    this.updated.push(article);
+  }
 }
 
 function authorDoctorProfile(): DoctorProfile {
@@ -71,6 +74,87 @@ describe('GetArticleByIdUseCase', () => {
 
     const result = await useCase.execute({ articleId: article.getId(), callerAccountId: OTHER_ACCOUNT_ID });
     assert.equal(result.getId(), article.getId());
+  });
+
+  it('increments the view count for a stranger reading a Published article', async () => {
+    const article = KnowledgeArticle.author({
+      authoringDoctorId: 'some-doctor-profile-id',
+      title: 'Title',
+      body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
+      requiresPreReview: false,
+    });
+    const repository = new FakeKnowledgeArticleRepository(article);
+    const useCase = new GetArticleByIdUseCase(
+      repository,
+      new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(null)),
+    );
+
+    const result = await useCase.execute({ articleId: article.getId(), callerAccountId: OTHER_ACCOUNT_ID });
+    assert.equal(result.getViewCount(), 1);
+    assert.equal(repository.updated.length, 1);
+  });
+
+  it('does NOT increment the view count when the authoring doctor reads their own Published article', async () => {
+    const doctorProfile = authorDoctorProfile();
+    const article = KnowledgeArticle.author({
+      authoringDoctorId: doctorProfile.getId(),
+      title: 'Title',
+      body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
+      requiresPreReview: false,
+    });
+    const repository = new FakeKnowledgeArticleRepository(article);
+    const useCase = new GetArticleByIdUseCase(
+      repository,
+      new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(doctorProfile)),
+    );
+
+    const result = await useCase.execute({ articleId: article.getId(), callerAccountId: AUTHOR_ACCOUNT_ID });
+    assert.equal(result.getViewCount(), 0);
+    assert.equal(repository.updated.length, 0);
+  });
+
+  it('does not increment the view count for a non-Published article', async () => {
+    const doctorProfile = authorDoctorProfile();
+    const article = KnowledgeArticle.author({
+      authoringDoctorId: doctorProfile.getId(),
+      title: 'Title',
+      body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
+      requiresPreReview: true,
+    });
+    const repository = new FakeKnowledgeArticleRepository(article);
+    const useCase = new GetArticleByIdUseCase(
+      repository,
+      new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(doctorProfile)),
+    );
+
+    const result = await useCase.execute({ articleId: article.getId(), callerAccountId: AUTHOR_ACCOUNT_ID });
+    assert.equal(result.getViewCount(), 0);
+    assert.equal(repository.updated.length, 0);
+  });
+
+  it('does not crash and still increments the view count when the caller has no account id', async () => {
+    const article = KnowledgeArticle.author({
+      authoringDoctorId: 'some-doctor-profile-id',
+      title: 'Title',
+      body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
+      requiresPreReview: false,
+    });
+    const repository = new FakeKnowledgeArticleRepository(article);
+    const useCase = new GetArticleByIdUseCase(
+      repository,
+      new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(null)),
+    );
+
+    const result = await useCase.execute({ articleId: article.getId(), callerAccountId: '' });
+    assert.equal(result.getViewCount(), 1);
   });
 
   it('returns a non-Published article to its own authoring doctor', async () => {

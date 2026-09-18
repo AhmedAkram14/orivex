@@ -27,6 +27,26 @@ export class GetArticleByIdUseCase {
       throw new NotFoundError(`KnowledgeArticle "${query.articleId}" not found.`);
     }
     if (article.getStatus() === KnowledgeArticleStatus.Published) {
+      // Knowledge Center Hardening Phase 1, decision 4/7: a Published
+      // article's read increments its view count, excluding the authoring
+      // doctor's own reads of their own article. Reuses the same
+      // getDoctorProfileByAccountIdUseCase this use case already depends
+      // on for the non-Published branch's ownership check below, rather
+      // than inventing a second profile-id-to-account-id lookup -- there's
+      // only one party (the author) to compare the caller against here,
+      // not two, so no AppointmentPartyResolver-style shared resolver is
+      // warranted. query.callerAccountId is always populated in practice
+      // (every route on this controller sits behind JwtAuthGuard), but the
+      // `?? null` below still degrades safely to "not the author" -- never
+      // a crash -- if it were ever falsy.
+      const callerDoctorProfile = query.callerAccountId
+        ? await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: query.callerAccountId })
+        : null;
+      const callerIsAuthor = callerDoctorProfile !== null && callerDoctorProfile.getId() === article.getAuthoringDoctorId();
+      if (!callerIsAuthor) {
+        article.recordView();
+        await this.knowledgeArticleRepository.update(article);
+      }
       return article;
     }
 

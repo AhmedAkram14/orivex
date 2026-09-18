@@ -10,8 +10,10 @@ import { DoctorProfessionalDetails } from '../../../../trust/domain/value-object
 import { GetDoctorProfileByAccountIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { KnowledgeArticleLanguage } from '../../../domain/enums/knowledge-article-language.enum.js';
 import { KnowledgeArticleStatus } from '../../../domain/enums/knowledge-article-status.enum.js';
 import type { KnowledgeArticleRepository } from '../../../domain/repositories/knowledge-article.repository.js';
+import { PreReviewThresholdService } from '../../services/pre-review-threshold.service.js';
 
 import { AuthorArticleUseCase } from './author-article.use-case.js';
 
@@ -84,45 +86,85 @@ function buildDoctorProfile(): DoctorProfile {
   });
 }
 
+function buildUseCase(priorPublishedCount: number, verificationCases: VerificationCase[]) {
+  const repository = new FakeKnowledgeArticleRepository(priorPublishedCount);
+  return new AuthorArticleUseCase(
+    repository,
+    new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(buildDoctorProfile())),
+    new CheckIdentityVerificationStatusUseCase(new FakeVerificationCaseRepository(verificationCases)),
+    new PreReviewThresholdService(repository),
+  );
+}
+
 describe('AuthorArticleUseCase', () => {
   it('creates a PendingReview article when the verified doctor has not yet cleared the pre-review threshold', async () => {
-    const useCase = new AuthorArticleUseCase(
-      new FakeKnowledgeArticleRepository(0),
-      new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(buildDoctorProfile())),
-      new CheckIdentityVerificationStatusUseCase(new FakeVerificationCaseRepository(approvedDoctorVerification())),
-    );
+    const useCase = buildUseCase(0, approvedDoctorVerification());
 
     const article = await useCase.execute({
       callerAccountId: DOCTOR_ACCOUNT_ID,
       title: 'Managing Hypertension at Home',
       body: 'Some real, doctor-authored content.',
+      language: KnowledgeArticleLanguage.Arabic,
+      saveAsDraft: false,
     });
 
     assert.equal(article.getStatus(), KnowledgeArticleStatus.PendingReview);
+    assert.equal(article.getLanguage(), KnowledgeArticleLanguage.Arabic);
+    assert.equal(article.getSpecialtyId(), '33333333-3333-4333-8333-333333333333');
   });
 
   it('publishes immediately once the verified doctor has cleared the pre-review threshold', async () => {
-    const useCase = new AuthorArticleUseCase(
-      new FakeKnowledgeArticleRepository(3),
-      new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(buildDoctorProfile())),
-      new CheckIdentityVerificationStatusUseCase(new FakeVerificationCaseRepository(approvedDoctorVerification())),
-    );
+    const useCase = buildUseCase(3, approvedDoctorVerification());
 
     const article = await useCase.execute({
       callerAccountId: DOCTOR_ACCOUNT_ID,
       title: 'Managing Hypertension at Home',
       body: 'Some real, doctor-authored content.',
+      language: KnowledgeArticleLanguage.English,
+      saveAsDraft: false,
     });
 
     assert.equal(article.getStatus(), KnowledgeArticleStatus.Published);
   });
 
-  it('throws ForbiddenError when the caller is not Syndicate-verified', async () => {
+  it('passes sourcesText through to the saved article', async () => {
+    const useCase = buildUseCase(3, approvedDoctorVerification());
+
+    const article = await useCase.execute({
+      callerAccountId: DOCTOR_ACCOUNT_ID,
+      title: 'Managing Hypertension at Home',
+      body: 'Some real, doctor-authored content.',
+      language: KnowledgeArticleLanguage.English,
+      sourcesText: 'https://example.org/study',
+      saveAsDraft: false,
+    });
+
+    assert.equal(article.getSourcesText(), 'https://example.org/study');
+  });
+
+  it('saves a Draft and skips the pre-review threshold computation when saveAsDraft is true', async () => {
+    const repository = new FakeKnowledgeArticleRepository(0);
     const useCase = new AuthorArticleUseCase(
-      new FakeKnowledgeArticleRepository(0),
+      repository,
       new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(buildDoctorProfile())),
-      new CheckIdentityVerificationStatusUseCase(new FakeVerificationCaseRepository([])),
+      new CheckIdentityVerificationStatusUseCase(new FakeVerificationCaseRepository(approvedDoctorVerification())),
+      new PreReviewThresholdService(repository),
     );
+
+    const article = await useCase.execute({
+      callerAccountId: DOCTOR_ACCOUNT_ID,
+      title: 'x',
+      body: 'y',
+      language: KnowledgeArticleLanguage.Arabic,
+      saveAsDraft: true,
+    });
+
+    assert.equal(article.getStatus(), KnowledgeArticleStatus.Draft);
+    assert.equal(article.getPublishedAt(), undefined);
+  });
+
+  it('throws ForbiddenError when the caller is not Syndicate-verified, even when saving as a draft', async () => {
+    const useCase = buildUseCase(0, []);
 
     await assert.rejects(
       () =>
@@ -130,16 +172,36 @@ describe('AuthorArticleUseCase', () => {
           callerAccountId: DOCTOR_ACCOUNT_ID,
           title: 'Managing Hypertension at Home',
           body: 'Some real, doctor-authored content.',
+          language: KnowledgeArticleLanguage.Arabic,
+          saveAsDraft: true,
+        }),
+      ForbiddenError,
+    );
+  });
+
+  it('throws ForbiddenError when the caller is not Syndicate-verified', async () => {
+    const useCase = buildUseCase(0, []);
+
+    await assert.rejects(
+      () =>
+        useCase.execute({
+          callerAccountId: DOCTOR_ACCOUNT_ID,
+          title: 'Managing Hypertension at Home',
+          body: 'Some real, doctor-authored content.',
+          language: KnowledgeArticleLanguage.Arabic,
+          saveAsDraft: false,
         }),
       ForbiddenError,
     );
   });
 
   it('throws NotFoundError when the caller has no doctor profile', async () => {
+    const repository = new FakeKnowledgeArticleRepository(0);
     const useCase = new AuthorArticleUseCase(
-      new FakeKnowledgeArticleRepository(0),
+      repository,
       new GetDoctorProfileByAccountIdUseCase(new FakeDoctorProfileRepository(null)),
       new CheckIdentityVerificationStatusUseCase(new FakeVerificationCaseRepository(approvedDoctorVerification())),
+      new PreReviewThresholdService(repository),
     );
 
     await assert.rejects(
@@ -148,6 +210,8 @@ describe('AuthorArticleUseCase', () => {
           callerAccountId: DOCTOR_ACCOUNT_ID,
           title: 'Managing Hypertension at Home',
           body: 'Some real, doctor-authored content.',
+          language: KnowledgeArticleLanguage.Arabic,
+          saveAsDraft: false,
         }),
       NotFoundError,
     );

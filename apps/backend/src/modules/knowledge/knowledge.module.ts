@@ -10,9 +10,13 @@ import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 import { CheckIdentityVerificationStatusUseCase } from '../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
 
 import { ARTICLE_SAVE_REPOSITORY, DOCTOR_FOLLOW_REPOSITORY, KNOWLEDGE_ARTICLE_REPOSITORY } from './application/ports/tokens.js';
+import { PreReviewThresholdService } from './application/services/pre-review-threshold.service.js';
 import { AuthorArticleUseCase } from './application/use-cases/author-article/author-article.use-case.js';
+import { EditArticleUseCase } from './application/use-cases/edit-article/edit-article.use-case.js';
 import { GetArticleByIdUseCase } from './application/use-cases/get-article-by-id/get-article-by-id.use-case.js';
 import { ListMyArticlesUseCase } from './application/use-cases/list-my-articles/list-my-articles.use-case.js';
+import { SubmitArticleForReviewUseCase } from './application/use-cases/submit-article-for-review/submit-article-for-review.use-case.js';
+import { UnpublishArticleUseCase } from './application/use-cases/unpublish-article/unpublish-article.use-case.js';
 import { ListPublishedArticlesUseCase } from './application/use-cases/list-published-articles/list-published-articles.use-case.js';
 import { ModerateArticleUseCase } from './application/use-cases/moderate-article/moderate-article.use-case.js';
 import { ListArticlesByStatusUseCase } from './application/use-cases/list-articles-by-status/list-articles-by-status.use-case.js';
@@ -46,18 +50,56 @@ import { KnowledgeController } from './presentation/controllers/knowledge.contro
     { provide: DOCTOR_FOLLOW_REPOSITORY, useClass: PrismaDoctorFollowRepository },
     { provide: ARTICLE_SAVE_REPOSITORY, useClass: PrismaArticleSaveRepository },
     {
+      provide: PreReviewThresholdService,
+      useFactory: (repository: KnowledgeArticleRepository) => new PreReviewThresholdService(repository),
+      inject: [KNOWLEDGE_ARTICLE_REPOSITORY],
+    },
+    {
       provide: AuthorArticleUseCase,
       useFactory: (
         repository: KnowledgeArticleRepository,
         getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
         checkIdentityVerificationStatusUseCase: CheckIdentityVerificationStatusUseCase,
-      ) => new AuthorArticleUseCase(repository, getDoctorProfileByAccountIdUseCase, checkIdentityVerificationStatusUseCase),
-      inject: [KNOWLEDGE_ARTICLE_REPOSITORY, GetDoctorProfileByAccountIdUseCase, CheckIdentityVerificationStatusUseCase],
+        preReviewThresholdService: PreReviewThresholdService,
+      ) =>
+        new AuthorArticleUseCase(
+          repository,
+          getDoctorProfileByAccountIdUseCase,
+          checkIdentityVerificationStatusUseCase,
+          preReviewThresholdService,
+        ),
+      inject: [
+        KNOWLEDGE_ARTICLE_REPOSITORY,
+        GetDoctorProfileByAccountIdUseCase,
+        CheckIdentityVerificationStatusUseCase,
+        PreReviewThresholdService,
+      ],
     },
     {
       provide: GetArticleByIdUseCase,
       useFactory: (repository: KnowledgeArticleRepository, getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase) =>
         new GetArticleByIdUseCase(repository, getDoctorProfileByAccountIdUseCase),
+      inject: [KNOWLEDGE_ARTICLE_REPOSITORY, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: EditArticleUseCase,
+      useFactory: (repository: KnowledgeArticleRepository, getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase) =>
+        new EditArticleUseCase(repository, getDoctorProfileByAccountIdUseCase),
+      inject: [KNOWLEDGE_ARTICLE_REPOSITORY, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: SubmitArticleForReviewUseCase,
+      useFactory: (
+        repository: KnowledgeArticleRepository,
+        getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
+        preReviewThresholdService: PreReviewThresholdService,
+      ) => new SubmitArticleForReviewUseCase(repository, getDoctorProfileByAccountIdUseCase, preReviewThresholdService),
+      inject: [KNOWLEDGE_ARTICLE_REPOSITORY, GetDoctorProfileByAccountIdUseCase, PreReviewThresholdService],
+    },
+    {
+      provide: UnpublishArticleUseCase,
+      useFactory: (repository: KnowledgeArticleRepository, getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase) =>
+        new UnpublishArticleUseCase(repository, getDoctorProfileByAccountIdUseCase),
       inject: [KNOWLEDGE_ARTICLE_REPOSITORY, GetDoctorProfileByAccountIdUseCase],
     },
     {

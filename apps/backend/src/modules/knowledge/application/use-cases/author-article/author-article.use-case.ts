@@ -3,8 +3,8 @@ import { CheckIdentityVerificationStatusUseCase } from '../../../../trust/applic
 import { VerificationSubjectType } from '../../../../trust/domain/enums/verification-subject-type.enum.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { KnowledgeArticle } from '../../../domain/entities/knowledge-article.entity.js';
-import { KnowledgeArticleLanguage } from '../../../domain/enums/knowledge-article-language.enum.js';
 import type { KnowledgeArticleRepository } from '../../../domain/repositories/knowledge-article.repository.js';
+import { PreReviewThresholdService } from '../../services/pre-review-threshold.service.js';
 
 import type { AuthorArticleCommand } from './author-article.command.js';
 
@@ -13,19 +13,16 @@ import type { AuthorArticleCommand } from './author-article.command.js';
 // value of this module collapses immediately if content quality/
 // authorship isn't controlled" -- enforced here via TrustModule's own
 // exported CheckIdentityVerificationStatusUseCase, never a separate,
-// invented verification check. A doctor's first 3 articles ever
-// Published/Archived require pre-publication admin review; from the 4th
-// onward, an article publishes immediately but stays subject to
-// post-publication spot-review (ModerateArticleUseCase can still archive
-// it later) -- both halves of the PRD's own "lightweight pre-publication
-// review... transitioning to post-publication spot-review" rule.
-const PRE_REVIEW_THRESHOLD = 3;
-
+// invented verification check. Verification gates BOTH publishing and
+// saving a draft (Knowledge Center Hardening Phase 1) -- a non-verified
+// doctor shouldn't be able to accumulate drafts either, so this check runs
+// before the saveAsDraft branch, never skippable via that path.
 export class AuthorArticleUseCase {
   constructor(
     private readonly knowledgeArticleRepository: KnowledgeArticleRepository,
     private readonly getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
     private readonly checkIdentityVerificationStatusUseCase: CheckIdentityVerificationStatusUseCase,
+    private readonly preReviewThresholdService: PreReviewThresholdService,
   ) {}
 
   async execute(command: AuthorArticleCommand): Promise<KnowledgeArticle> {
@@ -42,21 +39,31 @@ export class AuthorArticleUseCase {
       throw new ForbiddenError('Only a Syndicate-verified doctor may publish Knowledge Center content.');
     }
 
-    const priorPublishedCount = await this.knowledgeArticleRepository.countEverPublishedByAuthor(doctorProfile.getId());
+    if (command.saveAsDraft) {
+      const draft = KnowledgeArticle.author({
+        authoringDoctorId: doctorProfile.getId(),
+        title: command.title,
+        body: command.body,
+        language: command.language,
+        // Knowledge Center Hardening Phase 1, decision 3: auto-tag every
+        // article with the authoring doctor's own current specialty.
+        specialtyId: doctorProfile.getSpecialtyId(),
+        sourcesText: command.sourcesText,
+        saveAsDraft: true,
+      });
+      await this.knowledgeArticleRepository.save(draft);
+      return draft;
+    }
+
+    const requiresPreReview = await this.preReviewThresholdService.computeRequiresPreReview(doctorProfile.getId());
     const article = KnowledgeArticle.author({
       authoringDoctorId: doctorProfile.getId(),
       title: command.title,
       body: command.body,
-      // Knowledge Center Hardening Phase 0: the entity now requires language/
-      // specialtyId on every article (decisions 3/5). specialtyId is
-      // auto-tagged from the doctor's own profile per decision 3. language
-      // is temporarily defaulted to Arabic here -- Phase 1 widens
-      // AuthorArticleCommand with a real, caller-supplied language field;
-      // this default is only a stopgap to keep this use case compiling
-      // against the widened entity, not a product decision.
-      language: KnowledgeArticleLanguage.Arabic,
+      language: command.language,
       specialtyId: doctorProfile.getSpecialtyId(),
-      requiresPreReview: priorPublishedCount < PRE_REVIEW_THRESHOLD,
+      sourcesText: command.sourcesText,
+      requiresPreReview,
     });
 
     await this.knowledgeArticleRepository.save(article);
