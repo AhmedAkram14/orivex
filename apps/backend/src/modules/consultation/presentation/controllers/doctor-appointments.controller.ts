@@ -22,6 +22,7 @@ import { DeclineAppointmentCommand } from '../../application/use-cases/decline-a
 import { DeclineAppointmentUseCase } from '../../application/use-cases/decline-appointment/decline-appointment.use-case.js';
 import { GetAppointmentByIdUseCase } from '../../application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByAppointmentIdUseCase } from '../../application/use-cases/get-consultation-session-by-appointment-id/get-consultation-session-by-appointment-id.use-case.js';
+import { GetDoctorReportsAnalyticsUseCase } from '../../application/use-cases/get-doctor-reports-analytics/get-doctor-reports-analytics.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from '../../application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import { ListAppointmentsForDoctorUseCase } from '../../application/use-cases/list-appointments-for-doctor/list-appointments-for-doctor.use-case.js';
@@ -29,6 +30,8 @@ import { AppointmentResponseDto } from '../dto/appointment-response.dto.js';
 import { DoctorDashboardSummaryResponseDto } from '../dto/doctor-dashboard-summary-response.dto.js';
 import { DoctorPatientListItemResponseDto } from '../dto/doctor-patient-list-item-response.dto.js';
 import { DeclineAppointmentRequestDto } from '../dto/decline-appointment-request.dto.js';
+import { DoctorReportFilterQueryDto } from '../dto/doctor-report-filter-query.dto.js';
+import { DoctorReportsAnalyticsResponseDto } from '../dto/doctor-reports-analytics-response.dto.js';
 import { DoctorReportsSummaryResponseDto } from '../dto/doctor-reports-summary-response.dto.js';
 import { DoctorScheduleAppointmentResponseDto } from '../dto/doctor-schedule-appointment-response.dto.js';
 import { DoctorScheduleQueryDto } from '../dto/doctor-schedule-query.dto.js';
@@ -58,6 +61,7 @@ export class DoctorAppointmentsController {
     private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
     private readonly declineAppointmentUseCase: DeclineAppointmentUseCase,
     private readonly getDoctorReportsSummaryUseCase: GetDoctorReportsSummaryUseCase,
+    private readonly getDoctorReportsAnalyticsUseCase: GetDoctorReportsAnalyticsUseCase,
     private readonly getFollowUpRecommendationForSessionUseCase: GetFollowUpRecommendationForSessionUseCase,
   ) {}
 
@@ -282,6 +286,43 @@ export class DoctorAppointmentsController {
     dto.averageRating = summary.averageRating;
     dto.reviewCount = summary.reviewCount;
     return envelope(dto);
+  }
+
+  // Doctor Reports page rebuild (Phase 1): the real, date-ranged replacement
+  // for reports-summary above -- 7-tile reconciled counts, a bucketed trend,
+  // and an optional previous-period comparison. reports-summary itself stays
+  // in place, unused after this ships (plan decision 9).
+  @Get('doctor/reports-analytics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(AccountRole.Doctor)
+  async getDoctorReportsAnalytics(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query() query: DoctorReportFilterQueryDto,
+  ): Promise<ResponseEnvelope<DoctorReportsAnalyticsResponseDto>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      const empty = new DoctorReportsAnalyticsResponseDto();
+      empty.totalAppointments = 0;
+      empty.completed = 0;
+      empty.cancelled = 0;
+      empty.noShow = 0;
+      empty.pendingApproval = 0;
+      empty.upcoming = 0;
+      empty.expired = 0;
+      empty.averageRating = null;
+      empty.reviewCount = 0;
+      empty.byBucket = [];
+      return envelope(empty);
+    }
+
+    const filter = query.toFilter();
+    const analytics = await this.getDoctorReportsAnalyticsUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      dateFrom: filter.dateFrom,
+      dateTo: filter.dateTo,
+      comparePrevious: filter.comparePrevious,
+    });
+    return envelope(DoctorReportsAnalyticsResponseDto.fromDomain(analytics));
   }
 
   // Doctor-approval-workflow: Free bookings land Requested and stay there

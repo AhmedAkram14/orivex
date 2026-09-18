@@ -77,6 +77,7 @@ import { ConsultationPricing } from '../../domain/value-objects/consultation-pri
 import { Money } from '../../domain/value-objects/money.value-object.js';
 import { CONSULTATION_FEEDBACK_REPOSITORY } from '../../application/ports/tokens.js';
 import { GetDoctorRatingAggregateUseCase } from '../../application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregate.use-case.js';
+import { GetDoctorReportsAnalyticsUseCase } from '../../application/use-cases/get-doctor-reports-analytics/get-doctor-reports-analytics.use-case.js';
 import { GetDoctorReportsSummaryUseCase } from '../../application/use-cases/get-doctor-reports-summary/get-doctor-reports-summary.use-case.js';
 import { GetFollowUpRecommendationForSessionUseCase } from '../../application/use-cases/get-follow-up-recommendation-for-session/get-follow-up-recommendation-for-session.use-case.js';
 import { ListConsultationFeedbackForDoctorUseCase } from '../../application/use-cases/list-consultation-feedback-for-doctor/list-consultation-feedback-for-doctor.use-case.js';
@@ -716,6 +717,10 @@ describe('Consultation controllers (integration)', () => {
           useValue: new GetDoctorReportsSummaryUseCase(appointmentRepo, new GetDoctorRatingAggregateUseCase(feedbackRepo)),
         },
         {
+          provide: GetDoctorReportsAnalyticsUseCase,
+          useValue: new GetDoctorReportsAnalyticsUseCase(appointmentRepo, feedbackRepo),
+        },
+        {
           provide: ListConsultationFeedbackForDoctorUseCase,
           useValue: new ListConsultationFeedbackForDoctorUseCase(feedbackRepo),
         },
@@ -1336,6 +1341,64 @@ describe('Consultation controllers (integration)', () => {
     assert.ok(response.body.data.totalAppointments >= response.body.data.confirmed + response.body.data.completed);
     assert.equal(response.body.data.averageRating, null);
     assert.equal(response.body.data.reviewCount, 0);
+  });
+
+  it('GET /appointments/doctor/reports-analytics rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/appointments/doctor/reports-analytics').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('GET /appointments/doctor/reports-analytics returns an honest empty summary for a doctor with no registered profile', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-analytics')
+      .set('Authorization', `Bearer ${VALID_DOCTOR_NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, {
+      totalAppointments: 0,
+      completed: 0,
+      cancelled: 0,
+      noShow: 0,
+      pendingApproval: 0,
+      upcoming: 0,
+      expired: 0,
+      averageRating: null,
+      reviewCount: 0,
+      byBucket: [],
+    });
+  });
+
+  it('GET /appointments/doctor/reports-analytics reconciles the tiles against the real total for a date range', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-analytics')
+      .query({ dateFrom: '2000-01-01T00:00:00.000Z', dateTo: '2100-01-01T00:00:00.000Z' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+
+    const data = response.body.data;
+    assert.equal(response.body.data.averageRating, null);
+    assert.equal(response.body.data.reviewCount, 0);
+    assert.equal(
+      data.completed + data.cancelled + data.noShow + data.pendingApproval + data.upcoming + data.expired,
+      data.totalAppointments,
+    );
+  });
+
+  it('GET /appointments/doctor/reports-analytics only includes previousPeriod when comparePrevious=true', async () => {
+    const withoutCompare = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-analytics')
+      .query({ dateFrom: '2000-01-01T00:00:00.000Z', dateTo: '2100-01-01T00:00:00.000Z' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+    assert.equal(withoutCompare.body.data.previousPeriod, undefined);
+
+    const withCompare = await request(app.getHttpServer())
+      .get('/appointments/doctor/reports-analytics')
+      .query({ dateFrom: '2000-01-01T00:00:00.000Z', dateTo: '2100-01-01T00:00:00.000Z', comparePrevious: 'true' })
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(200);
+    assert.ok(withCompare.body.data.previousPeriod);
+    assert.equal(typeof withCompare.body.data.previousPeriod.totalAppointments, 'number');
   });
 
   describe('POST /consultations/:id/room-token', () => {
