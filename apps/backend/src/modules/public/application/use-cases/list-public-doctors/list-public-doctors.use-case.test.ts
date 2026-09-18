@@ -48,6 +48,9 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
   async getRatingAggregateForDoctor(): Promise<DoctorRatingAggregate> {
     return { averageRating: null, reviewCount: 0, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null };
   }
+  async getRatingAggregateForDoctorInRange(): Promise<DoctorRatingAggregate> {
+    return this.getRatingAggregateForDoctor();
+  }
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
     const result = new Map<string, DoctorRatingAggregate>();
     for (const id of doctorIds) {

@@ -40,6 +40,9 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
   async getRatingAggregateForDoctor(): Promise<DoctorRatingAggregate> {
     return { averageRating: null, reviewCount: 0, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null };
   }
+  async getRatingAggregateForDoctorInRange(): Promise<DoctorRatingAggregate> {
+    return this.getRatingAggregateForDoctor();
+  }
   async getRatingAggregatesForDoctors(): Promise<Map<string, DoctorRatingAggregate>> {
     return new Map();
   }
@@ -109,6 +112,15 @@ class FakeAppointmentRepository implements AppointmentRepository {
   }
   async countByStatusForDoctor(): Promise<Partial<Record<string, number>>> {
     return {};
+  }
+  async countByStatusForDoctorInRange(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
+  async countFreeRequestedForDoctorInRange(): Promise<number> {
+    return 0;
+  }
+  async countByDoctorIdBucketed(): Promise<{ bucket: string; count: number }[]> {
+    return [];
   }
   async save(): Promise<void> {}
 }

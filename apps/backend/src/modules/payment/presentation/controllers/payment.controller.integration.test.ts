@@ -134,6 +134,15 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
   async countByStatusForDoctor(): Promise<Partial<Record<string, number>>> {
     return {};
   }
+  async countByStatusForDoctorInRange(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
+  async countFreeRequestedForDoctorInRange(): Promise<number> {
+    return 0;
+  }
+  async countByDoctorIdBucketed(): Promise<{ bucket: string; count: number }[]> {
+    return [];
+  }
   async save(): Promise<void> {}
 }
 

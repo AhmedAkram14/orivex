@@ -92,6 +92,37 @@ export class PrismaConsultationFeedbackRepository implements ConsultationFeedbac
     };
   }
 
+  // Phase 0 (Doctor Reports page rebuild): dated sibling of
+  // getRatingAggregateForDoctor above -- identical body, with a createdAt
+  // range predicate added to both queries (mirrors that method's own
+  // Visible-only filter so the reports page's rating tile agrees with what
+  // the review list would show for the same window).
+  async getRatingAggregateForDoctorInRange(doctorId: string, from: Date, to: Date): Promise<DoctorRatingAggregate> {
+    const [result, writtenReviewCount] = await Promise.all([
+      this.prisma.consultationFeedback.aggregate({
+        where: { doctorId, moderationStatus: PrismaReviewModerationStatus.VISIBLE, createdAt: { gte: from, lt: to } },
+        _avg: { rating: true, communicationRating: true, punctualityRating: true, thoroughnessRating: true },
+        _count: { rating: true },
+      }),
+      this.prisma.consultationFeedback.count({
+        where: {
+          doctorId,
+          comment: { not: null },
+          moderationStatus: PrismaReviewModerationStatus.VISIBLE,
+          createdAt: { gte: from, lt: to },
+        },
+      }),
+    ]);
+    return {
+      averageRating: result._avg.rating,
+      reviewCount: result._count.rating,
+      writtenReviewCount,
+      averageCommunicationRating: result._avg.communicationRating,
+      averagePunctualityRating: result._avg.punctualityRating,
+      averageThoroughnessRating: result._avg.thoroughnessRating,
+    };
+  }
+
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
     if (doctorIds.length === 0) {
       return new Map();

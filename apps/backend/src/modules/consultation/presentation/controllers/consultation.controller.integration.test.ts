@@ -246,6 +246,15 @@ class InMemoryAppointmentRepository implements AppointmentRepository {
     }
     return result;
   }
+  async countByStatusForDoctorInRange(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
+  async countFreeRequestedForDoctorInRange(): Promise<number> {
+    return 0;
+  }
+  async countByDoctorIdBucketed(): Promise<{ bucket: string; count: number }[]> {
+    return [];
+  }
   async save(appointment: Appointment): Promise<void> {
     this.byId.set(appointment.getId(), appointment);
   }
@@ -343,6 +352,9 @@ class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepo
       averagePunctualityRating: null,
       averageThoroughnessRating: null,
     };
+  }
+  async getRatingAggregateForDoctorInRange(doctorId: string): Promise<DoctorRatingAggregate> {
+    return this.getRatingAggregateForDoctor(doctorId);
   }
   async getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>> {
     const result = new Map<string, DoctorRatingAggregate>();

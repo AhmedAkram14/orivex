@@ -34,6 +34,25 @@ export interface AppointmentRepository {
   // Reports page, one query for every real status count at once rather
   // than a separate count() call per status.
   countByStatusForDoctor(doctorId: string): Promise<Partial<Record<AppointmentStatus, number>>>;
+  // Phase 0 (Doctor Reports page rebuild): dated sibling of
+  // countByStatusForDoctor above, bucketed on scheduledAt instead of the
+  // doctor's entire lifetime -- backs the reports page's date-range tiles.
+  countByStatusForDoctorInRange(doctorId: string, from: Date, to: Date): Promise<Partial<Record<AppointmentStatus, number>>>;
+  // Phase 0 (Doctor Reports page rebuild): mirrors the exact
+  // status===Requested && pricing.isFree() definition the pending-approval
+  // endpoint itself uses (DoctorAppointmentsController#getPendingApproval)
+  // -- backs the reports page's "Pending approval" tile for a date range.
+  countFreeRequestedForDoctorInRange(doctorId: string, from: Date, to: Date): Promise<number>;
+  // Phase 0 (Doctor Reports page rebuild): backs the reports page's trend
+  // chart -- modeled directly on ReportingModule's own
+  // PrismaAppointmentAnalyticsQueryService date_trunc bucketing, scoped to
+  // one doctor instead of platform-wide.
+  countByDoctorIdBucketed(
+    doctorId: string,
+    from: Date,
+    to: Date,
+    bucket: 'day' | 'week' | 'month',
+  ): Promise<{ bucket: string; count: number }[]>;
   // Join-Window Enforcement feature: backs the No-show reconciliation sweep
   // -- a Confirmed appointment scheduled before the cutoff whose own
   // ConsultationSession never left WaitingRoom (nobody, doctor or patient,

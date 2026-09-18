@@ -27,6 +27,12 @@ export interface ConsultationFeedbackRepository {
     limit: number,
   ): Promise<{ feedback: ConsultationFeedback[]; total: number }>;
   getRatingAggregateForDoctor(doctorId: string): Promise<DoctorRatingAggregate>;
+  // Phase 0 (Doctor Reports page rebuild): dated sibling of
+  // getRatingAggregateForDoctor above -- same Visible-only aggregation,
+  // scoped to createdAt falling within [from, to). The lifetime method is
+  // untouched: it's called cross-module and from the public reviews
+  // controller.
+  getRatingAggregateForDoctorInRange(doctorId: string, from: Date, to: Date): Promise<DoctorRatingAggregate>;
   /** Batched form for a paginated doctor-directory listing -- avoids one aggregate query per doctor per page (N+1). */
   getRatingAggregatesForDoctors(doctorIds: string[]): Promise<Map<string, DoctorRatingAggregate>>;
   save(feedback: ConsultationFeedback): Promise<void>;

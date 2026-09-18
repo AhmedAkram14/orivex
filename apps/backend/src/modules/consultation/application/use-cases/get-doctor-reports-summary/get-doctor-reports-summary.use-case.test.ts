@@ -13,12 +13,24 @@ class FakeAppointmentRepository implements Partial<AppointmentRepository> {
   async countByStatusForDoctor(): Promise<Partial<Record<AppointmentStatus, number>>> {
     return this.counts;
   }
+  async countByStatusForDoctorInRange(): Promise<Partial<Record<string, number>>> {
+    return {};
+  }
+  async countFreeRequestedForDoctorInRange(): Promise<number> {
+    return 0;
+  }
+  async countByDoctorIdBucketed(): Promise<{ bucket: string; count: number }[]> {
+    return [];
+  }
 }
 
 class FakeConsultationFeedbackRepository {
   constructor(private readonly aggregate: DoctorRatingAggregate) {}
   async getRatingAggregateForDoctor(): Promise<DoctorRatingAggregate> {
     return this.aggregate;
+  }
+  async getRatingAggregateForDoctorInRange(): Promise<DoctorRatingAggregate> {
+    return this.getRatingAggregateForDoctor();
   }
 }
 

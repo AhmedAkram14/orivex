@@ -39,6 +39,9 @@ class FakeConsultationFeedbackRepository implements ConsultationFeedbackReposito
       averageThoroughnessRating: null,
     };
   }
+  async getRatingAggregateForDoctorInRange(): Promise<DoctorRatingAggregate> {
+    return this.getRatingAggregateForDoctor();
+  }
   async getRatingAggregatesForDoctors(): Promise<Map<string, DoctorRatingAggregate>> {
     return new Map();
   }

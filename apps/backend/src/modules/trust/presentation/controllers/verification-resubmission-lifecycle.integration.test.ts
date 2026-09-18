@@ -255,6 +255,9 @@ class InMemoryConsultationFeedbackRepository implements ConsultationFeedbackRepo
       averageThoroughnessRating: null,
     };
   }
+  async getRatingAggregateForDoctorInRange(): Promise<DoctorRatingAggregate> {
+    return this.getRatingAggregateForDoctor();
+  }
   async getRatingAggregatesForDoctors(): Promise<Map<string, DoctorRatingAggregate>> {
     return new Map();
   }

@@ -107,6 +107,63 @@ export class PrismaAppointmentRepository implements AppointmentRepository {
     return result;
   }
 
+  // Phase 0 (Doctor Reports page rebuild): dated sibling of
+  // countByStatusForDoctor above -- identical groupBy shape, scoped to
+  // scheduledAt falling within [from, to).
+  async countByStatusForDoctorInRange(
+    doctorId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Partial<Record<AppointmentStatus, number>>> {
+    const groups = await this.prisma.appointment.groupBy({
+      by: ['status'],
+      where: { doctorId, scheduledAt: { gte: from, lt: to } },
+      _count: { _all: true },
+    });
+    const result: Partial<Record<AppointmentStatus, number>> = {};
+    for (const group of groups) {
+      result[toDomainAppointmentStatus(group.status)] = group._count._all;
+    }
+    return result;
+  }
+
+  // Phase 0 (Doctor Reports page rebuild): matches
+  // DoctorAppointmentsController#getPendingApproval's own exact filter --
+  // status === Requested AND pricing.isFree(). At the Prisma level,
+  // isFree() is equivalent to consultationType === 'FREE' (see
+  // consultation-pricing.mapper.ts / consultation-type.mapper.ts --
+  // isFree() is purely a function of pricingType, not feeAmount).
+  async countFreeRequestedForDoctorInRange(doctorId: string, from: Date, to: Date): Promise<number> {
+    return this.prisma.appointment.count({
+      where: {
+        doctorId,
+        status: 'REQUESTED',
+        consultationType: 'FREE',
+        scheduledAt: { gte: from, lt: to },
+      },
+    });
+  }
+
+  // Phase 0 (Doctor Reports page rebuild): backs the reports page's trend
+  // chart. Copies PrismaAppointmentAnalyticsQueryService.queryByBucket's
+  // date_trunc raw-SQL approach exactly, scoped to a single doctor instead
+  // of platform-wide.
+  async countByDoctorIdBucketed(
+    doctorId: string,
+    from: Date,
+    to: Date,
+    bucket: 'day' | 'week' | 'month',
+  ): Promise<{ bucket: string; count: number }[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ bucket: Date; count: bigint }>>`
+      SELECT date_trunc(${bucket}, "scheduledAt") AS bucket, COUNT(*) AS count
+      FROM "Appointment"
+      WHERE "doctorId" = ${doctorId} AND "scheduledAt" >= ${from} AND "scheduledAt" < ${to}
+      GROUP BY bucket
+      ORDER BY bucket ASC
+    `;
+    return rows.map((row) => ({ bucket: row.bucket.toISOString(), count: Number(row.count) }));
+  }
+
   async findConfirmedPastJoinWindowMissed(cutoff: Date): Promise<Appointment[]> {
     const rows = await this.prisma.appointment.findMany({
       where: {
