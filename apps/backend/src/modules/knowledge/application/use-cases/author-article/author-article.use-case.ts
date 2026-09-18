@@ -3,6 +3,7 @@ import { CheckIdentityVerificationStatusUseCase } from '../../../../trust/applic
 import { VerificationSubjectType } from '../../../../trust/domain/enums/verification-subject-type.enum.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { KnowledgeArticle } from '../../../domain/entities/knowledge-article.entity.js';
+import { KnowledgeArticleLanguage } from '../../../domain/enums/knowledge-article-language.enum.js';
 import type { KnowledgeArticleRepository } from '../../../domain/repositories/knowledge-article.repository.js';
 
 import type { AuthorArticleCommand } from './author-article.command.js';
@@ -46,6 +47,15 @@ export class AuthorArticleUseCase {
       authoringDoctorId: doctorProfile.getId(),
       title: command.title,
       body: command.body,
+      // Knowledge Center Hardening Phase 0: the entity now requires language/
+      // specialtyId on every article (decisions 3/5). specialtyId is
+      // auto-tagged from the doctor's own profile per decision 3. language
+      // is temporarily defaulted to Arabic here -- Phase 1 widens
+      // AuthorArticleCommand with a real, caller-supplied language field;
+      // this default is only a stopgap to keep this use case compiling
+      // against the widened entity, not a product decision.
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: doctorProfile.getSpecialtyId(),
       requiresPreReview: priorPublishedCount < PRE_REVIEW_THRESHOLD,
     });
 

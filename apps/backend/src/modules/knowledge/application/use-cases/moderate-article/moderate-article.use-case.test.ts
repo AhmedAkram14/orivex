@@ -5,6 +5,7 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { KnowledgeDomainError } from '../../../domain/exceptions/knowledge-domain.error.js';
 import { KnowledgeArticle } from '../../../domain/entities/knowledge-article.entity.js';
 import { KnowledgeArticleStatus } from '../../../domain/enums/knowledge-article-status.enum.js';
+import { KnowledgeArticleLanguage } from '../../../domain/enums/knowledge-article-language.enum.js';
 import type { KnowledgeArticleRepository } from '../../../domain/repositories/knowledge-article.repository.js';
 
 import { ModerateArticleUseCase } from './moderate-article.use-case.js';
@@ -38,6 +39,8 @@ function pendingArticle(): KnowledgeArticle {
     authoringDoctorId: 'doctor-profile-id',
     title: 'Title',
     body: 'Body content here.',
+    language: KnowledgeArticleLanguage.Arabic,
+    specialtyId: 'specialty-id',
     requiresPreReview: true,
   });
 }

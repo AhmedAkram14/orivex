@@ -6,6 +6,7 @@ import { GetDoctorProfileByAccountIdUseCase } from '../../../../doctor/applicati
 import { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { KnowledgeArticle } from '../../../domain/entities/knowledge-article.entity.js';
+import { KnowledgeArticleLanguage } from '../../../domain/enums/knowledge-article-language.enum.js';
 import type { KnowledgeArticleRepository } from '../../../domain/repositories/knowledge-article.repository.js';
 
 import { GetArticleByIdUseCase } from './get-article-by-id.use-case.js';
@@ -59,6 +60,8 @@ describe('GetArticleByIdUseCase', () => {
       authoringDoctorId: 'some-doctor-profile-id',
       title: 'Title',
       body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
       requiresPreReview: false,
     });
     const useCase = new GetArticleByIdUseCase(
@@ -76,6 +79,8 @@ describe('GetArticleByIdUseCase', () => {
       authoringDoctorId: doctorProfile.getId(),
       title: 'Title',
       body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
       requiresPreReview: true,
     });
     const useCase = new GetArticleByIdUseCase(
@@ -93,6 +98,8 @@ describe('GetArticleByIdUseCase', () => {
       authoringDoctorId: doctorProfile.getId(),
       title: 'Title',
       body: 'Body content here.',
+      language: KnowledgeArticleLanguage.Arabic,
+      specialtyId: 'specialty-id',
       requiresPreReview: true,
     });
     const otherDoctorProfile = DoctorProfile.register({

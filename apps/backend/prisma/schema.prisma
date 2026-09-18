@@ -274,6 +274,10 @@ model MedicalSpecialty {
   // consumer -- Stage O.1 deliberately shipped this table with zero
   // coupling to DoctorProfile first.
   doctorProfiles DoctorProfile[]
+  // Knowledge Center Hardening Phase 0: every KnowledgeArticle is auto-tagged
+  // with its authoring doctor's own specialty (decision 3 -- no new Select,
+  // no mismatch risk).
+  knowledgeArticles KnowledgeArticle[]
 }
 
 model Country {
@@ -1670,30 +1674,88 @@ model Dispute {
 // an admin's own history shows *why* an article isn't live (never approved
 // vs. taken down after being live), matching AuditLog/Dispute's own
 // "every admin action is honestly, separately logged" convention.
+//
+// Knowledge Center Hardening Phase 0: widens the state machine beyond the
+// original strictly one-way shape above. The full set of legal edges is now:
+//   Draft -> PendingReview | Published        (submitForReview(), by requiresPreReview)
+//   PendingReview -> Published | Rejected     (an admin's first decision)
+//   Published -> Archived                     (moderate() spot-review takedown,
+//                                               or the author's own unpublish())
+//   Published -> PendingReview                (author-initiated edit() ONLY --
+//                                               see below)
+// There is still no path back from Rejected/Archived to Published/PendingReview
+// -- an admin (or author) who changes their mind creates a new article, never
+// resurrects an old moderation decision (same "immutable trail" posture as
+// AuditLog/Dispute). The one deliberate, narrow exception to "no path back" is
+// Published -> PendingReview: when the authoring doctor edits an already-live
+// article's content, the edit is not itself re-approved automatically -- it
+// re-enters the review queue, and the previously-published version simply
+// stops being publicly visible until an admin acts again. This is scoped
+// strictly to author-initiated content edits, never to an admin moderation
+// decision (an admin never sends a Published article back to PendingReview --
+// their only lever on a Published article is Archived, via moderate() or the
+// author's own unpublish()).
 enum KnowledgeArticleStatus {
+  DRAFT
   PENDING_REVIEW
   PUBLISHED
   REJECTED
   ARCHIVED
 }
 
+// Knowledge Center Hardening Phase 0: a knowledge-owned language tag, kept
+// deliberately independent of identity's own `Language` enum (same string
+// values, for consistency in logs/exports) -- this module never imports
+// another module's domain type, matching its existing boundary convention
+// (see e.g. KnowledgeModule's use-case-level, not domain-level, dependency
+// on DoctorModule/PatientModule/TrustModule).
+enum KnowledgeArticleLanguage {
+  ARABIC
+  ENGLISH
+}
+
 model KnowledgeArticle {
-  id                   String                 @id @default(uuid())
+  id                   String                   @id @default(uuid())
   authoringDoctorId    String
-  doctorProfile        DoctorProfile          @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
+  doctorProfile        DoctorProfile            @relation(fields: [authoringDoctorId], references: [id], onDelete: Restrict)
   title                String
   body                 String
-  status               KnowledgeArticleStatus @default(PENDING_REVIEW)
+  status               KnowledgeArticleStatus   @default(PENDING_REVIEW)
+  // Knowledge Center Hardening Phase 0: required going forward (auto-tagged
+  // from the authoring doctor's own DoctorProfile.specialtyId at authoring/
+  // edit time -- never a free-choice Select, no mismatch risk). Existing rows
+  // are backfilled deterministically from their author's current specialty;
+  // see this field's own migration for the backfill SQL. Restrict, not
+  // SetNull, mirroring DoctorProfile.specialtyId's own onDelete choice -- a
+  // MedicalSpecialty referenced by a real article can't be deleted out from
+  // under it.
+  specialtyId          String
+  medicalSpecialty     MedicalSpecialty         @relation(fields: [specialtyId], references: [id], onDelete: Restrict)
+  // Knowledge Center Hardening Phase 0: required going forward. Existing rows
+  // are backfilled to ARABIC -- a default guess for pre-existing content, not
+  // a real signal, per the platform's Arabic-first principle; see this
+  // field's own migration.
+  language             KnowledgeArticleLanguage
+  // Knowledge Center Hardening Phase 0: optional free-text references/
+  // citations, distinct from the disclaimer shown on every article -- never
+  // required, since not every article cites external sources.
+  sourcesText          String?
+  // Knowledge Center Hardening Phase 0: incremented by recordView() on each
+  // qualifying read of a Published article (excluding the authoring doctor's
+  // own reads -- see recordView()'s call sites). Not audit-worthy, so its
+  // increment deliberately does not touch updatedAt.
+  viewCount            Int                      @default(0)
   moderationReason     String?
   moderatedByAccountId String?
   moderatedAt          DateTime?
   publishedAt          DateTime?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
   saves                KnowledgeArticleSave[]
 
   @@index([authoringDoctorId])
   @@index([status])
+  @@index([specialtyId])
 }
 
 // A patient bookmarking an article for later -- deliberately a plain join

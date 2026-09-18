@@ -6,7 +6,11 @@ import type { KnowledgeArticle } from '../../domain/entities/knowledge-article.e
 import type { KnowledgeArticleStatus } from '../../domain/enums/knowledge-article-status.enum.js';
 import type { KnowledgeArticleRepository } from '../../domain/repositories/knowledge-article.repository.js';
 
-import { toDomainKnowledgeArticle, toPrismaKnowledgeArticleStatus } from './knowledge-article.mapper.js';
+import {
+  toDomainKnowledgeArticle,
+  toPrismaKnowledgeArticleStatus,
+  toPrismaKnowledgeArticleLanguage,
+} from './knowledge-article.mapper.js';
 
 @Injectable()
 export class PrismaKnowledgeArticleRepository implements KnowledgeArticleRepository {
@@ -78,6 +82,10 @@ export class PrismaKnowledgeArticleRepository implements KnowledgeArticleReposit
         title: article.getTitle(),
         body: article.getBody(),
         status: toPrismaKnowledgeArticleStatus(article.getStatus()),
+        language: toPrismaKnowledgeArticleLanguage(article.getLanguage()),
+        specialtyId: article.getSpecialtyId(),
+        sourcesText: article.getSourcesText() ?? null,
+        viewCount: article.getViewCount(),
         publishedAt: article.getPublishedAt() ?? null,
         createdAt: article.getCreatedAt(),
         updatedAt: article.getUpdatedAt(),
@@ -85,11 +93,21 @@ export class PrismaKnowledgeArticleRepository implements KnowledgeArticleReposit
     });
   }
 
+  // Knowledge Center Hardening Phase 0: widened beyond moderate()'s own
+  // moderation-only columns -- edit()/recordView()/unpublish()/
+  // submitForReview() now also flow through this same update() path, and
+  // must not have their content/view-count changes silently dropped.
   async update(article: KnowledgeArticle): Promise<void> {
     await this.prisma.knowledgeArticle.update({
       where: { id: article.getId() },
       data: {
+        title: article.getTitle(),
+        body: article.getBody(),
         status: toPrismaKnowledgeArticleStatus(article.getStatus()),
+        language: toPrismaKnowledgeArticleLanguage(article.getLanguage()),
+        specialtyId: article.getSpecialtyId(),
+        sourcesText: article.getSourcesText() ?? null,
+        viewCount: article.getViewCount(),
         moderationReason: article.getModerationReason() ?? null,
         moderatedByAccountId: article.getModeratedByAccountId() ?? null,
         moderatedAt: article.getModeratedAt() ?? null,
