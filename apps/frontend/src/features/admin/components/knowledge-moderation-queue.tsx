@@ -23,6 +23,15 @@ interface PendingDecision {
  * pre-publication review queue -- defaults to PendingReview, with an
  * Approve/Reject decision on each -- mirrors `ReviewModerationQueue`'s own
  * confirm-dialog-with-a-reason pattern exactly.
+ *
+ * Knowledge Center Hardening Phase 2: a PendingReview row can come from
+ * either a brand-new submission or an author's edit of an already-live,
+ * previously-trusted article -- a meaningfully different risk profile for
+ * the approve/reject decision. `article.publishedAt` is the signal: `null`
+ * means this content has never been live before ("New submission"); a real
+ * timestamp means it was already published once ("Re-review"). No new
+ * column was needed -- `KnowledgeArticle.edit()` deliberately preserves
+ * `publishedAt` across the Published -> PendingReview transition it causes.
  */
 export function KnowledgeModerationQueue() {
   const t = useTranslations('admin.knowledgeModeration');
@@ -75,7 +84,12 @@ export function KnowledgeModerationQueue() {
             <li key={article.id} className="flex flex-col gap-2 rounded-2xl border border-border-default p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-text-primary">{article.title}</span>
-                <Badge variant="warning">{t('pendingBadge')}</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={article.publishedAt === null ? 'info' : 'primary'}>
+                    {article.publishedAt === null ? t('newSubmissionBadge') : t('reReviewBadge')}
+                  </Badge>
+                  <Badge variant="warning">{t('pendingBadge')}</Badge>
+                </div>
               </div>
               <p className="line-clamp-3 text-sm text-text-secondary">{article.body}</p>
               <div className="flex gap-2">

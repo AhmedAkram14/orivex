@@ -9,6 +9,15 @@ import type { ModerateArticleCommand } from './moderate-article.command.js';
 // Ownership/role is entirely enforced by AdministrationController's own
 // class-level @Roles(SuperAdmin) guard, same convention as
 // ModerateConsultationFeedbackUseCase/ResolveDisputeUseCase.
+//
+// Knowledge Center Hardening Phase 2: the PendingReview article passed in
+// here may be a brand-new submission or a resubmitted edit of an article
+// that was already published and trusted (KnowledgeArticle.edit() sends a
+// Published article back to PendingReview on author-initiated edits). This
+// use case treats both the same way -- moderate() itself is unaffected --
+// but `article.getPublishedAt()` (untouched by edit()) is what lets the
+// presentation layer (the moderation queue) show the admin which kind of
+// decision they're making.
 export class ModerateArticleUseCase {
   constructor(private readonly knowledgeArticleRepository: KnowledgeArticleRepository) {}
 

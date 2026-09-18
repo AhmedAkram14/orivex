@@ -2248,6 +2248,8 @@
       "emptyTitle": "Nothing pending review",
       "emptyDescription": "New doctors' first articles will appear here for you to approve or reject.",
       "pendingBadge": "Pending Review",
+      "newSubmissionBadge": "New submission",
+      "reReviewBadge": "Re-review (previously published)",
       "approveAction": "Approve",
       "rejectAction": "Reject",
       "approveDialogTitle": "Approve this article",

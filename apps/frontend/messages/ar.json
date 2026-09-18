@@ -2248,6 +2248,8 @@
       "emptyTitle": "لا توجد مقالات بانتظار المراجعة",
       "emptyDescription": "ستظهر هنا أول مقالات الأطباء الجدد لتوافق عليها أو ترفضها.",
       "pendingBadge": "قيد المراجعة",
+      "newSubmissionBadge": "مقال جديد",
+      "reReviewBadge": "إعادة مراجعة (منشور سابقاً)",
       "approveAction": "الموافقة",
       "rejectAction": "الرفض",
       "approveDialogTitle": "الموافقة على هذا المقال",

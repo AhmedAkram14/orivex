@@ -170,6 +170,17 @@ export class KnowledgeArticle {
   // logged with a real explanation, matching the release checklist's
   // "admin actions must be audit-logged with actor, timestamp, and reason"
   // rule.
+  //
+  // Knowledge Center Hardening Phase 2: the PendingReview article being
+  // moderated here is no longer necessarily a fresh submission -- it may
+  // also be an author-initiated edit resubmission of an article that was
+  // already live and trusted (see edit()'s own comment). `publishedAt` is
+  // the signal that distinguishes the two: `undefined` means this is the
+  // first time this content has ever gone up for review; a real timestamp
+  // means it was published before and is now awaiting re-approval after an
+  // edit. This entity doesn't change behavior based on that distinction --
+  // it's presentation-layer context for the admin's own judgment (see the
+  // moderation queue's badge).
   moderate(
     status: KnowledgeArticleStatus.Published | KnowledgeArticleStatus.Rejected | KnowledgeArticleStatus.Archived,
     reason: string,

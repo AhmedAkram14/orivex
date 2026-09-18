@@ -64,6 +64,32 @@ describe('KnowledgeModerationQueue', () => {
     );
   });
 
+  it('shows a "New submission" badge for a never-before-published article', async () => {
+    server.use(http.get(`${base()}/admin/knowledge/articles`, () => HttpResponse.json({ data: [pendingArticle()] })));
+
+    renderWithProviders(<KnowledgeModerationQueue />);
+
+    await screen.findByText('Managing Hypertension at Home');
+
+    expect(screen.getByText('New submission')).toBeInTheDocument();
+    expect(screen.queryByText('Re-review (previously published)')).not.toBeInTheDocument();
+  });
+
+  it('shows a "Re-review" badge for an edit of an already-published article', async () => {
+    server.use(
+      http.get(`${base()}/admin/knowledge/articles`, () =>
+        HttpResponse.json({ data: [{ ...pendingArticle(), publishedAt: new Date().toISOString() }] }),
+      ),
+    );
+
+    renderWithProviders(<KnowledgeModerationQueue />);
+
+    await screen.findByText('Managing Hypertension at Home');
+
+    expect(screen.getByText('Re-review (previously published)')).toBeInTheDocument();
+    expect(screen.queryByText('New submission')).not.toBeInTheDocument();
+  });
+
   it('shows a load error when the queue request fails', async () => {
     server.use(
       http.get(`${base()}/admin/knowledge/articles`, () =>
