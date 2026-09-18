@@ -52,9 +52,10 @@ export function ReportsSummary() {
         label={t('stats.averageRating')}
         value={
           data?.averageRating != null
-            ? t('stats.ratingValue', { rating: data.averageRating.toFixed(1), count: data.reviewCount })
+            ? t('stats.ratingValue', { rating: data.averageRating.toFixed(1) })
             : t('stats.noReviewsYet')
         }
+        helperText={data?.averageRating != null ? t('stats.ratingCount', { count: data.reviewCount }) : undefined}
         loading={isLoading}
       />
     </DashboardGrid>

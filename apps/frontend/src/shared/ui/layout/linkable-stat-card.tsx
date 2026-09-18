@@ -70,7 +70,15 @@ export function LinkableStatCard({
         <Icon icon={icon} size={config.iconSize} />
       </div>
       <div className="flex flex-1 flex-col gap-1">
-        <p className="text-xs text-text-tertiary">{label}</p>
+        {/*
+         * min-h reserves space for two lines at this text size regardless of
+         * whether THIS card's label happens to wrap — without it, a sibling
+         * tile in the same row whose label stays on one line renders its
+         * value higher, visibly misaligning the row the moment any label is
+         * long enough to wrap (seen repeatedly: Patients, Profile's fee
+         * tile, Reports' "Cancelled / no-show").
+         */}
+        <p className="min-h-8 text-xs leading-4 text-text-tertiary">{label}</p>
         {loading ? (
           <Skeleton className="h-5 w-10" />
         ) : (

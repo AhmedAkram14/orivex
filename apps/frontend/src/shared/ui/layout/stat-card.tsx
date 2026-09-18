@@ -22,7 +22,8 @@ export function StatCard({ icon, label, value, className }: StatCardProps) {
         <Icon icon={icon} size="md" />
       </div>
       <div className="flex flex-col">
-        <p className="text-xs text-text-tertiary">{label}</p>
+        {/* min-h reserves two lines' height so a wrapping label in one tile doesn't push its value below a sibling tile's, see LinkableStatCard's own comment on this. */}
+        <p className="min-h-8 text-xs leading-4 text-text-tertiary">{label}</p>
         <p className="text-lg font-semibold text-text-primary">{value}</p>
       </div>
     </div>

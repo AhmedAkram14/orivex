@@ -1466,14 +1466,15 @@
     },
     "reports": {
       "title": "Reports",
-      "description": "Your real appointment counts and rating, at a glance.",
+      "description": "Your appointment counts and rating, at a glance.",
       "loadError": "Couldn't load your reports.",
       "stats": {
         "totalAppointments": "Total appointments",
         "completed": "Completed",
         "cancelledOrNoShow": "Cancelled / no-show",
         "averageRating": "Average rating",
-        "ratingValue": "{rating} ({count})",
+        "ratingValue": "{rating}",
+        "ratingCount": "{count} Ratings",
         "noReviewsYet": "No ratings yet"
       }
     },
