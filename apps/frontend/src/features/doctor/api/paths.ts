@@ -25,8 +25,26 @@ export const DOCTOR_PATHS = {
   reportsSummary: '/appointments/doctor/reports-summary',
   // Doctor Schedule Redesign: the one real doctor-appointments route that
   // accepts a caller-supplied date range, backing the weekly calendar grid.
-  schedule: (from: string, to: string) =>
-    `/appointments/doctor/schedule?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+  // Doctor Reports page rebuild (Phase 2): optional `status` drill-down
+  // filter from a Reports-tile link (`?status=` wired through
+  // `getDoctorSchedule` server-side).
+  schedule: (from: string, to: string, status?: string) => {
+    const query = new URLSearchParams({ from, to });
+    if (status) query.set('status', status);
+    return `/appointments/doctor/schedule?${query.toString()}`;
+  },
+  // Doctor Reports page rebuild (Phase 2): CSV export of the same
+  // date-ranged reports analytics the Reports page renders -- mirrors
+  // ReportingModule's own `/admin/analytics/export` raw-CSV-body route,
+  // scoped to this doctor and date range instead of an admin-picked section.
+  reportsExport: (params: { dateFrom?: string; dateTo?: string; comparePrevious?: boolean } = {}) => {
+    const query = new URLSearchParams();
+    if (params.dateFrom) query.set('dateFrom', params.dateFrom);
+    if (params.dateTo) query.set('dateTo', params.dateTo);
+    if (params.comparePrevious) query.set('comparePrevious', String(params.comparePrevious));
+    const qs = query.toString();
+    return qs ? `/appointments/doctor/reports-export?${qs}` : '/appointments/doctor/reports-export';
+  },
   approveAppointment: (appointmentId: string) => `/appointments/${appointmentId}/approve`,
   // Doctor Patient Chart Phase 2: the doctor's explicit rejection of a
   // Requested booking, before ever approving it -- applies to any Requested

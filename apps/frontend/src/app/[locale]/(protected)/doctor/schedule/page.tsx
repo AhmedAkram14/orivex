@@ -1,8 +1,9 @@
 'use client';
 
-import { ArrowRight, CalendarClock, Info, MoreVertical, Plus } from 'lucide-react';
+import { ArrowRight, CalendarClock, Info, MoreVertical, Plus, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { UpcomingSlotsPanel } from '@/features/scheduling/components/upcoming-slots-panel';
@@ -15,7 +16,7 @@ import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-r
 import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useDoctorScheduleAppointments } from '@/features/doctor/hooks/use-doctor-schedule-appointments';
-import type { AppointmentType } from '@/features/doctor/api/types';
+import type { AppointmentStatus, AppointmentType } from '@/features/doctor/api/types';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
@@ -42,7 +43,8 @@ import { MonthCalendar, type MonthCalendarDay } from '@/shared/ui/schedule/month
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
 import { WeekTimeGrid, type WeekTimeGridAccent, type WeekTimeGridDay } from '@/shared/ui/schedule/week-time-grid';
-import { Link } from '@/shared/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
+import { Badge } from '@/shared/ui/badge';
 import { Page } from '@/shared/ui/layout/page';
 import { Section } from '@/shared/ui/layout/section';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
@@ -130,8 +132,34 @@ export default function DoctorSchedulePage() {
   const t = useTranslations('doctor.schedule');
   const tAppointmentType = useTranslations('doctor.schedule.appointmentType');
   const tSlotStatus = useTranslations('scheduling.slotStatus');
+  const tStatusFilterStatuses = useTranslations('doctor.schedule.statusFilter.statuses');
   const format = useFormatter();
   const locale = useLocale();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Doctor Reports page rebuild (Phase 2): the reports-tile drill-down's
+  // `?status=` URL state -- read once on mount and kept in sync if the URL
+  // changes externally (e.g. the doctor drills in again from Reports while
+  // already on this page). Preserved across week/month navigation below
+  // (that navigation is local `weekOffset`/`monthOffset` state, never
+  // touches the URL) since a doctor mid-investigation of one status
+  // shouldn't lose the filter just by paging to the next week.
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | undefined>(
+    () => (searchParams.get('status') as AppointmentStatus | null) ?? undefined,
+  );
+  useEffect(() => {
+    setStatusFilter((searchParams.get('status') as AppointmentStatus | null) ?? undefined);
+  }, [searchParams]);
+
+  function clearStatusFilter() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete('status');
+    const qs = nextParams.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    setStatusFilter(undefined);
+  }
   const { data: schedule, isLoading, isError } = useDoctorAvailability();
   const { data: exceptions, isLoading: isLoadingExceptions } = useDoctorExceptions();
   const { data: holidays } = useHolidays();
@@ -217,10 +245,12 @@ export default function DoctorSchedulePage() {
   const hoursBlockedThisWeek =
     schedule && exceptions ? computeHoursBlockedThisWeek(schedule, exceptions, holidays ?? [], weekDays) : 0;
 
-  // The Week tab's real appointment grid.
+  // The Week tab's real appointment grid. Doctor Reports page rebuild
+  // (Phase 2): threads the `?status=` drill-down filter through.
   const { data: scheduleAppointments, isLoading: isLoadingScheduleAppointments } = useDoctorScheduleAppointments(
     weekStart.toISOString(),
     weekEnd.toISOString(),
+    statusFilter,
   );
   const appointmentsThisWeekCount = scheduleAppointments?.length ?? 0;
 
@@ -337,10 +367,23 @@ export default function DoctorSchedulePage() {
                       />
                     }
                     actions={
-                      <Button size="sm" onClick={() => setIsEditingHours(true)}>
-                        <Icon icon={Plus} size="sm" className="me-2" />
-                        {t('addAvailability')}
-                      </Button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {statusFilter && (
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="info">
+                              {t('statusFilter.filteredBy', { status: tStatusFilterStatuses(statusFilter) })}
+                            </Badge>
+                            <Button variant="outline" size="sm" onClick={clearStatusFilter}>
+                              <Icon icon={X} size="sm" className="me-1" />
+                              {t('statusFilter.clear')}
+                            </Button>
+                          </div>
+                        )}
+                        <Button size="sm" onClick={() => setIsEditingHours(true)}>
+                          <Icon icon={Plus} size="sm" className="me-2" />
+                          {t('addAvailability')}
+                        </Button>
+                      </div>
                     }
                   />
                   <WeeklyCalendar days={weekCalendarDays} todayAnnouncement={t('today')} />

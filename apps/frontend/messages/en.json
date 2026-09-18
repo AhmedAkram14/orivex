@@ -1174,6 +1174,19 @@
           "held": "Pending",
           "booked": "Booked"
         }
+      },
+      "statusFilter": {
+        "filteredBy": "Filtered by: {status}",
+        "clear": "Clear filter",
+        "statuses": {
+          "requested": "Waiting doctor approval",
+          "confirmed": "Confirmed",
+          "rescheduled": "Rescheduled",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "no_show": "No-show",
+          "expired": "Expired"
+        }
       }
     },
     "queue": {
@@ -1476,6 +1489,11 @@
         "ratingValue": "{rating}",
         "ratingCount": "{count} Ratings",
         "noReviewsYet": "No ratings yet"
+      },
+      "export": {
+        "exportCsv": "Export CSV",
+        "exporting": "Exporting…",
+        "exportError": "Export failed. Try again."
       }
     },
     "earnings": {

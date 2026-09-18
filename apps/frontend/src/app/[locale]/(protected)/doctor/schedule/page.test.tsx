@@ -10,18 +10,38 @@ import type { AuthState } from '@/shared/auth/types';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 import enMessages from '../../../../../../messages/en.json';
 
+// Doctor Reports page rebuild (Phase 2): a mutable `currentSearchParams`
+// module-level variable, mirroring `messaging-workspace.test.tsx`'s own
+// `?thread=` precedent -- lets individual tests below simulate arriving on
+// this page with a `?status=` drill-down filter already in the URL.
+let currentSearchParams = new URLSearchParams();
+const routerReplace = vi.fn();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/doctor/schedule',
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => currentSearchParams,
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
 }));
 
+vi.mock('@/shared/i18n/navigation', async () => {
+  const actual = await vi.importActual<typeof import('@/shared/i18n/navigation')>('@/shared/i18n/navigation');
+  return {
+    ...actual,
+    useRouter: () => ({ replace: routerReplace }),
+    usePathname: () => '/doctor/schedule',
+  };
+});
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  server.resetHandlers();
+  currentSearchParams = new URLSearchParams();
+  routerReplace.mockClear();
+});
 afterAll(() => server.close());
 
 const doctorState: AuthState = {
@@ -160,5 +180,37 @@ describe('DoctorSchedulePage', () => {
     expect(screen.getByText('Appointments')).toBeInTheDocument();
     expect(screen.getByText('Hours blocked')).toBeInTheDocument();
     expect(screen.getByText('Next Available Slot')).toBeInTheDocument();
+  });
+
+  // Doctor Reports page rebuild (Phase 2): the Schedule page's new
+  // `?status=` URL-reading behavior and its "Clear filter" chip.
+  it('shows no status-filter chip when the URL has no ?status=', async () => {
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    expect(screen.queryByText(/Filtered by:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Clear filter/ })).not.toBeInTheDocument();
+  });
+
+  it('reads ?status= on mount and shows a "Filtered by" chip naming that status', async () => {
+    currentSearchParams = new URLSearchParams({ status: 'confirmed' });
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    expect(screen.getByText('Filtered by: Confirmed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Clear filter/ })).toBeInTheDocument();
+  });
+
+  it('clears the status filter and strips ?status= from the URL when Clear filter is clicked', async () => {
+    currentSearchParams = new URLSearchParams({ status: 'no_show' });
+    renderPage();
+    await screen.findByRole('button', { name: 'Today' });
+
+    expect(screen.getByText('Filtered by: No-show')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Clear filter/ }));
+
+    expect(screen.queryByText(/Filtered by:/)).not.toBeInTheDocument();
+    expect(routerReplace).toHaveBeenCalledWith('/doctor/schedule', { scroll: false });
   });
 });

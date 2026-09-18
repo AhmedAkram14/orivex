@@ -1174,6 +1174,19 @@
           "held": "قيد الانتظار",
           "booked": "محجوز"
         }
+      },
+      "statusFilter": {
+        "filteredBy": "مُصفّى حسب: {status}",
+        "clear": "إزالة التصفية",
+        "statuses": {
+          "requested": "بانتظار موافقة الطبيب",
+          "confirmed": "مؤكد",
+          "rescheduled": "أُعيدت جدولته",
+          "completed": "مكتمل",
+          "cancelled": "ملغى",
+          "no_show": "لم يحضر",
+          "expired": "منتهي الصلاحية"
+        }
       }
     },
     "queue": {
@@ -1476,6 +1489,11 @@
         "ratingValue": "{rating}",
         "ratingCount": "{count} تقييمات",
         "noReviewsYet": "لا توجد تقييمات بعد"
+      },
+      "export": {
+        "exportCsv": "تصدير CSV",
+        "exporting": "جارٍ التصدير…",
+        "exportError": "فشل التصدير. حاول مرة أخرى."
       }
     },
     "earnings": {

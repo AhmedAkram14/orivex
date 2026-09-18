@@ -1,4 +1,5 @@
 import { apiFetch } from '@/shared/lib/api/client';
+import { env } from '@/shared/lib/env';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
 import type { MediaAsset } from '@/shared/media/types';
 import type {
@@ -74,9 +75,18 @@ export const doctorApi = {
   getQueue: () => apiFetch<QueueResponse>({ path: DOCTOR_PATHS.queue }),
 
   // Doctor Schedule Redesign: the doctor's real appointments over an
-  // arbitrary date range, backing the weekly calendar grid.
-  getSchedule: (from: string, to: string) =>
-    apiFetch<DoctorScheduleAppointment[]>({ path: DOCTOR_PATHS.schedule(from, to) }),
+  // arbitrary date range, backing the weekly calendar grid. Doctor Reports
+  // page rebuild (Phase 2): optional `status` drill-down filter.
+  getSchedule: (from: string, to: string, status?: string) =>
+    apiFetch<DoctorScheduleAppointment[]>({ path: DOCTOR_PATHS.schedule(from, to, status) }),
+
+  // Doctor Reports page rebuild (Phase 2): not routed through `apiFetch` --
+  // the export route returns a raw CSV body, not the `{ data, meta }`
+  // envelope `apiFetch` unwraps. Returns the absolute URL for
+  // `use-export-doctor-reports.ts`'s fetch-then-blob-download flow, mirroring
+  // `reportingApi.buildExportUrl`'s exact precedent.
+  buildReportsExportUrl: (params: { dateFrom?: string; dateTo?: string; comparePrevious?: boolean } = {}) =>
+    `${env.apiBaseUrl}${DOCTOR_PATHS.reportsExport(params)}`,
 
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands
   // Requested and waits here until the doctor approves it.
