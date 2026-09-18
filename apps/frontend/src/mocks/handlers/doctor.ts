@@ -13,6 +13,7 @@ import {
   getPatients,
   getProfile,
   getQueue,
+  getReportsAnalytics,
   getReportsSummary,
   getScheduleAppointments,
   getUpcomingWork,
@@ -103,6 +104,24 @@ export const doctorHandlers = [
 
   http.get(`${base()}${DOCTOR_PATHS.reportsSummary}`, ({ request }) =>
     HttpResponse.json({ data: getReportsSummary(resolveRequestAccountId(request)) }),
+  ),
+
+  // Doctor Reports page rebuild (Phase 3): the real, date-ranged replacement
+  // `reports-summary.tsx` now reads from -- registered as its own literal
+  // path, same as `reportsSummary` above.
+  http.get(`${base()}/appointments/doctor/reports-analytics`, ({ request }) => {
+    const url = new URL(request.url);
+    const comparePrevious = url.searchParams.get('comparePrevious') === 'true';
+    return HttpResponse.json({ data: getReportsAnalytics(comparePrevious) });
+  }),
+
+  // Doctor Reports page rebuild (Phase 2/3): `useExportDoctorReports` fetches
+  // this directly (a raw CSV body, not the `{ data, meta }` envelope), so
+  // this mock returns plain text rather than `HttpResponse.json`.
+  http.get(`${base()}/appointments/doctor/reports-export`, () =>
+    HttpResponse.text('metric,value\nTotal appointments,62\n', {
+      headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="reports.csv"' },
+    }),
   ),
 
   // Doctor-approval-workflow fix: every booking (Free or Paid) now lands

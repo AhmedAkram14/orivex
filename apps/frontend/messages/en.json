@@ -1481,14 +1481,38 @@
       "title": "Reports",
       "description": "Your appointment counts and rating, at a glance.",
       "loadError": "Couldn't load your reports.",
+      "tilesHeading": "Appointment breakdown",
+      "rangeSubtitle": "Showing {range}",
+      "comparePreviousLabel": "Compare to previous period",
+      "seeEarnings": "See your earnings for this period",
+      "trendTitle": "Appointment volume",
       "stats": {
         "totalAppointments": "Total appointments",
         "completed": "Completed",
-        "cancelledOrNoShow": "Cancelled / no-show",
+        "cancelled": "Cancelled",
+        "noShow": "No-show",
+        "pendingApproval": "Pending approval",
+        "upcoming": "Upcoming",
         "averageRating": "Average rating",
         "ratingValue": "{rating}",
         "ratingCount": "{count} Ratings",
-        "noReviewsYet": "No ratings yet"
+        "noReviewsYet": "No ratings yet",
+        "notEnoughRatings": "Not enough ratings yet (only {count})",
+        "expiredFootnote": "{count} expired, never answered — included in total"
+      },
+      "dateRange": {
+        "from": "From",
+        "to": "To",
+        "preset7Days": "7 days",
+        "preset30Days": "30 days",
+        "preset90Days": "90 days",
+        "presetThisMonth": "This month",
+        "presetAllTime": "All time"
+      },
+      "trend": {
+        "seriesLabel": "Appointments",
+        "emptyTitle": "Nothing to plot yet",
+        "emptyDescription": "There's no appointment activity in this date range."
       },
       "export": {
         "exportCsv": "Export CSV",
@@ -1500,6 +1524,7 @@
       "title": "Earnings",
       "description": "Your real per-consultation earnings and platform commission, at a glance.",
       "loadError": "Couldn't load your earnings.",
+      "seeReports": "See your reports for this period",
       "stats": {
         "lifetimeNet": "Lifetime net earnings",
         "lifetimeGross": "Lifetime gross",

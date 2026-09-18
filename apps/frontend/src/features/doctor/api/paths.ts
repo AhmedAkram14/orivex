@@ -23,6 +23,17 @@ export const DOCTOR_PATHS = {
   // AppointmentController).
   patients: '/appointments/doctor/patients',
   reportsSummary: '/appointments/doctor/reports-summary',
+  // Doctor Reports page rebuild (Phase 1/3): the real, date-ranged 7-tile +
+  // trend + optional previous-period replacement `reports-summary.tsx` now
+  // reads from -- `reports-summary` above stays in place, unused (decision 9).
+  reportsAnalytics: (params: { dateFrom?: string; dateTo?: string; comparePrevious?: boolean } = {}) => {
+    const query = new URLSearchParams();
+    if (params.dateFrom) query.set('dateFrom', params.dateFrom);
+    if (params.dateTo) query.set('dateTo', params.dateTo);
+    if (params.comparePrevious) query.set('comparePrevious', String(params.comparePrevious));
+    const qs = query.toString();
+    return qs ? `/appointments/doctor/reports-analytics?${qs}` : '/appointments/doctor/reports-analytics';
+  },
   // Doctor Schedule Redesign: the one real doctor-appointments route that
   // accepts a caller-supplied date range, backing the weekly calendar grid.
   // Doctor Reports page rebuild (Phase 2): optional `status` drill-down

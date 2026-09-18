@@ -1,8 +1,10 @@
 'use client';
 
-import { Banknote, PiggyBank, Receipt, Wallet } from 'lucide-react';
+import { ArrowRight, Banknote, PiggyBank, Receipt, Wallet } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useDoctorEarningsSummary } from '@/features/payment/hooks/use-doctor-earnings-summary';
+import { Link } from '@/shared/i18n/navigation';
+import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { DashboardGrid } from '@/shared/ui/layout/page';
 import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
@@ -31,6 +33,14 @@ export function DoctorEarningsSummary() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Doctor Reports page rebuild (Phase 3): the reverse of Reports' own
+          "see your earnings" cross-link -- same `Link` + `ArrowRight` idiom
+          the Schedule page already established for its own cross-page link. */}
+      <Link href="/doctor/reports" className="flex items-center gap-1 self-end text-sm font-medium text-primary hover:underline">
+        {t('seeReports')}
+        <Icon icon={ArrowRight} size="sm" flipRtl />
+      </Link>
+
       <DashboardGrid columns={4}>
         <LinkableStatCard
           icon={Wallet}

@@ -20,6 +20,8 @@ import type {
   DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
+  DoctorReportFilterParams,
+  DoctorReportsAnalytics,
   DoctorReportsSummary,
   HospitalOption,
   ListDoctorDirectoryParams,
@@ -108,6 +110,11 @@ export const doctorApi = {
   getPatients: () => apiFetch<DoctorPatientListItem[]>({ path: DOCTOR_PATHS.patients }),
 
   getReportsSummary: () => apiFetch<DoctorReportsSummary>({ path: DOCTOR_PATHS.reportsSummary }),
+
+  // Doctor Reports page rebuild (Phase 1/3): the real, date-ranged 7-tile +
+  // trend + optional previous-period analytics `reports-summary.tsx` reads.
+  getReportsAnalytics: (params: DoctorReportFilterParams = {}) =>
+    apiFetch<DoctorReportsAnalytics>({ path: DOCTOR_PATHS.reportsAnalytics(params) }),
 
   // Doctor Onboarding (Phase 4 continuation) -- real backend endpoints,
   // reused as-is (DoctorProfileController's POST /doctors,

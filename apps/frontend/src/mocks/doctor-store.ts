@@ -5,6 +5,7 @@ import type {
   DoctorPatientListItem,
   DoctorProfile,
   DoctorProfileUpdateRequest,
+  DoctorReportsAnalytics,
   DoctorReportsSummary,
   DoctorScheduleAppointment,
   ListDoctorDirectoryParams,
@@ -315,6 +316,50 @@ function seedReportsSummary(): DoctorReportsSummary {
     noShow,
     averageRating: 4.6,
     reviewCount: 41,
+  };
+}
+
+/**
+ * Doctor Reports page rebuild (Phase 3): the mock backing `GET
+ * /appointments/doctor/reports-analytics`, keeping the frontend test suite
+ * deterministic the same way `seedReportsSummary()` does for the old
+ * lifetime-only endpoint. A believable fixed aggregate (not derived from
+ * `dateFrom`/`dateTo` -- this mock layer has no real per-appointment
+ * date-bucketed dataset to filter) that satisfies the same reconciliation
+ * invariant the real backend use case asserts: completed + cancelled +
+ * noShow + pendingApproval + upcoming + expired === totalAppointments.
+ * `comparePrevious` is honored (only echoes `previousPeriod` when true),
+ * matching the real endpoint's own contract.
+ */
+function seedReportsAnalytics(comparePrevious: boolean): DoctorReportsAnalytics {
+  const completed = 47;
+  const cancelled = 5;
+  const noShow = 3;
+  const pendingApproval = 2;
+  const upcoming = 4;
+  const expired = 1;
+  const totalAppointments = completed + cancelled + noShow + pendingApproval + upcoming + expired;
+
+  const byBucket = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return { bucket: date.toISOString().slice(0, 10), count: index === 6 ? 3 : Math.max(0, (index % 3) + 1) };
+  });
+
+  return {
+    totalAppointments,
+    completed,
+    cancelled,
+    noShow,
+    pendingApproval,
+    upcoming,
+    expired,
+    averageRating: 4.6,
+    reviewCount: 41,
+    byBucket,
+    previousPeriod: comparePrevious
+      ? { totalAppointments: totalAppointments - 4, completed: completed - 5, cancelled: cancelled + 2, noShow }
+      : undefined,
   };
 }
 
@@ -638,6 +683,11 @@ export function getPatients(accountId?: string): DoctorPatientListItem[] {
 
 export function getReportsSummary(accountId?: string): DoctorReportsSummary {
   return reportsSummaryByAccountId.get(resolveAccountId(accountId)) ?? seedReportsSummary();
+}
+
+/** Doctor Reports page rebuild (Phase 3): `GET /appointments/doctor/reports-analytics`'s mock. Not account-keyed like the state above (this mock has no per-account operational-state override for it) -- every account sees the same believable fixture, matching `seedReportsSummary()`'s own precedent before demo-seeding existed. */
+export function getReportsAnalytics(comparePrevious: boolean): DoctorReportsAnalytics {
+  return seedReportsAnalytics(comparePrevious);
 }
 
 /**

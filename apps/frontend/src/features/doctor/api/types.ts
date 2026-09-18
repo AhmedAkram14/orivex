@@ -472,3 +472,50 @@ export interface DoctorReportsSummary {
   averageRating: number | null;
   reviewCount: number;
 }
+
+/** One point of `DoctorReportsAnalytics.byBucket` -- matches `DoctorReportsAnalyticsBucketPointDto` exactly. `bucket` is an ISO date string (day granularity, mirroring `PrismaAppointmentAnalyticsQueryService`'s own bucketing). */
+export interface DoctorReportsAnalyticsBucketPoint {
+  bucket: string;
+  count: number;
+}
+
+/** Matches `DoctorReportsAnalyticsPreviousPeriodDto` exactly -- only present when `comparePrevious` was requested. Deliberately a narrower field set than the current-period response: no `pendingApproval`/`upcoming`/`expired`/rating for the prior window, matching what the backend use case actually computes. */
+export interface DoctorReportsAnalyticsPreviousPeriod {
+  totalAppointments: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+}
+
+/**
+ * Doctor Reports page rebuild (Phase 1/3): matches DoctorAppointmentsController's
+ * real `DoctorReportsAnalyticsResponseDto` exactly -- `GET
+ * /appointments/doctor/reports-analytics`. The real, date-ranged, reconciled
+ * replacement for `DoctorReportsSummary` above (which stays in place, unused,
+ * per plan decision 9): `completed + cancelled + noShow + pendingApproval +
+ * upcoming + expired` always equals `totalAppointments` (asserted by the
+ * backend use case's own reconciliation-invariant test). `averageRating`/
+ * `reviewCount` are never nulled out below any review-count threshold here --
+ * that's a frontend rendering decision (`reports-summary.tsx`'s low-data
+ * message), not an API-layer omission.
+ */
+export interface DoctorReportsAnalytics {
+  totalAppointments: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+  pendingApproval: number;
+  upcoming: number;
+  expired: number;
+  averageRating: number | null;
+  reviewCount: number;
+  byBucket: DoctorReportsAnalyticsBucketPoint[];
+  previousPeriod?: DoctorReportsAnalyticsPreviousPeriod;
+}
+
+/** Matches `DoctorReportFilterQueryDto`'s query contract exactly -- shared by `getReportsAnalytics`, `buildReportsExportUrl`, and `useExportDoctorReports`'s own `DoctorReportsExportFilter`. */
+export interface DoctorReportFilterParams {
+  dateFrom?: string;
+  dateTo?: string;
+  comparePrevious?: boolean;
+}

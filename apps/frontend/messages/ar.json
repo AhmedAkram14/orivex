@@ -1481,14 +1481,38 @@
       "title": "التقارير",
       "description": "أعداد مواعيدك وتقييمك، في لمحة واحدة.",
       "loadError": "تعذّر تحميل تقاريرك.",
+      "tilesHeading": "تفصيل المواعيد",
+      "rangeSubtitle": "عرض {range}",
+      "comparePreviousLabel": "مقارنة بالفترة السابقة",
+      "seeEarnings": "اطّلع على أرباحك لهذه الفترة",
+      "trendTitle": "حجم المواعيد",
       "stats": {
         "totalAppointments": "إجمالي المواعيد",
         "completed": "مكتملة",
-        "cancelledOrNoShow": "ملغاة / لم يُحضر",
+        "cancelled": "ملغاة",
+        "noShow": "لم يُحضر",
+        "pendingApproval": "بانتظار الموافقة",
+        "upcoming": "قادمة",
         "averageRating": "متوسط التقييم",
         "ratingValue": "{rating}",
         "ratingCount": "{count} تقييمات",
-        "noReviewsYet": "لا توجد تقييمات بعد"
+        "noReviewsYet": "لا توجد تقييمات بعد",
+        "notEnoughRatings": "لا توجد تقييمات كافية بعد ({count} فقط)",
+        "expiredFootnote": "{count} منتهية الصلاحية، لم يُرد عليها — مُضمّنة في الإجمالي"
+      },
+      "dateRange": {
+        "from": "من",
+        "to": "إلى",
+        "preset7Days": "٧ أيام",
+        "preset30Days": "٣٠ يومًا",
+        "preset90Days": "٩٠ يومًا",
+        "presetThisMonth": "هذا الشهر",
+        "presetAllTime": "كل الأوقات"
+      },
+      "trend": {
+        "seriesLabel": "المواعيد",
+        "emptyTitle": "لا يوجد ما يُعرض بعد",
+        "emptyDescription": "لا يوجد نشاط مواعيد في هذا النطاق الزمني."
       },
       "export": {
         "exportCsv": "تصدير CSV",
@@ -1500,6 +1524,7 @@
       "title": "الأرباح",
       "description": "أرباحك الفعلية لكل استشارة وعمولة المنصة، في لمحة واحدة.",
       "loadError": "تعذّر تحميل أرباحك.",
+      "seeReports": "اطّلع على تقاريرك لهذه الفترة",
       "stats": {
         "lifetimeNet": "صافي الأرباح الإجمالي",
         "lifetimeGross": "إجمالي الدخل",
