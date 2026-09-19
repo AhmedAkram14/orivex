@@ -50,6 +50,7 @@ import { InitiateChargeUseCase } from '../../application/use-cases/initiate-char
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetDoctorEarningsSummaryUseCase } from '../../application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
 import { GetDoctorEarningsTransactionsUseCase } from '../../application/use-cases/get-doctor-earnings-transactions/get-doctor-earnings-transactions.use-case.js';
+import { ExportDoctorEarningsCsvUseCase } from '../../application/use-cases/export-doctor-earnings-csv/export-doctor-earnings-csv.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
@@ -69,6 +70,7 @@ const PATIENT_TOKEN = 'valid-patient-token';
 const OTHER_PATIENT_TOKEN = 'valid-other-patient-token';
 const DOCTOR_TOKEN = 'valid-doctor-token';
 const OTHER_DOCTOR_TOKEN = 'valid-other-doctor-token';
+const NO_PROFILE_DOCTOR_TOKEN = 'valid-no-profile-doctor-token';
 const UNVERIFIED_PATIENT_TOKEN = 'valid-unverified-patient-token';
 
 // Onboarding Redesign (2026-07-21 proposal, Stage O.4) test double --
@@ -379,6 +381,11 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
 
   const unverifiedPatientAccountId = '11111111-1111-4111-1111-111111111111';
+  // Doctor Earnings page rebuild (Phase 2) -- an account with the Doctor
+  // role but no matching DoctorProfile in doctorProfileRepo, for exercising
+  // this controller's established "no doctor profile -> NotFoundError"
+  // convention on the new earnings-export route.
+  const noProfileDoctorAccountId = '99999999-9999-4999-9999-999999999998';
   const jwtSigner = new FakeJwtSigner(
     new Map([
       [PATIENT_TOKEN, { accountId: patient.getAccountId(), role: AccountRole.Patient }],
@@ -386,6 +393,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{
       [DOCTOR_TOKEN, { accountId: doctor.getAccountId(), role: AccountRole.Doctor }],
       [OTHER_DOCTOR_TOKEN, { accountId: otherDoctor.getAccountId(), role: AccountRole.Doctor }],
       [UNVERIFIED_PATIENT_TOKEN, { accountId: unverifiedPatientAccountId, role: AccountRole.Patient }],
+      [NO_PROFILE_DOCTOR_TOKEN, { accountId: noProfileDoctorAccountId, role: AccountRole.Doctor }],
     ]),
   );
 
@@ -411,6 +419,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{
   const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo);
   const getDoctorEarningsSummaryUseCase = new GetDoctorEarningsSummaryUseCase(paymentTransactionRepo);
   const getDoctorEarningsTransactionsUseCase = new GetDoctorEarningsTransactionsUseCase(paymentTransactionRepo);
+  const exportDoctorEarningsCsvUseCase = new ExportDoctorEarningsCsvUseCase(getDoctorEarningsSummaryUseCase);
   const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepo);
   const getPatientProfileByIdUseCase = new GetPatientProfileByIdUseCase(patientProfileRepo);
 
@@ -432,6 +441,7 @@ async function buildApp(gatewaySucceeds: boolean): Promise<{
       { provide: RefundPaymentUseCase, useValue: refundPaymentUseCase },
       { provide: GetDoctorEarningsSummaryUseCase, useValue: getDoctorEarningsSummaryUseCase },
       { provide: GetDoctorEarningsTransactionsUseCase, useValue: getDoctorEarningsTransactionsUseCase },
+      { provide: ExportDoctorEarningsCsvUseCase, useValue: exportDoctorEarningsCsvUseCase },
       { provide: GetAccountByIdUseCase, useValue: getAccountByIdUseCase },
       { provide: GetPatientProfileByIdUseCase, useValue: getPatientProfileByIdUseCase },
       { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
@@ -1395,6 +1405,132 @@ describe('PaymentController (integration)', () => {
         assert.equal(second.patientName, 'Amina Youssef');
         assert.equal(first.id, 'first-visit');
         assert.equal(first.patientName, 'Amina Youssef');
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('GET /payments/doctor/earnings-export', () => {
+    it('rejects a request with no bearer token', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer()).get('/payments/doctor/earnings-export').expect(401);
+        assert.equal(response.body.error.code, 'UNAUTHORIZED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('forbids a patient from calling the doctor-only route (403)', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-export')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(403);
+        assert.equal(response.body.error.code, 'FORBIDDEN');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 404 (NotFoundError) for a doctor account with no DoctorProfile -- this controller\'s own established convention, not Reports\' differing empty-CSV fallback', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-export')
+          .set('Authorization', `Bearer ${NO_PROFILE_DOCTOR_TOKEN}`)
+          .expect(404);
+        assert.equal(response.body.error.code, 'NOT_FOUND');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns text/csv with a Content-Disposition attachment filename and three sections', async () => {
+      const { app, paymentTransactionRepo, doctorId, patientId } = await buildApp(true);
+      try {
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'export-visit',
+            idempotencyKey: 'idem-export-visit',
+            appointmentId: 'appointment-export-visit',
+            patientId,
+            doctorId,
+            amount: Money.create(500, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2026-09-05T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-05T00:00:00.000Z'),
+          }),
+        );
+
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-export')
+          .query({ dateFrom: '2026-09-01T00:00:00.000Z', dateTo: '2026-10-01T00:00:00.000Z' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.match(response.headers['content-type'], /text\/csv/);
+        assert.equal(
+          response.headers['content-disposition'],
+          `attachment; filename="earnings-${doctorId}-2026-09-01-to-2026-10-01.csv"`,
+        );
+
+        const [lifetimeSection, , transactionsSection] = response.text.split('\n\n');
+        assert.match(lifetimeSection, /^metric,value/);
+        assert.match(lifetimeSection, /Lifetime gross,500/);
+        assert.match(transactionsSection, /^date,patientName,fee,status/);
+        assert.match(transactionsSection, /Amina Youssef,500,succeeded/);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('includes a Refunded transaction in the export, labeled, without it inflating the lifetime section', async () => {
+      const { app, paymentTransactionRepo, doctorId, patientId, otherPatientId } = await buildApp(true);
+      try {
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'earned-visit',
+            idempotencyKey: 'idem-earned-visit',
+            appointmentId: 'appointment-earned-visit',
+            patientId,
+            doctorId,
+            amount: Money.create(500, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2026-09-05T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-05T00:00:00.000Z'),
+          }),
+        );
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'refunded-visit-export',
+            idempotencyKey: 'idem-refunded-visit-export',
+            appointmentId: 'appointment-refunded-visit-export',
+            patientId: otherPatientId,
+            doctorId,
+            amount: Money.create(700, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Refunded,
+            createdAt: new Date('2026-09-07T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-07T00:00:00.000Z'),
+          }),
+        );
+
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-export')
+          .query({ dateFrom: '2026-09-01T00:00:00.000Z', dateTo: '2026-10-01T00:00:00.000Z' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        const [lifetimeSection, , transactionsSection] = response.text.split('\n\n');
+        // Lifetime gross reflects only the earned (Succeeded) transaction.
+        assert.match(lifetimeSection, /Lifetime gross,500/);
+        // The refund is listed as a labeled row, not summed into anything.
+        assert.match(transactionsSection, /Sara Hassan,700,refunded/);
       } finally {
         await app.close();
       }

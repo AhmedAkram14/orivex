@@ -29,6 +29,7 @@ import {
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from './application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetDoctorEarningsSummaryUseCase } from './application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
 import { GetDoctorEarningsTransactionsUseCase } from './application/use-cases/get-doctor-earnings-transactions/get-doctor-earnings-transactions.use-case.js';
+import { ExportDoctorEarningsCsvUseCase } from './application/use-cases/export-doctor-earnings-csv/export-doctor-earnings-csv.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { ListPaymentTransactionsUseCase } from './application/use-cases/list-payment-transactions/list-payment-transactions.use-case.js';
@@ -91,6 +92,12 @@ import { PaymentController } from './presentation/controllers/payment.controller
       provide: GetDoctorEarningsTransactionsUseCase,
       useFactory: (repository: PaymentTransactionRepository) => new GetDoctorEarningsTransactionsUseCase(repository),
       inject: [PAYMENT_TRANSACTION_REPOSITORY],
+    },
+    {
+      provide: ExportDoctorEarningsCsvUseCase,
+      useFactory: (getDoctorEarningsSummaryUseCase: GetDoctorEarningsSummaryUseCase) =>
+        new ExportDoctorEarningsCsvUseCase(getDoctorEarningsSummaryUseCase),
+      inject: [GetDoctorEarningsSummaryUseCase],
     },
     {
       provide: GetPaymentTransactionByConsultationSessionIdUseCase,

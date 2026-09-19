@@ -1,5 +1,6 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 
 import { NotFoundError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
@@ -19,6 +20,7 @@ import { GetPatientProfileByAccountIdUseCase } from '../../../patient/applicatio
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { GetDoctorEarningsSummaryUseCase } from '../../application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
 import { GetDoctorEarningsTransactionsUseCase } from '../../application/use-cases/get-doctor-earnings-transactions/get-doctor-earnings-transactions.use-case.js';
+import { ExportDoctorEarningsCsvUseCase } from '../../application/use-cases/export-doctor-earnings-csv/export-doctor-earnings-csv.use-case.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeCommand } from '../../application/use-cases/initiate-charge/initiate-charge.command.js';
@@ -56,6 +58,7 @@ export class PaymentController {
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getDoctorEarningsSummaryUseCase: GetDoctorEarningsSummaryUseCase,
     private readonly getDoctorEarningsTransactionsUseCase: GetDoctorEarningsTransactionsUseCase,
+    private readonly exportDoctorEarningsCsvUseCase: ExportDoctorEarningsCsvUseCase,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
   ) {}
@@ -112,6 +115,60 @@ export class PaymentController {
       dateTo,
     });
 
+    const items = await this.resolveTransactionsWithNames(transactions);
+    return envelope(items);
+  }
+
+  // Doctor Earnings page rebuild (Phase 2) -- backs the CSV export. Mirrors
+  // exportDoctorReports's own Content-Disposition/Content-Type handling
+  // (doctor-appointments.controller.ts), but deliberately does NOT mirror
+  // its "no doctor profile -> empty CSV with a 'reports-none-...' filename"
+  // fallback: this controller's own Phase 1 routes
+  // (earnings-summary/earnings-transactions) already established a
+  // different, real convention for a missing doctor profile on a
+  // Doctor-only route -- throw NotFoundError -- and this route follows that
+  // established precedent instead of Reports' differing one.
+  @Get('doctor/earnings-export')
+  @Roles(AccountRole.Doctor)
+  async exportDoctorEarnings(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query() query: DoctorEarningsFilterQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<string> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      // Deliberately NOT decorated with a blanket @Header('Content-Type',
+      // 'text/csv') the way exportDoctorReports is -- that decorator applies
+      // unconditionally, including to this branch's thrown NotFoundError, which
+      // would force the JSON error envelope onto a 'text/csv' Content-Type and
+      // break AllExceptionsFilter's response. Content-Type is set manually
+      // below, only on the real CSV success path.
+      throw new NotFoundError('No doctor profile exists for this account.');
+    }
+    const { dateFrom, dateTo } = query.toFilter();
+    const doctorId = doctorProfile.getId();
+
+    const transactions = await this.getDoctorEarningsTransactionsUseCase.execute({ doctorId, dateFrom, dateTo });
+    const transactionsWithNames = await this.resolveTransactionsWithNames(transactions);
+
+    const dateFromLabel = dateFrom.toISOString().slice(0, 10);
+    const dateToLabel = dateTo.toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="earnings-${doctorId}-${dateFromLabel}-to-${dateToLabel}.csv"`);
+
+    return this.exportDoctorEarningsCsvUseCase.execute({ doctorId, dateFrom, dateTo, transactionsWithNames });
+  }
+
+  // Shared by getDoctorEarningsTransactions and exportDoctorEarnings --
+  // batch-resolves patient names, de-duplicated by distinct patientId,
+  // mirroring doctor-appointments.controller.ts's toPatientListItems
+  // pattern so a doctor with many transactions against the same few
+  // patients doesn't trigger an N+1 lookup. Kept as the single
+  // name-resolution code path so the JSON drill-down and the CSV export
+  // never disagree on a patient's displayed name.
+  private async resolveTransactionsWithNames(
+    transactions: PaymentTransaction[],
+  ): Promise<DoctorEarningsTransactionResponseDto[]> {
     const patientIds = [...new Set(transactions.map((transaction) => transaction.getPatientId()))];
     const patientNamesById = new Map<string, string>();
     await Promise.all(
@@ -128,10 +185,9 @@ export class PaymentController {
       }),
     );
 
-    const items = transactions.map((transaction) =>
+    return transactions.map((transaction) =>
       DoctorEarningsTransactionResponseDto.fromDomain(transaction, patientNamesById.get(transaction.getPatientId()) ?? ''),
     );
-    return envelope(items);
   }
 
   @Post()
