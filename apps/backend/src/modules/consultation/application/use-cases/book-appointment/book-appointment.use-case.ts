@@ -14,6 +14,8 @@ import { NoShowBookingRestrictedError } from '../../../domain/exceptions/no-show
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import type { FreeTierBookingRepository } from '../../../domain/repositories/free-tier-booking.repository.js';
 import { toConsultationModulePricing } from '../../mappers/to-consultation-pricing.js';
+import { ConfirmAppointmentCommand } from '../confirm-appointment/confirm-appointment.command.js';
+import type { ConfirmAppointmentUseCase } from '../confirm-appointment/confirm-appointment.use-case.js';
 
 import type { BookAppointmentCommand } from './book-appointment.command.js';
 
@@ -51,6 +53,16 @@ function startOfCurrentMonthUtc(): Date {
 // it. The slot stays Held (not yet Confirmed) until that approval; nothing
 // here opens a ConsultationSession anymore either -- ConfirmAppointmentUseCase
 // (called from the approval path) still does that, unchanged.
+//
+// Consultation Defaults (Doctor Settings Rebuild, Phase 1): the one
+// exception to "every booking lands Requested" -- a doctor who has opted
+// into `DoctorProfile.autoApproveFreeBookings` skips the manual-approval
+// queue entirely for FREE bookings only (mirrors RescheduleOrCancelAppointment
+// UseCase's own real precedent of injecting ConfirmAppointmentUseCase
+// directly rather than duplicating its confirm/open-session logic here).
+// Paid bookings are entirely untouched by this flag -- they already have
+// their own separate confirm-on-payment path (PaymentModule's
+// InitiateChargeUseCase calling this same ConfirmAppointmentUseCase).
 export class BookAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: AppointmentRepository,
@@ -61,6 +73,7 @@ export class BookAppointmentUseCase {
     private readonly reserveSlotUseCase: ReserveSlotUseCase,
     private readonly releaseSlotUseCase: ReleaseSlotUseCase,
     private readonly freeTierBookingRepository: FreeTierBookingRepository,
+    private readonly confirmAppointmentUseCase: ConfirmAppointmentUseCase,
   ) {}
 
   async execute(command: BookAppointmentCommand): Promise<Appointment> {
@@ -136,6 +149,33 @@ export class BookAppointmentUseCase {
         throw new FreeTierMonthlyCapExceededError(
           `This account has already used its ${MAX_FREE_CONSULTATIONS_PER_MONTH} free consultations for this month. Please book a paid consultation instead.`,
         );
+      }
+
+      // Consultation Defaults -- auto-approve free bookings: this doctor has
+      // opted in, so confirm this now-persisted appointment immediately
+      // instead of leaving it Requested for manual approval.
+      //
+      // Sequencing is deliberate: ConfirmAppointmentUseCase re-fetches the
+      // appointment by id (it's already durably saved above, inside
+      // FreeTierBookingRepository's own transaction), transitions it to
+      // Confirmed, confirms the held slot, opens its ConsultationSession,
+      // and -- critically -- dispatches THAT confirmed appointment's own
+      // domain events itself (it self-dispatches; see its own doc comment).
+      // This branch returns before this method's own dispatch call below
+      // ever runs, so `appointment.releaseDomainEvents()` here (the stale,
+      // pre-confirm, still-"Requested" in-memory instance's queued event) is
+      // never dispatched at all. That's correct, not an oversight: dispatching
+      // both would notify downstream consumers (e.g. a "your appointment is
+      // pending approval" notification handler) about a request that, by the
+      // time anyone could act on it, is already Confirmed. Returning the
+      // confirmed appointment (not the pre-confirm `appointment` local) also
+      // means this use case's own caller (the controller) reports the real
+      // final state.
+      if (doctor.getAutoApproveFreeBookings()) {
+        const { appointment: confirmedAppointment } = await this.confirmAppointmentUseCase.execute(
+          new ConfirmAppointmentCommand({ appointmentId: appointment.getId() }),
+        );
+        return confirmedAppointment;
       }
     } else {
       try {

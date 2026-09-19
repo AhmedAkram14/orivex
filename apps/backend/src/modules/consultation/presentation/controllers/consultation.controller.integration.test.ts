@@ -593,6 +593,7 @@ describe('Consultation controllers (integration)', () => {
       reserveSlotUseCase,
       releaseSlotUseCase,
       new InMemoryFreeTierBookingRepository(appointmentRepo),
+      confirmAppointmentUseCase,
     );
     const rescheduleOrCancelAppointmentUseCase = new RescheduleOrCancelAppointmentUseCase(
       appointmentRepo,
@@ -754,7 +755,10 @@ describe('Consultation controllers (integration)', () => {
           provide: GetConsultationSessionByAppointmentIdUseCase,
           useValue: new GetConsultationSessionByAppointmentIdUseCase(sessionRepo),
         },
-        { provide: GetSchedulingRulesUseCase, useValue: new GetSchedulingRulesUseCase() },
+        {
+          provide: GetSchedulingRulesUseCase,
+          useValue: new GetSchedulingRulesUseCase(new GetDoctorProfileByIdUseCase(new InMemoryDoctorProfileRepository(doctor))),
+        },
         { provide: GetAppointmentByIdUseCase, useValue: new GetAppointmentByIdUseCase(appointmentRepo) },
         { provide: GenerateAppointmentCalendarInviteUseCase, useValue: generateAppointmentCalendarInviteUseCase },
         { provide: ConfirmAppointmentUseCase, useValue: confirmAppointmentUseCase },

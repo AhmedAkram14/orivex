@@ -180,7 +180,7 @@ function buildUseCase(props: {
     new GetDoctorWorkingHoursUseCase(new FakeWorkingHoursRepository(props.workingDays ?? buildFullWeek(buildWorkingDay()))),
     new ListScheduleExceptionsForDoctorUseCase(new FakeScheduleExceptionRepository()),
     new ListHolidaysUseCase(new FakeHolidayRepository()),
-    new GetSchedulingRulesUseCase(),
+    new GetSchedulingRulesUseCase(new GetDoctorProfileByIdUseCase(doctorProfileRepo)),
     new GetDoctorProfileByIdUseCase(doctorProfileRepo),
     new ListAvailabilityWindowsForDoctorUseCase(availabilityWindowRepo),
     new DefineAvailabilityWindowUseCase(doctorProfileRepo, availabilityWindowRepo, new NoopDispatcher()),
@@ -218,7 +218,9 @@ describe('GetBookableAvailabilityUseCase', () => {
     // Cross-checked against the same pure slot-generation function directly
     // (not a hardcoded count) so this doesn't silently drift if the real,
     // shared SchedulingRules ever change.
-    const rules = await new GetSchedulingRulesUseCase().execute();
+    const rules = await new GetSchedulingRulesUseCase(
+      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(null)),
+    ).execute();
     const effectiveDay = resolveEffectiveDay(monday, [buildWorkingDay()], [], []);
     const expected = generateCandidateSlotsForDate(monday, effectiveDay, rules, new Date());
 

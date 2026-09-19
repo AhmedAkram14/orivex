@@ -262,10 +262,22 @@ export class SchedulingController {
     return envelope(holidays.map((holiday) => HolidayResponseDto.fromDomain(holiday)));
   }
 
+  // Consultation Defaults (Doctor Settings Rebuild, Phase 1): verified this
+  // route's only real caller is the doctor-facing Schedule page
+  // (`useSchedulingRules` -> doctor/schedule/page.tsx) -- the patient-facing
+  // booking flow stays MSW-only (see this controller's own class comment)
+  // and never calls this endpoint. No patient client to support, so no new
+  // query param: the current account's own doctor profile id (when it has
+  // one) is resolved and passed straight through for the per-doctor
+  // bufferMinutes override. This still deliberately carries no @Roles()
+  // restriction -- a caller with no doctor profile (e.g. a patient account)
+  // simply resolves to `undefined` and gets the unchanged flat global rules,
+  // preserving this route's existing "any authenticated account" contract.
   @Get('rules')
   @UseGuards(JwtAuthGuard)
-  async getRules(): Promise<ResponseEnvelope<SchedulingRulesResponseDto>> {
-    const rules = await this.getSchedulingRulesUseCase.execute();
+  async getRules(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<SchedulingRulesResponseDto>> {
+    const profile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    const rules = await this.getSchedulingRulesUseCase.execute(profile?.getId());
     return envelope(SchedulingRulesResponseDto.fromDomain(rules));
   }
 

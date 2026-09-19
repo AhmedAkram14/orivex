@@ -104,7 +104,12 @@ import { SchedulingController } from './presentation/controllers/scheduling.cont
       useFactory: (repository: HolidayRepository) => new ListHolidaysUseCase(repository),
       inject: [HOLIDAY_REPOSITORY],
     },
-    GetSchedulingRulesUseCase,
+    {
+      provide: GetSchedulingRulesUseCase,
+      useFactory: (getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase) =>
+        new GetSchedulingRulesUseCase(getDoctorProfileByIdUseCase),
+      inject: [GetDoctorProfileByIdUseCase],
+    },
     {
       provide: GetBookableAvailabilityUseCase,
       useFactory: (

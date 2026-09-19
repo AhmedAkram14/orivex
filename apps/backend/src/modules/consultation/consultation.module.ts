@@ -181,6 +181,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         reserveSlotUseCase: ReserveSlotUseCase,
         releaseSlotUseCase: ReleaseSlotUseCase,
         freeTierBookingRepository: FreeTierBookingRepository,
+        confirmAppointmentUseCase: ConfirmAppointmentUseCase,
       ) =>
         new BookAppointmentUseCase(
           appointmentRepository,
@@ -191,7 +192,14 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
           reserveSlotUseCase,
           releaseSlotUseCase,
           freeTierBookingRepository,
+          confirmAppointmentUseCase,
         ),
+      // ConfirmAppointmentUseCase's own provider is declared above this one
+      // (see the `ConfirmAppointmentUseCase` provider a few entries up) --
+      // Nest resolves providers by dependency graph, not declaration order,
+      // but this ordering is also the exact same one
+      // RescheduleOrCancelAppointmentUseCase's factory already relies on
+      // below, proving it circular-dependency-free in practice.
       inject: [
         APPOINTMENT_REPOSITORY,
         DOMAIN_EVENT_DISPATCHER,
@@ -201,6 +209,7 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
         ReserveSlotUseCase,
         ReleaseSlotUseCase,
         FREE_TIER_BOOKING_REPOSITORY,
+        ConfirmAppointmentUseCase,
       ],
     },
     {

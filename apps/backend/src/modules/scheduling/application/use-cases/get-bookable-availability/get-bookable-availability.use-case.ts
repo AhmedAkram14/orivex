@@ -81,7 +81,7 @@ export class GetBookableAvailabilityUseCase {
         new ListScheduleExceptionsForDoctorQuery({ doctorId: query.doctorId }),
       ),
       this.listHolidaysUseCase.execute(),
-      this.getSchedulingRulesUseCase.execute(),
+      this.getSchedulingRulesUseCase.execute(query.doctorId),
       this.listAvailabilityWindowsForDoctorUseCase.execute(
         new ListAvailabilityWindowsForDoctorQuery({ doctorId: query.doctorId, from: query.from, to: query.to }),
       ),
