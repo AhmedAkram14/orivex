@@ -12,6 +12,7 @@ import { ConfirmAppointmentUseCase } from '../consultation/application/use-cases
 import { GetAppointmentByIdUseCase } from '../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { ConsultationModule } from '../consultation/consultation.module.js';
 import { DoctorModule } from '../doctor/doctor.module.js';
+import { IdentityModule } from '../identity/identity.module.js';
 import { PatientModule } from '../patient/patient.module.js';
 import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 
@@ -27,6 +28,7 @@ import {
 } from './application/event-handlers/auto-refund-on-appointment-rescheduled.handler.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from './application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetDoctorEarningsSummaryUseCase } from './application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
+import { GetDoctorEarningsTransactionsUseCase } from './application/use-cases/get-doctor-earnings-transactions/get-doctor-earnings-transactions.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from './application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { ListPaymentTransactionsUseCase } from './application/use-cases/list-payment-transactions/list-payment-transactions.use-case.js';
@@ -63,7 +65,7 @@ import { PaymentController } from './presentation/controllers/payment.controller
 // the app boots cleanly; only an actual initiateCharge/refund call fails
 // with a clear error naming exactly what's missing, on the fallback path.
 @Module({
-  imports: [ConsultationModule, DoctorModule, PatientModule, AuthenticationGuardsModule, TrustGuardsModule],
+  imports: [ConsultationModule, DoctorModule, PatientModule, IdentityModule, AuthenticationGuardsModule, TrustGuardsModule],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },
@@ -83,6 +85,11 @@ import { PaymentController } from './presentation/controllers/payment.controller
     {
       provide: GetDoctorEarningsSummaryUseCase,
       useFactory: (repository: PaymentTransactionRepository) => new GetDoctorEarningsSummaryUseCase(repository),
+      inject: [PAYMENT_TRANSACTION_REPOSITORY],
+    },
+    {
+      provide: GetDoctorEarningsTransactionsUseCase,
+      useFactory: (repository: PaymentTransactionRepository) => new GetDoctorEarningsTransactionsUseCase(repository),
       inject: [PAYMENT_TRANSACTION_REPOSITORY],
     },
     {

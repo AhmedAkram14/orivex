@@ -31,18 +31,32 @@ import { ConsultationPricing as DoctorConsultationPricing } from '../../../docto
 import { Money as DoctorMoney } from '../../../doctor/domain/value-objects/money.value-object.js';
 import type { AvailabilityWindowRepository } from '../../../doctor/domain/repositories/availability-window.repository.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
+import { Account } from '../../../identity/domain/entities/account.entity.js';
+import { UserProfile } from '../../../identity/domain/entities/user-profile.entity.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { AccountStatus } from '../../../identity/domain/enums/account-status.enum.js';
+import { Language } from '../../../identity/domain/enums/language.enum.js';
+import type { AccountRepository } from '../../../identity/domain/repositories/account.repository.js';
+import { AccountId } from '../../../identity/domain/value-objects/account-id.value-object.js';
+import { DisplayName } from '../../../identity/domain/value-objects/display-name.value-object.js';
+import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientProfile } from '../../../patient/domain/entities/patient-profile.entity.js';
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import { ConfirmSlotUseCase } from '../../../scheduling/application/use-cases/confirm-slot/confirm-slot.use-case.js';
 import { InitiateChargeUseCase } from '../../application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetDoctorEarningsSummaryUseCase } from '../../application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
+import { GetDoctorEarningsTransactionsUseCase } from '../../application/use-cases/get-doctor-earnings-transactions/get-doctor-earnings-transactions.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentGatewayPort } from '../../application/ports/payment-gateway.port.js';
-import type { PaymentTransaction } from '../../domain/entities/payment-transaction.entity.js';
+import { PaymentMethod } from '../../domain/enums/payment-method.enum.js';
+import { PaymentStatus } from '../../domain/enums/payment-status.enum.js';
+import { PaymentTransaction } from '../../domain/entities/payment-transaction.entity.js';
+import { Money } from '../../domain/value-objects/money.value-object.js';
 import type { PaymentTransactionRepository } from '../../domain/repositories/payment-transaction.repository.js';
 import { CheckIdentityVerificationStatusUseCase } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
 import type { IdentityVerificationStatusResult } from '../../../trust/application/use-cases/check-identity-verification-status/check-identity-verification-status.use-case.js';
@@ -69,12 +83,29 @@ class FakeCheckIdentityVerificationStatusUseCase {
 }
 
 class InMemoryPatientProfileRepository implements PatientProfileRepository {
-  constructor(private readonly profile: PatientProfile) {}
+  private readonly profiles: PatientProfile[];
+  constructor(...profiles: PatientProfile[]) {
+    this.profiles = profiles;
+  }
   async findById(id: string): Promise<PatientProfile | null> {
-    return this.profile.getId() === id ? this.profile : null;
+    return this.profiles.find((profile) => profile.getId() === id) ?? null;
   }
   async findByAccountId(accountId: string): Promise<PatientProfile | null> {
-    return this.profile.getAccountId() === accountId ? this.profile : null;
+    return this.profiles.find((profile) => profile.getAccountId() === accountId) ?? null;
+  }
+  async save(): Promise<void> {}
+}
+
+class InMemoryAccountRepository implements AccountRepository {
+  constructor(private readonly accounts: Account[]) {}
+  async findById(id: AccountId): Promise<Account | null> {
+    return this.accounts.find((account) => account.getId().equals(id)) ?? null;
+  }
+  async findByEmail(): Promise<Account | null> {
+    return null;
+  }
+  findAll(): Promise<{ accounts: Account[]; total: number }> {
+    return Promise.resolve({ accounts: [], total: 0 });
   }
   async save(): Promise<void> {}
 }
@@ -216,8 +247,16 @@ class InMemoryPaymentTransactionRepository implements PaymentTransactionReposito
   async findByAppointmentId(appointmentId: string): Promise<PaymentTransaction | null> {
     return Array.from(this.byId.values()).find((t) => t.getAppointmentId() === appointmentId) ?? null;
   }
-  async findByDoctorId(): Promise<PaymentTransaction[]> {
-    return Array.from(this.byId.values());
+  async findByDoctorId(doctorId: string, range?: { from?: Date; to?: Date }): Promise<PaymentTransaction[]> {
+    return Array.from(this.byId.values())
+      .filter((transaction) => {
+        if (transaction.getDoctorId() !== doctorId) return false;
+        const createdAt = transaction.getCreatedAt();
+        if (range?.from && createdAt < range.from) return false;
+        if (range?.to && createdAt >= range.to) return false;
+        return true;
+      })
+      .sort((a, b) => b.getCreatedAt().getTime() - a.getCreatedAt().getTime());
   }
   async findAll(): Promise<{ transactions: PaymentTransaction[]; total: number }> {
     return { transactions: [], total: 0 };
@@ -251,9 +290,16 @@ class NoopDomainEventDispatcher {
   subscribe(): void {}
 }
 
-async function buildApp(
-  gatewaySucceeds: boolean,
-): Promise<{ app: INestApplication; appointmentId: string; sessionRepo: InMemoryConsultationSessionRepository }> {
+async function buildApp(gatewaySucceeds: boolean): Promise<{
+  app: INestApplication;
+  appointmentId: string;
+  sessionRepo: InMemoryConsultationSessionRepository;
+  paymentTransactionRepo: InMemoryPaymentTransactionRepository;
+  doctorId: string;
+  otherDoctorId: string;
+  patientId: string;
+  otherPatientId: string;
+}> {
   const window = AvailabilityWindow.define({
     doctorId: '33333333-3333-4333-8333-333333333333',
     startTime: new Date(Date.now() + 60 * 60_000),
@@ -301,11 +347,35 @@ async function buildApp(
     updatedAt: new Date(),
   });
 
+  // Doctor Earnings page rebuild (Phase 1) -- real Account entities so the
+  // new earnings-transactions route's patient-name resolution
+  // (GetPatientProfileByIdUseCase -> GetAccountByIdUseCase ->
+  // getUserProfile().getDisplayName()) has something real to resolve.
+  const patientAccount = Account.reconstitute({
+    id: AccountId.create(patient.getAccountId()),
+    email: EmailAddress.create('patient@example.com'),
+    role: AccountRole.Patient,
+    status: AccountStatus.Active,
+    userProfile: UserProfile.create({ displayName: DisplayName.create('Amina Youssef'), preferredLanguage: Language.Arabic }),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  const otherPatientAccount = Account.reconstitute({
+    id: AccountId.create(otherPatient.getAccountId()),
+    email: EmailAddress.create('other-patient@example.com'),
+    role: AccountRole.Patient,
+    status: AccountStatus.Active,
+    userProfile: UserProfile.create({ displayName: DisplayName.create('Sara Hassan'), preferredLanguage: Language.Arabic }),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
   const availabilityWindowRepo = new InMemoryAvailabilityWindowRepository(window);
   const appointmentRepo = new InMemoryAppointmentRepository(appointment);
   const sessionRepo = new InMemoryConsultationSessionRepository();
   const doctorProfileRepo = new InMemoryDoctorProfileRepository(doctor, otherDoctor);
-  const patientProfileRepo = new InMemoryPatientProfileRepository(patient);
+  const patientProfileRepo = new InMemoryPatientProfileRepository(patient, otherPatient);
+  const accountRepo = new InMemoryAccountRepository([patientAccount, otherPatientAccount]);
   const paymentTransactionRepo = new InMemoryPaymentTransactionRepository();
 
   const unverifiedPatientAccountId = '11111111-1111-4111-1111-111111111111';
@@ -340,6 +410,9 @@ async function buildApp(
   const refundPaymentUseCase = new RefundPaymentUseCase(paymentTransactionRepo, gateway, new NoopDomainEventDispatcher());
   const getDoctorProfileByAccountIdUseCase = new GetDoctorProfileByAccountIdUseCase(doctorProfileRepo);
   const getDoctorEarningsSummaryUseCase = new GetDoctorEarningsSummaryUseCase(paymentTransactionRepo);
+  const getDoctorEarningsTransactionsUseCase = new GetDoctorEarningsTransactionsUseCase(paymentTransactionRepo);
+  const getAccountByIdUseCase = new GetAccountByIdUseCase(accountRepo);
+  const getPatientProfileByIdUseCase = new GetPatientProfileByIdUseCase(patientProfileRepo);
 
   const moduleRef = await Test.createTestingModule({
     controllers: [PaymentController],
@@ -358,6 +431,9 @@ async function buildApp(
       },
       { provide: RefundPaymentUseCase, useValue: refundPaymentUseCase },
       { provide: GetDoctorEarningsSummaryUseCase, useValue: getDoctorEarningsSummaryUseCase },
+      { provide: GetDoctorEarningsTransactionsUseCase, useValue: getDoctorEarningsTransactionsUseCase },
+      { provide: GetAccountByIdUseCase, useValue: getAccountByIdUseCase },
+      { provide: GetPatientProfileByIdUseCase, useValue: getPatientProfileByIdUseCase },
       { provide: GetPatientProfileByAccountIdUseCase, useFactory: () => new GetPatientProfileByAccountIdUseCase(patientProfileRepo) },
       { provide: GetDoctorProfileByAccountIdUseCase, useValue: getDoctorProfileByAccountIdUseCase },
       { provide: GetConsultationSessionByIdUseCase, useFactory: () => new GetConsultationSessionByIdUseCase(sessionRepo) },
@@ -384,7 +460,16 @@ async function buildApp(
   app.useGlobalFilters(new AllExceptionsFilter(moduleRef.get(PinoLoggerService)));
   await app.init();
 
-  return { app, appointmentId: appointment.getId(), sessionRepo };
+  return {
+    app,
+    appointmentId: appointment.getId(),
+    sessionRepo,
+    paymentTransactionRepo,
+    doctorId: doctor.getId(),
+    otherDoctorId: otherDoctor.getId(),
+    patientId: patient.getId(),
+    otherPatientId: otherPatient.getId(),
+  };
 }
 
 describe('PaymentController (integration)', () => {
@@ -1059,6 +1144,257 @@ describe('PaymentController (integration)', () => {
           .expect(200);
 
         assert.equal(response.body.data.id, charge.body.data.id);
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  // Doctor Earnings page rebuild (Phase 1) -- regression check only, not a
+  // re-test of Phase 0's own use-case-level coverage: confirms the route
+  // still works end to end now that it takes the real
+  // DoctorEarningsFilterQueryDto instead of the old ?month= compile-shim.
+  describe('GET /payments/doctor/earnings-summary', () => {
+    it('rejects a request with no bearer token', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer()).get('/payments/doctor/earnings-summary').expect(401);
+        assert.equal(response.body.error.code, 'UNAUTHORIZED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('forbids a patient from calling the doctor-only route (403)', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-summary')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(403);
+        assert.equal(response.body.error.code, 'FORBIDDEN');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 400 (VALIDATION_FAILED) for a malformed dateFrom', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-summary')
+          .query({ dateFrom: 'not-a-date' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(400);
+        assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns an honest empty summary with the default trailing-30-day window applied', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-summary')
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+        assert.equal(response.body.data.lifetimeTransactionCount, 0);
+        assert.deepEqual(response.body.data.cycles, []);
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('keeps lifetime totals unaffected by a narrow dateFrom/dateTo range end to end', async () => {
+      const { app, paymentTransactionRepo, doctorId, patientId } = await buildApp(true);
+      try {
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'outside-range-txn',
+            idempotencyKey: 'idem-outside-range',
+            appointmentId: 'appointment-outside-range',
+            patientId,
+            doctorId,
+            amount: Money.create(1000, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2020-01-15T00:00:00.000Z'),
+            updatedAt: new Date('2020-01-15T00:00:00.000Z'),
+          }),
+        );
+
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-summary')
+          .query({ dateFrom: '2026-09-01T00:00:00.000Z', dateTo: '2026-10-01T00:00:00.000Z' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.lifetimeTransactionCount, 1);
+        assert.equal(response.body.data.lifetimeGrossAmount, 1000);
+        assert.deepEqual(response.body.data.cycles, []);
+      } finally {
+        await app.close();
+      }
+    });
+  });
+
+  describe('GET /payments/doctor/earnings-transactions', () => {
+    it('rejects a request with no bearer token', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer()).get('/payments/doctor/earnings-transactions').expect(401);
+        assert.equal(response.body.error.code, 'UNAUTHORIZED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('forbids a patient from calling the doctor-only route (403)', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-transactions')
+          .set('Authorization', `Bearer ${PATIENT_TOKEN}`)
+          .expect(403);
+        assert.equal(response.body.error.code, 'FORBIDDEN');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('returns 400 (VALIDATION_FAILED) for a malformed dateTo', async () => {
+      const { app } = await buildApp(true);
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-transactions')
+          .query({ dateTo: 'not-a-date' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(400);
+        assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('never leaks another doctor\'s transactions -- strict doctor-scoping', async () => {
+      const { app, paymentTransactionRepo, doctorId, otherDoctorId, patientId } = await buildApp(true);
+      try {
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'mine-txn',
+            idempotencyKey: 'idem-mine',
+            appointmentId: 'appointment-mine',
+            patientId,
+            doctorId,
+            amount: Money.create(500, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2026-09-05T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-05T00:00:00.000Z'),
+          }),
+        );
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'other-doctor-txn',
+            idempotencyKey: 'idem-other-doctor',
+            appointmentId: 'appointment-other-doctor',
+            patientId,
+            doctorId: otherDoctorId,
+            amount: Money.create(900, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2026-09-06T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-06T00:00:00.000Z'),
+          }),
+        );
+
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-transactions')
+          .query({ dateFrom: '2026-09-01T00:00:00.000Z', dateTo: '2026-10-01T00:00:00.000Z' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.length, 1);
+        assert.equal(response.body.data[0].id, 'mine-txn');
+
+        const otherResponse = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-transactions')
+          .query({ dateFrom: '2026-09-01T00:00:00.000Z', dateTo: '2026-10-01T00:00:00.000Z' })
+          .set('Authorization', `Bearer ${OTHER_DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(otherResponse.body.data.length, 1);
+        assert.equal(otherResponse.body.data[0].id, 'other-doctor-txn');
+      } finally {
+        await app.close();
+      }
+    });
+
+    it('resolves patient names for multiple transactions, de-duplicated by patientId, and surfaces a Refunded row', async () => {
+      const { app, paymentTransactionRepo, doctorId, patientId, otherPatientId } = await buildApp(true);
+      try {
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'first-visit',
+            idempotencyKey: 'idem-first-visit',
+            appointmentId: 'appointment-first-visit',
+            patientId,
+            doctorId,
+            amount: Money.create(500, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2026-09-05T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-05T00:00:00.000Z'),
+          }),
+        );
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'second-visit-same-patient',
+            idempotencyKey: 'idem-second-visit',
+            appointmentId: 'appointment-second-visit',
+            patientId,
+            doctorId,
+            amount: Money.create(500, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Succeeded,
+            createdAt: new Date('2026-09-06T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-06T00:00:00.000Z'),
+          }),
+        );
+        await paymentTransactionRepo.save(
+          PaymentTransaction.reconstitute({
+            id: 'refunded-visit',
+            idempotencyKey: 'idem-refunded-visit',
+            appointmentId: 'appointment-refunded-visit',
+            patientId: otherPatientId,
+            doctorId,
+            amount: Money.create(700, 'EGP'),
+            paymentMethod: PaymentMethod.Card,
+            status: PaymentStatus.Refunded,
+            createdAt: new Date('2026-09-07T00:00:00.000Z'),
+            updatedAt: new Date('2026-09-07T00:00:00.000Z'),
+          }),
+        );
+
+        const response = await request(app.getHttpServer())
+          .get('/payments/doctor/earnings-transactions')
+          .query({ dateFrom: '2026-09-01T00:00:00.000Z', dateTo: '2026-10-01T00:00:00.000Z' })
+          .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
+          .expect(200);
+
+        assert.equal(response.body.data.length, 3);
+        // Newest first.
+        const [refunded, second, first] = response.body.data;
+
+        assert.equal(refunded.id, 'refunded-visit');
+        assert.equal(refunded.status, 'refunded');
+        assert.equal(refunded.patientName, 'Sara Hassan');
+
+        assert.equal(second.id, 'second-visit-same-patient');
+        assert.equal(second.patientName, 'Amina Youssef');
+        assert.equal(first.id, 'first-visit');
+        assert.equal(first.patientName, 'Amina Youssef');
       } finally {
         await app.close();
       }

@@ -13,9 +13,12 @@ import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/g
 import { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
+import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
 import { GetPatientProfileByAccountIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-account-id/get-patient-profile-by-account-id.use-case.js';
+import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { GetDoctorEarningsSummaryUseCase } from '../../application/use-cases/get-doctor-earnings-summary/get-doctor-earnings-summary.use-case.js';
+import { GetDoctorEarningsTransactionsUseCase } from '../../application/use-cases/get-doctor-earnings-transactions/get-doctor-earnings-transactions.use-case.js';
 import { GetPaymentTransactionByConsultationSessionIdUseCase } from '../../application/use-cases/get-payment-transaction-by-consultation-session-id/get-payment-transaction-by-consultation-session-id.use-case.js';
 import { GetPaymentTransactionByIdUseCase } from '../../application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { InitiateChargeCommand } from '../../application/use-cases/initiate-charge/initiate-charge.command.js';
@@ -23,7 +26,9 @@ import { InitiateChargeUseCase } from '../../application/use-cases/initiate-char
 import { RefundPaymentCommand } from '../../application/use-cases/refund-payment/refund-payment.command.js';
 import { RefundPaymentUseCase } from '../../application/use-cases/refund-payment/refund-payment.use-case.js';
 import type { PaymentTransaction } from '../../domain/entities/payment-transaction.entity.js';
+import { DoctorEarningsFilterQueryDto } from '../dto/doctor-earnings-filter-query.dto.js';
 import { DoctorEarningsSummaryResponseDto } from '../dto/doctor-earnings-summary-response.dto.js';
+import { DoctorEarningsTransactionResponseDto } from '../dto/doctor-earnings-transaction-response.dto.js';
 import { InitiateChargeRequestDto } from '../dto/initiate-charge-request.dto.js';
 import { PaymentTransactionResponseDto } from '../dto/payment-transaction-response.dto.js';
 import { mapPaymentError } from '../mappers/payment-exception.mapper.js';
@@ -50,35 +55,83 @@ export class PaymentController {
     private readonly getConsultationSessionByIdUseCase: GetConsultationSessionByIdUseCase,
     private readonly getAppointmentByIdUseCase: GetAppointmentByIdUseCase,
     private readonly getDoctorEarningsSummaryUseCase: GetDoctorEarningsSummaryUseCase,
+    private readonly getDoctorEarningsTransactionsUseCase: GetDoctorEarningsTransactionsUseCase,
+    private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
+    private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
   ) {}
 
   // I2 -- Doctor earnings dashboard (docs/01-prd.md L15, L94 §2.10).
   // Registered before ':id' so Nest's route matching never treats
   // "doctor/earnings-summary" as an :id value, same as
-  // "by-consultation-session" below. `month` is an optional "YYYY-MM"
-  // filter for the cycle breakdown; the lifetime totals are always
-  // computed across every cycle regardless of this filter.
+  // "by-consultation-session" below. `dateFrom`/`dateTo` scope the cycle
+  // breakdown only -- lifetime totals are always computed across the full,
+  // unfiltered ledger regardless of this filter (see
+  // GetDoctorEarningsSummaryUseCase's own comment).
   @Get('doctor/earnings-summary')
   @Roles(AccountRole.Doctor)
   async getDoctorEarningsSummary(
     @CurrentUser() user: AccessTokenClaims,
-    @Query('month') month?: string,
+    @Query() query: DoctorEarningsFilterQueryDto,
   ): Promise<ResponseEnvelope<DoctorEarningsSummaryResponseDto>> {
     const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
     if (!doctorProfile) {
       throw new NotFoundError('No doctor profile exists for this account.');
     }
-    const parsedMonth = month && /^\d{4}-\d{2}$/.test(month) ? new Date(`${month}-01T00:00:00.000Z`) : undefined;
-    const dateFrom = parsedMonth;
-    const dateTo = parsedMonth
-      ? new Date(Date.UTC(parsedMonth.getUTCFullYear(), parsedMonth.getUTCMonth() + 1, 1))
-      : undefined;
+    const { dateFrom, dateTo } = query.toFilter();
     const summary = await this.getDoctorEarningsSummaryUseCase.execute({
       doctorId: doctorProfile.getId(),
       dateFrom,
       dateTo,
     });
     return envelope(DoctorEarningsSummaryResponseDto.fromResult(summary));
+  }
+
+  // Doctor Earnings page rebuild (Phase 1) -- backs the drill-down table.
+  // Registered before ':id' for the same route-matching reason as
+  // "doctor/earnings-summary" above. Unlike that route, every transaction in
+  // range comes back regardless of status (Refunded included) -- refund
+  // transparency (plan decision 3). Patient names are batch-resolved here,
+  // de-duplicated by distinct patientId, mirroring
+  // doctor-appointments.controller.ts's toPatientListItems pattern so a
+  // doctor with many transactions against the same few patients doesn't
+  // trigger an N+1 lookup.
+  @Get('doctor/earnings-transactions')
+  @Roles(AccountRole.Doctor)
+  async getDoctorEarningsTransactions(
+    @CurrentUser() user: AccessTokenClaims,
+    @Query() query: DoctorEarningsFilterQueryDto,
+  ): Promise<ResponseEnvelope<DoctorEarningsTransactionResponseDto[]>> {
+    const doctorProfile = await this.getDoctorProfileByAccountIdUseCase.execute({ accountId: user.accountId });
+    if (!doctorProfile) {
+      throw new NotFoundError('No doctor profile exists for this account.');
+    }
+    const { dateFrom, dateTo } = query.toFilter();
+    const transactions = await this.getDoctorEarningsTransactionsUseCase.execute({
+      doctorId: doctorProfile.getId(),
+      dateFrom,
+      dateTo,
+    });
+
+    const patientIds = [...new Set(transactions.map((transaction) => transaction.getPatientId()))];
+    const patientNamesById = new Map<string, string>();
+    await Promise.all(
+      patientIds.map(async (patientId) => {
+        const patientProfile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId: patientId });
+        if (!patientProfile) {
+          return;
+        }
+        const patientAccount = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
+        if (!patientAccount) {
+          return;
+        }
+        patientNamesById.set(patientId, patientAccount.getUserProfile().getDisplayName().toString());
+      }),
+    );
+
+    const items = transactions.map((transaction) =>
+      DoctorEarningsTransactionResponseDto.fromDomain(transaction, patientNamesById.get(transaction.getPatientId()) ?? ''),
+    );
+    return envelope(items);
   }
 
   @Post()
