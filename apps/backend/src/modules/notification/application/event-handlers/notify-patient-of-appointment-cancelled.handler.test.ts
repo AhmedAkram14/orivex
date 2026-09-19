@@ -17,7 +17,9 @@ import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-c
 import type { PatientProfileRepository } from '../../../patient/domain/repositories/patient-profile.repository.js';
 import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
 import type { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../services/notification-preference-gate.service.js';
 
 import { NotifyPatientOfAppointmentCancelledHandler } from './notify-patient-of-appointment-cancelled.handler.js';
 
@@ -125,6 +127,13 @@ class FakeEmailSender implements EmailSenderPort {
   }
 }
 
+class FakePreferenceGate implements Pick<NotificationPreferenceGate, 'isEmailEnabled'> {
+  constructor(private readonly enabled: boolean = true) {}
+  async isEmailEnabled(): Promise<boolean> {
+    return this.enabled;
+  }
+}
+
 function buildAccount(role: AccountRole, displayName: string): Account {
   return Account.register({
     email: EmailAddress.create(`${role}-${Math.random()}@orivex.dev`),
@@ -165,6 +174,7 @@ describe('NotifyPatientOfAppointmentCancelledHandler', () => {
       new GetAccountByIdUseCase(new FakeAccountRepository([patientAccount])),
       notificationRepo,
       emailSender,
+      new FakePreferenceGate(true) as unknown as NotificationPreferenceGate,
       logger as never,
     );
 
@@ -176,11 +186,37 @@ describe('NotifyPatientOfAppointmentCancelledHandler', () => {
     assert.equal(notification.getTitle(), 'Appointment cancelled');
     assert.match(notification.getDescription(), /refunded automatically/);
     assert.equal(notification.getActionUrl(), '/patient/appointments');
+    assert.equal(notification.getCategory(), NotificationCategory.Appointments);
     assert.equal(logger.errors.length, 0);
 
     assert.equal(emailSender.sent.length, 1);
     assert.equal(emailSender.sent[0]!.template, 'appointment-cancelled');
     assert.equal(emailSender.sent[0]!.data.cancelledBy, 'doctor');
+  });
+
+  it('suppresses the email when the preference gate reports the category disabled (in-app notification still saves)', async () => {
+    const patientAccount = buildAccount(AccountRole.Patient, 'Amina Youssef');
+    const patient = PatientProfile.create({ accountId: patientAccount.getId().toString() });
+    const appointment = buildAppointment(patient.getId());
+
+    const notificationRepo = new FakeNotificationRepository();
+    const emailSender = new FakeEmailSender();
+    const logger = new FakeLogger();
+    const handler = new NotifyPatientOfAppointmentCancelledHandler(
+      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(appointment)),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
+      new GetAccountByIdUseCase(new FakeAccountRepository([patientAccount])),
+      notificationRepo,
+      emailSender,
+      new FakePreferenceGate(false) as unknown as NotificationPreferenceGate,
+      logger as never,
+    );
+
+    await handler.handle({ appointmentId: appointment.getId(), cancelledBy: 'doctor' });
+
+    assert.equal(notificationRepo.saved.length, 1);
+    assert.equal(emailSender.sent.length, 0);
+    assert.equal(logger.errors.length, 0);
   });
 
   it('notifies the patient when the patient themselves cancels, also mentioning the automatic refund', async () => {
@@ -197,6 +233,7 @@ describe('NotifyPatientOfAppointmentCancelledHandler', () => {
       new GetAccountByIdUseCase(new FakeAccountRepository([patientAccount])),
       notificationRepo,
       emailSender,
+      new FakePreferenceGate(true) as unknown as NotificationPreferenceGate,
       logger as never,
     );
 
@@ -217,6 +254,7 @@ describe('NotifyPatientOfAppointmentCancelledHandler', () => {
       new GetAccountByIdUseCase(new FakeAccountRepository([])),
       notificationRepo,
       emailSender,
+      new FakePreferenceGate(true) as unknown as NotificationPreferenceGate,
       logger as never,
     );
 

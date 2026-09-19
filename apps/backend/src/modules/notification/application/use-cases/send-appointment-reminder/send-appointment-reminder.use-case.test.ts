@@ -9,7 +9,9 @@ import { EmailAddress } from '../../../../identity/domain/value-objects/email-ad
 import { DisplayName } from '../../../../identity/domain/value-objects/display-name.value-object.js';
 import type { AccountId } from '../../../../identity/domain/value-objects/account-id.value-object.js';
 import { Notification } from '../../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../../services/notification-preference-gate.service.js';
 import type { EmailSenderPort } from '../../../../authentication/application/ports/email-sender.port.js';
 
 import { SendAppointmentReminderCommand } from './send-appointment-reminder.command.js';
@@ -56,6 +58,13 @@ class FakeEmailSender implements EmailSenderPort {
   }
 }
 
+class FakePreferenceGate implements Pick<NotificationPreferenceGate, 'isEmailEnabled'> {
+  constructor(private readonly enabled: boolean = true) {}
+  async isEmailEnabled(): Promise<boolean> {
+    return this.enabled;
+  }
+}
+
 function buildAccount(): Account {
   return Account.register({
     email: EmailAddress.create('patient@example.com'),
@@ -75,6 +84,7 @@ describe('SendAppointmentReminderUseCase', () => {
       new GetAccountByIdUseCase(accountRepo),
       notificationRepo,
       emailSender,
+      new FakePreferenceGate(true) as unknown as NotificationPreferenceGate,
     );
 
     await useCase.execute(
@@ -87,10 +97,35 @@ describe('SendAppointmentReminderUseCase', () => {
     assert.equal(notificationRepo.saved.length, 1);
     assert.equal(notificationRepo.saved[0]?.getAccountId(), account.getId().toString());
     assert.match(notificationRepo.saved[0]?.getDescription() ?? '', /2026-08-01T10:00:00\.000Z/);
+    assert.equal(notificationRepo.saved[0]?.getCategory(), NotificationCategory.Appointments);
 
     assert.equal(emailSender.lastCall?.to, 'patient@example.com');
     assert.equal(emailSender.lastCall?.template, 'appointment-reminder');
     assert.equal(emailSender.lastCall?.data.scheduledAt, '2026-08-01T10:00:00.000Z');
+  });
+
+  it('suppresses the reminder email when the preference gate reports the category disabled (in-app notification still saves)', async () => {
+    const account = buildAccount();
+    const accountRepo = new FakeAccountRepository(account);
+    const notificationRepo = new FakeNotificationRepository();
+    const emailSender = new FakeEmailSender();
+
+    const useCase = new SendAppointmentReminderUseCase(
+      new GetAccountByIdUseCase(accountRepo),
+      notificationRepo,
+      emailSender,
+      new FakePreferenceGate(false) as unknown as NotificationPreferenceGate,
+    );
+
+    await useCase.execute(
+      new SendAppointmentReminderCommand({
+        accountId: account.getId().toString(),
+        scheduledAt: '2026-08-01T10:00:00.000Z',
+      }),
+    );
+
+    assert.equal(notificationRepo.saved.length, 1);
+    assert.equal(emailSender.lastCall, undefined);
   });
 
   it('is a silent no-op for an unknown/deleted account (never throws)', async () => {
@@ -102,6 +137,7 @@ describe('SendAppointmentReminderUseCase', () => {
       new GetAccountByIdUseCase(accountRepo),
       notificationRepo,
       emailSender,
+      new FakePreferenceGate(true) as unknown as NotificationPreferenceGate,
     );
 
     await useCase.execute(

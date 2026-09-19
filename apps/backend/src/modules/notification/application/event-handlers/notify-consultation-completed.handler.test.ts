@@ -26,7 +26,9 @@ import { DisplayName } from '../../../identity/domain/value-objects/display-name
 import { EmailAddress } from '../../../identity/domain/value-objects/email-address.value-object.js';
 import type { EmailSenderPort } from '../../../authentication/application/ports/email-sender.port.js';
 import type { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../services/notification-preference-gate.service.js';
 
 import { NotifyConsultationCompletedHandler } from './notify-consultation-completed.handler.js';
 
@@ -170,6 +172,13 @@ class FakeEmailSender implements EmailSenderPort {
   }
 }
 
+class FakePreferenceGate implements Pick<NotificationPreferenceGate, 'isEmailEnabled'> {
+  constructor(private readonly enabled: boolean = true) {}
+  async isEmailEnabled(): Promise<boolean> {
+    return this.enabled;
+  }
+}
+
 function buildAccount(): Account {
   return Account.register({
     email: EmailAddress.create(`patient-${Math.random()}@orivex.dev`),
@@ -206,6 +215,7 @@ function buildHandler(props: {
   followUp?: FollowUpRecommendation | null;
   notificationRepo?: FakeNotificationRepository;
   emailSender?: FakeEmailSender;
+  emailEnabled?: boolean;
   logger?: FakeLogger;
 }): {
   handler: NotifyConsultationCompletedHandler;
@@ -226,6 +236,7 @@ function buildHandler(props: {
     new GetAccountByIdUseCase(new FakeAccountRepository(accounts)),
     notificationRepo,
     emailSender,
+    new FakePreferenceGate(props.emailEnabled ?? true) as unknown as NotificationPreferenceGate,
     logger as never,
   );
   return { handler, notificationRepo, emailSender, logger };
@@ -252,6 +263,7 @@ describe('NotifyConsultationCompletedHandler', () => {
     assert.equal(notification.getAccountId(), patient.getAccountId());
     assert.equal(notification.getTitle(), 'Consultation completed');
     assert.equal(notification.getActionUrl(), `/patient/appointments?consultationSessionId=${session.getId()}`);
+    assert.equal(notification.getCategory(), NotificationCategory.Appointments);
     assert.equal(logger.errors.length, 0);
 
     // I3 -- Notification delivery channels: the PRD's "review requests"
@@ -259,6 +271,32 @@ describe('NotifyConsultationCompletedHandler', () => {
     assert.equal(emailSender.sent.length, 1);
     assert.equal(emailSender.sent[0]!.to, account.getEmail().toString());
     assert.equal(emailSender.sent[0]!.template, 'consultation-completed');
+  });
+
+  it('suppresses the email when the preference gate reports the category disabled (in-app notification still saves)', async () => {
+    const { appointment, session } = buildCompletedSession();
+    const account = buildAccount();
+    const patient = PatientProfile.reconstitute({
+      id: appointment.getPatientId(),
+      accountId: account.getId().toString(),
+      emergencyContacts: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const { handler, notificationRepo, emailSender, logger } = buildHandler({
+      session,
+      appointment,
+      patient,
+      account,
+      emailEnabled: false,
+    });
+
+    await handler.handle({ consultationSessionId: session.getId() });
+
+    assert.equal(notificationRepo.saved.length, 1);
+    assert.equal(emailSender.sent.length, 0);
+    assert.equal(logger.errors.length, 0);
   });
 
   it('is a silent no-op for an unknown session id (never throws)', async () => {
