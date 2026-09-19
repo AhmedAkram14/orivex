@@ -33,7 +33,7 @@ import { GetPrescriptionByIdUseCase } from '../clinical/application/use-cases/ge
 import { GetDisputeByIdUseCase } from '../consultation/application/use-cases/get-dispute-by-id/get-dispute-by-id.use-case.js';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 
-import { NOTIFICATION_QUEUE, NOTIFICATION_REPOSITORY } from './application/ports/tokens.js';
+import { NOTIFICATION_PREFERENCE_REPOSITORY, NOTIFICATION_QUEUE, NOTIFICATION_REPOSITORY } from './application/ports/tokens.js';
 import type { EnqueueAppointmentReminderJob, NotificationQueuePort } from './application/ports/notification-queue.port.js';
 import {
   ScheduleAppointmentReminderHandler,
@@ -144,14 +144,18 @@ import {
   NotifyCounterpartyOfDisputeWithdrawnHandler,
   type DisputeWithdrawnEventPayload,
 } from './application/event-handlers/notify-counterparty-of-dispute-withdrawn.handler.js';
+import { GetNotificationPreferencesUseCase } from './application/use-cases/get-notification-preferences/get-notification-preferences.use-case.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
 import { MarkNotificationReadUseCase } from './application/use-cases/mark-notification-read/mark-notification-read.use-case.js';
 import { SendAppointmentReminderUseCase } from './application/use-cases/send-appointment-reminder/send-appointment-reminder.use-case.js';
+import { UpdateNotificationPreferencesUseCase } from './application/use-cases/update-notification-preferences/update-notification-preferences.use-case.js';
+import type { NotificationPreferenceRepository } from './domain/repositories/notification-preference.repository.js';
 import type { NotificationRepository } from './domain/repositories/notification.repository.js';
 import { AppointmentReminderWorkerService } from './infrastructure/queue/appointment-reminder-worker.service.js';
 import { BullMqNotificationQueueAdapter, NOTIFICATION_QUEUE_NAME } from './infrastructure/queue/bullmq-notification-queue.adapter.js';
 import { NotConfiguredNotificationQueueAdapter } from './infrastructure/queue/not-configured-notification-queue.adapter.js';
+import { PrismaNotificationPreferenceRepository } from './infrastructure/prisma/prisma-notification-preference.repository.js';
 import { PrismaNotificationRepository } from './infrastructure/prisma/prisma-notification.repository.js';
 import { RealtimeNotifyingNotificationRepository } from './infrastructure/realtime/realtime-notifying-notification.repository.js';
 import { NotificationController } from './presentation/controllers/notification.controller.js';
@@ -193,6 +197,25 @@ import { NotificationController } from './presentation/controllers/notification.
       provide: MarkAllNotificationsReadUseCase,
       useFactory: (repository: NotificationRepository) => new MarkAllNotificationsReadUseCase(repository),
       inject: [NOTIFICATION_REPOSITORY],
+    },
+    {
+      // Doctor Settings Rebuild, Phase 2: no realtime/fan-out decorator yet
+      // (that's Phase 3's PreferenceGatedNotificationRepository) -- this is
+      // the bare Prisma-backed repository behind the read/write use cases
+      // below.
+      provide: NOTIFICATION_PREFERENCE_REPOSITORY,
+      useFactory: (prisma: PrismaService) => new PrismaNotificationPreferenceRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: GetNotificationPreferencesUseCase,
+      useFactory: (repository: NotificationPreferenceRepository) => new GetNotificationPreferencesUseCase(repository),
+      inject: [NOTIFICATION_PREFERENCE_REPOSITORY],
+    },
+    {
+      provide: UpdateNotificationPreferencesUseCase,
+      useFactory: (repository: NotificationPreferenceRepository) => new UpdateNotificationPreferencesUseCase(repository),
+      inject: [NOTIFICATION_PREFERENCE_REPOSITORY],
     },
     {
       // ORIVEX Roadmap 2.0 Stage 3 -- Notifications Queue. Falls back to
