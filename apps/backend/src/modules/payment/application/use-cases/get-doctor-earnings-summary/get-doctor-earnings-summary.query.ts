@@ -1,7 +1,9 @@
 export interface GetDoctorEarningsSummaryQuery {
   doctorId: string;
-  // Restricts the cycle breakdown to a single UTC calendar month
-  // (e.g. new Date('2026-09-01')) -- omitted means "all cycles this doctor
-  // has ever had a transaction in."
-  month?: Date;
+  // Restricts the cycle breakdown to an arbitrary date range -- omitted
+  // means "all cycles this doctor has ever had a transaction in." Lifetime
+  // totals are always computed independent of this range (see the use
+  // case's own comment for why).
+  dateFrom?: Date;
+  dateTo?: Date;
 }

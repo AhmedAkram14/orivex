@@ -43,16 +43,42 @@ export class GetDoctorEarningsSummaryUseCase {
   constructor(private readonly paymentTransactionRepository: PaymentTransactionRepository) {}
 
   async execute(query: GetDoctorEarningsSummaryQuery): Promise<DoctorEarningsSummary> {
-    const range = query.month
-      ? { from: startOfUtcMonth(query.month), to: startOfUtcMonth(addUtcMonths(query.month, 1)) }
-      : undefined;
-    const transactions = await this.paymentTransactionRepository.findByDoctorId(query.doctorId, range);
-    const earned = transactions.filter((transaction) => EARNED_STATUSES.has(transaction.getStatus()));
+    const hasRange = query.dateFrom !== undefined || query.dateTo !== undefined;
+
+    // Lifetime totals are always derived from the full, unfiltered ledger --
+    // never from `cycles` -- so a narrow range passed for the cycle
+    // breakdown can never shrink them. This is the fix for the bug
+    // documented in this use case's own file history: previously lifetime
+    // was `cycles.reduce(...)`, and `cycles` came from the same
+    // range-filtered query, silently collapsing "lifetime" to whatever
+    // range was requested.
+    const allTransactions = await this.paymentTransactionRepository.findByDoctorId(query.doctorId);
+    const lifetimeEarned = allTransactions.filter((transaction) => EARNED_STATUSES.has(transaction.getStatus()));
+
+    let currency: string | null = null;
+    let lifetimeGrossAmount = 0;
+    let lifetimeCommissionAmount = 0;
+    let lifetimeNetAmount = 0;
+    for (const transaction of lifetimeEarned) {
+      currency ??= transaction.getAmount().getCurrency();
+      const gross = transaction.getAmount().getAmount();
+      const commission = round2(gross * PLATFORM_COMMISSION_RATE);
+      lifetimeGrossAmount = round2(lifetimeGrossAmount + gross);
+      lifetimeCommissionAmount = round2(lifetimeCommissionAmount + commission);
+      lifetimeNetAmount = round2(lifetimeNetAmount + (gross - commission));
+    }
+    const lifetimeTransactionCount = lifetimeEarned.length;
+
+    const rangedTransactions = hasRange
+      ? await this.paymentTransactionRepository.findByDoctorId(query.doctorId, {
+          from: query.dateFrom,
+          to: query.dateTo,
+        })
+      : allTransactions;
+    const rangedEarned = rangedTransactions.filter((transaction) => EARNED_STATUSES.has(transaction.getStatus()));
 
     const cyclesByLabel = new Map<string, DoctorEarningsCycle>();
-    let currency: string | null = null;
-    for (const transaction of earned) {
-      currency ??= transaction.getAmount().getCurrency();
+    for (const transaction of rangedEarned) {
       const label = cycleLabel(transaction.getCreatedAt());
       const gross = transaction.getAmount().getAmount();
       const commission = round2(gross * PLATFORM_COMMISSION_RATE);
@@ -74,10 +100,6 @@ export class GetDoctorEarningsSummaryUseCase {
     }
 
     const cycles = [...cyclesByLabel.values()].sort((a, b) => b.cycleLabel.localeCompare(a.cycleLabel));
-    const lifetimeGrossAmount = round2(cycles.reduce((sum, cycle) => sum + cycle.grossAmount, 0));
-    const lifetimeCommissionAmount = round2(cycles.reduce((sum, cycle) => sum + cycle.commissionAmount, 0));
-    const lifetimeNetAmount = round2(cycles.reduce((sum, cycle) => sum + cycle.netAmount, 0));
-    const lifetimeTransactionCount = cycles.reduce((sum, cycle) => sum + cycle.transactionCount, 0);
 
     return {
       currency,
@@ -93,14 +115,6 @@ export class GetDoctorEarningsSummaryUseCase {
 
 function cycleLabel(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function startOfUtcMonth(date: Date): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-}
-
-function addUtcMonths(date: Date, months: number): Date {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
 }
 
 function round2(value: number): number {

@@ -69,9 +69,14 @@ export class PaymentController {
       throw new NotFoundError('No doctor profile exists for this account.');
     }
     const parsedMonth = month && /^\d{4}-\d{2}$/.test(month) ? new Date(`${month}-01T00:00:00.000Z`) : undefined;
+    const dateFrom = parsedMonth;
+    const dateTo = parsedMonth
+      ? new Date(Date.UTC(parsedMonth.getUTCFullYear(), parsedMonth.getUTCMonth() + 1, 1))
+      : undefined;
     const summary = await this.getDoctorEarningsSummaryUseCase.execute({
       doctorId: doctorProfile.getId(),
-      month: parsedMonth,
+      dateFrom,
+      dateTo,
     });
     return envelope(DoctorEarningsSummaryResponseDto.fromResult(summary));
   }
