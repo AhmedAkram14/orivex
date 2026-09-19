@@ -155,6 +155,11 @@ import { EmergencyRelationship } from '../src/modules/patient/domain/enums/emerg
 import { InitiateChargeCommand } from '../src/modules/payment/application/use-cases/initiate-charge/initiate-charge.command.js';
 import { InitiateChargeUseCase } from '../src/modules/payment/application/use-cases/initiate-charge/initiate-charge.use-case.js';
 import { PaymentMethod } from '../src/modules/payment/domain/enums/payment-method.enum.js';
+import { PaymentStatus } from '../src/modules/payment/domain/enums/payment-status.enum.js';
+import { PaymentTransaction } from '../src/modules/payment/domain/entities/payment-transaction.entity.js';
+import { Money as PaymentMoney } from '../src/modules/payment/domain/value-objects/money.value-object.js';
+import { PAYMENT_TRANSACTION_REPOSITORY } from '../src/modules/payment/application/ports/tokens.js';
+import type { PaymentTransactionRepository } from '../src/modules/payment/domain/repositories/payment-transaction.repository.js';
 import { CreateCountryCommand } from '../src/modules/reference/application/use-cases/create-country/create-country.command.js';
 import { CreateCountryUseCase } from '../src/modules/reference/application/use-cases/create-country/create-country.use-case.js';
 import { CreateInsuranceProviderCommand } from '../src/modules/reference/application/use-cases/create-insurance-provider/create-insurance-provider.command.js';
@@ -461,6 +466,7 @@ async function main(): Promise<void> {
     const clinicalNoteRepository = app.get<ClinicalNoteRepository>(CLINICAL_NOTE_REPOSITORY);
     const healthGraphRepository = app.get<HealthGraphRepository>(HEALTH_GRAPH_REPOSITORY);
     const prescriptionRepository = app.get<PrescriptionRepository>(PRESCRIPTION_REPOSITORY);
+    const paymentTransactionRepository = app.get<PaymentTransactionRepository>(PAYMENT_TRANSACTION_REPOSITORY);
 
     const listMedicalSpecialties = app.get(ListMedicalSpecialtiesUseCase);
     const createMedicalSpecialty = app.get(CreateMedicalSpecialtyUseCase);
@@ -1086,13 +1092,19 @@ async function main(): Promise<void> {
      * the historical session/appointment to already exist, which they now
      * do by the time it's called.
      *
-     * Scope, disclosed: no PaymentTransaction is created for a historical
-     * paid visit (this environment has no configured payment gateway, and
-     * fabricating a SUCCEEDED/REFUNDED row here would be exactly the "fake
-     * payment success" this pass is told never to do), and no Notification
-     * rows are produced (this path never raises the real domain events
-     * NotificationModule's handlers listen for, unlike the real-use-case
-     * path below) -- both are genuine, bounded limitations, not oversights.
+     * A paid historical visit also gets a matching `Succeeded`
+     * `PaymentTransaction`, built via the same `reconstitute()` pattern as
+     * every other entity in this function -- reconstituting a row to
+     * represent "this payment succeeded in the past" is the identical move
+     * as reconstituting the appointment itself as `Completed`, not the "fake
+     * payment success" a live gateway call would be. Earlier revisions of
+     * this script skipped it, which is exactly what made a demo doctor's
+     * Reports "Completed" count and Earnings "Paid consultations" count
+     * silently diverge -- see the Doctor Earnings/Reports reconciliation
+     * audit. No Notification rows are produced for a historical visit
+     * (this path never raises the real domain events NotificationModule's
+     * handlers listen for, unlike the real-use-case path below) -- that
+     * remains a genuine, bounded limitation, not an oversight.
      */
     async function createHistoricalCompletedVisit(params: {
       patient: SeededPatient;
@@ -1153,6 +1165,24 @@ async function main(): Promise<void> {
         updatedAt: plusMinutes(base, 35),
       });
       await consultationSessionRepository.save(session);
+
+      if (doctor.demo.consultationFeeAmount) {
+        const transaction = PaymentTransaction.reconstitute({
+          id: randomUUID(),
+          idempotencyKey: `historical-visit-${appointment.getId()}`,
+          appointmentId: appointment.getId(),
+          consultationSessionId: session.getId(),
+          patientId: patient.patientProfileId,
+          doctorId: doctor.doctorProfileId,
+          amount: PaymentMoney.create(doctor.demo.consultationFeeAmount, 'EGP'),
+          paymentMethod: PaymentMethod.Card,
+          status: PaymentStatus.Succeeded,
+          externalReference: `seed-historical-${appointment.getId()}`,
+          createdAt: base,
+          updatedAt: base,
+        });
+        await paymentTransactionRepository.save(transaction);
+      }
 
       const note = ClinicalNote.reconstitute({
         id: randomUUID(),
