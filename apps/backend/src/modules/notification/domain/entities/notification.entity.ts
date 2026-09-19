@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { NotificationDomainError } from '../exceptions/notification-domain.error.js';
 import { NotificationSeverity } from '../enums/notification-severity.enum.js';
+import type { NotificationCategory } from '../enums/notification-category.enum.js';
 
 export interface CreateNotificationProps {
   accountId: string;
@@ -10,6 +11,15 @@ export interface CreateNotificationProps {
   severity?: NotificationSeverity;
   /** Same-origin, locale-agnostic app path (e.g. "/admin/verification-queue/{id}") the frontend navigates to on click -- undefined when there's no single relevant page. */
   actionUrl?: string;
+  /**
+   * Doctor Settings Rebuild (Phase 3): the coarse category a per-account
+   * NotificationPreference toggle can gate (PreferenceGatedNotificationRepository).
+   * Left undefined for administrative/security/legal-notice notifications
+   * (verification, account lifecycle, disputes, prescriptions) -- those are
+   * permanently ungated, matching the industry norm that security/legal
+   * notices aren't optional.
+   */
+  category?: NotificationCategory;
 }
 
 export interface ReconstituteNotificationProps {
@@ -21,6 +31,7 @@ export interface ReconstituteNotificationProps {
   read: boolean;
   createdAt: Date;
   actionUrl?: string | null;
+  category?: NotificationCategory | null;
 }
 
 // NotificationModule's own aggregate root (docs/05-information-architecture.md's
@@ -39,6 +50,7 @@ export class Notification {
     private read: boolean,
     private readonly createdAt: Date,
     private readonly actionUrl: string | undefined,
+    private readonly category: NotificationCategory | undefined,
   ) {}
 
   static create(props: CreateNotificationProps): Notification {
@@ -58,6 +70,7 @@ export class Notification {
       false,
       new Date(),
       props.actionUrl,
+      props.category,
     );
   }
 
@@ -71,6 +84,7 @@ export class Notification {
       props.read,
       props.createdAt,
       props.actionUrl ?? undefined,
+      props.category ?? undefined,
     );
   }
 
@@ -108,5 +122,9 @@ export class Notification {
 
   getActionUrl(): string | undefined {
     return this.actionUrl;
+  }
+
+  getCategory(): NotificationCategory | undefined {
+    return this.category;
   }
 }
