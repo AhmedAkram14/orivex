@@ -56,7 +56,18 @@ class FakeAppointmentRepository implements AppointmentRepository {
   public failOnSaveCount = 0;
   private readonly byId = new Map<string, Appointment>();
   async findById(id: string): Promise<Appointment | null> {
-    return this.byId.get(id) ?? null;
+    const appointment = this.byId.get(id) ?? null;
+    // Domain events are never persisted, so a real `findById` against
+    // Postgres always reconstitutes a fresh entity with an empty event
+    // buffer, regardless of what the object that was saved had queued up in
+    // memory at save time. This fake stores the actual object reference
+    // (see `seed()` below), so without this drain, a caller that re-fetches
+    // via `findById` and then mutates the entity (e.g. `.confirm()`) would
+    // re-dispatch whatever was already queued on it before this read -- an
+    // artifact of this fake sharing object identity across calls, never
+    // reproducible against a real, freshly-deserialized repository read.
+    appointment?.releaseDomainEvents();
+    return appointment;
   }
   async findByPatientId(patientId: string): Promise<Appointment[]> {
     return Array.from(this.byId.values()).filter((a) => a.getPatientId() === patientId);
@@ -106,7 +117,12 @@ class FakeAppointmentRepository implements AppointmentRepository {
   // .save() directly" test below). This lets ConfirmAppointmentUseCase's
   // ordinary `findById` see a freshly free-tier-booked appointment in tests
   // without also polluting `.saved`, which several existing assertions rely
-  // on staying empty for the free path.
+  // on staying empty for the free path. Deliberately does NOT drain domain
+  // events here -- BookAppointmentUseCase itself still holds this same
+  // reference and, on the flag-off path, dispatches its own
+  // `releaseDomainEvents()` on it afterward; draining happens at `findById`
+  // instead (see its own comment), which is the actual point a re-fetch is
+  // meant to simulate a fresh read.
   seed(appointment: Appointment): void {
     this.byId.set(appointment.getId(), appointment);
   }
