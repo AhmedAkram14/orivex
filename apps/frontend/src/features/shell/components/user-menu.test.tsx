@@ -28,6 +28,11 @@ const patientState: AuthState = {
   user: { id: '1', email: 'patient@orivex.dev', fullName: 'Amina Youssef', roles: ['patient'] },
 };
 
+const doctorState: AuthState = {
+  status: 'authenticated',
+  user: { id: '2', email: 'doctor@orivex.dev', fullName: 'Dr. Sarah Ahmed', roles: ['doctor'] },
+};
+
 // Same storage key theme-provider.tsx's ThemeScript reads on next load --
 // asserted by value here (not re-derived) so this test breaks loudly if the
 // key ever changes without ThemeScript's read logic changing too.
@@ -37,12 +42,12 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-function renderUserMenu() {
+function renderUserMenu(authState: AuthState = patientState) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale="en" messages={enMessages}>
-        <AuthContext.Provider value={patientState}>
+        <AuthContext.Provider value={authState}>
           <ThemeProvider>
             <UserMenu />
           </ThemeProvider>
@@ -85,5 +90,25 @@ describe('UserMenu theme toggle', () => {
 
     await waitFor(() => expect(document.documentElement.hasAttribute('data-theme')).toBe(false));
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('system');
+  });
+});
+
+describe('UserMenu Settings shortcut', () => {
+  it('gives a doctor a persistent Settings entry, reachable regardless of sidebar scroll position', async () => {
+    renderUserMenu(doctorState);
+
+    await userEvent.click(screen.getByRole('button'));
+
+    const settingsLink = await screen.findByRole('menuitem', { name: 'Settings' });
+    expect(settingsLink).toHaveAttribute('href', '/en/doctor/settings');
+  });
+
+  it('does not show a doctor-only Settings shortcut to a patient', async () => {
+    renderUserMenu(patientState);
+
+    await userEvent.click(screen.getByRole('button'));
+
+    await screen.findByRole('menuitem', { name: 'Security Center' });
+    expect(screen.queryByRole('menuitem', { name: 'Settings' })).not.toBeInTheDocument();
   });
 });

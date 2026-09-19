@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, LogOut, Monitor, Moon, ShieldCheck, Sun } from 'lucide-react';
+import { ChevronDown, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useLogout } from '@/features/auth/hooks/use-logout';
 import { useAuth } from '@/shared/auth/auth-context';
@@ -43,6 +43,8 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
 
   if (!user) return null;
 
+  const isDoctor = user.roles.includes('doctor');
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
@@ -68,6 +70,19 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isDoctor && (
+          // Settings audit: the sidebar's Settings entry sits below the
+          // fold at normal laptop heights, discoverable only via an inner
+          // scrollbar most people never notice -- a persistent, always-
+          // visible entry point here (same fix already applied to Security
+          // Center below) means it never depends on scroll position.
+          <DropdownMenuItem asChild>
+            <Link href="/doctor/settings" className="flex items-center gap-2">
+              <Icon icon={Settings} size="sm" />
+              {t('settings')}
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/security" className="flex items-center gap-2">
             <Icon icon={ShieldCheck} size="sm" />

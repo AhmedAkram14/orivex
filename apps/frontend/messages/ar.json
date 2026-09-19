@@ -591,6 +591,7 @@
       "viewAll": "عرض كل الإشعارات"
     },
     "userMenu": {
+      "settings": "الإعدادات",
       "securityCenter": "مركز الأمان",
       "theme": {
         "label": "المظهر",

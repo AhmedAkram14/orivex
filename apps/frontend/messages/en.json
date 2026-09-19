@@ -591,6 +591,7 @@
       "viewAll": "View all notifications"
     },
     "userMenu": {
+      "settings": "Settings",
       "securityCenter": "Security Center",
       "theme": {
         "label": "Theme",
