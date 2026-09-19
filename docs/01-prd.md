@@ -169,7 +169,7 @@ Pain points today (as a role we're designing for): Manual verification doesn't s
    Notes/Timeline: SOAP notes 🟢 · AI SOAP draft 🤖 · Cross-specialty timeline 🟢 · Timeline summarization 🤖
    Prescriptions: Structured builder 🟢 · Digital signature 🟢 · Interaction/allergy alerts 🤖 · AI draft 🤖 · Controlled substances ⚪ (excluded V1 pending legal review)
    Lab Requests: Structured request doc 🟢 · Suggested tests 🤖 · Full lab integration ⚪
-   Payments: Checkout 🟢 · Payouts 🟢 · Refunds 🟢 · Insurance billing ⚪
+   Payments: Checkout 🟢 · Payouts ⚪ · Refunds 🟢 · Insurance billing ⚪
    Reviews: Multi-dimension ratings 🟢 · Doctor response 🔵 · Sentiment analytics 🤖
    Notifications: Multi-channel 🟢 · Smart timing 🤖⚪
    Admin: Verification queue 🟢 · Moderation 🟢 · Audit log viewer 🟢 · Platform analytics 🔵
