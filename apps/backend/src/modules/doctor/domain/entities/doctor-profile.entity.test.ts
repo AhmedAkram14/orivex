@@ -106,4 +106,116 @@ describe('DoctorProfile', () => {
     assert.equal(profile.getHospitalId(), undefined);
     assert.equal(profile.getDepartmentId(), undefined);
   });
+
+  it('registers with bufferMinutesOverride/autoApproveFreeBookings left at their defaults', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+    });
+
+    assert.equal(profile.getBufferMinutesOverride(), undefined);
+    assert.equal(profile.getAutoApproveFreeBookings(), false);
+  });
+
+  it('registers with bufferMinutesOverride/autoApproveFreeBookings explicitly set', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+      bufferMinutesOverride: 15,
+      autoApproveFreeBookings: true,
+    });
+
+    assert.equal(profile.getBufferMinutesOverride(), 15);
+    assert.equal(profile.getAutoApproveFreeBookings(), true);
+  });
+
+  it('rejects registering with a negative bufferMinutesOverride', () => {
+    assert.throws(
+      () =>
+        DoctorProfile.register({
+          accountId: '11111111-1111-4111-8111-111111111111',
+          licenseNumber: 'LIC-1',
+          specialtyId: SPECIALTY_ID,
+          bufferMinutesOverride: -1,
+        }),
+      DoctorDomainError,
+    );
+  });
+
+  it('rejects registering with a non-integer bufferMinutesOverride', () => {
+    assert.throws(
+      () =>
+        DoctorProfile.register({
+          accountId: '11111111-1111-4111-8111-111111111111',
+          licenseNumber: 'LIC-1',
+          specialtyId: SPECIALTY_ID,
+          bufferMinutesOverride: 5.5,
+        }),
+      DoctorDomainError,
+    );
+  });
+
+  it('allows a bufferMinutesOverride of exactly 0 (boundary)', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+      bufferMinutesOverride: 0,
+    });
+
+    assert.equal(profile.getBufferMinutesOverride(), 0);
+  });
+
+  it('update() sets bufferMinutesOverride and autoApproveFreeBookings', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+    });
+
+    profile.update({ bufferMinutesOverride: 20, autoApproveFreeBookings: true });
+
+    assert.equal(profile.getBufferMinutesOverride(), 20);
+    assert.equal(profile.getAutoApproveFreeBookings(), true);
+  });
+
+  it('update() clears bufferMinutesOverride when explicitly set to null', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+      bufferMinutesOverride: 20,
+    });
+
+    profile.update({ bufferMinutesOverride: null });
+
+    assert.equal(profile.getBufferMinutesOverride(), undefined);
+  });
+
+  it('update() rejects a negative bufferMinutesOverride without persisting the change', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+      bufferMinutesOverride: 20,
+    });
+
+    assert.throws(() => profile.update({ bufferMinutesOverride: -5 }), DoctorDomainError);
+    assert.equal(profile.getBufferMinutesOverride(), 20);
+  });
+
+  it('update() can set autoApproveFreeBookings back to false', () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+      autoApproveFreeBookings: true,
+    });
+
+    profile.update({ autoApproveFreeBookings: false });
+
+    assert.equal(profile.getAutoApproveFreeBookings(), false);
+  });
 });

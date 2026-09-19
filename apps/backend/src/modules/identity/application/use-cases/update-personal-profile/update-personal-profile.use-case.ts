@@ -28,6 +28,7 @@ export class UpdatePersonalProfileUseCase {
       nationalityId: command.nationalityId,
       address: command.address,
       avatarUrl: command.avatarUrl,
+      phoneNumber: command.phoneNumber,
     });
 
     await this.accountRepository.save(account);

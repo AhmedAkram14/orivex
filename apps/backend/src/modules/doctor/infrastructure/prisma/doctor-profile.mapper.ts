@@ -33,6 +33,8 @@ export function toDomainDoctorProfile(row: PersistedDoctorProfileRow): DoctorPro
     licenseExpiryDate: row.licenseExpiryDate ?? undefined,
     departmentId: row.departmentId ?? undefined,
     maxFreeSlotsPerDay: row.maxFreeSlotsPerDay ?? undefined,
+    bufferMinutesOverride: row.bufferMinutesOverride ?? undefined,
+    autoApproveFreeBookings: row.autoApproveFreeBookings,
     publications: row.publications.map((p) =>
       PortfolioPublication.reconstitute({
         id: p.id,

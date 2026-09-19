@@ -50,6 +50,7 @@ export class MyAccountController {
           gender: body.gender,
           nationalityId: body.nationalityId,
           address: body.address,
+          phoneNumber: body.phoneNumber,
         }),
       );
       return envelope(AccountResponseDto.fromDomain(account));

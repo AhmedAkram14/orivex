@@ -46,6 +46,14 @@ export interface RegisterDoctorProfileProps {
   // Undefined/null means no cap (this codebase's own convention for every
   // other optional numeric field here) -- most doctors never set one.
   maxFreeSlotsPerDay?: number;
+  // Doctor Settings Rebuild (Phase 0): per-doctor override of the platform's
+  // flat scheduling-rules buffer-between-appointments constant. Undefined
+  // means "use the platform default", same convention as maxFreeSlotsPerDay.
+  bufferMinutesOverride?: number;
+  // Doctor Settings Rebuild (Phase 0): when true, a FREE booking that would
+  // otherwise land `Requested` is immediately auto-confirmed (Phase 1 wiring).
+  // Plain boolean -- no validation, unlike the numeric fields on this entity.
+  autoApproveFreeBookings?: boolean;
 }
 
 export interface UpdateDoctorProfileProps {
@@ -65,6 +73,8 @@ export interface UpdateDoctorProfileProps {
   licenseExpiryDate?: Date | null;
   departmentId?: string | null;
   maxFreeSlotsPerDay?: number | null;
+  bufferMinutesOverride?: number | null;
+  autoApproveFreeBookings?: boolean;
 }
 
 export interface ReconstituteDoctorProfileProps {
@@ -87,6 +97,8 @@ export interface ReconstituteDoctorProfileProps {
   licenseExpiryDate?: Date;
   departmentId?: string;
   maxFreeSlotsPerDay?: number;
+  bufferMinutesOverride?: number;
+  autoApproveFreeBookings?: boolean;
 }
 
 // Aggregate root of the Doctor bounded context (docs/10-backend-
@@ -118,6 +130,8 @@ export class DoctorProfile {
     private licenseExpiryDate: Date | undefined,
     private departmentId: string | undefined,
     private maxFreeSlotsPerDay: number | undefined,
+    private bufferMinutesOverride: number | undefined,
+    private autoApproveFreeBookings: boolean,
   ) {}
 
   static register(props: RegisterDoctorProfileProps): DoctorProfile {
@@ -126,6 +140,7 @@ export class DoctorProfile {
     DoctorProfile.validateConsultationFee(props.consultationFeeAmount);
     DoctorProfile.validateDepartmentRequiresHospital(props.hospitalId, props.departmentId);
     DoctorProfile.validateMaxFreeSlotsPerDay(props.maxFreeSlotsPerDay);
+    DoctorProfile.validateBufferMinutesOverride(props.bufferMinutesOverride);
 
     const now = new Date();
     const profile = new DoctorProfile(
@@ -148,6 +163,8 @@ export class DoctorProfile {
       props.licenseExpiryDate,
       props.departmentId,
       props.maxFreeSlotsPerDay,
+      props.bufferMinutesOverride,
+      props.autoApproveFreeBookings ?? false,
     );
 
     profile.record(new DoctorProfileUpdatedEvent(profile.id));
@@ -175,6 +192,8 @@ export class DoctorProfile {
       props.licenseExpiryDate,
       props.departmentId,
       props.maxFreeSlotsPerDay,
+      props.bufferMinutesOverride,
+      props.autoApproveFreeBookings ?? false,
     );
   }
 
@@ -225,6 +244,13 @@ export class DoctorProfile {
       DoctorProfile.validateMaxFreeSlotsPerDay(props.maxFreeSlotsPerDay ?? undefined);
       this.maxFreeSlotsPerDay = props.maxFreeSlotsPerDay ?? undefined;
     }
+    if (props.bufferMinutesOverride !== undefined) {
+      DoctorProfile.validateBufferMinutesOverride(props.bufferMinutesOverride ?? undefined);
+      this.bufferMinutesOverride = props.bufferMinutesOverride ?? undefined;
+    }
+    if (props.autoApproveFreeBookings !== undefined) {
+      this.autoApproveFreeBookings = props.autoApproveFreeBookings;
+    }
 
     this.updatedAt = new Date();
     this.record(new DoctorProfileUpdatedEvent(this.id));
@@ -251,6 +277,15 @@ export class DoctorProfile {
   private static validateMaxFreeSlotsPerDay(value: number | undefined): void {
     if (value !== undefined && (!Number.isInteger(value) || value < 0)) {
       throw new DoctorDomainError('maxFreeSlotsPerDay must be a non-negative integer.');
+    }
+  }
+
+  // Doctor Settings Rebuild (Phase 0): mirrors validateMaxFreeSlotsPerDay's
+  // own shape -- undefined means "use the platform default", otherwise a
+  // non-negative integer.
+  private static validateBufferMinutesOverride(value: number | undefined): void {
+    if (value !== undefined && (!Number.isInteger(value) || value < 0)) {
+      throw new DoctorDomainError('bufferMinutesOverride must be a non-negative integer.');
     }
   }
 
@@ -319,6 +354,14 @@ export class DoctorProfile {
 
   getMaxFreeSlotsPerDay(): number | undefined {
     return this.maxFreeSlotsPerDay;
+  }
+
+  getBufferMinutesOverride(): number | undefined {
+    return this.bufferMinutesOverride;
+  }
+
+  getAutoApproveFreeBookings(): boolean {
+    return this.autoApproveFreeBookings;
   }
 
   getPublications(): PortfolioPublication[] {

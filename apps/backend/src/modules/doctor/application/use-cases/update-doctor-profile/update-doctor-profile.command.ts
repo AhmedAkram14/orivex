@@ -28,6 +28,8 @@ export interface UpdateDoctorProfileCommandProps {
   licenseExpiryDate?: Date | null;
   departmentId?: string | null;
   maxFreeSlotsPerDay?: number | null;
+  bufferMinutesOverride?: number | null;
+  autoApproveFreeBookings?: boolean;
 }
 
 export class UpdateDoctorProfileCommand {
@@ -46,6 +48,8 @@ export class UpdateDoctorProfileCommand {
   readonly licenseExpiryDate?: Date | null;
   readonly departmentId?: string | null;
   readonly maxFreeSlotsPerDay?: number | null;
+  readonly bufferMinutesOverride?: number | null;
+  readonly autoApproveFreeBookings?: boolean;
 
   constructor(props: UpdateDoctorProfileCommandProps) {
     this.doctorProfileId = props.doctorProfileId;
@@ -63,5 +67,7 @@ export class UpdateDoctorProfileCommand {
     this.licenseExpiryDate = props.licenseExpiryDate;
     this.departmentId = props.departmentId;
     this.maxFreeSlotsPerDay = props.maxFreeSlotsPerDay;
+    this.bufferMinutesOverride = props.bufferMinutesOverride;
+    this.autoApproveFreeBookings = props.autoApproveFreeBookings;
   }
 }

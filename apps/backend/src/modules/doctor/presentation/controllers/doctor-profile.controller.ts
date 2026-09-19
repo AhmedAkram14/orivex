@@ -188,6 +188,8 @@ export class DoctorProfileController {
           licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
           departmentId: body.departmentId,
           maxFreeSlotsPerDay: body.maxFreeSlotsPerDay,
+          bufferMinutesOverride: body.bufferMinutesOverride,
+          autoApproveFreeBookings: body.autoApproveFreeBookings,
         }),
       );
       const account = await this.getAccountOrThrow(user.accountId);
@@ -280,6 +282,8 @@ export class DoctorProfileController {
           licenseExpiryDate: body.licenseExpiryDate ? new Date(body.licenseExpiryDate) : undefined,
           departmentId: body.departmentId,
           maxFreeSlotsPerDay: body.maxFreeSlotsPerDay,
+          bufferMinutesOverride: body.bufferMinutesOverride,
+          autoApproveFreeBookings: body.autoApproveFreeBookings,
         }),
       );
       const account = await this.getAccountOrThrow(profile.getAccountId());

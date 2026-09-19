@@ -52,6 +52,13 @@ export interface UpdatePersonalProfileProps {
   // this yet (no upload-your-photo UI exists) -- today it's only ever set
   // by the demo seed script calling this same real use case directly.
   avatarUrl?: string | null;
+  // phoneNumber gap fix (Doctor Settings Rebuild, Phase 0 Part C): the
+  // `PATCH /accounts/me` endpoint calls updatePersonalProfile(), not
+  // updateProfile() -- so phoneNumber has to be threaded through here to
+  // reach UserProfile.updatePhoneNumber(), which already existed but was
+  // never reachable from this method. Never null -- same "no clearing"
+  // convention updateProfile()'s own phoneNumber handling below uses.
+  phoneNumber?: string;
 }
 
 // Aggregate root of the Identity & Access bounded context (docs/10-backend-
@@ -172,6 +179,9 @@ export class Account {
     }
     if (props.avatarUrl !== undefined) {
       this.userProfile.updateAvatarUrl(props.avatarUrl ?? undefined);
+    }
+    if (props.phoneNumber !== undefined) {
+      this.userProfile.updatePhoneNumber(props.phoneNumber);
     }
     this.updatedAt = new Date();
   }

@@ -66,6 +66,22 @@ describe('UpdatePersonalProfileUseCase', () => {
     assert.equal(repository.saved.length, 1);
   });
 
+  it('updates phoneNumber (phoneNumber gap fix, Doctor Settings Rebuild Phase 0)', async () => {
+    const account = buildAccount();
+    const repository = new FakeAccountRepository(account);
+    const useCase = new UpdatePersonalProfileUseCase(repository);
+
+    const result = await useCase.execute(
+      new UpdatePersonalProfileCommand({
+        accountId: account.getId().toString(),
+        phoneNumber: '+201234567890',
+      }),
+    );
+
+    assert.equal(result.getUserProfile().getPhoneNumber(), '+201234567890');
+    assert.equal(repository.saved.length, 1);
+  });
+
   it('leaves fields unchanged when omitted from the command', async () => {
     const account = buildAccount();
     const repository = new FakeAccountRepository(account);

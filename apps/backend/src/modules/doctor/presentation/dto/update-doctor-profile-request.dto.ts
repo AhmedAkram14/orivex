@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -137,4 +138,19 @@ export class UpdateDoctorProfileRequestDto {
   @IsInt()
   @Min(0)
   maxFreeSlotsPerDay?: number;
+
+  // Doctor Settings Rebuild (Phase 0): per-doctor override of the platform's
+  // flat scheduling-rules buffer-between-appointments constant. Omit/null =
+  // use the platform default.
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  bufferMinutesOverride?: number;
+
+  // Doctor Settings Rebuild (Phase 0): auto-confirm FREE bookings instead of
+  // leaving them `Requested`.
+  @IsOptional()
+  @IsBoolean()
+  autoApproveFreeBookings?: boolean;
 }

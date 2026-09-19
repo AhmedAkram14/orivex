@@ -1,4 +1,4 @@
-import { IsEnum, IsISO8601, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsEnum, IsISO8601, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 import { Gender } from '../../domain/enums/gender.enum.js';
 
@@ -22,4 +22,16 @@ export class UpdatePersonalProfileRequestDto {
   @IsString()
   @MaxLength(500)
   address?: string;
+
+  // phoneNumber gap fix (Doctor Settings Rebuild, Phase 0 Part C): reuses
+  // the exact validator shape this codebase already uses for a phone number
+  // field (EmergencyContactRequestDto.phoneNumber, in
+  // patient/presentation/dto/update-patient-profile-request.dto.ts) --
+  // grepped the whole backend for `@IsPhoneNumber`/a phone regex and found
+  // none anywhere; plain @IsString/@IsNotEmpty is this codebase's own
+  // established convention for a phone number, not a new one invented here.
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  phoneNumber?: string;
 }

@@ -183,6 +183,39 @@ describe('UpdateDoctorProfileUseCase', () => {
     assert.equal(repo.saved.length, 0);
   });
 
+  it('sets bufferMinutesOverride and autoApproveFreeBookings (Doctor Settings Rebuild Phase 0)', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({
+        doctorProfileId: profile.getId(),
+        bufferMinutesOverride: 15,
+        autoApproveFreeBookings: true,
+      }),
+    );
+
+    assert.equal(updated.getBufferMinutesOverride(), 15);
+    assert.equal(updated.getAutoApproveFreeBookings(), true);
+    assert.equal(repo.saved.length, 1);
+  });
+
+  it('rejects a negative bufferMinutesOverride without persisting', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), bufferMinutesOverride: -1 }),
+        ),
+      DoctorDomainError,
+    );
+    assert.equal(repo.saved.length, 0);
+  });
+
   it('propagates DoctorDomainError for an invalid update without persisting', async () => {
     const profile = buildProfile();
     const repo = new FakeDoctorProfileRepository(profile);

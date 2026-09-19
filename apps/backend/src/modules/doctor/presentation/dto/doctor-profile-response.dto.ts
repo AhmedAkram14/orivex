@@ -55,6 +55,8 @@ export class DoctorProfileResponseDto {
   licenseExpiryDate?: string;
   departmentId?: string;
   maxFreeSlotsPerDay?: number;
+  bufferMinutesOverride?: number;
+  autoApproveFreeBookings!: boolean;
 
   static fromDomain(profile: DoctorProfile, account: Account): DoctorProfileResponseDto {
     const userProfile = account.getUserProfile();
@@ -101,6 +103,8 @@ export class DoctorProfileResponseDto {
     dto.licenseExpiryDate = profile.getLicenseExpiryDate()?.toISOString();
     dto.departmentId = profile.getDepartmentId();
     dto.maxFreeSlotsPerDay = profile.getMaxFreeSlotsPerDay();
+    dto.bufferMinutesOverride = profile.getBufferMinutesOverride();
+    dto.autoApproveFreeBookings = profile.getAutoApproveFreeBookings();
 
     return dto;
   }

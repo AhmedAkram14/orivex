@@ -59,6 +59,10 @@ model Account {
   sentMessages      Message[]
   // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit).
   disputesRaised    Dispute[]
+  // Doctor Settings Rebuild (Phase 0): one row per account, created lazily
+  // on first write (Phase 2) -- no row means "everything on" (see the
+  // NotificationPreference model's own header comment).
+  notificationPreference NotificationPreference?
 }
 
 enum CredentialStatus {
@@ -155,6 +159,14 @@ model DoctorProfile {
   // I8 -- Free-tier abuse controls (docs/01-prd.md §7): the doctor's own
   // daily cap on FREE availability windows. Null = no cap.
   maxFreeSlotsPerDay              Int?
+  // Doctor Settings Rebuild (Phase 0): per-doctor override of the platform's
+  // flat scheduling-rules buffer-between-appointments constant. Null = use
+  // the platform default.
+  bufferMinutesOverride           Int?
+  // Doctor Settings Rebuild (Phase 0): auto-confirm FREE bookings instead of
+  // leaving them `Requested` (Phase 1 wiring). Defaults false to preserve
+  // existing pending-approval behavior for every current doctor.
+  autoApproveFreeBookings         Boolean                   @default(false)
   // ORIVEX Roadmap 2.0 Stage 4: optional grouping/org-chart link only, not
   // multi-tenant scoping (true tenant isolation is explicitly deferred, see
   // Stage 4's roadmap completion note) -- a doctor may exist with no
@@ -1418,6 +1430,30 @@ model Notification {
 
   @@index([accountId])
   @@index([createdAt])
+}
+
+// Doctor Settings Rebuild (Phase 0): one row per account, created lazily on
+// first write (Phase 2's GetNotificationPreferencesUseCase returns an
+// in-memory all-true default when no row exists yet -- no backfill migration
+// needed). Defaults preserve today's "everything fires" behavior for every
+// existing account. Confirmed during this phase (grepped
+// notification/application/event-handlers for a messaging-notification
+// handler, and reviewed messaging's own RealtimeNotifyingMessageRepository):
+// no handler creates a Notification row for a messaging/chat event --
+// Messaging pushes exclusively through its own realtime socket channel
+// (message.sent/message.read), never through this module. So only
+// Appointments/Billing categories exist here -- no emailMessages/
+// inAppMessages columns.
+model NotificationPreference {
+  id                String   @id @default(uuid())
+  accountId         String   @unique
+  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  emailAppointments Boolean  @default(true)
+  emailBilling      Boolean  @default(true)
+  inAppAppointments Boolean  @default(true)
+  inAppBilling      Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 enum WeekDay {

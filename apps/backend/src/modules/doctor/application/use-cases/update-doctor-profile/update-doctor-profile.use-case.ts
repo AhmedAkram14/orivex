@@ -35,6 +35,8 @@ export class UpdateDoctorProfileUseCase {
       licenseExpiryDate: command.licenseExpiryDate,
       departmentId: command.departmentId,
       maxFreeSlotsPerDay: command.maxFreeSlotsPerDay,
+      bufferMinutesOverride: command.bufferMinutesOverride,
+      autoApproveFreeBookings: command.autoApproveFreeBookings,
     });
 
     await this.doctorProfileRepository.save(profile);
