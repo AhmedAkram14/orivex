@@ -56,3 +56,26 @@ export interface DoctorEarningsSummary {
   lifetimeTransactionCount: number;
   cycles: DoctorEarningsCycle[];
 }
+
+/** `GET /payments/doctor/earnings-summary` / `earnings-transactions` / `earnings-export`'s shared query contract -- both optional, defaulting server-side to the trailing 30 days (`DoctorEarningsFilterQueryDto.toFilter()`). */
+export interface DoctorEarningsFilterParams {
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/**
+ * Matches `DoctorEarningsTransactionResponseDto` exactly (Doctor Earnings
+ * page rebuild, Phase 1) -- backs the drill-down table. Returned across ALL
+ * statuses, including `refunded`, unlike the summary's lifetime/cycle
+ * figures which only count `EARNED_STATUSES`.
+ */
+export interface DoctorEarningsTransaction {
+  id: string;
+  appointmentId: string;
+  consultationSessionId: string | null;
+  patientId: string;
+  patientName: string;
+  amount: Money;
+  status: PaymentStatus;
+  createdAt: string;
+}

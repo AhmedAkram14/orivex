@@ -1530,17 +1530,49 @@
         "lifetimeGross": "Lifetime gross",
         "transactionCount": "Paid consultations"
       },
+      "payoutHonesty": "These figures reflect earnings recorded on this platform, not confirmation that funds have been transferred to your account.",
       "commissionFootnote": "Platform commission: {rate}%.",
       "taxFootnote": "Net is before tax — it does not account for any tax or withholding.",
       "cyclesTitle": "Monthly breakdown",
+      "cyclesPeriodQualifier": "For the selected period",
       "cyclesEmptyTitle": "No earnings yet",
       "cyclesEmptyDescription": "Completed paid consultations will appear here, broken down by month.",
+      "transactionsTitle": "Transactions",
+      "transactionsLoadError": "Couldn't load your transactions.",
+      "transactionsEmptyTitle": "No transactions yet",
+      "transactionsEmptyDescription": "Per-consultation transactions for the selected period will appear here.",
       "table": {
         "cycle": "Month",
         "gross": "Gross",
         "commission": "Commission",
         "net": "Net",
-        "transactions": "Consultations"
+        "transactions": "Consultations",
+        "patient": "Patient",
+        "date": "Date",
+        "fee": "Fee",
+        "status": "Status"
+      },
+      "status": {
+        "initiated": "Initiated",
+        "succeeded": "Succeeded",
+        "failed": "Failed",
+        "settled": "Settled",
+        "refunded": "Refunded",
+        "disputed": "Disputed"
+      },
+      "dateRange": {
+        "from": "From",
+        "to": "To",
+        "preset7Days": "7 days",
+        "preset30Days": "30 days",
+        "preset90Days": "90 days",
+        "presetThisMonth": "This month",
+        "presetAllTime": "All time"
+      },
+      "export": {
+        "exportCsv": "Export CSV",
+        "exporting": "Exporting…",
+        "exportError": "Export failed. Try again."
       }
     },
     "settingsPage": {

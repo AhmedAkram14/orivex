@@ -59,9 +59,28 @@ export const paymentHandlers = [
 
   // I2 -- Doctor earnings dashboard. Registered before ':id' below so MSW's
   // route matching never treats "doctor/earnings-summary" as an :id value,
-  // matching the real backend's own controller-ordering comment.
-  http.get(`${base()}${PAYMENT_PATHS.doctorEarningsSummary}`, () =>
-    HttpResponse.json({ data: getDoctorEarningsSummaryMock() }),
+  // matching the real backend's own controller-ordering comment. MSW
+  // matches on pathname only, so the literal route path is used here rather
+  // than calling `PAYMENT_PATHS.doctorEarningsSummary(...)` (which now
+  // builds a full `?dateFrom=&dateTo=` query string), mirroring
+  // `mocks/handlers/doctor.ts`'s own literal-path precedent for its
+  // date-ranged reports routes.
+  http.get(`${base()}/payments/doctor/earnings-summary`, () => HttpResponse.json({ data: getDoctorEarningsSummaryMock() })),
+
+  // Doctor Earnings page rebuild (Phase 3) -- backs the drill-down table.
+  // This mock store has no doctorId on its flat transaction list (see
+  // `getDoctorEarningsSummaryMock`'s own comment), so an honest empty list
+  // is returned here too; the real backend's transaction resolution is
+  // exercised in backend integration tests, not here.
+  http.get(`${base()}/payments/doctor/earnings-transactions`, () => HttpResponse.json({ data: [] })),
+
+  // Doctor Earnings page rebuild (Phase 3) -- `useExportDoctorEarnings`
+  // fetches this directly (a raw CSV body, not the `{ data, meta }`
+  // envelope), so this mock returns plain text rather than `HttpResponse.json`.
+  http.get(`${base()}/payments/doctor/earnings-export`, () =>
+    HttpResponse.text('section,value\nlifetimeNet,0\n', {
+      headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="earnings.csv"' },
+    }),
   ),
 
   http.get(`${base()}${PAYMENT_PATHS.initiateCharge}/:id`, ({ params }) => {

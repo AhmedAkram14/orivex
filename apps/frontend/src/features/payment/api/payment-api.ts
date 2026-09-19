@@ -1,6 +1,13 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { PAYMENT_PATHS } from '@/features/payment/api/paths';
-import type { DoctorEarningsSummary, InitiateChargeRequest, PaymentTransaction } from '@/features/payment/api/types';
+import { env } from '@/shared/lib/env';
+import type {
+  DoctorEarningsFilterParams,
+  DoctorEarningsSummary,
+  DoctorEarningsTransaction,
+  InitiateChargeRequest,
+  PaymentTransaction,
+} from '@/features/payment/api/types';
 
 /**
  * The only module that talks to `/payments/*` — mirrors `notificationsApi`'s
@@ -20,9 +27,23 @@ export const paymentApi = {
 
   refund: (id: string) => apiFetch<PaymentTransaction>({ method: 'POST', path: PAYMENT_PATHS.refund(id) }),
 
-  /** I2 -- Doctor earnings dashboard. `month` is an optional "YYYY-MM" filter for the cycle breakdown. */
-  getDoctorEarningsSummary: (month?: string) =>
-    apiFetch<DoctorEarningsSummary>({
-      path: month ? `${PAYMENT_PATHS.doctorEarningsSummary}?month=${month}` : PAYMENT_PATHS.doctorEarningsSummary,
-    }),
+  /**
+   * I2 -- Doctor earnings dashboard. `dateFrom`/`dateTo` scope the cycle
+   * breakdown only -- the backend always computes `lifetime*` fields across
+   * the full, unfiltered ledger regardless of this filter (Doctor Earnings
+   * page rebuild, Phase 0 fix).
+   */
+  getDoctorEarningsSummary: (filter?: DoctorEarningsFilterParams) =>
+    apiFetch<DoctorEarningsSummary>({ path: PAYMENT_PATHS.doctorEarningsSummary(filter) }),
+
+  /** Doctor Earnings page rebuild (Phase 1) -- backs the drill-down table. ALL statuses, including `refunded`. */
+  getDoctorEarningsTransactions: (filter?: DoctorEarningsFilterParams) =>
+    apiFetch<DoctorEarningsTransaction[]>({ path: PAYMENT_PATHS.doctorEarningsTransactions(filter) }),
+
+  // Doctor Earnings page rebuild (Phase 2/3): not routed through `apiFetch`
+  // -- the export route returns a raw CSV body, not the `{ data, meta }`
+  // envelope `apiFetch` unwraps. Returns the absolute URL for
+  // `use-export-doctor-earnings.ts`'s fetch-then-blob-download flow,
+  // mirroring `doctorApi.buildReportsExportUrl`'s exact precedent.
+  buildEarningsExportUrl: (filter?: DoctorEarningsFilterParams) => `${env.apiBaseUrl}${PAYMENT_PATHS.doctorEarningsExport(filter)}`,
 };

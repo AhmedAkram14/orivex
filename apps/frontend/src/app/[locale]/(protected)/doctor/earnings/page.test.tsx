@@ -2,8 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import DoctorEarningsPage from './page';
 import { server } from '@/mocks/server';
+import { env } from '@/shared/lib/env';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
@@ -27,6 +29,8 @@ const doctorState: AuthState = {
   user: { id: '1', email: 'doctor@orivex.dev', fullName: 'Dr. Sarah Ahmed', roles: ['doctor'] },
 };
 
+const SUMMARY_URL = `${env.apiBaseUrl}/payments/doctor/earnings-summary`;
+
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -46,5 +50,35 @@ describe('DoctorEarningsPage', () => {
 
     const link = await screen.findByRole('link', { name: /See your reports for this period/ });
     expect(link).toHaveAttribute('href', '/en/doctor/reports');
+  });
+
+  it('renders the date-range picker and export button (detailed behavior covered by doctor-earnings-summary.test.tsx)', async () => {
+    renderPage();
+
+    await screen.findByLabelText('From');
+    expect(screen.getByLabelText('To')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Export CSV/ })).toBeInTheDocument();
+  });
+
+  it('still renders an honest zero state when a real doctor genuinely has no earnings history', async () => {
+    server.use(
+      http.get(SUMMARY_URL, () =>
+        HttpResponse.json({
+          data: {
+            currency: null,
+            commissionRate: 0.15,
+            lifetimeGrossAmount: 0,
+            lifetimeCommissionAmount: 0,
+            lifetimeNetAmount: 0,
+            lifetimeTransactionCount: 0,
+            cycles: [],
+          },
+        }),
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByText('No earnings yet')).toBeInTheDocument();
+    expect(screen.getByText('No transactions yet')).toBeInTheDocument();
   });
 });

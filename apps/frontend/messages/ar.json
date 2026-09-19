@@ -1530,17 +1530,49 @@
         "lifetimeGross": "إجمالي الدخل",
         "transactionCount": "الاستشارات المدفوعة"
       },
+      "payoutHonesty": "تعكس هذه الأرقام الأرباح المسجَّلة على هذه المنصة، ولا تُعد تأكيدًا بأن الأموال قد تم تحويلها إلى حسابك.",
       "commissionFootnote": "عمولة المنصة: {rate}%.",
       "taxFootnote": "الصافي قبل خصم الضرائب — لا يشمل أي ضريبة أو استقطاع.",
       "cyclesTitle": "التفصيل الشهري",
+      "cyclesPeriodQualifier": "للفترة المحددة",
       "cyclesEmptyTitle": "لا توجد أرباح بعد",
       "cyclesEmptyDescription": "ستظهر هنا الاستشارات المدفوعة المكتملة، مقسّمة حسب الشهر.",
+      "transactionsTitle": "المعاملات",
+      "transactionsLoadError": "تعذّر تحميل معاملاتك.",
+      "transactionsEmptyTitle": "لا توجد معاملات بعد",
+      "transactionsEmptyDescription": "ستظهر هنا معاملات كل استشارة للفترة المحددة.",
       "table": {
         "cycle": "الشهر",
         "gross": "الإجمالي",
         "commission": "العمولة",
         "net": "الصافي",
-        "transactions": "الاستشارات"
+        "transactions": "الاستشارات",
+        "patient": "المريض",
+        "date": "التاريخ",
+        "fee": "الرسوم",
+        "status": "الحالة"
+      },
+      "status": {
+        "initiated": "بدأت",
+        "succeeded": "ناجحة",
+        "failed": "فشلت",
+        "settled": "تمت التسوية",
+        "refunded": "مستردة",
+        "disputed": "محل نزاع"
+      },
+      "dateRange": {
+        "from": "من",
+        "to": "إلى",
+        "preset7Days": "٧ أيام",
+        "preset30Days": "٣٠ يومًا",
+        "preset90Days": "٩٠ يومًا",
+        "presetThisMonth": "هذا الشهر",
+        "presetAllTime": "كل الأوقات"
+      },
+      "export": {
+        "exportCsv": "تصدير CSV",
+        "exporting": "جارٍ التصدير…",
+        "exportError": "فشل التصدير. حاول مرة أخرى."
       }
     },
     "settingsPage": {
