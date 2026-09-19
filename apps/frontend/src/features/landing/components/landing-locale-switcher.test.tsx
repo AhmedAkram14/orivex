@@ -26,7 +26,9 @@ describe('LandingLocaleSwitcher', () => {
     expect(screen.getByText('English')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /English/ }));
-    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'Arabic' }));
+    // Each option names itself in its own script regardless of the current
+    // UI language -- "العربية", never a translated "Arabic".
+    await userEvent.click(await screen.findByRole('menuitemradio', { name: 'العربية' }));
 
     expect(replace).toHaveBeenCalledWith('/ar');
   });

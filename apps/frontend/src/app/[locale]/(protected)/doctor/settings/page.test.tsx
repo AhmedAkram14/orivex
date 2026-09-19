@@ -69,8 +69,28 @@ describe('DoctorSettingsPage', () => {
     await userEvent.click(darkOption);
     expect(darkOption).toHaveAttribute('data-state', 'checked');
 
-    const arabicOption = screen.getByRole('radio', { name: /Arabic/ });
+    // Each language names itself in its own script regardless of the
+    // current UI language -- "العربية", never a translated "Arabic".
+    const arabicOption = screen.getByRole('radio', { name: 'العربية' });
     await userEvent.click(arabicOption);
     expect(replaceMock).toHaveBeenCalledWith('/doctor/settings', { locale: 'ar' });
+  });
+
+  it('gives each radio group its own accessible name, distinguishing Theme from Language', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('radiogroup', { name: 'Theme' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Language' })).toBeInTheDocument();
+  });
+
+  it('makes the whole row clickable, not just the small circle', async () => {
+    renderPage();
+
+    // Clicking the visible text itself (not the radio button) must select
+    // the option -- the row uses a click handler rather than relying on
+    // label-forwarding, which doesn't work for a <button role="radio">.
+    const darkText = await screen.findByText('Dark');
+    await userEvent.click(darkText);
+    expect(screen.getByRole('radio', { name: 'Dark' })).toHaveAttribute('data-state', 'checked');
   });
 });

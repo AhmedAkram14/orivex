@@ -1,10 +1,10 @@
 'use client';
 
 import { Globe } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useLocale } from 'next-intl';
 import { Icon } from '@/shared/icons/icon';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
-import { routing, type AppLocale } from '@/shared/i18n/routing';
+import { localeNativeNames, routing, type AppLocale } from '@/shared/i18n/routing';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,6 @@ import {
  * requiring a visitor to hand-edit the URL.
  */
 export function LandingLocaleSwitcher() {
-  const t = useTranslations('common.locales');
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
@@ -29,7 +28,7 @@ export function LandingLocaleSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-border-default bg-surface px-4 py-2 text-sm text-text-secondary hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
         <Icon icon={Globe} size="sm" />
-        {t(locale)}
+        {localeNativeNames[locale as AppLocale]}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup
@@ -38,7 +37,7 @@ export function LandingLocaleSwitcher() {
         >
           {routing.locales.map((option) => (
             <DropdownMenuRadioItem key={option} value={option}>
-              {t(option)}
+              {localeNativeNames[option]}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

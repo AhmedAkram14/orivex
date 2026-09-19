@@ -1578,17 +1578,14 @@
     "settingsPage": {
       "title": "الإعدادات",
       "description": "تفضيلات مساحة عملك.",
+      "preferencesHeading": "التفضيلات",
       "theme": {
         "title": "المظهر",
         "description": "اختر شكل مساحة عمل الطبيب على هذا الجهاز."
       },
       "language": {
         "title": "اللغة",
-        "description": "اختر اللغة التي يُعرض بها التطبيق.",
-        "options": {
-          "en": "الإنجليزية",
-          "ar": "العربية"
-        }
+        "description": "اختر اللغة التي يُعرض بها التطبيق."
       }
     }
   },
