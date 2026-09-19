@@ -2,7 +2,9 @@ import type { GetAccountByIdUseCase } from '../../../../identity/application/use
 import type { EmailSenderPort } from '../../../../authentication/application/ports/email-sender.port.js';
 import { toEmailLocale } from '../../../../authentication/infrastructure/email/templates/email-locale.js';
 import { Notification } from '../../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../../services/notification-preference-gate.service.js';
 
 import type { SendAppointmentReminderCommand } from './send-appointment-reminder.command.js';
 
@@ -17,6 +19,7 @@ export class SendAppointmentReminderUseCase {
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
     private readonly emailSender: EmailSenderPort,
+    private readonly preferenceGate: NotificationPreferenceGate,
   ) {}
 
   async execute(command: SendAppointmentReminderCommand): Promise<void> {
@@ -32,14 +35,17 @@ export class SendAppointmentReminderUseCase {
       accountId: command.accountId,
       title: 'Upcoming appointment reminder',
       description: `You have an upcoming appointment scheduled for ${command.scheduledAt}.`,
+      category: NotificationCategory.Appointments,
     });
     await this.notificationRepository.save(notification);
 
-    await this.emailSender.send(
-      account.getEmail().toString(),
-      'appointment-reminder',
-      { scheduledAt: command.scheduledAt },
-      toEmailLocale(account.getUserProfile().getPreferredLanguage()),
-    );
+    if (await this.preferenceGate.isEmailEnabled(command.accountId, NotificationCategory.Appointments)) {
+      await this.emailSender.send(
+        account.getEmail().toString(),
+        'appointment-reminder',
+        { scheduledAt: command.scheduledAt },
+        toEmailLocale(account.getUserProfile().getPreferredLanguage()),
+      );
+    }
   }
 }

@@ -5,7 +5,9 @@ import type { GetAppointmentByIdUseCase } from '../../../consultation/applicatio
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../services/notification-preference-gate.service.js';
 
 export interface AppointmentDeclinedEventPayload {
   appointmentId: string;
@@ -27,6 +29,7 @@ export class NotifyPatientOfAppointmentDeclinedHandler {
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
     private readonly emailSender: EmailSenderPort,
+    private readonly preferenceGate: NotificationPreferenceGate,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -53,6 +56,7 @@ export class NotifyPatientOfAppointmentDeclinedHandler {
         title: 'Appointment request declined',
         description,
         actionUrl: '/patient/appointments',
+        category: NotificationCategory.Appointments,
       });
       await this.notificationRepository.save(notification);
 
@@ -60,7 +64,7 @@ export class NotifyPatientOfAppointmentDeclinedHandler {
       // own EMAIL_SENDER port, never a second email-sending path. PHI-light
       // by construction -- no reason for visit or other clinical detail.
       const account = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
-      if (account) {
+      if (account && (await this.preferenceGate.isEmailEnabled(patientProfile.getAccountId(), NotificationCategory.Appointments))) {
         await this.emailSender.send(
           account.getEmail().toString(),
           'appointment-declined',

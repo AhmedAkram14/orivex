@@ -4,6 +4,7 @@ import type { GetConsultationSessionByIdUseCase } from '../../../consultation/ap
 import type { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface ConsultationInterruptedEventPayload {
@@ -56,6 +57,7 @@ export class NotifyOfConsultationInterruptedHandler {
                 title: 'Consultation interrupted',
                 description,
                 actionUrl: '/patient/appointments',
+                category: NotificationCategory.Appointments,
               }),
             )
           : Promise.resolve(),
@@ -66,6 +68,7 @@ export class NotifyOfConsultationInterruptedHandler {
                 title: 'Consultation interrupted',
                 description: 'A consultation was interrupted before it could be completed.',
                 actionUrl: '/doctor/queue',
+                category: NotificationCategory.Appointments,
               }),
             )
           : Promise.resolve(),

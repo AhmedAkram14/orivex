@@ -4,6 +4,7 @@ import type { GetDoctorProfileByIdUseCase } from '../../../doctor/application/us
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface AppointmentConfirmedEventPayload {
@@ -83,6 +84,7 @@ export class NotifyDoctorOfAppointmentConfirmedHandler {
         title: 'Patient checked in',
         description,
         actionUrl: '/doctor/queue',
+        category: NotificationCategory.Appointments,
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

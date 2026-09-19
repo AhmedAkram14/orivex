@@ -2,6 +2,7 @@ import type { PinoLoggerService } from '../../../../platform/logging/pino-logger
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import type { GetPaymentTransactionByIdUseCase } from '../../../payment/application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface PaymentCompletedEventPayload {
@@ -43,6 +44,7 @@ export class NotifyPatientOfPaymentCompletedHandler {
         title: 'Payment received',
         description: `Your payment of ${amount.getAmount()} ${amount.getCurrency()} was received.`,
         actionUrl: '/patient/appointments',
+        category: NotificationCategory.Billing,
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

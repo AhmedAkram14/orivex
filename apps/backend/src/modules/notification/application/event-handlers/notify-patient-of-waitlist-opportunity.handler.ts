@@ -4,7 +4,9 @@ import { toEmailLocale } from '../../../authentication/infrastructure/email/temp
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../services/notification-preference-gate.service.js';
 
 export interface WaitlistOpportunityMatchedEventPayload {
   waitlistEntryId: string;
@@ -25,6 +27,7 @@ export class NotifyPatientOfWaitlistOpportunityHandler {
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
     private readonly emailSender: EmailSenderPort,
+    private readonly preferenceGate: NotificationPreferenceGate,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -40,11 +43,12 @@ export class NotifyPatientOfWaitlistOpportunityHandler {
         title: 'A slot just opened up',
         description: 'A doctor you were waiting for now has an opening in your requested date range.',
         actionUrl: '/patient/doctors',
+        category: NotificationCategory.Appointments,
       });
       await this.notificationRepository.save(notification);
 
       const account = await this.getAccountByIdUseCase.execute({ accountId: patientProfile.getAccountId() });
-      if (account) {
+      if (account && (await this.preferenceGate.isEmailEnabled(patientProfile.getAccountId(), NotificationCategory.Appointments))) {
         await this.emailSender.send(
           account.getEmail().toString(),
           'waitlist-opportunity',

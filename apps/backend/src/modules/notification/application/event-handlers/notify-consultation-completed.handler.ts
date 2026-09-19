@@ -8,7 +8,9 @@ import type { ListPrescriptionsForConsultationSessionUseCase } from '../../../cl
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
+import type { NotificationPreferenceGate } from '../services/notification-preference-gate.service.js';
 
 export interface ConsultationCompletedEventPayload {
   consultationSessionId: string;
@@ -33,6 +35,7 @@ export class NotifyConsultationCompletedHandler {
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
     private readonly notificationRepository: NotificationRepository,
     private readonly emailSender: EmailSenderPort,
+    private readonly preferenceGate: NotificationPreferenceGate,
     private readonly logger: PinoLoggerService,
   ) {}
 
@@ -86,6 +89,7 @@ export class NotifyConsultationCompletedHandler {
         // dropping the patient on the bare appointments list to go find it
         // themselves.
         actionUrl: `/patient/appointments?consultationSessionId=${event.consultationSessionId}`,
+        category: NotificationCategory.Appointments,
       });
       await this.notificationRepository.save(notification);
 
@@ -96,7 +100,7 @@ export class NotifyConsultationCompletedHandler {
       // mentions prescriptions/follow-up specifics, just a generic prompt
       // back to the authenticated product.
       const account = await this.getAccountByIdUseCase.execute({ accountId: patient.getAccountId() });
-      if (account) {
+      if (account && (await this.preferenceGate.isEmailEnabled(patient.getAccountId(), NotificationCategory.Appointments))) {
         await this.emailSender.send(
           account.getEmail().toString(),
           'consultation-completed',

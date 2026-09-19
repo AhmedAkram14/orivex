@@ -2,6 +2,7 @@ import type { PinoLoggerService } from '../../../../platform/logging/pino-logger
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface AppointmentRescheduledEventPayload {
@@ -47,6 +48,7 @@ export class NotifyPatientOfAppointmentRescheduledHandler {
         title: 'Appointment rescheduled',
         description: 'Your appointment was rescheduled to a new time.',
         actionUrl: '/patient/appointments',
+        category: NotificationCategory.Appointments,
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

@@ -144,6 +144,7 @@ import {
   NotifyCounterpartyOfDisputeWithdrawnHandler,
   type DisputeWithdrawnEventPayload,
 } from './application/event-handlers/notify-counterparty-of-dispute-withdrawn.handler.js';
+import { NotificationPreferenceGate } from './application/services/notification-preference-gate.service.js';
 import { GetNotificationPreferencesUseCase } from './application/use-cases/get-notification-preferences/get-notification-preferences.use-case.js';
 import { ListNotificationsForAccountUseCase } from './application/use-cases/list-notifications-for-account/list-notifications-for-account.use-case.js';
 import { MarkAllNotificationsReadUseCase } from './application/use-cases/mark-all-notifications-read/mark-all-notifications-read.use-case.js';
@@ -157,6 +158,7 @@ import { BullMqNotificationQueueAdapter, NOTIFICATION_QUEUE_NAME } from './infra
 import { NotConfiguredNotificationQueueAdapter } from './infrastructure/queue/not-configured-notification-queue.adapter.js';
 import { PrismaNotificationPreferenceRepository } from './infrastructure/prisma/prisma-notification-preference.repository.js';
 import { PrismaNotificationRepository } from './infrastructure/prisma/prisma-notification.repository.js';
+import { PreferenceGatedNotificationRepository } from './infrastructure/preferences/preference-gated-notification.repository.js';
 import { RealtimeNotifyingNotificationRepository } from './infrastructure/realtime/realtime-notifying-notification.repository.js';
 import { NotificationController } from './presentation/controllers/notification.controller.js';
 
@@ -174,14 +176,26 @@ import { NotificationController } from './presentation/controllers/notification.
   controllers: [NotificationController],
   providers: [
     {
-      // Wraps the real repository with a single, central live-push point
-      // (RealtimeNotifyingNotificationRepository's own comment) -- every
-      // notification producer just calls `save()` as it always has, none
-      // of them need their own RealtimeEmitterPort wiring.
+      // Wraps the real repository with two decorators, innermost-first:
+      // PreferenceGatedNotificationRepository (Doctor Settings Rebuild,
+      // Phase 3 -- suppresses save() when the account has this
+      // notification's category's in-app channel disabled), then
+      // RealtimeNotifyingNotificationRepository's own single, central
+      // live-push point on top -- so a suppressed notification never
+      // reaches the realtime push either (nothing to push if it was never
+      // saved). Every notification producer just calls `save()` as it
+      // always has, none of them need their own wiring for either concern.
       provide: NOTIFICATION_REPOSITORY,
-      useFactory: (prisma: PrismaService, realtimeEmitter: RealtimeEmitterPort) =>
-        new RealtimeNotifyingNotificationRepository(new PrismaNotificationRepository(prisma), realtimeEmitter),
-      inject: [PrismaService, REALTIME_EMITTER],
+      useFactory: (
+        prisma: PrismaService,
+        realtimeEmitter: RealtimeEmitterPort,
+        preferenceRepository: NotificationPreferenceRepository,
+      ) =>
+        new RealtimeNotifyingNotificationRepository(
+          new PreferenceGatedNotificationRepository(new PrismaNotificationRepository(prisma), preferenceRepository),
+          realtimeEmitter,
+        ),
+      inject: [PrismaService, REALTIME_EMITTER, NOTIFICATION_PREFERENCE_REPOSITORY],
     },
     {
       provide: ListNotificationsForAccountUseCase,
@@ -199,13 +213,21 @@ import { NotificationController } from './presentation/controllers/notification.
       inject: [NOTIFICATION_REPOSITORY],
     },
     {
-      // Doctor Settings Rebuild, Phase 2: no realtime/fan-out decorator yet
-      // (that's Phase 3's PreferenceGatedNotificationRepository) -- this is
-      // the bare Prisma-backed repository behind the read/write use cases
-      // below.
+      // The bare Prisma-backed repository behind the read/write use cases
+      // below, and (Phase 3) behind PreferenceGatedNotificationRepository's
+      // own lookups above.
       provide: NOTIFICATION_PREFERENCE_REPOSITORY,
       useFactory: (prisma: PrismaService) => new PrismaNotificationPreferenceRepository(prisma),
       inject: [PrismaService],
+    },
+    {
+      // Doctor Settings Rebuild, Phase 3: the email-side counterpart to
+      // PreferenceGatedNotificationRepository above -- injected into the
+      // small, fixed set of handlers that call EMAIL_SENDER directly
+      // instead of going through NOTIFICATION_REPOSITORY.save().
+      provide: NotificationPreferenceGate,
+      useFactory: (preferenceRepository: NotificationPreferenceRepository) => new NotificationPreferenceGate(preferenceRepository),
+      inject: [NOTIFICATION_PREFERENCE_REPOSITORY],
     },
     {
       provide: GetNotificationPreferencesUseCase,
@@ -240,8 +262,9 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
-      ) => new SendAppointmentReminderUseCase(getAccountByIdUseCase, notificationRepository, emailSender),
-      inject: [GetAccountByIdUseCase, NOTIFICATION_REPOSITORY, EMAIL_SENDER],
+        preferenceGate: NotificationPreferenceGate,
+      ) => new SendAppointmentReminderUseCase(getAccountByIdUseCase, notificationRepository, emailSender, preferenceGate),
+      inject: [GetAccountByIdUseCase, NOTIFICATION_REPOSITORY, EMAIL_SENDER, NotificationPreferenceGate],
     },
     // Runs the reminder job's processor in-process -- a no-op (see the
     // service's own onModuleInit) whenever REDIS_URL is unset.
@@ -293,6 +316,7 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -305,6 +329,7 @@ import { NotificationController } from './presentation/controllers/notification.
           getAccountByIdUseCase,
           notificationRepository,
           emailSender,
+          preferenceGate,
           logger,
         );
         dispatcher.subscribe('consultation.session.completed', (event: DomainEvent) =>
@@ -321,6 +346,7 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        NotificationPreferenceGate,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -412,6 +438,7 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -421,6 +448,7 @@ import { NotificationController } from './presentation/controllers/notification.
           getAccountByIdUseCase,
           notificationRepository,
           emailSender,
+          preferenceGate,
           logger,
         );
         dispatcher.subscribe('consultation.appointment.confirmed', (event: DomainEvent) =>
@@ -434,6 +462,7 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        NotificationPreferenceGate,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -550,6 +579,7 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -559,6 +589,7 @@ import { NotificationController } from './presentation/controllers/notification.
           getAccountByIdUseCase,
           notificationRepository,
           emailSender,
+          preferenceGate,
           logger,
         );
         dispatcher.subscribe('consultation.appointment.cancelled', (event: DomainEvent) =>
@@ -572,6 +603,7 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        NotificationPreferenceGate,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -616,6 +648,7 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -625,6 +658,7 @@ import { NotificationController } from './presentation/controllers/notification.
           getAccountByIdUseCase,
           notificationRepository,
           emailSender,
+          preferenceGate,
           logger,
         );
         dispatcher.subscribe('consultation.appointment.expired', (event: DomainEvent) =>
@@ -638,6 +672,7 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        NotificationPreferenceGate,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -653,6 +688,7 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -662,6 +698,7 @@ import { NotificationController } from './presentation/controllers/notification.
           getAccountByIdUseCase,
           notificationRepository,
           emailSender,
+          preferenceGate,
           logger,
         );
         dispatcher.subscribe('consultation.appointment.declined', (event: DomainEvent) =>
@@ -675,6 +712,7 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        NotificationPreferenceGate,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
@@ -946,6 +984,7 @@ import { NotificationController } from './presentation/controllers/notification.
         getAccountByIdUseCase: GetAccountByIdUseCase,
         notificationRepository: NotificationRepository,
         emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
         logger: PinoLoggerService,
         dispatcher: DomainEventDispatcher,
       ) => {
@@ -954,6 +993,7 @@ import { NotificationController } from './presentation/controllers/notification.
           getAccountByIdUseCase,
           notificationRepository,
           emailSender,
+          preferenceGate,
           logger,
         );
         dispatcher.subscribe('waitlist.opportunity.matched', (event: DomainEvent) =>
@@ -966,6 +1006,7 @@ import { NotificationController } from './presentation/controllers/notification.
         GetAccountByIdUseCase,
         NOTIFICATION_REPOSITORY,
         EMAIL_SENDER,
+        NotificationPreferenceGate,
         PinoLoggerService,
         DOMAIN_EVENT_DISPATCHER,
       ],
