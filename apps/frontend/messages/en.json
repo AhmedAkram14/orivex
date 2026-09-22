@@ -111,10 +111,22 @@
       "availableToday": "Available Today",
       "availableTomorrow": "Available Tomorrow",
       "trust": {
-        "verified": { "title": "Verified Doctors", "description": "All doctors are verified" },
-        "secureBooking": { "title": "Secure Booking", "description": "Your data is always safe" },
-        "available": { "title": "Available 24/7", "description": "Book anytime, anywhere" },
-        "support": { "title": "Support", "description": "We're here to help" }
+        "verified": {
+          "title": "Verified Doctors",
+          "description": "All doctors are verified"
+        },
+        "secureBooking": {
+          "title": "Secure Booking",
+          "description": "Your data is always safe"
+        },
+        "available": {
+          "title": "Available 24/7",
+          "description": "Book anytime, anywhere"
+        },
+        "support": {
+          "title": "Support",
+          "description": "We're here to help"
+        }
       }
     },
     "howItWorks": {
@@ -126,17 +138,50 @@
       "doctorTitle": "For Doctors",
       "doctorDescription": "Everything you need to manage your practice and deliver great care.",
       "steps": {
-        "findDoctor": { "title": "Find a doctor", "description": "Search by specialty, name, or keyword to find the right doctor for you." },
-        "bookAppointment": { "title": "Book an appointment", "description": "Choose a convenient date and time that works for your schedule." },
-        "identityVerification": { "title": "Verify your identity", "description": "Verify your identity to keep your care and personal data secure." },
-        "videoConsultation": { "title": "Meet your doctor", "description": "Join a secure video consultation from anywhere, anytime." },
-        "medicalRecords": { "title": "Access your records", "description": "View prescriptions, reports, and your medical history whenever you need." },
-        "register": { "title": "Create your account", "description": "Sign up and create your professional account to get started." },
-        "verification": { "title": "Submit your credentials", "description": "Upload your documents for professional verification and approval." },
-        "manageSchedule": { "title": "Set your availability", "description": "Manage your availability and working hours." },
-        "meetPatients": { "title": "Review appointment requests", "description": "Review and approve incoming appointment requests." },
-        "consult": { "title": "Consult with patients", "description": "Connect with patients through secure video consultations." },
-        "managePractice": { "title": "Manage everything in one place", "description": "Handle your schedule, prescriptions, and patients all in one dashboard." }
+        "findDoctor": {
+          "title": "Find a doctor",
+          "description": "Search by specialty, name, or keyword to find the right doctor for you."
+        },
+        "bookAppointment": {
+          "title": "Book an appointment",
+          "description": "Choose a convenient date and time that works for your schedule."
+        },
+        "identityVerification": {
+          "title": "Verify your identity",
+          "description": "Verify your identity to keep your care and personal data secure."
+        },
+        "videoConsultation": {
+          "title": "Meet your doctor",
+          "description": "Join a secure video consultation from anywhere, anytime."
+        },
+        "medicalRecords": {
+          "title": "Access your records",
+          "description": "View prescriptions, reports, and your medical history whenever you need."
+        },
+        "register": {
+          "title": "Create your account",
+          "description": "Sign up and create your professional account to get started."
+        },
+        "verification": {
+          "title": "Submit your credentials",
+          "description": "Upload your documents for professional verification and approval."
+        },
+        "manageSchedule": {
+          "title": "Set your availability",
+          "description": "Manage your availability and working hours."
+        },
+        "meetPatients": {
+          "title": "Review appointment requests",
+          "description": "Review and approve incoming appointment requests."
+        },
+        "consult": {
+          "title": "Consult with patients",
+          "description": "Connect with patients through secure video consultations."
+        },
+        "managePractice": {
+          "title": "Manage everything in one place",
+          "description": "Handle your schedule, prescriptions, and patients all in one dashboard."
+        }
       }
     },
     "coreFeatures": {
@@ -499,6 +544,14 @@
         "cancel": "Cancel",
         "error": "Couldn't sign out of all devices. Please try again."
       }
+    },
+    "changePassword": {
+      "currentPasswordLabel": "Current password",
+      "newPasswordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "submit": "Change password",
+      "saveSuccess": "Password changed.",
+      "wrongCurrentPassword": "Current password is incorrect."
     }
   },
   "shell": {
@@ -1601,6 +1654,34 @@
           "billing": "Billing"
         },
         "toggleLabel": "{channel} notifications for {category}"
+      },
+      "accountSecurity": {
+        "title": "Account & Security",
+        "description": "Manage your password, phone number, and account security.",
+        "changePasswordHeading": "Change password",
+        "phoneHeading": "Phone number",
+        "phonePlaceholder": "Enter your phone number",
+        "phoneSaveSuccess": "Phone number updated.",
+        "save": "Save",
+        "seeSecurity": "Sessions, login history & logout",
+        "comingSoon": "Coming soon",
+        "twoFactor": {
+          "title": "Two-factor authentication",
+          "description": "Add an extra layer of security to your account. Not available yet."
+        },
+        "emailChange": {
+          "title": "Change email address",
+          "description": "Update the email address linked to your account. Not available yet.",
+          "action": "Change email"
+        },
+        "deletion": {
+          "title": "Request account deletion",
+          "description": "Permanently deleting or anonymizing your account requires contacting support.",
+          "action": "Request account deletion",
+          "dialogTitle": "Request account deletion",
+          "dialogDescription": "Account deletion isn't available as a self-service action yet. Contact support and we will help you with your request.",
+          "close": "Close"
+        }
       }
     }
   },
@@ -2095,8 +2176,15 @@
     "patientId": "Patient ID: {id}",
     "reasonForVisitFallback": "No reason provided",
     "durationMinutes": "{minutes} min",
-    "consultationType": { "free": "Free consultation", "paid": "Paid consultation" },
-    "genderOptions": { "male": "Male", "female": "Female", "other": "Other" },
+    "consultationType": {
+      "free": "Free consultation",
+      "paid": "Paid consultation"
+    },
+    "genderOptions": {
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
     "stats": {
       "completedConsultations": "Completed consultations",
       "upcomingAppointments": "Upcoming appointments",
@@ -2144,7 +2232,11 @@
     "conditionDescriptionLabel": "Condition description",
     "conditionDescriptionPlaceholder": "e.g. Type 2 diabetes",
     "certaintyLevelLabel": "Certainty",
-    "certaintyLevelOptions": { "suspected": "Suspected", "confirmed": "Confirmed", "ruled_out": "Ruled out" },
+    "certaintyLevelOptions": {
+      "suspected": "Suspected",
+      "confirmed": "Confirmed",
+      "ruled_out": "Ruled out"
+    },
     "saveCondition": "Save condition",
     "addConditionError": "Couldn't add this condition. Please try again.",
     "by": "By {name}",
@@ -2154,14 +2246,20 @@
     "noPreviousVisits": "No previous visits recorded",
     "prescriptions": "Prescriptions",
     "noPrescriptions": "No prescriptions recorded",
-    "prescriptionStatus": { "active": "Active", "expired": "Expired" },
+    "prescriptionStatus": {
+      "active": "Active",
+      "expired": "Expired"
+    },
     "writePrescription": "Write prescription",
     "writePrescriptionDialogTitle": "Write prescription",
     "selectPastAppointmentLabel": "Select a past visit",
     "selectPastAppointmentPlaceholder": "Choose a completed visit",
     "documents": "Medical documents",
     "noDocuments": "No clinical documents uploaded",
-    "documentPurpose": { "clinical_attachment": "Clinical attachment", "lab_report": "Lab report" },
+    "documentPurpose": {
+      "clinical_attachment": "Clinical attachment",
+      "lab_report": "Lab report"
+    },
     "uploadDocument": "Upload document",
     "uploadDocumentPurposeLabel": "Document type",
     "uploadDocumentError": "Couldn't upload this document. Please try again.",

@@ -10,6 +10,7 @@ export const AUTH_PATHS = {
   resetPassword: '/auth/reset-password',
   verifyEmail: '/auth/verify-email',
   resendVerification: '/auth/resend-verification',
+  changePassword: '/auth/change-password',
   refresh: '/auth/refresh',
   session: '/auth/session',
   logout: '/auth/logout',

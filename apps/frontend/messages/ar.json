@@ -111,10 +111,22 @@
       "availableToday": "متاح اليوم",
       "availableTomorrow": "متاح غدًا",
       "trust": {
-        "verified": { "title": "أطباء موثّقون", "description": "جميع الأطباء موثّقون" },
-        "secureBooking": { "title": "حجز آمن", "description": "بياناتك محمية دائمًا" },
-        "available": { "title": "متاح على مدار الساعة", "description": "احجز في أي وقت ومن أي مكان" },
-        "support": { "title": "الدعم", "description": "نحن هنا لمساعدتك" }
+        "verified": {
+          "title": "أطباء موثّقون",
+          "description": "جميع الأطباء موثّقون"
+        },
+        "secureBooking": {
+          "title": "حجز آمن",
+          "description": "بياناتك محمية دائمًا"
+        },
+        "available": {
+          "title": "متاح على مدار الساعة",
+          "description": "احجز في أي وقت ومن أي مكان"
+        },
+        "support": {
+          "title": "الدعم",
+          "description": "نحن هنا لمساعدتك"
+        }
       }
     },
     "howItWorks": {
@@ -126,17 +138,50 @@
       "doctorTitle": "للأطباء",
       "doctorDescription": "كل ما تحتاجه لإدارة عيادتك وتقديم رعاية متميزة.",
       "steps": {
-        "findDoctor": { "title": "ابحث عن طبيب", "description": "ابحث حسب التخصص أو الاسم أو كلمة مفتاحية لتجد الطبيب المناسب لك." },
-        "bookAppointment": { "title": "احجز موعدًا", "description": "اختر تاريخًا ووقتًا مناسبًا لجدولك." },
-        "identityVerification": { "title": "تحقق من هويتك", "description": "تحقق من هويتك للحفاظ على أمان رعايتك وبياناتك الشخصية." },
-        "videoConsultation": { "title": "قابل طبيبك", "description": "انضم إلى استشارة فيديو آمنة من أي مكان وفي أي وقت." },
-        "medicalRecords": { "title": "اطّلع على سجلاتك", "description": "اطّلع على وصفاتك الطبية وتقاريرك وسجلك الطبي وقتما تشاء." },
-        "register": { "title": "أنشئ حسابك", "description": "سجّل وأنشئ حسابك المهني للبدء." },
-        "verification": { "title": "قدّم بيانات اعتمادك", "description": "ارفع مستنداتك للمراجعة والموافقة المهنية." },
-        "manageSchedule": { "title": "حدّد أوقات توفرك", "description": "أدر أوقات توفرك وساعات عملك." },
-        "meetPatients": { "title": "راجع طلبات المواعيد", "description": "راجع طلبات المواعيد الواردة ووافق عليها." },
-        "consult": { "title": "استشر المرضى", "description": "تواصل مع المرضى عبر استشارات فيديو آمنة." },
-        "managePractice": { "title": "أدر كل شيء في مكان واحد", "description": "أدر جدولك ووصفاتك ومرضاك من لوحة تحكم واحدة." }
+        "findDoctor": {
+          "title": "ابحث عن طبيب",
+          "description": "ابحث حسب التخصص أو الاسم أو كلمة مفتاحية لتجد الطبيب المناسب لك."
+        },
+        "bookAppointment": {
+          "title": "احجز موعدًا",
+          "description": "اختر تاريخًا ووقتًا مناسبًا لجدولك."
+        },
+        "identityVerification": {
+          "title": "تحقق من هويتك",
+          "description": "تحقق من هويتك للحفاظ على أمان رعايتك وبياناتك الشخصية."
+        },
+        "videoConsultation": {
+          "title": "قابل طبيبك",
+          "description": "انضم إلى استشارة فيديو آمنة من أي مكان وفي أي وقت."
+        },
+        "medicalRecords": {
+          "title": "اطّلع على سجلاتك",
+          "description": "اطّلع على وصفاتك الطبية وتقاريرك وسجلك الطبي وقتما تشاء."
+        },
+        "register": {
+          "title": "أنشئ حسابك",
+          "description": "سجّل وأنشئ حسابك المهني للبدء."
+        },
+        "verification": {
+          "title": "قدّم بيانات اعتمادك",
+          "description": "ارفع مستنداتك للمراجعة والموافقة المهنية."
+        },
+        "manageSchedule": {
+          "title": "حدّد أوقات توفرك",
+          "description": "أدر أوقات توفرك وساعات عملك."
+        },
+        "meetPatients": {
+          "title": "راجع طلبات المواعيد",
+          "description": "راجع طلبات المواعيد الواردة ووافق عليها."
+        },
+        "consult": {
+          "title": "استشر المرضى",
+          "description": "تواصل مع المرضى عبر استشارات فيديو آمنة."
+        },
+        "managePractice": {
+          "title": "أدر كل شيء في مكان واحد",
+          "description": "أدر جدولك ووصفاتك ومرضاك من لوحة تحكم واحدة."
+        }
       }
     },
     "coreFeatures": {
@@ -499,6 +544,14 @@
         "cancel": "إلغاء الأمر",
         "error": "تعذّر تسجيل الخروج من جميع الأجهزة. يرجى المحاولة مرة أخرى."
       }
+    },
+    "changePassword": {
+      "currentPasswordLabel": "كلمة المرور الحالية",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "confirmPasswordLabel": "تأكيد كلمة المرور الجديدة",
+      "submit": "تغيير كلمة المرور",
+      "saveSuccess": "تم تغيير كلمة المرور.",
+      "wrongCurrentPassword": "كلمة المرور الحالية غير صحيحة."
     }
   },
   "shell": {
@@ -1601,6 +1654,34 @@
           "billing": "الفواتير"
         },
         "toggleLabel": "إشعارات {channel} لـ {category}"
+      },
+      "accountSecurity": {
+        "title": "الحساب والأمان",
+        "description": "إدارة كلمة المرور ورقم الهاتف وأمان الحساب.",
+        "changePasswordHeading": "تغيير كلمة المرور",
+        "phoneHeading": "رقم الهاتف",
+        "phonePlaceholder": "أدخل رقم هاتفك",
+        "phoneSaveSuccess": "تم تحديث رقم الهاتف.",
+        "save": "حفظ",
+        "seeSecurity": "الجلسات وسجل الدخول وتسجيل الخروج",
+        "comingSoon": "قريبًا",
+        "twoFactor": {
+          "title": "المصادقة الثنائية",
+          "description": "أضف طبقة إضافية من الأمان إلى حسابك. غير متاحة بعد."
+        },
+        "emailChange": {
+          "title": "تغيير البريد الإلكتروني",
+          "description": "تحديث البريد الإلكتروني المرتبط بحسابك. غير متاح بعد.",
+          "action": "تغيير البريد الإلكتروني"
+        },
+        "deletion": {
+          "title": "طلب حذف الحساب",
+          "description": "حذف حسابك أو إخفاء هويته بشكل دائم يتطلب التواصل مع الدعم.",
+          "action": "طلب حذف الحساب",
+          "dialogTitle": "طلب حذف الحساب",
+          "dialogDescription": "حذف الحساب غير متاح كإجراء ذاتي الخدمة حتى الآن. تواصل مع الدعم وسنساعدك في طلبك.",
+          "close": "إغلاق"
+        }
       }
     }
   },
@@ -2095,8 +2176,15 @@
     "patientId": "رقم المريض: {id}",
     "reasonForVisitFallback": "لم يُذكر سبب الزيارة",
     "durationMinutes": "{minutes} دقيقة",
-    "consultationType": { "free": "استشارة مجانية", "paid": "استشارة مدفوعة" },
-    "genderOptions": { "male": "ذكر", "female": "أنثى", "other": "آخر" },
+    "consultationType": {
+      "free": "استشارة مجانية",
+      "paid": "استشارة مدفوعة"
+    },
+    "genderOptions": {
+      "male": "ذكر",
+      "female": "أنثى",
+      "other": "آخر"
+    },
     "stats": {
       "completedConsultations": "الاستشارات المكتملة",
       "upcomingAppointments": "المواعيد القادمة",
@@ -2144,7 +2232,11 @@
     "conditionDescriptionLabel": "وصف الحالة",
     "conditionDescriptionPlaceholder": "مثال: السكري من النوع الثاني",
     "certaintyLevelLabel": "درجة التأكد",
-    "certaintyLevelOptions": { "suspected": "مشتبه بها", "confirmed": "مؤكدة", "ruled_out": "مستبعدة" },
+    "certaintyLevelOptions": {
+      "suspected": "مشتبه بها",
+      "confirmed": "مؤكدة",
+      "ruled_out": "مستبعدة"
+    },
     "saveCondition": "حفظ الحالة",
     "addConditionError": "تعذرت إضافة هذه الحالة. حاول مرة أخرى.",
     "by": "بواسطة {name}",
@@ -2154,14 +2246,20 @@
     "noPreviousVisits": "لا توجد زيارات سابقة مسجّلة",
     "prescriptions": "الوصفات الطبية",
     "noPrescriptions": "لا توجد وصفات طبية مسجّلة",
-    "prescriptionStatus": { "active": "فعّالة", "expired": "منتهية" },
+    "prescriptionStatus": {
+      "active": "فعّالة",
+      "expired": "منتهية"
+    },
     "writePrescription": "كتابة وصفة طبية",
     "writePrescriptionDialogTitle": "كتابة وصفة طبية",
     "selectPastAppointmentLabel": "اختر زيارة سابقة",
     "selectPastAppointmentPlaceholder": "اختر زيارة مكتملة",
     "documents": "المستندات الطبية",
     "noDocuments": "لا توجد مستندات سريرية مرفوعة",
-    "documentPurpose": { "clinical_attachment": "مرفق سريري", "lab_report": "تقرير مخبري" },
+    "documentPurpose": {
+      "clinical_attachment": "مرفق سريري",
+      "lab_report": "تقرير مخبري"
+    },
     "uploadDocument": "رفع مستند",
     "uploadDocumentPurposeLabel": "نوع المستند",
     "uploadDocumentError": "تعذر رفع هذا المستند. حاول مرة أخرى.",

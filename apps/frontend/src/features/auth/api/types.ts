@@ -62,6 +62,24 @@ export interface ResetPasswordResponse {
   status: 'reset';
 }
 
+/**
+ * Doctor Settings Rebuild, Phase 5: matches the real backend's
+ * ChangePasswordRequestDto/ChangePasswordResponseDto exactly
+ * (POST /auth/change-password, JwtAuthGuard-protected — the accountId comes
+ * from the caller's own access token, never a request field). A wrong
+ * `currentPassword` surfaces as `ApiError.code === AUTH_ERROR_CODES.invalidCredentials`,
+ * same code login itself uses -- the UI gives it a clearer, change-password-
+ * specific message rather than login's generic "invalid email or password" wording.
+ */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  status: 'changed';
+}
+
 export interface VerifyEmailRequest {
   token: string;
 }

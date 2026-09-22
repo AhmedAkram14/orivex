@@ -24,11 +24,19 @@ export interface Account {
   updatedAt: string;
 }
 
-/** Matches MyAccountController's real PATCH /accounts/me UpdatePersonalProfileRequestDto exactly -- all optional, a partial update. */
+/**
+ * Matches MyAccountController's real PATCH /accounts/me
+ * UpdatePersonalProfileRequestDto exactly -- all optional, a partial update.
+ * `phoneNumber` (Doctor Settings Rebuild, Phase 0 Part C / Phase 5): the DTO
+ * gained this field with zero frontend surface until now -- widened here
+ * rather than adding a second hook/endpoint, since `useUpdatePersonalProfile`
+ * already PATCHes this exact route with a partial body.
+ */
 export interface UpdatePersonalProfileRequest {
   /** ISO date. */
   dateOfBirth?: string;
   gender?: Gender;
   nationalityId?: string;
   address?: string;
+  phoneNumber?: string;
 }

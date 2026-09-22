@@ -11,6 +11,8 @@ import type {
   ResendVerificationResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
   RefreshSessionResponse,
   SessionResponse,
   VerifyEmailRequest,
@@ -68,6 +70,9 @@ export const authApi = {
 
   resendVerification: (request: ResendVerificationRequest) =>
     apiFetch<ResendVerificationResponse>({ method: 'POST', path: AUTH_PATHS.resendVerification, body: request }),
+
+  changePassword: (request: ChangePasswordRequest) =>
+    apiFetch<ChangePasswordResponse>({ method: 'POST', path: AUTH_PATHS.changePassword, body: request }),
 
   refreshSession,
 
