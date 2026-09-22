@@ -51,6 +51,7 @@ describe('GetNotificationPreferencesUseCase', () => {
       emailBilling: true,
       inAppAppointments: false,
       inAppBilling: true,
+      emailNewDeviceLogin: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

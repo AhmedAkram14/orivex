@@ -229,6 +229,7 @@ describe('NotificationController (integration)', () => {
       emailBilling: true,
       inAppAppointments: true,
       inAppBilling: true,
+      emailNewDeviceLogin: true,
     });
     assert.equal(await preferenceRepository.findByAccountId(ACCOUNT_ID), null);
   });
@@ -245,6 +246,7 @@ describe('NotificationController (integration)', () => {
       emailBilling: true,
       inAppAppointments: true,
       inAppBilling: true,
+      emailNewDeviceLogin: true,
     });
 
     // A second caller's own row is unaffected -- self-scoping, never a
@@ -259,6 +261,7 @@ describe('NotificationController (integration)', () => {
       emailBilling: true,
       inAppAppointments: true,
       inAppBilling: true,
+      emailNewDeviceLogin: true,
     });
   });
 

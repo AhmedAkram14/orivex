@@ -13,11 +13,13 @@ import type { SecurityEventRepository } from '../../../../trust/domain/repositor
 import { RecordSecurityEventUseCase } from '../../../../trust/application/use-cases/record-security-event/record-security-event.use-case.js';
 import { Credential } from '../../../domain/entities/credential.entity.js';
 import { MAX_FAILED_LOGIN_ATTEMPTS } from '../../../domain/constants/authentication.constants.js';
+import { NewDeviceLoginDetectedEvent } from '../../../domain/events/new-device-login-detected.event.js';
 import { AccountLockedError } from '../../../domain/exceptions/account-locked.error.js';
 import { EmailNotVerifiedError } from '../../../domain/exceptions/email-not-verified.error.js';
 import { InvalidCredentialsError } from '../../../domain/exceptions/invalid-credentials.error.js';
 import { PasswordHash } from '../../../domain/value-objects/password-hash.value-object.js';
-import type { Session } from '../../../domain/entities/session.entity.js';
+import { Session } from '../../../domain/entities/session.entity.js';
+import { TokenHash } from '../../../domain/value-objects/token-hash.value-object.js';
 import type { SessionRepository } from '../../../domain/repositories/session.repository.js';
 import type { CredentialRepository } from '../../../domain/repositories/credential.repository.js';
 import type { JwtSignerPort } from '../../ports/jwt-signer.port.js';
@@ -65,6 +67,7 @@ class FakeCredentialRepository implements CredentialRepository {
 
 class FakeSessionRepository implements SessionRepository {
   public readonly saved: Session[] = [];
+  constructor(private readonly preExisting: Session[] = []) {}
   findById(): Promise<Session | null> {
     return Promise.resolve(null);
   }
@@ -72,7 +75,7 @@ class FakeSessionRepository implements SessionRepository {
     return Promise.resolve(null);
   }
   findAllActiveForCredential(): Promise<Session[]> {
-    return Promise.resolve([]);
+    return Promise.resolve(this.preExisting);
   }
   save(session: Session): Promise<void> {
     this.saved.push(session);
@@ -146,6 +149,7 @@ function buildVerifiedCredential(accountId: string): Credential {
 
 describe('LoginUseCase', () => {
   let account: Account;
+  let credential: Credential;
   let credentialRepository: FakeCredentialRepository;
   let sessionRepository: FakeSessionRepository;
   let securityEventRepository: FakeSecurityEventRepository;
@@ -154,7 +158,8 @@ describe('LoginUseCase', () => {
 
   beforeEach(() => {
     account = buildAccount();
-    credentialRepository = new FakeCredentialRepository(buildVerifiedCredential(account.getId().toString()));
+    credential = buildVerifiedCredential(account.getId().toString());
+    credentialRepository = new FakeCredentialRepository(credential);
     sessionRepository = new FakeSessionRepository();
     securityEventRepository = new FakeSecurityEventRepository();
     dispatcher = new RecordingDispatcher();
@@ -259,5 +264,88 @@ describe('LoginUseCase', () => {
     const result = await useCase.execute(new LoginCommand({ email: 'ada@example.com', password: CORRECT_PASSWORD }));
 
     assert.ok(result.accessToken);
+  });
+
+  it('does not dispatch a new-device event on an account\'s very first-ever session', async () => {
+    await useCase.execute(
+      new LoginCommand({
+        email: 'ada@example.com',
+        password: CORRECT_PASSWORD,
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        ipAddress: '203.0.113.5',
+      }),
+    );
+
+    assert.ok(!dispatcher.dispatched.some((event) => event instanceof NewDeviceLoginDetectedEvent));
+  });
+
+  it('does not dispatch a new-device event when the device/IP matches an existing active session', async () => {
+    const credentialId = credential.getId();
+    const existingSession = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create('hash:existing'),
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+      ipAddress: '203.0.113.5',
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    sessionRepository = new FakeSessionRepository([existingSession]);
+    useCase = new LoginUseCase(
+      new GetAccountByEmailUseCase(new FakeAccountRepository(account)),
+      credentialRepository,
+      sessionRepository,
+      new FakePasswordHasher(),
+      new FakeTokenGenerator(),
+      new FakeJwtSigner(),
+      new RecordSecurityEventUseCase(securityEventRepository),
+      dispatcher,
+    );
+
+    await useCase.execute(
+      new LoginCommand({
+        email: 'ada@example.com',
+        password: CORRECT_PASSWORD,
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+        ipAddress: '203.0.113.5',
+      }),
+    );
+
+    assert.ok(!dispatcher.dispatched.some((event) => event instanceof NewDeviceLoginDetectedEvent));
+  });
+
+  it('dispatches a new-device event when logging in from a different device than any existing active session', async () => {
+    const credentialId = credential.getId();
+    const existingSession = Session.create({
+      credentialId,
+      refreshTokenHash: TokenHash.create('hash:existing'),
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+      ipAddress: '203.0.113.5',
+      expiresAt: new Date(Date.now() + 86_400_000),
+    });
+    sessionRepository = new FakeSessionRepository([existingSession]);
+    useCase = new LoginUseCase(
+      new GetAccountByEmailUseCase(new FakeAccountRepository(account)),
+      credentialRepository,
+      sessionRepository,
+      new FakePasswordHasher(),
+      new FakeTokenGenerator(),
+      new FakeJwtSigner(),
+      new RecordSecurityEventUseCase(securityEventRepository),
+      dispatcher,
+    );
+
+    await useCase.execute(
+      new LoginCommand({
+        email: 'ada@example.com',
+        password: CORRECT_PASSWORD,
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1',
+        ipAddress: '198.51.100.9',
+      }),
+    );
+
+    const event = dispatcher.dispatched.find((item) => item instanceof NewDeviceLoginDetectedEvent) as
+      | NewDeviceLoginDetectedEvent
+      | undefined;
+    assert.ok(event);
+    assert.equal(event.accountId, account.getId().toString());
   });
 });

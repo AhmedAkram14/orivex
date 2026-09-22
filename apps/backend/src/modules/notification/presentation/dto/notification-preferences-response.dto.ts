@@ -10,6 +10,7 @@ export class NotificationPreferencesResponseDto {
   emailBilling!: boolean;
   inAppAppointments!: boolean;
   inAppBilling!: boolean;
+  emailNewDeviceLogin!: boolean;
 
   static fromDomain(preference: NotificationPreference): NotificationPreferencesResponseDto {
     const dto = new NotificationPreferencesResponseDto();
@@ -17,6 +18,7 @@ export class NotificationPreferencesResponseDto {
     dto.emailBilling = preference.getEmailBilling();
     dto.inAppAppointments = preference.getInAppAppointments();
     dto.inAppBilling = preference.getInAppBilling();
+    dto.emailNewDeviceLogin = preference.getEmailNewDeviceLogin();
     return dto;
   }
 }

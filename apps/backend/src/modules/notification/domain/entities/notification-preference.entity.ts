@@ -15,6 +15,7 @@ export interface ReconstituteNotificationPreferenceProps {
   emailBilling: boolean;
   inAppAppointments: boolean;
   inAppBilling: boolean;
+  emailNewDeviceLogin: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +35,7 @@ export class NotificationPreference {
     private emailBilling: boolean,
     private inAppAppointments: boolean,
     private inAppBilling: boolean,
+    private emailNewDeviceLogin: boolean,
     private readonly createdAt: Date,
     private updatedAt: Date,
   ) {}
@@ -44,7 +46,7 @@ export class NotificationPreference {
     }
 
     const now = new Date();
-    return new NotificationPreference(randomUUID(), props.accountId, true, true, true, true, now, now);
+    return new NotificationPreference(randomUUID(), props.accountId, true, true, true, true, true, now, now);
   }
 
   static reconstitute(props: ReconstituteNotificationPreferenceProps): NotificationPreference {
@@ -55,6 +57,7 @@ export class NotificationPreference {
       props.emailBilling,
       props.inAppAppointments,
       props.inAppBilling,
+      props.emailNewDeviceLogin,
       props.createdAt,
       props.updatedAt,
     );
@@ -114,6 +117,21 @@ export class NotificationPreference {
 
   getInAppBilling(): boolean {
     return this.inAppBilling;
+  }
+
+  // A single, standalone toggle rather than another category/channel
+  // combination -- "email me on a new-device sign-in" isn't part of the
+  // Appointments/Billing category model and has no in-app counterpart
+  // requested, so a dedicated getter/setter is simpler and more honest than
+  // stretching updateChannel()/isChannelEnabled()'s category+channel shape
+  // to fit it.
+  getEmailNewDeviceLogin(): boolean {
+    return this.emailNewDeviceLogin;
+  }
+
+  setEmailNewDeviceLogin(enabled: boolean): void {
+    this.emailNewDeviceLogin = enabled;
+    this.updatedAt = new Date();
   }
 
   getCreatedAt(): Date {

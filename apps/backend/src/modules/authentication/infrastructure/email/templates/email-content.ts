@@ -131,6 +131,15 @@ const EN: Record<string, TemplateBuilder> = {
     text: 'A dispute involving one of your appointments was withdrawn by the party who raised it.',
     cta: frontendUrl ? { label: 'View disputes', url: `${frontendUrl}` } : undefined,
   }),
+  // Security Center rework -- "email me on a new-device sign-in". Device/
+  // location detail only (displayName, city, country), never the raw IP or
+  // UA string -- a link to the Security Center is how the recipient
+  // verifies the exact session if they don't recognize it.
+  'new-device-login': (data, frontendUrl) => ({
+    subject: 'New sign-in to your Orivex account',
+    text: `Your account was just signed in from ${String(data.displayName)}${data.location ? ` in ${String(data.location)}` : ''}. If this wasn't you, secure your account immediately.`,
+    cta: frontendUrl ? { label: 'Review sign-in activity', url: `${frontendUrl}/security` } : undefined,
+  }),
 };
 
 const AR: Record<string, TemplateBuilder> = {
@@ -223,6 +232,11 @@ const AR: Record<string, TemplateBuilder> = {
     subject: 'تم سحب نزاع على أوريفكس',
     text: 'تم سحب نزاع بخصوص أحد مواعيدك من قبل الطرف الذي رفعه.',
     cta: frontendUrl ? { label: 'عرض النزاعات', url: `${frontendUrl}` } : undefined,
+  }),
+  'new-device-login': (data, frontendUrl) => ({
+    subject: 'تسجيل دخول جديد إلى حسابك في أوريفكس',
+    text: `تم تسجيل الدخول إلى حسابك للتو من ${String(data.displayName)}${data.location ? ` في ${String(data.location)}` : ''}. إذا لم يكن هذا أنت، قم بتأمين حسابك فورًا.`,
+    cta: frontendUrl ? { label: 'مراجعة نشاط تسجيل الدخول', url: `${frontendUrl}/security` } : undefined,
   }),
 };
 

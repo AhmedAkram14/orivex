@@ -21,4 +21,14 @@ export class NotificationPreferenceGate {
     }
     return preference.isChannelEnabled(category, NotificationChannel.Email);
   }
+
+  // emailNewDeviceLogin is a standalone flag, not a category/channel pair --
+  // see NotificationPreference.getEmailNewDeviceLogin()'s own comment.
+  async isNewDeviceLoginEmailEnabled(accountId: string): Promise<boolean> {
+    const preference = await this.preferenceRepository.findByAccountId(accountId);
+    if (!preference) {
+      return true;
+    }
+    return preference.getEmailNewDeviceLogin();
+  }
 }

@@ -107,6 +107,7 @@ export class NotificationController {
         emailBilling: body.emailBilling,
         inAppAppointments: body.inAppAppointments,
         inAppBilling: body.inAppBilling,
+        emailNewDeviceLogin: body.emailNewDeviceLogin,
       }),
     );
     return envelope(NotificationPreferencesResponseDto.fromDomain(preference));

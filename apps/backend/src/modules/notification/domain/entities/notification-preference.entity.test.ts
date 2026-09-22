@@ -18,6 +18,7 @@ describe('NotificationPreference', () => {
     assert.equal(preference.getEmailBilling(), true);
     assert.equal(preference.getInAppAppointments(), true);
     assert.equal(preference.getInAppBilling(), true);
+    assert.equal(preference.getEmailNewDeviceLogin(), true);
   });
 
   it('create() rejects an empty accountId', () => {
@@ -33,6 +34,7 @@ describe('NotificationPreference', () => {
       emailBilling: true,
       inAppAppointments: true,
       inAppBilling: false,
+      emailNewDeviceLogin: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -41,6 +43,7 @@ describe('NotificationPreference', () => {
     assert.equal(preference.getEmailBilling(), true);
     assert.equal(preference.getInAppAppointments(), true);
     assert.equal(preference.getInAppBilling(), false);
+    assert.equal(preference.getEmailNewDeviceLogin(), false);
   });
 
   it('updateChannel() toggles the exact category/channel pair and leaves the rest untouched', () => {
@@ -77,5 +80,14 @@ describe('NotificationPreference', () => {
 
     assert.equal(preference.isChannelEnabled(NotificationCategory.Appointments, NotificationChannel.Email), false);
     assert.equal(preference.isChannelEnabled(NotificationCategory.Billing, NotificationChannel.InApp), true);
+  });
+
+  it('setEmailNewDeviceLogin() toggles the login-alert flag independently of category channels', () => {
+    const preference = NotificationPreference.create({ accountId: ACCOUNT_ID });
+
+    preference.setEmailNewDeviceLogin(false);
+
+    assert.equal(preference.getEmailNewDeviceLogin(), false);
+    assert.equal(preference.getEmailAppointments(), true);
   });
 });

@@ -31,6 +31,9 @@ export class UpdateNotificationPreferencesUseCase {
     if (command.inAppBilling !== undefined) {
       preference.updateChannel(NotificationCategory.Billing, NotificationChannel.InApp, command.inAppBilling);
     }
+    if (command.emailNewDeviceLogin !== undefined) {
+      preference.setEmailNewDeviceLogin(command.emailNewDeviceLogin);
+    }
 
     await this.notificationPreferenceRepository.save(preference);
     return preference;

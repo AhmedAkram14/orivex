@@ -20,4 +20,8 @@ export class UpdateNotificationPreferencesRequestDto {
   @IsOptional()
   @IsBoolean()
   inAppBilling?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  emailNewDeviceLogin?: boolean;
 }

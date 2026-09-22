@@ -118,6 +118,10 @@ import {
   type PasswordChangedEventPayload,
 } from './application/event-handlers/notify-of-password-changed.handler.js';
 import {
+  NotifyOfNewDeviceLoginHandler,
+  type NewDeviceLoginDetectedEventPayload,
+} from './application/event-handlers/notify-of-new-device-login.handler.js';
+import {
   NotifyOfAccountLockedHandler,
   type AccountLockedEventPayload,
 } from './application/event-handlers/notify-of-account-locked.handler.js';
@@ -893,6 +897,26 @@ import { NotificationController } from './presentation/controllers/notification.
         return handler;
       },
       inject: [NOTIFICATION_REPOSITORY, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
+    },
+    {
+      // Reacts to AuthenticationModule's
+      // 'authentication.login.new-device-detected' event -- Security Center
+      // rework's "email me on a new-device sign-in" alert.
+      provide: NotifyOfNewDeviceLoginHandler,
+      useFactory: (
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        emailSender: EmailSenderPort,
+        preferenceGate: NotificationPreferenceGate,
+        logger: PinoLoggerService,
+        dispatcher: DomainEventDispatcher,
+      ) => {
+        const handler = new NotifyOfNewDeviceLoginHandler(getAccountByIdUseCase, emailSender, preferenceGate, logger);
+        dispatcher.subscribe('authentication.login.new-device-detected', (event: DomainEvent) =>
+          handler.handle(event as unknown as NewDeviceLoginDetectedEventPayload),
+        );
+        return handler;
+      },
+      inject: [GetAccountByIdUseCase, EMAIL_SENDER, NotificationPreferenceGate, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
     {
       // Reacts to AuthenticationModule's 'authentication.account.locked'

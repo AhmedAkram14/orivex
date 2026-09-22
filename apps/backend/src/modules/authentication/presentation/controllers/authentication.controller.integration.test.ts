@@ -45,6 +45,7 @@ import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-passwo
 import { ResendVerificationUseCase } from '../../application/use-cases/resend-verification/resend-verification.use-case.js';
 import { GetCurrentSessionUseCase } from '../../application/use-cases/get-current-session/get-current-session.use-case.js';
 import { ListDeviceSessionsUseCase } from '../../application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
+import { GetSecuritySummaryUseCase } from '../../application/use-cases/get-security-summary/get-security-summary.use-case.js';
 import { ListLoginHistoryForAccountUseCase } from '../../application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
 import { LoginUseCase } from '../../application/use-cases/login/login.use-case.js';
 import { LogoutAllSessionsUseCase } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
@@ -352,6 +353,10 @@ describe('AuthenticationController (integration)', () => {
         {
           provide: LogoutAllSessionsUseCase,
           useValue: new LogoutAllSessionsUseCase(credentialRepository, sessionRepository),
+        },
+        {
+          provide: GetSecuritySummaryUseCase,
+          useValue: new GetSecuritySummaryUseCase(credentialRepository, sessionRepository, listSecurityEventsForAccountUseCase),
         },
         {
           provide: ListLoginHistoryForAccountUseCase,

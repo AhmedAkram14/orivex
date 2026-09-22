@@ -1,4 +1,6 @@
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
+import { parseUserAgent } from '../../../../../platform/http/parse-user-agent.js';
+import { resolveIpLocation } from '../../../../../platform/http/resolve-ip-location.js';
 import type { Account } from '../../../../identity/domain/entities/account.entity.js';
 import { GetAccountByEmailUseCase } from '../../../../identity/application/use-cases/get-account-by-email/get-account-by-email.use-case.js';
 import { RecordSecurityEventCommand } from '../../../../trust/application/use-cases/record-security-event/record-security-event.command.js';
@@ -7,6 +9,7 @@ import { SecurityEventType } from '../../../../trust/domain/enums/security-event
 import { Session } from '../../../domain/entities/session.entity.js';
 import { REFRESH_TOKEN_TTL_DAYS } from '../../../domain/constants/authentication.constants.js';
 import { LoginFailureReason } from '../../../domain/enums/login-failure-reason.enum.js';
+import { NewDeviceLoginDetectedEvent } from '../../../domain/events/new-device-login-detected.event.js';
 import { AccountLockedError } from '../../../domain/exceptions/account-locked.error.js';
 import { EmailNotVerifiedError } from '../../../domain/exceptions/email-not-verified.error.js';
 import { InvalidCredentialsError } from '../../../domain/exceptions/invalid-credentials.error.js';
@@ -115,6 +118,22 @@ export class LoginUseCase {
       }),
     );
 
+    // Best-effort "is this a new device" heuristic -- compares the parsed
+    // UA displayName + exact IP against the account's other still-active
+    // sessions (created BEFORE this one). Not a cryptographic device
+    // fingerprint: a browser update or a new IP on a familiar laptop both
+    // read as "new". Skipped entirely on an account's very first-ever
+    // session (nothing to compare against, and a first login isn't
+    // suspicious) to avoid emailing every brand-new signup.
+    const priorActiveSessions = await this.sessionRepository.findAllActiveForCredential(credential.getId());
+    const currentUa = parseUserAgent(command.userAgent);
+    const isNewDevice =
+      priorActiveSessions.length > 0 &&
+      !priorActiveSessions.some((existing) => {
+        const existingUa = parseUserAgent(existing.getUserAgent());
+        return existingUa.displayName === currentUa.displayName && existing.getIpAddress() === command.ipAddress;
+      });
+
     const accessToken = await this.jwtSigner.sign({
       accountId: account.getId().toString(),
       role: account.getRole(),
@@ -131,6 +150,13 @@ export class LoginUseCase {
     });
     await this.sessionRepository.save(session);
     await this.eventDispatcher.dispatch(session.releaseDomainEvents());
+
+    if (isNewDevice) {
+      const location = command.ipAddress ? resolveIpLocation(command.ipAddress) : null;
+      await this.eventDispatcher.dispatch([
+        new NewDeviceLoginDetectedEvent(account.getId().toString(), currentUa.displayName, location?.city, location?.country),
+      ]);
+    }
 
     return {
       account,

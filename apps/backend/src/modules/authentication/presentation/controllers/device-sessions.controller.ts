@@ -6,6 +6,7 @@ import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
 import { NotFoundError, ValidationError } from '../../../../shared/errors/app-error.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { AccessTokenClaims } from '../../application/ports/jwt-signer.port.js';
+import { GetSecuritySummaryUseCase } from '../../application/use-cases/get-security-summary/get-security-summary.use-case.js';
 import { ListDeviceSessionsUseCase } from '../../application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
 import { LogoutAllSessionsCommand } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.command.js';
 import { LogoutAllSessionsUseCase } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
@@ -16,6 +17,7 @@ import { RevokeOtherSessionsUseCase } from '../../application/use-cases/revoke-o
 import { TokenInvalidError } from '../../domain/exceptions/token-invalid.error.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { DeviceSessionResponseDto } from '../dto/device-session-response.dto.js';
+import { SecuritySummaryResponseDto } from '../dto/security-summary-response.dto.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { mapAuthenticationError } from '../mappers/authentication-exception.mapper.js';
 import { clearRefreshCookie, readRefreshCookie, type RequestWithCookies } from '../utils/refresh-cookie.util.js';
@@ -34,8 +36,19 @@ export class DeviceSessionsController {
     private readonly revokeDeviceSessionUseCase: RevokeDeviceSessionUseCase,
     private readonly revokeOtherSessionsUseCase: RevokeOtherSessionsUseCase,
     private readonly logoutAllSessionsUseCase: LogoutAllSessionsUseCase,
+    private readonly getSecuritySummaryUseCase: GetSecuritySummaryUseCase,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
+
+  @Get('security-summary')
+  @UseGuards(JwtAuthGuard)
+  async securitySummary(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<SecuritySummaryResponseDto>> {
+    const result = await this.getSecuritySummaryUseCase.execute({ accountId: user.accountId });
+    if (!result) {
+      throw mapAuthenticationError(new TokenInvalidError());
+    }
+    return envelope(SecuritySummaryResponseDto.fromResult(result));
+  }
 
   @Get('sessions')
   @UseGuards(JwtAuthGuard)

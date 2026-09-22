@@ -54,6 +54,7 @@ describe('UpdateNotificationPreferencesUseCase', () => {
       emailBilling: true,
       inAppAppointments: true,
       inAppBilling: true,
+      emailNewDeviceLogin: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -72,6 +73,18 @@ describe('UpdateNotificationPreferencesUseCase', () => {
     assert.equal(repository.saveCallCount, 1);
   });
 
+  it('updates emailNewDeviceLogin independently of the category channels', async () => {
+    const repository = new FakeNotificationPreferenceRepository();
+    const useCase = new UpdateNotificationPreferencesUseCase(repository);
+
+    const result = await useCase.execute(
+      new UpdateNotificationPreferencesCommand({ accountId: ACCOUNT_ID, emailNewDeviceLogin: false }),
+    );
+
+    assert.equal(result.getEmailNewDeviceLogin(), false);
+    assert.equal(result.getEmailAppointments(), true);
+  });
+
   it('applying no fields at all leaves every channel at its current value', async () => {
     const repository = new FakeNotificationPreferenceRepository();
     const existing = NotificationPreference.reconstitute({
@@ -81,6 +94,7 @@ describe('UpdateNotificationPreferencesUseCase', () => {
       emailBilling: false,
       inAppAppointments: false,
       inAppBilling: false,
+      emailNewDeviceLogin: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

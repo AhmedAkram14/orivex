@@ -36,6 +36,7 @@ import { ChangePasswordUseCase } from './application/use-cases/change-password/c
 import { ForgotPasswordUseCase } from './application/use-cases/forgot-password/forgot-password.use-case.js';
 import { ResendVerificationUseCase } from './application/use-cases/resend-verification/resend-verification.use-case.js';
 import { GetCurrentSessionUseCase } from './application/use-cases/get-current-session/get-current-session.use-case.js';
+import { GetSecuritySummaryUseCase } from './application/use-cases/get-security-summary/get-security-summary.use-case.js';
 import { ListDeviceSessionsUseCase } from './application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
 import { ListLoginHistoryForAccountUseCase } from './application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
 import { LoginUseCase } from './application/use-cases/login/login.use-case.js';
@@ -353,6 +354,15 @@ import { LoginHistoryController } from './presentation/controllers/login-history
       useFactory: (listSecurityEventsForAccountUseCase: ListSecurityEventsForAccountUseCase) =>
         new ListLoginHistoryForAccountUseCase(listSecurityEventsForAccountUseCase),
       inject: [ListSecurityEventsForAccountUseCase],
+    },
+    {
+      provide: GetSecuritySummaryUseCase,
+      useFactory: (
+        credentialRepository: CredentialRepository,
+        sessionRepository: SessionRepository,
+        listSecurityEventsForAccountUseCase: ListSecurityEventsForAccountUseCase,
+      ) => new GetSecuritySummaryUseCase(credentialRepository, sessionRepository, listSecurityEventsForAccountUseCase),
+      inject: [CREDENTIAL_REPOSITORY, SESSION_REPOSITORY, ListSecurityEventsForAccountUseCase],
     },
   ],
   // EMAIL_SENDER is exported for reuse beyond this module's own use cases --

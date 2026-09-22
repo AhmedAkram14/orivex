@@ -10,6 +10,7 @@ export function toDomainNotificationPreference(row: PrismaNotificationPreference
     emailBilling: row.emailBilling,
     inAppAppointments: row.inAppAppointments,
     inAppBilling: row.inAppBilling,
+    emailNewDeviceLogin: row.emailNewDeviceLogin,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -23,6 +24,7 @@ export function toPersistedNotificationPreference(preference: NotificationPrefer
     emailBilling: preference.getEmailBilling(),
     inAppAppointments: preference.getInAppAppointments(),
     inAppBilling: preference.getInAppBilling(),
+    emailNewDeviceLogin: preference.getEmailNewDeviceLogin(),
     createdAt: preference.getCreatedAt(),
     updatedAt: preference.getUpdatedAt(),
   };

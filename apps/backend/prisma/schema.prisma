@@ -9,31 +9,31 @@ datasource db {
 }
 
 model Account {
-  id                String             @id @default(uuid())
-  email             String             @unique
-  role              String             @default("patient")
+  id                     String                  @id @default(uuid())
+  email                  String                  @unique
+  role                   String                  @default("patient")
   // Added Sprint 1.1C, synchronizing the persistence model with the already
   // approved Identity domain (Sprints 1.1A/1.1B) — docs/08-logical-data-model.md
   // and docs/09-physical-database.md don't yet reflect these fields; a
   // documentation synchronization task is scheduled after this sprint.
-  status            String             @default("active")
-  displayName       String
-  phoneNumber       String?
-  preferredLanguage String             @default("Arabic")
+  status                 String                  @default("active")
+  displayName            String
+  phoneNumber            String?
+  preferredLanguage      String                  @default("Arabic")
   // Onboarding Redesign (2026-07-21 proposal, §0a): cross-role personal
   // identity fields, extending the existing UserProfile child entity rather
   // than introducing a separate PersonalProfile table -- Identity remains the
   // single owner of "who this person is," shared verbatim by both Patient and
   // Doctor onboarding. Deliberately NOT a fullName field: displayName already
   // serves that purpose.
-  dateOfBirth       DateTime?
+  dateOfBirth            DateTime?
   // Plain string, not a Prisma enum type -- matches role/status/
   // preferredLanguage's own existing convention above (domain-layer enum,
   // string-typed column; see identity/domain/enums/gender.enum.ts).
-  gender            String?
-  nationalityId     String?
-  nationality       Country?           @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
-  address           String?
+  gender                 String?
+  nationalityId          String?
+  nationality            Country?                @relation(fields: [nationalityId], references: [id], onDelete: SetNull)
+  address                String?
   // Demo Data & Profile Avatar Pass: a cached display pointer, always a
   // root-relative path served by the frontend's own public/ folder (e.g.
   // "/demo/avatars/doctor-01.png") -- never a MediaAsset presigned URL,
@@ -42,23 +42,23 @@ model Account {
   // the demo seed script populates it, via the real UpdatePersonalProfile
   // use case. Absent for a real user simply falls back to the existing
   // initials avatar, same as it always has.
-  avatarUrl         String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  credential        Credential?
-  doctorProfile     DoctorProfile?
-  patientProfile    PatientProfile?
-  securityEvents    SecurityEvent[]
-  notifications     Notification[]
-  mediaAssets       MediaAsset[]
+  avatarUrl              String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  credential             Credential?
+  doctorProfile          DoctorProfile?
+  patientProfile         PatientProfile?
+  securityEvents         SecurityEvent[]
+  notifications          Notification[]
+  mediaAssets            MediaAsset[]
   // Onboarding Redesign (2026-07-21 proposal, Stage O.2): VerificationCase
   // references the subject's Account directly and uniformly, regardless of
   // subject type -- not DoctorProfile.id as it did before.
-  verificationCases VerificationCase[]
+  verificationCases      VerificationCase[]
   // I7 -- Messaging (docs/01-prd.md §2.13).
-  sentMessages      Message[]
+  sentMessages           Message[]
   // I11 -- Admin dispute resolution (ORIVEX Remaining Work Audit).
-  disputesRaised    Dispute[]
+  disputesRaised         Dispute[]
   // Doctor Settings Rebuild (Phase 0): one row per account, created lazily
   // on first write (Phase 2) -- no row means "everything on" (see the
   // NotificationPreference model's own header comment).
@@ -208,7 +208,7 @@ model DoctorProfile {
   // I7 -- Messaging (docs/01-prd.md §2.13).
   messageThreads                  MessageThread[]
   // I13 -- Knowledge Center (docs/01.1-prd-update.md §6).
-  knowledgeArticles                KnowledgeArticle[]
+  knowledgeArticles               KnowledgeArticle[]
   followers                       DoctorFollow[]
   workingHoursDays                WorkingHoursDay[]
   scheduleExceptions              ScheduleException[]
@@ -271,21 +271,21 @@ model Department {
 // reference tables ship standalone first, with zero coupling to Doctor/
 // Patient profiles, before anything references them).
 model MedicalSpecialty {
-  id             String          @id @default(uuid())
-  name           String          @unique
+  id                String             @id @default(uuid())
+  name              String             @unique
   // Localization fix: the Arabic name shown whenever the caller's locale is
   // Arabic -- nullable (an admin may not have translated every specialty
   // yet), in which case every consumer falls back to `name`. Never
   // @unique -- two specialties could plausibly share a translated form
   // temporarily during data entry, unlike the canonical `name`.
-  nameAr         String?
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  nameAr            String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   // Onboarding Redesign (2026-07-21 proposal, Stage O.3): first real
   // consumer -- Stage O.1 deliberately shipped this table with zero
   // coupling to DoctorProfile first.
-  doctorProfiles DoctorProfile[]
+  doctorProfiles    DoctorProfile[]
   // Knowledge Center Hardening Phase 0: every KnowledgeArticle is auto-tagged
   // with its authoring doctor's own specialty (decision 3 -- no new Select,
   // no mismatch risk).
@@ -642,26 +642,26 @@ enum EmergencyRelationship {
 // specified anywhere concretely. No additional demographic fields beyond
 // what's already documented (accountId, dateOfBirth).
 model PatientProfile {
-  id                  String                 @id @default(uuid())
-  accountId           String                 @unique
-  account             Account                @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  id                       String                 @id @default(uuid())
+  accountId                String                 @unique
+  account                  Account                @relation(fields: [accountId], references: [id], onDelete: Restrict)
   // dateOfBirth moved to Account/UserProfile (Onboarding Redesign,
   // 2026-07-21 proposal §0a) -- Identity owns cross-role personal info.
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  emergencyContacts   EmergencyContact[]
-  appointments        Appointment[]
-  paymentTransactions PaymentTransaction[]
-  healthGraph         HealthGraph?
-  vitalReadings       VitalReading[]
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  emergencyContacts        EmergencyContact[]
+  appointments             Appointment[]
+  paymentTransactions      PaymentTransaction[]
+  healthGraph              HealthGraph?
+  vitalReadings            VitalReading[]
   // Onboarding Redesign (2026-07-21 proposal, Stage O.3): Patient's own
   // medical-profile fields -- deliberately unstructured free text for
   // allergies/chronicDiseases (no ICD-11/SNOMED CT, no reference tables,
   // for this phase; normalizing into discrete, coded entries is a future
   // phase, per the approved proposal).
-  bloodType           String?
-  allergies           String?
-  chronicDiseases     String?
+  bloodType                String?
+  allergies                String?
+  chronicDiseases          String?
   // Doctor Patient Chart plan, 4.3: a doctor-authored "confirmed no known
   // allergies" attestation -- deliberately a separate nullable timestamp,
   // not a sentinel string, so "never asked" (both this and `allergies` are
@@ -679,24 +679,24 @@ model PatientProfile {
   // health defaults to hidden from a treating doctor unless the patient
   // explicitly grants it, the opposite of every other clinical scope's
   // default-granted rule).
-  lifestyleNotes      String?
-  nutritionNotes      String?
-  exerciseNotes       String?
-  mentalHealthNotes   String?
-  healthPassportEntries HealthPassportEntry[]
+  lifestyleNotes           String?
+  nutritionNotes           String?
+  exerciseNotes            String?
+  mentalHealthNotes        String?
+  healthPassportEntries    HealthPassportEntry[]
   // I7 -- Messaging (docs/01-prd.md §2.13).
-  messageThreads      MessageThread[]
+  messageThreads           MessageThread[]
   // I13 -- Knowledge Center (docs/01.1-prd-update.md §6).
-  savedArticles       KnowledgeArticleSave[]
-  followedDoctors     DoctorFollow[]
-  insuranceProviderId String?
-  insuranceProvider   InsuranceProvider?     @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
+  savedArticles            KnowledgeArticleSave[]
+  followedDoctors          DoctorFollow[]
+  insuranceProviderId      String?
+  insuranceProvider        InsuranceProvider?     @relation(fields: [insuranceProviderId], references: [id], onDelete: SetNull)
   // Consultation lifecycle completion follow-up (2026-07-26).
-  submittedFeedback   ConsultationFeedback[]
+  submittedFeedback        ConsultationFeedback[]
   // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3).
-  consentRecords      ConsentRecord[]
+  consentRecords           ConsentRecord[]
   // N8-Waitlist (ORIVEX Remaining Work Audit).
-  waitlistEntries     WaitlistEntry[]
+  waitlistEntries          WaitlistEntry[]
 
   @@index([insuranceProviderId])
 }
@@ -961,13 +961,13 @@ model ConsultationSession {
 // ConsultationSession -> Appointment every time; they are set once at
 // submission from the session's own appointment, never client-supplied.
 model ConsultationFeedback {
-  id                    String              @id @default(uuid())
-  consultationSessionId String              @unique
-  consultationSession   ConsultationSession @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
+  id                    String                 @id @default(uuid())
+  consultationSessionId String                 @unique
+  consultationSession   ConsultationSession    @relation(fields: [consultationSessionId], references: [id], onDelete: Restrict)
   patientId             String
-  patientProfile        PatientProfile      @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patientProfile        PatientProfile         @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctorId              String
-  doctorProfile         DoctorProfile       @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  doctorProfile         DoctorProfile          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   rating                Int
   // Multi-dimensional reviews (docs/01-prd.md L99-100 §2.11, inventory
   // L173 "Multi-dimension ratings 🟢"): captured separately from the
@@ -979,7 +979,7 @@ model ConsultationFeedback {
   punctualityRating     Int?
   thoroughnessRating    Int?
   comment               String?
-  createdAt             DateTime            @default(now())
+  createdAt             DateTime               @default(now())
   // I11 -- Admin content moderation (ORIVEX Remaining Work Audit): the
   // reviewed doctor can flag their own review as inappropriate, which
   // immediately excludes it from the public doctor-directory/profile list
@@ -1445,15 +1445,19 @@ model Notification {
 // Appointments/Billing categories exist here -- no emailMessages/
 // inAppMessages columns.
 model NotificationPreference {
-  id                String   @id @default(uuid())
-  accountId         String   @unique
-  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  emailAppointments Boolean  @default(true)
-  emailBilling      Boolean  @default(true)
-  inAppAppointments Boolean  @default(true)
-  inAppBilling      Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  accountId           String   @unique
+  account             Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  emailAppointments   Boolean  @default(true)
+  emailBilling        Boolean  @default(true)
+  inAppAppointments   Boolean  @default(true)
+  inAppBilling        Boolean  @default(true)
+  // Security Center rework: "email me when my account signs in from a new
+  // device". Defaults true to preserve the security-conscious default for
+  // every existing account without an explicit opt-in migration.
+  emailNewDeviceLogin Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 enum WeekDay {
@@ -1675,23 +1679,23 @@ enum DisputeCategory {
 }
 
 model Dispute {
-  id                 String         @id @default(uuid())
-  appointmentId      String         @unique
-  appointment        Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  raisedByAccountId  String
-  raisedByAccount    Account        @relation(fields: [raisedByAccountId], references: [id], onDelete: Restrict)
-  reason             String
-  status             DisputeStatus  @default(OPEN)
+  id                  String           @id @default(uuid())
+  appointmentId       String           @unique
+  appointment         Appointment      @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  raisedByAccountId   String
+  raisedByAccount     Account          @relation(fields: [raisedByAccountId], references: [id], onDelete: Restrict)
+  reason              String
+  status              DisputeStatus    @default(OPEN)
   // Nullable -- existing rows predate this field and have none; required
   // going forward only at the domain/DTO layer (RaiseDisputeUseCase), not
   // backfilled, mirroring how appointmentType was added as optional-nullable
   // rather than backfilled in a prior migration.
-  category           DisputeCategory?
-  attachmentAssetId  String?
-  resolutionNotes    String?
+  category            DisputeCategory?
+  attachmentAssetId   String?
+  resolutionNotes     String?
   resolvedByAccountId String?
-  resolvedAt         DateTime?
-  createdAt          DateTime       @default(now())
+  resolvedAt          DateTime?
+  createdAt           DateTime         @default(now())
 
   @@index([appointmentId])
   @@index([raisedByAccountId])

@@ -4,6 +4,7 @@ export interface UpdateNotificationPreferencesCommandProps {
   emailBilling?: boolean;
   inAppAppointments?: boolean;
   inAppBilling?: boolean;
+  emailNewDeviceLogin?: boolean;
 }
 
 // Commands are application messages, not structural types -- immutable by
@@ -17,6 +18,7 @@ export class UpdateNotificationPreferencesCommand {
   readonly emailBilling?: boolean;
   readonly inAppAppointments?: boolean;
   readonly inAppBilling?: boolean;
+  readonly emailNewDeviceLogin?: boolean;
 
   constructor(props: UpdateNotificationPreferencesCommandProps) {
     this.accountId = props.accountId;
@@ -24,5 +26,6 @@ export class UpdateNotificationPreferencesCommand {
     this.emailBilling = props.emailBilling;
     this.inAppAppointments = props.inAppAppointments;
     this.inAppBilling = props.inAppBilling;
+    this.emailNewDeviceLogin = props.emailNewDeviceLogin;
   }
 }
