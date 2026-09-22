@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -26,13 +27,18 @@ async function bootstrap(): Promise<void> {
   // req.rawBody alongside Nest's normal parsed req.body -- required by the
   // Stripe webhook receiver (payment-webhook.controller.ts) to verify the
   // signature, which is computed over the exact raw bytes Stripe sent.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
 
   const logger = app.get(PinoLoggerService);
   app.useLogger(logger);
 
   const configService = app.get(ConfigService<EnvConfig, true>);
 
+  // Render puts exactly one reverse proxy in front of this process. Without
+  // this, Express's req.ip resolves to that proxy's own internal-network
+  // hop address (::ffff:10.x.x.x) instead of the real client IP carried in
+  // X-Forwarded-For -- breaks session/login-history IP accuracy.
+  app.set('trust proxy', 1);
   app.use(helmet());
   // Required for AuthenticationModule to read the httpOnly refresh-token
   // cookie (req.cookies) -- unpopulated without this middleware.

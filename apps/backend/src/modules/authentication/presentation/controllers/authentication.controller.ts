@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
+import { getClientIp } from '../../../../platform/http/get-client-ip.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { AccessTokenClaims, JwtSignerPort } from '../../application/ports/jwt-signer.port.js';
 import { JWT_SIGNER } from '../../application/ports/tokens.js';
@@ -101,7 +102,7 @@ export class AuthenticationController {
         new LoginCommand({
           email: body.email,
           password: body.password,
-          ipAddress: request.ip,
+          ipAddress: getClientIp(request),
           userAgent: request.headers['user-agent'],
         }),
       );
