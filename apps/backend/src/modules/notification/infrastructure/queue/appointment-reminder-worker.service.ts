@@ -5,6 +5,7 @@ import { Redis } from 'ioredis';
 
 import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
 import { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
+import { attachRedisErrorHandler } from '../../../../platform/redis/attach-redis-error-handler.js';
 import type { EnqueueAppointmentReminderJob } from '../../application/ports/notification-queue.port.js';
 import { SendAppointmentReminderCommand } from '../../application/use-cases/send-appointment-reminder/send-appointment-reminder.command.js';
 import { SendAppointmentReminderUseCase } from '../../application/use-cases/send-appointment-reminder/send-appointment-reminder.use-case.js';
@@ -38,6 +39,10 @@ export class AppointmentReminderWorkerService implements OnModuleInit, OnModuleD
     // connection (its own documented requirement -- blocking commands used
     // internally are incompatible with ioredis's default retry behavior).
     const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
+    // 2026-09-22 incident: this connection had no `error` listener at all --
+    // an unhandled `error` event on an ioredis client throws and can crash
+    // the whole process (see this helper's own comment for the full story).
+    attachRedisErrorHandler(connection, this.logger, 'appointment-reminder-worker');
     this.worker = new Worker<EnqueueAppointmentReminderJob>(
       NOTIFICATION_QUEUE_NAME,
       async (job) => {
@@ -52,6 +57,18 @@ export class AppointmentReminderWorkerService implements OnModuleInit, OnModuleD
     );
     this.worker.on('failed', (job, error) => {
       this.logger.error('Appointment reminder job failed', error.stack, { jobId: job?.id });
+    });
+    // BullMQ's Worker is its own EventEmitter, separate from the raw
+    // connection above -- same unhandled-'error'-crashes-the-process risk,
+    // same fix.
+    let lastLoggedAt = 0;
+    this.worker.on('error', (error: Error) => {
+      const now = Date.now();
+      if (now - lastLoggedAt < 60_000) {
+        return;
+      }
+      lastLoggedAt = now;
+      this.logger.error('Appointment reminder worker error -- further occurrences suppressed for 60s', error.stack);
     });
   }
 

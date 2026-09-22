@@ -10,6 +10,7 @@ import { DOMAIN_EVENT_DISPATCHER } from '../../shared/domain/tokens.js';
 import { PinoLoggerService } from '../../platform/logging/pino-logger.service.js';
 import type { RealtimeEmitterPort } from '../../platform/realtime/ports/realtime-emitter.port.js';
 import { REALTIME_EMITTER } from '../../platform/realtime/ports/tokens.js';
+import { attachRedisErrorHandler } from '../../platform/redis/attach-redis-error-handler.js';
 import type { EmailSenderPort } from '../authentication/application/ports/email-sender.port.js';
 import { EMAIL_SENDER } from '../authentication/application/ports/tokens.js';
 import { AuthenticationModule } from '../authentication/authentication.module.js';
@@ -245,16 +246,24 @@ import { NotificationController } from './presentation/controllers/notification.
       // same fail-loud-not-fail-fake idiom as PaymentModule/
       // ConsultationModule's own external providers.
       provide: NOTIFICATION_QUEUE,
-      useFactory: (configService: ConfigService<EnvConfig, true>): NotificationQueuePort => {
+      useFactory: (configService: ConfigService<EnvConfig, true>, logger: PinoLoggerService): NotificationQueuePort => {
         const redisUrl = configService.get('REDIS_URL', { infer: true });
         if (!redisUrl) {
           return new NotConfiguredNotificationQueueAdapter();
         }
         const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
+        // 2026-09-22 incident: an unhandled `error` event on a bare ioredis
+        // connection throws and can crash the whole process -- see this
+        // helper's own comment. Attached before the Queue ever issues a
+        // command, not as an afterthought.
+        attachRedisErrorHandler(connection, logger, 'notification-queue');
         const queue = new Queue<EnqueueAppointmentReminderJob>(NOTIFICATION_QUEUE_NAME, { connection });
+        // BullMQ's Queue is its own EventEmitter, separate from the raw
+        // connection above -- same unhandled-'error'-crashes-the-process risk.
+        queue.on('error', (error: Error) => logger.error('Notification queue error', error.stack));
         return new BullMqNotificationQueueAdapter(queue);
       },
-      inject: [ConfigService],
+      inject: [ConfigService, PinoLoggerService],
     },
     {
       provide: SendAppointmentReminderUseCase,
