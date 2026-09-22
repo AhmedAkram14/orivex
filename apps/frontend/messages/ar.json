@@ -1587,6 +1587,20 @@
       "language": {
         "title": "اللغة",
         "description": "اختر اللغة التي يُعرض بها التطبيق."
+      },
+      "notifications": {
+        "title": "الإشعارات",
+        "description": "اختر الإشعارات التي تصلك عبر البريد الإلكتروني والتطبيق.",
+        "saveSuccess": "تم تحديث تفضيلات الإشعارات.",
+        "channels": {
+          "email": "البريد الإلكتروني",
+          "inApp": "داخل التطبيق"
+        },
+        "categories": {
+          "appointments": "المواعيد",
+          "billing": "الفواتير"
+        },
+        "toggleLabel": "إشعارات {channel} لـ {category}"
       }
     }
   },

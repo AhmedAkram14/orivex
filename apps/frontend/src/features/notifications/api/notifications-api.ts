@@ -4,6 +4,8 @@ import type {
   ListNotificationsParams,
   ListNotificationsResult,
   NotificationEntry,
+  NotificationPreferences,
+  UpdateNotificationPreferencesRequest,
 } from '@/features/notifications/api/types';
 
 function buildNotificationsQuery(params: ListNotificationsParams): string {
@@ -42,4 +44,12 @@ export const notificationsApi = {
   markAsRead: (id: string) => apiFetch<void>({ method: 'POST', path: NOTIFICATIONS_PATHS.markRead(id) }),
 
   markAllAsRead: () => apiFetch<void>({ method: 'POST', path: NOTIFICATIONS_PATHS.markAllRead }),
+
+  // Doctor Settings Rebuild, Phase 4: self-scoped preference read/write --
+  // both routes never accept a target id, matching `PATCH /accounts/me`'s
+  // own never-accept-a-target-id convention.
+  getPreferences: () => apiFetch<NotificationPreferences>({ path: NOTIFICATIONS_PATHS.preferences }),
+
+  updatePreferences: (request: UpdateNotificationPreferencesRequest) =>
+    apiFetch<NotificationPreferences>({ method: 'PATCH', path: NOTIFICATIONS_PATHS.preferences, body: request }),
 };

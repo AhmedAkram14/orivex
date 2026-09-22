@@ -30,3 +30,20 @@ export interface ListNotificationsResult {
   page: number;
   limit: number;
 }
+
+/**
+ * Mirrors the backend's `NotificationPreferencesResponseDto` exactly (Doctor
+ * Settings Rebuild, Phase 4) -- the 4 real category x channel toggles this
+ * module supports (Appointments/Billing x Email/In-app). No Messages
+ * fields, no SMS/push (see the backend's own `NotificationCategory`/
+ * `NotificationChannel` enum comments for why).
+ */
+export interface NotificationPreferences {
+  emailAppointments: boolean;
+  emailBilling: boolean;
+  inAppAppointments: boolean;
+  inAppBilling: boolean;
+}
+
+/** PATCH semantics -- only the toggles the caller actually flips get sent. */
+export type UpdateNotificationPreferencesRequest = Partial<NotificationPreferences>;

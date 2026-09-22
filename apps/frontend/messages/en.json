@@ -1587,6 +1587,20 @@
       "language": {
         "title": "Language",
         "description": "Choose the language the app is displayed in."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Choose which notifications you receive by email and in-app.",
+        "saveSuccess": "Notification preferences updated.",
+        "channels": {
+          "email": "Email",
+          "inApp": "In-app"
+        },
+        "categories": {
+          "appointments": "Appointments",
+          "billing": "Billing"
+        },
+        "toggleLabel": "{channel} notifications for {category}"
       }
     }
   },
