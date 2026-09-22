@@ -53,6 +53,7 @@ import { RefreshSessionUseCase } from '../../application/use-cases/refresh-sessi
 import { RegisterUseCase } from '../../application/use-cases/register/register.use-case.js';
 import { ResetPasswordUseCase } from '../../application/use-cases/reset-password/reset-password.use-case.js';
 import { RevokeDeviceSessionUseCase } from '../../application/use-cases/revoke-device-session/revoke-device-session.use-case.js';
+import { RevokeOtherSessionsUseCase } from '../../application/use-cases/revoke-other-sessions/revoke-other-sessions.use-case.js';
 import { VerifyEmailUseCase } from '../../application/use-cases/verify-email/verify-email.use-case.js';
 
 import { AuthenticationController } from './authentication.controller.js';
@@ -345,6 +346,10 @@ describe('AuthenticationController (integration)', () => {
           useValue: new RevokeDeviceSessionUseCase(credentialRepository, sessionRepository, tokenGenerator),
         },
         {
+          provide: RevokeOtherSessionsUseCase,
+          useValue: new RevokeOtherSessionsUseCase(credentialRepository, sessionRepository, tokenGenerator),
+        },
+        {
           provide: LogoutAllSessionsUseCase,
           useValue: new LogoutAllSessionsUseCase(credentialRepository, sessionRepository),
         },
@@ -623,9 +628,10 @@ describe('AuthenticationController (integration)', () => {
       .set('Authorization', await bearerTokenFor(accountId))
       .expect(200);
 
-    const entries = response.body.data as Array<{ id: string; outcome: string }>;
-    assert.equal(entries.length, 2);
-    const ids = entries.map((entry) => entry.id);
+    const page = response.body.data as { items: Array<{ id: string; outcome: string }>; total: number };
+    assert.equal(page.items.length, 2);
+    assert.equal(page.total, 2);
+    const ids = page.items.map((entry) => entry.id);
     assert.ok(ids.includes(succeeded.getId()));
     assert.ok(ids.includes(failed.getId()));
     assert.ok(!ids.includes(passwordChanged.getId()));

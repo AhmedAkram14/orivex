@@ -45,6 +45,7 @@ import { RefreshSessionUseCase } from './application/use-cases/refresh-session/r
 import { RegisterUseCase } from './application/use-cases/register/register.use-case.js';
 import { ResetPasswordUseCase } from './application/use-cases/reset-password/reset-password.use-case.js';
 import { RevokeDeviceSessionUseCase } from './application/use-cases/revoke-device-session/revoke-device-session.use-case.js';
+import { RevokeOtherSessionsUseCase } from './application/use-cases/revoke-other-sessions/revoke-other-sessions.use-case.js';
 import { VerifyEmailUseCase } from './application/use-cases/verify-email/verify-email.use-case.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import { NodeTokenGenerator } from './infrastructure/crypto/node-token-generator.js';
@@ -333,6 +334,12 @@ import { LoginHistoryController } from './presentation/controllers/login-history
       provide: RevokeDeviceSessionUseCase,
       useFactory: (credentialRepository: CredentialRepository, sessionRepository: SessionRepository, tokenGenerator: TokenGeneratorPort) =>
         new RevokeDeviceSessionUseCase(credentialRepository, sessionRepository, tokenGenerator),
+      inject: [CREDENTIAL_REPOSITORY, SESSION_REPOSITORY, TOKEN_GENERATOR],
+    },
+    {
+      provide: RevokeOtherSessionsUseCase,
+      useFactory: (credentialRepository: CredentialRepository, sessionRepository: SessionRepository, tokenGenerator: TokenGeneratorPort) =>
+        new RevokeOtherSessionsUseCase(credentialRepository, sessionRepository, tokenGenerator),
       inject: [CREDENTIAL_REPOSITORY, SESSION_REPOSITORY, TOKEN_GENERATOR],
     },
     {

@@ -1,10 +1,11 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { AccessTokenClaims } from '../../application/ports/jwt-signer.port.js';
 import { ListLoginHistoryForAccountUseCase } from '../../application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
-import { LoginHistoryEntryResponseDto } from '../dto/login-history-entry-response.dto.js';
+import { LoginHistoryPageResponseDto } from '../dto/login-history-page-response.dto.js';
+import { LoginHistoryQueryDto } from '../dto/login-history-query.dto.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 
 // Split out of AuthenticationController (Production Readiness Audit --
@@ -20,8 +21,16 @@ export class LoginHistoryController {
   @UseGuards(JwtAuthGuard)
   async loginHistory(
     @CurrentUser() user: AccessTokenClaims,
-  ): Promise<ResponseEnvelope<LoginHistoryEntryResponseDto[]>> {
-    const events = await this.listLoginHistoryForAccountUseCase.execute({ accountId: user.accountId });
-    return envelope(events.map((event) => LoginHistoryEntryResponseDto.fromDomain(event)));
+    @Query() query: LoginHistoryQueryDto,
+  ): Promise<ResponseEnvelope<LoginHistoryPageResponseDto>> {
+    const result = await this.listLoginHistoryForAccountUseCase.execute({
+      accountId: user.accountId,
+      page: query.page,
+      limit: query.limit,
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+      outcome: query.outcome,
+    });
+    return envelope(LoginHistoryPageResponseDto.fromResult(result));
   }
 }

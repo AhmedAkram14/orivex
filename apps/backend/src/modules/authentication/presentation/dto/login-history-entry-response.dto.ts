@@ -1,5 +1,6 @@
 import { parseUserAgent } from '../../../../platform/http/parse-user-agent.js';
 import { resolveIpLocation } from '../../../../platform/http/resolve-ip-location.js';
+import { LoginFailureReason } from '../../domain/enums/login-failure-reason.enum.js';
 import type { SecurityEvent } from '../../../trust/domain/entities/security-event.entity.js';
 import { SecurityEventType } from '../../../trust/domain/enums/security-event-type.enum.js';
 
@@ -29,6 +30,7 @@ export class LoginHistoryEntryResponseDto {
   displayName!: string;
   city?: string;
   country?: string;
+  reason?: LoginFailureReason;
 
   static fromDomain(event: SecurityEvent): LoginHistoryEntryResponseDto {
     const outcome = EVENT_TYPE_TO_OUTCOME[event.getEventType()];
@@ -54,6 +56,10 @@ export class LoginHistoryEntryResponseDto {
     dto.displayName = ua.displayName;
     dto.city = location?.city;
     dto.country = location?.country;
+    if (outcome !== 'success') {
+      const metadata = event.getMetadata();
+      dto.reason = typeof metadata.reason === 'string' ? (metadata.reason as LoginFailureReason) : undefined;
+    }
     return dto;
   }
 }

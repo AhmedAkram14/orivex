@@ -6,6 +6,7 @@ import { RecordSecurityEventUseCase } from '../../../../trust/application/use-ca
 import { SecurityEventType } from '../../../../trust/domain/enums/security-event-type.enum.js';
 import { Session } from '../../../domain/entities/session.entity.js';
 import { REFRESH_TOKEN_TTL_DAYS } from '../../../domain/constants/authentication.constants.js';
+import { LoginFailureReason } from '../../../domain/enums/login-failure-reason.enum.js';
 import { AccountLockedError } from '../../../domain/exceptions/account-locked.error.js';
 import { EmailNotVerifiedError } from '../../../domain/exceptions/email-not-verified.error.js';
 import { InvalidCredentialsError } from '../../../domain/exceptions/invalid-credentials.error.js';
@@ -48,7 +49,12 @@ export class LoginUseCase {
     const account = await this.getAccountByEmailUseCase.execute({ email: command.email });
     if (!account) {
       // Deliberately the same error as "wrong password" — no user
-      // enumeration via a differently-shaped failure.
+      // enumeration via a differently-shaped failure. There is also no
+      // account to attach a SecurityEvent to (accountId is a required,
+      // non-empty field on that aggregate) -- an "unknown_user" attempt
+      // is therefore never recorded anywhere, which is itself correct:
+      // no account's own login-history view could ever legitimately show
+      // an attempt against an email that isn't theirs.
       throw new InvalidCredentialsError();
     }
 
@@ -59,6 +65,15 @@ export class LoginUseCase {
 
     const now = new Date();
     if (credential.isLocked(now)) {
+      await this.recordSecurityEventUseCase.execute(
+        new RecordSecurityEventCommand({
+          accountId: account.getId().toString(),
+          eventType: SecurityEventType.AccountLocked,
+          ipAddress: command.ipAddress,
+          userAgent: command.userAgent,
+          metadata: { reason: LoginFailureReason.Locked },
+        }),
+      );
       throw new AccountLockedError(credential.getLockedUntil() as Date);
     }
 
@@ -78,6 +93,7 @@ export class LoginUseCase {
           eventType: justLocked ? SecurityEventType.AccountLocked : SecurityEventType.LoginFailed,
           ipAddress: command.ipAddress,
           userAgent: command.userAgent,
+          metadata: { reason: justLocked ? LoginFailureReason.Locked : LoginFailureReason.WrongPassword },
         }),
       );
       throw new InvalidCredentialsError();

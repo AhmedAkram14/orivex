@@ -11,6 +11,8 @@ import { LogoutAllSessionsCommand } from '../../application/use-cases/logout-all
 import { LogoutAllSessionsUseCase } from '../../application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
 import { RevokeDeviceSessionCommand } from '../../application/use-cases/revoke-device-session/revoke-device-session.command.js';
 import { RevokeDeviceSessionUseCase } from '../../application/use-cases/revoke-device-session/revoke-device-session.use-case.js';
+import { RevokeOtherSessionsCommand } from '../../application/use-cases/revoke-other-sessions/revoke-other-sessions.command.js';
+import { RevokeOtherSessionsUseCase } from '../../application/use-cases/revoke-other-sessions/revoke-other-sessions.use-case.js';
 import { TokenInvalidError } from '../../domain/exceptions/token-invalid.error.js';
 import { CurrentUser } from '../decorators/current-user.decorator.js';
 import { DeviceSessionResponseDto } from '../dto/device-session-response.dto.js';
@@ -30,6 +32,7 @@ export class DeviceSessionsController {
   constructor(
     private readonly listDeviceSessionsUseCase: ListDeviceSessionsUseCase,
     private readonly revokeDeviceSessionUseCase: RevokeDeviceSessionUseCase,
+    private readonly revokeOtherSessionsUseCase: RevokeOtherSessionsUseCase,
     private readonly logoutAllSessionsUseCase: LogoutAllSessionsUseCase,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
@@ -72,6 +75,19 @@ export class DeviceSessionsController {
     }
     if (result === 'cannot_revoke_current') {
       throw new ValidationError('Cannot revoke your current session; use logout instead.');
+    }
+  }
+
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async revokeOthers(@CurrentUser() user: AccessTokenClaims, @Req() request: RequestWithCookies): Promise<void> {
+    const currentRefreshToken = readRefreshCookie(request);
+    const result = await this.revokeOtherSessionsUseCase.execute(
+      new RevokeOtherSessionsCommand({ accountId: user.accountId, currentRefreshToken }),
+    );
+    if (result === 'not_found') {
+      throw mapAuthenticationError(new TokenInvalidError());
     }
   }
 
