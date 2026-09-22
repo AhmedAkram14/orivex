@@ -1682,6 +1682,38 @@
           "dialogDescription": "Account deletion isn't available as a self-service action yet. Contact support and we will help you with your request.",
           "close": "Close"
         }
+      },
+      "consultationDefaults": {
+        "title": "Consultation Defaults",
+        "description": "Control how FREE bookings behave on your schedule.",
+        "maxFreeSlotsPerDayLabel": "Max free slots per day",
+        "maxFreeSlotsPerDayHelp": "Leave empty for no daily cap.",
+        "bufferMinutesOverrideLabel": "Buffer between appointments (minutes)",
+        "bufferMinutesOverrideHelp": "Falls back to the platform default of 5 minutes when empty.",
+        "autoApproveLabel": "Auto-approve free bookings",
+        "autoApproveHelp": "Free bookings confirm automatically instead of waiting for your approval.",
+        "save": "Save",
+        "saveSuccess": "Consultation defaults updated.",
+        "validation": {
+          "maxFreeSlotsPerDayInvalid": "Enter a whole number of 0 or more.",
+          "bufferMinutesOverrideInvalid": "Enter a whole number of 0 or more."
+        }
+      },
+      "timezone": {
+        "title": "Timezone",
+        "label": "Timezone: {timezone} ({offset})"
+      },
+      "crossLinks": {
+        "availability": {
+          "title": "Availability",
+          "description": "Weekly working hours, breaks, and time off live on the Schedule page.",
+          "linkLabel": "Go to Schedule"
+        },
+        "sessions": {
+          "title": "Sessions",
+          "description": "Review active sessions, login history, and sign out everywhere.",
+          "linkLabel": "Go to Security"
+        }
       }
     }
   },

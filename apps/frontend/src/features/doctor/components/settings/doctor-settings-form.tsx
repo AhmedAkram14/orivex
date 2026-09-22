@@ -3,6 +3,11 @@
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Heading } from '@/design-system/typography';
+import { AccountSecuritySection } from '@/features/doctor/components/settings/account-security-section';
+import { ConsultationDefaultsForm } from '@/features/doctor/components/settings/consultation-defaults-form';
+import { NotificationPreferencesSection } from '@/features/doctor/components/settings/notification-preferences-section';
+import { SettingsCrossLinkCard } from '@/features/doctor/components/settings/settings-cross-link-card';
+import { TimezoneSection } from '@/features/doctor/components/settings/timezone-section';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { localeNativeNames, routing, type AppLocale } from '@/shared/i18n/routing';
 import { useTheme, type Theme } from '@/shared/providers/theme-provider';
@@ -13,8 +18,27 @@ import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 const themeIcons: Record<Theme, typeof Sun> = { light: Sun, dark: Moon, system: Monitor };
 
 /**
- * The Doctor Workspace's "Settings" page — two genuinely functional
- * preferences, nothing decorative:
+ * The Doctor Workspace's "Settings" page, fully assembled (Doctor Settings
+ * Rebuild, Phase 6): Notifications -> Account & Security -> Consultation
+ * Defaults -> Timezone -> Availability/Sessions cross-links -> Theme ->
+ * Language. Theme/Language moved to the bottom on purpose -- they're the
+ * only two pre-existing, least-actionable settings, and every genuinely new
+ * or previously-unsurfaced capability now comes first. No Payout
+ * card/stub at all (Confirmed decision 5): no payout infrastructure exists
+ * anywhere, and this series' own "payout honesty" precedent (Earnings
+ * rebuild) is to never imply a capability that doesn't exist, not even with
+ * a placeholder.
+ *
+ * Every section sits directly under this page's own `<h1>` (rendered by
+ * `WorkspaceHeader` on the page component, not here) as a sibling `Card` with
+ * its own real `CardTitle` (`h3`). That's *not* the H1->H3 skip bug the
+ * Disputes/Reports/Knowledge Center fixes addressed -- a heading-hierarchy
+ * skip is a level disappearing outright (H1 then H3 with no H2 anywhere in
+ * between), not multiple H3s sharing the same H1 parent; a page with many
+ * flat sibling sections under one H1 is exactly what heading outlines are
+ * for. `preferencesHeading` keeps its existing H2 immediately above Theme
+ * (the only two settings it originally ever described), rather than a new H2
+ * fabricated to cover every unrelated section that came before it.
  *
  * - Theme: the same real global `useTheme()`/`data-theme` mechanism
  *   `UserMenu` already drives.
@@ -30,6 +54,7 @@ const themeIcons: Record<Theme, typeof Sun> = { light: Sun, dark: Moon, system: 
 export function DoctorSettingsForm() {
   const t = useTranslations('doctor.settingsPage');
   const tThemeMenu = useTranslations('shell.userMenu.theme');
+  const tCrossLinks = useTranslations('doctor.settingsPage.crossLinks');
   const { theme, setTheme } = useTheme();
   const locale = useLocale();
   const pathname = usePathname();
@@ -37,6 +62,23 @@ export function DoctorSettingsForm() {
 
   return (
     <div className="flex flex-col gap-4">
+      <NotificationPreferencesSection />
+      <AccountSecuritySection />
+      <ConsultationDefaultsForm />
+      <TimezoneSection />
+      <SettingsCrossLinkCard
+        title={tCrossLinks('availability.title')}
+        description={tCrossLinks('availability.description')}
+        href="/doctor/schedule"
+        linkLabel={tCrossLinks('availability.linkLabel')}
+      />
+      <SettingsCrossLinkCard
+        title={tCrossLinks('sessions.title')}
+        description={tCrossLinks('sessions.description')}
+        href="/security"
+        linkLabel={tCrossLinks('sessions.linkLabel')}
+      />
+
       {/* WorkspaceHeader renders the page's H1; Card's CardTitle renders a
           real h3 -- without a real H2 between them the outline skips a
           level, the same fault already fixed on Disputes/Reports/Knowledge

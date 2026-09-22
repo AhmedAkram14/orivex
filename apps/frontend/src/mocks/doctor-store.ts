@@ -217,6 +217,7 @@ function seedProfile(): DoctorProfile {
     ],
     createdAt: '2020-01-15T00:00:00.000Z',
     updatedAt: '2020-01-15T00:00:00.000Z',
+    autoApproveFreeBookings: false,
   };
 }
 
@@ -431,6 +432,7 @@ function demoDoctorProfile(doctor: DemoDoctor, index: number): DoctorProfile {
     ],
     createdAt: `${startYear}-01-15T00:00:00.000Z`,
     updatedAt: new Date().toISOString(),
+    autoApproveFreeBookings: false,
   };
 }
 
@@ -624,6 +626,9 @@ export function registerProfile(request: RegisterDoctorProfileRequest, accountId
       })) ?? [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    autoApproveFreeBookings: existing?.autoApproveFreeBookings ?? false,
+    maxFreeSlotsPerDay: existing?.maxFreeSlotsPerDay,
+    bufferMinutesOverride: existing?.bufferMinutesOverride,
   };
   profilesByAccountId.set(owner, profile);
   return profile;
@@ -667,6 +672,15 @@ export function updateProfile(request: DoctorProfileUpdateRequest, accountId?: s
         endDate: entry.endDate,
         description: entry.description,
       })) ?? profile.workExperience,
+    // Doctor Settings Rebuild (Phase 6): mirrors this same merge function's
+    // existing "request value if present, else keep the current one"
+    // convention for every other optional field above -- an explicit `null`
+    // to clear maxFreeSlotsPerDay/bufferMinutesOverride isn't distinguishable
+    // from "omitted" through this mock any more than it is through every
+    // other optional field merged here.
+    maxFreeSlotsPerDay: request.maxFreeSlotsPerDay ?? profile.maxFreeSlotsPerDay,
+    bufferMinutesOverride: request.bufferMinutesOverride ?? profile.bufferMinutesOverride,
+    autoApproveFreeBookings: request.autoApproveFreeBookings ?? profile.autoApproveFreeBookings,
     updatedAt: new Date().toISOString(),
   };
   profilesByAccountId.set(owner, updated);

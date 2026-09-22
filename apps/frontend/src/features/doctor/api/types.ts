@@ -115,6 +115,12 @@ export interface DoctorProfile {
   workExperience: DoctorWorkExperience[];
   createdAt: string;
   updatedAt: string;
+  /** Doctor Settings Rebuild (Phase 0/1): the doctor's own daily cap on FREE availability windows -- undefined means no cap. */
+  maxFreeSlotsPerDay?: number;
+  /** Doctor Settings Rebuild (Phase 0): per-doctor override of the platform's flat buffer-between-appointments constant -- undefined means "use the platform default". */
+  bufferMinutesOverride?: number;
+  /** Doctor Settings Rebuild (Phase 0): auto-confirm FREE bookings instead of leaving them `Requested`. */
+  autoApproveFreeBookings: boolean;
 }
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.3/O.6): matches DoctorModule's real ProfessionalRank enum exactly -- a plain enum, not reference data. */
@@ -184,6 +190,12 @@ export interface DoctorProfileUpdateRequest {
     endDate?: string;
     description?: string;
   }[];
+  /** Doctor Settings Rebuild (Phase 0/6): omit/undefined means "no cap" -- matches `UpdateDoctorProfileRequestDto.maxFreeSlotsPerDay` exactly. */
+  maxFreeSlotsPerDay?: number;
+  /** Doctor Settings Rebuild (Phase 0/6): omit/undefined means "use the platform default". */
+  bufferMinutesOverride?: number;
+  /** Doctor Settings Rebuild (Phase 0/6): auto-confirm FREE bookings instead of leaving them `Requested`. */
+  autoApproveFreeBookings?: boolean;
 }
 
 /** Doctor Onboarding (Phase 4 continuation): matches AdministrationModule's real HospitalResponseDto exactly (as returned by the public /hospitals directory). */

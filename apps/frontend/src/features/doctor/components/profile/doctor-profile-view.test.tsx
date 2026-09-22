@@ -23,6 +23,7 @@ function buildProfile(overrides: Partial<DoctorProfile> = {}): DoctorProfile {
     workExperience: [],
     createdAt: '2020-01-15T00:00:00.000Z',
     updatedAt: '2020-01-15T00:00:00.000Z',
+    autoApproveFreeBookings: false,
     ...overrides,
   };
 }

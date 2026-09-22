@@ -1682,6 +1682,38 @@
           "dialogDescription": "حذف الحساب غير متاح كإجراء ذاتي الخدمة حتى الآن. تواصل مع الدعم وسنساعدك في طلبك.",
           "close": "إغلاق"
         }
+      },
+      "consultationDefaults": {
+        "title": "إعدادات الاستشارة الافتراضية",
+        "description": "تحكم في كيفية عمل الحجوزات المجانية في جدولك.",
+        "maxFreeSlotsPerDayLabel": "الحد الأقصى للمواعيد المجانية يوميًا",
+        "maxFreeSlotsPerDayHelp": "اتركه فارغًا لعدم وجود حد يومي.",
+        "bufferMinutesOverrideLabel": "الفاصل الزمني بين المواعيد (دقائق)",
+        "bufferMinutesOverrideHelp": "يعود إلى الإعداد الافتراضي للمنصة وهو 5 دقائق عند تركه فارغًا.",
+        "autoApproveLabel": "الموافقة التلقائية على الحجوزات المجانية",
+        "autoApproveHelp": "تُؤكَّد الحجوزات المجانية تلقائيًا بدلاً من انتظار موافقتك.",
+        "save": "حفظ",
+        "saveSuccess": "تم تحديث إعدادات الاستشارة الافتراضية.",
+        "validation": {
+          "maxFreeSlotsPerDayInvalid": "أدخل رقمًا صحيحًا 0 أو أكبر.",
+          "bufferMinutesOverrideInvalid": "أدخل رقمًا صحيحًا 0 أو أكبر."
+        }
+      },
+      "timezone": {
+        "title": "المنطقة الزمنية",
+        "label": "المنطقة الزمنية: {timezone} ({offset})"
+      },
+      "crossLinks": {
+        "availability": {
+          "title": "التوفر",
+          "description": "ساعات العمل الأسبوعية، والاستراحات، والإجازات موجودة في صفحة الجدول.",
+          "linkLabel": "الانتقال إلى الجدول"
+        },
+        "sessions": {
+          "title": "الجلسات",
+          "description": "راجع الجلسات النشطة وسجل الدخول، وسجّل الخروج من كل الأجهزة.",
+          "linkLabel": "الانتقال إلى الأمان"
+        }
       }
     }
   },
