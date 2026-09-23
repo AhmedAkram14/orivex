@@ -28,7 +28,7 @@ export class ConfirmNoKnownAllergiesUseCase {
       throw new NotFoundError(`Patient profile "${command.patientProfileId}" not found.`);
     }
 
-    profile.confirmNoKnownAllergies();
+    profile.confirmNoKnownAllergies(command.confirmedByDoctorId);
 
     await this.patientProfileRepository.save(profile);
     await this.eventDispatcher.dispatch(profile.releaseDomainEvents());

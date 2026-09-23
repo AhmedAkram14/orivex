@@ -45,6 +45,7 @@ export interface ReconstitutePatientProfileProps {
   exerciseNotes?: string;
   mentalHealthNotes?: string;
   allergiesConfirmedNoneAt?: Date | null;
+  allergiesConfirmedByDoctorId?: string | null;
 }
 
 // Aggregate root of PatientModule (docs/10-backend-architecture.md's
@@ -75,6 +76,7 @@ export class PatientProfile {
     private exerciseNotes: string | undefined,
     private mentalHealthNotes: string | undefined,
     private allergiesConfirmedNoneAt: Date | null = null,
+    private allergiesConfirmedByDoctorId: string | null = null,
   ) {}
 
   // Created explicitly via an internal application use case for now
@@ -98,6 +100,7 @@ export class PatientProfile {
       undefined,
       undefined,
       null,
+      null,
     );
 
     profile.record(new PatientProfileUpdatedEvent(profile.id));
@@ -120,6 +123,7 @@ export class PatientProfile {
       props.exerciseNotes,
       props.mentalHealthNotes,
       props.allergiesConfirmedNoneAt ?? null,
+      props.allergiesConfirmedByDoctorId ?? null,
     );
   }
 
@@ -138,6 +142,7 @@ export class PatientProfile {
       // own guard).
       if (this.allergies) {
         this.allergiesConfirmedNoneAt = null;
+        this.allergiesConfirmedByDoctorId = null;
       }
     }
     if (props.chronicDiseases !== undefined) {
@@ -219,6 +224,14 @@ export class PatientProfile {
     return this.allergiesConfirmedNoneAt;
   }
 
+  // Patient Record Page P0 fix: null for every row confirmed before this
+  // field existed (and for any future confirmation whose doctor identity
+  // couldn't be resolved) -- callers must treat null as "confirmed, doctor
+  // unknown," a normal supported state, not an error.
+  getAllergiesConfirmedByDoctorId(): string | undefined {
+    return this.allergiesConfirmedByDoctorId ?? undefined;
+  }
+
   // Doctor Patient Chart plan, 4.3: a doctor-authored "confirmed no known
   // allergies" attestation, modeled as its own nullable timestamp rather
   // than a sentinel string in `allergies` (see the field's own schema
@@ -226,13 +239,14 @@ export class PatientProfile {
   // application layer, because "never overwrite a real positive allergy
   // record with 'confirmed none'" is a genuine domain invariant of this
   // aggregate, not merely a use-case-level check.
-  confirmNoKnownAllergies(): void {
+  confirmNoKnownAllergies(doctorId: string): void {
     if (this.allergies && this.allergies.trim().length > 0) {
       throw new PatientDomainError(
         'Cannot confirm no known allergies: this patient already has a recorded allergy.',
       );
     }
     this.allergiesConfirmedNoneAt = new Date();
+    this.allergiesConfirmedByDoctorId = doctorId;
     this.updatedAt = new Date();
     this.record(new PatientProfileUpdatedEvent(this.id));
   }

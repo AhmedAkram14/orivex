@@ -219,6 +219,12 @@ model DoctorProfile {
   receivedFeedback                ConsultationFeedback[]
   authoredFollowUpRecommendations FollowUpRecommendation[]
   recordedVitalReadings           VitalReading[]
+  // Patient Record Page P0 fix: back-relation for
+  // PatientProfile.allergiesConfirmedByDoctorId -- SetNull (not
+  // Restrict/Cascade), same posture as recordedVitalReadings above: a
+  // doctor account being later removed must never destroy the patient's
+  // own confirmation record.
+  allergiesConfirmedNoneFor       PatientProfile[]         @relation("PatientProfileAllergyConfirmations")
   // Consent gap fix (ORIVEX Remaining Work Audit, P0 C3).
   consentRecords                  ConsentRecord[]
   // N8-Waitlist (ORIVEX Remaining Work Audit).
@@ -670,6 +676,14 @@ model PatientProfile {
   // `allergies` is already non-empty (ConfirmNoKnownAllergiesUseCase
   // enforces this).
   allergiesConfirmedNoneAt DateTime?
+  // Patient Record Page P0 fix: which doctor confirmed it, so the chart can
+  // honestly show "confirmed by Dr. X" instead of just a bare timestamp.
+  // Nullable and SetNull-on-delete because every row confirmed before this
+  // field existed has (and will keep) no doctor id -- that is the normal,
+  // fully-supported "confirmed, doctor unknown" state, not a data-integrity
+  // problem to paper over.
+  allergiesConfirmedByDoctorId String?
+  allergiesConfirmedByDoctor   DoctorProfile? @relation("PatientProfileAllergyConfirmations", fields: [allergiesConfirmedByDoctorId], references: [id], onDelete: SetNull)
   // I6 -- Health Passport (docs/01.1-prd-update.md §17-30): lifestyle/
   // nutrition/exercise are free text, same convention as allergies/
   // chronicDiseases above (no structured taxonomy for V1). mentalHealthNotes
@@ -699,6 +713,7 @@ model PatientProfile {
   waitlistEntries          WaitlistEntry[]
 
   @@index([insuranceProviderId])
+  @@index([allergiesConfirmedByDoctorId])
 }
 
 enum HealthPassportEntryCategory {

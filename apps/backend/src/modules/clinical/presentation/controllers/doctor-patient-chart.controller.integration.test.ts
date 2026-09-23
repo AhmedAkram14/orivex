@@ -28,6 +28,7 @@ import { ConsultationPricing } from '../../../consultation/domain/value-objects/
 import type { AppointmentRepository } from '../../../consultation/domain/repositories/appointment.repository.js';
 import type { ConsultationSessionRepository } from '../../../consultation/domain/repositories/consultation-session.repository.js';
 import { GetDoctorProfileByAccountIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-account-id/get-doctor-profile-by-account-id.use-case.js';
+import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
 import type { DoctorProfileRepository } from '../../../doctor/domain/repositories/doctor-profile.repository.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
@@ -448,6 +449,7 @@ describe('DoctorPatientChartController (integration)', () => {
         },
         { provide: GetPatientProfileByIdUseCase, useFactory: () => new GetPatientProfileByIdUseCase(patientProfileRepository) },
         { provide: GetAccountByIdUseCase, useFactory: () => new GetAccountByIdUseCase(accountRepository) },
+        { provide: GetDoctorProfileByIdUseCase, useFactory: () => new GetDoctorProfileByIdUseCase(doctorProfileRepository) },
         // Decision 8 (Doctor Patient Chart plan): DoctorPatientChartController
         // now delegates its whole relationship/consent check to the shared
         // TreatingRelationshipService -- built here from the exact same

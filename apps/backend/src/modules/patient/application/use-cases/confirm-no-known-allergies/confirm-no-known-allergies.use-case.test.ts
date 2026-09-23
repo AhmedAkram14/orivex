@@ -29,15 +29,20 @@ class NoopDispatcher {
   subscribe(): void {}
 }
 
+const DOCTOR_ID = '22222222-2222-4222-8222-222222222222';
+
 describe('ConfirmNoKnownAllergiesUseCase', () => {
-  it('confirms no known allergies and saves the profile', async () => {
+  it('confirms no known allergies, records the confirming doctor, and saves the profile', async () => {
     const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
     const repo = new FakePatientProfileRepository(profile);
     const useCase = new ConfirmNoKnownAllergiesUseCase(repo, new NoopDispatcher());
 
-    const result = await useCase.execute(new ConfirmNoKnownAllergiesCommand({ patientProfileId: profile.getId() }));
+    const result = await useCase.execute(
+      new ConfirmNoKnownAllergiesCommand({ patientProfileId: profile.getId(), confirmedByDoctorId: DOCTOR_ID }),
+    );
 
     assert.ok(result.getAllergiesConfirmedNoneAt() instanceof Date);
+    assert.equal(result.getAllergiesConfirmedByDoctorId(), DOCTOR_ID);
     assert.equal(repo.saved.length, 1);
   });
 
@@ -48,7 +53,10 @@ describe('ConfirmNoKnownAllergiesUseCase', () => {
     const useCase = new ConfirmNoKnownAllergiesUseCase(repo, new NoopDispatcher());
 
     await assert.rejects(
-      () => useCase.execute(new ConfirmNoKnownAllergiesCommand({ patientProfileId: profile.getId() })),
+      () =>
+        useCase.execute(
+          new ConfirmNoKnownAllergiesCommand({ patientProfileId: profile.getId(), confirmedByDoctorId: DOCTOR_ID }),
+        ),
       PatientDomainError,
     );
     assert.equal(repo.saved.length, 0);
@@ -59,7 +67,13 @@ describe('ConfirmNoKnownAllergiesUseCase', () => {
     const useCase = new ConfirmNoKnownAllergiesUseCase(repo, new NoopDispatcher());
 
     await assert.rejects(
-      () => useCase.execute(new ConfirmNoKnownAllergiesCommand({ patientProfileId: '33333333-3333-4333-8333-333333333333' })),
+      () =>
+        useCase.execute(
+          new ConfirmNoKnownAllergiesCommand({
+            patientProfileId: '33333333-3333-4333-8333-333333333333',
+            confirmedByDoctorId: DOCTOR_ID,
+          }),
+        ),
       NotFoundError,
     );
   });

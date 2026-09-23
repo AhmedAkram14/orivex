@@ -35,6 +35,10 @@ export class PatientProfileResponseDto {
   chronicDiseases?: string;
   /** Doctor Patient Chart plan, 4.3: set only when a doctor has explicitly confirmed no known allergies AND `allergies` is empty -- never both at once. */
   allergiesConfirmedNoneAt?: string;
+  /** Patient Record Page P0 fix: null for every confirmation recorded before this field existed -- the frontend must treat that as "confirmed, doctor unknown," not an error. */
+  allergiesConfirmedByDoctorId?: string;
+  /** Resolved by the caller (mirrors insuranceProviderName's own pattern below) -- omitted, not fabricated, whenever allergiesConfirmedByDoctorId is unset or the caller didn't resolve it. */
+  allergiesConfirmedByName?: string;
   insuranceProviderId?: string;
   /** Resolved by the caller when it already has ReferenceModule's provider list loaded (e.g. the public patient chart); omitted (not fabricated) when no resolver is passed in. */
   insuranceProviderName?: string;
@@ -61,6 +65,7 @@ export class PatientProfileResponseDto {
     account: Account,
     insuranceProviderName?: string,
     includeMentalHealthNotes = true,
+    allergiesConfirmedByName?: string,
   ): PatientProfileResponseDto {
     const userProfile = account.getUserProfile();
     const dto = new PatientProfileResponseDto();
@@ -79,6 +84,8 @@ export class PatientProfileResponseDto {
     dto.allergies = profile.getAllergies();
     dto.chronicDiseases = profile.getChronicDiseases();
     dto.allergiesConfirmedNoneAt = profile.getAllergiesConfirmedNoneAt()?.toISOString();
+    dto.allergiesConfirmedByDoctorId = profile.getAllergiesConfirmedByDoctorId();
+    dto.allergiesConfirmedByName = allergiesConfirmedByName;
     dto.insuranceProviderId = profile.getInsuranceProviderId();
     dto.insuranceProviderName = insuranceProviderName;
     dto.lifestyleNotes = profile.getLifestyleNotes();

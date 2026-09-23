@@ -44,17 +44,25 @@ export class DoctorPatientAllergiesController {
     @Param('id', ParseUUIDPipe) patientId: string,
   ): Promise<ResponseEnvelope<PatientProfileResponseDto>> {
     try {
-      const { profile: existingProfile } = await this.treatingRelationshipService.assertActiveRelationship(
+      const { doctorProfile, profile: existingProfile } = await this.treatingRelationshipService.assertActiveRelationship(
         user.accountId,
         patientId,
       );
       const profile = await this.confirmNoKnownAllergiesUseCase.execute(
-        new ConfirmNoKnownAllergiesCommand({ patientProfileId: existingProfile.getId() }),
+        new ConfirmNoKnownAllergiesCommand({
+          patientProfileId: existingProfile.getId(),
+          confirmedByDoctorId: doctorProfile.getId(),
+        }),
       );
       const account = await this.getAccountByIdUseCase.execute({ accountId: profile.getAccountId() });
       if (!account) {
         throw new Error(`Data integrity violation: Account "${profile.getAccountId()}" not found.`);
       }
+      // The confirming doctor is the caller themselves -- no extra lookup
+      // needed, unlike getProfile()'s cross-time resolution of a possibly
+      // different doctor.
+      const confirmingAccount = await this.getAccountByIdUseCase.execute({ accountId: user.accountId });
+      const allergiesConfirmedByName = confirmingAccount?.getUserProfile().getDisplayName().toString();
       await this.recordAuditLogUseCase.execute(
         new RecordAuditLogCommand({
           actorAccountId: user.accountId,
@@ -64,7 +72,7 @@ export class DoctorPatientAllergiesController {
           subjectId: patientId,
         }),
       );
-      return envelope(PatientProfileResponseDto.fromDomain(profile, account));
+      return envelope(PatientProfileResponseDto.fromDomain(profile, account, undefined, true, allergiesConfirmedByName));
     } catch (error) {
       throw mapPatientError(error);
     }

@@ -15,6 +15,7 @@ import type { Appointment } from '../../../consultation/domain/entities/appointm
 import { AppointmentListItemResponseDto } from '../../../consultation/presentation/dto/appointment-list-item-response.dto.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
+import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { PatientProfileResponseDto } from '../../../patient/presentation/dto/patient-profile-response.dto.js';
 import { ListInsuranceProvidersUseCase } from '../../../reference/application/use-cases/list-insurance-providers/list-insurance-providers.use-case.js';
 import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
@@ -80,6 +81,7 @@ export class DoctorPatientChartController {
   constructor(
     private readonly treatingRelationshipService: TreatingRelationshipService,
     private readonly getAccountByIdUseCase: GetAccountByIdUseCase,
+    private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
     private readonly listInsuranceProvidersUseCase: ListInsuranceProvidersUseCase,
     private readonly getConsultationSessionByAppointmentIdUseCase: GetConsultationSessionByAppointmentIdUseCase,
     private readonly listMedicalSpecialtiesUseCase: ListMedicalSpecialtiesUseCase,
@@ -106,6 +108,24 @@ export class DoctorPatientChartController {
       insuranceProviderName = providers.find((provider) => provider.getId() === insuranceProviderId)?.getName();
     }
 
+    // Patient Record Page P0 fix: resolve the confirming doctor's display
+    // name for the allergy banner -- undefined (not fabricated) whenever the
+    // id is unset (confirmed before this field existed) or the doctor/
+    // account record can no longer be found.
+    let allergiesConfirmedByName: string | undefined;
+    const allergiesConfirmedByDoctorId = profile.getAllergiesConfirmedByDoctorId();
+    if (allergiesConfirmedByDoctorId) {
+      const confirmingDoctorProfile = await this.getDoctorProfileByIdUseCase.execute({
+        doctorProfileId: allergiesConfirmedByDoctorId,
+      });
+      if (confirmingDoctorProfile) {
+        const confirmingAccount = await this.getAccountByIdUseCase.execute({
+          accountId: confirmingDoctorProfile.getAccountId(),
+        });
+        allergiesConfirmedByName = confirmingAccount?.getUserProfile().getDisplayName().toString();
+      }
+    }
+
     // I6 -- Health Passport: mental-health notes are gated behind their own,
     // separately default-revoked consent scope -- general consent (already
     // checked by requireRelationship above) is necessary but not sufficient
@@ -125,6 +145,7 @@ export class DoctorPatientChartController {
         account,
         insuranceProviderName,
         mentalHealthConsent === ConsentState.Granted,
+        allergiesConfirmedByName,
       ),
     );
   }

@@ -114,6 +114,7 @@ describe('DoctorPatientAllergiesController (integration)', () => {
   let app: INestApplication;
   let patient: PatientProfile;
   let patientProfileRepository: InMemoryPatientProfileRepository;
+  let doctorId: string;
 
   before(async () => {
     const patientAccount = Account.register({
@@ -154,6 +155,7 @@ describe('DoctorPatientAllergiesController (integration)', () => {
     });
     appointment.confirm();
 
+    doctorId = doctor.getId();
     const doctorProfileRepository = new InMemoryDoctorProfileRepository([doctor, doctorNoRelationship]);
     const appointmentRepository = new InMemoryAppointmentRepository([appointment]) as unknown as AppointmentRepository;
     patientProfileRepository = new InMemoryPatientProfileRepository(patient);
@@ -202,13 +204,15 @@ describe('DoctorPatientAllergiesController (integration)', () => {
     await app.close();
   });
 
-  it('confirms no known allergies for a treating doctor', async () => {
+  it('confirms no known allergies for a treating doctor and records who confirmed it', async () => {
     const response = await request(app.getHttpServer())
       .patch(`/patients/${patient.getId()}/allergies/confirm-none`)
       .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
       .expect(200);
 
     assert.ok(response.body.data.allergiesConfirmedNoneAt);
+    assert.equal(response.body.data.allergiesConfirmedByDoctorId, doctorId);
+    assert.equal(response.body.data.allergiesConfirmedByName, 'Dr. A');
   });
 
   it('a doctor with no relationship to the patient gets an ownership-safe 404', async () => {

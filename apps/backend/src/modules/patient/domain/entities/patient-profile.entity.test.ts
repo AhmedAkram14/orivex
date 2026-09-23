@@ -69,15 +69,18 @@ describe('PatientProfile', () => {
     assert.equal(profile.getAllergies(), undefined);
   });
 
+  const DOCTOR_ID = '22222222-2222-4222-8222-222222222222';
+
   // Doctor Patient Chart plan, 4.3.
   describe('confirmNoKnownAllergies', () => {
-    it('sets allergiesConfirmedNoneAt when no allergies are on record', () => {
+    it('sets allergiesConfirmedNoneAt and allergiesConfirmedByDoctorId when no allergies are on record', () => {
       const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
       profile.releaseDomainEvents();
 
-      profile.confirmNoKnownAllergies();
+      profile.confirmNoKnownAllergies(DOCTOR_ID);
 
       assert.ok(profile.getAllergiesConfirmedNoneAt() instanceof Date);
+      assert.equal(profile.getAllergiesConfirmedByDoctorId(), DOCTOR_ID);
       assert.equal(profile.releaseDomainEvents().length, 1);
     });
 
@@ -85,19 +88,35 @@ describe('PatientProfile', () => {
       const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
       profile.update({ allergies: 'Penicillin' });
 
-      assert.throws(() => profile.confirmNoKnownAllergies(), PatientDomainError);
+      assert.throws(() => profile.confirmNoKnownAllergies(DOCTOR_ID), PatientDomainError);
       assert.equal(profile.getAllergiesConfirmedNoneAt(), null);
     });
 
     it('is cleared again the moment a real allergy is recorded, since the two states are mutually exclusive', () => {
       const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
-      profile.confirmNoKnownAllergies();
+      profile.confirmNoKnownAllergies(DOCTOR_ID);
       assert.ok(profile.getAllergiesConfirmedNoneAt() instanceof Date);
 
       profile.update({ allergies: 'Latex' });
 
       assert.equal(profile.getAllergiesConfirmedNoneAt(), null);
+      assert.equal(profile.getAllergiesConfirmedByDoctorId(), undefined);
       assert.equal(profile.getAllergies(), 'Latex');
+    });
+
+    it('reconstitutes a pre-existing confirmation with no doctor id as a valid, non-error state', () => {
+      const profile = PatientProfile.reconstitute({
+        id: '33333333-3333-4333-8333-333333333333',
+        accountId: '11111111-1111-4111-8111-111111111111',
+        emergencyContacts: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        allergiesConfirmedNoneAt: new Date('2026-03-12T00:00:00.000Z'),
+        allergiesConfirmedByDoctorId: null,
+      });
+
+      assert.ok(profile.getAllergiesConfirmedNoneAt() instanceof Date);
+      assert.equal(profile.getAllergiesConfirmedByDoctorId(), undefined);
     });
   });
 });
