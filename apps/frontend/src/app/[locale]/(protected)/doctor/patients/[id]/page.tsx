@@ -3,12 +3,10 @@
 import {
   Activity,
   CalendarDays,
-  CheckCircle2,
   ClipboardList,
   Droplet,
   Droplets,
   FileText,
-  Flower2,
   HeartPulse,
   Mail,
   MapPin,
@@ -21,7 +19,6 @@ import {
   Stethoscope,
   Upload,
   UserRoundPlus,
-  type LucideIcon,
 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -40,7 +37,6 @@ import { useApproveAppointment } from '@/features/doctor/hooks/use-approve-appoi
 import { useDeclineAppointment } from '@/features/doctor/hooks/use-decline-appointment';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useAddPatientCondition } from '@/features/doctor/hooks/use-add-patient-condition';
-import { useConfirmNoKnownAllergies } from '@/features/doctor/hooks/use-confirm-no-known-allergies';
 import { useUploadPatientDocument } from '@/features/doctor/hooks/use-upload-patient-document';
 import { PrescriptionPanel } from '@/features/consultation/components/prescription-panel';
 import { RequireRole } from '@/shared/auth/require-role';
@@ -59,6 +55,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { Textarea } from '@/shared/ui/textarea';
+import { TooltipProvider } from '@/shared/ui/tooltip';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
@@ -66,9 +63,22 @@ import type {
   DoctorPatientChartAppointment,
   DoctorPatientChartMedicalRecordEntry,
   DoctorPatientChartPrescription,
-  DoctorPatientChartProfile,
   DoctorPatientDocumentPurpose,
 } from '@/features/doctor/api/types';
+import { AllergyBanner } from './_components/allergy-banner';
+import { InfoTile } from './_components/info-tile';
+import { QuickStat } from './_components/quick-stat';
+import { StickyPatientBar } from './_components/sticky-patient-bar';
+import { VitalTile } from './_components/vital-tile';
+import { ageFrom, initialsFor, shortId } from './_lib/patient-display';
+
+// Sized to StickyPatientBar's own rendered height (compact avatar + two text
+// lines + padding) -- applied as scroll-margin-top on anchorable/focusable
+// content below so the sticky bar (fixed at the viewport top once visible)
+// never covers what a keyboard-Tab or same-page-anchor navigation lands on.
+// This is the actual risk a sticky bar creates; it does not trap focus (a
+// bar with no focusable elements of its own cannot).
+const STICKY_BAR_SCROLL_MARGIN = 'scroll-mt-20';
 
 const CERTAINTY_LEVELS = ['suspected', 'confirmed', 'ruled_out'] as const;
 type CertaintyLevelValue = (typeof CERTAINTY_LEVELS)[number];
@@ -85,28 +95,6 @@ const NON_TERMINAL_STATUSES = new Set(['requested', 'confirmed', 'rescheduled'])
 type TabValue = 'overview' | 'history' | 'consultations' | 'prescriptions' | 'documents';
 const TAB_VALUES: readonly TabValue[] = ['overview', 'history', 'consultations', 'prescriptions', 'documents'];
 
-/** A human-shaped stand-in for the real UUID (never truncated/altered anywhere it's actually used for a lookup -- display only, this page's own header). Matches the short-SHA convention: first 8 hex characters, uppercased. */
-function shortId(id: string): string {
-  return id.replace(/-/g, '').slice(0, 8).toUpperCase();
-}
-
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
-
-function ageFrom(dateOfBirth: string): number {
-  const dob = new Date(dateOfBirth);
-  const now = new Date();
-  let age = now.getFullYear() - dob.getFullYear();
-  const hadBirthdayThisYear =
-    now.getMonth() > dob.getMonth() || (now.getMonth() === dob.getMonth() && now.getDate() >= dob.getDate());
-  if (!hadBirthdayThisYear) age -= 1;
-  return age;
-}
-
 const appointmentBadgeVariant: Record<DoctorPatientChartAppointment['status'], NonNullable<BadgeProps['variant']>> = {
   requested: 'neutral',
   confirmed: 'success',
@@ -121,41 +109,6 @@ const prescriptionBadgeVariant: Record<DoctorPatientChartPrescription['status'],
   active: 'success',
   expired: 'neutral',
 };
-
-interface InfoTileProps {
-  icon: LucideIcon;
-  iconClassName: string;
-  label: string;
-  value: string;
-}
-
-function InfoTile({ icon, iconClassName, label, value }: InfoTileProps) {
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border-default/70 bg-surface p-3">
-      <div className={cn('flex size-8 items-center justify-center rounded-lg', iconClassName)}>
-        <Icon icon={icon} size="sm" />
-      </div>
-      <div>
-        <p className="text-xs text-text-tertiary">{label}</p>
-        <p className="text-sm font-medium text-text-primary">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-interface QuickStatProps {
-  label: string;
-  value: string;
-}
-
-function QuickStat({ label, value }: QuickStatProps) {
-  return (
-    <div className="flex flex-col gap-1 rounded-xl border border-border-default/70 bg-surface px-4 py-3">
-      <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="text-lg font-semibold text-text-primary">{value}</p>
-    </div>
-  );
-}
 
 /**
  * The Doctor Workspace's clinical patient chart -- reached from the
@@ -178,6 +131,9 @@ export default function DoctorPatientChartPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Observed by StickyPatientBar (IntersectionObserver) to know when the
+  // real header has scrolled out of view.
+  const headerRef = useRef<HTMLDivElement>(null);
 
   const tabParam = searchParams.get('tab');
   const initialTab: TabValue = TAB_VALUES.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'overview';
@@ -297,58 +253,76 @@ export default function DoctorPatientChartPage() {
         }
 
         return (
+          <TooltipProvider>
           <Page>
             <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={profile.fullName} description={t('workspaceEyebrow')} />
 
-            <div className="flex flex-col gap-6">
-              <Card className={cn('relative isolate overflow-hidden bg-gradient-to-br from-primary-subtle/40 to-surface', CARD_CLASSNAME)}>
-                <div aria-hidden className="pointer-events-none absolute -end-14 -top-16 size-48 rounded-full bg-primary/10 blur-3xl" />
-                <CardContent className="relative z-10 flex flex-col gap-5 px-7 py-6">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <Avatar size="xl" className="shrink-0 ring-4 ring-surface/80">
-                      {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-                      <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-text-secondary">
-                        <span>{profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}</span>
-                        {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
-                        {profile.dateOfBirth && (
-                          <span>
-                            · {t('dateOfBirthLabel')}: {format.dateTime(new Date(profile.dateOfBirth), { dateStyle: 'medium' })}
-                          </span>
-                        )}
-                      </p>
-                      {/* De-emphasized (Phase 1.4): no MRN field exists in this
-                          domain -- only this UUID, kept small/tertiary and
-                          moved off its own line under the name so it reads as
-                          a minor identifier, not a primary label. */}
-                      <p className="text-xs text-text-tertiary">{t('patientId', { id: shortId(profile.id) })}</p>
-                    </div>
-                  </div>
+            {/* Patient Record Page P0 fix: appears once the real header
+                below scrolls out of view, so the doctor never loses track of
+                whose chart they're in while deep in a tab. */}
+            <StickyPatientBar profile={profile} headerRef={headerRef} />
 
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <QuickStat label={t('stats.completedConsultations')} value={String(completedCount)} />
-                    <QuickStat label={t('stats.upcomingAppointments')} value={String(upcomingAppointments.length)} />
-                    <QuickStat label={t('stats.activePrescriptions')} value={String(activePrescriptionsCount)} />
-                    <QuickStat
-                      label={t('stats.lastVisit')}
-                      value={
-                        lastVisit
-                          ? format.dateTime(new Date(lastVisit.scheduledAt), { year: 'numeric', month: 'short', day: 'numeric' })
-                          : t('stats.none')
-                      }
-                    />
+            <div className={cn('flex flex-col gap-6', STICKY_BAR_SCROLL_MARGIN)}>
+              {/* Card isn't forwardRef -- wrap it instead of passing ref
+                  through, so StickyPatientBar's IntersectionObserver has a
+                  real DOM node to watch. */}
+              <div ref={headerRef}>
+              <Card
+                className={cn('relative isolate overflow-hidden bg-gradient-to-br from-primary-subtle/40 to-surface', CARD_CLASSNAME)}
+              >
+                <div aria-hidden className="pointer-events-none absolute -end-14 -top-16 size-48 rounded-full bg-primary/10 blur-3xl" />
+                <CardContent className="relative z-10 flex flex-wrap items-center gap-4 px-7 py-6">
+                  <Avatar size="xl" className="shrink-0 ring-4 ring-surface/80">
+                    {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
+                    <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-text-secondary">
+                      <span>{profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}</span>
+                      {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
+                      {profile.dateOfBirth && (
+                        <span>
+                          · {t('dateOfBirthLabel')}: {format.dateTime(new Date(profile.dateOfBirth), { dateStyle: 'medium' })}
+                        </span>
+                      )}
+                    </p>
+                    {/* De-emphasized (Phase 1.4): no MRN field exists in this
+                        domain -- only this UUID, kept small/tertiary and
+                        moved off its own line under the name so it reads as
+                        a minor identifier, not a primary label. */}
+                    <bdi dir="ltr" className="text-xs text-text-tertiary">
+                      {t('patientId', { id: shortId(profile.id) })}
+                    </bdi>
                   </div>
                 </CardContent>
               </Card>
+              </div>
+
+              {/* Allergy banner (P0 fix): full-width, color-coded, directly
+                  under the identity header and above the stat tiles -- a
+                  Tabs sibling, so it stays visible on every tab. */}
+              <AllergyBanner profile={profile} patientProfileId={patientProfileId} />
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <QuickStat label={t('stats.completedConsultations')} value={String(completedCount)} />
+                <QuickStat label={t('stats.upcomingAppointments')} value={String(upcomingAppointments.length)} />
+                <QuickStat label={t('stats.activePrescriptions')} value={String(activePrescriptionsCount)} />
+                <QuickStat
+                  label={t('stats.lastVisit')}
+                  value={
+                    lastVisit
+                      ? format.dateTime(new Date(lastVisit.scheduledAt), { year: 'numeric', month: 'short', day: 'numeric' })
+                      : t('stats.none')
+                  }
+                />
+              </div>
 
               {reviewsForThisPatient.length > 0 && (
                 <Card className={CARD_CLASSNAME}>
                   <CardContent className="flex flex-col gap-2 px-6 py-5">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-text-primary">{t('recentFeedback')}</p>
-                      <div className="flex items-center gap-0.5" aria-label={`${reviewsForThisPatient[0].rating}/5`}>
+                      <div className="flex items-center gap-0.5" aria-label={t('starRatingLabel', { rating: reviewsForThisPatient[0].rating })}>
                         {Array.from({ length: 5 }, (_, index) => (
                           <Icon
                             key={index}
@@ -367,22 +341,15 @@ export default function DoctorPatientChartPage() {
                 </Card>
               )}
 
-              {/* Persistent allergy/condition strip (Phase 1.5): a sibling of
-                  Tabs, not inside any TabsContent, so it stays visible no
-                  matter which tab the doctor is on -- the two Overview-tab
-                  InfoTiles for the same fields are removed below so this
-                  isn't a duplicate. Phase 4.3: three real states -- has
-                  allergies / confirmed none / not yet asked -- the last one
-                  is the only one that shows the confirm action. */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <AllergyTile profile={profile} patientProfileId={patientProfileId} />
-                <InfoTile
-                  icon={HeartPulse}
-                  iconClassName="bg-neutral-subtle text-neutral"
-                  label={t('chronicConditions')}
-                  value={profile.chronicDiseases || t('noConditionsOnRecord')}
-                />
-              </div>
+              {/* Chronic conditions strip (Phase 1.5): a Tabs sibling, still
+                  visible on every tab -- allergies moved into its own P0
+                  banner above, this is what's left of the old combined strip. */}
+              <InfoTile
+                icon={HeartPulse}
+                iconClassName="bg-neutral-subtle text-neutral"
+                label={t('chronicConditions')}
+                value={profile.chronicDiseases || t('noConditionsOnRecord')}
+              />
 
               {/* Heading-hierarchy fix (Phase 1.2): the workspace H1 above is
                   the patient's name and every card title (`CardTitle`) below
@@ -452,26 +419,32 @@ export default function DoctorPatientChartPage() {
                             label={t('insurance')}
                             value={profile.insuranceProviderName ?? t('insuranceSelfPay')}
                           />
-                          {/* Real Clinical Vitals Demo pass: latest of each type this doctor
-                              recorded, from GET :id/vitals -- an honest "not on record" fallback
-                              when this doctor has never recorded one, same as every tile above. */}
-                          <InfoTile
+                          {/* Vitals (P0 fix): date, staleness, non-diagnostic
+                              range flag (BP/glucose only), and a neutral
+                              trend -- see VitalTile for the full rationale.
+                              An honest "not on record" fallback when this
+                              doctor has never recorded one, same as every
+                              tile above. */}
+                          <VitalTile
                             icon={Scale}
                             iconClassName="bg-primary-subtle text-primary-emphasis"
                             label={t('latestWeight')}
-                            value={vitals?.find((summary) => summary.type === 'weight')?.latest?.valueLabel ?? t('notOnRecord')}
+                            summary={vitals?.find((summary) => summary.type === 'weight')}
+                            notOnRecordLabel={t('notOnRecord')}
                           />
-                          <InfoTile
+                          <VitalTile
                             icon={Activity}
                             iconClassName="bg-danger-subtle text-danger"
                             label={t('latestBloodPressure')}
-                            value={vitals?.find((summary) => summary.type === 'blood-pressure')?.latest?.valueLabel ?? t('notOnRecord')}
+                            summary={vitals?.find((summary) => summary.type === 'blood-pressure')}
+                            notOnRecordLabel={t('notOnRecord')}
                           />
-                          <InfoTile
+                          <VitalTile
                             icon={Droplets}
                             iconClassName="bg-warning-subtle text-warning-emphasis"
                             label={t('latestBloodSugar')}
-                            value={vitals?.find((summary) => summary.type === 'blood-sugar')?.latest?.valueLabel ?? t('notOnRecord')}
+                            summary={vitals?.find((summary) => summary.type === 'blood-sugar')}
+                            notOnRecordLabel={t('notOnRecord')}
                           />
                         </div>
 
@@ -698,62 +671,10 @@ export default function DoctorPatientChartPage() {
               </Tabs>
             </div>
           </Page>
+          </TooltipProvider>
         );
       })()}
     </RequireRole>
-  );
-}
-
-// Persistent allergy strip (Phase 4.3): three real states instead of two --
-// has allergies (from `profile.allergies`), confirmed none (a doctor has
-// explicitly set `allergiesConfirmedNoneAt`), or not yet asked (neither is
-// set, the only state that shows the confirm action).
-function AllergyTile({
-  profile,
-  patientProfileId,
-}: {
-  profile: DoctorPatientChartProfile;
-  patientProfileId: string;
-}) {
-  const t = useTranslations('publicPatient');
-  const confirmNoKnownAllergies = useConfirmNoKnownAllergies(patientProfileId);
-  const hasAllergies = Boolean(profile.allergies);
-  const confirmedNone = !hasAllergies && Boolean(profile.allergiesConfirmedNoneAt);
-  const notYetAsked = !hasAllergies && !confirmedNone;
-
-  const value = hasAllergies ? profile.allergies! : confirmedNone ? t('allergiesConfirmedNone') : t('noAllergiesOnRecord');
-
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border-default/70 bg-surface p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col gap-2">
-          <div
-            className={cn(
-              'flex size-8 items-center justify-center rounded-lg',
-              confirmedNone ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning-emphasis',
-            )}
-          >
-            <Icon icon={confirmedNone ? CheckCircle2 : Flower2} size="sm" />
-          </div>
-          <div>
-            <p className="text-xs text-text-tertiary">{t('allergies')}</p>
-            <p className="text-sm font-medium text-text-primary">{value}</p>
-          </div>
-        </div>
-        {notYetAsked && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            loading={confirmNoKnownAllergies.isPending}
-            onClick={() => confirmNoKnownAllergies.mutate()}
-          >
-            {t('confirmNoKnownAllergies')}
-          </Button>
-        )}
-      </div>
-      {confirmNoKnownAllergies.isError && <Alert variant="danger">{t('confirmNoKnownAllergiesError')}</Alert>}
-    </div>
   );
 }
 

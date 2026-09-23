@@ -749,16 +749,24 @@ describe('DoctorPatientChartPage', () => {
       await userEvent.click(confirmButton);
 
       await waitFor(() => expect(confirmCallCount).toBe(1));
-      expect(await screen.findByText('Confirmed: no known allergies')).toBeInTheDocument();
+      // No allergiesConfirmedByName in this mock response -- the banner's
+      // no-name variant (point 5 of the P0 review: this is the state most
+      // existing data is in, not an edge case).
+      expect(await screen.findByText(/No known allergies — confirmed/)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Confirm: no known allergies' })).not.toBeInTheDocument();
     });
 
-    it('never shows the confirm action when the patient already has a real allergy on record', async () => {
+    it('never shows the confirm action when the patient already has a real allergy on record, and states it is patient-reported', async () => {
       mockChartEndpoints();
       renderPage();
 
       await screen.findByText('Fady Nassar');
       expect(screen.getByText('Penicillin')).toBeInTheDocument();
+      // Provenance (P0 review point 7): `allergies` has exactly one write
+      // path in this domain -- the patient's own self-service profile
+      // update -- so this always reads, unconditionally, not just when some
+      // flag happens to be set.
+      expect(screen.getByText('Reported by patient')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Confirm: no known allergies' })).not.toBeInTheDocument();
     });
   });

@@ -17,6 +17,22 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
+// jsdom has no IntersectionObserver -- the Patient Record Page's
+// StickyPatientBar (and anything else scroll-visibility-based) calls it
+// unconditionally on mount, so any test rendering one needs at least a
+// no-op stub. Never fires a callback (jsdom has no real layout/scrolling),
+// which is the correct default: the sticky bar simply stays hidden in
+// tests, same as ResizeObserverStub's "no-op" posture above.
+class IntersectionObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+globalThis.IntersectionObserver ??= IntersectionObserverStub as unknown as typeof IntersectionObserver;
+
 // jsdom has no scrollIntoView — cmdk (the Command Palette's list) calls it
 // on the active item unconditionally, so any test rendering a Command
 // needs at least a no-op stub.

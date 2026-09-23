@@ -301,4 +301,55 @@ export const doctorHandlers = [
     const patientAccountId = getAccountIdForPatientProfileId(patientId);
     return HttpResponse.json({ data: getDocumentsForAccount(patientAccountId) });
   }),
+
+  // Patient Record Page P0 fix: this route previously had no mock handler
+  // at all (the real backend implements it, HealthVitalSummaryResponseDto),
+  // so the dev server's Overview tab always showed "Not on record" for
+  // every vital -- never actually exercising the date/staleness/range-flag/
+  // trend UI locally. Two readings per type (oldest -> newest, matching the
+  // real DTO's documented order) so the trend indicator has something to
+  // compare; blood pressure's latest reading is deliberately >90 days old
+  // AND above the reference range, to demo both badges on one tile at once.
+  http.get(`${base()}/doctor/patients/:id/vitals`, ({ params, request }) => {
+    const callingAccountId = resolveRequestAccountId(request);
+    const patientId = params.id as string;
+    const isOwnPatient = getPatients(callingAccountId).some((patient) => patient.patientProfileId === patientId);
+    if (!isOwnPatient) return notFound('Patient not found.');
+
+    const daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+    const weightReadings = [
+      { id: 'vital-weight-1', type: 'weight' as const, recordedAt: daysAgo(60), valueLabel: '73.2 kg', value: 73.2 },
+      { id: 'vital-weight-2', type: 'weight' as const, recordedAt: daysAgo(21), valueLabel: '71.1 kg', value: 71.1 },
+    ];
+    const bpReadings = [
+      {
+        id: 'vital-bp-1',
+        type: 'blood-pressure' as const,
+        recordedAt: daysAgo(180),
+        valueLabel: '125/82 mmHg',
+        value: 125,
+        diastolicValue: 82,
+      },
+      {
+        id: 'vital-bp-2',
+        type: 'blood-pressure' as const,
+        recordedAt: daysAgo(120),
+        valueLabel: '135/88 mmHg',
+        value: 135,
+        diastolicValue: 88,
+      },
+    ];
+    const glucoseReadings = [
+      { id: 'vital-glucose-1', type: 'blood-sugar' as const, recordedAt: daysAgo(21), valueLabel: '90 mg/dL', value: 90 },
+      { id: 'vital-glucose-2', type: 'blood-sugar' as const, recordedAt: daysAgo(7), valueLabel: '62 mg/dL', value: 62 },
+    ];
+
+    return HttpResponse.json({
+      data: [
+        { type: 'weight', latest: weightReadings[weightReadings.length - 1], readings: weightReadings },
+        { type: 'blood-pressure', latest: bpReadings[bpReadings.length - 1], readings: bpReadings },
+        { type: 'blood-sugar', latest: glucoseReadings[glucoseReadings.length - 1], readings: glucoseReadings },
+      ],
+    });
+  }),
 ];

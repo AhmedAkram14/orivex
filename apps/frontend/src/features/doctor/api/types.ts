@@ -385,6 +385,10 @@ export interface DoctorPatientChartProfile {
   allergies?: string;
   /** Doctor Patient Chart plan, 4.3: set only when a doctor has explicitly confirmed no known allergies AND `allergies` is empty. */
   allergiesConfirmedNoneAt?: string;
+  /** Patient Record Page P0 fix: undefined for every confirmation recorded before this field existed -- a normal, fully-supported "confirmed, doctor unknown" state, not an error. */
+  allergiesConfirmedByDoctorId?: string;
+  /** Resolved server-side; undefined whenever allergiesConfirmedByDoctorId is unset. */
+  allergiesConfirmedByName?: string;
   chronicDiseases?: string;
   insuranceProviderId?: string;
   insuranceProviderName?: string;
