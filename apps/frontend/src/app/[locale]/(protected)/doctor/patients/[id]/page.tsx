@@ -69,6 +69,7 @@ import type {
 import { AllergyBanner } from './_components/allergy-banner';
 import { CopyButton } from './_components/copy-button';
 import { InfoTile } from './_components/info-tile';
+import { ListSkeleton } from './_components/list-skeleton';
 import { PatientRecordHeaderActions } from './_components/patient-record-header-actions';
 import { QuickStat } from './_components/quick-stat';
 import { StickyPatientBar } from './_components/sticky-patient-bar';
@@ -518,7 +519,7 @@ export default function DoctorPatientChartPage() {
                       <AddConditionButton patientProfileId={patientProfileId} />
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
-                      {medicalRecordsLoading && <Skeleton className="h-32 w-full" />}
+                      {medicalRecordsLoading && <ListSkeleton />}
                       {!medicalRecordsLoading && (medicalRecords?.length ?? 0) === 0 && (
                         <EmptyState icon={ClipboardList} title={t('noMedicalHistory')} />
                       )}
@@ -550,7 +551,7 @@ export default function DoctorPatientChartPage() {
                       <CardTitle>{t('upcomingAppointments')}</CardTitle>
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
-                      {appointmentsLoading && <Skeleton className="h-24 w-full" />}
+                      {appointmentsLoading && <ListSkeleton rows={2} />}
                       {!appointmentsLoading && upcomingAppointments.length === 0 && (
                         <EmptyState icon={CalendarDays} title={t('noUpcomingAppointments')} />
                       )}
@@ -569,7 +570,7 @@ export default function DoctorPatientChartPage() {
                       <CardTitle>{t('previousVisits')}</CardTitle>
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
-                      {appointmentsLoading && <Skeleton className="h-24 w-full" />}
+                      {appointmentsLoading && <ListSkeleton rows={2} />}
                       {!appointmentsLoading && pastAppointments.length === 0 && (
                         <EmptyState icon={Stethoscope} title={t('noPreviousVisits')} />
                       )}
@@ -595,7 +596,7 @@ export default function DoctorPatientChartPage() {
                       )}
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
-                      {prescriptionsLoading && <Skeleton className="h-24 w-full" />}
+                      {prescriptionsLoading && <ListSkeleton />}
                       {!prescriptionsLoading && (prescriptions?.length ?? 0) === 0 && (
                         <EmptyState icon={Pill} title={t('noPrescriptions')} />
                       )}
@@ -665,7 +666,7 @@ export default function DoctorPatientChartPage() {
                       <UploadDocumentControl patientProfileId={patientProfileId} />
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
-                      {documentsLoading && <Skeleton className="h-24 w-full" />}
+                      {documentsLoading && <ListSkeleton />}
                       {!documentsLoading && (documents?.length ?? 0) === 0 && (
                         <EmptyState icon={FileText} title={t('noDocuments')} />
                       )}
