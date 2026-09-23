@@ -2284,9 +2284,13 @@
     "tabs": {
       "overview": "نظرة عامة",
       "medicalHistory": "التاريخ الطبي",
+      "medicalHistoryCount": "التاريخ الطبي ({count})",
       "consultations": "الاستشارات",
+      "consultationsCount": "الاستشارات ({count})",
       "prescriptions": "الوصفات الطبية",
-      "documents": "المستندات"
+      "prescriptionsCount": "الوصفات الطبية ({count})",
+      "documents": "المستندات",
+      "documentsCount": "المستندات ({count})"
     },
     "personalInformation": "المعلومات الشخصية",
     "medicalProfile": "الملف الطبي",
@@ -2380,7 +2384,19 @@
       "cancelled": "ملغى",
       "no_show": "لم يحضر",
       "expired": "منتهي الصلاحية"
-    }
+    },
+    "messagePatient": "مراسلة المريض",
+    "messagePatientError": "تعذّر بدء محادثة مع هذا المريض. حاول مرة أخرى.",
+    "moreActions": "المزيد من الإجراءات",
+    "openInQueue": "فتح في قائمة الانتظار",
+    "printRecord": "طباعة السجل",
+    "copyPatientId": "نسخ معرّف المريض",
+    "copyPatientIdCopied": "تم نسخ معرّف المريض",
+    "copyEmail": "نسخ البريد الإلكتروني",
+    "copyEmailCopied": "تم نسخ البريد الإلكتروني",
+    "copyPhone": "نسخ رقم الهاتف",
+    "copyPhoneCopied": "تم نسخ رقم الهاتف",
+    "lastUpdated": "آخر تحديث {relativeTime}"
   },
   "scheduling": {
     "slotStatus": {

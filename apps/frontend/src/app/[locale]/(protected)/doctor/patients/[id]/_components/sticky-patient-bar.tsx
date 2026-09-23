@@ -56,7 +56,7 @@ export function StickyPatientBar({ profile, headerRef }: StickyPatientBarProps) 
 
   return (
     <div
-      className="sticky top-0 z-(--z-sticky) flex items-center gap-3 rounded-xl border border-border-default bg-surface/95 px-4 py-2.5 shadow-md backdrop-blur"
+      className="print-hidden sticky top-0 z-(--z-sticky) flex items-center gap-3 rounded-xl border border-border-default bg-surface/95 px-4 py-2.5 shadow-md backdrop-blur"
     >
       <Avatar size="sm" className="shrink-0">
         {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}

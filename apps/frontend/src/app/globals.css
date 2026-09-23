@@ -74,3 +74,20 @@ body {
   width: 0;
   height: 0;
 }
+
+/* P2 (Patient Record page audit): first print stylesheet anywhere in this
+   app -- previously `window.print()` (e.g. a "Print record" action) would
+   have printed the full app chrome (topbar, sidebar nav, interactive
+   buttons) verbatim, none of which belongs on a printed clinical record.
+   Targets AppShell's own structural primitives (Topbar renders a `header`,
+   Sidebar renders an `aside`) rather than a page-specific class, so this
+   benefits every page that ever adds a print action, not just this one.
+   `.print-hidden` is an explicit escape hatch for page-level controls
+   (e.g. header action buttons) that also shouldn't print. */
+@media print {
+  header,
+  aside,
+  .print-hidden {
+    display: none !important;
+  }
+}

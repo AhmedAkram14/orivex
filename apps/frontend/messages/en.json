@@ -2284,9 +2284,13 @@
     "tabs": {
       "overview": "Overview",
       "medicalHistory": "Medical History",
+      "medicalHistoryCount": "Medical History ({count})",
       "consultations": "Consultations",
+      "consultationsCount": "Consultations ({count})",
       "prescriptions": "Prescriptions",
-      "documents": "Documents"
+      "prescriptionsCount": "Prescriptions ({count})",
+      "documents": "Documents",
+      "documentsCount": "Documents ({count})"
     },
     "personalInformation": "Personal information",
     "medicalProfile": "Medical profile",
@@ -2380,7 +2384,19 @@
       "cancelled": "Cancelled",
       "no_show": "No-show",
       "expired": "Expired"
-    }
+    },
+    "messagePatient": "Message patient",
+    "messagePatientError": "Couldn't start a conversation with this patient. Please try again.",
+    "moreActions": "More actions",
+    "openInQueue": "Open in Queue",
+    "printRecord": "Print record",
+    "copyPatientId": "Copy patient ID",
+    "copyPatientIdCopied": "Patient ID copied",
+    "copyEmail": "Copy email address",
+    "copyEmailCopied": "Email address copied",
+    "copyPhone": "Copy phone number",
+    "copyPhoneCopied": "Phone number copied",
+    "lastUpdated": "Last updated {relativeTime}"
   },
   "scheduling": {
     "slotStatus": {

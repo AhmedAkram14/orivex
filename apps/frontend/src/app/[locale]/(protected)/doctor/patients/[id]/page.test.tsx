@@ -12,10 +12,11 @@ import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../../messages/en.json';
 
 const replace = vi.fn();
+const push = vi.fn();
 let mockSearchParams = new URLSearchParams();
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace, refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
+  useRouter: () => ({ push, replace, refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/doctor/patients/patient-profile-1',
   useParams: () => ({ locale: 'en', id: 'patient-profile-1' }),
   useSearchParams: () => mockSearchParams,
@@ -28,6 +29,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   replace.mockClear();
+  push.mockClear();
   mockSearchParams = new URLSearchParams();
 });
 afterAll(() => server.close());
@@ -167,7 +169,7 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Documents/ }));
 
     expect(await screen.findByText('Lab report')).toBeInTheDocument();
     expect(screen.getByText('Aug 21, 2026')).toBeInTheDocument();
@@ -179,7 +181,7 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Documents/ }));
 
     expect(await screen.findByText('No clinical documents uploaded')).toBeInTheDocument();
   });
@@ -273,7 +275,7 @@ describe('DoctorPatientChartPage', () => {
     expect(upcomingStat).not.toBeNull();
     expect(within(upcomingStat as HTMLElement).getByText('1')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Consultations/ }));
 
     const upcomingSection = (await screen.findByRole('heading', { name: 'Upcoming appointments' })).closest('.rounded-2xl');
     expect(upcomingSection).not.toBeNull();
@@ -308,8 +310,8 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    expect(screen.getByRole('tab', { name: 'Consultations' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tab', { name: /^Consultations/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /^Overview/ })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('keeps the allergy/condition strip visible on every tab, not just Overview', async () => {
@@ -319,7 +321,7 @@ describe('DoctorPatientChartPage', () => {
     await screen.findByText('Fady Nassar');
     expect(screen.getByText('Penicillin')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Documents/ }));
     expect(await screen.findByText('No clinical documents uploaded')).toBeInTheDocument();
     expect(screen.getByText('Penicillin')).toBeInTheDocument();
   });
@@ -378,7 +380,7 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Consultations/ }));
 
     const previousSection = (await screen.findByRole('heading', { name: 'Previous visits' })).closest('.rounded-2xl');
     expect(previousSection).not.toBeNull();
@@ -451,7 +453,7 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Consultations/ }));
     expect(await screen.findByText('Follow-up')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
@@ -519,7 +521,7 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Consultations' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Consultations/ }));
     expect(await screen.findByText('Specialist consultation')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Decline' }));
@@ -633,7 +635,7 @@ describe('DoctorPatientChartPage', () => {
       renderPage();
 
       await screen.findByText('Fady Nassar');
-      await userEvent.click(screen.getByRole('tab', { name: 'Prescriptions' }));
+      await userEvent.click(screen.getByRole('tab', { name: /^Prescriptions/ }));
       await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
 
       expect(screen.queryByLabelText('Select a past visit')).not.toBeInTheDocument();
@@ -646,7 +648,7 @@ describe('DoctorPatientChartPage', () => {
       renderPage();
 
       await screen.findByText('Fady Nassar');
-      await userEvent.click(screen.getByRole('tab', { name: 'Prescriptions' }));
+      await userEvent.click(screen.getByRole('tab', { name: /^Prescriptions/ }));
       await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
 
       const picker = await screen.findByRole('combobox', { name: 'Select a past visit' });
@@ -663,7 +665,7 @@ describe('DoctorPatientChartPage', () => {
       renderPage();
 
       await screen.findByText('Fady Nassar');
-      await userEvent.click(screen.getByRole('tab', { name: 'Prescriptions' }));
+      await userEvent.click(screen.getByRole('tab', { name: /^Prescriptions/ }));
 
       expect(screen.queryByRole('button', { name: 'Write prescription' })).not.toBeInTheDocument();
     });
@@ -686,7 +688,7 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Medical History' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Medical History/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Add condition' }));
 
     await userEvent.type(screen.getByLabelText('Condition description'), 'Type 2 diabetes');
@@ -792,13 +794,54 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     await screen.findByText('Fady Nassar');
-    await userEvent.click(screen.getByRole('tab', { name: 'Documents' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Documents/ }));
 
     const file = new File(['%PDF-1.4'], 'lab-result.pdf', { type: 'application/pdf' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await userEvent.upload(input, file);
 
     await waitFor(() => expect(confirmCallCount).toBe(1));
+  });
+
+  // P1: header actions. "Message patient" starts/reopens the real thread
+  // with this patient and deep-links into the messaging workspace -- no
+  // fabricated action, it's the same startOrGetThread flow the messaging
+  // workspace itself uses.
+  it('starts a message thread with this patient and navigates to it from the header action', async () => {
+    mockChartEndpoints();
+    server.use(
+      http.post(`${env.apiBaseUrl}/message-threads`, () => HttpResponse.json({ data: { id: 'thread-1' } })),
+    );
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByRole('button', { name: 'Message patient' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith(expect.stringContaining('/doctor/messages?thread=thread-1')));
+  });
+
+  // P1: tab labels show real counts once the data has loaded, so a doctor
+  // can scan for "anything here" without opening each tab.
+  it('shows real item counts on tab labels once each tab\'s data has loaded', async () => {
+    mockChartEndpoints({ documents: [{ id: 'doc-1', purpose: 'lab_report', contentType: 'application/pdf', createdAt: '2026-01-01T00:00:00.000Z', signedUrl: null }] });
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    expect(await screen.findByRole('tab', { name: 'Documents (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Consultations (0)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Prescriptions (0)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Medical History (0)' })).toBeInTheDocument();
+  });
+
+  // P1: stat tiles deep-link into the matching tab instead of being dead ends.
+  it('switches to the Consultations tab when the Upcoming Appointments stat tile is clicked', async () => {
+    mockChartEndpoints();
+    renderPage();
+
+    await screen.findByText('Fady Nassar');
+    await userEvent.click(screen.getByText('Upcoming appointments'));
+
+    expect(await screen.findByRole('tab', { name: /^Consultations/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('shows an ownership-safe not-found state when the doctor has no relationship with this patient', async () => {

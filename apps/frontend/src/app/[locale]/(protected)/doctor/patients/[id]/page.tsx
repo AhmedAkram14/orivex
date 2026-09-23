@@ -20,7 +20,7 @@ import {
   Upload,
   UserRoundPlus,
 } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
@@ -59,6 +59,7 @@ import { TooltipProvider } from '@/shared/ui/tooltip';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
+import { formatRelativeTime } from '@/shared/lib/date/relative-time';
 import type {
   DoctorPatientChartAppointment,
   DoctorPatientChartMedicalRecordEntry,
@@ -66,7 +67,9 @@ import type {
   DoctorPatientDocumentPurpose,
 } from '@/features/doctor/api/types';
 import { AllergyBanner } from './_components/allergy-banner';
+import { CopyButton } from './_components/copy-button';
 import { InfoTile } from './_components/info-tile';
+import { PatientRecordHeaderActions } from './_components/patient-record-header-actions';
 import { QuickStat } from './_components/quick-stat';
 import { StickyPatientBar } from './_components/sticky-patient-bar';
 import { VitalTile } from './_components/vital-tile';
@@ -126,6 +129,7 @@ const prescriptionBadgeVariant: Record<DoctorPatientChartPrescription['status'],
 export default function DoctorPatientChartPage() {
   const t = useTranslations('publicPatient');
   const format = useFormatter();
+  const locale = useLocale();
   const params = useParams<{ id: string }>();
   const patientProfileId = params.id;
   const router = useRouter();
@@ -255,7 +259,21 @@ export default function DoctorPatientChartPage() {
         return (
           <TooltipProvider>
           <Page>
-            <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={profile.fullName} description={t('workspaceEyebrow')} />
+            <WorkspaceHeader
+              breadcrumbs={<AppBreadcrumbs />}
+              title={profile.fullName}
+              description={t('workspaceEyebrow')}
+              actions={
+                <PatientRecordHeaderActions
+                  patientProfileId={patientProfileId}
+                  hasUpcomingAppointment={upcomingAppointments.length > 0}
+                  canWritePrescription={eligiblePrescriptionAppointments.length > 0}
+                  onWritePrescription={openPrescriptionDialog}
+                  onAddCondition={() => handleTabChange('history')}
+                  onUploadDocument={() => handleTabChange('documents')}
+                />
+              }
+            />
 
             {/* Patient Record Page P0 fix: appears once the real header
                 below scrolls out of view, so the doctor never loses track of
@@ -290,9 +308,20 @@ export default function DoctorPatientChartPage() {
                         domain -- only this UUID, kept small/tertiary and
                         moved off its own line under the name so it reads as
                         a minor identifier, not a primary label. */}
-                    <bdi dir="ltr" className="text-xs text-text-tertiary">
-                      {t('patientId', { id: shortId(profile.id) })}
-                    </bdi>
+                    <div className="flex items-center gap-1">
+                      <bdi dir="ltr" className="text-xs text-text-tertiary">
+                        {t('patientId', { id: shortId(profile.id) })}
+                      </bdi>
+                      <CopyButton value={profile.id} label={t('copyPatientId')} copiedLabel={t('copyPatientIdCopied')} />
+                    </div>
+                    {/* Page-level provenance (P1): the one timestamp this DTO
+                        actually returns (profile.updatedAt) -- per-vital
+                        "recorded by" would need a new recordedByDoctorId/name
+                        field on DoctorPatientChartVitalSummary that doesn't
+                        exist today; not faked here. */}
+                    <p className="text-xs text-text-tertiary">
+                      {t('lastUpdated', { relativeTime: formatRelativeTime(new Date(profile.updatedAt), locale, t('activeNow')) })}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -304,9 +333,21 @@ export default function DoctorPatientChartPage() {
               <AllergyBanner profile={profile} patientProfileId={patientProfileId} />
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <QuickStat label={t('stats.completedConsultations')} value={String(completedCount)} />
-                <QuickStat label={t('stats.upcomingAppointments')} value={String(upcomingAppointments.length)} />
-                <QuickStat label={t('stats.activePrescriptions')} value={String(activePrescriptionsCount)} />
+                <QuickStat
+                  label={t('stats.completedConsultations')}
+                  value={String(completedCount)}
+                  onClick={() => handleTabChange('consultations')}
+                />
+                <QuickStat
+                  label={t('stats.upcomingAppointments')}
+                  value={String(upcomingAppointments.length)}
+                  onClick={() => handleTabChange('consultations')}
+                />
+                <QuickStat
+                  label={t('stats.activePrescriptions')}
+                  value={String(activePrescriptionsCount)}
+                  onClick={() => handleTabChange('prescriptions')}
+                />
                 <QuickStat
                   label={t('stats.lastVisit')}
                   value={
@@ -314,32 +355,9 @@ export default function DoctorPatientChartPage() {
                       ? format.dateTime(new Date(lastVisit.scheduledAt), { year: 'numeric', month: 'short', day: 'numeric' })
                       : t('stats.none')
                   }
+                  onClick={() => handleTabChange('consultations')}
                 />
               </div>
-
-              {reviewsForThisPatient.length > 0 && (
-                <Card className={CARD_CLASSNAME}>
-                  <CardContent className="flex flex-col gap-2 px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-text-primary">{t('recentFeedback')}</p>
-                      <div className="flex items-center gap-0.5" aria-label={t('starRatingLabel', { rating: reviewsForThisPatient[0].rating })}>
-                        {Array.from({ length: 5 }, (_, index) => (
-                          <Icon
-                            key={index}
-                            icon={Star}
-                            size="sm"
-                            className={cn(index < reviewsForThisPatient[0].rating ? 'fill-warning text-warning' : 'text-border-strong')}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm text-text-secondary">&ldquo;{reviewsForThisPatient[0].comment}&rdquo;</p>
-                    <p className="text-xs text-text-tertiary">
-                      {format.dateTime(new Date(reviewsForThisPatient[0].createdAt), { dateStyle: 'medium' })}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Chronic conditions strip (Phase 1.5): a Tabs sibling, still
                   visible on every tab -- allergies moved into its own P0
@@ -366,16 +384,16 @@ export default function DoctorPatientChartPage() {
                     {t('tabs.overview')}
                   </TabsTrigger>
                   <TabsTrigger value="history" className="whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary">
-                    {t('tabs.medicalHistory')}
+                    {medicalRecords ? t('tabs.medicalHistoryCount', { count: medicalRecords.length }) : t('tabs.medicalHistory')}
                   </TabsTrigger>
                   <TabsTrigger value="consultations" className="whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary">
-                    {t('tabs.consultations')}
+                    {appointments ? t('tabs.consultationsCount', { count: appointments.length }) : t('tabs.consultations')}
                   </TabsTrigger>
                   <TabsTrigger value="prescriptions" className="whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary">
-                    {t('tabs.prescriptions')}
+                    {prescriptions ? t('tabs.prescriptionsCount', { count: prescriptions.length }) : t('tabs.prescriptions')}
                   </TabsTrigger>
                   <TabsTrigger value="documents" className="whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary">
-                    {t('tabs.documents')}
+                    {documents ? t('tabs.documentsCount', { count: documents.length }) : t('tabs.documents')}
                   </TabsTrigger>
                 </TabsList>
 
@@ -385,18 +403,59 @@ export default function DoctorPatientChartPage() {
                       <CardHeader className="px-7 py-6">
                         <CardTitle>{t('personalInformation')}</CardTitle>
                       </CardHeader>
-                      <CardContent className="flex flex-col gap-3 px-7 pt-0 pb-7 text-sm">
-                        <div className="flex items-center gap-2 text-text-secondary">
-                          <Icon icon={Mail} size="sm" className="shrink-0" />
-                          <span className="min-w-0 wrap-break-word">{profile.email}</span>
+                      <CardContent className="flex flex-col gap-4 px-7 pt-0 pb-7 text-sm">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-2 text-text-secondary">
+                            <Icon icon={Mail} size="sm" className="shrink-0" />
+                            <a href={`mailto:${profile.email}`} className="min-w-0 wrap-break-word hover:underline">
+                              {profile.email}
+                            </a>
+                            <CopyButton value={profile.email} label={t('copyEmail')} copiedLabel={t('copyEmailCopied')} />
+                          </div>
+                          <div className="flex items-center gap-2 text-text-secondary">
+                            <Icon icon={Phone} size="sm" className="shrink-0" />
+                            {profile.phoneNumber ? (
+                              <>
+                                <a href={`tel:${profile.phoneNumber}`} className="hover:underline" dir="ltr">
+                                  {profile.phoneNumber}
+                                </a>
+                                <CopyButton value={profile.phoneNumber} label={t('copyPhone')} copiedLabel={t('copyPhoneCopied')} />
+                              </>
+                            ) : (
+                              t('notOnRecord')
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-text-secondary">
+                            <Icon icon={MapPin} size="sm" className="shrink-0" />
+                            {profile.address ?? t('notOnRecord')}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-text-secondary">
-                          <Icon icon={Phone} size="sm" className="shrink-0" />
-                          {profile.phoneNumber ?? t('notOnRecord')}
-                        </div>
-                        <div className="flex items-center gap-2 text-text-secondary">
-                          <Icon icon={MapPin} size="sm" className="shrink-0" />
-                          {profile.address ?? t('notOnRecord')}
+
+                        {/* Rebalance (P1): Emergency Contacts moved in here
+                            from Medical Profile -- it's demographic/contact
+                            data, not a clinical value, and Medical Profile
+                            was visually much taller with it there. */}
+                        <div className="border-t border-border-default pt-4">
+                          <p className="mb-2 text-xs font-medium text-text-tertiary">{t('emergencyContacts')}</p>
+                          {profile.emergencyContacts.length > 0 ? (
+                            <ul className="flex flex-col gap-2">
+                              {profile.emergencyContacts.map((contact) => (
+                                <li key={contact.id} className="flex items-center gap-3 rounded-xl border border-border-default/70 p-3">
+                                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
+                                    <Icon icon={Phone} size="sm" />
+                                  </div>
+                                  <div className="flex min-w-0 flex-col gap-0.5">
+                                    <p className="text-sm font-medium text-text-primary">{contact.name}</p>
+                                    <p className="text-sm text-text-secondary">
+                                      {t(`relationshipOptions.${contact.relationship}`)} · {contact.phoneNumber}
+                                    </p>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <EmptyState icon={UserRoundPlus} title={t('noEmergencyContacts')} />
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -446,29 +505,6 @@ export default function DoctorPatientChartPage() {
                             summary={vitals?.find((summary) => summary.type === 'blood-sugar')}
                             notOnRecordLabel={t('notOnRecord')}
                           />
-                        </div>
-
-                        <div className="border-t border-border-default pt-4">
-                          <p className="mb-2 text-xs font-medium text-text-tertiary">{t('emergencyContacts')}</p>
-                          {profile.emergencyContacts.length > 0 ? (
-                            <ul className="flex flex-col gap-2">
-                              {profile.emergencyContacts.map((contact) => (
-                                <li key={contact.id} className="flex items-center gap-3 rounded-xl border border-border-default/70 p-3">
-                                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
-                                    <Icon icon={Phone} size="sm" />
-                                  </div>
-                                  <div className="flex min-w-0 flex-col gap-0.5">
-                                    <p className="text-sm font-medium text-text-primary">{contact.name}</p>
-                                    <p className="text-sm text-text-secondary">
-                                      {t(`relationshipOptions.${contact.relationship}`)} · {contact.phoneNumber}
-                                    </p>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <EmptyState icon={UserRoundPlus} title={t('noEmergencyContacts')} />
-                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -669,6 +705,35 @@ export default function DoctorPatientChartPage() {
                   </Card>
                 </TabsContent>
               </Tabs>
+
+              {/* Recent feedback (P1 move): a 5-star review reads as social
+                  proof/vanity, not clinical data -- it doesn't belong above
+                  the clinical tabs where a doctor scans for safety-relevant
+                  information first. Kept on the page (still useful context)
+                  but now below the tabs, not competing with them. */}
+              {reviewsForThisPatient.length > 0 && (
+                <Card className={CARD_CLASSNAME}>
+                  <CardContent className="flex flex-col gap-2 px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-text-primary">{t('recentFeedback')}</p>
+                      <div className="flex items-center gap-0.5" aria-label={t('starRatingLabel', { rating: reviewsForThisPatient[0].rating })}>
+                        {Array.from({ length: 5 }, (_, index) => (
+                          <Icon
+                            key={index}
+                            icon={Star}
+                            size="sm"
+                            className={cn(index < reviewsForThisPatient[0].rating ? 'fill-warning text-warning' : 'text-border-strong')}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-text-secondary">&ldquo;{reviewsForThisPatient[0].comment}&rdquo;</p>
+                    <p className="text-xs text-text-tertiary">
+                      {format.dateTime(new Date(reviewsForThisPatient[0].createdAt), { dateStyle: 'medium' })}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </Page>
           </TooltipProvider>
