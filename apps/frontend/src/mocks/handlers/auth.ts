@@ -17,11 +17,13 @@ import {
   getCurrentAccount,
   getDeviceSessions,
   getLoginHistory,
+  getSecuritySummary,
   isRateLimited,
   isValidAccessToken,
   recordFailedAttempt,
   refreshAccessToken,
   revokeDeviceSession,
+  revokeOtherSessions,
   startSession,
   toAuthenticatedUser,
 } from '@/mocks/auth-store';
@@ -172,11 +174,42 @@ export const authHandlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  http.post(`${base()}${AUTH_PATHS.revokeOtherSessions}`, ({ request }) => {
+    const token = bearerToken(request);
+    if (!isValidAccessToken(token)) {
+      return errorResponse(401, AUTH_ERROR_CODES.tokenInvalid, 'Not authenticated.');
+    }
+    revokeOtherSessions();
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.get(`${base()}${AUTH_PATHS.loginHistory}`, ({ request }) => {
     const token = bearerToken(request);
     if (!isValidAccessToken(token)) {
       return errorResponse(401, AUTH_ERROR_CODES.tokenInvalid, 'Not authenticated.');
     }
-    return HttpResponse.json({ data: getLoginHistory() });
+    const url = new URL(request.url);
+    const page = url.searchParams.get('page');
+    const limit = url.searchParams.get('limit');
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+    const outcome = url.searchParams.get('outcome');
+    return HttpResponse.json({
+      data: getLoginHistory({
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+        from: from ?? undefined,
+        to: to ?? undefined,
+        outcome: (outcome as 'all' | 'success' | 'failed' | null) ?? undefined,
+      }),
+    });
+  }),
+
+  http.get(`${base()}${AUTH_PATHS.securitySummary}`, ({ request }) => {
+    const token = bearerToken(request);
+    if (!isValidAccessToken(token)) {
+      return errorResponse(401, AUTH_ERROR_CODES.tokenInvalid, 'Not authenticated.');
+    }
+    return HttpResponse.json({ data: getSecuritySummary() });
   }),
 ];

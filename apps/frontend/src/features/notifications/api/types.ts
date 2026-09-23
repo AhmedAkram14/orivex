@@ -43,6 +43,8 @@ export interface NotificationPreferences {
   emailBilling: boolean;
   inAppAppointments: boolean;
   inAppBilling: boolean;
+  /** Security Center rework -- "email me when my account signs in from a new device". A standalone flag, not part of the Appointments/Billing category grid above. */
+  emailNewDeviceLogin: boolean;
 }
 
 /** PATCH semantics -- only the toggles the caller actually flips get sent. */

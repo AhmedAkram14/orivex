@@ -1,5 +1,5 @@
 import type { AuthenticatedUser } from '@/shared/auth/types';
-import type { DeviceSession, LoginHistoryEntry } from '@/features/auth/api/types';
+import type { DeviceSession, LoginHistoryEntry, LoginHistoryPage, LoginHistoryQuery, SecuritySummary } from '@/features/auth/api/types';
 import {
   DEMO_DOCTORS,
   DEMO_HOSPITAL_ADMIN,
@@ -170,17 +170,42 @@ let currentAccessToken: string | null = null;
 const mockDeviceSessions: DeviceSession[] = [
   {
     id: 'session-current',
-    userAgent: 'Chrome on Windows',
-    ipAddress: '10.0.0.1',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
+    ipAddress: '41.42.100.1',
     lastActiveAt: new Date().toISOString(),
     isCurrent: true,
+    browser: 'Chrome',
+    os: 'Windows',
+    deviceType: undefined,
+    displayName: 'Chrome on Windows',
+    isUnrecognizedClient: false,
+    city: 'Cairo',
+    country: 'EG',
   },
   {
     id: 'session-phone',
-    userAgent: 'Safari on iPhone 15',
-    ipAddress: '10.0.0.2',
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1',
+    ipAddress: '41.42.100.2',
     lastActiveAt: new Date(Date.now() - 86_400_000).toISOString(),
     isCurrent: false,
+    browser: 'Mobile Safari',
+    os: 'iOS',
+    deviceType: 'mobile',
+    displayName: 'Safari on iOS',
+    isUnrecognizedClient: false,
+    city: 'Cairo',
+    country: 'EG',
+  },
+  {
+    id: 'session-unrecognized',
+    userAgent: 'curl/8.4.0',
+    ipAddress: '203.0.113.9',
+    lastActiveAt: new Date(Date.now() - 3_600_000).toISOString(),
+    isCurrent: false,
+    displayName: 'Unknown device',
+    isUnrecognizedClient: true,
+    city: undefined,
+    country: undefined,
   },
 ];
 
@@ -188,16 +213,25 @@ const mockLoginHistory: LoginHistoryEntry[] = [
   {
     id: 'history-1',
     timestamp: new Date().toISOString(),
-    ipAddress: '10.0.0.1',
-    userAgent: 'Chrome on Windows',
+    ipAddress: '41.42.100.1',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
     outcome: 'success',
+    browser: 'Chrome',
+    os: 'Windows',
+    displayName: 'Chrome on Windows',
+    city: 'Cairo',
+    country: 'EG',
   },
   {
     id: 'history-2',
     timestamp: new Date(Date.now() - 3_600_000).toISOString(),
-    ipAddress: '10.0.0.9',
-    userAgent: 'Firefox on Linux',
+    ipAddress: '203.0.113.9',
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Firefox/121.0',
     outcome: 'failed',
+    browser: 'Firefox',
+    os: 'Linux',
+    displayName: 'Firefox on Linux',
+    reason: 'wrong_password',
   },
 ];
 
@@ -279,6 +313,39 @@ export function revokeDeviceSession(sessionId: string): void {
   if (index !== -1) mockDeviceSessions.splice(index, 1);
 }
 
-export function getLoginHistory(): LoginHistoryEntry[] {
-  return mockLoginHistory;
+export function revokeOtherSessions(): void {
+  const remaining = mockDeviceSessions.filter((session) => session.isCurrent);
+  mockDeviceSessions.length = 0;
+  mockDeviceSessions.push(...remaining);
+}
+
+export function getLoginHistory(query: LoginHistoryQuery = {}): LoginHistoryPage {
+  const page = query.page ?? 1;
+  const limit = query.limit ?? 20;
+  const filtered = mockLoginHistory.filter((entry) => {
+    if (query.outcome === 'success') return entry.outcome === 'success';
+    if (query.outcome === 'failed') return entry.outcome !== 'success';
+    if (query.from && new Date(entry.timestamp) < new Date(query.from)) return false;
+    if (query.to && new Date(entry.timestamp) > new Date(query.to)) return false;
+    return true;
+  });
+  const start = (page - 1) * limit;
+  return {
+    items: filtered.slice(start, start + limit),
+    total: filtered.length,
+    page,
+    pageCount: Math.max(1, Math.ceil(filtered.length / limit)),
+  };
+}
+
+export function getSecuritySummary(): SecuritySummary {
+  const lastSuccess = mockLoginHistory.find((entry) => entry.outcome === 'success');
+  return {
+    activeSessionCount: mockDeviceSessions.length,
+    lastSignIn: lastSuccess
+      ? { at: lastSuccess.timestamp, displayName: lastSuccess.displayName, city: lastSuccess.city, country: lastSuccess.country }
+      : undefined,
+    passwordChangedAt: undefined,
+    twoFactorEnabled: false,
+  };
 }

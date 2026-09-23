@@ -16,5 +16,7 @@ export const AUTH_PATHS = {
   logout: '/auth/logout',
   logoutAll: '/auth/logout-all',
   deviceSessions: '/auth/sessions',
+  revokeOtherSessions: '/auth/sessions/revoke-others',
   loginHistory: '/auth/login-history',
+  securitySummary: '/auth/security-summary',
 } as const;

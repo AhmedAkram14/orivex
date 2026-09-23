@@ -107,10 +107,10 @@ export type SessionResponse = { user: AuthenticatedUser } | null;
 /**
  * Matches the real backend's DeviceSessionResponseDto exactly
  * (apps/backend/.../authentication/presentation/dto/device-session-response.dto.ts).
- * Deliberately no deviceName/browser/os/location split: the Session
- * aggregate only ever stores a raw userAgent string and an ipAddress, and
- * there is no geo-IP/user-agent-parsing service in this codebase to
- * honestly fabricate those fields from.
+ * Security Center rework: browser/os/deviceType/displayName/city/country are
+ * enriched server-side (parseUserAgent()/resolveIpLocation(), computed on
+ * read, never stored) -- this type mirrors that response, not a client-side
+ * guess from the raw userAgent string.
  */
 export interface DeviceSession {
   id: string;
@@ -118,14 +118,25 @@ export interface DeviceSession {
   ipAddress?: string;
   lastActiveAt: string;
   isCurrent: boolean;
+  browser?: string;
+  browserVersion?: string;
+  os?: string;
+  deviceType?: string;
+  displayName: string;
+  isUnrecognizedClient: boolean;
+  city?: string;
+  country?: string;
 }
 
 export type LoginHistoryOutcome = 'success' | 'failed' | 'locked';
 
+/** Matches the backend's LoginFailureReason enum -- only ever present on a non-success outcome, and `unknown_user` is reserved but never actually emitted (see the backend enum's own comment: there's no account to attach that event to). */
+export type LoginFailureReason = 'wrong_password' | '2fa_failed' | 'locked' | 'unknown_user';
+
 /**
- * Matches the real backend's LoginHistoryEntryResponseDto exactly. No
- * fabricated location/device split, and no finer-grained outcome than
- * SecurityEventType actually gives (LoginSucceeded/LoginFailed/AccountLocked).
+ * Matches the real backend's LoginHistoryEntryResponseDto exactly.
+ * browser/os/displayName/city/country are enriched the same way
+ * DeviceSession's are; `reason` is present only for a non-success outcome.
  */
 export interface LoginHistoryEntry {
   id: string;
@@ -133,6 +144,45 @@ export interface LoginHistoryEntry {
   ipAddress?: string;
   userAgent?: string;
   outcome: LoginHistoryOutcome;
+  browser?: string;
+  os?: string;
+  displayName: string;
+  city?: string;
+  country?: string;
+  reason?: LoginFailureReason;
+}
+
+export type LoginHistoryOutcomeFilter = 'all' | 'success' | 'failed';
+
+export interface LoginHistoryQuery {
+  page?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+  outcome?: LoginHistoryOutcomeFilter;
+}
+
+/** Matches the backend's LoginHistoryPageResponseDto -- page-based, driving `shared/ui/pagination.tsx`'s `{ page, pageCount }` contract directly. */
+export interface LoginHistoryPage {
+  items: LoginHistoryEntry[];
+  total: number;
+  page: number;
+  pageCount: number;
+}
+
+export interface LastSignInSummary {
+  at: string;
+  displayName: string;
+  city?: string;
+  country?: string;
+}
+
+/** Matches the backend's SecuritySummaryResponseDto (GET /auth/security-summary). `twoFactorEnabled` is always `false` today -- no 2FA implementation exists anywhere in this codebase yet. */
+export interface SecuritySummary {
+  activeSessionCount: number;
+  lastSignIn?: LastSignInSummary;
+  passwordChangedAt?: string;
+  twoFactorEnabled: boolean;
 }
 
 /**

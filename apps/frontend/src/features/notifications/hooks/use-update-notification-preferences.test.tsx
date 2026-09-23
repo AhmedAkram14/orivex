@@ -36,6 +36,7 @@ const PREFERENCES: NotificationPreferences = {
   emailBilling: true,
   inAppAppointments: true,
   inAppBilling: true,
+  emailNewDeviceLogin: true,
 };
 
 describe('useUpdateNotificationPreferences', () => {

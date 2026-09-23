@@ -501,12 +501,27 @@
     "securityCenter": {
       "title": "مركز الأمان",
       "subtitle": "راجع جلساتك النشطة ونشاط تسجيل الدخول الأخير، وألغِ الوصول الذي لا تتعرف عليه.",
+      "summary": {
+        "activeSessions": "الجلسات النشطة",
+        "lastSignIn": "آخر تسجيل دخول",
+        "noSignInYet": "لا يوجد تسجيل دخول مسجَّل بعد",
+        "activeNow": "نشط الآن",
+        "unknownLocation": "موقع غير معروف",
+        "twoFactor": "المصادقة الثنائية",
+        "twoFactorOff": "غير مفعّلة",
+        "twoFactorSetUp": "إعداد",
+        "loadError": "تعذّر تحميل ملخص الأمان الخاص بك."
+      },
       "deviceSessions": {
         "title": "جلسات الأجهزة",
         "description": "الأجهزة المسجّلة دخولها حاليًا إلى حسابك.",
         "currentDeviceBadge": "هذا الجهاز",
-        "unknownDevice": "جهاز غير معروف",
-        "lastActive": "آخر نشاط {lastActiveAt}",
+        "unrecognizedClientBadge": "عميل غير معروف",
+        "unrecognizedClientHelp": "لا تتعرف على هذا؟ ألغِ الجلسة وغيّر كلمة المرور.",
+        "unknownLocation": "موقع غير معروف",
+        "activeNow": "نشط الآن",
+        "lastActive": "{relativeTime}",
+        "details": "التفاصيل",
         "revoke": "إلغاء",
         "revokeConfirmTitle": "هل تريد إلغاء هذه الجلسة؟",
         "revokeConfirmDescription": "سيتم تسجيل خروج \"{device}\" فورًا.",
@@ -524,15 +539,34 @@
         "columnUserAgent": "الجهاز",
         "columnIpAddress": "عنوان IP",
         "columnOutcome": "النتيجة",
-        "unknownDevice": "جهاز غير معروف",
+        "unknownLocation": "موقع غير معروف",
+        "filter": {
+          "all": "الكل",
+          "success": "ناجحة",
+          "failed": "فاشلة"
+        },
+        "dateRange": {
+          "from": "من",
+          "to": "إلى",
+          "preset7Days": "آخر 7 أيام",
+          "preset30Days": "آخر 30 يومًا",
+          "clear": "مسح"
+        },
         "outcome": {
           "success": "نجاح",
           "failed": "فشل",
           "locked": "الحساب مقفل"
         },
+        "reason": {
+          "wrong_password": "كلمة مرور خاطئة",
+          "2fa_failed": "فشل التحقق الثنائي",
+          "locked": "الحساب مقفل",
+          "unknown_user": "لا يوجد حساب بهذا البريد الإلكتروني"
+        },
         "loadError": "تعذّر تحميل سجل تسجيل الدخول.",
         "emptyTitle": "لا يوجد سجل تسجيل دخول بعد",
-        "emptyDescription": "ستظهر هنا محاولات تسجيل الدخول إلى حسابك."
+        "emptyDescription": "ستظهر هنا محاولات تسجيل الدخول إلى حسابك.",
+        "emptyPeriodDescription": "لا يوجد نشاط تسجيل دخول خلال هذه الفترة."
       },
       "logoutAll": {
         "title": "تسجيل الخروج من كل مكان",
@@ -542,7 +576,29 @@
         "confirmDescription": "سيؤدي هذا إلى إنهاء جميع الجلسات النشطة، بما في ذلك الجلسة التي تستخدمها الآن. ستحتاج إلى تسجيل الدخول مرة أخرى.",
         "confirm": "تسجيل الخروج من كل مكان",
         "cancel": "إلغاء الأمر",
-        "error": "تعذّر تسجيل الخروج من جميع الأجهزة. يرجى المحاولة مرة أخرى."
+        "error": "تعذّر تسجيل الخروج من جميع الأجهزة. يرجى المحاولة مرة أخرى.",
+        "revokeOthersTrigger": "تسجيل الخروج من الأجهزة الأخرى",
+        "revokeOthersSuccess": "تم تسجيل الخروج من جميع الأجهزة الأخرى.",
+        "revokeOthersError": "تعذّر تسجيل الخروج من الأجهزة الأخرى. يرجى المحاولة مرة أخرى."
+      },
+      "password": {
+        "title": "كلمة المرور",
+        "description": "حافظ على أمان حسابك بكلمة مرور قوية وفريدة.",
+        "lastChanged": "آخر تغيير {relativeTime}",
+        "neverChanged": "لا يوجد سجل لتغيير كلمة المرور.",
+        "justNow": "الآن",
+        "changeButton": "تغيير كلمة المرور"
+      },
+      "twoFactor": {
+        "title": "المصادقة الثنائية",
+        "status": "غير متاحة بعد",
+        "description": "المصادقة الثنائية غير متاحة بعد. سنعلمك هنا فور إطلاقها.",
+        "enableButton": "إعداد (قريبًا)"
+      },
+      "loginAlerts": {
+        "title": "تنبيهات تسجيل الدخول",
+        "toggleLabel": "إرسال بريد إلكتروني عند تسجيل الدخول من جهاز جديد",
+        "toggleDescription": "احصل على بريد إلكتروني عندما يسجّل حسابك الدخول من جهاز لم نره من قبل."
       }
     },
     "changePassword": {

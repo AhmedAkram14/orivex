@@ -26,6 +26,7 @@ describe('useNotificationPreferences', () => {
       emailBilling: false,
       inAppAppointments: true,
       inAppBilling: true,
+      emailNewDeviceLogin: true,
     };
     vi.mocked(notificationsApi.getPreferences).mockResolvedValue(preferences);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

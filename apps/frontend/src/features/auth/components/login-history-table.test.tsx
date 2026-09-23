@@ -31,7 +31,7 @@ describe('LoginHistoryTable', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
-        <NextIntlClientProvider locale="en" messages={enMessages}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
           <SessionProvider>
             <AuthenticatedLoginHistoryTable />
           </SessionProvider>
@@ -41,7 +41,13 @@ describe('LoginHistoryTable', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
-    expect(await screen.findByText('Chrome on Windows')).toBeInTheDocument();
-    expect(screen.getByText('Success')).toBeInTheDocument();
+    // The table (desktop/tablet) and the stacked-card layout (mobile) both
+    // render at once in jsdom -- Tailwind's `hidden sm:table`/`sm:hidden`
+    // split is CSS-only and jsdom doesn't evaluate media queries, so the
+    // same row data legitimately appears twice in the DOM. Real browsers
+    // show only one via CSS, so `getAllByText` (not `getByText`) is correct
+    // here, not a workaround for a bug.
+    expect((await screen.findAllByText('Chrome on Windows')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Success').length).toBeGreaterThan(0);
   });
 });

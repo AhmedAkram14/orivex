@@ -3,6 +3,11 @@ import { getTranslations } from 'next-intl/server';
 import { DeviceSessionsList } from '@/features/auth/components/device-sessions-list';
 import { LoginHistoryTable } from '@/features/auth/components/login-history-table';
 import { LogoutAllDevicesButton } from '@/features/auth/components/logout-all-devices-button';
+import { SignOutOtherDevicesButton } from '@/features/auth/components/sign-out-other-devices-button';
+import { SecuritySummaryStrip } from '@/features/auth/components/security-summary-strip';
+import { PasswordSection } from '@/features/auth/components/password-section';
+import { TwoFactorSection } from '@/features/auth/components/two-factor-section';
+import { LoginAlertsSection } from '@/features/auth/components/login-alerts-section';
 import { Heading } from '@/design-system/typography';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
@@ -29,6 +34,8 @@ export default async function SecurityCenterPage() {
         <p className="text-text-secondary">{t('subtitle')}</p>
       </div>
 
+      <SecuritySummaryStrip />
+
       <Card>
         <CardHeader>
           <CardTitle>{t('deviceSessions.title')}</CardTitle>
@@ -54,9 +61,38 @@ export default async function SecurityCenterPage() {
           <CardTitle>{t('logoutAll.title')}</CardTitle>
           <CardDescription>{t('logoutAll.description')}</CardDescription>
         </CardHeader>
-        <CardFooter>
+        <CardFooter className="flex flex-wrap gap-3">
+          <SignOutOtherDevicesButton />
           <LogoutAllDevicesButton />
         </CardFooter>
+      </Card>
+
+      <Card id="password">
+        <CardHeader>
+          <CardTitle>{t('password.title')}</CardTitle>
+          <CardDescription>{t('password.description')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PasswordSection />
+        </CardContent>
+      </Card>
+
+      <Card id="two-factor">
+        <CardHeader>
+          <CardTitle>{t('twoFactor.title')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TwoFactorSection />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('loginAlerts.title')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LoginAlertsSection />
+        </CardContent>
       </Card>
     </Container>
   );

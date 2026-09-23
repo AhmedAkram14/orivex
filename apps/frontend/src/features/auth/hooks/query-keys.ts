@@ -6,3 +6,5 @@ export const sessionKeys = createQueryKeyFactory('auth-session');
 export const deviceSessionKeys = createQueryKeyFactory('auth-device-sessions');
 
 export const loginHistoryKeys = createQueryKeyFactory('auth-login-history');
+
+export const securitySummaryKeys = createQueryKeyFactory('auth-security-summary');

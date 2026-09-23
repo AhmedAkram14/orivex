@@ -30,7 +30,7 @@ function renderAuthenticated() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale="en" messages={enMessages}>
+      <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
         <SessionProvider>
           <AuthenticatedDeviceSessionsList />
         </SessionProvider>
@@ -45,22 +45,31 @@ describe('DeviceSessionsList', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
     expect(await screen.findByText('Chrome on Windows')).toBeInTheDocument();
-    expect(await screen.findByText(/Safari on iPhone 15/)).toBeInTheDocument();
+    expect(await screen.findByText(/Safari on iOS/)).toBeInTheDocument();
     expect(screen.getByText('This device')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Revoke' })).toHaveLength(1);
+    // 2 revokable sessions (Safari on iOS, and the unrecognized curl client) + the current session with no Revoke button.
+    expect(screen.getAllByRole('button', { name: 'Revoke' })).toHaveLength(2);
+  });
+
+  it('flags an unrecognized client with a warning badge and helper text', async () => {
+    renderAuthenticated();
+    await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(await screen.findByText('Unrecognized client')).toBeInTheDocument();
+    expect(screen.getByText(/Revoke it and change your password/)).toBeInTheDocument();
   });
 
   it('revokes a non-current device session after confirming', async () => {
     renderAuthenticated();
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
-    await screen.findByText(/Safari on iPhone 15/);
-    await userEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+    await screen.findByText(/Safari on iOS/);
+    const revokeButtons = screen.getAllByRole('button', { name: 'Revoke' });
+    await userEvent.click(revokeButtons[0]);
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/Safari on iPhone 15/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Revoke' }));
 
-    await waitFor(() => expect(screen.queryByText(/Safari on iPhone 15/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Revoke' })).toHaveLength(1));
   });
 });

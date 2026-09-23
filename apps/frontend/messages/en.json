@@ -501,12 +501,27 @@
     "securityCenter": {
       "title": "Security Center",
       "subtitle": "Review your active sessions, recent sign-in activity, and revoke access you don't recognize.",
+      "summary": {
+        "activeSessions": "Active sessions",
+        "lastSignIn": "Last sign-in",
+        "noSignInYet": "No sign-in recorded yet",
+        "activeNow": "Active now",
+        "unknownLocation": "Unknown location",
+        "twoFactor": "Two-factor authentication",
+        "twoFactorOff": "Not enabled",
+        "twoFactorSetUp": "Set up",
+        "loadError": "Couldn't load your security summary."
+      },
       "deviceSessions": {
         "title": "Device sessions",
         "description": "Devices currently signed in to your account.",
         "currentDeviceBadge": "This device",
-        "unknownDevice": "Unknown device",
-        "lastActive": "Last active {lastActiveAt}",
+        "unrecognizedClientBadge": "Unrecognized client",
+        "unrecognizedClientHelp": "Don't recognize this? Revoke it and change your password.",
+        "unknownLocation": "Unknown location",
+        "activeNow": "Active now",
+        "lastActive": "{relativeTime}",
+        "details": "Details",
         "revoke": "Revoke",
         "revokeConfirmTitle": "Revoke this session?",
         "revokeConfirmDescription": "\"{device}\" will be signed out immediately.",
@@ -524,15 +539,34 @@
         "columnUserAgent": "Device",
         "columnIpAddress": "IP address",
         "columnOutcome": "Outcome",
-        "unknownDevice": "Unknown device",
+        "unknownLocation": "Unknown location",
+        "filter": {
+          "all": "All",
+          "success": "Successful",
+          "failed": "Failed"
+        },
+        "dateRange": {
+          "from": "From",
+          "to": "To",
+          "preset7Days": "Last 7 days",
+          "preset30Days": "Last 30 days",
+          "clear": "Clear"
+        },
         "outcome": {
           "success": "Success",
           "failed": "Failed",
           "locked": "Account locked"
         },
+        "reason": {
+          "wrong_password": "Wrong password",
+          "2fa_failed": "Two-factor verification failed",
+          "locked": "Account locked",
+          "unknown_user": "No account with this email"
+        },
         "loadError": "Couldn't load your login history.",
         "emptyTitle": "No login history yet",
-        "emptyDescription": "Sign-in attempts on your account will appear here."
+        "emptyDescription": "Sign-in attempts on your account will appear here.",
+        "emptyPeriodDescription": "No sign-in activity in this period."
       },
       "logoutAll": {
         "title": "Sign out everywhere",
@@ -542,7 +576,29 @@
         "confirmDescription": "This will end every active session, including the one you're using right now. You'll need to sign in again.",
         "confirm": "Sign out everywhere",
         "cancel": "Cancel",
-        "error": "Couldn't sign out of all devices. Please try again."
+        "error": "Couldn't sign out of all devices. Please try again.",
+        "revokeOthersTrigger": "Sign out all other devices",
+        "revokeOthersSuccess": "Every other device has been signed out.",
+        "revokeOthersError": "Couldn't sign out other devices. Please try again."
+      },
+      "password": {
+        "title": "Password",
+        "description": "Keep your account secure with a strong, unique password.",
+        "lastChanged": "Last changed {relativeTime}",
+        "neverChanged": "No password change on record.",
+        "justNow": "just now",
+        "changeButton": "Change password"
+      },
+      "twoFactor": {
+        "title": "Two-factor authentication",
+        "status": "Not available yet",
+        "description": "Two-factor authentication isn't available yet. We'll let you know here as soon as it ships.",
+        "enableButton": "Set up (coming soon)"
+      },
+      "loginAlerts": {
+        "title": "Login alerts",
+        "toggleLabel": "Email me on new-device sign-in",
+        "toggleDescription": "Get an email whenever your account signs in from a device we haven't seen before."
       }
     },
     "changePassword": {

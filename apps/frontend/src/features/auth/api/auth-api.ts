@@ -18,7 +18,9 @@ import type {
   VerifyEmailRequest,
   VerifyEmailResponse,
   DeviceSession,
-  LoginHistoryEntry,
+  LoginHistoryPage,
+  LoginHistoryQuery,
+  SecuritySummary,
 } from '@/features/auth/api/types';
 
 // The refresh-token endpoint rotates the token on every real use (Sprint
@@ -34,6 +36,17 @@ import type {
 // concurrent calls into the one in-flight request/promise removes the race
 // entirely, regardless of how many places end up triggering a refresh.
 let inFlightRefresh: Promise<RefreshSessionResponse> | null = null;
+
+function buildLoginHistoryQuery(params: LoginHistoryQuery): string {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
+  if (params.from) query.set('from', params.from);
+  if (params.to) query.set('to', params.to);
+  if (params.outcome) query.set('outcome', params.outcome);
+  const qs = query.toString();
+  return qs ? `${AUTH_PATHS.loginHistory}?${qs}` : AUTH_PATHS.loginHistory;
+}
 
 function refreshSession(): Promise<RefreshSessionResponse> {
   if (!inFlightRefresh) {
@@ -88,5 +101,10 @@ export const authApi = {
   revokeDeviceSession: (sessionId: string) =>
     apiFetch<void>({ method: 'DELETE', path: `${AUTH_PATHS.deviceSessions}/${sessionId}` }),
 
-  getLoginHistory: () => apiFetch<LoginHistoryEntry[]>({ path: AUTH_PATHS.loginHistory }),
+  revokeOtherSessions: () => apiFetch<void>({ method: 'POST', path: AUTH_PATHS.revokeOtherSessions }),
+
+  getLoginHistory: (params: LoginHistoryQuery = {}) =>
+    apiFetch<LoginHistoryPage>({ path: buildLoginHistoryQuery(params) }),
+
+  getSecuritySummary: () => apiFetch<SecuritySummary>({ path: AUTH_PATHS.securitySummary }),
 };

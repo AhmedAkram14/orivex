@@ -20,6 +20,7 @@ const PREFERENCES: NotificationPreferences = {
   emailBilling: false,
   inAppAppointments: true,
   inAppBilling: false,
+  emailNewDeviceLogin: true,
 };
 
 describe('NotificationPreferencesSection', () => {
