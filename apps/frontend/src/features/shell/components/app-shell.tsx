@@ -57,15 +57,27 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Topbar>
       <div className="flex flex-1 overflow-hidden">
         <Sidebar className="hidden lg:flex">
-          {/* The app-wide "quiet" scrollbar (globals.css) is a deliberate,
-              near-invisible-until-hovered treatment everywhere else -- but
-              here it's the only hint that Settings/Security exist below the
-              fold at a normal laptop height, which isn't enough. A visible
-              track (not the global's transparent one) makes the sidebar's
-              own scroll region legible as "there's more" without touching
-              that global default anywhere else. */}
-          <div className="flex-1 overflow-y-auto [scrollbar-color:var(--color-border-strong)_var(--color-secondary-subtle)] [&::-webkit-scrollbar-track]:bg-secondary-subtle">
-            <SidebarNav />
+          {/* Security Center audit: on a role with enough nav items (e.g.
+              Admin's two groups), the last item -- often "Settings"/
+              "Security" -- sat exactly at this region's bottom edge and
+              rendered visibly cut in half, with nothing to signal "this
+              scrolls, there's more below." A `scrollbar-color`/webkit-track
+              customization here (this div's previous approach) only styles
+              a scrollbar that Chromium's overlay-scrollbar behavior still
+              hides until actively scrolling/hovering, so it never actually
+              fixed the "looks broken" problem. A bottom fade mask is
+              hover-independent and unambiguous: content visibly fades out
+              near the edge instead of hard-clipping mid-glyph, and it's a
+              harmless no-op on a role with few enough items that nothing
+              actually overflows. */}
+          <div className="relative min-h-0 flex-1">
+            <div className="h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]">
+              <SidebarNav />
+              {/* Real spacer, not just the mask's fade -- guarantees the
+                  last item's full height is scrollable past the fade zone
+                  rather than the fade eating into its final pixels. */}
+              <div className="h-7" aria-hidden="true" />
+            </div>
           </div>
           <div className="flex flex-col gap-3 border-t border-border-default pt-3">
             <HelpCenterCard />

@@ -112,22 +112,29 @@
   --color-success: var(--success-600);
   --color-success-subtle: var(--success-50);
   --color-success-foreground: var(--gray-0);
-  --color-success-emphasis: var(--success-600);
+  /* Security Center audit: text-success-emphasis on bg-success-subtle (the
+     Badge/Alert "success" variant) measured ~3.6:1 with the -600 step --
+     below WCAG AA's 4.5:1 for normal-size text. The -900 step keeps the
+     same hue and clears 9:1+ against -50, with no dark-mode change needed
+     (theme-dark.css already pairs -300 text on a -900 background). Applies
+     everywhere this token is used (Badge, Alert, and other status text),
+     not just the Security Center page it was caught on. */
+  --color-success-emphasis: var(--success-900);
 
   --color-warning: var(--warning-600);
   --color-warning-subtle: var(--warning-50);
   --color-warning-foreground: var(--gray-900);
-  --color-warning-emphasis: var(--warning-600);
+  --color-warning-emphasis: var(--warning-900);
 
   --color-danger: var(--danger-600);
   --color-danger-subtle: var(--danger-50);
   --color-danger-foreground: var(--gray-0);
-  --color-danger-emphasis: var(--danger-600);
+  --color-danger-emphasis: var(--danger-900);
 
   --color-info: var(--info-600);
   --color-info-subtle: var(--info-50);
   --color-info-foreground: var(--gray-0);
-  --color-info-emphasis: var(--info-600);
+  --color-info-emphasis: var(--info-900);
 
   --color-neutral: var(--gray-600);
   --color-neutral-subtle: var(--gray-100);
