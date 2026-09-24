@@ -78,6 +78,22 @@ describe('NotificationBell + NotificationPanel', () => {
     expect(link).toHaveAttribute('href', '/en/doctor/onboarding');
   });
 
+  it('clears the badge immediately, without waiting for the server to answer', async () => {
+    server.use(
+      http.post(`${env.apiBaseUrl}${NOTIFICATIONS_PATHS.markAllRead}`, async () => {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        return HttpResponse.json({ data: { acknowledged: true } });
+      }),
+    );
+    renderBell();
+    await screen.findByText('2');
+
+    await userEvent.click(screen.getByRole('button', { name: /Notifications/ }));
+
+    // Well inside the 3s server delay: the hide must be optimistic.
+    await waitFor(() => expect(screen.queryByText('2')).not.toBeInTheDocument(), { timeout: 500 });
+  });
+
   it('keeps the badge cleared when the bell is closed and reopened', async () => {
     renderBell();
     await screen.findByText('2');

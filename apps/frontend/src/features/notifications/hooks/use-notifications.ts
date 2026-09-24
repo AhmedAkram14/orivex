@@ -26,5 +26,11 @@ export function useNotifications() {
     // fix), but the bell's own capped view never needed those.
     select: (result) => result.notifications,
     refetchInterval: POLL_INTERVAL_MS,
+    // The bell keeps this query mounted app-wide and polls it, so the panel
+    // (which mounts the same query when the bell opens) never needs its own
+    // refetch. Without this, opening the bell raced the optimistic
+    // mark-all-read: the panel's refetch returned the not-yet-updated server
+    // state and briefly brought the unread badge back.
+    refetchOnMount: false,
   });
 }

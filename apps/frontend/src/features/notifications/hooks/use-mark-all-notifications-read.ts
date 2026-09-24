@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/features/notifications/api/notifications-api';
 import { notificationKeys } from '@/features/notifications/hooks/query-keys';
-import type { NotificationEntry } from '@/features/notifications/api/types';
+import type { ListNotificationsResult } from '@/features/notifications/api/types';
 
 export function useMarkAllNotificationsRead() {
   const queryClient = useQueryClient();
@@ -16,8 +16,12 @@ export function useMarkAllNotificationsRead() {
     // refetches the real state.
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: notificationKeys.all });
-      queryClient.setQueriesData<NotificationEntry[]>({ queryKey: notificationKeys.all }, (current) =>
-        Array.isArray(current) ? current.map((notification) => ({ ...notification, read: true })) : current,
+      // The cached value is the API result (`{ notifications, total, ... }`);
+      // `useNotifications`'s `select` only unwraps it when read.
+      queryClient.setQueriesData<ListNotificationsResult>({ queryKey: notificationKeys.all }, (current) =>
+        current && Array.isArray(current.notifications)
+          ? { ...current, notifications: current.notifications.map((notification) => ({ ...notification, read: true })) }
+          : current,
       );
     },
     onError: () => {
