@@ -7,6 +7,7 @@ import type { GetPrescriptionByIdUseCase } from '../../../clinical/application/u
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationEntityType } from '../../domain/enums/notification-entity-type.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface PrescriptionSignedEventPayload {
@@ -63,6 +64,8 @@ export class NotifyPatientOfPrescriptionSignedHandler {
         title: 'New prescription',
         description: 'Your doctor has signed a new prescription for you.',
         actionUrl: '/patient/prescriptions',
+        entityType: NotificationEntityType.Prescription,
+        entityId: prescription.getId(),
       });
       await this.notificationRepository.save(notification);
 

@@ -7,6 +7,7 @@ import type { GetDoctorProfileByIdUseCase } from '../../../doctor/application/us
 import type { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
+import { NotificationEntityType } from '../../domain/enums/notification-entity-type.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface DisputeWithdrawnEventPayload {
@@ -63,6 +64,8 @@ export class NotifyCounterpartyOfDisputeWithdrawnHandler {
         title: 'Dispute withdrawn',
         description: 'A dispute involving one of your appointments was withdrawn by the party who raised it.',
         actionUrl: counterparty.actionUrl,
+        entityType: NotificationEntityType.Dispute,
+        entityId: dispute.getId(),
       });
       await this.notificationRepository.save(notification);
 

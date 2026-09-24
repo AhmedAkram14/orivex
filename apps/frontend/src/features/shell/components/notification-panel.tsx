@@ -1,11 +1,11 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, Calendar, CheckCircle2, Info, Pill, Video, XCircle } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-mark-all-notifications-read';
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
-import type { NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
+import type { NotificationEntityType, NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
@@ -39,6 +39,19 @@ const severityIconClassName: Record<NotificationSeverity, string> = {
   danger: 'text-danger',
 };
 
+// Doctor UX audit remediation (Phase 5 backend proposal, now implemented):
+// entityType is a distinct signal from severity -- most entity-referencing
+// notifications are severity "info", so without this every one of them
+// still looked identical. Purely decorative (aria-hidden): the title/
+// description text already names what happened, this just gives a
+// same-glance visual category next to it.
+const entityTypeIcon: Record<NotificationEntityType, typeof Calendar> = {
+  appointment: Calendar,
+  consultation: Video,
+  dispute: AlertOctagon,
+  prescription: Pill,
+};
+
 export function NotificationRowContent({ notification }: { notification: NotificationEntry }) {
   const t = useTranslations('shell.notifications');
   const format = useFormatter();
@@ -56,6 +69,9 @@ export function NotificationRowContent({ notification }: { notification: Notific
           size="sm"
           className={cn('shrink-0', severityIconClassName[notification.severity])}
         />
+        {notification.entityType && (
+          <Icon icon={entityTypeIcon[notification.entityType]} size="sm" className="shrink-0 text-text-tertiary" />
+        )}
         {!notification.read && (
           <>
             {/* The dot is a visual-only cue -- `Unread` below is the text alternative assistive tech and anyone zoomed past the dot's size can rely on instead. */}

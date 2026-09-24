@@ -26,21 +26,48 @@ export class MessageThreadResponseDto {
    * against.
    */
   counterpartyAccountId?: string;
+  /**
+   * Doctor UX audit remediation (Phase 6 backend proposal, now
+   * implemented): the counterparty's own avatar, resolved the same way
+   * counterpartyDisplayName already is (same account lookup, same
+   * undefined-if-lookup-fails posture -- never fabricated).
+   */
+  counterpartyAvatarUrl?: string;
+  /**
+   * Doctor UX audit remediation (Phase 6 backend proposal, now
+   * implemented): truncated server-side (GetInboxPreviewsForThreadsUseCase),
+   * null when the thread has no messages yet. This is the thread's own
+   * content, visible to both parties already inside the thread itself --
+   * not the *LastReadAt privacy concern the comment below is about.
+   */
+  lastMessagePreview?: string | null;
+  /**
+   * Doctor UX audit remediation (Phase 6 backend proposal, now
+   * implemented): per-thread unread count, batched across every thread in
+   * one call (GetInboxPreviewsForThreadsUseCase -> MessageRepository's
+   * countUnreadForThreads), never a per-thread loop -- see that use case's
+   * own doc comment for why this was previously deliberately omitted (the
+   * old N+1 shape, not a privacy concern like *LastReadAt below).
+   */
+  unreadCount?: number;
 
-  // Deliberately carries no per-thread unread count and does NOT expose
-  // patientLastReadAt/doctorLastReadAt: (1) those are the *other* party's
-  // own read-activity timestamps in a two-party thread -- leaking them to
-  // the counterparty would disclose exactly when they last opened the
-  // conversation, which nothing in this product asks for; (2) a per-thread
-  // unread count is exactly the shape that forced the old N+1 loop this
-  // list endpoint used to run (one countUnreadForRecipient call per row).
-  // The single account-wide unread signal now lives behind its own
-  // GET /message-threads/unread-count (GetUnreadCountForAccountUseCase,
-  // one join query, never a per-thread loop) -- see
-  // MessageThreadController.listMyThreads/getUnreadCount.
+  // Still deliberately does NOT expose patientLastReadAt/doctorLastReadAt:
+  // those are the *other* party's own read-activity timestamps in a
+  // two-party thread -- leaking them to the counterparty would disclose
+  // exactly when they last opened the conversation, which nothing in this
+  // product asks for. The single account-wide unread signal used for the
+  // sidebar badge still lives behind its own GET /message-threads/unread-
+  // count (GetUnreadCountForAccountUseCase) -- unreadCount above is a
+  // separate, per-thread figure for the inbox list, not a replacement.
   static fromDomain(
     thread: MessageThread,
-    options?: { counterpartyDisplayName?: string; counterpartyAccountId?: string },
+    options?: {
+      counterpartyDisplayName?: string;
+      counterpartyAccountId?: string;
+      counterpartyAvatarUrl?: string;
+      lastMessagePreview?: string | null;
+      unreadCount?: number;
+    },
   ): MessageThreadResponseDto {
     const dto = new MessageThreadResponseDto();
     dto.id = thread.getId();
@@ -50,6 +77,9 @@ export class MessageThreadResponseDto {
     dto.lastMessageAt = thread.getLastMessageAt().toISOString();
     dto.counterpartyDisplayName = options?.counterpartyDisplayName;
     dto.counterpartyAccountId = options?.counterpartyAccountId;
+    dto.counterpartyAvatarUrl = options?.counterpartyAvatarUrl;
+    dto.lastMessagePreview = options?.lastMessagePreview;
+    dto.unreadCount = options?.unreadCount;
     return dto;
   }
 }

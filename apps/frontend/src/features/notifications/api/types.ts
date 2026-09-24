@@ -1,5 +1,8 @@
 export type NotificationSeverity = 'info' | 'success' | 'warning' | 'danger';
 
+/** Mirrors the backend's `NotificationEntityType` enum exactly (doctor UX audit remediation, Phase 5 backend proposal). */
+export type NotificationEntityType = 'appointment' | 'consultation' | 'dispute' | 'prescription';
+
 export interface NotificationEntry {
   id: string;
   title: string;
@@ -9,6 +12,9 @@ export interface NotificationEntry {
   read: boolean;
   /** Same-origin, locale-agnostic app path to navigate to on click -- undefined when there's no single relevant page. */
   actionUrl?: string;
+  /** The specific record this notification is about, when the backend resolved one. Both set or both undefined -- never fabricated on the frontend. */
+  entityType?: NotificationEntityType;
+  entityId?: string;
 }
 
 export interface ListNotificationsParams {

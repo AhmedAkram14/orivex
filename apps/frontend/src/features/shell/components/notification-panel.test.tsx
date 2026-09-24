@@ -75,6 +75,34 @@ describe('NotificationPanel severity icons', () => {
     expect(icon).not.toBeNull();
   });
 
+  it('renders a distinct entity-type icon alongside the severity icon when the notification references a specific record', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}${NOTIFICATIONS_PATHS.list}`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'notification-appointment',
+              title: 'Appointment confirmed',
+              description: 'Your appointment was confirmed.',
+              severity: 'info',
+              createdAt: new Date().toISOString(),
+              read: false,
+              entityType: 'appointment',
+              entityId: 'appt-1',
+            },
+          ],
+          meta: { requestId: 'r', timestamp: new Date().toISOString(), page: 1, limit: 50, total: 1 },
+        }),
+      ),
+    );
+    renderPanel();
+
+    const row = (await screen.findByText('Appointment confirmed')).closest('li');
+    expect(row).not.toBeNull();
+    // Two decorative icons now render on the row: severity (info) + entity type (appointment/Calendar).
+    expect(row!.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('has a "View all" link to the Notification Center page', async () => {
     renderPanel();
     await screen.findByText('Welcome to Orivex');

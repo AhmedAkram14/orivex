@@ -3,6 +3,7 @@ import type { GetAppointmentByIdUseCase } from '../../../consultation/applicatio
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
+import { NotificationEntityType } from '../../domain/enums/notification-entity-type.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface AppointmentRescheduledEventPayload {
@@ -49,6 +50,8 @@ export class NotifyPatientOfAppointmentRescheduledHandler {
         description: 'Your appointment was rescheduled to a new time.',
         actionUrl: '/patient/appointments',
         category: NotificationCategory.Appointments,
+        entityType: NotificationEntityType.Appointment,
+        entityId: newAppointment.getId(),
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

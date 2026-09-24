@@ -54,6 +54,12 @@ class FakeMessageRepository implements MessageRepository {
   async countUnreadForAccount(): Promise<number> {
     return 0;
   }
+  async findLatestMessagesForThreads(): Promise<Map<string, Message>> {
+    return new Map();
+  }
+  async countUnreadForThreads(): Promise<Map<string, number>> {
+    return new Map();
+  }
   async save(): Promise<void> {}
   async saveAll(): Promise<void> {
     throw new Error('MarkThreadMessagesReadUseCase must use saveAllAndMarkThreadRead, never saveAll directly.');

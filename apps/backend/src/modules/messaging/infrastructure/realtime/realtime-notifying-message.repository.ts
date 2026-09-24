@@ -49,6 +49,14 @@ export class RealtimeNotifyingMessageRepository implements MessageRepository {
     return this.inner.countUnreadForAccount(accountId, role);
   }
 
+  findLatestMessagesForThreads(threadIds: string[]): Promise<Map<string, Message>> {
+    return this.inner.findLatestMessagesForThreads(threadIds);
+  }
+
+  countUnreadForThreads(threadIds: string[], recipientAccountId: string): Promise<Map<string, number>> {
+    return this.inner.countUnreadForThreads(threadIds, recipientAccountId);
+  }
+
   async save(message: Message): Promise<void> {
     await this.inner.save(message);
     const recipientAccountId = await this.resolveRecipientAccountId(message);

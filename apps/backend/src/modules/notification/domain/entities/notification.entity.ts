@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { NotificationDomainError } from '../exceptions/notification-domain.error.js';
 import { NotificationSeverity } from '../enums/notification-severity.enum.js';
 import type { NotificationCategory } from '../enums/notification-category.enum.js';
+import type { NotificationEntityType } from '../enums/notification-entity-type.enum.js';
 
 export interface CreateNotificationProps {
   accountId: string;
@@ -20,6 +21,16 @@ export interface CreateNotificationProps {
    * notices aren't optional.
    */
   category?: NotificationCategory;
+  /**
+   * Doctor UX audit remediation (Phase 5 backend proposal): the specific
+   * record this notification is about, when the triggering handler already
+   * resolved one. Both fields are set together or not at all -- never a
+   * type without an id or vice versa. Undefined for account-level
+   * notifications with no single referenced record (e.g. new-device login,
+   * password changed, role promotion).
+   */
+  entityType?: NotificationEntityType;
+  entityId?: string;
 }
 
 export interface ReconstituteNotificationProps {
@@ -32,6 +43,8 @@ export interface ReconstituteNotificationProps {
   createdAt: Date;
   actionUrl?: string | null;
   category?: NotificationCategory | null;
+  entityType?: NotificationEntityType | null;
+  entityId?: string | null;
 }
 
 // NotificationModule's own aggregate root (docs/05-information-architecture.md's
@@ -51,6 +64,8 @@ export class Notification {
     private readonly createdAt: Date,
     private readonly actionUrl: string | undefined,
     private readonly category: NotificationCategory | undefined,
+    private readonly entityType: NotificationEntityType | undefined,
+    private readonly entityId: string | undefined,
   ) {}
 
   static create(props: CreateNotificationProps): Notification {
@@ -59,6 +74,9 @@ export class Notification {
     }
     if (!props.description || props.description.trim().length === 0) {
       throw new NotificationDomainError('description must not be empty.');
+    }
+    if ((props.entityType === undefined) !== (props.entityId === undefined)) {
+      throw new NotificationDomainError('entityType and entityId must both be set or both be omitted.');
     }
 
     return new Notification(
@@ -71,6 +89,8 @@ export class Notification {
       new Date(),
       props.actionUrl,
       props.category,
+      props.entityType,
+      props.entityId,
     );
   }
 
@@ -85,6 +105,8 @@ export class Notification {
       props.createdAt,
       props.actionUrl ?? undefined,
       props.category ?? undefined,
+      props.entityType ?? undefined,
+      props.entityId ?? undefined,
     );
   }
 
@@ -126,5 +148,13 @@ export class Notification {
 
   getCategory(): NotificationCategory | undefined {
     return this.category;
+  }
+
+  getEntityType(): NotificationEntityType | undefined {
+    return this.entityType;
+  }
+
+  getEntityId(): string | undefined {
+    return this.entityId;
   }
 }

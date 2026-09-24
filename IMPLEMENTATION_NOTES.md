@@ -766,5 +766,46 @@ Confirmed above via grep across all touched non-test files for the audit's own e
 - Reports chart x-axis time-scaling (proportional to actual date gaps) — deferred (Phase 8), linear interpolation (the higher-priority visual-honesty fix) was completed.
 - Playwright mobile-viewport e2e assertions — deferred (Phase 7), no mobile project exists in the current Playwright config and adding one requires a live dev/prod server this environment can't run.
 - `bootstrapSession` cold-start failure still can't distinguish "never logged in" from "session expired after a long absence" (Phase 9) — only the more common authenticated→unauthenticated mid-session case (the one the audit actually reported) was fixed.
+
+## Phase 10 — Backend proposals implemented (Phase 5 + Phase 6 follow-through)
+
+User explicitly approved implementing both previously-deferred backend proposals (Phase 5's `entityType`/`entityId` and Phase 6's `MessageThreadResponseDto` gaps) — see the "Implement both" decision. A local stack was brought up (Docker Compose Postgres/Redis/Minio/Mailpit, seeded with Dr. Dalia Anwar/Salma Khaled/Fady Nassar) and a Playwright walkthrough was attempted, but **it did not produce valid evidence**: the Next dev server ran out of memory once, cold compiles routinely exceeded timeouts, and the screenshots captured were the PWA "You're offline" fallback, not the real pages. The "no live browser verification" gap from Phase 9 therefore **remains open**.
+
+### 1. Notification `entityType`/`entityId`
+
+- **Migration**: `apps/backend/prisma/migrations/20260924075205_add_notification_entity_ref/` — adds nullable `entityType`/`entityId` (plain `String?` columns, not a Postgres enum, so future entity kinds don't need a migration) to `Notification`.
+- **Domain**: new `NotificationEntityType` enum (`apps/backend/src/modules/notification/domain/enums/notification-entity-type.enum.ts`) — `appointment | consultation | dispute | prescription`, scoped to the entity kinds a handler already had a real id for; `notify-doctor-of-consultation-feedback-submitted.handler.ts`'s deep link to a patient chart didn't fit any of the four and was left unset rather than inventing a `patient`/`review` type for one caller. `Notification.create()` now throws if `entityType`/`entityId` are set inconsistently (one without the other).
+- **Persistence**: `notification.mapper.ts` maps both directions; unrecognized/legacy `entityType` string values from the DB fall back to `undefined` rather than throwing.
+- **Populated in 15 of ~19 event handlers** (every appointment lifecycle handler, both consultation-interrupted notifications, consultation-completed, the prescription-signed handler, and all 4 dispute handlers) using ids each handler already had in scope — no new queries added anywhere to populate these fields. Not populated: consultation-feedback-submitted (no fitting type), new-device-login/password-changed/role-promotion/waitlist-opportunity (genuinely account-level, no single referenced record).
+- **DTO**: `NotificationResponseDto` exposes both fields.
+- **Frontend**: `NotificationEntry`/`NotificationEntityType` types updated; `notification-panel.tsx` renders a second, decorative (`aria-hidden` via `Icon`'s own default) entity-type icon (Calendar/Video/AlertOctagon/Pill) next to the existing severity icon whenever `entityType` is present — directly delivers the proposal's stated benefit ("a per-entity icon distinct from severity") without touching severity's own established meaning.
+- **Not done, consistent with the original proposal's own scope note**: no patient-name field was added to notifications — the proposal explicitly called that a separate, larger decision (denormalize vs. join-at-read-time) out of scope here, and nothing in this phase changed that.
+
+### 2. `MessageThreadResponseDto` inbox gaps
+
+- **No migration needed** — `lastMessagePreview` derives from existing `Message` rows, `unreadCount` from existing `readAt`/`senderAccountId` columns, `counterpartyAvatarUrl` from the existing `UserProfile.avatarUrl` the same account lookup `counterpartyDisplayName` already performs.
+- **`MessageRepository`**: two new batched methods — `findLatestMessagesForThreads` (Postgres `DISTINCT ON`, one query for every thread in the caller's inbox) and `countUnreadForThreads` (Prisma `groupBy`, same batching). Neither is a per-thread loop; both mirror `countUnreadForAccount`'s own "batch it, don't N+1 it" precedent. Implemented on `PrismaMessageRepository` and passed through on the `RealtimeNotifyingMessageRepository` decorator (had to add both to keep it satisfying the interface — pure pass-through, no realtime behavior for either).
+- **New use case**: `GetInboxPreviewsForThreadsUseCase` (`apps/backend/src/modules/messaging/application/use-cases/get-inbox-previews-for-threads/`) composes the two batched repository calls into a `Map<threadId, {lastMessagePreview, unreadCount}>`; truncates preview text to 140 chars server-side (collapses whitespace, adds an ellipsis) per the original proposal's "truncated server-side" framing.
+- **Controller**: `MessageThreadController.listMyThreads` calls the new use case once for the whole inbox (not per row) and merges its results into each `MessageThreadResponseDto.fromDomain(...)` call; `resolveCounterpartyInfo` now also resolves `counterpartyAvatarUrl` alongside the existing `counterpartyDisplayName`/`counterpartyAccountId` (same account lookup, no new query).
+- **Frontend**: `MessageThread` type gained the three fields; `ThreadListItem` now shows the counterparty's real avatar photo (falls back to the initial-letter `AvatarFallback` when absent, unchanged), the truncated last-message preview instead of always a relative timestamp (falls back to the relative timestamp only for a genuinely empty thread, where there's nothing to preview), and an unread visual treatment (bold name + primary-colored dot + `sr-only` "Unread" text, mirroring `notification-panel.tsx`'s own unread-dot pattern) when `unreadCount > 0`.
+- **Privacy posture unchanged**: `patientLastReadAt`/`doctorLastReadAt` are still never exposed on this DTO — the new `unreadCount` is a different, non-privacy-sensitive figure (a per-thread count, not the other party's read-activity timestamp) and doesn't reopen that concern.
+
+### Check results
+
+- `pnpm --filter backend typecheck` (full project `tsc`): clean, no errors (initially caught 8 errors from 4 test doubles + the realtime decorator missing the two new `MessageRepository` methods — all fixed, all now satisfy the interface).
+- `pnpm --filter backend lint` on `modules/notification` + `modules/messaging`: clean.
+- `node --test dist/modules/notification dist/modules/messaging`: **166/166 passing** (50 suites) — no regressions in either module.
+- `pnpm --filter frontend typecheck`: clean. `pnpm --filter frontend lint` on the touched files: clean.
+- `messages/en.json`/`messages/ar.json`: both validated as parseable JSON; one new key pair added (`messaging.inbox.unread` / `"Unread"` / `"غير مقروءة"`).
+- `vitest run` on every touched/relevant frontend file: `notification-panel.test.tsx` (6/6, including a new test asserting the entity-type icon renders alongside severity), `thread-list-item.test.tsx` (5/5), `thread-panel.test.tsx`, `messaging-workspace.test.tsx`, `doctor/messages/page.test.tsx`, `notifications/page.test.tsx` — 33/33 passing across 6 files, no regressions.
+
+### i18n keys added
+
+Both `en.json`/`ar.json`: `messaging.inbox.unread` — the inbox row's `sr-only` unread text alternative (mirrors `shell.notifications.unread`'s existing pattern). No other new user-facing strings — the entity-type icons are decorative/`aria-hidden`, and the last-message preview renders the message's own real (already-authored) text.
+
+### Known remaining gaps
+
+- Notification entity-type coverage is real but not exhaustive (15/~19 handlers) — the 4 left unset either had no fitting entity type in the 4-value enum or are genuinely account-level with no single referenced record, per the original proposal's own scope. Adding a `patient`/`review` type for the consultation-feedback handler, or an `account` type for the security-notice handlers, would be a small follow-up if a future audit asks for it.
+- `RealtimeNotifyingMessageRepository`'s two new pass-through methods (`findLatestMessagesForThreads`/`countUnreadForThreads`) don't emit anything over the realtime channel — correct today (nothing currently needs a live push for inbox-preview changes; the inbox list is fetched, not subscribed), flagged only because every *other* method on this decorator does emit something, so a future reader might otherwise wonder if it was an oversight.
 - Password-change-in-two-surfaces and theme-in-three-surfaces (Phase 5) — deliberately deferred per the audit's own P2/P3 priority, not a trivial redundant-control removal.
 - A live browser walkthrough (EN/AR × light/dark × 3 viewports) has not been performed — see above.

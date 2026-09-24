@@ -17,6 +17,7 @@ import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/g
 
 import { MESSAGE_REPOSITORY, MESSAGE_THREAD_REPOSITORY } from './application/ports/tokens.js';
 import { GetMessageThreadByIdUseCase } from './application/use-cases/get-message-thread-by-id/get-message-thread-by-id.use-case.js';
+import { GetInboxPreviewsForThreadsUseCase } from './application/use-cases/get-inbox-previews-for-threads/get-inbox-previews-for-threads.use-case.js';
 import { GetUnreadCountForAccountUseCase } from './application/use-cases/get-unread-count-for-account/get-unread-count-for-account.use-case.js';
 import { ListAppointmentsForThreadUseCase } from './application/use-cases/list-appointments-for-thread/list-appointments-for-thread.use-case.js';
 import { ListMessageThreadsForAccountUseCase } from './application/use-cases/list-message-threads-for-account/list-message-threads-for-account.use-case.js';
@@ -159,6 +160,11 @@ import { MessageThreadController } from './presentation/controllers/message-thre
         getDoctorProfileByAccountIdUseCase: GetDoctorProfileByAccountIdUseCase,
       ) => new GetUnreadCountForAccountUseCase(messageRepository, getPatientProfileByAccountIdUseCase, getDoctorProfileByAccountIdUseCase),
       inject: [MESSAGE_REPOSITORY, GetPatientProfileByAccountIdUseCase, GetDoctorProfileByAccountIdUseCase],
+    },
+    {
+      provide: GetInboxPreviewsForThreadsUseCase,
+      useFactory: (messageRepository: MessageRepository) => new GetInboxPreviewsForThreadsUseCase(messageRepository),
+      inject: [MESSAGE_REPOSITORY],
     },
     {
       provide: ListAppointmentsForThreadUseCase,

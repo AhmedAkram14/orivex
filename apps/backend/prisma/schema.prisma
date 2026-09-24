@@ -1442,6 +1442,12 @@ model Notification {
   /// the frontend navigates to when this notification is clicked -- null for
   /// notifications with no single relevant page to jump to.
   actionUrl   String?
+  /// Doctor UX audit remediation (Phase 5 backend proposal): the kind of
+  /// record this notification is about (e.g. "appointment", "dispute"),
+  /// paired with entityId below. Both null together for account-level
+  /// notifications with no single referenced record.
+  entityType  String?
+  entityId    String?
 
   @@index([accountId])
   @@index([createdAt])

@@ -6,6 +6,7 @@ import type { GetAccountByIdUseCase } from '../../../identity/application/use-ca
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
+import { NotificationEntityType } from '../../domain/enums/notification-entity-type.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 import type { NotificationPreferenceGate } from '../services/notification-preference-gate.service.js';
 
@@ -59,6 +60,8 @@ export class NotifyPatientOfAppointmentCancelledHandler {
         description,
         actionUrl: '/patient/appointments',
         category: NotificationCategory.Appointments,
+        entityType: NotificationEntityType.Appointment,
+        entityId: appointment.getId(),
       });
       await this.notificationRepository.save(notification);
 

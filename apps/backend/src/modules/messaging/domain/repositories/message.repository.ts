@@ -18,6 +18,20 @@ export interface MessageRepository {
   // badge endpoint to list every thread just to get ids to count -- one
   // query pretending to save one query).
   countUnreadForAccount(accountId: string, role: MessagingParticipantRole): Promise<number>;
+  // Doctor UX audit remediation (Phase 6 backend proposal): backs the inbox
+  // list's per-row last-message preview. One query for every thread in the
+  // caller's inbox (a Postgres DISTINCT ON, see the Prisma implementation),
+  // never a per-thread loop -- the same "batch it, don't N+1 it" discipline
+  // as countUnreadForAccount above. Threads with zero messages simply have
+  // no entry in the returned map.
+  findLatestMessagesForThreads(threadIds: string[]): Promise<Map<string, Message>>;
+  // Doctor UX audit remediation (Phase 6 backend proposal): backs the inbox
+  // list's per-row unread badge -- one grouped query for every thread in the
+  // caller's inbox, not per-thread. Uses the same "unread" definition as
+  // countUnreadForRecipient (not sent by recipientAccountId, readAt null),
+  // just batched across threads instead of one at a time. Threads with no
+  // unread messages simply have no entry in the returned map.
+  countUnreadForThreads(threadIds: string[], recipientAccountId: string): Promise<Map<string, number>>;
   save(message: Message): Promise<void>;
   saveAll(messages: Message[]): Promise<void>;
   // MarkThreadMessagesReadUseCase's load-bearing invariant: Message.readAt

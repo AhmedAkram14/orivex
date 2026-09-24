@@ -3,6 +3,7 @@ import type { GetPatientProfileByIdUseCase } from '../../../patient/application/
 import type { GetPaymentTransactionByIdUseCase } from '../../../payment/application/use-cases/get-payment-transaction-by-id/get-payment-transaction-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
+import { NotificationEntityType } from '../../domain/enums/notification-entity-type.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
 
 export interface RefundIssuedEventPayload {
@@ -44,6 +45,8 @@ export class NotifyPatientOfRefundIssuedHandler {
         description: `You were refunded ${amount.getAmount()} ${amount.getCurrency()}.`,
         actionUrl: '/patient/appointments',
         category: NotificationCategory.Billing,
+        entityType: NotificationEntityType.Appointment,
+        entityId: transaction.getAppointmentId(),
       });
       await this.notificationRepository.save(notification);
     } catch (error) {

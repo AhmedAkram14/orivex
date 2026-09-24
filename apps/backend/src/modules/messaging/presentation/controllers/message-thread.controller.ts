@@ -11,6 +11,7 @@ import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/g
 import { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import type { MessageThread } from '../../domain/entities/message-thread.entity.js';
+import { GetInboxPreviewsForThreadsUseCase } from '../../application/use-cases/get-inbox-previews-for-threads/get-inbox-previews-for-threads.use-case.js';
 import { GetUnreadCountForAccountUseCase } from '../../application/use-cases/get-unread-count-for-account/get-unread-count-for-account.use-case.js';
 import { ListAppointmentsForThreadUseCase } from '../../application/use-cases/list-appointments-for-thread/list-appointments-for-thread.use-case.js';
 import { ListMessageThreadsForAccountUseCase } from '../../application/use-cases/list-message-threads-for-account/list-message-threads-for-account.use-case.js';
@@ -46,6 +47,7 @@ export class MessageThreadController {
     private readonly sendMessageUseCase: SendMessageUseCase,
     private readonly markThreadMessagesReadUseCase: MarkThreadMessagesReadUseCase,
     private readonly getUnreadCountForAccountUseCase: GetUnreadCountForAccountUseCase,
+    private readonly getInboxPreviewsForThreadsUseCase: GetInboxPreviewsForThreadsUseCase,
     private readonly listAppointmentsForThreadUseCase: ListAppointmentsForThreadUseCase,
     private readonly getPatientProfileByIdUseCase: GetPatientProfileByIdUseCase,
     private readonly getDoctorProfileByIdUseCase: GetDoctorProfileByIdUseCase,
@@ -55,10 +57,22 @@ export class MessageThreadController {
   @Get()
   async listMyThreads(@CurrentUser() user: AccessTokenClaims): Promise<ResponseEnvelope<MessageThreadResponseDto[]>> {
     const threads = await this.listMessageThreadsForAccountUseCase.execute({ callerAccountId: user.accountId });
+    // Doctor UX audit remediation (Phase 6 backend proposal): one batched
+    // call for every thread's preview/unread metadata, not per-row -- see
+    // GetInboxPreviewsForThreadsUseCase's own doc comment.
+    const previewsByThreadId = await this.getInboxPreviewsForThreadsUseCase.execute(
+      threads.map((thread) => thread.getId()),
+      user.accountId,
+    );
     const dtos = await Promise.all(
       threads.map(async (thread) => {
         const counterparty = await this.resolveCounterpartyInfo(thread, user.accountId);
-        return MessageThreadResponseDto.fromDomain(thread, counterparty);
+        const preview = previewsByThreadId.get(thread.getId());
+        return MessageThreadResponseDto.fromDomain(thread, {
+          ...counterparty,
+          lastMessagePreview: preview?.lastMessagePreview,
+          unreadCount: preview?.unreadCount,
+        });
       }),
     );
     return envelope(dtos);
@@ -165,7 +179,7 @@ export class MessageThreadController {
   private async resolveCounterpartyInfo(
     thread: MessageThread,
     callerAccountId: string,
-  ): Promise<{ counterpartyDisplayName?: string; counterpartyAccountId?: string }> {
+  ): Promise<{ counterpartyDisplayName?: string; counterpartyAccountId?: string; counterpartyAvatarUrl?: string }> {
     const patientProfile = await this.getPatientProfileByIdUseCase.execute({ patientProfileId: thread.getPatientId() });
     const callerIsPatient = patientProfile?.getAccountId() === callerAccountId;
 
@@ -180,6 +194,7 @@ export class MessageThreadController {
     return {
       counterpartyAccountId,
       counterpartyDisplayName: counterpartyAccount?.getUserProfile().getDisplayName().toString(),
+      counterpartyAvatarUrl: counterpartyAccount?.getUserProfile().getAvatarUrl(),
     };
   }
 }

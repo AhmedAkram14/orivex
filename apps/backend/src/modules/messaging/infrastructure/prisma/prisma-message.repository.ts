@@ -59,6 +59,39 @@ export class PrismaMessageRepository implements MessageRepository {
     return Number(rows[0]?.count ?? 0n);
   }
 
+  // Doctor UX audit remediation (Phase 6 backend proposal): DISTINCT ON is
+  // Postgres-specific, matching countUnreadForAccount's own precedent of
+  // reaching for raw SQL when Prisma's query builder has no "latest row per
+  // group" shape (groupBy only aggregates, it can't return the winning
+  // row's other columns). Empty threadIds short-circuits to avoid issuing
+  // `= ANY('{}')` against an empty array, which Postgres accepts but is
+  // pointless to send.
+  async findLatestMessagesForThreads(threadIds: string[]): Promise<Map<string, Message>> {
+    if (threadIds.length === 0) return new Map();
+    const rows = await this.prisma.$queryRaw<
+      { id: string; threadId: string; senderAccountId: string; body: string; attachmentAssetId: string | null; readAt: Date | null; createdAt: Date }[]
+    >(Prisma.sql`
+      SELECT DISTINCT ON (m."threadId") m.id, m."threadId", m."senderAccountId", m.body, m."attachmentAssetId", m."readAt", m."createdAt"
+      FROM "Message" m
+      WHERE m."threadId" = ANY(${threadIds})
+      ORDER BY m."threadId", m."createdAt" DESC
+    `);
+    return new Map(rows.map((row) => [row.threadId, toDomainMessage(row)]));
+  }
+
+  // Same batching discipline as findLatestMessagesForThreads above --
+  // Prisma's groupBy covers this one natively (a plain count aggregate),
+  // no raw SQL needed.
+  async countUnreadForThreads(threadIds: string[], recipientAccountId: string): Promise<Map<string, number>> {
+    if (threadIds.length === 0) return new Map();
+    const rows = await this.prisma.message.groupBy({
+      by: ['threadId'],
+      where: { threadId: { in: threadIds }, senderAccountId: { not: recipientAccountId }, readAt: null },
+      _count: true,
+    });
+    return new Map(rows.map((row) => [row.threadId, row._count]));
+  }
+
   async save(message: Message): Promise<void> {
     await this.upsert(message);
   }

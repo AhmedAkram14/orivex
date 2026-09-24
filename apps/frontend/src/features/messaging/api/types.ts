@@ -4,9 +4,10 @@
  * doctorId) now, not by a single Appointment -- `appointmentId` is gone.
  * `lastMessageAt` backs inbox ordering; `counterpartyDisplayName` is
  * resolved server-side (no more client-side id-matching against the
- * caller's own appointments list). No per-thread `unreadCount` -- see
- * `use-unread-message-count.ts` (Phase 3) for the single account-wide
- * badge this DTO deliberately doesn't duplicate per row.
+ * caller's own appointments list). `use-unread-message-count.ts` (Phase 3)
+ * still owns the single account-wide sidebar badge -- `unreadCount` below
+ * is a separate, per-thread figure for the inbox list rows, added by the
+ * doctor UX audit remediation's Phase 6 backend proposal.
  */
 export interface MessageThread {
   id: string;
@@ -20,6 +21,12 @@ export interface MessageThread {
   counterpartyDisplayName?: string;
   /** Realtime layer (Phase 2): the counterparty's own account id, for addressing a `messaging.typing` emit at them. Same undefined-only-on-lookup-failure guarantee as `counterpartyDisplayName`. */
   counterpartyAccountId?: string;
+  /** Same undefined-only-on-lookup-failure guarantee as `counterpartyDisplayName`. */
+  counterpartyAvatarUrl?: string;
+  /** Truncated server-side; null when the thread has no messages yet. */
+  lastMessagePreview?: string | null;
+  /** Per-thread unread count, batched server-side across the whole inbox in one call -- not an N+1. */
+  unreadCount?: number;
 }
 
 /** Matches MessageResponseDto exactly (MessageThreadController). */
