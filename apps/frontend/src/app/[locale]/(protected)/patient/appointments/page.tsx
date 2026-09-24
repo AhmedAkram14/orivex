@@ -9,7 +9,7 @@ import { AppointmentsCalendar } from '@/features/patient/components/appointments
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
 import { selectPastAppointments, selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
 import { getCairoNow } from '@/shared/lib/date/timezone';
-import { Link } from '@/shared/i18n/navigation';
+import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -36,8 +36,16 @@ export default function PatientAppointmentsPage() {
   const { data: appointments, isLoading, isError } = usePatientAppointments();
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const searchParams = useSearchParams();
-  const autoOpenConsultationSessionId = searchParams.get('consultationSessionId') ?? undefined;
+  const router = useRouter();
+  const pathname = usePathname();
+  const consultationParam = searchParams.get('consultationSessionId') ?? undefined;
   const highlightId = searchParams.get('highlight') ?? undefined;
+  // A notification link to THIS page (e.g. clicked from the bell while already
+  // here) changes only the query string -- the page doesn't remount, so the
+  // params must be reacted to, not read once. The consultation param is handed
+  // to `autoOpenConsultationSessionId` and then consumed from the URL so the
+  // same notification can be clicked again later.
+  const [autoOpenConsultationSessionId, setAutoOpenConsultationSessionId] = useState<string | undefined>(consultationParam);
 
   // The one shared definition (features/patient/lib/upcoming-appointments.ts) --
   // the Overview hero, summary strip and list use the same selector.
@@ -49,7 +57,21 @@ export default function PatientAppointmentsPage() {
 
   // A highlighted appointment lives in whichever tab holds it; open that tab.
   const highlightedIsUpcoming = highlightId ? upcoming.some((a) => a.id === highlightId) : false;
-  const defaultTab = autoOpenConsultationSessionId || (highlightId && !highlightedIsUpcoming) ? 'history' : 'upcoming';
+  const [activeTab, setActiveTab] = useState<'upcoming' | 'history'>(consultationParam ? 'history' : 'upcoming');
+
+  useEffect(() => {
+    if (consultationParam) {
+      setAutoOpenConsultationSessionId(consultationParam);
+      setActiveTab('history');
+      router.replace(pathname, { scroll: false });
+    } else {
+      setAutoOpenConsultationSessionId(undefined);
+    }
+  }, [consultationParam, pathname, router]);
+
+  useEffect(() => {
+    if (highlightId && !isLoading) setActiveTab(highlightedIsUpcoming ? 'upcoming' : 'history');
+  }, [highlightId, highlightedIsUpcoming, isLoading]);
 
   useEffect(() => {
     if (!highlightId || isLoading) return;
@@ -79,7 +101,7 @@ export default function PatientAppointmentsPage() {
             <Skeleton className="h-16 w-full" />
           </div>
         ) : (
-          <Tabs defaultValue={defaultTab}>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'upcoming' | 'history')}>
             <TabsList>
               <TabsTrigger value="upcoming">{t('upcomingTab')}</TabsTrigger>
               <TabsTrigger value="history">{t('historyTab')}</TabsTrigger>

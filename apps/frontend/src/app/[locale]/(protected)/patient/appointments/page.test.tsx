@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -19,11 +19,15 @@ function todayDateKey(): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+// Mutable so a test can change the URL after mount, the way a notification
+// link clicked while already on this page does (query change, no remount).
+const mockNav = vi.hoisted(() => ({ params: new URLSearchParams() }));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/patient/appointments',
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => mockNav.params,
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
@@ -31,6 +35,7 @@ vi.mock('next/navigation', () => ({
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
+  mockNav.params = new URLSearchParams();
   server.resetHandlers();
   resetPatientStore();
   resetSchedulingStore();
@@ -54,6 +59,26 @@ function renderPage() {
     </QueryClientProvider>,
   );
 }
+
+describe('PatientAppointmentsPage deep links while already on the page', () => {
+  it('switches to History when a consultation link is followed after mount (no remount)', async () => {
+    const { rerender } = renderPage();
+    expect(await screen.findByRole('tab', { name: 'Upcoming' })).toHaveAttribute('aria-selected', 'true');
+
+    mockNav.params = new URLSearchParams('consultationSessionId=session-x');
+    rerender(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
+          <AuthContext.Provider value={patientState}>
+            <PatientAppointmentsPage />
+          </AuthContext.Provider>
+        </NextIntlClientProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'History' })).toHaveAttribute('aria-selected', 'true'));
+  });
+});
 
 describe('PatientAppointmentsPage', () => {
   it('renders the calendar foundation and an honest empty upcoming-appointments state', async () => {

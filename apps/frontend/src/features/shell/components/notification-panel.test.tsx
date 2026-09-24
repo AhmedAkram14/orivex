@@ -103,6 +103,23 @@ describe('NotificationPanel severity icons', () => {
     expect(row!.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
   });
 
+  it('links an appointment notification to that appointment row for its role, not a generic list page', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}${NOTIFICATIONS_PATHS.list}`, () =>
+        HttpResponse.json({
+          data: [
+            { id: 'n-patient', title: 'Appointment approved', description: 'ok', severity: 'info', createdAt: new Date().toISOString(), read: false, actionUrl: '/patient/appointments', entityType: 'appointment', entityId: 'appt-9' },
+          ],
+          meta: { requestId: 'r', timestamp: new Date().toISOString(), page: 1, limit: 50, total: 1 },
+        }),
+      ),
+    );
+    renderPanel();
+
+    const link = (await screen.findByText('Appointment approved')).closest('a');
+    expect(link).toHaveAttribute('href', '/en/patient/appointments?highlight=appt-9');
+  });
+
   it('has a "View all" link to the Notification Center page', async () => {
     renderPanel();
     await screen.findByText('Welcome to Orivex');

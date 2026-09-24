@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { NotificationEntry } from '@/features/notifications/api/types';
-import { localizeIsoTimestamps, resolvePatientNotificationHref } from '@/features/notifications/lib/notification-text';
+import { localizeIsoTimestamps, resolveNotificationHref } from '@/features/notifications/lib/notification-text';
 
 // Minimal stand-in for next-intl's formatter: only `dateTime` is used.
 const format = { dateTime: (date: Date) => `FMT(${date.toISOString().slice(0, 10)})` } as never;
@@ -20,17 +20,21 @@ describe('localizeIsoTimestamps', () => {
   });
 });
 
-describe('resolvePatientNotificationHref', () => {
+describe('resolveNotificationHref', () => {
   it('deep-links an appointment notification to its row', () => {
-    expect(resolvePatientNotificationHref({ ...base, entityType: 'appointment', entityId: 'a1', actionUrl: '/patient/appointments' })).toBe(
+    expect(resolveNotificationHref({ ...base, entityType: 'appointment', entityId: 'a1', actionUrl: '/patient/appointments' })).toBe(
       '/patient/appointments?highlight=a1',
     );
   });
 
+  it('sends a doctor appointment notification to the Appointments row instead of the today-only Queue', () => {
+    expect(resolveNotificationHref({ ...base, entityType: 'appointment', entityId: 'a1', actionUrl: '/doctor/queue' })).toBe('/doctor/appointments?highlight=a1');
+  });
+
   it('keeps the server actionUrl for other entity types and when no entity is referenced', () => {
-    expect(resolvePatientNotificationHref({ ...base, entityType: 'consultation', entityId: 'c1', actionUrl: '/patient/appointments?consultationSessionId=c1' })).toBe(
+    expect(resolveNotificationHref({ ...base, entityType: 'consultation', entityId: 'c1', actionUrl: '/patient/appointments?consultationSessionId=c1' })).toBe(
       '/patient/appointments?consultationSessionId=c1',
     );
-    expect(resolvePatientNotificationHref(base)).toBeUndefined();
+    expect(resolveNotificationHref(base)).toBeUndefined();
   });
 });

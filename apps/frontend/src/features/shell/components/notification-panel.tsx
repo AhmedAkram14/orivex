@@ -6,7 +6,7 @@ import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationEntityType, NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
-import { localizeIsoTimestamps } from '@/features/notifications/lib/notification-text';
+import { localizeIsoTimestamps, resolveNotificationHref } from '@/features/notifications/lib/notification-text';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
@@ -111,11 +111,12 @@ export function NotificationRow({
   closeOnNavigate?: boolean;
 }) {
   const markAsRead = useMarkNotificationRead();
+  const href = resolveNotificationHref(notification);
 
-  if (notification.actionUrl) {
+  if (href) {
     const link = (
       <Link
-        href={notification.actionUrl}
+        href={href}
         onClick={() => {
           if (!notification.read) markAsRead.mutate(notification.id);
         }}

@@ -21,14 +21,22 @@ export function localizeIsoTimestamps(text: string, format: Formatter): string {
 }
 
 /**
- * The most specific existing patient-side destination for a notification.
- * An appointment reference deep-links to that appointment's row; everything
- * else keeps the server-provided `actionUrl` (e.g. the completed
- * consultation's summary link), and a notification with neither has none.
+ * The most specific existing destination for a notification, for either
+ * role. An appointment reference deep-links to that appointment's row on the
+ * role's own Appointments page (the server `actionUrl` says which role it is
+ * for -- `/patient/appointments`, or the doctor's `/doctor/queue` /
+ * `/doctor/appointments`; the Queue only lists today, so a row link is
+ * strictly more useful). Everything else keeps the server-provided
+ * `actionUrl` (e.g. the completed consultation's summary link), and a
+ * notification with neither has none.
  */
-export function resolvePatientNotificationHref(notification: NotificationEntry): string | undefined {
-  if (notification.entityType === 'appointment' && notification.entityId) {
-    return `/patient/appointments?highlight=${notification.entityId}`;
+export function resolveNotificationHref(notification: NotificationEntry): string | undefined {
+  const { entityType, entityId, actionUrl } = notification;
+  if (entityType === 'appointment' && entityId && actionUrl) {
+    if (actionUrl.startsWith('/patient/appointments')) return `/patient/appointments?highlight=${entityId}`;
+    if (actionUrl.startsWith('/doctor/queue') || actionUrl.startsWith('/doctor/appointments')) {
+      return `/doctor/appointments?highlight=${entityId}`;
+    }
   }
-  return notification.actionUrl;
+  return actionUrl;
 }

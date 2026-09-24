@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
-import { resolvePatientNotificationHref } from '@/features/notifications/lib/notification-text';
 import { NotificationRow } from '@/features/shell/components/notification-panel';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -54,10 +53,7 @@ export function RecentActivity() {
       ) : recent.length > 0 ? (
         <ul className="flex flex-col divide-y divide-border-default">
           {recent.map((notification) => (
-            <NotificationRow
-              key={notification.id}
-              notification={{ ...notification, actionUrl: resolvePatientNotificationHref(notification) }}
-            />
+            <NotificationRow key={notification.id} notification={notification} />
           ))}
         </ul>
       ) : (
