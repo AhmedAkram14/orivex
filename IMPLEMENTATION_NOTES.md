@@ -809,3 +809,28 @@ Both `en.json`/`ar.json`: `messaging.inbox.unread` — the inbox row's `sr-only`
 - `RealtimeNotifyingMessageRepository`'s two new pass-through methods (`findLatestMessagesForThreads`/`countUnreadForThreads`) don't emit anything over the realtime channel — correct today (nothing currently needs a live push for inbox-preview changes; the inbox list is fetched, not subscribed), flagged only because every *other* method on this decorator does emit something, so a future reader might otherwise wonder if it was an oversight.
 - Password-change-in-two-surfaces and theme-in-three-surfaces (Phase 5) — deliberately deferred per the audit's own P2/P3 priority, not a trivial redundant-control removal.
 - A live browser walkthrough (EN/AR × light/dark × 3 viewports) has not been performed — see above.
+
+## Phase 11 — Completing Phases 6, 7 and 8
+
+### Phase 6
+- Inbox rows for a thread the server reports as empty (`lastMessagePreview === null`) now read "No messages yet" (`messaging.inbox.noMessagesYet`, EN/AR) instead of a misleading relative time; `undefined` (older payloads) keeps the relative-time fallback. Tested in `thread-list-item.test.tsx`.
+
+### Phase 7
+- Schedule now defaults to **Day** (was Agenda) below 768px, as the spec asked (`doctor/schedule/page.tsx`).
+- `WeeklyCalendar` scrolls today (or the selected day) into view horizontally on mount and when the selection changes.
+- New `tests/e2e/doctor-responsive-a11y.spec.ts`: no horizontal page scroll on overview, patients, schedule, messages, notifications, appointments and reports at 390/768/1280px in EN and AR, saving full-page screenshots into Playwright's output folder. On failure it lists the offending elements.
+
+### Phase 8
+- **Time-scaled x-axis**: `AreaChart` gained an opt-in `timeAxis` prop (numeric timestamps, `scale="time"`); the Reports trend chart uses it, so uneven date gaps are spaced proportionally. Its inline `toLocaleDateString` was replaced by the shared `useFormatter`. Other chart callers are unchanged.
+- **Single stat tile**: `StatCard` now delegates to `LinkableStatCard`, leaving one implementation of tile layout, label-height reservation and the long-value backstop.
+- **Ad-hoc formatting grep** over `app/.../doctor`, `features/doctor|shell|messaging|notifications`: the only remaining `toISOString().slice` calls build `YYYY-MM-DD` API query params (`appointments-workspace.tsx`, `reports-date-range-picker.tsx`), not display text.
+- **axe pass** (new dev-dependency `@axe-core/playwright`, wcag2a/aa, serious+critical) over the doctor routes. It found four real issues, all fixed:
+  1. `color-contrast`: `--color-text-tertiary` (gray-500, 4.39:1 on gray-100) darkened to a new `--gray-550` (#5f6672, ≈5.2:1). Dark theme unaffected.
+  2. `scrollable-region-focusable`: `WidgetContainer` scroll slots are now keyboard-focusable regions labelled by the widget title (unit-tested).
+  3. A horizontal page overflow at 390px on Reports (398px) caused by the Phase 8 `sr-only` chart table: a `<table>` ignores the 1px clip, so it is now wrapped in an `sr-only` div.
+- Result: **13/13** Playwright tests passing against the MSW-backed production build.
+
+### Still open
+- Notification bodies are free text composed server-side in English; localizing them would need per-locale templates (backend change), not done.
+- The Schedule week grid itself is still not redesigned for 390px (Day is the mobile default instead).
+- The e2e run uses MSW mock data, not the seeded real stack; a real-stack browser walkthrough (EN/AR, light/dark) of the full audit path is still not done. axe/overflow checks cover light mode, English (axe) and the two locales (overflow) only.

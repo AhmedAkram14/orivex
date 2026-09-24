@@ -46,8 +46,8 @@
     "cmdk": "^1.1.1",
     "dompurify": "^3.4.15",
     "livekit-client": "2.20.1",
-    "marked": "^18.0.13",
     "lucide-react": "^1.24.0",
+    "marked": "^18.0.13",
     "next": "^15.5.20",
     "next-intl": "^4.13.2",
     "react": "^19.0.0",
@@ -59,6 +59,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3.2.0",
     "@playwright/test": "^1.61.1",
     "@storybook/addon-a11y": "^8",

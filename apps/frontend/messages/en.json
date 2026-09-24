@@ -964,6 +964,7 @@
       "startConversation": "Message",
       "unknownCounterparty": "Conversation",
       "unread": "Unread",
+      "noMessagesYet": "No messages yet",
       "selectConversationTitle": "Select a conversation",
       "selectConversationDescription": "Choose a conversation from the list, or start a new one from an appointment.",
       "reconnecting": "Reconnecting…",

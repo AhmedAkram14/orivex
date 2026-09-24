@@ -17,17 +17,41 @@ export interface AreaChartProps {
    * values existed between them, which is misleading for a per-day count.
    */
   type?: 'monotone' | 'linear';
+  /**
+   * Phase 8: when set, `xKey` must hold numeric timestamps (ms) and the x-axis
+   * becomes a real time scale, so points are spaced proportionally to the
+   * time between them (three days with a gap no longer look evenly spaced).
+   * `format` renders both tick labels and the tooltip label. Omitted =
+   * the original categorical axis, unchanged for every other caller.
+   */
+  timeAxis?: { format: (timestamp: number) => string };
 }
 
 /** Generic themed area chart -- for trend-with-magnitude reads (e.g. revenue over time) where a line alone would under-communicate volume. */
-export function AreaChart({ data, xKey, series, height = 260, type = 'monotone' }: AreaChartProps) {
+export function AreaChart({ data, xKey, series, height = 260, type = 'monotone', timeAxis }: AreaChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsAreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid stroke={CHART_GRID_COLOR} strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey={xKey} stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} />
+        <XAxis
+          dataKey={xKey}
+          stroke={CHART_AXIS_COLOR}
+          fontSize={12}
+          tickLine={false}
+          axisLine={false}
+          {...(timeAxis
+            ? {
+                type: 'number' as const,
+                scale: 'time' as const,
+                domain: ['dataMin', 'dataMax'] as [string, string],
+                tickFormatter: (value: number) => timeAxis.format(value),
+              }
+            : {})}
+        />
         <YAxis stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
-        <Tooltip contentStyle={{ background: 'var(--color-surface)', border: `1px solid ${CHART_GRID_COLOR}`, borderRadius: 8 }} />
+        <Tooltip
+          labelFormatter={timeAxis ? (value) => timeAxis.format(Number(value)) : undefined}
+          contentStyle={{ background: 'var(--color-surface)', border: `1px solid ${CHART_GRID_COLOR}`, borderRadius: 8 }} />
         {series.length > 1 && <Legend />}
         {series.map((item, index) => (
           <Area

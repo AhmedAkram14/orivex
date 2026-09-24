@@ -24,6 +24,7 @@ export function WidgetContainer({
   children,
   ...props
 }: WidgetContainerProps) {
+  const isScrollable = /overflow-(y-)?(auto|scroll)/.test(contentClassName ?? '');
   return (
     <Card className={cn('flex flex-col', className)} {...props}>
       {(title || actions) && (
@@ -35,7 +36,11 @@ export function WidgetContainer({
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </CardHeader>
       )}
-      <CardContent className={cn('flex-1', contentClassName)}>
+      {/* A scrolling content slot must be keyboard-reachable (WCAG 2.1.1 / axe scrollable-region-focusable): without a tab stop a keyboard user can't scroll it. */}
+      <CardContent
+        className={cn('flex-1', isScrollable && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring', contentClassName)}
+        {...(isScrollable ? { tabIndex: 0, ...(typeof title === 'string' ? { role: 'region', 'aria-label': title } : {}) } : {})}
+      >
         {loading ? (
           <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
             <Skeleton className="h-4 w-3/4" />

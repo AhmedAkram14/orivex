@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 export interface WeeklyCalendarDay {
@@ -35,8 +35,20 @@ export interface WeeklyCalendarProps {
  * page's own tab bar).
  */
 export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCalendarProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const focusDayId = (days.find((day) => day.isSelected) ?? days.find((day) => day.isToday))?.id;
+
+  // Below `sm` this strip scrolls sideways, so today/the selected day can sit
+  // off-screen. Centre it horizontally on mount and when the selection moves
+  // (no vertical scroll -- `block: 'nearest'`). `scrollIntoView` is absent in
+  // jsdom, hence the optional call.
+  useEffect(() => {
+    const target = containerRef.current?.querySelector<HTMLElement>('[data-focus-day="true"]');
+    target?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
+  }, [focusDayId]);
+
   return (
-    <div className={cn('flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible sm:pb-0', className)}>
+    <div ref={containerRef} className={cn('flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible sm:pb-0', className)}>
       {days.map((day) => {
         const header = (
           <div className="flex flex-col items-center gap-0.5">
@@ -56,6 +68,7 @@ export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCal
         return (
           <div
             key={day.id}
+            data-focus-day={day.id === focusDayId ? 'true' : undefined}
             className={cn(
               'flex w-24 shrink-0 flex-col gap-2 rounded-lg border p-2 transition-colors duration-(--duration-fast) sm:w-auto',
               day.isSelected ? 'border-primary bg-primary-subtle' : 'border-border-default',

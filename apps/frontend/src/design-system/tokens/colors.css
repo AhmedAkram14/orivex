@@ -25,6 +25,7 @@
   --gray-300: #d1d5db;
   --gray-400: #9ca3af;
   --gray-500: #6b7280;
+  --gray-550: #5f6672; /* between 500 and 600: keeps tertiary text >= 4.5:1 on gray-100 surfaces (500 is 4.39:1) */
   --gray-600: #4b5563;
   --gray-700: #374151;
   --gray-800: #1f2937;
@@ -82,7 +83,7 @@
 
   --color-text-primary: var(--gray-900);
   --color-text-secondary: var(--gray-600);
-  --color-text-tertiary: var(--gray-500);
+  --color-text-tertiary: var(--gray-550);
   --color-text-disabled: var(--gray-400);
   --color-text-inverse: var(--gray-0);
 

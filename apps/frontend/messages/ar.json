@@ -964,6 +964,7 @@
       "startConversation": "مراسلة",
       "unknownCounterparty": "محادثة",
       "unread": "غير مقروءة",
+      "noMessagesYet": "لا توجد رسائل بعد",
       "selectConversationTitle": "اختر محادثة",
       "selectConversationDescription": "اختر محادثة من القائمة، أو ابدأ محادثة جديدة من أحد المواعيد.",
       "reconnecting": "جارٍ إعادة الاتصال…",

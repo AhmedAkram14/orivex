@@ -195,14 +195,14 @@ export default function DoctorSchedulePage() {
   // own week strip scrolls sideways with "today" often off-screen -- a full
   // grid redesign for narrow viewports is out of scope for this phase (see
   // IMPLEMENTATION_NOTES.md), so instead the default *view* below `md`
-  // (768px) is Agenda, a flat list that already reads fine at any width
+  // (768px) is Day, a single-column timeline that reads fine at any width
   // (Phase 4 already fixed its past-slot-first bug). `hasAppliedMobileDefaultRef`
   // makes this a one-time default on first mobile detection only -- a doctor
   // who manually switches to Week on their phone stays there; this never
   // fights that choice on a later render. `useMediaQuery` itself returns
   // `false` during SSR/first paint (documented on the hook) to avoid a
   // hydration mismatch, so the very first frame always matches the desktop
-  // default ('week') even on a phone, correcting to 'agenda' a moment later
+  // default ('week') even on a phone, correcting to 'day' a moment later
   // -- the same settle-after-mount tradeoff `isDesktop` above already makes
   // for the working-hours editor.
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
@@ -211,7 +211,7 @@ export default function DoctorSchedulePage() {
   useEffect(() => {
     if (isMobileViewport && !hasAppliedMobileDefaultRef.current) {
       hasAppliedMobileDefaultRef.current = true;
-      setScheduleView('agenda');
+      setScheduleView('day');
     }
   }, [isMobileViewport]);
 

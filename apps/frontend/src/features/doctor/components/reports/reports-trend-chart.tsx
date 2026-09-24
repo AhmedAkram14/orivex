@@ -24,11 +24,13 @@ export function ReportsTrendChart({ data }: ReportsTrendChartProps) {
   const format = useFormatter();
 
   if (data.length === 0) {
-    return <EmptyState icon={TrendingUp} title={t('emptyTitle')} description={t('emptyDescription')} />;
+    return (
+      <EmptyState icon={TrendingUp} title={t('emptyTitle')} description={t('emptyDescription')} />
+    );
   }
 
   const trend = data.map((point) => ({
-    date: new Date(point.bucket).toLocaleDateString(undefined, { timeZone: 'Africa/Cairo' }),
+    date: new Date(point.bucket).getTime(),
     count: point.count,
   }));
 
@@ -42,7 +44,16 @@ export function ReportsTrendChart({ data }: ReportsTrendChartProps) {
        * doesn't exist in this data -- straight segments between real points
        * is the honest reading.
        */}
-      <AreaChart data={trend} xKey="date" series={[{ key: 'count', label: t('seriesLabel') }]} type="linear" />
+      <AreaChart
+        data={trend}
+        xKey="date"
+        series={[{ key: 'count', label: t('seriesLabel') }]}
+        type="linear"
+        timeAxis={{
+          format: (timestamp) =>
+            format.dateTime(new Date(timestamp), { dateStyle: 'medium', timeZone: 'Africa/Cairo' }),
+        }}
+      />
       {/*
        * Phase 8: a visually-hidden accessible alternative to the chart --
        * screen-reader users get the exact same per-day counts as a real
@@ -52,23 +63,31 @@ export function ReportsTrendChart({ data }: ReportsTrendChartProps) {
        * literally nothing" bar this codebase already holds itself to
        * elsewhere (see `EmptyState`'s always-real copy, never a bare icon).
        */}
-      <table className="sr-only">
-        <caption>{t('seriesLabel')}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{t('tableDateHeader')}</th>
-            <th scope="col">{t('seriesLabel')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((point) => (
-            <tr key={point.bucket}>
-              <td>{format.dateTime(new Date(point.bucket), { dateStyle: 'medium', timeZone: 'Africa/Cairo' })}</td>
-              <td>{point.count}</td>
+      {/* The `sr-only` clip must sit on a block wrapper: a <table> ignores the 1px width/clip and stretches the page horizontally (seen at 390px). */}
+      <div className="sr-only">
+        <table>
+          <caption>{t('seriesLabel')}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t('tableDateHeader')}</th>
+              <th scope="col">{t('seriesLabel')}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.map((point) => (
+              <tr key={point.bucket}>
+                <td>
+                  {format.dateTime(new Date(point.bucket), {
+                    dateStyle: 'medium',
+                    timeZone: 'Africa/Cairo',
+                  })}
+                </td>
+                <td>{point.count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

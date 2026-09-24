@@ -27,7 +27,12 @@ export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemPro
   const displayName = thread.counterpartyDisplayName ?? t('unknownCounterparty');
   const initial = displayName.charAt(0).toUpperCase();
   const hasUnread = (thread.unreadCount ?? 0) > 0;
-  const secondaryLine = thread.lastMessagePreview ?? format.relativeTime(new Date(thread.lastMessageAt), new Date());
+  // `null` (not `undefined`) is the server's explicit "no messages yet" --
+  // such a thread has no meaningful last-activity time to show.
+  const secondaryLine =
+    thread.lastMessagePreview === null
+      ? t('noMessagesYet')
+      : (thread.lastMessagePreview ?? format.relativeTime(new Date(thread.lastMessageAt), new Date()));
 
   return (
     <li>

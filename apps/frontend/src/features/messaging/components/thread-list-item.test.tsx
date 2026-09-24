@@ -46,6 +46,16 @@ describe('ThreadListItem', () => {
     expect(screen.getByText(/ago|hour/i)).toBeInTheDocument();
   });
 
+  it('shows the last-message preview, and "No messages yet" instead of a time when the server reports none', () => {
+    const { unmount } = renderItem(buildThread({ lastMessagePreview: 'See you Tuesday', unreadCount: 2 }));
+    expect(screen.getByText('See you Tuesday')).toBeInTheDocument();
+    expect(screen.getByText('Unread')).toBeInTheDocument();
+    unmount();
+    renderItem(buildThread({ lastMessagePreview: null }));
+    expect(screen.getByText('No messages yet')).toBeInTheDocument();
+    expect(screen.queryByText(/ago/i)).not.toBeInTheDocument();
+  });
+
   it('falls back to a generic name when the counterparty lookup failed server-side', () => {
     renderItem(buildThread({ counterpartyDisplayName: undefined }));
     expect(screen.getByText('Conversation')).toBeInTheDocument();
