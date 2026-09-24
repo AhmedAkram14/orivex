@@ -5,8 +5,8 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { ConsultationOutcomeAction } from '@/features/consultation/components/consultation-outcome-action';
 import { PayNowAction } from '@/features/payment/components/pay-now-action';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
-import type { Appointment, AppointmentStatus } from '@/features/patient/api/types';
 import { canJoinCall } from '@/features/patient/lib/appointment-time';
+import { selectLastCompletedAppointment, selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { JoinCountdown } from '@/shared/ui/consultation/join-countdown';
@@ -22,10 +22,6 @@ import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
 
-// Matches PatientAppointmentsPage's own UPCOMING_STATUSES exactly -- an
-// appointment is still "next" while requested/confirmed/rescheduled.
-const UPCOMING_STATUSES: AppointmentStatus[] = ['requested', 'confirmed', 'rescheduled'];
-
 // Shared "premium hero card" language this dashboard borrows from the
 // Doctor Workspace's own `DashboardHero`/`TodaysSchedule` redesign (same
 // radius + soft elevated shadow), so the two workspaces read as one
@@ -34,12 +30,6 @@ const UPCOMING_STATUSES: AppointmentStatus[] = ['requested', 'confirmed', 'resch
 // no longer paired side-by-side with `HealthSummary`), so no cross-axis
 // alignment override is needed here.
 const HERO_CARD_CLASSNAME = 'rounded-3xl border-transparent shadow-[0_10px_30px_rgba(15,23,42,0.06)]';
-
-function nextAppointmentOf(appointments: Appointment[]): Appointment | undefined {
-  return [...appointments]
-    .filter((appointment) => UPCOMING_STATUSES.includes(appointment.status))
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
-}
 
 function initialsFor(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -88,9 +78,12 @@ export function NextAppointmentCard() {
     );
   }
 
-  const next = nextAppointmentOf(appointments ?? []);
+  const now = getCairoNow();
+  // The single shared "upcoming" definition -- never a past appointment.
+  const next = selectUpcomingAppointments(appointments ?? [], now)[0];
 
   if (!next) {
+    const lastCompleted = selectLastCompletedAppointment(appointments ?? []);
     return (
       <Card className={HERO_CARD_CLASSNAME}>
         <CardContent className="p-6">
@@ -100,9 +93,18 @@ export function NextAppointmentCard() {
             title={t('nextAppointmentEmptyTitle')}
             description={t('nextAppointmentEmptyDescription')}
             action={
-              <Button asChild size="sm">
-                <Link href="/patient/doctors">{t('browseDoctorsAction')}</Link>
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button asChild size="sm">
+                  <Link href="/patient/doctors">{t('bookAppointmentAction')}</Link>
+                </Button>
+                {lastCompleted && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/patient/appointments/book?doctorId=${lastCompleted.doctorId}`}>
+                      {t('bookAgainAction', { doctor: lastCompleted.doctorName })}
+                    </Link>
+                  </Button>
+                )}
+              </div>
             }
           />
         </CardContent>
@@ -110,14 +112,19 @@ export function NextAppointmentCard() {
     );
   }
 
-  const now = getCairoNow();
   const scheduledAt = new Date(next.scheduledAt);
   const scheduledAtCairo = getCairoNow(scheduledAt);
   const dayLabel = isSameDay(scheduledAtCairo, now)
     ? t('today')
     : isSameDay(scheduledAtCairo, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
       ? t('tomorrow')
-      : format.dateTime(scheduledAt, { weekday: 'short', month: 'short', day: 'numeric' });
+      : format.dateTime(scheduledAt, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          // Year only when it isn't the current one -- avoids ambiguity for far-off dates.
+          ...(scheduledAtCairo.getFullYear() !== now.getFullYear() ? { year: 'numeric' as const } : {}),
+        });
   const timeLabel = format.dateTime(scheduledAt, { hour: 'numeric', minute: 'numeric' });
 
   const primaryAction =
@@ -150,9 +157,12 @@ export function NextAppointmentCard() {
           </div>
         </div>
 
-        <p className="text-3xl leading-none font-bold tracking-tight text-text-primary">
-          {dayLabel} <span className="text-primary">·</span> {timeLabel}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-3xl leading-none font-bold tracking-tight text-text-primary">
+            {dayLabel} <span className="text-primary">·</span> {timeLabel}
+          </p>
+          <p className="text-sm text-text-secondary">{format.relativeTime(scheduledAt, new Date())}</p>
+        </div>
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3.5">
@@ -171,7 +181,7 @@ export function NextAppointmentCard() {
           <div className="flex flex-wrap items-center gap-2">
             {primaryAction}
             <Button asChild variant="outline" size="sm" className="bg-surface/70">
-              <Link href="/patient/appointments">{t('viewAppointmentAction')}</Link>
+              <Link href={`/patient/appointments?highlight=${next.id}`}>{t('viewAppointmentAction')}</Link>
             </Button>
           </div>
         </div>

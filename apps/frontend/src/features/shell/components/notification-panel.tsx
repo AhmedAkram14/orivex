@@ -6,6 +6,7 @@ import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationEntityType, NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
+import { localizeIsoTimestamps } from '@/features/notifications/lib/notification-text';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
@@ -80,10 +81,10 @@ export function NotificationRowContent({ notification }: { notification: Notific
           </>
         )}
         <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
-          {notification.title}
+          {localizeIsoTimestamps(notification.title, format)}
         </p>
       </div>
-      <p className="text-sm text-text-secondary">{notification.description}</p>
+      <p className="text-sm text-text-secondary">{localizeIsoTimestamps(notification.description, format)}</p>
       <p className="text-xs text-text-tertiary" title={absoluteTime}>
         {format.relativeTime(createdAt, new Date())}
       </p>

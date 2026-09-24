@@ -4,9 +4,10 @@ import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { ActivePrescriptionsWidget } from '@/features/patient/components/active-prescriptions-widget';
-import { BecomeADoctorCta } from '@/features/patient/components/become-a-doctor-cta';
-import { HealthSummary } from '@/features/patient/components/health-summary';
+import { HealthSnapshotCard } from '@/features/patient/components/health-snapshot-card';
+import { NeedsAttentionCard } from '@/features/patient/components/needs-attention-card';
 import { NextAppointmentCard } from '@/features/patient/components/next-appointment-card';
+import { PatientSummaryStrip } from '@/features/patient/components/patient-summary-strip';
 import { PatientQuickActions } from '@/features/patient/components/patient-quick-actions';
 import { RecentActivity } from '@/features/patient/components/recent-activity';
 import { RecentMedicalRecordsWidget } from '@/features/patient/components/recent-medical-records-widget';
@@ -21,6 +22,11 @@ import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 /**
+ * Order (P2 layout pass): Needs attention (only when non-empty) -> Next
+ * appointment -> summary strip -> health snapshot -> upcoming list ->
+ * prescriptions + activity -> recent records + quick actions. The "Become a
+ * Doctor" promo no longer sits here (it stays in navigation).
+ *
  * The Patient Portal's dashboard — the patient-specific landing page,
  * distinct from the shared `/dashboard` (every role) and reachable only by
  * the `patient` role (`RequireRole`).
@@ -49,7 +55,7 @@ export default function PatientDashboardPage() {
   const t = useTranslations('patient.dashboard');
   const router = useRouter();
   const journeyStatus = useJourneyStatus();
-  const { needsPatientIntake, hasDoctorProfile } = journeyStatus.data ?? {};
+  const { needsPatientIntake } = journeyStatus.data ?? {};
 
   useEffect(() => {
     if (needsPatientIntake) {
@@ -67,8 +73,10 @@ export default function PatientDashboardPage() {
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
         <WelcomeHeader />
 
+        <NeedsAttentionCard />
         <NextAppointmentCard />
-        <HealthSummary />
+        <PatientSummaryStrip />
+        <HealthSnapshotCard />
 
         <UpcomingAppointmentsWidget />
 
@@ -81,12 +89,10 @@ export default function PatientDashboardPage() {
           <RecentMedicalRecordsWidget />
           <WidgetContainer
             title={<span className="text-lg font-semibold">{t('quickActionsTitle')}</span>}
+            titleAs="h2"
             className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
           >
-            <div className="flex flex-col gap-4">
-              <PatientQuickActions />
-              {hasDoctorProfile === false && <BecomeADoctorCta />}
-            </div>
+            <PatientQuickActions />
           </WidgetContainer>
         </DashboardGrid>
       </Page>

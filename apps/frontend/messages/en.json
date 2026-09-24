@@ -1876,9 +1876,9 @@
       "title": "My Health",
       "welcome": "Welcome back, {name}.",
       "greeting": {
-        "morning": "Good morning, {name} 👋",
-        "afternoon": "Good afternoon, {name} 👋",
-        "evening": "Good evening, {name} 👋"
+        "morning": "Good morning, {name}",
+        "afternoon": "Good afternoon, {name}",
+        "evening": "Good evening, {name}"
       },
       "welcomeSubtitle": "Here's what's happening with your health today.",
       "today": "Today",
@@ -1890,6 +1890,33 @@
       "nextAppointmentEmptyDescription": "Find a doctor and book your next consultation.",
       "nextAppointmentLoadError": "Couldn't load your next appointment.",
       "browseDoctorsAction": "Browse doctors",
+      "retry": "Retry",
+      "bookAppointmentAction": "Book appointment",
+      "bookAgainAction": "Book again with {doctor}",
+      "nextVisitHelper": "Next: {date}",
+      "unreadMessagesTitle": "Unread messages",
+      "activePrescriptionsEmptyInline": "No active prescriptions right now.",
+      "needsAttention": {
+        "title": "Needs your attention",
+        "awaitingUpdate": "Awaiting an update from {doctor}",
+        "expiredRequest": "Your request to {doctor} expired",
+        "fee": "Fee {amount}",
+        "viewAppointment": "View appointment",
+        "messageDoctor": "Message doctor",
+        "raiseDispute": "Raise a dispute",
+        "rebook": "Rebook",
+        "messageError": "Couldn't open the conversation. Please try again.",
+        "loadError": "Couldn't load your appointments.",
+        "retry": "Retry"
+      },
+      "snapshot": {
+        "title": "Health snapshot",
+        "weight": "Weight",
+        "bloodPressure": "Blood pressure",
+        "conditions": "Conditions on record",
+        "moreConditions": "+{count} more",
+        "allergies": "Allergies"
+      },
       "viewAppointmentAction": "View appointment",
       "viewAllAppointments": "View all appointments",
       "viewPrescriptionsAction": "View prescriptions",
@@ -1924,7 +1951,9 @@
         "title": "Recent activity",
         "emptyTitle": "No recent activity",
         "emptyDescription": "Your recent notifications, like confirmations and prescriptions, will appear here.",
-        "loadError": "Couldn't load recent activity."
+        "loadError": "Couldn't load recent activity.",
+        "viewAll": "View all",
+        "retry": "Retry"
       },
       "becomeADoctor": {
         "title": "Want to practice on Orivex?",
@@ -2102,6 +2131,7 @@
       "historyEmptyDescription": "Your past appointments will appear here.",
       "noDoctorSelectedTitle": "No doctor selected",
       "noDoctorSelectedDescription": "Start from a doctor's profile and select \"Book appointment\" to book a real appointment with them.",
+      "chooseDoctorAction": "Choose a doctor",
       "joinCountdownLabel": "Joins in",
       "filters": {
         "all": "All",

@@ -2,12 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { AppointmentList } from '@/features/patient/components/appointments/appointment-list';
 import { AppointmentsCalendar } from '@/features/patient/components/appointments/appointments-calendar';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
-import { isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
+import { selectPastAppointments, selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { RequireRole } from '@/shared/auth/require-role';
@@ -20,11 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 type HistoryFilter = 'all' | 'completed' | 'cancelled';
-
-// Matches ConsultationModule's real AppointmentStatus enum: an appointment
-// is still "upcoming" while requested/confirmed/rescheduled, and moves to
-// history once it reaches a terminal state (completed/cancelled/no_show).
-const UPCOMING_STATUSES = ['requested', 'confirmed', 'rescheduled'];
 
 /**
  * The Patient Portal's Appointments page — a calendar foundation (real week
@@ -42,20 +37,24 @@ export default function PatientAppointmentsPage() {
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const searchParams = useSearchParams();
   const autoOpenConsultationSessionId = searchParams.get('consultationSessionId') ?? undefined;
+  const highlightId = searchParams.get('highlight') ?? undefined;
 
-  const upcoming = useMemo(() => {
-    const cairoNow = getCairoNow();
-    return (appointments ?? []).filter(
-      (a) => UPCOMING_STATUSES.includes(a.status) && isAppointmentStillUpcoming(a.scheduledAt, cairoNow),
-    );
-  }, [appointments]);
+  // The one shared definition (features/patient/lib/upcoming-appointments.ts) --
+  // the Overview hero, summary strip and list use the same selector.
+  const upcoming = useMemo(() => selectUpcomingAppointments(appointments ?? [], getCairoNow()), [appointments]);
   const history = useMemo(() => {
-    const cairoNow = getCairoNow();
-    const past = (appointments ?? []).filter(
-      (a) => !UPCOMING_STATUSES.includes(a.status) || !isAppointmentStillUpcoming(a.scheduledAt, cairoNow),
-    );
+    const past = selectPastAppointments(appointments ?? [], getCairoNow());
     return historyFilter === 'all' ? past : past.filter((a) => a.status === historyFilter);
   }, [appointments, historyFilter]);
+
+  // A highlighted appointment lives in whichever tab holds it; open that tab.
+  const highlightedIsUpcoming = highlightId ? upcoming.some((a) => a.id === highlightId) : false;
+  const defaultTab = autoOpenConsultationSessionId || (highlightId && !highlightedIsUpcoming) ? 'history' : 'upcoming';
+
+  useEffect(() => {
+    if (!highlightId || isLoading) return;
+    document.getElementById(`appointment-${highlightId}`)?.scrollIntoView?.({ block: 'center' });
+  }, [highlightId, isLoading, appointments]);
 
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
@@ -80,7 +79,7 @@ export default function PatientAppointmentsPage() {
             <Skeleton className="h-16 w-full" />
           </div>
         ) : (
-          <Tabs defaultValue={autoOpenConsultationSessionId ? 'history' : 'upcoming'}>
+          <Tabs defaultValue={defaultTab}>
             <TabsList>
               <TabsTrigger value="upcoming">{t('upcomingTab')}</TabsTrigger>
               <TabsTrigger value="history">{t('historyTab')}</TabsTrigger>
@@ -89,6 +88,7 @@ export default function PatientAppointmentsPage() {
             <TabsContent value="upcoming">
               <AppointmentList
                 appointments={upcoming}
+                highlightId={highlightId}
                 emptyTitle={t('upcomingEmptyTitle')}
                 emptyDescription={t('upcomingEmptyDescription')}
               />
@@ -110,6 +110,7 @@ export default function PatientAppointmentsPage() {
                   emptyTitle={t('historyEmptyTitle')}
                   emptyDescription={t('historyEmptyDescription')}
                   autoOpenConsultationSessionId={autoOpenConsultationSessionId}
+                  highlightId={highlightId}
                 />
               </div>
             </TabsContent>

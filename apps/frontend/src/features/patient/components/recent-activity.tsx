@@ -1,49 +1,51 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
-import type { NotificationSeverity } from '@/features/notifications/api/types';
+import { resolvePatientNotificationHref } from '@/features/notifications/lib/notification-text';
+import { NotificationRow } from '@/features/shell/components/notification-panel';
 import { Alert } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Icon } from '@/shared/icons/icon';
+import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
-import { cn } from '@/shared/lib/cn';
 
-const MAX_ITEMS = 4;
-
-/** Maps a real `NotificationEntry.severity` to an icon + accent color -- mirrors the Doctor Workspace's `RecentActivity` mapping exactly. */
-const iconBySeverity: Record<NotificationSeverity, { icon: LucideIcon; accentClassName: string }> = {
-  success: { icon: CheckCircle2, accentClassName: 'bg-success-subtle text-success-emphasis' },
-  warning: { icon: AlertTriangle, accentClassName: 'bg-warning-subtle text-warning-emphasis' },
-  danger: { icon: XCircle, accentClassName: 'bg-danger-subtle text-danger' },
-  info: { icon: Info, accentClassName: 'bg-info-subtle text-info-emphasis' },
-};
+const MAX_ITEMS = 3;
 
 /**
- * The redesigned "My Health" dashboard's "Recent activity" widget — the
- * same real `useNotifications()` source the notification bell already
- * renders (appointment confirmations, prescriptions, etc.), most recent few
- * only. Never a fabricated activity feed: this app has no separate
- * activity-log module, so real notifications are the honest substitute —
- * mirrors the Doctor Workspace's own `RecentActivity` widget exactly, just
- * under the Patient Portal's own translation namespace.
+ * The "My Health" dashboard's "Recent activity" widget -- the same real
+ * `useNotifications()` source the notification bell renders, most recent few
+ * only, through the shared `NotificationRow` (type icon, unread text
+ * alternative, absolute-time tooltip, ISO timestamps localized). Each item
+ * links to the most specific destination its payload allows (an appointment
+ * reference deep-links to that appointment's row). Never a fabricated feed:
+ * this app has no separate activity-log module.
  */
 export function RecentActivity() {
   const t = useTranslations('patient.dashboard.activity');
-  const format = useFormatter();
-  const { data: notifications, isLoading, isError } = useNotifications();
+  const { data: notifications, isLoading, isError, refetch } = useNotifications();
 
   const recent = (notifications ?? []).slice(0, MAX_ITEMS);
 
   return (
     <WidgetContainer
       title={<span className="text-lg font-semibold">{t('title')}</span>}
+      titleAs="h2"
       className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+      actions={
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/notifications">{t('viewAll')}</Link>
+        </Button>
+      }
     >
       {isError ? (
-        <Alert variant="danger">{t('loadError')}</Alert>
+        <Alert variant="danger">
+          <span>{t('loadError')}</span>{' '}
+          <button type="button" className="font-medium underline" onClick={() => refetch()}>
+            {t('retry')}
+          </button>
+        </Alert>
       ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
           <Skeleton className="h-10 w-full" />
@@ -51,23 +53,12 @@ export function RecentActivity() {
         </div>
       ) : recent.length > 0 ? (
         <ul className="flex flex-col divide-y divide-border-default">
-          {recent.map((notification) => {
-            const { icon, accentClassName } = iconBySeverity[notification.severity];
-            return (
-              <li key={notification.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', accentClassName)}>
-                  <Icon icon={icon} size="sm" />
-                </span>
-                <div className="flex flex-1 flex-col gap-0.5">
-                  <p className="text-sm font-medium text-text-primary">{notification.title}</p>
-                  <p className="text-sm text-text-secondary">{notification.description}</p>
-                  <p className="text-xs text-text-tertiary">
-                    {format.relativeTime(new Date(notification.createdAt), new Date())}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
+          {recent.map((notification) => (
+            <NotificationRow
+              key={notification.id}
+              notification={{ ...notification, actionUrl: resolvePatientNotificationHref(notification) }}
+            />
+          ))}
         </ul>
       ) : (
         <EmptyState className="py-6" title={t('emptyTitle')} description={t('emptyDescription')} />

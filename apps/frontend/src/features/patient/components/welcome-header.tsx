@@ -40,6 +40,7 @@ export function WelcomeHeader() {
     <div className="flex flex-col gap-1">
       <p className="text-xl font-semibold text-text-primary">
         {t(`greeting.${greetingPeriod(cairoNow.getHours())}`, { name: firstNameOf(user.fullName) })}
+        <span aria-hidden="true"> 👋</span>
       </p>
       <p className="text-sm text-text-secondary">{t('welcomeSubtitle')}</p>
       <div className="mt-1 flex items-center gap-1.5 text-sm text-text-tertiary">

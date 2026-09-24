@@ -1876,9 +1876,9 @@
       "title": "صحتي",
       "welcome": "مرحبًا بعودتك، {name}.",
       "greeting": {
-        "morning": "صباح الخير، {name} 👋",
-        "afternoon": "مساء الخير، {name} 👋",
-        "evening": "مساء الخير، {name} 👋"
+        "morning": "صباح الخير، {name}",
+        "afternoon": "مساء الخير، {name}",
+        "evening": "مساء الخير، {name}"
       },
       "welcomeSubtitle": "إليك ما يحدث بشأن صحتك اليوم.",
       "today": "اليوم",
@@ -1890,6 +1890,33 @@
       "nextAppointmentEmptyDescription": "ابحث عن طبيب واحجز استشارتك القادمة.",
       "nextAppointmentLoadError": "تعذّر تحميل موعدك القادم.",
       "browseDoctorsAction": "تصفح الأطباء",
+      "retry": "إعادة المحاولة",
+      "bookAppointmentAction": "احجز موعدًا",
+      "bookAgainAction": "احجز مجددًا مع {doctor}",
+      "nextVisitHelper": "التالي: {date}",
+      "unreadMessagesTitle": "رسائل غير مقروءة",
+      "activePrescriptionsEmptyInline": "لا توجد وصفات نشطة حاليًا.",
+      "needsAttention": {
+        "title": "يحتاج إلى انتباهك",
+        "awaitingUpdate": "بانتظار تحديث من {doctor}",
+        "expiredRequest": "انتهت صلاحية طلبك إلى {doctor}",
+        "fee": "الرسوم {amount}",
+        "viewAppointment": "عرض الموعد",
+        "messageDoctor": "مراسلة الطبيب",
+        "raiseDispute": "رفع نزاع",
+        "rebook": "إعادة الحجز",
+        "messageError": "تعذّر فتح المحادثة. يرجى المحاولة مرة أخرى.",
+        "loadError": "تعذّر تحميل مواعيدك.",
+        "retry": "إعادة المحاولة"
+      },
+      "snapshot": {
+        "title": "لمحة صحية",
+        "weight": "الوزن",
+        "bloodPressure": "ضغط الدم",
+        "conditions": "الحالات المسجّلة",
+        "moreConditions": "+{count} أخرى",
+        "allergies": "الحساسية"
+      },
       "viewAppointmentAction": "عرض الموعد",
       "viewAllAppointments": "عرض جميع المواعيد",
       "viewPrescriptionsAction": "عرض الوصفات",
@@ -1924,7 +1951,9 @@
         "title": "النشاط الأخير",
         "emptyTitle": "لا يوجد نشاط حديث",
         "emptyDescription": "ستظهر هنا إشعاراتك الأخيرة، مثل التأكيدات والوصفات الطبية.",
-        "loadError": "تعذّر تحميل النشاط الأخير."
+        "loadError": "تعذّر تحميل النشاط الأخير.",
+        "viewAll": "عرض الكل",
+        "retry": "إعادة المحاولة"
       },
       "becomeADoctor": {
         "title": "هل تريد الممارسة على أوريفكس؟",
@@ -2102,6 +2131,7 @@
       "historyEmptyDescription": "ستظهر مواعيدك السابقة هنا.",
       "noDoctorSelectedTitle": "لم يتم اختيار طبيب",
       "noDoctorSelectedDescription": "ابدأ من الملف الشخصي لطبيب واختر \"حجز موعد\" لحجز موعد حقيقي معه.",
+      "chooseDoctorAction": "اختر طبيبًا",
       "joinCountdownLabel": "يبدأ خلال",
       "filters": {
         "all": "الكل",

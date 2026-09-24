@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, FileText, Pill, Search } from 'lucide-react';
+import { CalendarDays, FileText, Pill } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
@@ -18,8 +18,7 @@ export function PatientQuickActions() {
   const t = useTranslations('patient.dashboard.quickActions');
 
   const actions = [
-    { id: 'book-appointment', label: t('bookAppointment'), icon: CalendarDays, href: '/patient/appointments/book' },
-    { id: 'browse-doctors', label: t('browseDoctors'), icon: Search, href: '/patient/doctors' },
+    { id: 'book-appointment', label: t('bookAppointment'), icon: CalendarDays, href: '/patient/doctors' },
     { id: 'records', label: t('viewRecords'), icon: FileText, href: '/patient/records' },
     { id: 'prescriptions', label: t('viewPrescriptions'), icon: Pill, href: '/patient/prescriptions' },
   ];

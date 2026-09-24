@@ -2,7 +2,8 @@
 
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
-import type { AppointmentStatus } from '@/features/patient/api/types';
+import { selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
 import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
@@ -12,8 +13,6 @@ import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
-// Matches PatientAppointmentsPage's own UPCOMING_STATUSES exactly.
-const UPCOMING_STATUSES: AppointmentStatus[] = ['requested', 'confirmed', 'rescheduled'];
 const MAX_ITEMS = 5;
 
 /**
@@ -29,16 +28,16 @@ export function UpcomingAppointmentsWidget() {
   const tConsultationType = useTranslations('patient.appointments.consultationType');
   const format = useFormatter();
   const locale = useLocale();
-  const { data: appointments, isLoading, isError } = usePatientAppointments();
+  const { data: appointments, isLoading, isError, refetch } = usePatientAppointments();
 
-  const upcoming = [...(appointments ?? [])]
-    .filter((appointment) => UPCOMING_STATUSES.includes(appointment.status))
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
-    .slice(0, MAX_ITEMS);
+  // The one shared "upcoming" definition, identical to the hero, the summary
+  // strip and the Appointments page's Upcoming tab.
+  const upcoming = selectUpcomingAppointments(appointments ?? [], getCairoNow()).slice(0, MAX_ITEMS);
 
   return (
     <WidgetContainer
       title={<span className="text-lg font-semibold">{t('upcomingAppointmentsTitle')}</span>}
+      titleAs="h2"
       className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
       actions={
         <Button asChild variant="ghost" size="sm">
@@ -47,7 +46,12 @@ export function UpcomingAppointmentsWidget() {
       }
     >
       {isError ? (
-        <Alert variant="danger">{t('upcomingAppointmentsLoadError')}</Alert>
+        <Alert variant="danger">
+          <span>{t('upcomingAppointmentsLoadError')}</span>{' '}
+          <button type="button" className="font-medium underline" onClick={() => refetch()}>
+            {t('retry')}
+          </button>
+        </Alert>
       ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
           <Skeleton className="h-16 w-full" />
@@ -57,6 +61,11 @@ export function UpcomingAppointmentsWidget() {
         <ul className="flex flex-col gap-3">
           {upcoming.map((appointment) => (
             <li key={appointment.id}>
+              {/* The whole row is one link (keyboard-focusable) to that appointment's row on the Appointments page. */}
+              <Link
+                href={`/patient/appointments?highlight=${appointment.id}`}
+                className="block rounded-lg transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              >
               <AppointmentCard
                 scheduledAtLabel={format.dateTime(new Date(appointment.scheduledAt), {
                   month: 'short',
@@ -70,6 +79,7 @@ export function UpcomingAppointmentsWidget() {
                 statusLabel={tStatus(appointment.status)}
                 consultationTypeLabel={tConsultationType(appointment.consultationType)}
               />
+              </Link>
             </li>
           ))}
         </ul>

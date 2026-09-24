@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { BookingFlow } from '@/features/scheduling/components/booking-flow';
 import { RequireRole } from '@/shared/auth/require-role';
+import { Link } from '@/shared/i18n/navigation';
+import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Page } from '@/shared/ui/layout/page';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
@@ -32,7 +34,15 @@ export default function BookAppointmentPage() {
         {doctorId ? (
           <BookingFlow doctorId={doctorId} />
         ) : (
-          <EmptyState title={t('noDoctorSelectedTitle')} description={t('noDoctorSelectedDescription')} />
+          <EmptyState
+            title={t('noDoctorSelectedTitle')}
+            description={t('noDoctorSelectedDescription')}
+            action={
+              <Button asChild>
+                <Link href="/patient/doctors">{t('chooseDoctorAction')}</Link>
+              </Button>
+            }
+          />
         )}
       </Page>
     </RequireRole>

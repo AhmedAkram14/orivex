@@ -77,10 +77,12 @@ export interface AppointmentListProps {
   emptyDescription: string;
   /** The `?consultationSessionId=` a "Consultation completed" notification deep-links with -- the matching completed appointment's `ConsultationOutcomeAction` auto-opens its summary dialog on mount. Undefined for a normal page visit. */
   autoOpenConsultationSessionId?: string;
+  /** The `?highlight=` id a dashboard "View appointment" link deep-links with -- that row gets a visible ring (and the page scrolls it into view). */
+  highlightId?: string;
 }
 
 /** Renders a list of `AppointmentCard`s from real `Appointment` data — the shared rendering both the Upcoming and History tabs use, so formatting/translation logic lives in exactly one place. */
-export function AppointmentList({ appointments, emptyTitle, emptyDescription, autoOpenConsultationSessionId }: AppointmentListProps) {
+export function AppointmentList({ appointments, emptyTitle, emptyDescription, autoOpenConsultationSessionId, highlightId }: AppointmentListProps) {
   const t = useTranslations('patient.appointments');
   const tStatus = useTranslations('patient.appointments.status');
   const tConsultationType = useTranslations('patient.appointments.consultationType');
@@ -135,8 +137,9 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
           ) : undefined;
 
         return (
-          <li key={appointment.id}>
+          <li key={appointment.id} id={`appointment-${appointment.id}`} className="scroll-mt-24">
             <AppointmentCard
+              className={appointment.id === highlightId ? 'ring-2 ring-focus-ring' : undefined}
               scheduledAtLabel={format.dateTime(new Date(appointment.scheduledAt), {
                 year: 'numeric',
                 month: 'short',

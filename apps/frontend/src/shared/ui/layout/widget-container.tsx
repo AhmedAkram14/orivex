@@ -11,6 +11,8 @@ export interface WidgetContainerProps extends Omit<HTMLAttributes<HTMLDivElement
   loading?: boolean;
   /** Optional extra classes for the content slot — e.g. `overflow-y-auto` when the widget itself is given a fixed `className` height and needs its content, not the whole card, to scroll. Additive; omitted default behavior is unchanged. */
   contentClassName?: string;
+  /** Heading level of the card title -- pages whose widgets sit directly under the H1 pass `h2` so the outline doesn't jump H1 -> H3. Defaults to `h3` (unchanged). */
+  titleAs?: 'h2' | 'h3';
 }
 
 /** The card shell every dashboard widget (a grid cell inside `DashboardGrid`) renders as its root — title/description/actions header plus a content slot, with a built-in loading skeleton so widgets don't each reinvent one. Distinct from `Section` (a page-level sub-region, not grid-cell-shaped) and from `Card` itself (generic; this is the dashboard-specific composition of it). */
@@ -21,6 +23,7 @@ export function WidgetContainer({
   loading = false,
   className,
   contentClassName,
+  titleAs,
   children,
   ...props
 }: WidgetContainerProps) {
@@ -30,7 +33,7 @@ export function WidgetContainer({
       {(title || actions) && (
         <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
           <div className="flex flex-col gap-1">
-            {title && <CardTitle className="text-base">{title}</CardTitle>}
+            {title && <CardTitle as={titleAs} className="text-base">{title}</CardTitle>}
             {description && <CardDescription>{description}</CardDescription>}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
