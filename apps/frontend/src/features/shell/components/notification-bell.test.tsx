@@ -36,7 +36,7 @@ describe('NotificationBell + NotificationPanel', () => {
     expect(await screen.findByText('2')).toBeInTheDocument();
   });
 
-  it('lists notifications in the panel and lets the user mark one as read', async () => {
+  it('lists notifications in the panel, and opening the bell marks them all read and clears the badge', async () => {
     renderBell();
     await screen.findByText('2');
 
@@ -45,10 +45,11 @@ describe('NotificationBell + NotificationPanel', () => {
     expect(await screen.findByText('Welcome to Orivex')).toBeInTheDocument();
     expect(screen.getByText('New device signed in')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Welcome to Orivex'));
-
     await waitFor(() => expect(screen.queryByText('2')).not.toBeInTheDocument());
-    expect(await screen.findByText('1')).toBeInTheDocument();
+    expect(screen.queryByText('1')).not.toBeInTheDocument();
+    // Nothing left to mark: the explicit action disappears with the unread count.
+    expect(screen.queryByRole('button', { name: 'Mark all as read' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Notifications' })).toBeInTheDocument();
   });
 
   it('renders a notification with an actionUrl as a real link to that page, marking it as read on click', async () => {
@@ -77,15 +78,17 @@ describe('NotificationBell + NotificationPanel', () => {
     expect(link).toHaveAttribute('href', '/en/doctor/onboarding');
   });
 
-  it('marks every notification as read via "Mark all as read"', async () => {
+  it('keeps the badge cleared when the bell is closed and reopened', async () => {
     renderBell();
     await screen.findByText('2');
 
     await userEvent.click(screen.getByRole('button', { name: /Notifications/ }));
-    await screen.findByText('Welcome to Orivex');
-    await userEvent.click(screen.getByRole('button', { name: 'Mark all as read' }));
-
     await waitFor(() => expect(screen.queryByText('2')).not.toBeInTheDocument());
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Notifications' }));
+
+    expect(await screen.findByText('Welcome to Orivex')).toBeInTheDocument();
+    expect(screen.queryByText('2')).not.toBeInTheDocument();
     expect(screen.queryByText('1')).not.toBeInTheDocument();
   });
 });
