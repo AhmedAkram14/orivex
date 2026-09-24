@@ -369,7 +369,13 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                       ))}
                     </div>
                   ) : (
-                    t('notOnRecord')
+                    // `insuranceEmptyTitle`/`insuranceEmptyDescription` already existed in
+                    // both locale files (authored alongside the other list-type sections'
+                    // empty copy) but this row fell back to the generic `notOnRecord` --
+                    // a real accepted-insurance list deserves the same honest, specific
+                    // empty message as Experience/Publications/Awards below, not the
+                    // one-word fallback meant for simple scalar fields like license number.
+                    t('insuranceEmptyTitle')
                   )
                 }
               />

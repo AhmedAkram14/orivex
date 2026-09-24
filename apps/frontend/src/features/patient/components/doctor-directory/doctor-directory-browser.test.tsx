@@ -1,14 +1,12 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { NextIntlClientProvider } from 'next-intl';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { DoctorDirectoryBrowser } from './doctor-directory-browser';
 import { server } from '@/mocks/server';
 import { env } from '@/shared/lib/env';
-import enMessages from '../../../../../messages/en.json';
+import { renderWithProviders } from '@/shared/test/render-with-providers';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
@@ -24,15 +22,15 @@ beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
+// Browse Doctors is reachable by a signed-out visitor -- `DoctorCard` (one
+// of this browser's children) calls `useAuth()` to decide whether "Book"
+// routes to booking or to login, so this needs the same signed-out
+// `AuthContext` every real render of this page gets, via the shared
+// `renderWithProviders` helper (its default `authState` is already
+// `{ status: 'unauthenticated', user: null }`) rather than the bespoke
+// provider stack this file used to hand-roll without one.
 function renderBrowser() {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
-        <DoctorDirectoryBrowser />
-      </NextIntlClientProvider>
-    </QueryClientProvider>,
-  );
+  return renderWithProviders(<DoctorDirectoryBrowser />);
 }
 
 describe('DoctorDirectoryBrowser', () => {

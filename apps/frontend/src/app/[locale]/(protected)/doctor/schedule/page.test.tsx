@@ -67,10 +67,16 @@ function renderPage() {
 describe('DoctorSchedulePage', () => {
   it('renders the weekly calendar and the previous/today/next controls', async () => {
     renderPage();
-    expect(await screen.findByRole('button', { name: 'Today' })).toBeInTheDocument();
+    // This page's initial render does more work than most (availability +
+    // schedule + rules queries, plus Phase 4's week-grid background blocks),
+    // so `findByRole`'s default 1000ms polling window is tight under a
+    // heavily parallel test run even though the component itself resolves
+    // quickly in isolation -- same reasoning as the trend-chart test's own
+    // explicit 10000ms window elsewhere in this suite.
+    expect(await screen.findByRole('button', { name: 'Today' }, { timeout: 10000 })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous week' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next week' })).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('navigates to the next week without crashing when Next week is clicked', async () => {
     renderPage();
