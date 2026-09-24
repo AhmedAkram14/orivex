@@ -1,10 +1,9 @@
 'use client';
 
-import { Calendar, Eye, Search, Star, TrendingUp, UserCheck, Users, X } from 'lucide-react';
+import { Calendar, Eye, Search, TrendingUp, UserCheck, Users, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
-import { useDoctorReportsSummary } from '@/features/doctor/hooks/use-doctor-reports-summary';
 import type { DoctorPatientListItem } from '@/features/doctor/api/types';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
@@ -28,10 +27,6 @@ type LastVisitSort = 'newest' | 'oldest';
 
 const PAGE_SIZE = 25;
 const INACTIVE_AFTER_DAYS = 90;
-// Threshold below which a rating count reads as marketing rather than
-// evidence, same reasoning as the Doctor Card's Top Rated/Most Booked
-// ribbons and the Profile page's own rating tile.
-const MIN_RATING_COUNT_TO_DISPLAY = 5;
 
 /**
  * A real, non-fabricated status derived from real fields only -- never a
@@ -95,7 +90,6 @@ export function PatientsList() {
   const tGender = useTranslations('doctor.patients.gender');
   const format = useFormatter();
   const { data: patients, isLoading, isError } = useDoctorPatients();
-  const { data: reportsSummary } = useDoctorReportsSummary();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<PatientType>('all');
@@ -174,7 +168,13 @@ export function PatientsList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {/* Average Rating KPI removed (Phase 6 UX remediation, P2-5): a
+          doctor's own rating is not patient data and doesn't belong on a
+          clinical patient list -- it's already shown consistently on
+          Overview/Profile/Reports (Phase 1 consolidation via
+          `getRatingDisplay`/`useDoctorReviews`). Removing it here loses no
+          real data, just a vanity metric out of place. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <LinkableStatCard
           icon={Users}
           label={t('kpis.totalPatients')}
@@ -202,19 +202,6 @@ export function PatientsList() {
           value={String(kpis.thisWeek)}
           helperText={t('kpis.thisWeekHelper')}
           iconClassName="bg-warning-subtle text-warning-emphasis"
-        />
-        <LinkableStatCard
-          icon={Star}
-          label={t('kpis.averageRating')}
-          value={reportsSummary?.averageRating != null ? reportsSummary.averageRating.toFixed(1) : '—'}
-          helperText={
-            reportsSummary?.averageRating == null
-              ? t('kpis.noRatingsYet')
-              : reportsSummary.reviewCount >= MIN_RATING_COUNT_TO_DISPLAY
-                ? t('kpis.averageRatingHelper', { count: reportsSummary.reviewCount })
-                : t('kpis.averageRatingHelperNoCount')
-          }
-          iconClassName="bg-secondary-subtle text-text-secondary"
         />
       </div>
 
@@ -299,102 +286,207 @@ export function PatientsList() {
           </div>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>{t('columns.name')}</TableHead>
-                <TableHead>{t('columns.ageGender')}</TableHead>
-                <TableHead>{t('columns.visitCount')}</TableHead>
-                <TableHead>{t('columns.lastVisit')}</TableHead>
-                <TableHead>{t('columns.nextAppointment')}</TableHead>
-                <TableHead>{t('columns.patientStatus')}</TableHead>
-                <TableHead>{t('columns.actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageItems.map((patient) => {
-                const status = derivePatientStatus(patient, now);
-                return (
-                  <TableRow key={patient.patientProfileId}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar size="sm">
-                          {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.patientName} />}
-                          <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                            {patient.patientName}
-                            {patient.visitCount > 1 && (
-                              <Badge variant="primary" className="text-[10px]">
-                                {t('returning')}
-                              </Badge>
-                            )}
-                          </span>
-                          <span className="text-xs text-text-tertiary">{patient.email}</span>
-                          {patient.phoneNumber && <span className="text-xs text-text-tertiary">{patient.phoneNumber}</span>}
+        <>
+          {/* Responsive pass (Phase 7): below `md` (768px) the 7-column table
+              was ~634px of content in a ~346px viewport, forcing a horizontal
+              scroll that pushed the "View" action off-screen entirely. No
+              `ResponsiveTable` primitive exists anywhere in the codebase
+              (checked fresh -- still just `shared/ui/table.tsx`, a plain
+              scrollable `<table>`), so below `md` this renders a stacked
+              card list instead, kept local to this file rather than built as
+              a new generic primitive for a single caller. Both branches
+              render from the same `pageItems`/derived `status` -- never two
+              different data sources. */}
+          <Card className="hidden overflow-hidden md:block" data-testid="patients-table">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>{t('columns.name')}</TableHead>
+                  <TableHead>{t('columns.ageGender')}</TableHead>
+                  <TableHead>{t('columns.visitCount')}</TableHead>
+                  <TableHead>{t('columns.lastVisit')}</TableHead>
+                  <TableHead>{t('columns.nextAppointment')}</TableHead>
+                  <TableHead>{t('columns.patientStatus')}</TableHead>
+                  <TableHead>{t('columns.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pageItems.map((patient) => {
+                  const status = derivePatientStatus(patient, now);
+                  return (
+                    // `relative` + the name link's `after:absolute after:inset-0`
+                    // below is the "stretched link" pattern (shared/ui/table.tsx
+                    // has no built-in clickable-row convention, confirmed by
+                    // search -- this is the first one, kept local rather than
+                    // adding a new table primitive for a single caller): the
+                    // whole row becomes a real, keyboard-focusable `<a>` target
+                    // without an `onClick` on a non-interactive `<tr>` (which
+                    // would be inaccessible by keyboard). The eye-icon link in
+                    // the Actions cell stays a second, explicit action and is
+                    // raised above the overlay with `relative z-10` so it's
+                    // independently clickable/focusable.
+                    <TableRow key={patient.patientProfileId} className="relative">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar size="sm">
+                            {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.patientName} />}
+                            <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                            <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                              <Link
+                                href={`/doctor/patients/${patient.patientProfileId}`}
+                                className="rounded-sm after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              >
+                                {patient.patientName}
+                              </Link>
+                              {patient.visitCount > 1 && (
+                                <Badge variant="primary" className="text-[10px]">
+                                  {t('returning')}
+                                </Badge>
+                              )}
+                            </span>
+                            <span className="text-xs text-text-tertiary">{patient.email}</span>
+                            {patient.phoneNumber && <span className="text-xs text-text-tertiary">{patient.phoneNumber}</span>}
+                          </div>
                         </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-text-secondary">
+                        {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
+                        {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
+                      </TableCell>
+                      <TableCell className="text-sm text-text-secondary">{patient.visitCount}</TableCell>
+                      <TableCell className="text-sm text-text-secondary">
+                        {/* Completed-only now (see DoctorPatientListItem's own
+                            comment) -- when present this can only ever read
+                            "Completed", so the old per-row status badge here
+                            (Waiting doctor approval/Cancelled/Confirmed) was
+                            dropped: it was never actually describing a visit,
+                            just whatever appointment happened to be most
+                            recently scheduled. */}
+                        {patient.lastVisitAt
+                          ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
+                          : t('columns.lastVisitNone')}
+                      </TableCell>
+                      <TableCell className="text-sm text-text-secondary">
+                        {patient.nextAppointmentAt
+                          ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+                          : t('noUpcoming')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {/* The three placeholder actions (notes/message/more)
+                            are gone -- no clinical-notes editor or messaging
+                            feature exists yet, and a permanently-disabled
+                            "Coming soon" icon (no accessible name, unreachable
+                            by keyboard) was worse than not offering it at all.
+                            `aria-label` on the anchor itself, not just its
+                            inner icon/title, so the link has a real
+                            accessible name of its own. */}
+                        <Link
+                          href={`/doctor/patients/${patient.patientProfileId}`}
+                          aria-label={t('actions.view')}
+                          className="relative z-10 flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary"
+                        >
+                          <Icon icon={Eye} size="sm" />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <div className="flex flex-col gap-3 border-t border-border-default p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-text-tertiary">
+                {t('showingRange', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, filtered.length),
+                  total: filtered.length,
+                })}
+              </p>
+              <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
+            </div>
+          </Card>
+
+          {/* Card-list alternative, `md:hidden`. Same data as the table above
+              (name/link, status, last visit, next appointment), no side-scroll
+              -- the whole card is the "stretched link" (same pattern as the
+              table's name cell) so "View" never needs its own tap target to be
+              reachable, and the trailing chevron is a visible affordance that
+              the card is tappable. */}
+          <div className="flex flex-col gap-3 md:hidden" data-testid="patients-card-list">
+            {pageItems.map((patient) => {
+              const status = derivePatientStatus(patient, now);
+              return (
+                <Card key={patient.patientProfileId} className="relative p-4">
+                  <div className="flex items-start gap-3">
+                    <Avatar size="sm">
+                      {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.patientName} />}
+                      <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/doctor/patients/${patient.patientProfileId}`}
+                          className="truncate rounded-sm text-sm font-medium text-text-primary after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          {patient.patientName}
+                        </Link>
+                        {patient.visitCount > 1 && (
+                          <Badge variant="primary" className="shrink-0 text-[10px]">
+                            {t('returning')}
+                          </Badge>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
-                      {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
-                      {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">{patient.visitCount}</TableCell>
-                    <TableCell className="text-sm text-text-secondary">
-                      {/* Completed-only now (see DoctorPatientListItem's own
-                          comment) -- when present this can only ever read
-                          "Completed", so the old per-row status badge here
-                          (Waiting doctor approval/Cancelled/Confirmed) was
-                          dropped: it was never actually describing a visit,
-                          just whatever appointment happened to be most
-                          recently scheduled. */}
-                      {patient.lastVisitAt
-                        ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
-                        : t('columns.lastVisitNone')}
-                    </TableCell>
-                    <TableCell className="text-sm text-text-secondary">
-                      {patient.nextAppointmentAt
-                        ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
-                        : t('noUpcoming')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {/* The three placeholder actions (notes/message/more)
-                          are gone -- no clinical-notes editor or messaging
-                          feature exists yet, and a permanently-disabled
-                          "Coming soon" icon (no accessible name, unreachable
-                          by keyboard) was worse than not offering it at all.
-                          `aria-label` on the anchor itself, not just its
-                          inner icon/title, so the link has a real
-                          accessible name of its own. */}
-                      <Link
-                        href={`/doctor/patients/${patient.patientProfileId}`}
-                        aria-label={t('actions.view')}
-                        className="flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary"
-                      >
-                        <Icon icon={Eye} size="sm" />
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <div className="flex flex-col gap-3 border-t border-border-default p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-text-tertiary">
-              {t('showingRange', {
-                from: (currentPage - 1) * PAGE_SIZE + 1,
-                to: Math.min(currentPage * PAGE_SIZE, filtered.length),
-                total: filtered.length,
-              })}
-            </p>
-            <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-tertiary">
+                        <span>
+                          {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
+                          {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{patient.email}</span>
+                      </div>
+                      <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                        <div>
+                          <dt className="text-text-tertiary">{t('columns.lastVisit')}</dt>
+                          <dd className="text-text-secondary">
+                            {patient.lastVisitAt
+                              ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
+                              : t('columns.lastVisitNone')}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-text-tertiary">{t('columns.nextAppointment')}</dt>
+                          <dd className="text-text-secondary">
+                            {patient.nextAppointmentAt
+                              ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+                              : t('noUpcoming')}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div className="mt-1">
+                        <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
+                      </div>
+                    </div>
+                    <Icon icon={Eye} size="sm" className="mt-1 shrink-0 text-text-tertiary" aria-hidden="true" />
+                  </div>
+                </Card>
+              );
+            })}
+            <div className="flex flex-col gap-3 border-t border-border-default pt-4">
+              <p className="text-sm text-text-tertiary">
+                {t('showingRange', {
+                  from: (currentPage - 1) * PAGE_SIZE + 1,
+                  to: Math.min(currentPage * PAGE_SIZE, filtered.length),
+                  total: filtered.length,
+                })}
+              </p>
+              <Pagination page={currentPage} pageCount={pageCount} onPageChange={setPage} />
+            </div>
           </div>
-        </Card>
+        </>
       )}
     </div>
   );

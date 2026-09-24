@@ -13,8 +13,13 @@ import { Alert } from '@/shared/ui/alert';
  * New top-of-page strip (Security Center rework): active session count,
  * last sign-in (relative time + city), and 2FA status. 2FA is a hardcoded
  * "off" state everywhere in this codebase -- see SecuritySummary's own type
- * comment -- so its card here always renders the warning treatment with a
- * "Set up" link, never a real toggle.
+ * comment. Phase 5: this card used to pair a "Not enabled" badge with an
+ * actionable "Set up" anchor link, while `TwoFactorSection` below (the
+ * feature's real, single source of truth) says "Not available yet" behind a
+ * disabled button -- an unimplemented feature was reading as one click away
+ * in one place and unavailable in the other. This card now uses the same
+ * "Not available yet" framing and has no actionable link, so there's exactly
+ * one honest story about 2FA on this page.
  */
 export function SecuritySummaryStrip() {
   const t = useTranslations('auth.securityCenter.summary');
@@ -61,12 +66,8 @@ export function SecuritySummaryStrip() {
       <Card className="flex flex-col gap-1 p-4">
         <p className="text-xs font-medium text-text-tertiary">{t('twoFactor')}</p>
         <div className="flex items-center gap-2">
-          <Badge variant="warning">{t('twoFactorOff')}</Badge>
+          <Badge variant="neutral">{t('twoFactorOff')}</Badge>
         </div>
-        {/* Same-page anchor -- a plain <a>, not the locale-aware Link (which expects a routable pathname, not a fragment). */}
-        <a href="#two-factor" className="w-fit text-xs font-medium text-primary hover:underline">
-          {t('twoFactorSetUp')}
-        </a>
       </Card>
     </div>
   );

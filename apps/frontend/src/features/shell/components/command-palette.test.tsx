@@ -215,7 +215,7 @@ describe('CommandPalette', () => {
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 
-    it('navigates a Doctor viewer to the real (undeep-linked) patients list when a patient result is selected', async () => {
+    it('navigates a Doctor viewer directly to that patient\'s own chart when a patient result is selected (Phase 2 fix -- previously routed to the generic, undeep-linked patients list)', async () => {
       renderPalette(doctorState);
       await userEvent.click(screen.getByRole('button', { name: /Search/ }));
       await screen.findByRole('dialog');
@@ -230,7 +230,7 @@ describe('CommandPalette', () => {
       const results = await screen.findAllByText('Mona Farouk');
       await userEvent.click(results[0]);
 
-      await waitFor(() => expect(push).toHaveBeenCalledWith('/en/doctor/patients'));
+      await waitFor(() => expect(push).toHaveBeenCalledWith(expect.stringMatching(/^\/en\/doctor\/patients\/.+$/)));
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     });
 

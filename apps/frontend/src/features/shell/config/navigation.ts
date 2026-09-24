@@ -15,6 +15,7 @@ import {
   Pill,
   ScrollText,
   Receipt,
+  Scale,
   Search,
   Settings,
   ShieldAlert,
@@ -91,9 +92,22 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
   // clutter. `/dashboard` (DashboardPage) still exists as a defensive
   // redirect-only fallback for stale bookmarks/links -- just no longer
   // nav-reachable.
+  // Phase 5 (Notifications, Navigation & IA): the doctor workspace used to
+  // be one flat group ("DOCTOR WORKSPACE") holding all 12 items with no
+  // further structure -- daily-use items (Queue, Appointments, Messages)
+  // sat interleaved with weekly/monthly ones (Reports, Earnings) and
+  // account-management ones (Settings, Security), and Disputes (an
+  // occasional-use, formal-process item) sat between Messages and Knowledge
+  // Center wearing the same warning-triangle icon used for real alerts
+  // elsewhere in the app. Regrouped into four labeled sections -- reusing
+  // the exact same `children`+`labelKey` group mechanism every other
+  // workspace already uses (`NavGroup`/`SidebarSectionLabel`), not a new
+  // one -- so the sidebar reads as "what you'll touch every day" (Clinical),
+  // "how your practice runs" (Practice), "your own account" (Account), and
+  // "everything else" (More).
   {
-    id: 'doctor-workspace',
-    labelKey: 'doctorWorkspace',
+    id: 'doctor-workspace-clinical',
+    labelKey: 'groups.clinical',
     icon: Stethoscope,
     roles: ['doctor'],
     children: [
@@ -106,24 +120,23 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         exactMatchOnly: true,
       },
       {
-        id: 'doctor-workspace-profile',
-        labelKey: 'doctorProfile',
-        icon: User,
-        href: '/doctor/profile',
-        roles: ['doctor'],
-      },
-      {
-        id: 'doctor-workspace-schedule',
-        labelKey: 'doctorSchedule',
-        icon: CalendarRange,
-        href: '/doctor/schedule',
-        roles: ['doctor'],
-      },
-      {
         id: 'doctor-workspace-queue',
         labelKey: 'doctorQueue',
         icon: Users,
         href: '/doctor/queue',
+        roles: ['doctor'],
+      },
+      {
+        // Phase 2 (Appointment Visibility & Consultation History): the
+        // previously missing unified appointments list -- Schedule (grid)
+        // and Queue (today only) stay as-is, this is the new "every
+        // appointment, filterable" destination (IMPLEMENTATION_NOTES.md
+        // Phase 0 confirmed `/doctor/appointments` 404'd with zero nav
+        // entry before this).
+        id: 'doctor-workspace-appointments',
+        labelKey: 'doctorAppointments',
+        icon: CalendarDays,
+        href: '/doctor/appointments',
         roles: ['doctor'],
       },
       {
@@ -141,25 +154,19 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         roles: ['doctor'],
         badge: 'unread-messages',
       },
+    ],
+  },
+  {
+    id: 'doctor-workspace-practice',
+    labelKey: 'groups.practice',
+    icon: CalendarRange,
+    roles: ['doctor'],
+    children: [
       {
-        id: 'doctor-workspace-disputes',
-        labelKey: 'doctorDisputes',
-        icon: AlertTriangle,
-        href: '/doctor/disputes',
-        roles: ['doctor'],
-      },
-      {
-        id: 'doctor-workspace-knowledge',
-        labelKey: 'doctorKnowledge',
-        icon: Newspaper,
-        href: '/doctor/knowledge',
-        roles: ['doctor'],
-      },
-      {
-        id: 'doctor-workspace-reports',
-        labelKey: 'doctorReports',
-        icon: BarChart3,
-        href: '/doctor/reports',
+        id: 'doctor-workspace-schedule',
+        labelKey: 'doctorSchedule',
+        icon: CalendarRange,
+        href: '/doctor/schedule',
         roles: ['doctor'],
       },
       {
@@ -170,10 +177,73 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         roles: ['doctor'],
       },
       {
+        id: 'doctor-workspace-reports',
+        labelKey: 'doctorReports',
+        icon: BarChart3,
+        href: '/doctor/reports',
+        roles: ['doctor'],
+      },
+    ],
+  },
+  {
+    id: 'doctor-workspace-account',
+    labelKey: 'groups.account',
+    icon: User,
+    roles: ['doctor'],
+    children: [
+      {
+        id: 'doctor-workspace-profile',
+        labelKey: 'doctorProfile',
+        icon: User,
+        href: '/doctor/profile',
+        roles: ['doctor'],
+      },
+      {
         id: 'doctor-workspace-settings',
         labelKey: 'doctorSettings',
         icon: Settings,
         href: '/doctor/settings',
+        roles: ['doctor'],
+      },
+      {
+        // The shared, cross-role Security Center (`security` item, bottom
+        // of this file) still owns the actual route/permission/highlight
+        // behavior -- this is the same `/security` destination surfaced a
+        // second time in its logical home for a doctor specifically. The
+        // shared item's own `roles` excludes doctor so it doesn't also
+        // render a second time down at the bottom of a doctor's sidebar.
+        id: 'doctor-workspace-security',
+        labelKey: 'security',
+        icon: ShieldAlert,
+        href: '/security',
+        roles: ['doctor'],
+      },
+    ],
+  },
+  {
+    id: 'doctor-workspace-more',
+    labelKey: 'groups.more',
+    icon: Newspaper,
+    roles: ['doctor'],
+    children: [
+      {
+        id: 'doctor-workspace-knowledge',
+        labelKey: 'doctorKnowledge',
+        icon: Newspaper,
+        href: '/doctor/knowledge',
+        roles: ['doctor'],
+      },
+      {
+        // Was `AlertTriangle` (the same icon used for real warnings/alerts
+        // elsewhere in the app) even though nothing here is actually
+        // urgent by default -- no open-disputes-count hook/endpoint exists
+        // to badge this with a real number (checked before choosing an
+        // icon rather than fabricating one), so this is now a neutral,
+        // subject-appropriate icon with no implied severity.
+        id: 'doctor-workspace-disputes',
+        labelKey: 'doctorDisputes',
+        icon: Scale,
+        href: '/doctor/disputes',
         roles: ['doctor'],
       },
     ],
@@ -419,9 +489,15 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
     ],
   },
   {
+    // Every role but doctor still gets this generic, always-visible entry.
+    // A doctor gets the same `/security` destination grouped into their own
+    // "Account" section above instead (`doctor-workspace-security`) -- this
+    // item is `roles`-restricted to everyone else so it isn't ALSO rendered
+    // a second time at the very bottom of a doctor's sidebar.
     id: 'security',
     labelKey: 'security',
     icon: ShieldAlert,
     href: '/security',
+    roles: ['super_admin', 'hospital_admin', 'receptionist', 'nurse', 'patient'],
   },
 ];

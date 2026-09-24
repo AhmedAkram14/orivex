@@ -16,6 +16,7 @@ import { Icon } from '@/shared/icons/icon';
 import { Section } from '@/shared/ui/layout/section';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
+import { getDurationMinutes } from '@/shared/lib/date/format-duration';
 
 const RATING_DISPLAY_VALUES = [1, 2, 3, 4, 5] as const;
 
@@ -25,10 +26,15 @@ export interface ConsultationOutcomeActionProps {
   autoOpen?: boolean;
 }
 
-function formatDuration(startedAt: string | null, closedAt: string | null): string | null {
+/**
+ * Phase 8: routes the raw minute count through the shared `getDurationMinutes`
+ * helper (was independently duplicated math here and in the doctor-facing
+ * `DoctorConsultationSummaryAction`) -- returns `null` when either timestamp
+ * is missing so callers can skip rendering the row entirely, same as before.
+ */
+function durationMinutesOrNull(startedAt: string | null, closedAt: string | null): number | null {
   if (!startedAt || !closedAt) return null;
-  const minutes = Math.round((new Date(closedAt).getTime() - new Date(startedAt).getTime()) / 60_000);
-  return `${minutes} min`;
+  return getDurationMinutes(startedAt, closedAt);
 }
 
 interface SubmittedRatingViewProps {
@@ -92,6 +98,7 @@ export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = fa
   const [isEditingRating, setIsEditingRating] = useState(false);
   const { data: summary, isLoading, isError } = useConsultationSummary(open ? consultationSessionId : undefined);
   const { data: doctor } = useDoctorById(summary?.appointment.doctorId ?? '');
+  const durationMinutes = summary ? durationMinutesOrNull(summary.session.startedAt, summary.session.closedAt) : null;
 
   // Only ever reacts to `autoOpen` going true (a notification deep link) --
   // never re-forces the dialog open again after the patient closes it.
@@ -130,10 +137,10 @@ export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = fa
                   <p className="text-text-tertiary">{t('status')}</p>
                   <Badge variant="success">{t('completed')}</Badge>
                 </div>
-                {formatDuration(summary.session.startedAt, summary.session.closedAt) && (
+                {durationMinutes !== null && (
                   <div>
                     <p className="text-text-tertiary">{t('duration')}</p>
-                    <p className="text-text-primary">{formatDuration(summary.session.startedAt, summary.session.closedAt)}</p>
+                    <p className="text-text-primary">{t('durationMinutes', { minutes: durationMinutes })}</p>
                   </div>
                 )}
               </div>

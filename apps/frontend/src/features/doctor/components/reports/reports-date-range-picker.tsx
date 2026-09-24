@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
+import { cn } from '@/shared/lib/cn';
 
 export interface ReportsDateRangePickerProps {
   /** ISO date (YYYY-MM-DD). Controlled -- this component owns no date state of its own. */
@@ -55,6 +56,20 @@ export function getLast30DaysRange(): { dateFrom: string; dateTo: string } {
 export function ReportsDateRangePicker({ dateFrom, dateTo, onChange }: ReportsDateRangePickerProps) {
   const t = useTranslations('doctor.reports.dateRange');
 
+  // Phase 8: highlight whichever preset (if any) matches the current
+  // `dateFrom`/`dateTo` -- computed fresh each render from "today" so a
+  // preset picked yesterday correctly stops reading as active once the
+  // "today" it was anchored to has moved on. `undefined` (no match) is the
+  // common case once the doctor edits either date input directly.
+  const presets = [
+    { key: 'preset7Days', dateFrom: daysAgoIso(7), dateTo: todayIso() },
+    { key: 'preset30Days', dateFrom: daysAgoIso(30), dateTo: todayIso() },
+    { key: 'preset90Days', dateFrom: daysAgoIso(90), dateTo: todayIso() },
+    { key: 'presetThisMonth', dateFrom: startOfThisMonthIso(), dateTo: todayIso() },
+    { key: 'presetAllTime', dateFrom: ALL_TIME_START_ISO, dateTo: todayIso() },
+  ] as const;
+  const activePresetKey = presets.find((preset) => preset.dateFrom === dateFrom && preset.dateTo === dateTo)?.key;
+
   return (
     <div className="flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-1">
@@ -82,21 +97,19 @@ export function ReportsDateRangePicker({ dateFrom, dateTo, onChange }: ReportsDa
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(7), todayIso())}>
-          {t('preset7Days')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(30), todayIso())}>
-          {t('preset30Days')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(90), todayIso())}>
-          {t('preset90Days')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(startOfThisMonthIso(), todayIso())}>
-          {t('presetThisMonth')}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(ALL_TIME_START_ISO, todayIso())}>
-          {t('presetAllTime')}
-        </Button>
+        {presets.map((preset) => (
+          <Button
+            key={preset.key}
+            type="button"
+            variant={activePresetKey === preset.key ? 'secondary' : 'outline'}
+            size="sm"
+            aria-pressed={activePresetKey === preset.key}
+            className={cn(activePresetKey === preset.key && 'ring-1 ring-inset ring-border-strong')}
+            onClick={() => onChange(preset.dateFrom, preset.dateTo)}
+          >
+            {t(preset.key)}
+          </Button>
+        ))}
       </div>
     </div>
   );

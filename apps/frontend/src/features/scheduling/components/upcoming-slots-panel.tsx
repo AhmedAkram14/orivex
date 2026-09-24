@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { CalendarClock } from 'lucide-react';
 import { useUpcomingSlots } from '@/features/scheduling/hooks/use-upcoming-slots';
 import { SlotPricingDialog } from '@/features/scheduling/components/slot-pricing-dialog';
@@ -48,7 +48,6 @@ function groupByDate(windows: AvailabilityWindowData[]): { dateKey: string; wind
 export function UpcomingSlotsPanel() {
   const t = useTranslations('doctor.schedule.upcomingSlots');
   const format = useFormatter();
-  const locale = useLocale();
   const today = getCairoNow();
   const { data: windows, isLoading, isError } = useUpcomingSlots();
   const [editingWindow, setEditingWindow] = useState<AvailabilityWindowData | null>(null);
@@ -89,7 +88,7 @@ export function UpcomingSlotsPanel() {
             <ul className="flex flex-col gap-2">
               {group.windows.map((window) => {
                 const timeLabel = `${format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' })} – ${format.dateTime(new Date(window.endTime), { hour: 'numeric', minute: 'numeric' })}`;
-                const priceLabel = formatConsultationPrice(window, locale, t('free'));
+                const priceLabel = formatConsultationPrice(window, format, t('free'));
 
                 return (
                   <li

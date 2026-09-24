@@ -47,7 +47,14 @@ describe('DoctorDashboardPage', () => {
   it('renders the welcome message and today\'s seeded busy schedule', async () => {
     renderPage();
 
-    expect(await screen.findByText('Welcome back, Dr. Sarah Ahmed.')).toBeInTheDocument();
+    // Phase 8: the greeting's name is now wrapped in a `<bdi>` element (bidi
+    // isolation fix for the Arabic locale's embedded-LTR-name punctuation
+    // bug -- see `welcome-header.tsx`), so the sentence is split across
+    // sibling text nodes and no single node's own text is the full exact
+    // string anymore -- assert on the heading's combined `textContent`
+    // instead of an exact-string `getByText`/accessible-name match.
+    const heading = await screen.findByRole('heading', { level: 2 });
+    expect(heading.textContent).toBe('Welcome back, Dr. Sarah Ahmed.');
     // `doctor-store.ts`'s seeded busy-practice-day fixture (not a real
     // clinical record) -- a completed-today patient from `seedUpcomingWork()`.
     expect(await screen.findByText('Mona Farouk')).toBeInTheDocument();

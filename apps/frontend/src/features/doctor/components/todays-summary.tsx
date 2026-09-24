@@ -3,18 +3,12 @@
 import { CalendarCheck, ClipboardCheck, Star, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
+import { getRatingDisplay } from '@/features/consultation/lib/rating-display';
 import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-dashboard-summary';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { usePendingApprovalAppointments } from '@/features/doctor/hooks/use-pending-approval-appointments';
 import { Alert } from '@/shared/ui/alert';
-import { DashboardGrid } from '@/shared/ui/layout/page';
 import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
-
-// A rating built on a handful of reviews reads as evidence, not marketing --
-// same threshold reasoning as the public Doctor Card's Top Rated/Most Booked
-// ribbons. Below it, the count is withheld rather than headlining "(2
-// ratings)" next to a rounded average.
-const MIN_RATING_COUNT_TO_DISPLAY = 5;
 
 /**
  * The Doctor Workspace's "Today's Summary" row — real counts from the
@@ -42,18 +36,20 @@ export function TodaysSummary() {
     return <Alert variant="danger">{t('summaryLoadError')}</Alert>;
   }
 
-  const ratingValue =
-    reviews && reviews.reviewCount >= MIN_RATING_COUNT_TO_DISPLAY && reviews.averageRating != null
-      ? reviews.averageRating.toFixed(1)
-      : tRating('noReviewsYet');
-
-  const helperText =
-    reviews && reviews.reviewCount >= MIN_RATING_COUNT_TO_DISPLAY
-      ? t('allTimeReviewCount', { count: reviews.reviewCount })
-      : t('allTime');
+  const rating = getRatingDisplay(tRating, { averageRating: reviews?.averageRating, reviewCount: reviews?.reviewCount });
 
   return (
-    <DashboardGrid columns={4} className="gap-6">
+    // Responsive pass (Phase 7): `DashboardGrid columns={4}` starts at a
+    // single stacked column below `sm` (its own generic `columnsClass`
+    // table, shared by every other caller across the app) -- four
+    // ~120px-tall KPI cards stacked full-width pushed all of Overview's
+    // actionable content below the fold at 390px. Rather than change
+    // `DashboardGrid`'s shared default (which would also reshape every
+    // other page using `columns={4}`, out of this phase's scope), this one
+    // grid is built locally with an explicit 2x2 base -- same pattern
+    // `patients-list.tsx`'s own KPI row already uses instead of the shared
+    // primitive. `sm`/`lg` unchanged from before (2-across, then 4-across).
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
       <LinkableStatCard
         size="lg"
         icon={ClipboardCheck}
@@ -92,12 +88,12 @@ export function TodaysSummary() {
         // stars), so "rating" reads as one consistent accent across pages.
         iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('averageRating')}
-        value={ratingValue}
-        helperText={helperText}
+        value={rating.value}
+        helperText={rating.helperText}
         loading={isLoading || reviewsLoading}
         href="/doctor/profile"
         className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
       />
-    </DashboardGrid>
+    </div>
   );
 }

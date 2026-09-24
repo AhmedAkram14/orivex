@@ -50,6 +50,13 @@ export function ScheduleAgenda({
 
     for (const slot of slots) {
       if (items.length >= maxItems) break;
+      // A `status: 'past'` slot is real (`generateDaySlots` emits it rather
+      // than omitting it, so a calendar grid can still render/explain it),
+      // but an "upcoming" agenda showing today's already-past slots before
+      // any future item is exactly the reported bug -- skip it here rather
+      // than reordering, so the flattened list is genuinely forward-looking
+      // the same way every other "upcoming" surface in this app already is.
+      if (slot.status === 'past') continue;
       items.push({
         id: slot.id,
         dateLabel: format.dateTime(date, { weekday: 'short', month: 'short', day: 'numeric' }),

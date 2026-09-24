@@ -3,12 +3,11 @@
 import { AlertTriangle, CheckCircle2, ShieldQuestion } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { Icon } from '@/shared/icons/icon';
-import { Button } from '@/shared/ui/button';
 import { formatDateTime } from '@/shared/lib/date/format-datetime';
 import { cn } from '@/shared/lib/cn';
-import { useConfirmNoKnownAllergies } from '@/features/doctor/hooks/use-confirm-no-known-allergies';
 import type { DoctorPatientChartProfile } from '@/features/doctor/api/types';
 import { getAllergyState } from '../_lib/allergy-state';
+import { ConfirmNoKnownAllergiesDialog } from './confirm-no-known-allergies-dialog';
 
 export interface AllergyBannerProps {
   profile: DoctorPatientChartProfile;
@@ -21,7 +20,6 @@ export interface AllergyBannerProps {
 export function AllergyBanner({ profile, patientProfileId }: AllergyBannerProps) {
   const t = useTranslations('publicPatient');
   const format = useFormatter();
-  const confirmNoKnownAllergies = useConfirmNoKnownAllergies(patientProfileId);
   const state = getAllergyState(profile);
 
   if (state.kind === 'present') {
@@ -64,16 +62,11 @@ export function AllergyBanner({ profile, patientProfileId }: AllergyBannerProps)
           </div>
         </div>
         {state.isAged && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
+          <ConfirmNoKnownAllergiesDialog
+            patientProfileId={patientProfileId}
+            triggerLabel={t('confirmAgainNoKnownAllergies')}
             className="shrink-0"
-            loading={confirmNoKnownAllergies.isPending}
-            onClick={() => confirmNoKnownAllergies.mutate()}
-          >
-            {t('confirmAgainNoKnownAllergies')}
-          </Button>
+          />
         )}
       </div>
     );
@@ -88,19 +81,11 @@ export function AllergyBanner({ profile, patientProfileId }: AllergyBannerProps)
           <p className="text-sm font-semibold">{t('allergiesNotYetConfirmed')}</p>
         </div>
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
+      <ConfirmNoKnownAllergiesDialog
+        patientProfileId={patientProfileId}
+        triggerLabel={t('confirmNoKnownAllergies')}
         className="shrink-0 self-start sm:self-auto"
-        loading={confirmNoKnownAllergies.isPending}
-        onClick={() => confirmNoKnownAllergies.mutate()}
-      >
-        {t('confirmNoKnownAllergies')}
-      </Button>
-      {confirmNoKnownAllergies.isError && (
-        <p className="text-xs text-danger sm:basis-full">{t('confirmNoKnownAllergiesError')}</p>
-      )}
+      />
     </div>
   );
 }

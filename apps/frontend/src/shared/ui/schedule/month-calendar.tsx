@@ -7,6 +7,8 @@ export interface MonthCalendarDay {
   dateLabel: string;
   isCurrentMonth: boolean;
   isToday?: boolean;
+  /** A date strictly before today -- rendered visually muted, distinct from a future day, so the grid reads at a glance which days are already behind the doctor. */
+  isPast?: boolean;
   isSelected?: boolean;
   onSelect?: () => void;
   /** Typically a small status dot/badge — omitted for a day with nothing to show. */
@@ -45,6 +47,7 @@ export function MonthCalendar({ days, weekDayLabels, className }: MonthCalendarP
                 'flex size-7 items-center justify-center rounded-full text-sm font-medium',
                 day.isToday ? 'bg-primary text-primary-foreground' : 'text-text-primary',
                 !day.isCurrentMonth && 'text-text-tertiary/50',
+                !day.isToday && day.isPast && 'text-text-tertiary opacity-70',
               )}
             >
               {day.dateLabel}
@@ -71,7 +74,7 @@ export function MonthCalendar({ days, weekDayLabels, className }: MonthCalendarP
               ) : (
                 cell
               )}
-              {day.content}
+              <span className={cn(!day.isToday && day.isPast && 'opacity-60')}>{day.content}</span>
             </div>
           );
         })}

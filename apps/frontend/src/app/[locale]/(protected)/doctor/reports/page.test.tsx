@@ -110,18 +110,24 @@ describe('DoctorReportsPage', () => {
     expect(screen.getByText('1 expired, never answered — included in total')).toBeInTheDocument();
   });
 
-  it('shows the low-data rating message below the 5-review threshold instead of a bare number', async () => {
+  it('shows the real average with a range-scoped rating count regardless of the 5-review threshold', async () => {
+    // Phase 1 UX remediation (`getRatingDisplay`): Reports' rating is always
+    // date-range-scoped, so it never falls back to the lifetime "not enough
+    // ratings yet" framing -- it states the range and count plainly instead,
+    // e.g. "Aug 25 – Sep 23, 2026 · 3 ratings", so a low count here never
+    // looks like the same lifetime number shown on Overview/Profile.
     server.use(http.get(ANALYTICS_URL, () => jsonAnalytics({ reviewCount: 3 })));
     renderPage();
 
-    expect(await screen.findByText('Not enough ratings yet (only 3)')).toBeInTheDocument();
+    expect(await screen.findByText('4.6')).toBeInTheDocument();
+    expect(screen.getByText(/· 3 ratings$/)).toBeInTheDocument();
   });
 
-  it('shows the real average once at/above the 5-review threshold', async () => {
+  it('shows the real average with a range-scoped rating count at/above the 5-review threshold too', async () => {
     renderPage();
 
     expect(await screen.findByText('4.6')).toBeInTheDocument();
-    expect(screen.getByText('41 Ratings')).toBeInTheDocument();
+    expect(screen.getByText(/· 41 ratings$/)).toBeInTheDocument();
   });
 
   it('deep-links with ?dateFrom=&dateTo= and reflects them in the date-range inputs', async () => {
@@ -211,7 +217,10 @@ describe('DoctorReportsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('No ratings yet')).toBeInTheDocument();
+    // Same range-scoped contract as above: zero ratings still states the
+    // range rather than a bare "No ratings yet" (that unscoped copy is
+    // Overview/Profile's, per `getRatingDisplay`'s `rangeLabel` branch).
+    expect(await screen.findByText(/· No ratings yet$/)).toBeInTheDocument();
     expect(screen.getAllByText('0').length).toBeGreaterThan(0);
   });
 });

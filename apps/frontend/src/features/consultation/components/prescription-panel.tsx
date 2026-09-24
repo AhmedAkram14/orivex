@@ -82,14 +82,16 @@ export function PrescriptionPanel({ consultationSessionId, onDirtyChange }: Pres
     try {
       await signPrescription.mutateAsync({
         diagnosisNodeId: prescriptionDiagnosisNodeId,
-        lineItem: {
-          drugCatalogId: crypto.randomUUID(),
-          drugName: medicationName.trim(),
-          dosage: dosage.trim(),
-          frequency: frequency.trim(),
-          durationDays: durationDaysValue,
-          instructions: instructions.trim() || undefined,
-        },
+        lineItems: [
+          {
+            drugCatalogId: crypto.randomUUID(),
+            drugName: medicationName.trim(),
+            dosage: dosage.trim(),
+            frequency: frequency.trim(),
+            durationDays: durationDaysValue,
+            instructions: instructions.trim() || undefined,
+          },
+        ],
       });
     } catch {
       // Surfaced via signPrescription.isError below -- entered values stay

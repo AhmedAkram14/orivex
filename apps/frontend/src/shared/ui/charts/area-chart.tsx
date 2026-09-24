@@ -9,10 +9,18 @@ export interface AreaChartProps {
   xKey: string;
   series: ChartSeries[];
   height?: number;
+  /**
+   * Recharts interpolation between points. Defaults to `'monotone'`
+   * (unchanged for every existing caller). Phase 8: the Doctor Reports trend
+   * chart passes `'linear'` -- its x-axis is a small number of *discrete*
+   * daily buckets, and a smoothed spline curve implies fractional/continuous
+   * values existed between them, which is misleading for a per-day count.
+   */
+  type?: 'monotone' | 'linear';
 }
 
 /** Generic themed area chart -- for trend-with-magnitude reads (e.g. revenue over time) where a line alone would under-communicate volume. */
-export function AreaChart({ data, xKey, series, height = 260 }: AreaChartProps) {
+export function AreaChart({ data, xKey, series, height = 260, type = 'monotone' }: AreaChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsAreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -24,7 +32,7 @@ export function AreaChart({ data, xKey, series, height = 260 }: AreaChartProps) 
         {series.map((item, index) => (
           <Area
             key={item.key}
-            type="monotone"
+            type={type}
             dataKey={item.key}
             name={item.label}
             stroke={CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]}

@@ -28,6 +28,7 @@ import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { DoctorReviewsList } from '@/features/consultation/components/doctor-reviews-list';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
+import { getRatingDisplay } from '@/features/consultation/lib/rating-display';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { Heading } from '@/design-system/typography';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
@@ -150,6 +151,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
   const t = useTranslations('doctor.profile');
   const tLanguages = useTranslations('doctor.profile.languageNames');
   const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
+  const tRating = useTranslations('consultation.rating');
   const format = useFormatter();
   const locale = useLocale();
   const isWorkspace = variant === 'workspace';
@@ -166,6 +168,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
   const { data: specialties } = useSpecialtiesList();
   const { data: hospitals } = useHospitalsList();
   const { data: reviews, isLoading: reviewsLoading } = useDoctorReviews(profile.id);
+  const rating = getRatingDisplay(tRating, { averageRating: reviews?.averageRating, reviewCount: reviews?.reviewCount });
   const { data: patients } = useDoctorPatients(isWorkspace);
   const { data: availability, isLoading: availabilityLoading } = useDoctorAvailability(isWorkspace);
   const { data: verifications } = useMyVerifications(isWorkspace ? profile.id : undefined);
@@ -282,10 +285,8 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                 <Icon icon={Star} size="md" />
               </span>
               <div>
-                <p className="text-lg font-semibold text-text-primary">
-                  {reviews && reviews.reviewCount > 0 && reviews.averageRating != null ? reviews.averageRating.toFixed(1) : '—'}
-                </p>
-                <p className="text-xs text-text-tertiary">{t('hero.reviewsCount', { count: reviews?.reviewCount ?? 0 })}</p>
+                <p className="text-lg font-semibold text-text-primary">{rating.value}</p>
+                <p className="text-xs text-text-tertiary">{rating.helperText}</p>
               </div>
             </div>
             {profile.yearsOfExperience !== undefined && (

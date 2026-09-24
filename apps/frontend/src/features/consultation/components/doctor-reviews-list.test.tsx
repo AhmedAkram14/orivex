@@ -90,7 +90,9 @@ describe('DoctorReviewsList', () => {
     // review -- shown with its stars, just no comment paragraph.
     const karimLink = screen.getByRole('link', { name: 'Karim Fathy' });
     expect(karimLink).toHaveAttribute('href', `/en/patients/patient-profile-2?doctorId=${DOCTOR_PROFILE_ID}`);
-    expect(screen.getByLabelText('3/5')).toBeInTheDocument();
+    // Phase 8: the star-rating display now carries a real localized
+    // aria-label ("Rated 3 out of 5") instead of the raw "3/5" string.
+    expect(screen.getByLabelText('Rated 3 out of 5')).toBeInTheDocument();
   });
 
   it('links reviewers to the real, authorized Doctor-facing Patient Chart when rendered in the workspace variant', async () => {

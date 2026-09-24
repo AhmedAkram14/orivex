@@ -11,16 +11,22 @@ export interface MetricCardProps {
   className?: string;
 }
 
+// See `StatCard`'s own comment: a value slot is for a short figure, never a
+// sentence -- this is a defensive backstop against overflow at narrow
+// viewports, not something a real caller should rely on.
+const LONG_VALUE_THRESHOLD = 8;
+
 /** A single large KPI figure with an optional trend indicator — e.g. "Today's Appointments: 24, +12% vs last week" on a dashboard (Phase 6/17 scope; this is the presentational primitive only, real numbers come from those phases' data). */
 export function MetricCard({ label, value, trend, className }: MetricCardProps) {
   const isPositive = typeof trend === 'number' && trend >= 0;
+  const isLongValue = value.length > LONG_VALUE_THRESHOLD;
   return (
     <Card className={className}>
       <CardHeader className="pb-0">
         <p className="text-sm text-text-secondary">{label}</p>
       </CardHeader>
       <CardContent className="flex items-end justify-between gap-2">
-        <p className="text-3xl font-semibold text-text-primary">{value}</p>
+        <p className={cn('wrap-break-word font-semibold text-text-primary', isLongValue ? 'text-lg' : 'text-3xl')}>{value}</p>
         {typeof trend === 'number' && (
           <span
             className={cn(

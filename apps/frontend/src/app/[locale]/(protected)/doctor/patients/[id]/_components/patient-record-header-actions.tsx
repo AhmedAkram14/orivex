@@ -31,6 +31,16 @@ export interface PatientRecordHeaderActionsProps {
 // honestly). "Open in Queue" is a plain, undecorated link to the Queue page,
 // shown only when an upcoming appointment exists, not a claim of a specific
 // deep link this app doesn't support.
+//
+// Phase 6 UX remediation: "Write prescription" and "Add condition" used to
+// be buried inside the "..." overflow menu while "Message patient" was the
+// only visible primary action -- the two most frequent clinical actions on
+// this page were the hardest to find. Both are now real, visible secondary
+// buttons next to "Message patient"; "Write prescription" only when at
+// least one eligible (completed, session-backed) appointment exists, same
+// gating the old menu item already had. Upload document/Print record stay
+// in the overflow menu -- they're lower-frequency and the header already has
+// three visible buttons plus the counterparty-facing "Open in Queue" link.
 export function PatientRecordHeaderActions({
   patientProfileId,
   hasUpcomingAppointment,
@@ -51,10 +61,22 @@ export function PatientRecordHeaderActions({
 
   return (
     <div className="print-hidden flex flex-col items-end gap-1.5">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <Button type="button" variant="outline" size="sm" loading={startOrGetThread.isPending} onClick={handleMessage}>
           <Icon icon={MessageSquare} size="sm" />
           {t('messagePatient')}
+        </Button>
+
+        {canWritePrescription && (
+          <Button type="button" variant="outline" size="sm" onClick={onWritePrescription}>
+            <Icon icon={Pill} size="sm" />
+            {t('writePrescription')}
+          </Button>
+        )}
+
+        <Button type="button" variant="outline" size="sm" onClick={onAddCondition}>
+          <Icon icon={ListPlus} size="sm" />
+          {t('addCondition')}
         </Button>
 
         <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -64,16 +86,6 @@ export function PatientRecordHeaderActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {canWritePrescription && (
-              <DropdownMenuItem onSelect={() => onWritePrescription()}>
-                <Icon icon={Pill} size="sm" />
-                {t('writePrescription')}
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onSelect={() => onAddCondition()}>
-              <Icon icon={ListPlus} size="sm" />
-              {t('addCondition')}
-            </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onUploadDocument()}>
               <Icon icon={FileUp} size="sm" />
               {t('uploadDocument')}

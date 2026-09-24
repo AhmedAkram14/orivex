@@ -40,9 +40,14 @@ export class NotifyApplicantOfVerificationDecisionHandler {
           : event.status === 'rejected'
             ? `Your ${subject} application was rejected.`
             : `Your ${subject} application needs more information before it can be reviewed.`;
-      // The rejection reason is worth surfacing; an approval has none to
-      // show, and MoreInfoNeeded's reason already describes what's missing.
-      const description = event.reason ? `${base} Reason: ${event.reason}` : base;
+      // An admin-entered note is worth surfacing whenever one exists -- but
+      // "Reason:" reads as rejection-style wording even on an Approved
+      // decision (e.g. an admin note like "Credentials verified"), so only
+      // the Rejected case keeps that framing; Approved gets neutral "Note:"
+      // phrasing and MoreInfoNeeded's own base sentence already describes
+      // what's missing, so its note is appended plainly with no label.
+      const notePrefix = event.status === 'rejected' ? 'Reason' : event.status === 'approved' ? 'Note' : null;
+      const description = event.reason ? (notePrefix ? `${base} ${notePrefix}: ${event.reason}` : `${base} ${event.reason}`) : base;
       const actionUrl = event.subjectType === 'doctor' ? '/doctor/onboarding' : '/patient/verify-identity';
 
       const notification = Notification.create({ accountId: event.subjectAccountId, title, description, actionUrl });

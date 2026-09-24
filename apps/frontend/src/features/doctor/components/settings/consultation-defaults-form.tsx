@@ -156,7 +156,7 @@ export function ConsultationDefaultsForm() {
   const { data: profile, isLoading } = useDoctorProfile();
 
   return (
-    <Card>
+    <Card id="consultation-defaults">
       <CardHeader>
         <CardTitle>{t('title')}</CardTitle>
         <CardDescription>{t('description')}</CardDescription>

@@ -106,7 +106,17 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
                 {format.dateTime(new Date(review.createdAt), { dateStyle: 'medium' })}
               </span>
             </div>
-            <div className="flex items-center gap-0.5" aria-label={`${review.rating}/5`}>
+            {/*
+             * Phase 8: `role="img"` + a real localized aria-label ("Rated 4
+             * out of 5") on the container -- previously a raw, unlocalized
+             * `"4/5"` string with no `role`, so a screen reader had no
+             * signal this group of 5 unlabeled icons was one thing to
+             * announce once rather than five things to step through. Each
+             * `Icon` below stays `aria-hidden` (its default when no `label`
+             * prop is passed, see `shared/icons/icon.tsx`), so only the
+             * container's own label is ever announced.
+             */}
+            <div className="flex items-center gap-0.5" role="img" aria-label={tRating('ratedOutOf5', { rating: review.rating })}>
               {Array.from({ length: 5 }, (_, index) => (
                 <Icon
                   key={index}

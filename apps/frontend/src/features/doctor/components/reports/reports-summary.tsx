@@ -6,6 +6,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { Heading } from '@/design-system/typography';
+import { getRatingDisplay } from '@/features/consultation/lib/rating-display';
 import { ExportReportsButton } from '@/features/doctor/components/reports/export-reports-button';
 import { PeriodDeltaBadge } from '@/features/doctor/components/reports/period-delta-badge';
 import { getLast30DaysRange, ReportsDateRangePicker } from '@/features/doctor/components/reports/reports-date-range-picker';
@@ -64,6 +65,7 @@ function TileWithDelta({ children, badge }: { children: ReactNode; badge?: React
  */
 export function ReportsSummary() {
   const t = useTranslations('doctor.reports');
+  const tRating = useTranslations('consultation.rating');
   const format = useFormatter();
   const router = useRouter();
   const pathname = usePathname();
@@ -110,18 +112,14 @@ export function ReportsSummary() {
 
   const showDelta = comparePrevious && Boolean(data?.previousPeriod);
 
-  // Rating tile: below the 5-review threshold, an honest "not enough data"
-  // message replaces the bare average -- the API still returns the real
-  // average/count (never nulled out server-side), this is purely a
-  // frontend presentation decision (plan decision 5).
-  const ratingValue =
-    data?.averageRating == null
-      ? t('stats.noReviewsYet')
-      : data.reviewCount < 5
-        ? t('stats.notEnoughRatings', { count: data.reviewCount })
-        : t('stats.ratingValue', { rating: data.averageRating.toFixed(1) });
-  const ratingHelperText =
-    data?.averageRating != null && data.reviewCount >= 5 ? t('stats.ratingCount', { count: data.reviewCount }) : undefined;
+  // Rating tile: this is scoped to the selected date range (unlike
+  // Overview/Patients/Profile, which show the doctor's lifetime rating), so
+  // it reuses the same shared value/helper-text contract
+  // (`getRatingDisplay`) but with the range label folded into the helper
+  // text -- never a silently different number with no context (Phase 1 UX
+  // remediation). The value slot itself is always a real figure or "—",
+  // never prose (see `getRatingDisplay`'s own contract).
+  const rating = getRatingDisplay(tRating, { averageRating: data?.averageRating, reviewCount: data?.reviewCount }, rangeLabel);
 
   // Tile icon-tint mapping (Doctor Reports page rebuild, plan decision 6) --
   // documented here rather than left implicit in the tiles below:
@@ -216,6 +214,17 @@ export function ReportsSummary() {
           iconClassName="bg-info-subtle text-info-emphasis"
           label={t('stats.upcoming')}
           value={String(data?.upcoming ?? 0)}
+          // This tile counts Confirmed/Rescheduled/paid-Requested
+          // appointments *dated within the selected report period*, not
+          // "still ahead of right now" -- a Confirmed appointment dated
+          // earlier in the period but never resolved still counts here,
+          // which is why this figure can legitimately differ from the
+          // "future and non-terminal" definition Overview/Queue/Patients use
+          // (`isUpcomingAppointment`). See the backend use case's own
+          // "plan decision 1" comment and the Phase 1 backend-proposal note
+          // in IMPLEMENTATION_NOTES.md. Spelled out here rather than left
+          // implicit so the two numbers never look like a silent bug again.
+          helperText={t('stats.upcomingHelper', { range: rangeLabel })}
           href="/doctor/schedule"
           loading={isLoading}
         />
@@ -250,8 +259,8 @@ export function ReportsSummary() {
           icon={Star}
           iconClassName="bg-neutral-subtle text-text-secondary"
           label={t('stats.averageRating')}
-          value={ratingValue}
-          helperText={ratingHelperText}
+          value={rating.value}
+          helperText={rating.helperText}
           loading={isLoading}
         />
       </DashboardGrid>

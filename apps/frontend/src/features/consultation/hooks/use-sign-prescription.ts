@@ -8,7 +8,13 @@ import { doctorPatientChartPrescriptionsKeys } from '@/features/doctor/hooks/que
 
 export interface SignPrescriptionInput {
   diagnosisNodeId: string;
-  lineItem: SignPrescriptionLineItemInput;
+  /**
+   * Phase 3 (Prescribing & Allergy Safety UX): a real array, matching
+   * `SignPrescriptionRequestDto.lineItems[]` exactly (Phase 0 finding (d) --
+   * the backend already supports multiple medications per prescription).
+   * One or more line items sign as one `Prescription`.
+   */
+  lineItems: SignPrescriptionLineItemInput[];
 }
 
 /**
@@ -23,8 +29,8 @@ export function useSignPrescription(consultationSessionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ diagnosisNodeId, lineItem }: SignPrescriptionInput) =>
-      consultationApi.signPrescription(consultationSessionId, diagnosisNodeId, lineItem),
+    mutationFn: ({ diagnosisNodeId, lineItems }: SignPrescriptionInput) =>
+      consultationApi.signPrescription(consultationSessionId, diagnosisNodeId, lineItems),
     onSuccess: async () => {
       const cachedSummary = queryClient.getQueryData<ConsultationSummary>(
         consultationSummaryKeys.detail(consultationSessionId),

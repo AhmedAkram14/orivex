@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { CommandPalette } from '@/features/shell/components/command-palette';
 import { HelpCenterCard } from '@/features/shell/components/help-center-card';
@@ -12,6 +12,7 @@ import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
+import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { useRealtimeSocket } from '@/shared/lib/realtime/use-realtime-socket';
 import { Content } from '@/shared/ui/layout/content';
 import { Logo } from '@/shared/ui/logo';
@@ -30,24 +31,63 @@ import { Topbar } from '@/shared/ui/layout/topbar';
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations('shell');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
   useRealtimeSocket();
 
   const { user } = useAuth();
   const isDoctor = user?.roles.includes('doctor') ?? false;
   const { data: doctorProfile } = useDoctorProfile({ enabled: isDoctor });
   const { data: specialties } = useSpecialtiesList();
-  const specialtyName = doctorProfile
-    ? specialties?.find((specialty) => specialty.id === doctorProfile.specialtyId)?.name
+  const matchedSpecialty = doctorProfile
+    ? specialties?.find((specialty) => specialty.id === doctorProfile.specialtyId)
     : undefined;
+  // Phase 8 AR localization fix: this topbar/menu subtitle was reading
+  // `.name` (the canonical English string) unconditionally, unlike the
+  // Doctor Directory and Doctor Profile pages, which already resolve a
+  // specialty's Arabic name via `pickLocalizedName` when `nameAr` exists
+  // and the locale is Arabic. A doctor viewing their own workspace in
+  // Arabic saw their own specialty in English everywhere this component
+  // renders it (topbar trigger + dropdown label) -- same real `nameAr`
+  // field, just not applied here. No backend change: `nameAr` was already
+  // present on `MedicalSpecialtyResponseDto`/`MedicalSpecialty`, this was a
+  // frontend gap only.
+  const specialtyName = matchedSpecialty ? pickLocalizedName(matchedSpecialty.name, matchedSpecialty.nameAr, locale) : undefined;
 
   return (
     <div className="flex h-screen flex-col">
+      {/* Phase 8: "Skip to main content" -- the very first focusable element
+          in the shell, before the topbar's own logo/nav triggers. Invisible
+          until it receives keyboard focus (`sr-only focus:not-sr-only`,
+          same reveal-on-focus pattern as this codebase's other
+          focus-visible affordances), then jumps straight to Content's
+          `<main id="main-content">`, skipping the topbar + full sidebar nav
+          -- previously a keyboard/screen-reader user had no way to bypass
+          that on every single page. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:inset-s-2 focus:top-2 focus:z-(--z-tooltip) focus:rounded-md focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-text-primary focus:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+      >
+        {tCommon('skipToMainContent')}
+      </a>
       <Topbar>
         <MobileNav />
         {/* UX Reliability Pass: the logo now always goes to the public landing page, matching the established convention that a site's own logo is a "home" link to the marketing site, not the app's own /dashboard fallback route (which is no longer nav-reachable at all -- see navigation.ts). Consistent across patient/doctor/admin, desktop/mobile (MobileNav's own logo is a non-interactive drawer title, not a second link), and both locales via this same i18n-aware Link. */}
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-text-primary">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2 text-lg font-semibold text-text-primary"
+        >
           <Logo size="sm" />
-          {tCommon('appName')}
+          {/* Responsive pass (Phase 7): below `sm` (640px) the topbar is a fixed
+              h-14 bar shared with the mobile nav trigger, command palette and
+              notification bell -- the full wordmark ("Orivex") plus the doctor's
+              name/specialty in UserMenu's `showName` block was the exact
+              combination that truncated the wordmark to "Orive" and forced the
+              name to wrap onto 2-3 lines, clipping against the bar's fixed
+              height. Hiding the wordmark text below `sm` keeps the logo mark
+              (still a real, focusable "home" link) without the word that has
+              nowhere to grow; name/specialty move into UserMenu's dropdown
+              instead (see user-menu.tsx). Unaffected at `sm` and above. */}
+          <span className="hidden sm:inline">{tCommon('appName')}</span>
         </Link>
         <div className="ms-auto flex items-center gap-2">
           <CommandPalette />

@@ -4,6 +4,7 @@
     "loading": "Loading",
     "error": "Something went wrong",
     "retry": "Retry",
+    "skipToMainContent": "Skip to main content",
     "locales": {
       "en": "English",
       "ar": "Arabic"
@@ -508,8 +509,7 @@
         "activeNow": "Active now",
         "unknownLocation": "Unknown location",
         "twoFactor": "Two-factor authentication",
-        "twoFactorOff": "Not enabled",
-        "twoFactorSetUp": "Set up",
+        "twoFactorOff": "Not available yet",
         "loadError": "Couldn't load your security summary."
       },
       "deviceSessions": {
@@ -610,6 +610,13 @@
       "wrongCurrentPassword": "Current password is incorrect."
     }
   },
+  "notFoundPage": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist.",
+    "emptyTitle": "We couldn't find that page",
+    "emptyDescription": "It may have been moved, renamed, or never existed. Check the link, or head back to your Overview.",
+    "backHome": "Back to Overview"
+  },
   "shell": {
     "footer": "© {year} Orivex. All rights reserved.",
     "openNavigation": "Open navigation",
@@ -647,6 +654,7 @@
       "doctorProfile": "Profile",
       "doctorSchedule": "Schedule",
       "doctorQueue": "Patient Queue",
+      "doctorAppointments": "Appointments",
       "doctorConsultation": "Consultation",
       "doctorPatients": "Patients",
       "doctorMessages": "Messages",
@@ -669,7 +677,10 @@
       "patientHealth": "Health Dashboard",
       "groups": {
         "clinical": "Clinical",
-        "administration": "Administration"
+        "administration": "Administration",
+        "practice": "Practice",
+        "account": "Account",
+        "more": "More"
       },
       "patients": "Patients",
       "appointments": "Appointments",
@@ -697,7 +708,8 @@
       "emptyDescription": "New notifications will appear here.",
       "bellLabel": "Notifications",
       "bellLabelWithCount": "Notifications ({count} unread)",
-      "viewAll": "View all notifications"
+      "viewAll": "View all notifications",
+      "unread": "Unread"
     },
     "userMenu": {
       "settings": "Settings",
@@ -707,6 +719,9 @@
         "light": "Light",
         "dark": "Dark",
         "system": "System"
+      },
+      "language": {
+        "label": "Language"
       },
       "signOut": "Sign out"
     },
@@ -958,6 +973,7 @@
       "newMessageAnnouncement": "New message from {name}."
     },
     "thread": {
+      "backToConversations": "Back to conversations",
       "loadError": "Couldn't load this conversation.",
       "emptyTitle": "No messages yet",
       "emptyDescription": "Send the first message below.",
@@ -1012,7 +1028,7 @@
     },
     "dashboard": {
       "title": "Doctor Workspace",
-      "welcome": "Welcome back, Dr. {name}.",
+      "welcome": "Welcome back, Dr. <bdi>{name}</bdi>.",
       "consultationsToday": "Consultations today",
       "patientsInQueue": "Patients in queue",
       "completedToday": "Completed today",
@@ -1048,7 +1064,7 @@
           "viewQueue": "View Patient Queue",
           "updateSchedule": "Update Schedule",
           "writePrescription": "Write Prescription",
-          "writePrescriptionUnavailable": "Prescriptions are written from within an active consultation"
+          "writePrescriptionUnavailable": "Prescriptions are written during a consultation or from a patient's chart afterward"
         }
       },
       "patientQueueMini": {
@@ -1240,6 +1256,29 @@
       "noAvailabilityConfiguredDescription": "Set your working hours below to start showing availability on this calendar.",
       "breaksCount": "{count, plural, one {# break} other {# breaks}}",
       "timezoneNote": "Times shown in {timezone}.",
+      "effectiveWindow": {
+        "breakSingle": "break {range}",
+        "noBookableTime": "No bookable time (break covers the full day)"
+      },
+      "gridLegend": {
+        "available": "Available",
+        "break": "Break",
+        "booked": "Booked",
+        "notAvailable": "Not available"
+      },
+      "monthLegend": {
+        "available": "Working day",
+        "notAvailable": "Not available"
+      },
+      "bookingRules": {
+        "title": "Booking rules",
+        "description": "How your bookable slots are generated from your working hours.",
+        "slotLength": "Slot length",
+        "buffer": "Buffer between slots",
+        "minutesValue": "{minutes} min",
+        "manageInSettings": "Manage in Settings",
+        "loadError": "Couldn't load your booking rules."
+      },
       "thisWeek": {
         "title": "This Week",
         "viewReports": "View reports",
@@ -1273,9 +1312,11 @@
         "emptyDescription": "Slots generated from your working hours will appear here once you have some scheduled.",
         "edit": "Edit pricing",
         "editDialogTitle": "Edit pricing — {time}",
+        "pricingTypeFieldLabel": "Pricing type",
         "pricingTypeFree": "Free",
         "pricingTypePaid": "Paid",
         "feeAmountLabel": "Consultation fee",
+        "feeAmountFieldLabel": "Fee (EGP)",
         "feeCurrencyLabel": "Fee currency",
         "cancel": "Cancel",
         "save": "Save",
@@ -1297,6 +1338,55 @@
           "no_show": "No-show",
           "expired": "Expired"
         }
+      }
+    },
+    "appointments": {
+      "title": "Appointments",
+      "description": "Every appointment on your calendar — upcoming, past, and anything that still needs your attention.",
+      "loadError": "Couldn't load your appointments.",
+      "retry": "Retry",
+      "viewSummary": "View summary",
+      "needsResolutionExplainer": "These appointments are past their scheduled time and were never resolved. Complete/no-show can only be set automatically by the system, so Cancel is the only action available here.",
+      "tabs": {
+        "upcoming": "Upcoming ({count})",
+        "past": "Past ({count})",
+        "needsResolution": "Needs resolution ({count})"
+      },
+      "empty": {
+        "upcomingTitle": "Nothing upcoming",
+        "upcomingDescription": "No appointments scheduled in this date range.",
+        "pastTitle": "No past appointments",
+        "pastDescription": "No appointments in this date range have happened yet.",
+        "needsResolutionTitle": "Nothing needs resolution",
+        "needsResolutionDescription": "Every past appointment in this date range was resolved."
+      },
+      "filters": {
+        "status": "Status",
+        "statusAll": "All statuses",
+        "patientSearchLabel": "Patient",
+        "patientSearchPlaceholder": "Search by patient name"
+      },
+      "status": {
+        "requested": "Waiting doctor approval",
+        "confirmed": "Confirmed",
+        "rescheduled": "Rescheduled",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "no_show": "No-show",
+        "expired": "Expired"
+      },
+      "cancel": {
+        "button": "Cancel appointment",
+        "dialogTitle": "Cancel this appointment?",
+        "confirmDescription": "This will cancel the appointment. The patient will be notified.",
+        "confirmDescriptionRefund": "This will cancel the appointment and automatically refund the patient's payment in full.",
+        "whyNotCompleteExplainer": "This appointment can't be marked complete or no-show after the fact — those are set automatically by the system. Cancel it if the visit didn't happen.",
+        "keepAppointment": "Keep appointment",
+        "confirmCancel": "Cancel appointment",
+        "close": "Close",
+        "notFoundError": "This appointment could no longer be found — it may have already changed elsewhere.",
+        "invalidStateError": "This appointment can no longer be cancelled — it may have already changed elsewhere.",
+        "genericError": "Couldn't cancel this appointment. Please try again."
       }
     },
     "queue": {
@@ -1529,7 +1619,7 @@
         "averageRatingHelperNoCount": "All time",
         "noRatingsYet": "No ratings yet"
       },
-      "searchPlaceholder": "Search by name, phone, or email...",
+      "searchPlaceholder": "Search patients...",
       "clearSearch": "Clear search",
       "clearFilters": "Clear search and filters",
       "filterType": {
@@ -1603,6 +1693,7 @@
         "noShow": "No-show",
         "pendingApproval": "Pending approval",
         "upcoming": "Upcoming",
+        "upcomingHelper": "Confirmed/rescheduled within {range}",
         "averageRating": "Average rating",
         "ratingValue": "{rating}",
         "ratingCount": "{count} Ratings",
@@ -1622,7 +1713,8 @@
       "trend": {
         "seriesLabel": "Appointments",
         "emptyTitle": "Nothing to plot yet",
-        "emptyDescription": "There's no appointment activity in this date range."
+        "emptyDescription": "There's no appointment activity in this date range.",
+        "tableDateHeader": "Date"
       },
       "export": {
         "exportCsv": "Export CSV",
@@ -1638,7 +1730,8 @@
       "stats": {
         "lifetimeNet": "Lifetime net earnings",
         "lifetimeGross": "Lifetime gross",
-        "transactionCount": "Paid consultations"
+        "transactionCount": "Paid consultations",
+        "lifetimeHelper": "All-time figure — not affected by the date range below"
       },
       "payoutHonesty": "These figures reflect earnings recorded on this platform, not confirmation that funds have been transferred to your account.",
       "commissionFootnote": "Platform commission: {rate}%.",
@@ -1648,9 +1741,11 @@
       "cyclesEmptyTitle": "No earnings yet",
       "cyclesEmptyDescription": "Completed paid consultations will appear here, broken down by month.",
       "transactionsTitle": "Transactions",
+      "recognitionBasis": "Recorded when payment succeeds, not when the consultation is completed — and dated/filtered by that payment date, not the appointment date.",
       "transactionsLoadError": "Couldn't load your transactions.",
       "transactionsEmptyTitle": "No transactions yet",
       "transactionsEmptyDescription": "Per-consultation transactions for the selected period will appear here.",
+      "viewAppointment": "View appointment",
       "table": {
         "cycle": "Month",
         "gross": "Gross",
@@ -1660,11 +1755,12 @@
         "patient": "Patient",
         "date": "Date",
         "fee": "Fee",
-        "status": "Status"
+        "status": "Status",
+        "appointment": "Appointment"
       },
       "status": {
         "initiated": "Initiated",
-        "succeeded": "Succeeded",
+        "succeeded": "Payment received",
         "failed": "Failed",
         "settled": "Settled",
         "refunded": "Refunded",
@@ -2257,6 +2353,7 @@
     "notFoundDescription": "This patient's profile is no longer available.",
     "loadError": "Couldn't load this patient's profile.",
     "notOnRecord": "Not on record",
+    "addressLabel": "Address",
     "workspaceEyebrow": "Patient record",
     "clinicalRecordHeading": "Clinical record",
     "ageYearsOld": "{age} years old",
@@ -2293,6 +2390,10 @@
       "documentsCount": "Documents ({count})"
     },
     "personalInformation": "Personal information",
+    "medicalHistoryEntryType": {
+      "condition": "Condition",
+      "visit": "Visit note"
+    },
     "medicalProfile": "Medical profile",
     "bloodType": "Blood type",
     "allergies": "Allergies",
@@ -2305,8 +2406,14 @@
     "confirmNoKnownAllergies": "Confirm: no known allergies",
     "confirmAgainNoKnownAllergies": "Confirm again",
     "confirmNoKnownAllergiesError": "Couldn't save this confirmation. Please try again.",
+    "confirmNoKnownAllergiesDialogTitle": "Confirm no known allergies?",
+    "confirmNoKnownAllergiesDialogDescription": "This records that you've asked the patient and confirmed they have no known drug allergies. It becomes part of their medical record.",
+    "confirmNoKnownAllergiesCancelAction": "Cancel",
+    "confirmNoKnownAllergiesConfirmAction": "Yes, confirm",
     "chronicConditions": "Chronic conditions",
     "noConditionsOnRecord": "No chronic conditions recorded",
+    "conditionsOnRecord": "Conditions on record",
+    "noConditionsRecorded": "No conditions on record",
     "insurance": "Insurance",
     "insuranceSelfPay": "Self-pay / No insurance",
     "latestWeight": "Latest weight",
@@ -2350,6 +2457,7 @@
     "noPreviousVisits": "No previous visits recorded",
     "prescriptions": "Prescriptions",
     "noPrescriptions": "No prescriptions recorded",
+    "downloadPrescriptionPdf": "Download PDF",
     "prescriptionStatus": {
       "active": "Active",
       "expired": "Expired"
@@ -2358,6 +2466,42 @@
     "writePrescriptionDialogTitle": "Write prescription",
     "selectPastAppointmentLabel": "Select a past visit",
     "selectPastAppointmentPlaceholder": "Choose a completed visit",
+    "prescribe": {
+      "loadError": "Couldn't load this visit's clinical summary. Please try again.",
+      "noDiagnosisRecorded": "Record a diagnosis for this visit before writing a prescription.",
+      "diagnosisLabel": "Diagnosis",
+      "diagnosisPlaceholder": "Select a diagnosis",
+      "diagnosisRequired": "Select a diagnosis",
+      "medicationsHeading": "Medications",
+      "drugNameLabel": "Medication name",
+      "drugNamePlaceholder": "e.g. Amoxicillin",
+      "drugNameRequired": "Enter a medication name",
+      "dosageLabel": "Dose",
+      "dosagePlaceholder": "e.g. 500mg",
+      "dosageRequired": "Enter a dose",
+      "frequencyLabel": "Frequency",
+      "frequencyPlaceholder": "e.g. Twice daily",
+      "frequencyRequired": "Enter a frequency",
+      "durationLabel": "Duration (days)",
+      "durationPlaceholder": "e.g. 7",
+      "durationRequired": "Enter a duration",
+      "durationInvalid": "Enter a whole number of days greater than 0",
+      "instructionsLabel": "Instructions (optional)",
+      "instructionsPlaceholder": "e.g. Take with food",
+      "addMedication": "Add another medication",
+      "removeMedication": "Remove medication",
+      "next": "Next: Review",
+      "reviewHeading": "Review before signing",
+      "durationDaysValue": "{count, plural, one {# day} other {# days}}",
+      "signConsequence": "Signing issues a prescription the patient can view and download. It can't be edited after signing.",
+      "signError": "Couldn't sign this prescription. Please try again.",
+      "back": "Back",
+      "signAction": "Sign prescription",
+      "successTitle": "Prescription signed",
+      "successDescription": "The patient can now view and download this prescription.",
+      "downloadPdf": "Download PDF",
+      "done": "Done"
+    },
     "documents": "Medical documents",
     "noDocuments": "No clinical documents uploaded",
     "documentPurpose": {
@@ -2385,6 +2529,12 @@
       "no_show": "No-show",
       "expired": "Expired"
     },
+    "needsResolution": {
+      "title": "Needs resolution",
+      "description": "These appointments are past their scheduled time and were never resolved. Complete/no-show can only be set automatically by the system, so Cancel is the only action available here."
+    },
+    "viewConsultationSummary": "View consultation summary",
+    "noConsultationSummary": "No consultation summary was recorded for this visit.",
     "messagePatient": "Message patient",
     "messagePatientError": "Couldn't start a conversation with this patient. Please try again.",
     "moreActions": "More actions",
@@ -2423,12 +2573,17 @@
       "endTimeLabel": "{day} end time",
       "breakStartLabel": "Break {number} start time",
       "breakEndLabel": "Break {number} end time",
+      "breaksHeading": "Breaks",
+      "breakRowLabel": "Break {number}",
       "defaultPricingLabel": "Default pricing for slots generated from this schedule",
       "pricingTypeLabel": "{day} pricing",
       "pricingTypeFree": "Free",
       "pricingTypePaid": "Paid",
       "feeAmountLabel": "{day} consultation fee",
+      "feeAmountFieldLabel": "Fee (EGP)",
       "feeCurrencyLabel": "{day} fee currency",
+      "cancel": "Cancel",
+      "unsavedChangesWarning": "You have unsaved changes to your availability. Discard them?",
       "validation": {
         "invalidTime": "Enter a valid time (HH:mm).",
         "endAfterStart": "End time must be after the start time.",
@@ -3064,7 +3219,7 @@
       "prescriptionDiagnosisLabel": "Diagnosis",
       "prescriptionDiagnosisPlaceholder": "Select a diagnosis",
       "prescriptionMedicationLabel": "Medication",
-      "prescriptionMedicationPlaceholder": "e.g. Amoxicillin 500mg",
+      "prescriptionMedicationPlaceholder": "e.g. Amoxicillin",
       "prescriptionDosageLabel": "Dosage",
       "prescriptionDosagePlaceholder": "e.g. 500mg",
       "prescriptionFrequencyLabel": "Frequency",
@@ -3148,6 +3303,7 @@
     "rating": {
       "prompt": "Rate your consultation",
       "starLabel": "{count} of 5 stars",
+      "ratedOutOf5": "Rated {rating} out of 5",
       "communicationLabel": "Communication",
       "punctualityLabel": "Punctuality",
       "thoroughnessLabel": "Thoroughness",
@@ -3159,7 +3315,11 @@
       "updateError": "Couldn't save your changes. Please try again.",
       "noReviewsYet": "No ratings yet",
       "reviewCount": "({count} ratings)",
-      "writtenReviewCount": "{count, plural, one {# written review} other {# written reviews}}"
+      "writtenReviewCount": "{count, plural, one {# written review} other {# written reviews}}",
+      "ratingCount": "{count, plural, one {# rating} other {# ratings}}",
+      "notEnoughRatings": "Not enough ratings yet ({count})",
+      "scopedNoRatings": "{range} · No ratings yet",
+      "scopedRatingCount": "{range} · {count, plural, one {# rating} other {# ratings}}"
     },
     "outcome": {
       "openAction": "View summary",
@@ -3171,6 +3331,7 @@
       "status": "Status",
       "completed": "Completed",
       "duration": "Duration",
+      "durationMinutes": "{minutes} min",
       "prescriptions": "Prescriptions",
       "followUp": "Recommended follow-up",
       "yourRating": "Your rating",
@@ -3180,6 +3341,33 @@
       "deleteConfirmBody": "Delete your review? This removes your rating and comment for this consultation. You can submit a new review later if you change your mind.",
       "deleteError": "Couldn't delete your review. Please try again.",
       "loadError": "Couldn't load the consultation summary."
+    },
+    "doctorSummary": {
+      "openAction": "View summary",
+      "title": "Consultation summary",
+      "loadError": "Couldn't load the consultation summary.",
+      "visitDetails": "Visit details",
+      "date": "Date",
+      "duration": "Duration",
+      "durationMinutes": "{minutes} min",
+      "clinicalNotes": "Clinical notes",
+      "soap": {
+        "subjective": "Subjective",
+        "objective": "Objective",
+        "assessment": "Assessment",
+        "plan": "Plan"
+      },
+      "diagnoses": "Diagnoses",
+      "untitledDiagnosis": "Diagnosis",
+      "certainty": {
+        "suspected": "Suspected",
+        "confirmed": "Confirmed",
+        "ruled_out": "Ruled out"
+      },
+      "prescriptions": "Prescriptions",
+      "labRequests": "Lab requests",
+      "vitals": "Vitals recorded",
+      "followUp": "Recommended follow-up"
     }
   }
 }

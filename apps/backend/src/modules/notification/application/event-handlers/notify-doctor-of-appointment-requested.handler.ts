@@ -59,11 +59,22 @@ export class NotifyDoctorOfAppointmentRequestedHandler {
         ? `${patientAccount.getUserProfile().getDisplayName().toString()} has requested an appointment. Approve it to add them to your queue.`
         : 'A new appointment request is awaiting your approval.';
 
+      // Phase 5 (Notifications, Navigation & IA): previously linked to
+      // `/doctor/queue`, which only ever shows TODAY's checked-in patients
+      // -- by the time a doctor actually opens this notification the
+      // request is very often no longer there (a different day, or it's
+      // since expired), reading as a broken link. `/doctor/appointments`
+      // (added in Phase 2) shows every appointment regardless of date/
+      // status and supports `?highlight=<id>` deep-linking straight to this
+      // one row, including an honest "Expired" badge if the request has
+      // since lapsed -- a strictly more specific, always-valid destination
+      // built from data this handler already has (the real appointment id),
+      // not a fabricated field.
       const notification = Notification.create({
         accountId: doctorProfile.getAccountId(),
         title: 'New appointment request',
         description,
-        actionUrl: '/doctor/queue',
+        actionUrl: `/doctor/appointments?highlight=${appointment.getId()}`,
         category: NotificationCategory.Appointments,
       });
       await this.notificationRepository.save(notification);

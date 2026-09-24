@@ -36,9 +36,15 @@ const tileClass = cn(
 );
 
 const sizeConfig = {
-  md: { tile: '', icon: 'size-10 rounded-md', iconSize: 'md' as const, value: 'text-lg' },
-  lg: { tile: 'gap-4 p-6', icon: 'size-14 rounded-full', iconSize: 'lg' as const, value: 'text-3xl' },
+  md: { tile: '', icon: 'size-10 rounded-md', iconSize: 'md' as const, value: 'text-lg', longValue: 'text-sm' },
+  lg: { tile: 'gap-4 p-6', icon: 'size-14 rounded-full', iconSize: 'lg' as const, value: 'text-3xl', longValue: 'text-base' },
 };
+
+// See `StatCard`'s own comment: a value slot is for a short figure, never a
+// sentence -- this is a defensive backstop against overflow at narrow
+// viewports, not something a real caller should rely on (put explanatory
+// copy in `helperText` instead).
+const LONG_VALUE_THRESHOLD = 8;
 
 /**
  * A `StatCard` variant used by any workspace dashboard's summary row (Doctor
@@ -64,12 +70,13 @@ export function LinkableStatCard({
   size = 'md',
 }: LinkableStatCardProps) {
   const config = sizeConfig[size];
+  const isLongValue = value.length > LONG_VALUE_THRESHOLD;
   const content = (
     <>
       <div className={cn('flex shrink-0 items-center justify-center bg-primary-subtle text-primary-emphasis', config.icon, iconClassName)}>
         <Icon icon={icon} size={config.iconSize} />
       </div>
-      <div className="flex flex-1 flex-col gap-1">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         {/*
          * min-h reserves space for two lines at this text size regardless of
          * whether THIS card's label happens to wrap — without it, a sibling
@@ -82,7 +89,7 @@ export function LinkableStatCard({
         {loading ? (
           <Skeleton className="h-5 w-10" />
         ) : (
-          <p className={cn('font-semibold text-text-primary', config.value)}>{value}</p>
+          <p className={cn('wrap-break-word font-semibold text-text-primary', isLongValue ? config.longValue : config.value)}>{value}</p>
         )}
         {!loading && helperText && <p className="text-xs text-text-tertiary">{helperText}</p>}
       </div>

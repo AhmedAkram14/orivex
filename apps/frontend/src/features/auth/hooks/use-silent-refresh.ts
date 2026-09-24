@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { authApi } from '@/features/auth/api/auth-api';
 import { sessionKeys } from '@/features/auth/hooks/query-keys';
+import { sessionExpiredFlag } from '@/shared/auth/session-expired-flag';
 import { tokenStorage } from '@/shared/auth/token-storage';
 
 const REFRESH_MARGIN_MS = 60_000;
@@ -37,6 +38,14 @@ export function useSilentRefresh(enabled: boolean): void {
           tokenStorage.setAccessToken(refreshed.accessToken, refreshed.accessTokenExpiresAt);
           scheduleNext();
         } catch {
+          // Phase 9 [VERIFY]: with the cross-tab refresh lock in place
+          // (authApi.refreshSession -> withCrossTabRefreshLock), a failure
+          // here means the refresh genuinely didn't work -- not a tab
+          // losing a race against another tab's concurrent request. Mark
+          // it so RequireAuth sends this visitor to the friendlier
+          // "/session-expired" page instead of the generic "sign in
+          // required" one meant for a visitor who never had a session.
+          sessionExpiredFlag.mark();
           tokenStorage.clear();
           queryClient.setQueryData(sessionKeys.detail('current'), null);
         }

@@ -17,9 +17,24 @@ export async function generateMetadata({
   return buildPageMetadata({ locale: locale as AppLocale, path: '/session-expired', title: t('title'), description: t('description') });
 }
 
-/** Reached when Silent Refresh Architecture's background refresh fails (features/auth/hooks/use-silent-refresh.ts) -- a session that was valid, then wasn't, distinct from Unauthorized (never had one). */
-export default async function SessionExpiredPage() {
+/**
+ * Reached when Silent Refresh Architecture's background refresh fails
+ * (features/auth/hooks/use-silent-refresh.ts) -- a session that was valid,
+ * then wasn't, distinct from Unauthorized (never had one). Phase 9
+ * [VERIFY]: `RequireAuth` now actually routes here (via
+ * `shared/auth/session-expired-flag.ts`) instead of always bouncing to
+ * `/unauthorized`; `returnTo` is forwarded to `/login` exactly like
+ * `/unauthorized` already does, so the visitor lands back where they were
+ * after signing back in.
+ */
+export default async function SessionExpiredPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
   const t = await getTranslations('auth.sessionExpired');
+  const { returnTo } = await searchParams;
+  const signInHref = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login';
 
   return (
     <StatusPage
@@ -28,7 +43,7 @@ export default async function SessionExpiredPage() {
       description={t('description')}
       action={
         <Button asChild>
-          <Link href="/login">{t('signInAgain')}</Link>
+          <Link href={signInHref}>{t('signInAgain')}</Link>
         </Button>
       }
     />

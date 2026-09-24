@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import { useForm, useWatch } from 'react-hook-form';
+import { PricingTypeRadioGroup } from '@/features/scheduling/components/pricing-type-radio-group';
 import { useUpdateUpcomingSlotPricing } from '@/features/scheduling/hooks/use-update-upcoming-slot-pricing';
 import { createSlotPricingSchema, type SlotPricingFormValues } from '@/features/scheduling/schemas/slot-pricing.schema';
 import type { AvailabilityWindowData } from '@/features/scheduling/types';
@@ -16,8 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
-import { FilterTabs } from '@/shared/ui/filter-tabs';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/shared/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 
 export interface SlotPricingDialogProps {
@@ -85,24 +85,25 @@ export function SlotPricingDialog({ window, timeLabel, open, onOpenChange }: Slo
               control={form.control}
               name="pricingType"
               render={({ field }) => (
-                <FilterTabs
+                <PricingTypeRadioGroup
                   value={field.value}
                   onChange={field.onChange}
-                  options={[
-                    { value: 'free', label: t('pricingTypeFree') },
-                    { value: 'paid', label: t('pricingTypePaid') },
-                  ]}
+                  freeLabel={t('pricingTypeFree')}
+                  paidLabel={t('pricingTypePaid')}
+                  groupLabel={t('pricingTypeFieldLabel')}
+                  idPrefix={`slot-pricing-${window.id}`}
                 />
               )}
             />
 
             {pricingType === 'paid' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-end gap-2">
                 <FormField
                   control={form.control}
                   name="feeAmount"
                   render={({ field }) => (
                     <FormItem className="flex-1">
+                      <FormLabel>{t('feeAmountFieldLabel')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

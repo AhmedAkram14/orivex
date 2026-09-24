@@ -53,7 +53,28 @@ export function WelcomeHeader() {
             <h1> otherwise jumps straight to the widget cards' <h3>
             CardTitles below with nothing in between. */}
         <Heading level={2}>
-          {t('welcome', { name: toDisplayCase(stripExistingTitle(user.fullName)) })}
+          {/*
+           * Phase 8 AR localization fix (reported bidi-punctuation issue):
+           * in the Arabic greeting ("مرحبًا بعودتك، د. {name}.") the account
+           * name is frequently Latin-script (real seeded/registered names
+           * like "Dr. Sarah Ahmed") embedded inside an RTL sentence,
+           * immediately followed by an ASCII "." -- the Unicode
+           * bidirectional algorithm can pull that trailing punctuation to
+           * the wrong visual side of the embedded LTR run, reading as if
+           * the period attached to the wrong word. `t.rich` + wrapping just
+           * the interpolated name in `<bdi dir="ltr">` isolates its
+           * direction from the surrounding Arabic paragraph, so the
+           * sentence's own punctuation stays correctly placed regardless of
+           * which script the real account name happens to use. A no-op
+           * visually in English (LTR-in-LTR), and doesn't change the
+           * displayed name itself -- purely a bidi-isolation fix, not a
+           * translation of the name (the backend's `fullName` has no
+           * per-locale variant to translate, see Phase 0/8 notes).
+           */}
+          {t.rich('welcome', {
+            name: toDisplayCase(stripExistingTitle(user.fullName)),
+            bdi: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
+          })}
         </Heading>
         <p className="text-sm text-text-secondary">
           {format.dateTime(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

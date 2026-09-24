@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
+import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { NotificationCenterList } from '@/features/notifications/components/notification-center-list';
-import { Heading } from '@/design-system/typography';
-import { Container } from '@/shared/ui/container';
+import { Page } from '@/shared/ui/layout/page';
+import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { buildPageMetadata } from '@/shared/lib/seo';
 import type { AppLocale } from '@/shared/i18n/routing';
 
@@ -27,13 +28,9 @@ export default async function NotificationsPage() {
   const t = await getTranslations('notificationCenter');
 
   return (
-    <Container className="flex flex-col gap-6 py-8">
-      <div className="flex flex-col gap-1">
-        <Heading as="h1" level={2}>{t('title')}</Heading>
-        <p className="text-text-secondary">{t('description')}</p>
-      </div>
-
+    <Page>
+      <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} description={t('description')} />
       <NotificationCenterList />
-    </Container>
+    </Page>
   );
 }

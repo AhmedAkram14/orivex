@@ -14,6 +14,7 @@ import { ThreadListItem } from '@/features/messaging/components/thread-list-item
 import { ThreadPanel } from '@/features/messaging/components/thread-panel';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { useRealtimeConnectionState } from '@/shared/lib/realtime/use-realtime-socket';
+import { cn } from '@/shared/lib/cn';
 import { Alert } from '@/shared/ui/alert';
 import { Card, CardContent, CardHeader } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -69,6 +70,17 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set('thread', threadId);
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+  }
+  // Responsive pass (Phase 7): below `md`, clearing `?thread=` is how the
+  // mobile "back" button returns from the thread view to the list view (see
+  // the `hidden md:flex`/`md:hidden` pairing below) -- at `md` and above
+  // both panes are always visible side-by-side, so this is only ever
+  // triggered by ThreadPanel's `onBack`, itself only rendered `md:hidden`.
+  function clearSelectedThread() {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete('thread');
+    const query = nextParams.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
   // Connection-state indicator (Phase 2 audit finding): a dropped socket
@@ -174,7 +186,16 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
         {announcement}
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_1fr]" style={{ minHeight: '32rem' }}>
-        <Card className="flex flex-col">
+        {/* Responsive pass (Phase 7): below `md` (768px) this grid was still
+            a single column (the two-pane split only kicks in at `lg`), which
+            stacked the full conversation list above the full open thread on
+            one scrollable page -- reaching the composer took ~2 screens of
+            scroll. Below `md`, a selected thread now hides the list card
+            entirely (and vice versa) so exactly one pane renders full-height,
+            with ThreadPanel's own back button (`md:hidden`) returning to the
+            list. At `md` and above this is unchanged from before -- both
+            `hidden md:flex` guards are no-ops there. */}
+        <Card className={cn('flex flex-col', selectedThreadId && 'hidden md:flex')}>
           <CardHeader className="flex flex-row items-center justify-between gap-3">
             {/* Heading hierarchy (Phase 3): mirrors the doctor patient-chart
                 page's own H1 -> H2 fix -- the workspace H1 (page title) is
@@ -224,7 +245,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden p-0">
+        <Card className={cn('overflow-hidden p-0', !selectedThreadId && 'hidden md:flex')}>
           {selectedThread ? (
             <ThreadPanel
               threadId={selectedThread.id}
@@ -232,6 +253,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
               counterpartyAccountId={selectedThread.counterpartyAccountId}
               role={role}
               patientId={selectedThread.patientId}
+              onBack={clearSelectedThread}
             />
           ) : (
             <div className="flex h-full items-center justify-center p-8">

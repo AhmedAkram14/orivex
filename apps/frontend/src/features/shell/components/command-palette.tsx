@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Search, Stethoscope, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useLogout } from '@/features/auth/hooks/use-logout';
 import { COMMANDS, type CommandDefinition } from '@/features/shell/config/commands';
@@ -13,6 +13,8 @@ import { flattenNavLeaves } from '@/features/shell/lib/nav-active-match';
 import { getRecentCommandIds, recordRecentCommand } from '@/features/shell/lib/recent-searches';
 import type { SearchResultDto, SearchResultType } from '@/features/search/api/types';
 import { useGlobalSearch } from '@/features/search/hooks/use-global-search';
+import { AppointmentStatusBadge } from '@/features/doctor/components/appointments/appointment-status-badge';
+import type { AppointmentStatus } from '@/features/doctor/api/types';
 import { useAuth } from '@/shared/auth/auth-context';
 import type { Role } from '@/shared/auth/types';
 import { useRouter } from '@/shared/i18n/navigation';
@@ -49,17 +51,36 @@ const RESULT_ICON: Record<SearchResultType, typeof Stethoscope> = {
  * means "not navigable for this viewer" -- never reachable in practice
  * since the backend never returns a type outside a role's own list, but
  * kept honest rather than assuming.
+ *
+ * Phase 2 (Appointment Visibility & Consultation History) fix: a patient
+ * result used to route a doctor to the bare `/doctor/patients` list (never
+ * the actual patient found) and an appointment result used to route to
+ * `/doctor/queue`, which is today-only and would show nothing for any other
+ * date -- both silently empty destinations, the exact audit finding this
+ * phase exists to fix. A patient result now opens that patient's chart
+ * directly; an appointment result opens the real Appointments view
+ * (`/doctor/appointments`, this phase's new page) with `?highlight=` so the
+ * matching row is found and visually marked, not just a generic list.
  */
 function resolveResultHref(result: SearchResultDto, roles: Role[]): string | null {
   if (result.type === 'doctor') return `/patient/doctors/${result.id}`;
   if (result.type === 'patient') {
-    if (roles.includes('doctor')) return '/doctor/patients';
+    if (roles.includes('doctor')) return `/doctor/patients/${result.id}`;
     if (roles.includes('super_admin')) return '/admin/users';
     return null;
   }
   if (roles.includes('patient')) return '/patient/appointments';
-  if (roles.includes('doctor')) return '/doctor/queue';
+  if (roles.includes('doctor')) return `/doctor/appointments?highlight=${result.id}`;
   return null;
+}
+
+/** Appointment search results' `subtitle` is the backend's raw, unlocalized `"STATUS · YYYY-MM-DD"` string (see `SearchResultDto`'s own comment) -- parsed here so the palette can render a real localized status badge and a real formatted date instead of echoing the raw enum/ISO text straight from the API. `null` when the shape doesn't match (defensive; never re-renders garbage as if it parsed). */
+function parseAppointmentSubtitle(subtitle: string): { status: AppointmentStatus; date: Date } | null {
+  const [statusPart, datePart] = subtitle.split(' · ');
+  if (!statusPart || !datePart) return null;
+  const date = new Date(datePart);
+  if (Number.isNaN(date.getTime())) return null;
+  return { status: statusPart as AppointmentStatus, date };
 }
 
 /**
@@ -74,6 +95,7 @@ function resolveResultHref(result: SearchResultDto, roles: Role[]): string | nul
 export function CommandPalette() {
   const t = useTranslations('shell.commandPalette');
   const tNav = useTranslations('shell.nav');
+  const format = useFormatter();
   const { open, setOpen } = useCommandPalette();
   const router = useRouter();
   const { setTheme } = useTheme();
@@ -215,19 +237,29 @@ export function CommandPalette() {
           )}
           {appointmentResults.length > 0 && (
             <CommandGroup heading={t('searchAppointmentsHeading')}>
-              {appointmentResults.map((result) => (
-                <CommandItem
-                  key={`search-appointment-${result.id}`}
-                  value={`search-appointment-${result.id}-${result.title}`}
-                  onSelect={() => handleSelectResult(result)}
-                >
-                  <Icon icon={RESULT_ICON.appointment} size="sm" className="me-2 shrink-0" />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate">{result.title}</span>
-                    <span className="truncate text-xs text-text-tertiary">{result.subtitle}</span>
-                  </span>
-                </CommandItem>
-              ))}
+              {appointmentResults.map((result) => {
+                const parsed = parseAppointmentSubtitle(result.subtitle);
+                return (
+                  <CommandItem
+                    key={`search-appointment-${result.id}`}
+                    value={`search-appointment-${result.id}-${result.title}`}
+                    onSelect={() => handleSelectResult(result)}
+                  >
+                    <Icon icon={RESULT_ICON.appointment} size="sm" className="me-2 shrink-0" />
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate">{result.title}</span>
+                      {parsed ? (
+                        <span className="flex items-center gap-1.5 text-xs text-text-tertiary">
+                          {format.dateTime(parsed.date, { dateStyle: 'medium' })}
+                        </span>
+                      ) : (
+                        <span className="truncate text-xs text-text-tertiary">{result.subtitle}</span>
+                      )}
+                    </span>
+                    {parsed && <AppointmentStatusBadge status={parsed.status} className="shrink-0" />}
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           )}
 

@@ -3,9 +3,10 @@
 import { useMemo, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useElements, useStripe } from '@stripe/react-stripe-js';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useInitiateCharge } from '@/features/payment/hooks/use-initiate-charge';
 import type { Money } from '@/features/payment/api/types';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { IdentityVerificationGate } from '@/features/patient/components/identity-verification/identity-verification-gate';
 import { ApiError } from '@/shared/lib/api/client';
 import { SHARED_ERROR_CODES } from '@/shared/lib/api/error-codes';
@@ -51,15 +52,21 @@ export function PayNowForm(props: PayNowFormProps) {
 
 function PayNowCardForm({ appointmentId, amount, onPaid }: PayNowFormProps) {
   const t = useTranslations('payment');
+  const format = useFormatter();
   const pathname = usePathname();
   const stripe = useStripe();
   const elements = useElements();
   const initiateCharge = useInitiateCharge(appointmentId);
   const [cardError, setCardError] = useState<string | null>(null);
 
+  // Phase 8: previously `new Intl.NumberFormat(undefined, ...)`, which used
+  // the browser's own locale instead of the app's negotiated locale -- a
+  // real divergence under Arabic. Now routed through the same shared
+  // `formatCurrency` helper (backed by next-intl's `useFormatter()`) as
+  // `doctor-earnings-summary.tsx` and `features/scheduling/utils/pricing.ts`.
   const formattedAmount = useMemo(
-    () => new Intl.NumberFormat(undefined, { style: 'currency', currency: amount.currency }).format(amount.amount),
-    [amount],
+    () => formatCurrency(format, amount.amount, amount.currency),
+    [amount, format],
   );
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): the real

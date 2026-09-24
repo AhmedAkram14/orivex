@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/shared/auth/auth-context';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
+import { sessionExpiredFlag } from '@/shared/auth/session-expired-flag';
 import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
 
 export interface RequireAuthProps {
@@ -34,7 +35,13 @@ export function RequireAuth({ children, redirectTo }: RequireAuthProps) {
     if (status === 'unauthenticated') {
       const query = searchParams.toString();
       const returnTo = query ? `${pathname}?${query}` : pathname;
-      router.replace(`${redirectTo}?returnTo=${encodeURIComponent(returnTo)}`);
+      // Phase 9 [VERIFY]: a session that was authenticated in this tab and
+      // then failed its background refresh (useSilentRefresh) gets the
+      // dedicated "/session-expired" page instead of the generic
+      // `redirectTo` target ("/unauthorized", "Sign in required") -- that
+      // copy is honest only for a visitor who never had a session at all.
+      const target = sessionExpiredFlag.consume() ? '/session-expired' : redirectTo;
+      router.replace(`${target}?returnTo=${encodeURIComponent(returnTo)}`);
     }
   }, [status, redirectTo, router, pathname, searchParams]);
 

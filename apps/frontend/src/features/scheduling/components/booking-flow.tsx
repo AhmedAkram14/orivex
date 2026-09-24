@@ -159,7 +159,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
 
   if (step === 'summary' && selectedWindow) {
     const summary = summaryFor(selectedWindow);
-    const priceLabel = formatConsultationPrice(selectedWindow, locale, t('priceFree'));
+    const priceLabel = formatConsultationPrice(selectedWindow, format, t('priceFree'));
     return (
       <div className="flex flex-col gap-3">
         {bookAppointment.isError && !gateError && (
@@ -232,7 +232,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     id: window.id,
     timeLabel: format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' }),
     status: 'available',
-    label: formatConsultationPrice(window, locale, t('priceFree')),
+    label: formatConsultationPrice(window, format, t('priceFree')),
     priceVariant: window.consultationType === 'free' ? 'free' : 'paid',
     onSelect: () => {
       setSelectedWindow(window);

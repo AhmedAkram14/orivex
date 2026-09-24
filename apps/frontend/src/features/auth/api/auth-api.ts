@@ -1,5 +1,6 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { AUTH_PATHS } from '@/features/auth/api/paths';
+import { withCrossTabRefreshLock } from '@/shared/auth/cross-tab-refresh-lock';
 import type {
   ForgotPasswordRequest,
   ForgotPasswordResponse,
@@ -34,7 +35,15 @@ import type {
 // first has already rotated past, gets a hard failure, and the caller
 // treats that as "no session" -- a real, spurious logout. Coalescing
 // concurrent calls into the one in-flight request/promise removes the race
-// entirely, regardless of how many places end up triggering a refresh.
+// entirely, regardless of how many places end up triggering a refresh --
+// but only within this one tab's own JS module instance.
+//
+// Phase 9 [VERIFY]: the identical race exists ACROSS tabs, since each tab
+// runs its own independent copy of this module (own `inFlightRefresh`, own
+// `useSilentRefresh` timer) while all of them share the one httpOnly
+// refresh-token cookie. `withCrossTabRefreshLock` (shared/auth/
+// cross-tab-refresh-lock.ts) closes that gap using the Web Locks API so
+// only one tab's request is ever in flight at a time, browser-wide.
 let inFlightRefresh: Promise<RefreshSessionResponse> | null = null;
 
 function buildLoginHistoryQuery(params: LoginHistoryQuery): string {
@@ -50,7 +59,9 @@ function buildLoginHistoryQuery(params: LoginHistoryQuery): string {
 
 function refreshSession(): Promise<RefreshSessionResponse> {
   if (!inFlightRefresh) {
-    inFlightRefresh = apiFetch<RefreshSessionResponse>({ method: 'POST', path: AUTH_PATHS.refresh }).finally(() => {
+    inFlightRefresh = withCrossTabRefreshLock(() =>
+      apiFetch<RefreshSessionResponse>({ method: 'POST', path: AUTH_PATHS.refresh }),
+    ).finally(() => {
       inFlightRefresh = null;
     });
   }

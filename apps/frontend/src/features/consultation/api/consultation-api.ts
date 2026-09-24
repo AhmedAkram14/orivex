@@ -120,16 +120,21 @@ export const consultationApi = {
 
   /**
    * One prescription per call, matching the real backend contract exactly
-   * (`POST /prescriptions` signs one prescription, whose lineItems[] is a
-   * single doctor-supplied medication here) -- a doctor prescribing more
-   * than one medication in a visit calls this once per medication, never a
-   * fabricated bulk endpoint.
+   * (`POST /prescriptions` signs one prescription whose `lineItems[]` is a
+   * real array -- `SignPrescriptionRequestDto.lineItems` -- Phase 0 finding
+   * (d)). A doctor prescribing more than one medication in a visit sends
+   * every line in this single call, producing one `Prescription` with
+   * multiple `PrescriptionLineItem`s, never one call per medication.
    */
-  signPrescription: (consultationSessionId: string, diagnosisNodeId: string, lineItem: SignPrescriptionLineItemInput) =>
+  signPrescription: (
+    consultationSessionId: string,
+    diagnosisNodeId: string,
+    lineItems: SignPrescriptionLineItemInput[],
+  ) =>
     apiFetch<ConsultationPrescription>({
       method: 'POST',
       path: CONSULTATION_PATHS.prescriptions(),
-      body: { consultationSessionId, diagnosisNodeId, lineItems: [lineItem] },
+      body: { consultationSessionId, diagnosisNodeId, lineItems },
     }),
 
   /**

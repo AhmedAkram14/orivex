@@ -4,6 +4,7 @@ import { ArrowRight, Banknote, PiggyBank, Wallet } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { useDoctorEarningsSummary } from '@/features/payment/hooks/use-doctor-earnings-summary';
 import { useDoctorEarningsTransactions } from '@/features/payment/hooks/use-doctor-earnings-transactions';
 import { EarningsDateRangePicker, getLast30DaysRange } from '@/features/payment/components/earnings-date-range-picker';
@@ -91,13 +92,11 @@ export function DoctorEarningsSummary() {
   }
 
   const currency = data?.currency ?? 'EGP';
-  // No `currencyDisplay` override -- matches the one other place this app
-  // formats a currency amount (`formatConsultationPrice`, scheduling/utils/
-  // pricing.ts): Intl's default 'symbol' behavior already renders "ج.م.‏"
-  // for EGP under an Arabic locale and falls back to the ISO code "EGP"
-  // under English (EGP has no simple Latin symbol), so both locales get the
-  // locale-appropriate string for free, with no per-locale branching here.
-  const formatMoney = (amount: number) => format.number(amount, { style: 'currency', currency });
+  // Phase 8: routed through the shared `formatCurrency` helper (used
+  // identically by `pay-now-form.tsx` and `features/scheduling/utils/
+  // pricing.ts`) instead of a local `format.number(...)` call, so every
+  // money value in the app is guaranteed to format the same way.
+  const formatMoney = (amount: number) => formatCurrency(format, amount, currency);
 
   // `cycleLabel` is a plain "YYYY-MM" string from the backend -- parse the
   // parts directly (rather than `new Date(cycleLabel)`, which is prone to
@@ -130,11 +129,21 @@ export function DoctorEarningsSummary() {
        * in currency terms. Moved to a footnote under the table instead.
        */}
       <DashboardGrid columns={3}>
+        {/*
+         * Phase 9 [VERIFY]: the audit found these easy to misread as
+         * scoped to the date-range picker below (they aren't -- see the
+         * `hasRange` branch in GetDoctorEarningsSummaryUseCase, which
+         * always sums the doctor's full, unfiltered ledger for these three
+         * fields regardless of dateFrom/dateTo). `helperText` now says so
+         * explicitly on every tile instead of relying on the page layout
+         * alone to imply it.
+         */}
         <LinkableStatCard
           icon={Wallet}
           iconClassName="bg-success-subtle text-success-emphasis"
           label={t('stats.lifetimeNet')}
           value={data ? formatMoney(data.lifetimeNetAmount) : '—'}
+          helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
         <LinkableStatCard
@@ -142,6 +151,7 @@ export function DoctorEarningsSummary() {
           iconClassName="bg-primary-subtle text-primary-emphasis"
           label={t('stats.lifetimeGross')}
           value={data ? formatMoney(data.lifetimeGrossAmount) : '—'}
+          helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
         <LinkableStatCard
@@ -149,6 +159,7 @@ export function DoctorEarningsSummary() {
           iconClassName="bg-info-subtle text-info-emphasis"
           label={t('stats.transactionCount')}
           value={String(data?.lifetimeTransactionCount ?? 0)}
+          helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
       </DashboardGrid>
@@ -222,7 +233,24 @@ export function DoctorEarningsSummary() {
        * client-side reduction over this table.
        */}
       <div className="flex flex-col gap-3">
-        <h2 className="text-sm font-medium text-text-primary">{t('transactionsTitle')}</h2>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-medium text-text-primary">{t('transactionsTitle')}</h2>
+          {/*
+           * Phase 9 [VERIFY] earnings-attribution finding: read
+           * InitiateChargeUseCase (apps/backend/src/modules/payment/
+           * application/use-cases/initiate-charge/initiate-charge.use-case.ts)
+           * and PrismaPaymentTransactionRepository.findByDoctorId -- a
+           * transaction is created and marked Succeeded the moment the
+           * charge authorizes (right as the appointment goes
+           * Requested -> Confirmed), never revisited when the appointment
+           * later completes, is marked no-show, or sits stuck Confirmed.
+           * `createdAt` (= charge time, not consultation time) is also what
+           * this section's date-range filter matches against. Both facts
+           * are disclosed here honestly instead of implying "recorded when
+           * the consultation happened."
+           */}
+          <p className="text-xs text-text-tertiary">{t('recognitionBasis')}</p>
+        </div>
         {transactionsError ? (
           <Alert variant="danger">{t('transactionsLoadError')}</Alert>
         ) : transactionsLoading ? (
@@ -238,6 +266,9 @@ export function DoctorEarningsSummary() {
                   <th className="px-4 py-2 text-start font-medium">{t('table.date')}</th>
                   <th className="px-4 py-2 text-start font-medium">{t('table.fee')}</th>
                   <th className="px-4 py-2 text-start font-medium">{t('table.status')}</th>
+                  <th className="px-4 py-2 text-start font-medium">
+                    <span className="sr-only">{t('table.appointment')}</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -250,6 +281,24 @@ export function DoctorEarningsSummary() {
                     </td>
                     <td className="px-4 py-2">
                       <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>{t(`status.${transaction.status}`)}</Badge>
+                    </td>
+                    <td className="px-4 py-2 text-end">
+                      {/*
+                       * Phase 9: every DoctorEarningsTransaction already
+                       * carries appointmentId (DoctorEarningsTransactionResponseDto)
+                       * -- no new fetch needed. Deep-links to the Phase 2
+                       * Appointments view using its existing `?highlight=`
+                       * convention (features/doctor/components/appointments/
+                       * appointments-workspace.tsx) so a doctor can check a
+                       * transaction against what actually happened on that
+                       * appointment.
+                       */}
+                      <Link
+                        href={`/doctor/appointments?highlight=${transaction.appointmentId}`}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        {t('viewAppointment')}
+                      </Link>
                     </td>
                   </tr>
                 ))}

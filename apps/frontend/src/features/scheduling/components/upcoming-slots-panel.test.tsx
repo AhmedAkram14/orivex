@@ -85,7 +85,7 @@ describe('UpcomingSlotsPanel', () => {
     await userEvent.click(editButtons[0]);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Free' }));
+    await userEvent.click(screen.getByRole('radio', { name: 'Free' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await vi.waitFor(() => {

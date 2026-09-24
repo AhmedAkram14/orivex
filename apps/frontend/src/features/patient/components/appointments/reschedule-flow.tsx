@@ -141,7 +141,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
 
   if (step === 'summary' && selectedWindow) {
     const summary = summaryFor(selectedWindow);
-    const priceLabel = formatConsultationPrice(selectedWindow, locale, t('priceFree'));
+    const priceLabel = formatConsultationPrice(selectedWindow, format, t('priceFree'));
 
     if (isInvalidStateError || isNotFoundError) {
       return (
@@ -207,7 +207,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
     id: window.id,
     timeLabel: format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' }),
     status: 'available',
-    label: formatConsultationPrice(window, locale, t('priceFree')),
+    label: formatConsultationPrice(window, format, t('priceFree')),
     priceVariant: window.consultationType === 'free' ? 'free' : 'paid',
     onSelect: () => {
       setSelectedWindow(window);

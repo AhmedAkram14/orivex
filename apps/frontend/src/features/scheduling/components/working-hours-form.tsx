@@ -4,21 +4,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFieldArray, useForm, useWatch, type Control } from 'react-hook-form';
+import { useEffect } from 'react';
+import { PricingTypeRadioGroup } from '@/features/scheduling/components/pricing-type-radio-group';
 import { useUpdateDoctorAvailability } from '@/features/scheduling/hooks/use-update-doctor-availability';
 import { createWorkingHoursSchema, type WorkingHoursFormValues } from '@/features/scheduling/schemas/working-hours.schema';
 import type { RecurringWeeklySchedule } from '@/features/scheduling/types';
 import { ApiError } from '@/shared/lib/api/client';
+import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
-import { FilterTabs } from '@/shared/ui/filter-tabs';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/shared/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 import { Switch } from '@/shared/ui/switch';
 
 export interface WorkingHoursFormProps {
   schedule: RecurringWeeklySchedule;
   onSaved: () => void;
+  /** Closes the editor without saving -- gated by the same unsaved-changes confirm as the dialog's own "×"/overlay/Escape close. */
+  onCancel: () => void;
+  /** Lets the parent dialog/sheet gate its own "×"/overlay/Escape close behind the same unsaved-changes confirm this form uses for its Cancel button. */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 /** One day's breaks — a nested `useFieldArray` scoped to `days.${dayIndex}.breaks`, since RHF field arrays only track one array level each. */
@@ -27,9 +33,18 @@ function DayBreaks({ control, dayIndex }: { control: Control<WorkingHoursFormVal
   const breaks = useFieldArray({ control, name: `days.${dayIndex}.breaks` });
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 border-t border-border-default pt-3">
+      {/* A visible, distinct sub-heading -- previously these rows sat directly
+          under the pricing controls with nothing but a trash icon to tell
+          them apart. Each row also gets its own visible "Break N" text label
+          (not just an `aria-label`) so sighted users get the same context a
+          screen reader already had. */}
+      <p className="text-xs font-medium text-text-tertiary">{t('breaksHeading')}</p>
       {breaks.fields.map((breakField, breakIndex) => (
         <div key={breakField.id} className="flex items-center gap-2">
+          <span className="w-16 shrink-0 text-xs font-medium text-text-secondary">
+            {t('breakRowLabel', { number: breakIndex + 1 })}
+          </span>
           <FormField
             control={control}
             name={`days.${dayIndex}.breaks.${breakIndex}.start`}
@@ -79,9 +94,11 @@ function DayBreaks({ control, dayIndex }: { control: Control<WorkingHoursFormVal
 /**
  * Consultation Pricing Redesign: this weekday's default price -- every
  * `AvailabilityWindow` generated from it inherits this unless the doctor
- * later overrides one individually (Upcoming Slots). Free/Paid is a
- * `FilterTabs` (not a `Switch`, unlike the working-day toggle) since these
- * are two named choices, not an on/off state.
+ * later overrides one individually (Upcoming Slots). Free/Paid is a real
+ * `role="radiogroup"`/`"radio"` pair (`PricingTypeRadioGroup`), not a
+ * `FilterTabs` (Radix Tabs underneath -- meant for switching which content
+ * panel is visible, not a two-choice value) and not a `Switch` (an on/off
+ * state, not two named choices).
  */
 function DayPricing({ control, dayIndex, dayOfWeek }: { control: Control<WorkingHoursFormValues>; dayIndex: number; dayOfWeek: string }) {
   const t = useTranslations('scheduling.availability');
@@ -95,23 +112,24 @@ function DayPricing({ control, dayIndex, dayOfWeek }: { control: Control<Working
         control={control}
         name={`days.${dayIndex}.pricing.pricingType`}
         render={({ field }) => (
-          <FilterTabs
+          <PricingTypeRadioGroup
             value={field.value}
             onChange={field.onChange}
-            options={[
-              { value: 'free', label: t('pricingTypeFree') },
-              { value: 'paid', label: t('pricingTypePaid') },
-            ]}
+            freeLabel={t('pricingTypeFree')}
+            paidLabel={t('pricingTypePaid')}
+            groupLabel={t('pricingTypeLabel', { day: tDay(dayOfWeek) })}
+            idPrefix={`working-hours-pricing-${dayOfWeek}`}
           />
         )}
       />
       {pricingType === 'paid' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-end gap-2">
           <FormField
             control={control}
             name={`days.${dayIndex}.pricing.feeAmount`}
             render={({ field }) => (
               <FormItem className="flex-1">
+                <FormLabel>{t('feeAmountFieldLabel')}</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -226,7 +244,7 @@ function DayRow({
  * read-only Schedule Foundation display with the real editing architecture
  * its own doc comment anticipated.
  */
-export function WorkingHoursForm({ schedule, onSaved }: WorkingHoursFormProps) {
+export function WorkingHoursForm({ schedule, onSaved, onCancel, onDirtyChange }: WorkingHoursFormProps) {
   const t = useTranslations('scheduling.availability');
   const tValidation = useTranslations('scheduling.availability.validation');
   const updateAvailability = useUpdateDoctorAvailability();
@@ -235,6 +253,24 @@ export function WorkingHoursForm({ schedule, onSaved }: WorkingHoursFormProps) {
     resolver: zodResolver(createWorkingHoursSchema(tValidation)),
     defaultValues: { days: schedule },
   });
+
+  const isDirty = form.formState.isDirty;
+  // Real browser-level exit (tab close/refresh/typed URL) + same-document
+  // link clicks -- the beforeunload/link-intercept half of the unsaved-
+  // changes guard. The dialog's own "×"/overlay/Escape close and this
+  // form's Cancel button are a second, distinct exit path this hook doesn't
+  // cover (it has no opinion on a parent `Dialog`'s `onOpenChange`), handled
+  // below via `onDirtyChange` + a `window.confirm` at each of those two
+  // call sites instead.
+  useUnsavedChangesGuard(isDirty, t('unsavedChangesWarning'));
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  function handleCancel() {
+    if (isDirty && !window.confirm(t('unsavedChangesWarning'))) return;
+    onCancel();
+  }
 
   async function onSubmit(values: WorkingHoursFormValues) {
     try {
@@ -277,9 +313,12 @@ export function WorkingHoursForm({ schedule, onSaved }: WorkingHoursFormProps) {
           ))}
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
           <Button type="submit" loading={updateAvailability.isPending}>
             {t('save')}
+          </Button>
+          <Button type="button" variant="outline" onClick={handleCancel}>
+            {t('cancel')}
           </Button>
         </div>
       </form>

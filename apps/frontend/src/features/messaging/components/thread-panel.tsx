@@ -10,11 +10,13 @@ import { setOpenThreadId } from '@/features/messaging/hooks/open-thread-tracker'
 import { MessageBubble } from '@/features/messaging/components/message-bubble';
 import { MessageComposer } from '@/features/messaging/components/message-composer';
 import { getRealtimeSocket } from '@/shared/lib/realtime/use-realtime-socket';
+import { isSameCairoDay } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { MessageCircle } from 'lucide-react';
+import { ArrowLeft, MessageCircle } from 'lucide-react';
 
 // Messages Page Overhaul (Phase 2): how long a typing indicator stays shown
 // after the last `messaging.typing` event for this thread -- if the other
@@ -33,10 +35,18 @@ export interface ThreadPanelProps {
   role: 'patient' | 'doctor';
   /** The thread's patient-side identity (`MessageThread.patientId`) -- for the doctor role only, this IS the `PatientProfile` id `/doctor/patients/[id]` resolves against (confirmed against that page's own `params.id` usage), so it's safe to link directly. */
   patientId: string;
+  /** Responsive pass (Phase 7): below `md`, `messaging-workspace.tsx` routes
+   * between the thread list and this panel instead of stacking both (which
+   * required ~2 screens of scroll to reach the composer). When provided,
+   * renders a real back button (`md:hidden` -- at `md` and above the list
+   * and thread render side-by-side, so there's nothing to "go back" to).
+   * Omitted entirely, not just hidden, when the caller has no mobile
+   * list/thread routing to go back to. */
+  onBack?: () => void;
 }
 
 /** The open thread: message history plus the composer. Marks the other party's messages read once, on open (and again if the caller switches to a different thread). */
-export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId, role, patientId }: ThreadPanelProps) {
+export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId, role, patientId, onBack }: ThreadPanelProps) {
   const t = useTranslations('messaging.thread');
   const format = useFormatter();
   const tStatus = useTranslations('publicPatient');
@@ -99,6 +109,16 @@ export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId,
     <div className="flex h-full flex-col">
       <div className="border-b border-border-default px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={t('backToConversations')}
+              className="-ms-1.5 flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring md:hidden"
+            >
+              <Icon icon={ArrowLeft} size="sm" flipRtl />
+            </button>
+          )}
           <p className="text-sm font-semibold text-text-primary">{counterpartyName ?? t('unknownCounterparty')}</p>
           {/* Thread header context (Phase 5), doctor role only: `patientId`
               is confirmed to be a real PatientProfile id (matches what
@@ -135,9 +155,31 @@ export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId,
           </div>
         ) : messages && messages.length > 0 ? (
           <div className="flex flex-col gap-3">
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} isMine={message.senderAccountId === user?.id} />
-            ))}
+            {messages.map((message, index) => {
+              // Date separators (Phase 6 UX remediation): a real day-boundary
+              // check against the previous message in this same list (Cairo
+              // calendar day, matching every other "today"/"this month"
+              // comparison in this app -- see `isSameCairoDay`'s own doc
+              // comment), not a per-message fabricated label. The first
+              // message in the thread always gets one too, so a multi-day
+              // thread never opens without dating its own first bubble.
+              const previous = messages[index - 1];
+              const showDateSeparator = !previous || !isSameCairoDay(new Date(previous.createdAt), new Date(message.createdAt));
+              return (
+                <div key={message.id} className="flex flex-col gap-3">
+                  {showDateSeparator && (
+                    <div className="flex items-center gap-3 py-1" role="separator" aria-label={format.dateTime(new Date(message.createdAt), { dateStyle: 'long' })}>
+                      <div aria-hidden className="h-px flex-1 bg-border-default" />
+                      <span className="shrink-0 text-xs font-medium text-text-tertiary">
+                        {format.dateTime(new Date(message.createdAt), { dateStyle: 'medium' })}
+                      </span>
+                      <div aria-hidden className="h-px flex-1 bg-border-default" />
+                    </div>
+                  )}
+                  <MessageBubble message={message} isMine={message.senderAccountId === user?.id} />
+                </div>
+              );
+            })}
             <div ref={bottomRef} />
           </div>
         ) : (

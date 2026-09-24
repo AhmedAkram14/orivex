@@ -12,6 +12,7 @@ import { WelcomeHeader } from '@/features/doctor/components/welcome-header';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Card, CardContent } from '@/shared/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 import { cn } from '@/shared/lib/cn';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 
@@ -28,16 +29,33 @@ interface QuickActionTileProps {
 function QuickActionTile({ href, icon, label, accentClassName, disabledReason }: QuickActionTileProps) {
   if (disabledReason) {
     return (
-      <div
-        title={disabledReason}
-        aria-disabled="true"
-        className="flex cursor-not-allowed flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed border-border-default bg-surface p-4 text-center opacity-60"
-      >
-        <span className="flex size-12 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
-          <Icon icon={icon} size="lg" />
-        </span>
-        <span className="text-xs font-medium text-text-tertiary">{label}</span>
-      </div>
+      // Phase 8: previously a plain `div` with only a `title` attribute --
+      // a mouse-hover-only tooltip a keyboard user tabbing through Quick
+      // Actions could never reach or read. `tabIndex={0}` + `role="button"`
+      // makes it a real stop in the tab order; Radix's `Tooltip` shows its
+      // content on both hover AND keyboard focus by design (unlike the
+      // native `title` attribute), so the disabled reason is now visible
+      // however the tile is reached. `aria-disabled="true"` (unchanged)
+      // tells assistive tech this stop does nothing, without removing it
+      // from the tab order the way a native `disabled` attribute would.
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              tabIndex={0}
+              role="button"
+              aria-disabled="true"
+              className="flex cursor-not-allowed flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed border-border-default bg-surface p-4 text-center opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              <span className="flex size-12 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
+                <Icon icon={icon} size="lg" />
+              </span>
+              <span className="text-xs font-medium text-text-tertiary">{label}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>{disabledReason}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 

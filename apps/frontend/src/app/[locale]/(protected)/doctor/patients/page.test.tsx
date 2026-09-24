@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -45,10 +45,16 @@ function renderPage() {
 describe('DoctorPatientsPage', () => {
   it("lists the seeded busy-practice patients with their visit count and status", async () => {
     renderPage();
+    // Phase 7 responsive: the table (`data-testid="patients-table"`) and the
+    // `md:hidden` card list both render in jsdom regardless of Tailwind
+    // breakpoint classes, so an unscoped query matches the same patient name
+    // twice -- scope to the desktop table, same pattern as the sibling
+    // `patients-list.test.tsx`.
+    const table = await screen.findByTestId('patients-table');
     // `doctor-store.ts`'s seeded busy-practice-day roster (not a real
     // clinical record).
-    expect(await screen.findByText('Mona Farouk')).toBeInTheDocument();
-    expect(screen.getByText('Layla Ibrahim')).toBeInTheDocument();
+    expect(await within(table).findByText('Mona Farouk')).toBeInTheDocument();
+    expect(within(table).getByText('Layla Ibrahim')).toBeInTheDocument();
   });
 
   it('still shows an honest empty state when a real doctor genuinely has no patients yet', async () => {
@@ -80,9 +86,10 @@ describe('DoctorPatientsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Amina Youssef')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText('Completed')).toBeInTheDocument();
+    const table = await screen.findByTestId('patients-table');
+    expect(await within(table).findByText('Amina Youssef')).toBeInTheDocument();
+    expect(within(table).getByText('3')).toBeInTheDocument();
+    expect(within(table).getByText('Completed')).toBeInTheDocument();
   });
 
   it('shows an honest "None yet" for a patient with no completed visit -- regression: lastVisitAt used to be the most recently *scheduled* appointment regardless of status, so a Cancelled or still-pending one rendered its date labelled as a "visit"', async () => {
@@ -104,9 +111,10 @@ describe('DoctorPatientsPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Iman Rashad')).toBeInTheDocument();
-    expect(screen.getByText('None yet')).toBeInTheDocument();
-    expect(screen.queryByText('Invalid Date')).not.toBeInTheDocument();
-    expect(screen.getByText('Inactive')).toBeInTheDocument();
+    const table = await screen.findByTestId('patients-table');
+    expect(await within(table).findByText('Iman Rashad')).toBeInTheDocument();
+    expect(within(table).getByText('None yet')).toBeInTheDocument();
+    expect(within(table).queryByText('Invalid Date')).not.toBeInTheDocument();
+    expect(within(table).getByText('Inactive')).toBeInTheDocument();
   });
 });

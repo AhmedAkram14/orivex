@@ -40,7 +40,14 @@ const severityIconClassName: Record<NotificationSeverity, string> = {
 };
 
 export function NotificationRowContent({ notification }: { notification: NotificationEntry }) {
+  const t = useTranslations('shell.notifications');
   const format = useFormatter();
+  const createdAt = new Date(notification.createdAt);
+  // Absolute time available on hover/focus (native `title` tooltip)
+  // alongside the relative label always shown -- a quick "was this today or
+  // last week" check without leaving the list.
+  const absoluteTime = format.dateTime(createdAt, { dateStyle: 'medium', timeStyle: 'short' });
+
   return (
     <>
       <div className="flex items-center gap-2">
@@ -49,13 +56,21 @@ export function NotificationRowContent({ notification }: { notification: Notific
           size="sm"
           className={cn('shrink-0', severityIconClassName[notification.severity])}
         />
-        {!notification.read && <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />}
+        {!notification.read && (
+          <>
+            {/* The dot is a visual-only cue -- `Unread` below is the text alternative assistive tech and anyone zoomed past the dot's size can rely on instead. */}
+            <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+            <span className="sr-only">{t('unread')}</span>
+          </>
+        )}
         <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
           {notification.title}
         </p>
       </div>
       <p className="text-sm text-text-secondary">{notification.description}</p>
-      <p className="text-xs text-text-tertiary">{format.relativeTime(new Date(notification.createdAt), new Date())}</p>
+      <p className="text-xs text-text-tertiary" title={absoluteTime}>
+        {format.relativeTime(createdAt, new Date())}
+      </p>
     </>
   );
 }

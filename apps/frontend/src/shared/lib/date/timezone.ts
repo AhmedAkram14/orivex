@@ -22,3 +22,20 @@ const OPERATING_TIME_ZONE = 'Africa/Cairo';
 export function getCairoNow(referenceDate: Date = new Date()): Date {
   return new Date(referenceDate.toLocaleString('en-US', { timeZone: OPERATING_TIME_ZONE }));
 }
+
+/**
+ * True when `a` and `b` fall on the same Cairo calendar day -- e.g. for a
+ * message thread's date-separator rows (Phase 6 UX remediation), so a day
+ * boundary is computed against the same operating timezone every other
+ * "today"/"this month" comparison in this app already uses (see this file's
+ * own doc comment), not the viewer's browser timezone.
+ */
+export function isSameCairoDay(a: Date, b: Date): boolean {
+  const cairoA = getCairoNow(a);
+  const cairoB = getCairoNow(b);
+  return (
+    cairoA.getFullYear() === cairoB.getFullYear() &&
+    cairoA.getMonth() === cairoB.getMonth() &&
+    cairoA.getDate() === cairoB.getDate()
+  );
+}

@@ -12,19 +12,16 @@ import {
   MapPin,
   Phone,
   Pill,
-  Plus,
   Scale,
   Shield,
-  Star,
   Stethoscope,
   Upload,
   UserRoundPlus,
 } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
-import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import {
   useDoctorPatientChartAppointments,
   useDoctorPatientChartDocuments,
@@ -35,20 +32,22 @@ import {
 } from '@/features/doctor/hooks/use-doctor-patient-chart';
 import { useApproveAppointment } from '@/features/doctor/hooks/use-approve-appointment';
 import { useDeclineAppointment } from '@/features/doctor/hooks/use-decline-appointment';
-import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
+import { isUpcomingAppointment, NON_TERMINAL_APPOINTMENT_STATUSES } from '@/features/doctor/lib/appointment-status';
 import { useAddPatientCondition } from '@/features/doctor/hooks/use-add-patient-condition';
 import { useUploadPatientDocument } from '@/features/doctor/hooks/use-upload-patient-document';
-import { PrescriptionPanel } from '@/features/consultation/components/prescription-panel';
+import { AppointmentStatusBadge } from '@/features/doctor/components/appointments/appointment-status-badge';
+import { CancelAppointmentDialog } from '@/features/doctor/components/appointments/cancel-appointment-dialog';
+import { DoctorConsultationSummaryAction } from '@/features/consultation/components/doctor-consultation-summary-action';
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
-import { Badge, type BadgeProps } from '@/shared/ui/badge';
+import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Heading } from '@/design-system/typography';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Page } from '@/shared/ui/layout/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -59,6 +58,7 @@ import { TooltipProvider } from '@/shared/ui/tooltip';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
+import { getDurationMinutes } from '@/shared/lib/date/format-duration';
 import { formatRelativeTime } from '@/shared/lib/date/relative-time';
 import type {
   DoctorPatientChartAppointment,
@@ -71,9 +71,11 @@ import { CopyButton } from './_components/copy-button';
 import { InfoTile } from './_components/info-tile';
 import { ListSkeleton } from './_components/list-skeleton';
 import { PatientRecordHeaderActions } from './_components/patient-record-header-actions';
+import { PrescriptionCard } from './_components/prescription-card';
 import { QuickStat } from './_components/quick-stat';
 import { StickyPatientBar } from './_components/sticky-patient-bar';
 import { VitalTile } from './_components/vital-tile';
+import { WritePrescriptionDialog } from './_components/write-prescription-dialog';
 import { ageFrom, initialsFor, shortId } from './_lib/patient-display';
 
 // Sized to StickyPatientBar's own rendered height (compact avatar + two text
@@ -91,28 +93,11 @@ const DOCUMENT_PURPOSES: readonly DoctorPatientDocumentPurpose[] = ['clinical_at
 
 const CARD_CLASSNAME = 'rounded-2xl border-border-default/60 shadow-[0_10px_30px_rgba(15,23,42,0.05)]';
 
-const NON_TERMINAL_STATUSES = new Set(['requested', 'confirmed', 'rescheduled']);
-
 // Tabs -> URL (Phase 1.3): mirrors doctor/queue/page.tsx's exact pattern so
 // `?tab=` is shareable/restorable the same way there, e.g. deep-linking
 // straight to `?tab=consultations` from the Queue or Dashboard.
 type TabValue = 'overview' | 'history' | 'consultations' | 'prescriptions' | 'documents';
 const TAB_VALUES: readonly TabValue[] = ['overview', 'history', 'consultations', 'prescriptions', 'documents'];
-
-const appointmentBadgeVariant: Record<DoctorPatientChartAppointment['status'], NonNullable<BadgeProps['variant']>> = {
-  requested: 'neutral',
-  confirmed: 'success',
-  rescheduled: 'info',
-  completed: 'primary',
-  cancelled: 'danger',
-  no_show: 'danger',
-  expired: 'danger',
-};
-
-const prescriptionBadgeVariant: Record<DoctorPatientChartPrescription['status'], NonNullable<BadgeProps['variant']>> = {
-  active: 'success',
-  expired: 'neutral',
-};
 
 /**
  * The Doctor Workspace's clinical patient chart -- reached from the
@@ -139,17 +124,37 @@ export default function DoctorPatientChartPage() {
   // Observed by StickyPatientBar (IntersectionObserver) to know when the
   // real header has scrolled out of view.
   const headerRef = useRef<HTMLDivElement>(null);
+  // Responsive pass (Phase 7): the chart tabs (`TabsList`) are a horizontally
+  // scrollable pill row (`overflow-x-auto`, was already there) -- at 390px
+  // 5 tabs measured ~678px wide in a ~348px viewport, so whichever tab is
+  // active must be scrolled into view itself, not just reachable by manually
+  // swiping. `tabsListRef` finds the currently `data-state="active"` trigger
+  // inside the list and scrolls it into view on mount and on every tab
+  // change (including the `?tab=` deep-link case, which previously could
+  // land on an off-screen-active tab with no visual cue it was even
+  // selected).
 
   const tabParam = searchParams.get('tab');
   const initialTab: TabValue = TAB_VALUES.includes(tabParam as TabValue) ? (tabParam as TabValue) : 'overview';
   const [activeTab, setActiveTab] = useState<TabValue>(initialTab);
-  // Write Prescription (Phase 3.2): opens PrescriptionPanel (extracted in
-  // Phase 3.1 for exactly this reuse) against a past completed appointment's
+  // Write Prescription (Phase 3.2, restructured Phase 3 UX remediation):
+  // opens `WritePrescriptionDialog` against a past completed appointment's
   // ConsultationSession -- deliberately relies on SignPrescriptionUseCase's
   // own InProgress-or-Completed session-state check (Phase 3.3) rather than
-  // this page re-deriving that rule.
+  // this page re-deriving that rule. The dialog itself now owns appointment
+  // selection/step state.
   const [prescriptionDialogOpen, setPrescriptionDialogOpen] = useState(false);
-  const [selectedPrescriptionAppointmentId, setSelectedPrescriptionAppointmentId] = useState('');
+  // Add Condition (Phase 6 UX remediation): same controlled-dialog shape as
+  // Write Prescription above -- a single visible header trigger opens it
+  // directly, regardless of which tab is active. See `AddConditionDialog`'s
+  // own doc comment for why this replaced the old tab-scoped trigger.
+  const [addConditionDialogOpen, setAddConditionDialogOpen] = useState(false);
+  const tabsListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const activeTrigger = tabsListRef.current?.querySelector<HTMLElement>('[data-state="active"]');
+    activeTrigger?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [activeTab]);
 
   // Shareable/restorable tab state (?tab=consultations), not just component
   // state that resets to Overview on every reload or shared link -- mirrors
@@ -167,15 +172,6 @@ export default function DoctorPatientChartPage() {
   const { data: prescriptions, isLoading: prescriptionsLoading } = useDoctorPatientChartPrescriptions(patientProfileId);
   const { data: documents, isLoading: documentsLoading } = useDoctorPatientChartDocuments(patientProfileId);
   const { data: vitals } = useDoctorPatientChartVitals(patientProfileId);
-  // Recent Feedback: reuses the doctor's own real reviews (GET
-  // /doctors/:id/reviews, already public/authorized for this doctor to read)
-  // filtered to the one patient this chart is for -- the same source the
-  // review click-through itself came from, never a second fabricated feed.
-  const { data: myDoctorProfile } = useDoctorProfile();
-  const { data: doctorReviews } = useDoctorReviews(myDoctorProfile?.id);
-  const reviewsForThisPatient = (doctorReviews?.reviews ?? [])
-    .filter((review) => review.patientProfileId === patientProfileId && review.comment)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const notFound = profileError instanceof ApiError && profileError.status === 404;
 
@@ -209,52 +205,55 @@ export default function DoctorPatientChartPage() {
       {!profileLoading && profile && (() => {
         const age = profile.dateOfBirth ? ageFrom(profile.dateOfBirth) : undefined;
         const now = new Date();
-        // "Upcoming" means genuinely still ahead of us -- a non-terminal
-        // (Requested/Confirmed/Rescheduled) appointment whose own date has
-        // already passed is stale, not upcoming, regardless of whether it
-        // was ever formally resolved. Previously this bucketed on status
-        // alone, so a Requested appointment days in the past (nobody ever
-        // approved or declined it) stayed "upcoming" forever -- the same
-        // fact DoctorAppointmentsController's nextAppointmentAt already got
-        // right (it requires scheduledAt in the future too), which is why
-        // this page and the Patients list used to disagree about the exact
-        // same appointment.
-        const isUpcoming = (appointment: DoctorPatientChartAppointment) =>
-          NON_TERMINAL_STATUSES.has(appointment.status) && new Date(appointment.scheduledAt) > now;
+        // Shared "upcoming" definition (Phase 1 UX remediation) --
+        // see `isUpcomingAppointment`'s own doc comment for why this
+        // moved out of a page-local `NON_TERMINAL_STATUSES` set.
+        const isUpcoming = (appointment: DoctorPatientChartAppointment) => isUpcomingAppointment(appointment, now);
+        // Medical-history entries have no chronic/active flag or category on
+        // the backend (only `freeTextDescription` + an optional
+        // `certaintyLevel`) -- see IMPLEMENTATION_NOTES.md Phase 0 (c).
+        // Rather than infer chronicity from free text, this lists real
+        // condition-type entries only (`type === 'condition'`, i.e. added
+        // via "Add condition"), excluding visit notes, under an honestly
+        // scoped title ("Conditions on record", not "Chronic conditions").
+        const conditionEntries = (medicalRecords ?? []).filter((entry) => entry.type === 'condition');
         const upcomingAppointments = (appointments ?? [])
           .filter(isUpcoming)
           .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
         const pastAppointments = (appointments ?? [])
           .filter((appointment) => !isUpcoming(appointment))
           .sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+        // Phase 2 (Appointment Visibility & Consultation History): a past
+        // appointment stuck in a non-terminal status (nobody ever
+        // cancelled/it was never resolved by the system's complete/no-show
+        // sweeps) used to sit silently in "Previous visits" looking exactly
+        // like a real completed visit. Split out here using the same shared
+        // `NON_TERMINAL_APPOINTMENT_STATUSES` set `isUpcomingAppointment`
+        // itself uses, so "needs resolution" can never disagree with
+        // "upcoming" about the same appointment.
+        const needsResolutionAppointments = pastAppointments.filter((appointment) =>
+          NON_TERMINAL_APPOINTMENT_STATUSES.has(appointment.status),
+        );
+        const previousVisits = pastAppointments.filter(
+          (appointment) => !NON_TERMINAL_APPOINTMENT_STATUSES.has(appointment.status),
+        );
         const completedCount = pastAppointments.filter((appointment) => appointment.status === 'completed').length;
         const activePrescriptionsCount = (prescriptions ?? []).filter((prescription) => prescription.status === 'active').length;
         const lastVisit = pastAppointments.find((appointment) => appointment.status === 'completed');
         // Write Prescription session selection (Phase 3.2): any completed
         // appointment with a real ConsultationSession -- deliberately not
         // pre-filtered by "has a diagnosis" (no aggregate endpoint exists for
-        // that); PrescriptionPanel's own empty state handles a session with
-        // no diagnosis yet.
+        // that); WritePrescriptionDialog's own empty state handles a session
+        // with no diagnosis yet.
         const eligiblePrescriptionAppointments = (appointments ?? []).filter(
           (appointment): appointment is DoctorPatientChartAppointment & { consultationSessionId: string } =>
             appointment.status === 'completed' && appointment.consultationSessionId !== null,
         );
-        const selectedPrescriptionAppointment = eligiblePrescriptionAppointments.find(
-          (appointment) => appointment.id === selectedPrescriptionAppointmentId,
-        );
-
         function openPrescriptionDialog() {
           setPrescriptionDialogOpen(true);
-          if (eligiblePrescriptionAppointments.length === 1) {
-            setSelectedPrescriptionAppointmentId(eligiblePrescriptionAppointments[0].id);
-          }
         }
-
-        function handlePrescriptionDialogOpenChange(open: boolean) {
-          setPrescriptionDialogOpen(open);
-          if (!open) {
-            setSelectedPrescriptionAppointmentId('');
-          }
+        function openAddConditionDialog() {
+          setAddConditionDialogOpen(true);
         }
 
         return (
@@ -270,7 +269,7 @@ export default function DoctorPatientChartPage() {
                   hasUpcomingAppointment={upcomingAppointments.length > 0}
                   canWritePrescription={eligiblePrescriptionAppointments.length > 0}
                   onWritePrescription={openPrescriptionDialog}
-                  onAddCondition={() => handleTabChange('history')}
+                  onAddCondition={openAddConditionDialog}
                   onUploadDocument={() => handleTabChange('documents')}
                 />
               }
@@ -360,14 +359,21 @@ export default function DoctorPatientChartPage() {
                 />
               </div>
 
-              {/* Chronic conditions strip (Phase 1.5): a Tabs sibling, still
-                  visible on every tab -- allergies moved into its own P0
-                  banner above, this is what's left of the old combined strip. */}
+              {/* Conditions-on-record strip (Phase 1.5, retitled Phase 1 UX
+                  remediation): a Tabs sibling, still visible on every tab --
+                  allergies moved into its own P0 banner above, this is what's
+                  left of the old combined strip. Previously showed the
+                  patient's own self-reported `chronicDiseases` free-text
+                  field (Patient Portal profile data, always empty for a
+                  patient the doctor has actually treated) while the Medical
+                  History tab below listed real condition entries this doctor
+                  recorded -- now sources the same condition entries so the
+                  two never disagree. */}
               <InfoTile
                 icon={HeartPulse}
                 iconClassName="bg-neutral-subtle text-neutral"
-                label={t('chronicConditions')}
-                value={profile.chronicDiseases || t('noConditionsOnRecord')}
+                label={t('conditionsOnRecord')}
+                value={conditionEntries.length > 0 ? conditionEntries.map((entry) => entry.title).join(' · ') : t('noConditionsRecorded')}
               />
 
               {/* Heading-hierarchy fix (Phase 1.2): the workspace H1 above is
@@ -380,7 +386,10 @@ export default function DoctorPatientChartPage() {
               </Heading>
 
               <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as TabValue)}>
-                <TabsList className="max-w-full overflow-x-auto rounded-xl p-1.5">
+                <TabsList
+                  ref={tabsListRef}
+                  className="max-w-full overflow-x-auto rounded-xl p-1.5 mask-[linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]"
+                >
                   <TabsTrigger value="overview" className="whitespace-nowrap rounded-lg px-4 py-3 data-[state=active]:text-primary">
                     {t('tabs.overview')}
                   </TabsTrigger>
@@ -426,8 +435,17 @@ export default function DoctorPatientChartPage() {
                               t('notOnRecord')
                             )}
                           </div>
+                          {/* Address label (Phase 6 UX remediation): this
+                              row used to be icon-only -- when there's no
+                              address on record, "Not on record" with no
+                              visible label reads as ambiguous to a sighted
+                              user (unlike phone/email, whose own value
+                              format makes the field obvious). A visible text
+                              label fixes that without relying on the icon
+                              alone or an aria-label nobody sighted can see. */}
                           <div className="flex items-center gap-2 text-text-secondary">
                             <Icon icon={MapPin} size="sm" className="shrink-0" />
+                            <span className="text-xs text-text-tertiary">{t('addressLabel')}:</span>
                             {profile.address ?? t('notOnRecord')}
                           </div>
                         </div>
@@ -514,9 +532,13 @@ export default function DoctorPatientChartPage() {
 
                 <TabsContent value="history">
                   <Card className={CARD_CLASSNAME}>
-                    <CardHeader className="flex flex-row items-center justify-between gap-3 px-7 py-6">
+                    <CardHeader className="px-7 py-6">
+                      {/* "Add condition" trigger removed from here (Phase 6 UX
+                          remediation) -- it's now the single visible header
+                          button (see PatientRecordHeaderActions), which opens
+                          the same `AddConditionDialog` rendered below
+                          regardless of which tab is active. */}
                       <CardTitle>{t('medicalHistory')}</CardTitle>
-                      <AddConditionButton patientProfileId={patientProfileId} />
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
                       {medicalRecordsLoading && <ListSkeleton />}
@@ -529,7 +551,19 @@ export default function DoctorPatientChartPage() {
                             <li key={entry.id} className="flex gap-3 border-s-2 border-border-default ps-4">
                               <div className="flex flex-1 flex-col gap-0.5">
                                 <div className="flex items-center justify-between gap-2">
-                                  <p className="text-sm font-medium text-text-primary">{entry.title}</p>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {/* Type label (Phase 6 UX remediation): the
+                                        real `type` discriminator this DTO
+                                        already carries (used since Phase 1 for
+                                        the "Conditions on record" strip)
+                                        wasn't surfaced here -- a "Clinical
+                                        visit" free-text note and a real
+                                        condition entry looked identical. */}
+                                    <Badge variant={entry.type === 'condition' ? 'primary' : 'neutral'} className="text-[10px]">
+                                      {t(`medicalHistoryEntryType.${entry.type}`)}
+                                    </Badge>
+                                    <p className="text-sm font-medium text-text-primary">{entry.title}</p>
+                                  </div>
                                   <span className="text-xs text-text-tertiary">
                                     {format.dateTime(new Date(entry.date), { dateStyle: 'medium' })}
                                   </span>
@@ -565,18 +599,42 @@ export default function DoctorPatientChartPage() {
                     </CardContent>
                   </Card>
 
+                  {/* Needs resolution (Phase 2): a past-dated appointment
+                      nobody ever resolved -- per IMPLEMENTATION_NOTES.md's
+                      Phase 0 finding (b), complete()/markNoShow() are
+                      system-only, so the only real doctor action here is
+                      Cancel (CancelAppointmentDialog explains why). Only
+                      rendered once appointments have loaded and there's
+                      something real to flag -- no empty-state noise on a
+                      patient with a perfectly clean history. */}
+                  {!appointmentsLoading && needsResolutionAppointments.length > 0 && (
+                    <Card className={CARD_CLASSNAME}>
+                      <CardHeader className="px-7 py-6">
+                        <CardTitle>{t('needsResolution.title')}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-3 px-7 pt-0 pb-7">
+                        <p className="text-sm text-text-secondary">{t('needsResolution.description')}</p>
+                        <ul className="flex flex-col gap-3">
+                          {needsResolutionAppointments.map((appointment) => (
+                            <AppointmentRow key={appointment.id} appointment={appointment} showCancel />
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card className={CARD_CLASSNAME}>
                     <CardHeader className="px-7 py-6">
                       <CardTitle>{t('previousVisits')}</CardTitle>
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
                       {appointmentsLoading && <ListSkeleton rows={2} />}
-                      {!appointmentsLoading && pastAppointments.length === 0 && (
+                      {!appointmentsLoading && previousVisits.length === 0 && (
                         <EmptyState icon={Stethoscope} title={t('noPreviousVisits')} />
                       )}
-                      {!appointmentsLoading && pastAppointments.length > 0 && (
+                      {!appointmentsLoading && previousVisits.length > 0 && (
                         <ul className="flex flex-col gap-3">
-                          {pastAppointments.map((appointment) => (
+                          {previousVisits.map((appointment) => (
                             <AppointmentRow key={appointment.id} appointment={appointment} />
                           ))}
                         </ul>
@@ -587,13 +645,14 @@ export default function DoctorPatientChartPage() {
 
                 <TabsContent value="prescriptions">
                   <Card className={CARD_CLASSNAME}>
-                    <CardHeader className="flex flex-row items-center justify-between gap-3 px-7 py-6">
+                    <CardHeader className="px-7 py-6">
+                      {/* "Write prescription" trigger removed from here
+                          (Phase 6 UX remediation) -- it's now the single
+                          visible header button (see
+                          PatientRecordHeaderActions), which opens the same
+                          `WritePrescriptionDialog` rendered below regardless
+                          of which tab is active. */}
                       <CardTitle>{t('prescriptions')}</CardTitle>
-                      {eligiblePrescriptionAppointments.length > 0 && (
-                        <Button type="button" size="sm" onClick={openPrescriptionDialog}>
-                          {t('writePrescription')}
-                        </Button>
-                      )}
                     </CardHeader>
                     <CardContent className="px-7 pt-0 pb-7">
                       {prescriptionsLoading && <ListSkeleton />}
@@ -603,60 +662,12 @@ export default function DoctorPatientChartPage() {
                       {!prescriptionsLoading && prescriptions && prescriptions.length > 0 && (
                         <ul className="flex flex-col gap-3">
                           {prescriptions.map((prescription: DoctorPatientChartPrescription) => (
-                            <li key={prescription.id} className="flex flex-col gap-1 rounded-xl border border-border-default/70 p-4">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-medium text-text-primary">{prescription.medicationName}</p>
-                                <Badge variant={prescriptionBadgeVariant[prescription.status]}>
-                                  {t(`prescriptionStatus.${prescription.status}`)}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-text-secondary">
-                                {prescription.dosageAmount}, {prescription.frequencyLabel}
-                              </p>
-                              {prescription.instructions && <p className="text-sm text-text-secondary">{prescription.instructions}</p>}
-                              <p className="text-xs text-text-tertiary">
-                                {t('by', { name: prescription.prescribedBy })} ·{' '}
-                                {format.dateTime(new Date(prescription.prescribedAt), { dateStyle: 'medium' })}
-                              </p>
-                            </li>
+                            <PrescriptionCard key={prescription.id} prescription={prescription} />
                           ))}
                         </ul>
                       )}
                     </CardContent>
                   </Card>
-
-                  <Dialog open={prescriptionDialogOpen} onOpenChange={handlePrescriptionDialogOpenChange}>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>{t('writePrescriptionDialogTitle')}</DialogTitle>
-                      </DialogHeader>
-
-                      {eligiblePrescriptionAppointments.length > 1 && (
-                        <div className="flex flex-col gap-1.5">
-                          <label htmlFor="prescription-appointment-select" className="text-sm font-medium text-text-primary">
-                            {t('selectPastAppointmentLabel')}
-                          </label>
-                          <Select value={selectedPrescriptionAppointmentId} onValueChange={setSelectedPrescriptionAppointmentId}>
-                            <SelectTrigger id="prescription-appointment-select">
-                              <SelectValue placeholder={t('selectPastAppointmentPlaceholder')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {eligiblePrescriptionAppointments.map((appointment) => (
-                                <SelectItem key={appointment.id} value={appointment.id}>
-                                  {format.dateTime(new Date(appointment.scheduledAt), { dateStyle: 'medium' })} —{' '}
-                                  {appointment.reasonForVisit ?? t('reasonForVisitFallback')}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-
-                      {selectedPrescriptionAppointment && (
-                        <PrescriptionPanel consultationSessionId={selectedPrescriptionAppointment.consultationSessionId} />
-                      )}
-                    </DialogContent>
-                  </Dialog>
                 </TabsContent>
 
                 <TabsContent value="documents">
@@ -707,34 +718,36 @@ export default function DoctorPatientChartPage() {
                 </TabsContent>
               </Tabs>
 
-              {/* Recent feedback (P1 move): a 5-star review reads as social
-                  proof/vanity, not clinical data -- it doesn't belong above
-                  the clinical tabs where a doctor scans for safety-relevant
-                  information first. Kept on the page (still useful context)
-                  but now below the tabs, not competing with them. */}
-              {reviewsForThisPatient.length > 0 && (
-                <Card className={CARD_CLASSNAME}>
-                  <CardContent className="flex flex-col gap-2 px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-text-primary">{t('recentFeedback')}</p>
-                      <div className="flex items-center gap-0.5" aria-label={t('starRatingLabel', { rating: reviewsForThisPatient[0].rating })}>
-                        {Array.from({ length: 5 }, (_, index) => (
-                          <Icon
-                            key={index}
-                            icon={Star}
-                            size="sm"
-                            className={cn(index < reviewsForThisPatient[0].rating ? 'fill-warning text-warning' : 'text-border-strong')}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-sm text-text-secondary">&ldquo;{reviewsForThisPatient[0].comment}&rdquo;</p>
-                    <p className="text-xs text-text-tertiary">
-                      {format.dateTime(new Date(reviewsForThisPatient[0].createdAt), { dateStyle: 'medium' })}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+              {/* Write Prescription / Add Condition dialogs (Phase 6 UX
+                  remediation): moved out from inside their own
+                  `TabsContent` -- Radix unmounts inactive tab content by
+                  default, so a dialog nested inside one tab's content
+                  couldn't be opened by the new header-level trigger while a
+                  different tab was active. Rendered here, as `Tabs`
+                  siblings, so both dialogs are always mounted and open
+                  correctly regardless of which tab the doctor is on. */}
+              <WritePrescriptionDialog
+                profile={profile}
+                patientProfileId={patientProfileId}
+                eligibleAppointments={eligiblePrescriptionAppointments}
+                open={prescriptionDialogOpen}
+                onOpenChange={setPrescriptionDialogOpen}
+              />
+              <AddConditionDialog
+                patientProfileId={patientProfileId}
+                open={addConditionDialogOpen}
+                onOpenChange={setAddConditionDialogOpen}
+              />
+
+              {/* Recent feedback removed (Phase 6 UX remediation): the
+                  patient's own star review of this doctor is social
+                  proof/vanity, not clinical data -- it doesn't belong inside
+                  a patient's clinical chart at all (previously shown below
+                  the tabs, visible on every tab). The doctor's reviews
+                  already live on their own Profile page
+                  (`features/consultation/components/doctor-reviews-list.tsx`)
+                  -- no data was moved or deleted, this chart just stops
+                  rendering it. */}
             </div>
           </Page>
           </TooltipProvider>
@@ -746,15 +759,31 @@ export default function DoctorPatientChartPage() {
 
 // Add condition (Phase 4.1): a doctor-authored condition entry added
 // directly from the chart, outside any consultation session.
-function AddConditionButton({ patientProfileId }: { patientProfileId: string }) {
+//
+// Phase 6 UX remediation: this used to own its own `DialogTrigger` button,
+// rendered only inside the Medical History tab's `CardHeader` -- reachable
+// only after navigating to that tab. Now controlled (`open`/`onOpenChange`
+// props, same shape as `WritePrescriptionDialog`) so the single visible
+// "Add condition" trigger lives in the workspace header
+// (`PatientRecordHeaderActions`) and opens this dialog directly regardless
+// of which tab is active, instead of two separately-rendered buttons with
+// the same accessible name existing at once.
+function AddConditionDialog({
+  patientProfileId,
+  open,
+  onOpenChange,
+}: {
+  patientProfileId: string;
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+}) {
   const t = useTranslations('publicPatient');
-  const [open, setOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [certaintyLevel, setCertaintyLevel] = useState<CertaintyLevelValue>('suspected');
   const addCondition = useAddPatientCondition(patientProfileId);
 
   function handleOpenChange(next: boolean) {
-    setOpen(next);
+    onOpenChange(next);
     if (!next) {
       setDescription('');
       setCertaintyLevel('suspected');
@@ -773,12 +802,6 @@ function AddConditionButton({ patientProfileId }: { patientProfileId: string }) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button type="button" size="sm">
-          <Icon icon={Plus} size="sm" />
-          {t('addCondition')}
-        </Button>
-      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('addConditionDialogTitle')}</DialogTitle>
@@ -881,16 +904,14 @@ function UploadDocumentControl({ patientProfileId }: { patientProfileId: string 
 // declining here invalidates the same caches (Queue/Dashboard/Pending
 // Approval/this chart's own appointments) either surface was already
 // wired to.
-function AppointmentRow({ appointment }: { appointment: DoctorPatientChartAppointment }) {
+function AppointmentRow({ appointment, showCancel = false }: { appointment: DoctorPatientChartAppointment; showCancel?: boolean }) {
   const t = useTranslations('publicPatient');
   const format = useFormatter();
   const approveAppointment = useApproveAppointment();
   const declineAppointment = useDeclineAppointment();
   const [isDeclining, setIsDeclining] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
-  const durationMinutes = appointment.endTime
-    ? Math.round((new Date(appointment.endTime).getTime() - new Date(appointment.scheduledAt).getTime()) / 60_000)
-    : undefined;
+  const durationMinutes = appointment.endTime ? getDurationMinutes(appointment.scheduledAt, appointment.endTime) : undefined;
   const isPending = appointment.status === 'requested';
 
   function submitDecline() {
@@ -906,7 +927,7 @@ function AppointmentRow({ appointment }: { appointment: DoctorPatientChartAppoin
         <p className="text-sm font-medium text-text-primary">
           {format.dateTime(new Date(appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}
         </p>
-        <Badge variant={appointmentBadgeVariant[appointment.status]}>{t(`appointmentStatus.${appointment.status}`)}</Badge>
+        <AppointmentStatusBadge status={appointment.status} />
       </div>
       <p className="text-sm text-text-secondary">{appointment.reasonForVisit ?? t('reasonForVisitFallback')}</p>
       <div className="flex flex-wrap items-center gap-2">
@@ -915,6 +936,34 @@ function AppointmentRow({ appointment }: { appointment: DoctorPatientChartAppoin
           <span className="text-xs text-text-tertiary">{t('durationMinutes', { minutes: durationMinutes })}</span>
         )}
       </div>
+
+      {/* Consultation summary (Phase 2): a completed visit's real SOAP
+          notes/diagnoses/prescriptions, reachable at last -- previously
+          "Previous visits" cards weren't clickable at all. A completed
+          appointment with no ConsultationSession (defensive -- Confirmed
+          appointments always get one at confirmation time) gets an honest
+          "no summary" note instead of a dead button. */}
+      {appointment.status === 'completed' && (
+        <div>
+          {appointment.consultationSessionId ? (
+            <DoctorConsultationSummaryAction
+              consultationSessionId={appointment.consultationSessionId}
+              triggerLabel={t('viewConsultationSummary')}
+            />
+          ) : (
+            <p className="text-xs text-text-tertiary">{t('noConsultationSummary')}</p>
+          )}
+        </div>
+      )}
+
+      {/* Needs resolution (Phase 2): the only real doctor action on a
+          past-dated non-terminal appointment -- see CancelAppointmentDialog's
+          own comment for why Complete/No-show aren't offered here. */}
+      {showCancel && (
+        <div className="border-t border-border-default pt-3">
+          <CancelAppointmentDialog appointmentId={appointment.id} willRefund={appointment.status === 'confirmed'} />
+        </div>
+      )}
 
       {isPending && (
         <div className="flex flex-col gap-2 border-t border-border-default pt-3">

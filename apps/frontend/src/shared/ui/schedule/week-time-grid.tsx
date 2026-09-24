@@ -13,6 +13,22 @@ const ACCENT_CLASSES: Record<WeekTimeGridAccent, { bar: string; bg: string; text
   neutral: { bar: 'border-border-strong', bg: 'bg-neutral-subtle', text: 'text-text-secondary' },
 };
 
+export type WeekTimeGridBackgroundTone = 'available' | 'break' | 'unavailable';
+
+const BACKGROUND_TONE_CLASSES: Record<WeekTimeGridBackgroundTone, string> = {
+  available: 'bg-success-subtle/40',
+  break: 'bg-warning-subtle/60',
+  unavailable: 'bg-neutral-subtle/70',
+};
+
+export interface WeekTimeGridBackgroundBlock {
+  id: string;
+  /** Minutes since the grid's own first hour (same coordinate space as `WeekTimeGridAppointment`). */
+  startMinutes: number;
+  endMinutes: number;
+  tone: WeekTimeGridBackgroundTone;
+}
+
 export interface WeekTimeGridAppointment {
   id: string;
   /** Minutes since local midnight. */
@@ -33,6 +49,8 @@ export interface WeekTimeGridAppointment {
 export interface WeekTimeGridDay {
   id: string;
   appointments: WeekTimeGridAppointment[];
+  /** Real availability/break/unavailable bands drawn behind the appointment blocks -- non-interactive, so a day with no bookings is never a visually empty column. Omitted (not just empty) for a day this caller has no availability data for. */
+  backgroundBlocks?: WeekTimeGridBackgroundBlock[];
 }
 
 export interface WeekTimeGridProps {
@@ -84,6 +102,18 @@ export function WeekTimeGrid({ days, hourLabels, className }: WeekTimeGridProps)
       >
         {days.map((day) => (
           <div key={day.id} className="relative">
+            {day.backgroundBlocks?.map((block) => {
+              const top = ((block.startMinutes - startMinutesOfGrid) / 60) * HOUR_ROW_HEIGHT_PX;
+              const height = ((block.endMinutes - block.startMinutes) / 60) * HOUR_ROW_HEIGHT_PX;
+              return (
+                <div
+                  key={block.id}
+                  aria-hidden="true"
+                  className={cn('pointer-events-none absolute inset-x-0', BACKGROUND_TONE_CLASSES[block.tone])}
+                  style={{ top, height }}
+                />
+              );
+            })}
             {day.appointments.map((appointment) => {
               const top = ((appointment.startMinutes - startMinutesOfGrid) / 60) * HOUR_ROW_HEIGHT_PX;
               const height = Math.max(

@@ -23,6 +23,23 @@ body {
   color: var(--color-text-primary);
 }
 
+/* Phase 8 (Design System Consistency & Accessibility): a real global
+   `:focus-visible` fallback, tokens only -- `--color-focus-ring` is the same
+   brand-500 token every `focus-visible:ring-2 focus-visible:ring-focus-ring`
+   Tailwind utility across this app already uses (Button, LinkableStatCard,
+   the topbar/menu triggers, ...). Components that already carry that
+   utility are unaffected (their own ring still wins, being more specific);
+   this is the backstop for the many native/interactive elements that don't
+   -- a plain `<a>`, a native `<input>`, a third-party primitive's own
+   internal focusable node -- so keyboard focus is never invisible anywhere
+   in the app, not just on the primitives someone remembered to annotate.
+   `:focus-visible` only (never plain `:focus`), so a mouse click never
+   shows this ring, matching every existing `focus-visible:` usage. */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 /* Script-aware font switching by `lang`, not by component prop — so any
    Arabic content anywhere (once Phase 3 sets `lang="ar"` on the locale
    route) picks up the Arabic stack automatically, with no per-component

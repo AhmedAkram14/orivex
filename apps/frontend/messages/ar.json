@@ -4,6 +4,7 @@
     "loading": "جارٍ التحميل",
     "error": "حدث خطأ ما",
     "retry": "إعادة المحاولة",
+    "skipToMainContent": "تخطي إلى المحتوى الرئيسي",
     "locales": {
       "en": "English",
       "ar": "العربية"
@@ -508,8 +509,7 @@
         "activeNow": "نشط الآن",
         "unknownLocation": "موقع غير معروف",
         "twoFactor": "المصادقة الثنائية",
-        "twoFactorOff": "غير مفعّلة",
-        "twoFactorSetUp": "إعداد",
+        "twoFactorOff": "غير متاحة بعد",
         "loadError": "تعذّر تحميل ملخص الأمان الخاص بك."
       },
       "deviceSessions": {
@@ -610,6 +610,13 @@
       "wrongCurrentPassword": "كلمة المرور الحالية غير صحيحة."
     }
   },
+  "notFoundPage": {
+    "title": "الصفحة غير موجودة",
+    "description": "الصفحة التي تبحث عنها غير موجودة.",
+    "emptyTitle": "تعذّر العثور على هذه الصفحة",
+    "emptyDescription": "ربما تم نقلها أو إعادة تسميتها أو لم تكن موجودة من الأساس. تحقق من الرابط أو عد إلى الصفحة الرئيسية.",
+    "backHome": "العودة إلى الصفحة الرئيسية"
+  },
   "shell": {
     "footer": "© {year} أوريفكس. جميع الحقوق محفوظة.",
     "openNavigation": "فتح قائمة التنقل",
@@ -647,6 +654,7 @@
       "doctorProfile": "الملف الشخصي",
       "doctorSchedule": "الجدول الزمني",
       "doctorQueue": "قائمة انتظار المرضى",
+      "doctorAppointments": "المواعيد",
       "doctorConsultation": "الاستشارة",
       "doctorPatients": "المرضى",
       "doctorMessages": "الرسائل",
@@ -657,7 +665,10 @@
       "doctorSettings": "الإعدادات",
       "groups": {
         "clinical": "الرعاية السريرية",
-        "administration": "الإدارة"
+        "administration": "الإدارة",
+        "practice": "العيادة",
+        "account": "الحساب",
+        "more": "المزيد"
       },
       "patients": "المرضى",
       "appointments": "المواعيد",
@@ -697,7 +708,8 @@
       "emptyDescription": "ستظهر الإشعارات الجديدة هنا.",
       "bellLabel": "الإشعارات",
       "bellLabelWithCount": "الإشعارات ({count} غير مقروءة)",
-      "viewAll": "عرض كل الإشعارات"
+      "viewAll": "عرض كل الإشعارات",
+      "unread": "غير مقروء"
     },
     "userMenu": {
       "settings": "الإعدادات",
@@ -707,6 +719,9 @@
         "light": "فاتح",
         "dark": "داكن",
         "system": "حسب النظام"
+      },
+      "language": {
+        "label": "اللغة"
       },
       "signOut": "تسجيل الخروج"
     },
@@ -958,6 +973,7 @@
       "newMessageAnnouncement": "رسالة جديدة من {name}."
     },
     "thread": {
+      "backToConversations": "العودة إلى المحادثات",
       "loadError": "تعذّر تحميل هذه المحادثة.",
       "emptyTitle": "لا توجد رسائل بعد",
       "emptyDescription": "أرسل أول رسالة أدناه.",
@@ -1012,7 +1028,7 @@
     },
     "dashboard": {
       "title": "مساحة عمل الطبيب",
-      "welcome": "مرحبًا بعودتك، د. {name}.",
+      "welcome": "مرحبًا بعودتك، د. <bdi>{name}</bdi>.",
       "consultationsToday": "الاستشارات اليوم",
       "patientsInQueue": "المرضى في قائمة الانتظار",
       "completedToday": "المكتملة اليوم",
@@ -1048,7 +1064,7 @@
           "viewQueue": "عرض قائمة انتظار المرضى",
           "updateSchedule": "تحديث الجدول الزمني",
           "writePrescription": "كتابة وصفة طبية",
-          "writePrescriptionUnavailable": "تُكتب الوصفات الطبية أثناء استشارة نشطة فقط"
+          "writePrescriptionUnavailable": "تُكتب الوصفات الطبية أثناء الاستشارة أو من ملف المريض بعد انتهائها"
         }
       },
       "patientQueueMini": {
@@ -1240,6 +1256,29 @@
       "noAvailabilityConfiguredDescription": "حدد ساعات عملك أدناه لبدء إظهار الأوقات المتاحة في هذا التقويم.",
       "breaksCount": "{count, plural, zero {لا استراحات} one {استراحة واحدة} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}",
       "timezoneNote": "الأوقات المعروضة بتوقيت {timezone}.",
+      "effectiveWindow": {
+        "breakSingle": "استراحة {range}",
+        "noBookableTime": "لا يوجد وقت قابل للحجز (الاستراحة تغطي اليوم بالكامل)"
+      },
+      "gridLegend": {
+        "available": "متاح",
+        "break": "استراحة",
+        "booked": "محجوز",
+        "notAvailable": "غير متاح"
+      },
+      "monthLegend": {
+        "available": "يوم عمل",
+        "notAvailable": "غير متاح"
+      },
+      "bookingRules": {
+        "title": "قواعد الحجز",
+        "description": "كيفية توليد أوقاتك القابلة للحجز من ساعات عملك.",
+        "slotLength": "مدة الموعد",
+        "buffer": "الفاصل بين المواعيد",
+        "minutesValue": "{minutes} دقيقة",
+        "manageInSettings": "الإدارة من الإعدادات",
+        "loadError": "تعذّر تحميل قواعد الحجز."
+      },
       "thisWeek": {
         "title": "هذا الأسبوع",
         "viewReports": "عرض التقارير",
@@ -1273,9 +1312,11 @@
         "emptyDescription": "ستظهر هنا الأوقات المُنشأة من ساعات عملك بمجرد جدولتها.",
         "edit": "تعديل السعر",
         "editDialogTitle": "تعديل السعر — {time}",
+        "pricingTypeFieldLabel": "نوع التسعير",
         "pricingTypeFree": "مجاني",
         "pricingTypePaid": "مدفوع",
         "feeAmountLabel": "رسوم الاستشارة",
+        "feeAmountFieldLabel": "الرسوم (جنيه مصري)",
         "feeCurrencyLabel": "عملة الرسوم",
         "cancel": "إلغاء",
         "save": "حفظ",
@@ -1297,6 +1338,55 @@
           "no_show": "لم يحضر",
           "expired": "منتهي الصلاحية"
         }
+      }
+    },
+    "appointments": {
+      "title": "المواعيد",
+      "description": "كل موعد في جدولك — القادمة والسابقة وأي شيء لا يزال بحاجة إلى اهتمامك.",
+      "loadError": "تعذّر تحميل مواعيدك.",
+      "retry": "إعادة المحاولة",
+      "viewSummary": "عرض الملخص",
+      "needsResolutionExplainer": "هذه المواعيد تجاوزت موعدها المحدد ولم تتم تسويتها. لا يمكن تعيين حالة مكتمل/لم يحضر إلا تلقائيًا بواسطة النظام، لذا الإلغاء هو الإجراء الوحيد المتاح هنا.",
+      "tabs": {
+        "upcoming": "القادمة ({count})",
+        "past": "السابقة ({count})",
+        "needsResolution": "بحاجة إلى حل ({count})"
+      },
+      "empty": {
+        "upcomingTitle": "لا توجد مواعيد قادمة",
+        "upcomingDescription": "لا توجد مواعيد مجدولة ضمن هذا النطاق الزمني.",
+        "pastTitle": "لا توجد مواعيد سابقة",
+        "pastDescription": "لم يحن بعد موعد أي من المواعيد ضمن هذا النطاق الزمني.",
+        "needsResolutionTitle": "لا شيء بحاجة إلى حل",
+        "needsResolutionDescription": "تمت تسوية كل موعد سابق ضمن هذا النطاق الزمني."
+      },
+      "filters": {
+        "status": "الحالة",
+        "statusAll": "كل الحالات",
+        "patientSearchLabel": "المريض",
+        "patientSearchPlaceholder": "ابحث باسم المريض"
+      },
+      "status": {
+        "requested": "بانتظار موافقة الطبيب",
+        "confirmed": "مؤكد",
+        "rescheduled": "أُعيدت جدولته",
+        "completed": "مكتمل",
+        "cancelled": "ملغى",
+        "no_show": "لم يحضر",
+        "expired": "منتهي الصلاحية"
+      },
+      "cancel": {
+        "button": "إلغاء الموعد",
+        "dialogTitle": "هل تريد إلغاء هذا الموعد؟",
+        "confirmDescription": "سيؤدي هذا إلى إلغاء الموعد. سيتم إخطار المريض.",
+        "confirmDescriptionRefund": "سيؤدي هذا إلى إلغاء الموعد ورد كامل مبلغ المريض تلقائيًا.",
+        "whyNotCompleteExplainer": "لا يمكن تعليم هذا الموعد كمكتمل أو لم يحضر بأثر رجعي — يتم تعيين هاتين الحالتين تلقائيًا بواسطة النظام. قم بإلغائه إذا لم تتم الزيارة فعليًا.",
+        "keepAppointment": "الإبقاء على الموعد",
+        "confirmCancel": "إلغاء الموعد",
+        "close": "إغلاق",
+        "notFoundError": "لم يعد بالإمكان العثور على هذا الموعد — ربما تغيّر بالفعل في مكان آخر.",
+        "invalidStateError": "لم يعد بالإمكان إلغاء هذا الموعد — ربما تغيّر بالفعل في مكان آخر.",
+        "genericError": "تعذّر إلغاء هذا الموعد. حاول مرة أخرى."
       }
     },
     "queue": {
@@ -1529,7 +1619,7 @@
         "averageRatingHelperNoCount": "منذ البداية",
         "noRatingsYet": "لا توجد تقييمات بعد"
       },
-      "searchPlaceholder": "ابحث بالاسم أو الهاتف أو البريد الإلكتروني...",
+      "searchPlaceholder": "ابحث عن مريض...",
       "clearSearch": "مسح البحث",
       "clearFilters": "مسح البحث والفلاتر",
       "filterType": {
@@ -1603,6 +1693,7 @@
         "noShow": "لم يُحضر",
         "pendingApproval": "بانتظار الموافقة",
         "upcoming": "قادمة",
+        "upcomingHelper": "مؤكدة/معاد جدولتها خلال {range}",
         "averageRating": "متوسط التقييم",
         "ratingValue": "{rating}",
         "ratingCount": "{count} تقييمات",
@@ -1622,7 +1713,8 @@
       "trend": {
         "seriesLabel": "المواعيد",
         "emptyTitle": "لا يوجد ما يُعرض بعد",
-        "emptyDescription": "لا يوجد نشاط مواعيد في هذا النطاق الزمني."
+        "emptyDescription": "لا يوجد نشاط مواعيد في هذا النطاق الزمني.",
+        "tableDateHeader": "التاريخ"
       },
       "export": {
         "exportCsv": "تصدير CSV",
@@ -1638,7 +1730,8 @@
       "stats": {
         "lifetimeNet": "صافي الأرباح الإجمالي",
         "lifetimeGross": "إجمالي الدخل",
-        "transactionCount": "الاستشارات المدفوعة"
+        "transactionCount": "الاستشارات المدفوعة",
+        "lifetimeHelper": "الإجمالي منذ البداية — لا يتأثر بنطاق التاريخ أدناه"
       },
       "payoutHonesty": "تعكس هذه الأرقام الأرباح المسجَّلة على هذه المنصة، ولا تُعد تأكيدًا بأن الأموال قد تم تحويلها إلى حسابك.",
       "commissionFootnote": "عمولة المنصة: {rate}%.",
@@ -1648,9 +1741,11 @@
       "cyclesEmptyTitle": "لا توجد أرباح بعد",
       "cyclesEmptyDescription": "ستظهر هنا الاستشارات المدفوعة المكتملة، مقسّمة حسب الشهر.",
       "transactionsTitle": "المعاملات",
+      "recognitionBasis": "تُسجَّل المعاملة عند نجاح الدفع، وليس عند اكتمال الاستشارة — ويُحدَّد تاريخها وتصفيتها بحسب تاريخ الدفع، لا تاريخ الموعد.",
       "transactionsLoadError": "تعذّر تحميل معاملاتك.",
       "transactionsEmptyTitle": "لا توجد معاملات بعد",
       "transactionsEmptyDescription": "ستظهر هنا معاملات كل استشارة للفترة المحددة.",
+      "viewAppointment": "عرض الموعد",
       "table": {
         "cycle": "الشهر",
         "gross": "الإجمالي",
@@ -1660,11 +1755,12 @@
         "patient": "المريض",
         "date": "التاريخ",
         "fee": "الرسوم",
-        "status": "الحالة"
+        "status": "الحالة",
+        "appointment": "الموعد"
       },
       "status": {
         "initiated": "بدأت",
-        "succeeded": "ناجحة",
+        "succeeded": "تم استلام الدفعة",
         "failed": "فشلت",
         "settled": "تمت التسوية",
         "refunded": "مستردة",
@@ -2257,6 +2353,7 @@
     "notFoundDescription": "لم يعد الملف الشخصي لهذا المريض متاحًا.",
     "loadError": "تعذر تحميل الملف الشخصي لهذا المريض.",
     "notOnRecord": "غير مسجّل",
+    "addressLabel": "العنوان",
     "workspaceEyebrow": "ملف المريض",
     "clinicalRecordHeading": "السجل السريري",
     "ageYearsOld": "{age} سنة",
@@ -2293,6 +2390,10 @@
       "documentsCount": "المستندات ({count})"
     },
     "personalInformation": "المعلومات الشخصية",
+    "medicalHistoryEntryType": {
+      "condition": "حالة",
+      "visit": "ملاحظة زيارة"
+    },
     "medicalProfile": "الملف الطبي",
     "bloodType": "فصيلة الدم",
     "allergies": "الحساسية",
@@ -2305,8 +2406,14 @@
     "confirmNoKnownAllergies": "تأكيد: لا توجد حساسية معروفة",
     "confirmAgainNoKnownAllergies": "تأكيد مرة أخرى",
     "confirmNoKnownAllergiesError": "تعذر حفظ هذا التأكيد. حاول مرة أخرى.",
+    "confirmNoKnownAllergiesDialogTitle": "تأكيد عدم وجود حساسية معروفة؟",
+    "confirmNoKnownAllergiesDialogDescription": "يسجّل هذا أنك سألت المريض وتأكدت من عدم وجود حساسية دوائية معروفة لديه. يصبح هذا جزءًا من سجله الطبي.",
+    "confirmNoKnownAllergiesCancelAction": "إلغاء",
+    "confirmNoKnownAllergiesConfirmAction": "نعم، تأكيد",
     "chronicConditions": "الأمراض المزمنة",
     "noConditionsOnRecord": "لا توجد أمراض مزمنة مسجّلة",
+    "conditionsOnRecord": "الحالات المسجّلة",
+    "noConditionsRecorded": "لا توجد حالات مسجّلة",
     "insurance": "التأمين",
     "insuranceSelfPay": "دفع ذاتي / بدون تأمين",
     "latestWeight": "آخر وزن مسجّل",
@@ -2350,6 +2457,7 @@
     "noPreviousVisits": "لا توجد زيارات سابقة مسجّلة",
     "prescriptions": "الوصفات الطبية",
     "noPrescriptions": "لا توجد وصفات طبية مسجّلة",
+    "downloadPrescriptionPdf": "تنزيل PDF",
     "prescriptionStatus": {
       "active": "فعّالة",
       "expired": "منتهية"
@@ -2358,6 +2466,42 @@
     "writePrescriptionDialogTitle": "كتابة وصفة طبية",
     "selectPastAppointmentLabel": "اختر زيارة سابقة",
     "selectPastAppointmentPlaceholder": "اختر زيارة مكتملة",
+    "prescribe": {
+      "loadError": "تعذّر تحميل ملخص هذه الزيارة السريرية. حاول مرة أخرى.",
+      "noDiagnosisRecorded": "سجّل تشخيصًا لهذه الزيارة قبل كتابة وصفة طبية.",
+      "diagnosisLabel": "التشخيص",
+      "diagnosisPlaceholder": "اختر تشخيصًا",
+      "diagnosisRequired": "اختر تشخيصًا",
+      "medicationsHeading": "الأدوية",
+      "drugNameLabel": "اسم الدواء",
+      "drugNamePlaceholder": "مثال: أموكسيسيلين",
+      "drugNameRequired": "أدخل اسم الدواء",
+      "dosageLabel": "الجرعة",
+      "dosagePlaceholder": "مثال: 500 مجم",
+      "dosageRequired": "أدخل الجرعة",
+      "frequencyLabel": "التكرار",
+      "frequencyPlaceholder": "مثال: مرتين يوميًا",
+      "frequencyRequired": "أدخل التكرار",
+      "durationLabel": "المدة (أيام)",
+      "durationPlaceholder": "مثال: 7",
+      "durationRequired": "أدخل المدة",
+      "durationInvalid": "أدخل عدد أيام صحيحًا أكبر من صفر",
+      "instructionsLabel": "تعليمات (اختياري)",
+      "instructionsPlaceholder": "مثال: يؤخذ مع الطعام",
+      "addMedication": "إضافة دواء آخر",
+      "removeMedication": "إزالة الدواء",
+      "next": "التالي: المراجعة",
+      "reviewHeading": "المراجعة قبل التوقيع",
+      "durationDaysValue": "{count, plural, one {يوم واحد} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+      "signConsequence": "توقيع الوصفة يصدرها للمريض ليتمكن من عرضها وتنزيلها. لا يمكن تعديلها بعد التوقيع.",
+      "signError": "تعذّر توقيع هذه الوصفة. حاول مرة أخرى.",
+      "back": "رجوع",
+      "signAction": "توقيع الوصفة",
+      "successTitle": "تم توقيع الوصفة",
+      "successDescription": "يمكن للمريض الآن عرض هذه الوصفة وتنزيلها.",
+      "downloadPdf": "تنزيل PDF",
+      "done": "تم"
+    },
     "documents": "المستندات الطبية",
     "noDocuments": "لا توجد مستندات سريرية مرفوعة",
     "documentPurpose": {
@@ -2385,6 +2529,12 @@
       "no_show": "لم يحضر",
       "expired": "منتهي الصلاحية"
     },
+    "needsResolution": {
+      "title": "بحاجة إلى حل",
+      "description": "هذه المواعيد تجاوزت موعدها المحدد ولم تتم تسويتها. لا يمكن تعيين حالة مكتمل/لم يحضر إلا تلقائيًا بواسطة النظام، لذا الإلغاء هو الإجراء الوحيد المتاح هنا."
+    },
+    "viewConsultationSummary": "عرض ملخص الاستشارة",
+    "noConsultationSummary": "لم يتم تسجيل ملخص استشارة لهذه الزيارة.",
     "messagePatient": "مراسلة المريض",
     "messagePatientError": "تعذّر بدء محادثة مع هذا المريض. حاول مرة أخرى.",
     "moreActions": "المزيد من الإجراءات",
@@ -2423,12 +2573,17 @@
       "endTimeLabel": "وقت انتهاء {day}",
       "breakStartLabel": "وقت بدء الاستراحة {number}",
       "breakEndLabel": "وقت انتهاء الاستراحة {number}",
+      "breaksHeading": "الاستراحات",
+      "breakRowLabel": "استراحة {number}",
       "defaultPricingLabel": "السعر الافتراضي للمواعيد المُنشأة من هذا الجدول",
       "pricingTypeLabel": "سعر {day}",
       "pricingTypeFree": "مجاني",
       "pricingTypePaid": "مدفوع",
       "feeAmountLabel": "رسوم استشارة {day}",
+      "feeAmountFieldLabel": "الرسوم (جنيه مصري)",
       "feeCurrencyLabel": "عملة رسوم {day}",
+      "cancel": "إلغاء",
+      "unsavedChangesWarning": "لديك تغييرات غير محفوظة في أوقات توفرك. هل تريد التراجع عنها؟",
       "validation": {
         "invalidTime": "أدخل وقتًا صحيحًا (س:د).",
         "endAfterStart": "يجب أن يكون وقت الانتهاء بعد وقت البدء.",
@@ -3064,7 +3219,7 @@
       "prescriptionDiagnosisLabel": "التشخيص",
       "prescriptionDiagnosisPlaceholder": "اختر تشخيصًا",
       "prescriptionMedicationLabel": "الدواء",
-      "prescriptionMedicationPlaceholder": "مثال: أموكسيسيلين 500 مجم",
+      "prescriptionMedicationPlaceholder": "مثال: أموكسيسيلين",
       "prescriptionDosageLabel": "الجرعة",
       "prescriptionDosagePlaceholder": "مثال: 500 مجم",
       "prescriptionFrequencyLabel": "التكرار",
@@ -3148,6 +3303,7 @@
     "rating": {
       "prompt": "قيّم استشارتك",
       "starLabel": "{count} من 5 نجوم",
+      "ratedOutOf5": "تقييم {rating} من 5",
       "communicationLabel": "التواصل",
       "punctualityLabel": "الالتزام بالموعد",
       "thoroughnessLabel": "الشمولية",
@@ -3159,7 +3315,11 @@
       "updateError": "تعذر حفظ التغييرات. حاول مرة أخرى.",
       "noReviewsYet": "لا توجد تقييمات بعد",
       "reviewCount": "({count} تقييم)",
-      "writtenReviewCount": "{count, plural, one {# مراجعة مكتوبة} other {# مراجعات مكتوبة}}"
+      "writtenReviewCount": "{count, plural, one {# مراجعة مكتوبة} other {# مراجعات مكتوبة}}",
+      "ratingCount": "{count, plural, one {# تقييم} other {# تقييمات}}",
+      "notEnoughRatings": "لا توجد تقييمات كافية بعد ({count})",
+      "scopedNoRatings": "{range} · لا توجد تقييمات بعد",
+      "scopedRatingCount": "{range} · {count, plural, one {# تقييم} other {# تقييمات}}"
     },
     "outcome": {
       "openAction": "عرض الملخص",
@@ -3171,6 +3331,7 @@
       "status": "الحالة",
       "completed": "مكتملة",
       "duration": "المدة",
+      "durationMinutes": "{minutes} دقيقة",
       "prescriptions": "الوصفات الطبية",
       "followUp": "المتابعة الموصى بها",
       "yourRating": "تقييمك",
@@ -3180,6 +3341,33 @@
       "deleteConfirmBody": "حذف تقييمك؟ سيؤدي هذا إلى إزالة تقييمك وتعليقك لهذه الاستشارة. يمكنك إرسال تقييم جديد لاحقًا إذا غيّرت رأيك.",
       "deleteError": "تعذر حذف تقييمك. حاول مرة أخرى.",
       "loadError": "تعذر تحميل ملخص الاستشارة."
+    },
+    "doctorSummary": {
+      "openAction": "عرض الملخص",
+      "title": "ملخص الاستشارة",
+      "loadError": "تعذر تحميل ملخص الاستشارة.",
+      "visitDetails": "تفاصيل الزيارة",
+      "date": "التاريخ",
+      "duration": "المدة",
+      "durationMinutes": "{minutes} دقيقة",
+      "clinicalNotes": "الملاحظات السريرية",
+      "soap": {
+        "subjective": "الأعراض الذاتية",
+        "objective": "الفحص الموضوعي",
+        "assessment": "التقييم",
+        "plan": "الخطة"
+      },
+      "diagnoses": "التشخيصات",
+      "untitledDiagnosis": "تشخيص",
+      "certainty": {
+        "suspected": "مشتبه بها",
+        "confirmed": "مؤكدة",
+        "ruled_out": "مستبعدة"
+      },
+      "prescriptions": "الوصفات الطبية",
+      "labRequests": "طلبات التحاليل",
+      "vitals": "المؤشرات الحيوية المسجّلة",
+      "followUp": "المتابعة الموصى بها"
     }
   }
 }

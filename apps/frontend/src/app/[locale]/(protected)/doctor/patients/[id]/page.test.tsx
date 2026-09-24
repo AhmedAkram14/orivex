@@ -122,7 +122,14 @@ describe('DoctorPatientChartPage', () => {
     expect(screen.getByText('patient17@orivex.dev')).toBeInTheDocument();
   });
 
-  it("shows Recent Feedback when this patient has reviewed the current doctor, without it dominating the page", async () => {
+  // Phase 6 UX remediation: "Recent feedback" (the patient's own review of
+  // this doctor) was removed from the clinical chart entirely -- it's
+  // vanity/social-proof content, not clinical data, and doesn't belong in a
+  // patient's medical record view. It still lives on the doctor's own
+  // Profile page (unchanged). Asserts absence regardless of whether this
+  // patient has actually reviewed the doctor, since the chart no longer
+  // fetches/renders reviews at all.
+  it('never shows Recent Feedback in the clinical chart, even when this patient has reviewed the current doctor', async () => {
     mockChartEndpoints({
       reviews: [
         {
@@ -139,19 +146,12 @@ describe('DoctorPatientChartPage', () => {
     });
     renderPage();
 
-    expect(await screen.findByText('Recent feedback')).toBeInTheDocument();
-    expect(screen.getByText('“Professional and reassuring.”')).toBeInTheDocument();
-    // Still shows the medical overview alongside it -- feedback is not the
-    // only content on the page.
-    expect(screen.getByText('O+')).toBeInTheDocument();
-  });
-
-  it('omits Recent Feedback entirely when this patient has never reviewed the current doctor', async () => {
-    mockChartEndpoints({ reviews: [] });
-    renderPage();
-
     await screen.findByText('Fady Nassar');
     expect(screen.queryByText('Recent feedback')).not.toBeInTheDocument();
+    expect(screen.queryByText('“Professional and reassuring.”')).not.toBeInTheDocument();
+    // Still shows the medical overview -- removing feedback didn't break
+    // anything else on the page.
+    expect(screen.getByText('O+')).toBeInTheDocument();
   });
 
   it('renders real clinical documents with their type and date in the Documents tab', async () => {
@@ -282,9 +282,18 @@ describe('DoctorPatientChartPage', () => {
     expect(within(upcomingSection as HTMLElement).queryByText('Waiting doctor approval')).not.toBeInTheDocument();
     expect(within(upcomingSection as HTMLElement).queryByText('Expired')).not.toBeInTheDocument();
 
+    // Phase 2 (Appointment Visibility & Consultation History): a past-dated
+    // NON-terminal status (the stale Requested appointment) no longer sits
+    // in "Previous visits" looking like a real completed/terminal visit --
+    // it moves into its own "Needs resolution" group. "Previous visits" now
+    // only ever holds terminal statuses (Expired here).
+    const needsResolutionSection = screen.getByRole('heading', { name: 'Needs resolution' }).closest('.rounded-2xl');
+    expect(needsResolutionSection).not.toBeNull();
+    expect(within(needsResolutionSection as HTMLElement).getByText('Waiting doctor approval')).toBeInTheDocument();
+
     const previousSection = screen.getByRole('heading', { name: 'Previous visits' }).closest('.rounded-2xl');
     expect(previousSection).not.toBeNull();
-    expect(within(previousSection as HTMLElement).getByText('Waiting doctor approval')).toBeInTheDocument();
+    expect(within(previousSection as HTMLElement).queryByText('Waiting doctor approval')).not.toBeInTheDocument();
     expect(within(previousSection as HTMLElement).getByText('Expired')).toBeInTheDocument();
   });
 
@@ -629,7 +638,7 @@ describe('DoctorPatientChartPage', () => {
       );
     }
 
-    it('auto-selects the session and opens PrescriptionPanel directly when exactly one eligible completed appointment exists', async () => {
+    it('auto-selects the session and opens WritePrescriptionDialog directly when exactly one eligible completed appointment exists', async () => {
       mockChartEndpoints();
       mockOneCompletedAppointment();
       renderPage();
@@ -639,10 +648,10 @@ describe('DoctorPatientChartPage', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
 
       expect(screen.queryByLabelText('Select a past visit')).not.toBeInTheDocument();
-      expect(await screen.findByText('Record a diagnosis first to prescribe against it.')).toBeInTheDocument();
+      expect(await screen.findByText('Record a diagnosis for this visit before writing a prescription.')).toBeInTheDocument();
     });
 
-    it('shows a session picker when multiple eligible completed appointments exist, then opens PrescriptionPanel for the chosen one', async () => {
+    it('shows a session picker when multiple eligible completed appointments exist, then opens WritePrescriptionDialog for the chosen one', async () => {
       mockChartEndpoints();
       mockTwoCompletedAppointments();
       renderPage();
@@ -652,12 +661,12 @@ describe('DoctorPatientChartPage', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
 
       const picker = await screen.findByRole('combobox', { name: 'Select a past visit' });
-      expect(screen.queryByText('Record a diagnosis first to prescribe against it.')).not.toBeInTheDocument();
+      expect(screen.queryByText('Record a diagnosis for this visit before writing a prescription.')).not.toBeInTheDocument();
 
       await userEvent.click(picker);
       await userEvent.click(await screen.findByRole('option', { name: /Follow-up chest pain/ }));
 
-      expect(await screen.findByText('Record a diagnosis first to prescribe against it.')).toBeInTheDocument();
+      expect(await screen.findByText('Record a diagnosis for this visit before writing a prescription.')).toBeInTheDocument();
     });
 
     it('does not show a Write prescription button when there is no eligible completed appointment', async () => {
@@ -668,6 +677,66 @@ describe('DoctorPatientChartPage', () => {
       await userEvent.click(screen.getByRole('tab', { name: /^Prescriptions/ }));
 
       expect(screen.queryByRole('button', { name: 'Write prescription' })).not.toBeInTheDocument();
+    });
+
+    // Phase 3 (Prescribing & Allergy Safety UX) acceptance criterion: a
+    // doctor cannot reach the Sign action without passing through Review
+    // first, and Back returns to Compose with the entered data intact.
+    it('requires passing through Review before Sign prescription is reachable, and Back preserves entered data', async () => {
+      mockChartEndpoints();
+      mockOneCompletedAppointment();
+      server.use(
+        http.get(`${env.apiBaseUrl}/consultations/:id/summary`, () =>
+          HttpResponse.json({
+            data: {
+              session: { id: 'session-1', appointmentId: 'appointment-completed-1', state: 'completed', completionReason: 'completed', startedAt: '2026-08-01T10:00:00.000Z', closedAt: '2026-08-01T10:30:00.000Z' },
+              appointment: { id: 'appointment-completed-1', patientId: 'patient-profile-1', doctorId: 'doctor-profile-1', availabilityWindowId: 'window-1', consultationType: 'paid', status: 'completed', scheduledAt: '2026-08-01T10:00:00.000Z', reasonForVisit: 'Follow-up chest pain', rescheduledFromId: null },
+              clinicalNotes: [],
+              prescriptions: [],
+              labRequests: [],
+              diagnoses: [
+                { id: 'diagnosis-1', nodeType: 'condition', description: 'Seasonal allergic rhinitis', certaintyLevel: 'confirmed', createdAt: '2026-08-01T10:15:00.000Z' },
+              ],
+              vitalReadings: [],
+              followUpRecommendation: null,
+              feedback: null,
+              journeys: [],
+            },
+          }),
+        ),
+      );
+      renderPage();
+
+      await screen.findByText('Fady Nassar');
+      await userEvent.click(screen.getByRole('tab', { name: /^Prescriptions/ }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Write prescription' }));
+
+      // Compose step: no Sign action exists on the page yet.
+      expect(await screen.findByLabelText('Medication name')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Sign prescription' })).not.toBeInTheDocument();
+
+      await userEvent.click(await screen.findByRole('combobox', { name: 'Diagnosis' }));
+      await userEvent.click(await screen.findByRole('option', { name: 'Seasonal allergic rhinitis' }));
+      await userEvent.type(screen.getByLabelText('Medication name'), 'Amoxicillin');
+      await userEvent.type(screen.getByLabelText('Dose'), '500mg');
+      await userEvent.type(screen.getByLabelText('Frequency'), 'Twice daily');
+      await userEvent.type(screen.getByLabelText('Duration (days)'), '7');
+      await userEvent.click(screen.getByRole('button', { name: 'Next: Review' }));
+
+      // Review step: the Sign action only exists here, alongside the
+      // explicit consequence copy.
+      expect(await screen.findByRole('button', { name: 'Sign prescription' })).toBeInTheDocument();
+      expect(
+        screen.getByText("Signing issues a prescription the patient can view and download. It can't be edited after signing."),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Amoxicillin/)).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+      // Back to Compose: Sign is unreachable again, and the entered data survived.
+      expect(screen.queryByRole('button', { name: 'Sign prescription' })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Medication name')).toHaveValue('Amoxicillin');
+      expect(screen.getByLabelText('Dose')).toHaveValue('500mg');
     });
   });
 
@@ -749,6 +818,10 @@ describe('DoctorPatientChartPage', () => {
       await screen.findByText('Fady Nassar');
       const confirmButton = await screen.findByRole('button', { name: 'Confirm: no known allergies' });
       await userEvent.click(confirmButton);
+
+      // Phase 3 (Prescribing & Allergy Safety UX), item 7: this now opens a
+      // real alertdialog rather than firing the mutation on the first click.
+      await userEvent.click(await screen.findByRole('button', { name: 'Yes, confirm' }));
 
       await waitFor(() => expect(confirmCallCount).toBe(1));
       // No allergiesConfirmedByName in this mock response -- the banner's

@@ -19,9 +19,11 @@ import { useDoctorScheduleAppointments } from '@/features/doctor/hooks/use-docto
 import type { AppointmentStatus, AppointmentType } from '@/features/doctor/api/types';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
 import { generateDaySlots } from '@/features/scheduling/utils/slots';
+import { computeEffectiveWindows } from '@/features/scheduling/utils/effective-window';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { addDays, addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { addMonths, getMonthGridDays, isSameMonth } from '@/shared/lib/date/month';
+import { getDurationMinutes } from '@/shared/lib/date/format-duration';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { RequireRole } from '@/shared/auth/require-role';
 import { useMediaQuery } from '@/shared/hooks/use-media-query';
@@ -38,11 +40,17 @@ import { CalendarHeader } from '@/shared/ui/schedule/calendar-header';
 import { CalendarSidebar } from '@/shared/ui/schedule/calendar-sidebar';
 import { DateNavigation } from '@/shared/ui/schedule/date-navigation';
 import { EmptyCalendar } from '@/shared/ui/schedule/empty-calendar';
+import { Legend } from '@/shared/ui/schedule/legend';
 import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
 import { MonthCalendar, type MonthCalendarDay } from '@/shared/ui/schedule/month-calendar';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 import { WeeklyCalendar, type WeeklyCalendarDay } from '@/shared/ui/schedule/weekly-calendar';
-import { WeekTimeGrid, type WeekTimeGridAccent, type WeekTimeGridDay } from '@/shared/ui/schedule/week-time-grid';
+import {
+  WeekTimeGrid,
+  type WeekTimeGridAccent,
+  type WeekTimeGridBackgroundBlock,
+  type WeekTimeGridDay,
+} from '@/shared/ui/schedule/week-time-grid';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Badge } from '@/shared/ui/badge';
 import { Page } from '@/shared/ui/layout/page';
@@ -51,7 +59,7 @@ import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
-import type { Holiday, RecurringWeeklySchedule, ScheduleException } from '@/features/scheduling/types';
+import type { Holiday, RecurringWeeklySchedule, ScheduleException, WorkingHoursDay } from '@/features/scheduling/types';
 
 const GRID_START_HOUR = 8;
 const GRID_END_HOUR = 20;
@@ -133,6 +141,7 @@ export default function DoctorSchedulePage() {
   const tAppointmentType = useTranslations('doctor.schedule.appointmentType');
   const tSlotStatus = useTranslations('scheduling.slotStatus');
   const tStatusFilterStatuses = useTranslations('doctor.schedule.statusFilter.statuses');
+  const tAvailability = useTranslations('scheduling.availability');
   const format = useFormatter();
   const locale = useLocale();
   const searchParams = useSearchParams();
@@ -170,11 +179,41 @@ export default function DoctorSchedulePage() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState(today);
   const [isEditingHours, setIsEditingHours] = useState(false);
+  // Unsaved-changes guard for the Weekly Availability editor's own "×"/
+  // overlay/Escape close (its Cancel button guards itself the same way,
+  // inside `WorkingHoursForm`) -- `WorkingHoursForm` reports its own RHF
+  // `isDirty` up via `onDirtyChange` so this Dialog/Sheet's `onOpenChange`
+  // can gate a close-without-saving behind the same confirm.
+  const [isHoursFormDirty, setIsHoursFormDirty] = useState(false);
   const [isAddingTimeOff, setIsAddingTimeOff] = useState(false);
   // Desktop keeps working-hours editing inline (plenty of width for it);
   // mobile opens the same form in a bottom Sheet instead, so editing never
   // pushes the whole page's primary schedule content out of view.
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // Responsive pass (Phase 7): the Week tab's 7-column `WeekTimeGrid` is
+  // unreadable at 390px (columns compress far below a legible width) and its
+  // own week strip scrolls sideways with "today" often off-screen -- a full
+  // grid redesign for narrow viewports is out of scope for this phase (see
+  // IMPLEMENTATION_NOTES.md), so instead the default *view* below `md`
+  // (768px) is Agenda, a flat list that already reads fine at any width
+  // (Phase 4 already fixed its past-slot-first bug). `hasAppliedMobileDefaultRef`
+  // makes this a one-time default on first mobile detection only -- a doctor
+  // who manually switches to Week on their phone stays there; this never
+  // fights that choice on a later render. `useMediaQuery` itself returns
+  // `false` during SSR/first paint (documented on the hook) to avoid a
+  // hydration mismatch, so the very first frame always matches the desktop
+  // default ('week') even on a phone, correcting to 'agenda' a moment later
+  // -- the same settle-after-mount tradeoff `isDesktop` above already makes
+  // for the working-hours editor.
+  const isMobileViewport = useMediaQuery('(max-width: 767px)');
+  const hasAppliedMobileDefaultRef = useRef(false);
+  const [scheduleView, setScheduleView] = useState<'week' | 'month' | 'day' | 'agenda' | 'upcoming-slots'>('week');
+  useEffect(() => {
+    if (isMobileViewport && !hasAppliedMobileDefaultRef.current) {
+      hasAppliedMobileDefaultRef.current = true;
+      setScheduleView('agenda');
+    }
+  }, [isMobileViewport]);
 
   const weekStart = useMemo(() => addWeeks(startOfWeek(today), weekOffset), [today, weekOffset]);
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart]);
@@ -198,6 +237,7 @@ export default function DoctorSchedulePage() {
 
   const weekCalendarDays: WeeklyCalendarDay[] = weekDays.map((date) => {
     const day = resolvedDay(date);
+    const summary = day?.isWorkingDay ? formatEffectiveWindowSummary(day, format, t) : undefined;
     return {
       id: date.toISOString(),
       dayLabel: format.dateTime(date, { weekday: 'short' }),
@@ -205,11 +245,8 @@ export default function DoctorSchedulePage() {
       isToday: isSameDay(getCairoNow(date), getCairoNow(today)),
       isSelected: isSameDay(date, selectedDate),
       onSelect: () => setSelectedDate(date),
-      content: day?.isWorkingDay ? (
-        <AvailabilityBlock
-          startLabel={format.dateTime(new Date(0, 0, 0, ...toHm(day.hours.start)), { hour: 'numeric' })}
-          endLabel={format.dateTime(new Date(0, 0, 0, ...toHm(day.hours.end)), { hour: 'numeric' })}
-        />
+      content: summary ? (
+        <AvailabilityBlock startLabel="" endLabel="" rangeText={summary.primary} label={summary.breakNote} />
       ) : (
         <p className="text-xs text-text-tertiary">{t('noAvailability')}</p>
       ),
@@ -218,14 +255,24 @@ export default function DoctorSchedulePage() {
 
   const monthCalendarDays: MonthCalendarDay[] = monthGridDays.map((date) => {
     const day = resolvedDay(date);
+    const isPast = getCairoNow(date).getTime() < getCairoNow(today).getTime() && !isSameDay(getCairoNow(date), getCairoNow(today));
     return {
       id: date.toISOString(),
       dateLabel: format.dateTime(date, { day: 'numeric' }),
       isCurrentMonth: isSameMonth(date, monthDate),
       isToday: isSameDay(getCairoNow(date), getCairoNow(today)),
+      isPast,
       isSelected: isSameDay(date, selectedDate),
       onSelect: () => setSelectedDate(date),
-      content: day?.isWorkingDay ? <span className="size-1.5 rounded-full bg-success" aria-hidden="true" /> : undefined,
+      // "Not available" is an ordinary schedule state, not an error -- a
+      // neutral dot (matching the Working Hours list's own fix below),
+      // never the danger/red token.
+      content: (
+        <span
+          className={cn('size-1.5 rounded-full', day?.isWorkingDay ? 'bg-success' : 'bg-neutral')}
+          aria-hidden="true"
+        />
+      ),
     };
   });
 
@@ -262,6 +309,35 @@ export default function DoctorSchedulePage() {
     [format],
   );
 
+  // Real availability/break bands drawn behind the week grid's appointment
+  // blocks (previously the grid body was visually empty apart from booked
+  // appointments -- availability only ever showed as a chip in the day
+  // header above it). Built from the same `resolveDayForDate` +
+  // `computeEffectiveWindows` every other view already uses, clipped to the
+  // grid's displayed hour range, so it can never disagree with the week
+  // chips or the Weekly Availability summary for the same date.
+  function backgroundBlocksForDay(date: Date): WeekTimeGridBackgroundBlock[] {
+    const day = resolvedDay(date);
+    const gridStartMinutes = GRID_START_HOUR * 60;
+    const gridEndMinutes = GRID_END_HOUR * 60;
+
+    if (!day?.isWorkingDay) {
+      return [{ id: `${date.toISOString()}-unavailable`, startMinutes: 0, endMinutes: gridEndMinutes - gridStartMinutes, tone: 'unavailable' }];
+    }
+
+    const { bookableWindows, breaks } = computeEffectiveWindows(day.hours, day.breaks);
+    const toGridBlock = (window: { start: string; end: string }, tone: WeekTimeGridBackgroundBlock['tone'], idSuffix: string) => {
+      const startMinutes = Math.max(parseTimeMinutes(window.start), gridStartMinutes) - gridStartMinutes;
+      const endMinutes = Math.min(parseTimeMinutes(window.end), gridEndMinutes) - gridStartMinutes;
+      return { id: `${date.toISOString()}-${idSuffix}`, startMinutes, endMinutes, tone };
+    };
+
+    return [
+      ...bookableWindows.map((window, index) => toGridBlock(window, 'available', `available-${index}`)),
+      ...breaks.map((brk, index) => toGridBlock(brk, 'break', `break-${index}`)),
+    ].filter((block) => block.endMinutes > block.startMinutes);
+  }
+
   const weekGridDays: WeekTimeGridDay[] = weekDays.map((date, dayIndex) => {
     const appointmentsForDay = (scheduleAppointments ?? []).filter((appointment) =>
       isSameDay(getCairoNow(new Date(appointment.scheduledAt)), getCairoNow(date)),
@@ -269,6 +345,7 @@ export default function DoctorSchedulePage() {
 
     return {
       id: `${dayIndex}-${date.toISOString()}`,
+      backgroundBlocks: schedule ? backgroundBlocksForDay(date) : undefined,
       appointments: appointmentsForDay
         .map((appointment) => {
           const scheduledCairo = getCairoNow(new Date(appointment.scheduledAt));
@@ -278,10 +355,7 @@ export default function DoctorSchedulePage() {
           // still renders at a sane height -- never presented as a real
           // recorded end time.
           const durationMinutes = appointment.endTime
-            ? Math.max(
-                15,
-                Math.round((new Date(appointment.endTime).getTime() - new Date(appointment.scheduledAt).getTime()) / 60000),
-              )
+            ? Math.max(15, getDurationMinutes(appointment.scheduledAt, appointment.endTime))
             : (rules?.slotDurationMinutes ?? 30);
           return {
             id: appointment.id,
@@ -319,7 +393,21 @@ export default function DoctorSchedulePage() {
     )[0];
   }, [bookableWindows]);
 
-  const calendarSectionRef = useRef<HTMLDivElement>(null);
+  // Gates the dialog/sheet's own "×"/overlay/Escape close behind the same
+  // unsaved-changes confirm `WorkingHoursForm`'s Cancel button uses --
+  // `WorkingHoursForm` already confirms for its own Cancel button and for a
+  // real Save (`onSubmit`), so `closeHoursEditor` (used by both) closes
+  // directly without a second, redundant confirm.
+  function handleHoursEditorOpenChange(nextOpen: boolean) {
+    if (!nextOpen && isHoursFormDirty && !window.confirm(tAvailability('unsavedChangesWarning'))) return;
+    setIsEditingHours(nextOpen);
+    setIsHoursFormDirty(false);
+  }
+
+  function closeHoursEditor() {
+    setIsEditingHours(false);
+    setIsHoursFormDirty(false);
+  }
 
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
@@ -335,7 +423,7 @@ export default function DoctorSchedulePage() {
             ) : !schedule.some((day) => day.isWorkingDay) ? (
               <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
             ) : (
-              <Tabs defaultValue="week" ref={calendarSectionRef}>
+              <Tabs value={scheduleView} onValueChange={(value) => setScheduleView(value as typeof scheduleView)}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <TabsList className="max-w-full overflow-x-auto">
                     <TabsTrigger value="week" className={ACTIVE_PILL_TAB}>{t('weekTab')}</TabsTrigger>
@@ -394,6 +482,15 @@ export default function DoctorSchedulePage() {
                       <WeekTimeGrid days={weekGridDays} hourLabels={weekGridHourLabels} className="min-w-[640px]" />
                     )}
                   </div>
+                  <Legend
+                    className="mt-3"
+                    items={[
+                      { id: 'available', label: t('gridLegend.available'), colorClassName: 'bg-success' },
+                      { id: 'break', label: t('gridLegend.break'), colorClassName: 'bg-warning' },
+                      { id: 'booked', label: t('gridLegend.booked'), colorClassName: 'bg-info' },
+                      { id: 'not-available', label: t('gridLegend.notAvailable'), colorClassName: 'bg-neutral' },
+                    ]}
+                  />
                 </TabsContent>
 
                 <TabsContent value="month">
@@ -416,6 +513,13 @@ export default function DoctorSchedulePage() {
                   <MonthCalendar
                     days={monthCalendarDays}
                     weekDayLabels={weekDays.map((date) => format.dateTime(date, { weekday: 'short' }))}
+                  />
+                  <Legend
+                    className="mt-3"
+                    items={[
+                      { id: 'available', label: t('monthLegend.available'), colorClassName: 'bg-success' },
+                      { id: 'not-available', label: t('monthLegend.notAvailable'), colorClassName: 'bg-neutral' },
+                    ]}
                   />
                 </TabsContent>
 
@@ -477,6 +581,7 @@ export default function DoctorSchedulePage() {
                   <div className="flex flex-col gap-2">
                     {schedule.map((day) => {
                       const dayName = format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' });
+                      const summary = day.isWorkingDay ? formatEffectiveWindowSummary(day, format, t) : undefined;
                       return (
                       <div
                         key={day.dayOfWeek}
@@ -484,19 +589,20 @@ export default function DoctorSchedulePage() {
                       >
                         <div className="flex items-center gap-2.5">
                           <span
-                            className={cn('size-2 shrink-0 rounded-full', day.isWorkingDay ? 'bg-success' : 'bg-danger')}
+                            // "Not available" is an honest, ordinary schedule
+                            // state, not an error -- a neutral dot, never the
+                            // danger/red token also used for real failures.
+                            className={cn('size-2 shrink-0 rounded-full', day.isWorkingDay ? 'bg-success' : 'bg-neutral')}
                             aria-hidden="true"
                           />
                           <span className="text-sm font-medium text-text-primary">{dayName}</span>
                         </div>
                         <div className="flex items-center gap-3 text-sm text-text-secondary">
-                          {day.isWorkingDay ? (
-                            <>
-                              <span>{`${day.hours.start} – ${day.hours.end}`}</span>
-                              <span className="text-text-tertiary">
-                                {day.breaks.length > 0 ? t('breaksCount', { count: day.breaks.length }) : '—'}
-                              </span>
-                            </>
+                          {summary ? (
+                            <span>
+                              {summary.primary}
+                              {summary.breakNote && <span className="text-text-tertiary"> · {summary.breakNote}</span>}
+                            </span>
                           ) : (
                             <span className="text-text-tertiary">{t('noAvailability')}</span>
                           )}
@@ -586,16 +692,49 @@ export default function DoctorSchedulePage() {
                       </span>
                     </div>
                   </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => calendarSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  >
-                    {t('viewFullCalendar')}
-                    <Icon icon={ArrowRight} size="sm" className="ms-2" flipRtl />
-                  </Button>
                 </div>
               ) : (
                 <p className="text-sm text-text-tertiary">{t('noUpcomingSlots')}</p>
+              )}
+            </WidgetContainer>
+
+            {/*
+             * Booking rules -- item 5 of the Schedule Clarity phase. Real
+             * slot length/buffer, read straight from `useSchedulingRules()`
+             * (already fetched above for the grid/agenda) rather than a
+             * second fetch or a duplicated copy of Settings' own
+             * Consultation Defaults form -- that form is the only place
+             * `bufferMinutesOverride` is actually editable, so this panel
+             * stays read-only and links there instead of re-implementing it.
+             */}
+            <WidgetContainer
+              title={<span className="text-lg font-semibold">{t('bookingRules.title')}</span>}
+              className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+              loading={!rules}
+            >
+              {rules && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-text-secondary">{t('bookingRules.description')}</p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-text-secondary">{t('bookingRules.slotLength')}</span>
+                    <span className="font-medium text-text-primary">
+                      {t('bookingRules.minutesValue', { minutes: rules.slotDurationMinutes })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-text-secondary">{t('bookingRules.buffer')}</span>
+                    <span className="font-medium text-text-primary">
+                      {t('bookingRules.minutesValue', { minutes: rules.bufferMinutes })}
+                    </span>
+                  </div>
+                  <Link
+                    href="/doctor/settings#consultation-defaults"
+                    className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                  >
+                    {t('bookingRules.manageInSettings')}
+                    <Icon icon={ArrowRight} size="sm" flipRtl />
+                  </Link>
+                </div>
               )}
             </WidgetContainer>
           </div>
@@ -603,24 +742,34 @@ export default function DoctorSchedulePage() {
 
         {schedule &&
           (isDesktop ? (
-            <Dialog open={isEditingHours} onOpenChange={setIsEditingHours}>
+            <Dialog open={isEditingHours} onOpenChange={handleHoursEditorOpenChange}>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>{t('workingHoursTitle')}</DialogTitle>
                 </DialogHeader>
                 <div className="mt-2">
-                  <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                  <WorkingHoursForm
+                    schedule={schedule}
+                    onSaved={closeHoursEditor}
+                    onCancel={closeHoursEditor}
+                    onDirtyChange={setIsHoursFormDirty}
+                  />
                 </div>
               </DialogContent>
             </Dialog>
           ) : (
-            <Sheet open={isEditingHours} onOpenChange={setIsEditingHours}>
+            <Sheet open={isEditingHours} onOpenChange={handleHoursEditorOpenChange}>
               <Sheet.Content>
                 <Sheet.Header>
                   <Sheet.Title>{t('workingHoursTitle')}</Sheet.Title>
                 </Sheet.Header>
                 <div className="mt-4 max-h-[65vh] overflow-y-auto">
-                  <WorkingHoursForm schedule={schedule} onSaved={() => setIsEditingHours(false)} />
+                  <WorkingHoursForm
+                    schedule={schedule}
+                    onSaved={closeHoursEditor}
+                    onCancel={closeHoursEditor}
+                    onDirtyChange={setIsHoursFormDirty}
+                  />
                 </div>
               </Sheet.Content>
             </Sheet>
@@ -668,6 +817,46 @@ function ThisWeekStat({ accent, label, value, loading }: ThisWeekStatProps) {
 function toHm(time: string): [number, number] {
   const [hours, minutes] = time.split(':').map(Number);
   return [hours, minutes];
+}
+
+/** A "HH:mm" time-of-day, formatted through the real locale-aware formatter via the existing display-only-`Date` idiom -- never a raw string pass-through. */
+function formatTimeOfDay(format: ReturnType<typeof useFormatter>, time: string): string {
+  return format.dateTime(new Date(0, 0, 0, ...toHm(time)), { hour: 'numeric', minute: 'numeric' });
+}
+
+/**
+ * The one shared "effective availability" summary for a working day --
+ * real bookable sub-windows (via `computeEffectiveWindows`) called out
+ * alongside their break(s), instead of the raw full working-hours span a
+ * break might not leave fully bookable (the reported Monday bug: "10:00 –
+ * 18:00 · 1 break" when the real break runs 13:00–18:00, leaving only
+ * 10:00–13:00 actually bookable). Used by both the week chips and the
+ * Weekly Availability summary list so they can never disagree.
+ */
+function formatEffectiveWindowSummary(
+  day: WorkingHoursDay,
+  format: ReturnType<typeof useFormatter>,
+  t: ReturnType<typeof useTranslations>,
+): { primary: string; breakNote?: string } {
+  const { bookableWindows, breaks } = computeEffectiveWindows(day.hours, day.breaks);
+
+  const primary =
+    bookableWindows.length > 0
+      ? bookableWindows
+          .map((window) => `${formatTimeOfDay(format, window.start)} – ${formatTimeOfDay(format, window.end)}`)
+          .join(', ')
+      : t('effectiveWindow.noBookableTime');
+
+  let breakNote: string | undefined;
+  if (breaks.length === 1) {
+    breakNote = t('effectiveWindow.breakSingle', {
+      range: `${formatTimeOfDay(format, breaks[0].start)} – ${formatTimeOfDay(format, breaks[0].end)}`,
+    });
+  } else if (breaks.length > 1) {
+    breakNote = t('breaksCount', { count: breaks.length });
+  }
+
+  return { primary, breakNote };
 }
 
 const WEEKDAY_REFERENCE_DATES: Record<string, Date> = {

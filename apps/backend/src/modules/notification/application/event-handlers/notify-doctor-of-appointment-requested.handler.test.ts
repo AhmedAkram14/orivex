@@ -148,7 +148,7 @@ function buildAccount(role: AccountRole, displayName: string): Account {
 }
 
 describe('NotifyDoctorOfAppointmentRequestedHandler', () => {
-  it("notifies the doctor's own account with the patient's name and a link to the queue", async () => {
+  it("notifies the doctor's own account with the patient's name and a deep link to that appointment on the Appointments page", async () => {
     const doctorAccount = buildAccount(AccountRole.Doctor, 'Dr. Sarah Ahmed');
     const patientAccount = buildAccount(AccountRole.Patient, 'Amina Youssef');
     const doctorProfile = DoctorProfile.register({
@@ -182,7 +182,7 @@ describe('NotifyDoctorOfAppointmentRequestedHandler', () => {
     const notification = notificationRepo.saved[0];
     assert.equal(notification.getAccountId(), doctorAccount.getId().toString());
     assert.match(notification.getDescription(), /Amina Youssef/);
-    assert.equal(notification.getActionUrl(), '/doctor/queue');
+    assert.equal(notification.getActionUrl(), `/doctor/appointments?highlight=${appointment.getId()}`);
     assert.equal(logger.errors.length, 0);
   });
 

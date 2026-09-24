@@ -10,6 +10,10 @@ import { cn } from '@/shared/lib/cn';
  * into becoming the scroll container instead of this element's own
  * `overflow-y-auto`, scrolling the fixed Topbar/Sidebar off-screen with it.
  */
-export function Content({ className, ...props }: HTMLAttributes<HTMLElement>) {
-  return <main className={cn('min-h-0 flex-1 overflow-y-auto bg-canvas', className)} {...props} />;
+export function Content({ className, id = 'main-content', ...props }: HTMLAttributes<HTMLElement>) {
+  // Phase 8: `id="main-content"` by default (overridable, but no real
+  // caller needs to) -- this is the one `<main>` landmark in the app shell
+  // (see `ConsultationContainer`'s own comment on not duplicating it), and
+  // now the fixed target for AppShell's skip link.
+  return <main id={id} className={cn('min-h-0 flex-1 overflow-y-auto bg-canvas', className)} {...props} />;
 }

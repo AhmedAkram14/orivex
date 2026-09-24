@@ -61,13 +61,23 @@ export class NotifyOfConsultationInterruptedHandler {
               }),
             )
           : Promise.resolve(),
+        // Phase 5 (Notifications, Navigation & IA): no structured
+        // entity-id/patient-name field exists on Notification today (see
+        // IMPLEMENTATION_NOTES.md's Phase 0 finding (e) and the backend
+        // proposal below) -- this description deliberately still names no
+        // patient rather than fragile-parse one out of free text. The
+        // deep link is fixable without any new field, though: this handler
+        // already has the real appointment id in scope, so it now points
+        // straight at that appointment on `/doctor/appointments` (added in
+        // Phase 2) instead of the today-only Queue, which very often no
+        // longer shows the interrupted visit by the time the doctor clicks.
         doctorProfile
           ? this.notificationRepository.save(
               Notification.create({
                 accountId: doctorProfile.getAccountId(),
                 title: 'Consultation interrupted',
                 description: 'A consultation was interrupted before it could be completed.',
-                actionUrl: '/doctor/queue',
+                actionUrl: `/doctor/appointments?highlight=${appointment.getId()}`,
                 category: NotificationCategory.Appointments,
               }),
             )

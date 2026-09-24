@@ -22,7 +22,7 @@ afterAll(() => server.close());
 describe('WorkingHoursForm — default pricing', () => {
   it("shows Monday's seeded default as Paid with its fee, and Free has no fee inputs", async () => {
     const schedule = getDoctorAvailability();
-    renderWithProviders(<WorkingHoursForm schedule={schedule} onSaved={() => {}} />);
+    renderWithProviders(<WorkingHoursForm schedule={schedule} onSaved={() => {}} onCancel={() => {}} />);
 
     // The seeded demo doctor's working days default to Paid 500 EGP.
     const feeInputs = screen.getAllByLabelText(/consultation fee/i);
@@ -33,10 +33,10 @@ describe('WorkingHoursForm — default pricing', () => {
   it('switching a day to Free hides its fee/currency inputs, and saving persists the change', async () => {
     const schedule = getDoctorAvailability();
     const onSaved = () => {};
-    renderWithProviders(<WorkingHoursForm schedule={schedule} onSaved={onSaved} />);
+    renderWithProviders(<WorkingHoursForm schedule={schedule} onSaved={onSaved} onCancel={() => {}} />);
 
-    const freeTabs = screen.getAllByRole('tab', { name: 'Free' });
-    await userEvent.click(freeTabs[0]);
+    const freeRadios = screen.getAllByRole('radio', { name: 'Free' });
+    await userEvent.click(freeRadios[0]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -53,7 +53,7 @@ describe('WorkingHoursForm — default pricing', () => {
       ...day,
       pricing: { pricingType: 'paid' as const, feeAmount: null, feeCurrency: 'EGP' },
     }));
-    renderWithProviders(<WorkingHoursForm schedule={schedule} onSaved={() => {}} />);
+    renderWithProviders(<WorkingHoursForm schedule={schedule} onSaved={() => {}} onCancel={() => {}} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
