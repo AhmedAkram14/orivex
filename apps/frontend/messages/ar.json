@@ -1228,6 +1228,27 @@
       "nextWeek": "الأسبوع التالي",
       "previousMonth": "الشهر السابق",
       "nextMonth": "الشهر التالي",
+      "month": {
+        "today": "اليوم، {date}",
+        "legendLabel": "دليل الألوان",
+        "legend": {
+          "approved": "مؤكد",
+          "pending": "قيد الانتظار",
+          "rejected": "ملغى",
+          "done": "مكتمل",
+          "muted": "فائت أو منتهي"
+        }
+      },
+      "popover": {
+        "noVisitType": "زيارة",
+        "date": "التاريخ",
+        "time": "الوقت",
+        "status": "الحالة",
+        "reason": "السبب",
+        "noReason": "لم يُذكر سبب.",
+        "patientChart": "ملف المريض",
+        "viewAppointment": "عرض الموعد"
+      },
       "breadcrumb": {
         "workspace": "مساحة الطبيب",
         "current": "الجدول"

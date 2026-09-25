@@ -51,6 +51,54 @@ test.describe('Doctor Schedule calendar', () => {
     await expect(page.locator('.orivex-fc .fc-col-header-cell')).toHaveCount(1);
   });
 
+  test('month view: status legend, today underline, and an appointment chip opens its details card', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 1100 });
+    await loginAs(page, 'doctor');
+    await page.goto('/en/doctor/schedule');
+    await expect(page.locator('.orivex-fc .fc-timegrid')).toBeVisible();
+
+    await page.getByRole('tab', { name: 'Month' }).click();
+    await expect(page.locator('.orivex-fc .fc-daygrid')).toBeVisible();
+
+    // Month header with today's date, and the colour key under the calendar.
+    await expect(page.getByText(/^Today, /)).toBeVisible();
+    const legend = page.getByRole('list', { name: 'Colour key' });
+    await expect(legend).toContainText('Confirmed');
+    await expect(legend).toContainText('Pending');
+    await expect(legend).toContainText('Cancelled');
+
+    // Today's weekday header is underlined in the primary colour.
+    const underline = await page.locator('.orivex-fc .fc-col-header-cell.fc-weekday-today').evaluate((el) => getComputedStyle(el).borderBottomWidth);
+    expect(underline).toBe('2px');
+
+    // Neighbouring-month days are faded (fixed six-week grid).
+    await expect(page.locator('.orivex-fc .fc-day-other').first()).toBeVisible();
+
+    // A chip shows the patient and "time · visit type"; clicking opens the details card.
+    const chip = page.locator('.orivex-fc .fc-chip').first();
+    await expect(chip).toBeVisible();
+    const patient = (await chip.locator('.fc-appt-name').innerText()).trim();
+    await page.screenshot({ path: testInfo.outputPath('schedule-month-1280.png') });
+
+    await chip.click();
+    const card = page.getByRole('dialog');
+    await expect(card).toBeVisible();
+    await expect(card).toContainText(patient);
+    await expect(card).toContainText('Reason');
+    // The card stays inside the viewport.
+    const box = await card.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(1280);
+    await page.screenshot({ path: testInfo.outputPath('schedule-month-card-1280.png') });
+
+    // Escape closes it; Enter on a focused chip opens it again (keyboard).
+    await page.keyboard.press('Escape');
+    await expect(card).toHaveCount(0);
+    await chip.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('dialog')).toBeVisible();
+  });
+
   test('clicking a time slot selects it and offers real actions', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await loginAs(page, 'doctor');

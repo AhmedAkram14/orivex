@@ -1228,6 +1228,27 @@
       "nextWeek": "Next week",
       "previousMonth": "Previous month",
       "nextMonth": "Next month",
+      "month": {
+        "today": "Today, {date}",
+        "legendLabel": "Colour key",
+        "legend": {
+          "approved": "Confirmed",
+          "pending": "Pending",
+          "rejected": "Cancelled",
+          "done": "Completed",
+          "muted": "Missed or expired"
+        }
+      },
+      "popover": {
+        "noVisitType": "Visit",
+        "date": "Date",
+        "time": "Time",
+        "status": "Status",
+        "reason": "Reason",
+        "noReason": "No reason provided.",
+        "patientChart": "Patient chart",
+        "viewAppointment": "View appointment"
+      },
       "breadcrumb": {
         "workspace": "Doctor Workspace",
         "current": "Schedule"

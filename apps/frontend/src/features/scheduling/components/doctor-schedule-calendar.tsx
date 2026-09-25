@@ -35,6 +35,28 @@ export const VISIT_TYPE_COLOR: Record<VisitTypeKey, 'blue' | 'green' | 'pink' | 
   other: 'purple',
 };
 
+export type CalendarStatus = 'requested' | 'confirmed' | 'rescheduled' | 'completed' | 'cancelled' | 'no_show' | 'expired';
+
+/** Month-view colour by appointment status (the legend under the calendar uses the same tones). */
+export const STATUS_TONE: Record<CalendarStatus, 'approved' | 'pending' | 'rejected' | 'done' | 'muted'> = {
+  confirmed: 'approved',
+  rescheduled: 'approved',
+  requested: 'pending',
+  cancelled: 'rejected',
+  completed: 'done',
+  no_show: 'muted',
+  expired: 'muted',
+};
+
+export interface CalendarTimeOff {
+  id: string;
+  /** YYYY-MM-DD (a whole day). */
+  date: string;
+  title: string;
+  reason?: string;
+  tone: 'pending' | 'rejected' | 'done';
+}
+
 export interface CalendarAppointment {
   id: string;
   /** The real instant. */
@@ -45,6 +67,9 @@ export interface CalendarAppointment {
   timeLabel: string;
   typeLabel?: string;
   visitType: VisitTypeKey;
+  status: CalendarStatus;
+  initials: string;
+  avatarUrl?: string;
 }
 
 export interface DayAvailability {
@@ -77,10 +102,13 @@ export interface DoctorScheduleCalendarProps {
   initialDate: Date;
   locale: string;
   appointments: CalendarAppointment[];
+  /** Whole-day time off, drawn as chips in the month view. */
+  timeOff?: CalendarTimeOff[];
   /** `date`'s local fields are the calendar day being asked about. */
   getDayAvailability: (date: Date) => DayAvailability | undefined;
   onRangeChange: (range: VisibleRange) => void;
-  onAppointmentClick: (appointmentId: string) => void;
+  /** `rect` is the clicked block's on-screen rectangle, for anchoring the details popover. */
+  onAppointmentClick: (appointmentId: string, rect: { top: number; left: number; width: number; height: number }) => void;
   /** Timed selection in the week/day views. Both dates are Cairo wall-clock encoded as UTC -- format with `timeZone: 'UTC'`. */
   onSlotSelect: (selection: { start: Date; end: Date }) => void;
   /** A day clicked in the month view. Encoded as UTC like `onSlotSelect`. */
@@ -136,7 +164,7 @@ function wallClock(utcDay: Date, minutes: number): Date {
  * moving a block would only pretend to persist.
  */
 export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorScheduleCalendarProps>(function DoctorScheduleCalendar(
-  { view, initialDate, locale, appointments, getDayAvailability, onRangeChange, onAppointmentClick, onSlotSelect, onDayClick, labels, className },
+  { view, initialDate, locale, appointments, timeOff, getDayAvailability, onRangeChange, onAppointmentClick, onSlotSelect, onDayClick, labels, className },
   handle,
 ) {
   const calendarRef = useRef<FullCalendar>(null);
@@ -222,10 +250,32 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         title: appointment.patientName,
         start: toWallClockUtc(appointment.start),
         end: appointment.end ? toWallClockUtc(appointment.end) : undefined,
-        classNames: ['fc-appt', `fc-appt--${VISIT_TYPE_COLOR[appointment.visitType]}`],
-        extendedProps: { timeLabel: appointment.timeLabel, typeLabel: appointment.typeLabel },
+        // Week/Day colour by visit type; Month colours by status (see the legend).
+        classNames: ['fc-appt', isMonth ? `fc-status--${STATUS_TONE[appointment.status]}` : `fc-appt--${VISIT_TYPE_COLOR[appointment.visitType]}`],
+        extendedProps: {
+          kind: 'appointment',
+          timeLabel: appointment.timeLabel,
+          typeLabel: appointment.typeLabel,
+          initials: appointment.initials,
+          avatarUrl: appointment.avatarUrl,
+        },
       })),
-    [appointments],
+    [appointments, isMonth],
+  );
+
+  const timeOffEvents = useMemo<EventInput[]>(
+    () =>
+      isMonth
+        ? (timeOff ?? []).map((entry) => ({
+            id: `timeoff-${entry.id}`,
+            title: entry.title,
+            start: entry.date,
+            allDay: true,
+            classNames: ['fc-timeoff', `fc-status--${entry.tone}`],
+            extendedProps: { kind: 'timeOff', reason: entry.reason },
+          }))
+        : [],
+    [timeOff, isMonth],
   );
 
   const [minHour, maxHour] = useMemo(() => {
@@ -282,7 +332,20 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
   const renderEvent = useCallback(
     (arg: EventContentArg) => {
       if (arg.event.display === 'background') return null;
-      const { timeLabel = '', typeLabel } = arg.event.extendedProps as { timeLabel?: string; typeLabel?: string };
+      if (arg.event.extendedProps.kind === 'timeOff') {
+        return (
+          <div className="fc-timeoff-body">
+            <span className="fc-appt-name">{arg.event.title}</span>
+            {arg.event.extendedProps.reason && <span className="fc-appt-type">{arg.event.extendedProps.reason as string}</span>}
+          </div>
+        );
+      }
+      const { timeLabel = '', typeLabel, initials = '', avatarUrl } = arg.event.extendedProps as {
+        timeLabel?: string;
+        typeLabel?: string;
+        initials?: string;
+        avatarUrl?: string;
+      };
       const a11y = {
         role: 'button' as const,
         tabIndex: 0,
@@ -295,9 +358,17 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         },
       };
       if (arg.view.type === 'dayGridMonth') {
+        // Month chip: name and "time · visit type" with the patient's avatar at the inline end.
         return (
-          <div className="fc-appt-inline" {...a11y}>
-            <span className="fc-appt-time">{timeLabel}</span> <span className="fc-appt-name">{arg.event.title}</span>
+          <div className="fc-chip" {...a11y}>
+            <span className="fc-chip-text">
+              <span className="fc-appt-name">{arg.event.title}</span>
+              <span className="fc-appt-type">{[timeLabel, typeLabel].filter(Boolean).join(' · ')}</span>
+            </span>
+            <span className="fc-chip-avatar" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a 20px avatar from an already-resolved URL; next/image adds nothing here */}
+              {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
+            </span>
           </div>
         );
       }
@@ -336,7 +407,9 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         slotDuration="00:30:00"
         slotLabelInterval="01:00"
         slotLabelContent={renderSlotLabel}
-        dayMaxEvents={3}
+        fixedWeekCount
+        showNonCurrentDates
+        dayMaxEvents={2}
         moreLinkContent={(arg) => labels.moreLinkText(arg.num)}
         eventOverlap
         slotEventOverlap
@@ -344,14 +417,24 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         selectable={!isMonth}
         selectMirror
         unselectAuto={false}
-        events={[...backgroundEvents, ...appointmentEvents]}
+        events={[...backgroundEvents, ...timeOffEvents, ...appointmentEvents]}
         datesSet={handleDatesSet}
         dayHeaderContent={renderDayHeader}
+        // Month headers are per weekday, not per date, so FullCalendar only flags
+        // "today" when it falls in the first row; underline today's weekday
+        // whenever today is inside the visible range.
+        dayHeaderClassNames={(arg) => {
+          if (!isMonth || !range) return [];
+          const now = toWallClockUtc(new Date());
+          const todayVisible = now.getTime() >= range.start.getTime() && now.getTime() < range.end.getTime();
+          return todayVisible && arg.date.getUTCDay() === now.getUTCDay() ? ['fc-weekday-today'] : [];
+        }}
         eventContent={renderEvent}
         eventClick={(arg) => {
-          if (arg.event.display === 'background') return;
+          if (arg.event.display === 'background' || arg.event.extendedProps.kind === 'timeOff') return;
           arg.jsEvent.preventDefault();
-          onAppointmentClick(arg.event.id);
+          const rect = arg.el.getBoundingClientRect();
+          onAppointmentClick(arg.event.id, { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
         }}
         select={(arg) => onSlotSelect({ start: arg.start, end: arg.end })}
         dateClick={(arg) => {

@@ -7,12 +7,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DoctorScheduleCalendar,
   type CalendarAppointment,
+  type CalendarTimeOff,
   type DayAvailability,
   type ScheduleCalendarHandle,
   type ScheduleCalendarView,
   type VisibleRange,
   type VisitTypeKey,
 } from '@/features/scheduling/components/doctor-schedule-calendar';
+import { AppointmentPopover } from '@/features/scheduling/components/appointment-popover';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { UpcomingSlotsPanel } from '@/features/scheduling/components/upcoming-slots-panel';
 import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
@@ -135,6 +137,7 @@ export default function DoctorSchedulePage() {
   const tStatusFilterStatuses = useTranslations('doctor.schedule.statusFilter.statuses');
   const tAvailability = useTranslations('scheduling.availability');
   const tTimeOff = useTranslations('scheduling.timeOff');
+  const tTimeOffType = useTranslations('scheduling.timeOff.type');
   const format = useFormatter();
   const locale = useLocale();
   const searchParams = useSearchParams();
@@ -177,6 +180,8 @@ export default function DoctorSchedulePage() {
   const [isTimeOffDialogOpen, setIsTimeOffDialogOpen] = useState(false);
   const [timeOffDate, setTimeOffDate] = useState<string | undefined>(undefined);
   const [editingException, setEditingException] = useState<ScheduleException | undefined>(undefined);
+  // The appointment whose details card is open, and where on screen it opens.
+  const [openAppointment, setOpenAppointment] = useState<{ id: string; rect: { top: number; left: number; width: number; height: number } } | null>(null);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   // Below `md` the default view is Day (a single column that reads at any
   // width); a one-time default so a doctor's manual switch is never fought.
@@ -262,10 +267,30 @@ export default function DoctorSchedulePage() {
           timeLabel: format.dateTime(start, { hour: 'numeric', minute: 'numeric' }),
           typeLabel: appointment.appointmentType ? tAppointmentType(appointment.appointmentType) : undefined,
           visitType,
+          status: appointment.status,
+          initials: ((appointment.patientName.trim().split(/\s+/)[0]?.[0] ?? '') + (appointment.patientName.trim().split(/\s+/)[1]?.[0] ?? '')).toUpperCase(),
+          avatarUrl: appointment.avatarUrl,
         };
       }),
     [scheduleAppointments, rules, format, tAppointmentType],
   );
+
+  // Real time off (vacation / unavailable days) as month-view chips.
+  const calendarTimeOff = useMemo<CalendarTimeOff[]>(
+    () =>
+      (exceptions ?? [])
+        .filter((entry) => entry.type === 'vacation' || entry.type === 'unavailable')
+        .map((entry) => ({
+          id: entry.id,
+          date: entry.date.slice(0, 10),
+          title: tTimeOffType(entry.type),
+          reason: entry.reason,
+          tone: entry.type === 'vacation' ? ('pending' as const) : ('rejected' as const),
+        })),
+    [exceptions, tTimeOffType],
+  );
+
+  const openedAppointment = openAppointment ? (scheduleAppointments ?? []).find((appointment) => appointment.id === openAppointment.id) ?? null : null;
 
   // "This Week" stats.
   const workingDaysCount = schedule?.filter((day) => day.isWorkingDay).length ?? 0;
@@ -502,6 +527,14 @@ export default function DoctorSchedulePage() {
                   <>
                     <div className="overflow-x-auto rounded-xl border border-border-default bg-surface">
                       {isLoadingScheduleAppointments && <Skeleton className="h-1 w-full rounded-none" />}
+                      {calendarView === 'month' && (
+                        <div className="flex flex-col gap-0.5 px-4 pt-4">
+                          <h2 className="text-xl font-semibold text-text-primary">{rangeLabel}</h2>
+                          <p className="text-xs text-text-tertiary">
+                            {t('month.today', { date: format.dateTime(today, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) })}
+                          </p>
+                        </div>
+                      )}
                       <div className={cn(calendarView === 'month' ? 'min-w-[560px]' : calendarView === 'week' ? 'min-w-[640px]' : undefined)}>
                         <DoctorScheduleCalendar
                           ref={calendarRef}
@@ -509,9 +542,10 @@ export default function DoctorSchedulePage() {
                           initialDate={pendingGotoDate ?? visibleRange?.currentStart ?? getCairoNow(today)}
                           locale={locale}
                           appointments={calendarAppointments}
+                          timeOff={calendarTimeOff}
                           getDayAvailability={getDayAvailability}
                           onRangeChange={setVisibleRange}
-                          onAppointmentClick={(id) => router.push(`/doctor/appointments?highlight=${id}`)}
+                          onAppointmentClick={(id, rect) => setOpenAppointment({ id, rect })}
                           onSlotSelect={setSelection}
                           onDayClick={handleDayClick}
                           labels={{
@@ -522,6 +556,25 @@ export default function DoctorSchedulePage() {
                         />
                       </div>
                     </div>
+
+                    {calendarView === 'month' && (
+                      <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-text-primary" aria-label={t('month.legendLabel')}>
+                        {(
+                          [
+                            ['approved', 'bg-success'],
+                            ['pending', 'bg-warning'],
+                            ['rejected', 'bg-danger'],
+                            ['done', 'bg-info'],
+                            ['muted', 'bg-neutral'],
+                          ] as const
+                        ).map(([tone, dot]) => (
+                          <li key={tone} className="flex items-center gap-2">
+                            <span className={cn('size-2.5 rounded-full', dot)} aria-hidden="true" />
+                            {t(`month.legend.${tone}`)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
                     {selection && (
                       <div
@@ -720,6 +773,8 @@ export default function DoctorSchedulePage() {
             </CardContent>
           </Card>
         </div>
+
+        <AppointmentPopover appointment={openedAppointment} anchorRect={openAppointment?.rect ?? null} onClose={() => setOpenAppointment(null)} />
 
         {schedule &&
           (isDesktop ? (

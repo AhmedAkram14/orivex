@@ -102,38 +102,89 @@ describe('DoctorSchedulePage', () => {
     await waitFor(() => expect(rangeOf()).toBe(initial));
   });
 
-  it('draws a real booked appointment as a calendar event that opens it in the Appointments view', async () => {
+  // One real appointment inside the visible week (today at noon), served by
+  // the same endpoint the page really calls.
+  function mockOneAppointment(status: string, id: string) {
     const noon = new Date();
     noon.setHours(12, 0, 0, 0);
-    // Sunday of this week keeps the appointment inside the visible week regardless of today's weekday.
-    const inWeek = new Date(noon.getTime());
     server.use(
       http.get(`${env.apiBaseUrl}/appointments/doctor/schedule`, () =>
         HttpResponse.json({
           data: [
             {
-              id: 'appt-calendar-1',
+              id,
               patientId: 'p1',
               patientName: 'Nour Ahmed',
-              scheduledAt: inWeek.toISOString(),
-              endTime: new Date(inWeek.getTime() + 30 * 60_000).toISOString(),
+              scheduledAt: noon.toISOString(),
+              endTime: new Date(noon.getTime() + 30 * 60_000).toISOString(),
               appointmentType: 'consultation',
-              status: 'confirmed',
+              status,
+              reasonForVisit: 'Persistent cough',
             },
           ],
         }),
       ),
     );
-    renderPage();
+  }
 
-    // jsdom has no layout, so FullCalendar leaves events `visibility: hidden` and
-    // testing-library's role query skips them; assert the accessible label on the
-    // element directly (real visibility is covered by the browser-level e2e spec).
-    const eventSelector = '[role="button"][aria-label^="Appointment with Nour Ahmed"]';
-    await waitFor(() => expect(document.querySelector(eventSelector)).not.toBeNull());
-    expect(document.querySelector(eventSelector)).toHaveAttribute('aria-label', 'Appointment with Nour Ahmed at 12:00 PM');
-    fireEvent.click(document.querySelector(eventSelector)!);
-    expect(routerPush).toHaveBeenCalledWith('/doctor/appointments?highlight=appt-calendar-1');
+  // jsdom has no layout, so FullCalendar leaves events `visibility: hidden` and
+  // testing-library's role query skips them; find the block by its accessible
+  // label instead (real visibility is covered by the browser-level e2e spec).
+  async function clickAppointmentBlock() {
+    const selector = '[role="button"][aria-label^="Appointment with Nour Ahmed"]';
+    await waitFor(() => expect(document.querySelector(selector)).not.toBeNull());
+    expect(document.querySelector(selector)).toHaveAttribute('aria-label', 'Appointment with Nour Ahmed at 12:00 PM');
+    fireEvent.click(document.querySelector(selector)!);
+  }
+
+  it('opens a details card for a booked appointment, with links to the patient chart and the appointment', async () => {
+    mockOneAppointment('confirmed', 'appt-calendar-1');
+    renderPage();
+    await clickAppointmentBlock();
+
+    expect(await screen.findByText('Persistent cough')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Patient chart' })).toHaveAttribute('href', '/en/doctor/patients/p1');
+    expect(screen.getByRole('link', { name: 'View appointment' })).toHaveAttribute('href', '/en/doctor/appointments?highlight=appt-calendar-1');
+    // Nothing that would change a confirmed appointment is offered.
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+  });
+
+  it('lets the doctor approve a pending request from the card, calling the real approve endpoint', async () => {
+    let approved = false;
+    server.use(
+      http.patch(`${env.apiBaseUrl}/appointments/appt-req-1/approve`, () => {
+        approved = true;
+        return HttpResponse.json({ data: null });
+      }),
+    );
+    mockOneAppointment('requested', 'appt-req-1');
+    renderPage();
+    await clickAppointmentBlock();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Approve' }));
+    await waitFor(() => expect(approved).toBe(true));
+  });
+
+  it('declines a pending request only after the reason step is confirmed', async () => {
+    const declines: unknown[] = [];
+    server.use(
+      http.patch(`${env.apiBaseUrl}/appointments/appt-req-2/decline`, async ({ request }) => {
+        declines.push(await request.json());
+        return HttpResponse.json({ data: null });
+      }),
+    );
+    mockOneAppointment('requested', 'appt-req-2');
+    renderPage();
+    await clickAppointmentBlock();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Decline' }));
+    // Step one only opens the reason box -- nothing has been sent yet.
+    expect(declines).toHaveLength(0);
+    await userEvent.type(screen.getByRole('textbox'), 'Fully booked that day');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm decline' }));
+
+    await waitFor(() => expect(declines).toHaveLength(1));
+    expect(declines[0]).toMatchObject({ reason: 'Fully booked that day' });
   });
 
   it('navigates to the next week without crashing when Next week is clicked', async () => {

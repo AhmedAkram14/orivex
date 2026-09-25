@@ -242,3 +242,168 @@
   border-radius: 0.75rem;
   overflow: hidden;
 }
+
+/* ---- Month view: leave-calendar look ---------------------------------
+   Left-aligned weekday headers (today underlined), number-first cells,
+   faded neighbouring-month days, tone-coloured chips with an avatar. */
+.orivex-fc .fc-dayGridMonth-view .fc-col-header-cell {
+  padding: 0.75rem 1rem;
+  text-align: start;
+  border-top: 1px solid var(--color-border-default);
+}
+.orivex-fc .fc-dayGridMonth-view .fc-col-header-cell-cushion {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.orivex-fc .fc-dayGridMonth-view .fc-col-header-cell.fc-day-today {
+  background: transparent;
+  border-top: 1px solid var(--color-border-default);
+}
+.orivex-fc .fc-dayGridMonth-view .fc-col-header-cell.fc-weekday-today {
+  border-bottom: 2px solid var(--color-primary);
+}
+.orivex-fc .fc-dayGridMonth-view .fc-col-header-cell.fc-weekday-today .fc-dayheader-weekday {
+  color: var(--color-text-primary);
+}
+.orivex-fc .fc-daygrid-day-frame {
+  min-height: 6.5rem;
+}
+.orivex-fc .fc-daygrid-day-number {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.orivex-fc .fc-daygrid-day.fc-day-today {
+  background: transparent;
+}
+.orivex-fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.orivex-fc .fc-daygrid-day.fc-day-other {
+  background: transparent;
+}
+.orivex-fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+  color: var(--color-text-disabled);
+}
+.orivex-fc .fc-daygrid-event-harness {
+  margin-inline: 0.5rem;
+}
+.orivex-fc .fc-daygrid-event {
+  margin-block: 0 0.25rem;
+}
+.orivex-fc .fc-daygrid-event.fc-appt,
+.orivex-fc .fc-daygrid-event.fc-timeoff {
+  border-radius: 0.375rem;
+  min-height: 2.25rem;
+  align-items: center;
+}
+.orivex-fc .fc-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+}
+.orivex-fc .fc-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.orivex-fc .fc-chip-text .fc-appt-name {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.orivex-fc .fc-chip-text .fc-appt-type {
+  font-size: 0.625rem;
+}
+.orivex-fc .fc-chip-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.5rem;
+  font-weight: 600;
+}
+.orivex-fc .fc-chip-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.orivex-fc .fc-timeoff-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.25rem 0.5rem;
+  line-height: 1.2;
+}
+.orivex-fc .fc-timeoff-body .fc-appt-name {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.orivex-fc .fc-timeoff-body .fc-appt-type {
+  font-size: 0.625rem;
+}
+.orivex-fc .fc-timeoff {
+  border: 0;
+  border-inline-start: 3px solid var(--fc-appt-accent, var(--color-warning));
+  background: var(--fc-appt-bg, var(--color-warning-subtle));
+  cursor: default;
+}
+
+/* Status tones (month chips and time-off chips) */
+.orivex-fc .fc-status--approved {
+  --fc-appt-accent: var(--color-success);
+  --fc-appt-bg: var(--color-success-subtle);
+  --fc-appt-title: var(--color-success-emphasis);
+}
+.orivex-fc .fc-status--pending {
+  --fc-appt-accent: var(--color-warning);
+  --fc-appt-bg: var(--color-warning-subtle);
+  --fc-appt-title: var(--color-warning-emphasis);
+}
+.orivex-fc .fc-status--rejected {
+  --fc-appt-accent: var(--color-danger);
+  --fc-appt-bg: var(--color-danger-subtle);
+  --fc-appt-title: var(--color-danger-emphasis);
+}
+.orivex-fc .fc-status--done {
+  --fc-appt-accent: var(--color-info);
+  --fc-appt-bg: var(--color-info-subtle);
+  --fc-appt-title: var(--color-info-emphasis);
+}
+.orivex-fc .fc-status--muted {
+  --fc-appt-accent: var(--color-neutral);
+  --fc-appt-bg: var(--color-neutral-subtle);
+  --fc-appt-title: var(--color-text-secondary);
+}
+.orivex-fc .fc-status--approved .fc-appt-name,
+.orivex-fc .fc-status--pending .fc-appt-name,
+.orivex-fc .fc-status--rejected .fc-appt-name,
+.orivex-fc .fc-status--done .fc-appt-name,
+.orivex-fc .fc-status--muted .fc-appt-name {
+  color: var(--fc-appt-title);
+}
+
+/* Narrow month cells (about 6.5rem or less, e.g. beside the summary column at
+   1280px): drop the avatar so the patient name and time get the room. */
+.orivex-fc .fc-daygrid-day-frame {
+  container-type: inline-size;
+}
+@container (max-width: 7rem) {
+  .orivex-fc .fc-chip-avatar {
+    display: none;
+  }
+  .orivex-fc .fc-daygrid-day-number {
+    padding-inline: 0.5rem;
+  }
+}
