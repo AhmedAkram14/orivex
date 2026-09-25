@@ -15,6 +15,8 @@
   --fc-small-font-size: 0.75rem;
   font-size: 0.8125rem;
   color: var(--color-text-primary);
+  /* Lets the week view size an hour to the width of a day (cqw below). */
+  container-type: inline-size;
 }
 
 .orivex-fc .fc-theme-standard td,
@@ -96,10 +98,16 @@
   border-top: 2px solid var(--color-primary);
 }
 
-/* Time grid: compact, 32px per hour */
+/* Time grid: roomy hour cells. A slot is half an hour, so an hour is 2 x this.
+   Day view: a fixed 64px per hour. Week view: an hour is as tall as a day
+   column is wide, so cells come out roughly square (the axis takes ~4rem,
+   seven columns share the rest), never under 64px or over 112px. */
 .orivex-fc .fc-timegrid-slot {
-  height: 1rem;
+  height: 2rem;
   border-color: var(--color-border-default);
+}
+.orivex-fc .fc-timeGridWeek-view .fc-timegrid-slot {
+  height: clamp(2rem, calc((100cqw - 4rem) / 14), 3.5rem);
 }
 .orivex-fc .fc-timegrid-slot-minor {
   border-top-style: dotted;
@@ -175,12 +183,10 @@
   line-height: 1.2;
   overflow: hidden;
 }
-/* A 30-minute visit is only ~16px tall at 32px/hour: three stacked lines cannot fit, so short cards put the time and the name on one line (the visit type is dropped). */
+/* A short visit (under 48px, set by eventShortHeight) cannot fit three lines, so it stacks just the time and the name (the visit type is dropped). */
 .orivex-fc .fc-timegrid-event-short .fc-appt-body {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.375rem;
-  padding-block: 0;
+  justify-content: center;
+  padding-block: 0.125rem;
 }
 .orivex-fc .fc-timegrid-event-short .fc-appt-type {
   display: none;

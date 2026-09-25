@@ -37,6 +37,30 @@ test.describe('Doctor Schedule calendar', () => {
     await page.locator('.orivex-fc').screenshot({ path: testInfo.outputPath('calendar-1280.png') });
   });
 
+  test('week view hour cells are roomy and roughly square (an hour is about as tall as a day is wide)', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await loginAs(page, 'doctor');
+    await page.goto('/en/doctor/schedule');
+    await expect(page.locator('.orivex-fc .fc-timegrid')).toBeVisible();
+
+    // Two 30-minute slot rows make one hour; a day column is one of seven header cells.
+    const slots = page.locator('.orivex-fc .fc-timegrid-slot-lane');
+    const first = await slots.nth(0).boundingBox();
+    const second = await slots.nth(1).boundingBox();
+    const column = await page.locator('.orivex-fc .fc-col-header-cell').nth(1).boundingBox();
+    if (!first || !second || !column) throw new Error('grid has no boxes');
+    const hour = first.height + second.height;
+
+    // Never cramped (>= 64px) and never absurdly tall (<= 112px) ...
+    expect(hour).toBeGreaterThanOrEqual(63);
+    expect(hour).toBeLessThanOrEqual(113);
+    // ... and close to square: within a quarter of the column width, unless clamped.
+    const target = Math.min(112, Math.max(64, column.width));
+    expect(Math.abs(hour - target)).toBeLessThanOrEqual(target * 0.15);
+
+    await page.locator('.orivex-fc').screenshot({ path: testInfo.outputPath('week-cells.png') });
+  });
+
   test('view tabs switch the calendar view, and a month day opens that day', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await loginAs(page, 'doctor');

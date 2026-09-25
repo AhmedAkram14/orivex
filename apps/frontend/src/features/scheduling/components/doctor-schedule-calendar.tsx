@@ -397,9 +397,11 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         direction={locale === 'ar' ? 'rtl' : 'ltr'}
         firstDay={0}
         headerToolbar={false}
-        // Whole range fits with no inner scroll: the height follows the
-        // (compact, 32px/hour) slots.
+        // Whole range fits with no inner scroll: the height follows the slots
+        // (64-112px per hour, see the stylesheet).
         height="auto"
+        // Below this a card is "short": one line instead of three.
+        eventShortHeight={48}
         allDaySlot={false}
         nowIndicator
         slotMinTime={`${String(minHour).padStart(2, '0')}:00:00`}
