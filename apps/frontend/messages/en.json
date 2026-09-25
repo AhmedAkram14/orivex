@@ -1228,6 +1228,20 @@
       "nextWeek": "Next week",
       "previousMonth": "Previous month",
       "nextMonth": "Next month",
+      "previousDay": "Previous day",
+      "nextDay": "Next day",
+      "calendar": {
+        "moreLink": "+{count} more",
+        "appointmentAria": "Appointment with {patient} at {time}",
+        "selection": {
+          "available": "Available for booking",
+          "break": "During a break",
+          "outsideHours": "Outside working hours",
+          "notWorkingDay": "Not a working day",
+          "addTimeOff": "Add time off",
+          "clear": "Clear selection"
+        }
+      },
       "noAvailability": "Not available",
       "loadError": "Couldn't load your availability.",
       "weekTab": "Week",

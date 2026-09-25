@@ -32,6 +32,8 @@ const badgeVariantByType: Record<ScheduleException['type'], 'warning' | 'danger'
 export interface ScheduleExceptionFormProps {
   /** Called after a successful add — the Schedule page's Time Off dialog closes itself on this. */
   onAdded?: () => void;
+  /** ISO date (YYYY-MM-DD) to prefill -- e.g. the day of a slot picked on the Schedule calendar. */
+  defaultDate?: string;
 }
 
 /**
@@ -42,7 +44,7 @@ export interface ScheduleExceptionFormProps {
  * table, matching how `WorkingHoursForm`'s edit flow and its own read-only
  * summary are likewise two separate surfaces now.
  */
-export function ScheduleExceptionForm({ onAdded }: ScheduleExceptionFormProps) {
+export function ScheduleExceptionForm({ onAdded, defaultDate }: ScheduleExceptionFormProps) {
   const t = useTranslations('scheduling.timeOff');
   const tType = useTranslations('scheduling.timeOff.type');
   const tValidation = useTranslations('scheduling.timeOff.validation');
@@ -50,7 +52,7 @@ export function ScheduleExceptionForm({ onAdded }: ScheduleExceptionFormProps) {
 
   const form = useForm<ScheduleExceptionFormValues>({
     resolver: zodResolver(createScheduleExceptionSchema(tValidation)),
-    defaultValues: { date: '', type: 'vacation', reason: '' },
+    defaultValues: { date: defaultDate ?? '', type: 'vacation', reason: '' },
   });
 
   async function onSubmit(values: ScheduleExceptionFormValues) {

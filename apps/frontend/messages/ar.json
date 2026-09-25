@@ -1228,6 +1228,20 @@
       "nextWeek": "الأسبوع التالي",
       "previousMonth": "الشهر السابق",
       "nextMonth": "الشهر التالي",
+      "previousDay": "اليوم السابق",
+      "nextDay": "اليوم التالي",
+      "calendar": {
+        "moreLink": "+{count} أخرى",
+        "appointmentAria": "موعد مع {patient} في {time}",
+        "selection": {
+          "available": "متاح للحجز",
+          "break": "أثناء استراحة",
+          "outsideHours": "خارج ساعات العمل",
+          "notWorkingDay": "ليس يوم عمل",
+          "addTimeOff": "إضافة إجازة",
+          "clear": "إلغاء التحديد"
+        }
+      },
       "noAvailability": "غير متاح",
       "loadError": "تعذّر تحميل أوقات توفرك.",
       "weekTab": "أسبوع",

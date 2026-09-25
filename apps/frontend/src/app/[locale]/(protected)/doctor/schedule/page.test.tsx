@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
+import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { env } from '@/shared/lib/env';
 import DoctorSchedulePage from './page';
 import { server } from '@/mocks/server';
 import { AuthContext } from '@/shared/auth/auth-context';
@@ -16,6 +18,13 @@ import enMessages from '../../../../../../messages/en.json';
 // this page with a `?status=` drill-down filter already in the URL.
 let currentSearchParams = new URLSearchParams();
 const routerReplace = vi.fn();
+const routerPush = vi.fn();
+
+// FullCalendar renders a full time grid in jsdom; under a parallel full-suite
+// run the default 1000ms findBy window is too tight even though each test
+// passes in ~1-2s alone (same timing-margin fix as the patient Overview test).
+configure({ asyncUtilTimeout: 10000 });
+vi.setConfig({ testTimeout: 30000 });
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
@@ -31,7 +40,7 @@ vi.mock('@/shared/i18n/navigation', async () => {
   const actual = await vi.importActual<typeof import('@/shared/i18n/navigation')>('@/shared/i18n/navigation');
   return {
     ...actual,
-    useRouter: () => ({ replace: routerReplace }),
+    useRouter: () => ({ replace: routerReplace, push: routerPush }),
     usePathname: () => '/doctor/schedule',
   };
 });
@@ -41,6 +50,7 @@ afterEach(() => {
   server.resetHandlers();
   currentSearchParams = new URLSearchParams();
   routerReplace.mockClear();
+  routerPush.mockClear();
 });
 afterAll(() => server.close());
 
@@ -77,6 +87,54 @@ describe('DoctorSchedulePage', () => {
     expect(screen.getByRole('button', { name: 'Previous week' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next week' })).toBeInTheDocument();
   }, 15000);
+
+  it('really navigates: Next week changes the visible range and Today returns to the current one', async () => {
+    renderPage();
+    const nav = await screen.findByRole('button', { name: 'Next week' });
+    const rangeOf = () => nav.parentElement?.querySelector('[aria-live="polite"]')?.textContent ?? '';
+    await waitFor(() => expect(rangeOf()).not.toBe(''));
+    const initial = rangeOf();
+
+    await userEvent.click(nav);
+    await waitFor(() => expect(rangeOf()).not.toBe(initial));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Today' }));
+    await waitFor(() => expect(rangeOf()).toBe(initial));
+  });
+
+  it('draws a real booked appointment as a calendar event that opens it in the Appointments view', async () => {
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    // Sunday of this week keeps the appointment inside the visible week regardless of today's weekday.
+    const inWeek = new Date(noon.getTime());
+    server.use(
+      http.get(`${env.apiBaseUrl}/appointments/doctor/schedule`, () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'appt-calendar-1',
+              patientId: 'p1',
+              patientName: 'Nour Ahmed',
+              scheduledAt: inWeek.toISOString(),
+              endTime: new Date(inWeek.getTime() + 30 * 60_000).toISOString(),
+              appointmentType: 'consultation',
+              status: 'confirmed',
+            },
+          ],
+        }),
+      ),
+    );
+    renderPage();
+
+    // jsdom has no layout, so FullCalendar leaves events `visibility: hidden` and
+    // testing-library's role query skips them; assert the accessible label on the
+    // element directly (real visibility is covered by the browser-level e2e spec).
+    const eventSelector = '[role="button"][aria-label^="Appointment with Nour Ahmed"]';
+    await waitFor(() => expect(document.querySelector(eventSelector)).not.toBeNull());
+    expect(document.querySelector(eventSelector)).toHaveAttribute('aria-label', 'Appointment with Nour Ahmed at 12:00 PM');
+    fireEvent.click(document.querySelector(eventSelector)!);
+    expect(routerPush).toHaveBeenCalledWith('/doctor/appointments?highlight=appt-calendar-1');
+  });
 
   it('navigates to the next week without crashing when Next week is clicked', async () => {
     renderPage();
