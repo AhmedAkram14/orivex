@@ -1,7 +1,7 @@
 'use client';
 
 import arLocale from '@fullcalendar/core/locales/ar';
-import type { DatesSetArg, DayHeaderContentArg, EventContentArg, EventInput } from '@fullcalendar/core';
+import type { DatesSetArg, DayHeaderContentArg, EventContentArg, EventInput, SlotLabelContentArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import FullCalendar from '@fullcalendar/react';
@@ -19,18 +19,32 @@ const FC_VIEW: Record<ScheduleCalendarView, string> = {
   month: 'dayGridMonth',
 };
 
-export type CalendarAccent = 'info' | 'success' | 'danger' | 'warning' | 'neutral';
+export type VisitTypeKey = 'follow_up' | 'consultation' | 'new_patient' | 'procedure' | 'other';
+
+/**
+ * The one place appointment colours are decided: visit type -> colour name.
+ * Each colour name maps to a `.fc-appt--<name>` class in the stylesheet,
+ * which is built from design tokens (blue/green from the status palette,
+ * pink/purple from the categorical accent tokens).
+ */
+export const VISIT_TYPE_COLOR: Record<VisitTypeKey, 'blue' | 'green' | 'pink' | 'purple'> = {
+  follow_up: 'blue',
+  consultation: 'green',
+  new_patient: 'pink',
+  procedure: 'purple',
+  other: 'purple',
+};
 
 export interface CalendarAppointment {
   id: string;
   /** The real instant. */
   start: Date;
-  /** The real instant; omitted when the appointment carries no recorded end. */
+  /** The real instant. */
   end?: Date;
   patientName: string;
   timeLabel: string;
   typeLabel?: string;
-  accent: CalendarAccent;
+  visitType: VisitTypeKey;
 }
 
 export interface DayAvailability {
@@ -38,8 +52,8 @@ export interface DayAvailability {
   /** "HH:mm" windows a patient can actually book (breaks already removed). */
   bookable: Array<{ start: string; end: string }>;
   breaks: Array<{ start: string; end: string }>;
-  /** Short, already-localized summary shown under the day header (e.g. "10:00 AM – 1:00 PM"). */
-  summary?: string;
+  /** The overall working span (first bookable start to last bookable end), pre-formatted for the day header chip. */
+  span?: { full: string; compact: string };
 }
 
 export interface ScheduleCalendarHandle {
@@ -71,13 +85,20 @@ export interface DoctorScheduleCalendarProps {
   onSlotSelect: (selection: { start: Date; end: Date }) => void;
   /** A day clicked in the month view. Encoded as UTC like `onSlotSelect`. */
   onDayClick: (day: Date) => void;
-  labels: { moreLinkText: (count: number) => string; appointmentAria: (patient: string, time: string) => string };
+  labels: {
+    moreLinkText: (count: number) => string;
+    appointmentAria: (patient: string, time: string) => string;
+    notAvailable: string;
+  };
   className?: string;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// The visible day, unless real data (working hours or a booked appointment)
+// falls outside it, in which case it grows to include it -- nothing real is
+// ever hidden.
 const DEFAULT_MIN_HOUR = 8;
-const DEFAULT_MAX_HOUR = 20;
+const DEFAULT_MAX_HOUR = 19;
 
 /**
  * FullCalendar has no named-timezone support without an extra plugin, and
@@ -101,17 +122,16 @@ function hmToMinutes(time: string): number {
   return hours * 60 + minutes;
 }
 
-function wallClock(utcDay: Date, time: string): Date {
-  const minutes = hmToMinutes(time);
+function wallClock(utcDay: Date, minutes: number): Date {
   return new Date(Date.UTC(utcDay.getUTCFullYear(), utcDay.getUTCMonth(), utcDay.getUTCDate(), 0, minutes));
 }
 
 /**
  * The Doctor Schedule's Week/Day/Month calendar, on FullCalendar (real
- * time-grid, scrolling, navigation, selection, overlap layout) instead of a
- * hand-built div grid. Data comes in through props -- the real appointments
- * and the real recurring-schedule/exception availability -- and is mapped
- * to events; nothing is invented here. Appointments are deliberately NOT
+ * time-grid, navigation, selection, overlap layout) instead of a hand-built
+ * div grid. Data comes in through props -- the real appointments and the
+ * real recurring-schedule/exception availability -- and is mapped to events;
+ * nothing is invented here. Appointments are deliberately NOT
  * draggable/resizable: the backend has no doctor-side reschedule route, so
  * moving a block would only pretend to persist.
  */
@@ -123,9 +143,8 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
   const [range, setRange] = useState<{ start: Date; end: Date } | null>(null);
   const isMonth = view === 'month';
   // FullCalendar treats `initialDate` as an option: handing it a fresh Date
-  // every render made it re-fire `datesSet`, which re-rendered the parent,
-  // which produced another fresh Date -- an infinite loop. Captured once;
-  // later navigation goes through the imperative handle.
+  // every render made it re-fire `datesSet` in an infinite loop. Captured
+  // once; later navigation goes through the imperative handle.
   const [initialUtcDate] = useState(() => new Date(Date.UTC(initialDate.getFullYear(), initialDate.getMonth(), initialDate.getDate())));
 
   useImperativeHandle(
@@ -173,29 +192,25 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
     return byDay;
   }, [range, getDayAvailability]);
 
-  // Real availability as background events. Week/Day draw bookable windows
-  // (green), breaks (amber) and non-working days (neutral); Month only tints
-  // whole days, since hour-level bands would be noise at that scale.
+  // Real availability as light-grey background events: whole days off, and
+  // (in the time views) the hours outside a working day's span. Working
+  // hours stay plain white, and breaks are not shaded.
   const backgroundEvents = useMemo<EventInput[]>(() => {
     const events: EventInput[] = [];
     for (const [time, availability] of availabilityByDay) {
       if (!availability) continue;
       const day = new Date(time);
       const key = String(time);
-      if (!availability.isWorkingDay) {
-        events.push({ id: `na-${key}`, start: day, end: new Date(time + DAY_MS), allDay: isMonth, display: 'background', classNames: ['fc-bg-unavailable'] });
+      const isOff = !availability.isWorkingDay || availability.bookable.length === 0;
+      if (isOff) {
+        events.push({ id: `off-${key}`, start: day, end: new Date(time + DAY_MS), allDay: isMonth, display: 'background', classNames: ['fc-bg-off'] });
         continue;
       }
-      if (isMonth) {
-        events.push({ id: `av-${key}`, start: day, end: new Date(time + DAY_MS), allDay: true, display: 'background', classNames: ['fc-bg-available'] });
-        continue;
-      }
-      availability.bookable.forEach((window, index) =>
-        events.push({ id: `av-${key}-${index}`, start: wallClock(day, window.start), end: wallClock(day, window.end), display: 'background', classNames: ['fc-bg-available'] }),
-      );
-      availability.breaks.forEach((brk, index) =>
-        events.push({ id: `br-${key}-${index}`, start: wallClock(day, brk.start), end: wallClock(day, brk.end), display: 'background', classNames: ['fc-bg-break'] }),
-      );
+      if (isMonth) continue;
+      const first = Math.min(...availability.bookable.map((window) => hmToMinutes(window.start)));
+      const last = Math.max(...availability.bookable.map((window) => hmToMinutes(window.end)));
+      if (first > 0) events.push({ id: `pre-${key}`, start: day, end: wallClock(day, first), display: 'background', classNames: ['fc-bg-off'] });
+      if (last < 24 * 60) events.push({ id: `post-${key}`, start: wallClock(day, last), end: new Date(time + DAY_MS), display: 'background', classNames: ['fc-bg-off'] });
     }
     return events;
   }, [availabilityByDay, isMonth]);
@@ -207,14 +222,12 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         title: appointment.patientName,
         start: toWallClockUtc(appointment.start),
         end: appointment.end ? toWallClockUtc(appointment.end) : undefined,
-        classNames: ['fc-appt', `fc-appt--${appointment.accent}`],
+        classNames: ['fc-appt', `fc-appt--${VISIT_TYPE_COLOR[appointment.visitType]}`],
         extendedProps: { timeLabel: appointment.timeLabel, typeLabel: appointment.typeLabel },
       })),
     [appointments],
   );
 
-  // Show the whole working day (and any booked appointment) rather than a
-  // fixed window, but never less than a normal 8AM-8PM day.
   const [minHour, maxHour] = useMemo(() => {
     let min = DEFAULT_MIN_HOUR * 60;
     let max = DEFAULT_MAX_HOUR * 60;
@@ -226,35 +239,12 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
     }
     for (const appointment of appointments) {
       const start = toWallClockUtc(appointment.start);
-      const startMinutes = start.getUTCHours() * 60 + start.getUTCMinutes();
-      min = Math.min(min, startMinutes);
-      max = Math.max(max, startMinutes + 60);
+      const end = appointment.end ? toWallClockUtc(appointment.end) : new Date(start.getTime() + 30 * 60_000);
+      min = Math.min(min, start.getUTCHours() * 60 + start.getUTCMinutes());
+      max = Math.max(max, end.getUTCHours() * 60 + end.getUTCMinutes() || 24 * 60);
     }
     return [Math.max(0, Math.floor(min / 60)), Math.min(24, Math.ceil(max / 60))] as const;
   }, [availabilityByDay, appointments]);
-
-  // The grid may extend to fit an out-of-hours appointment, but it should
-  // open scrolled to where the working day starts, not at the extreme.
-  const scrollTime = useMemo(() => {
-    let earliest = DEFAULT_MIN_HOUR * 60;
-    let found = false;
-    for (const availability of availabilityByDay.values()) {
-      for (const window of availability?.bookable ?? []) {
-        const start = hmToMinutes(window.start);
-        earliest = found ? Math.min(earliest, start) : start;
-        found = true;
-      }
-    }
-    const hour = Math.max(0, Math.floor(earliest / 60) - 1);
-    return `${String(hour).padStart(2, '0')}:00:00`;
-  }, [availabilityByDay]);
-
-  // FullCalendar applies `scrollTime` only on first render / view change, but
-  // the real slot range and working hours arrive after data loads -- scroll
-  // explicitly once they are known so the grid opens on the working day.
-  useEffect(() => {
-    calendarRef.current?.getApi().scrollToTime(scrollTime);
-  }, [scrollTime, minHour, maxHour, view]);
 
   const renderDayHeader = useCallback(
     (arg: DayHeaderContentArg) => {
@@ -262,19 +252,28 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
       const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(arg.date);
       if (isMonth) return <span className="fc-dayheader-weekday">{weekday}</span>;
       const dayNumber = new Intl.DateTimeFormat(locale, { day: 'numeric', timeZone: 'UTC' }).format(arg.date);
+      const isOff = !availability || !availability.isWorkingDay || !availability.span;
       return (
         <div className="fc-dayheader">
           <span className="fc-dayheader-weekday">{weekday}</span>
           <span className="fc-dayheader-number">{dayNumber}</span>
-          {availability?.summary && (
-            <span className={cn('fc-dayheader-summary', availability.isWorkingDay ? 'fc-dayheader-summary--on' : 'fc-dayheader-summary--off')}>
-              {availability.summary}
+          {isOff ? (
+            <span className="fc-dayheader-off">{labels.notAvailable}</span>
+          ) : (
+            <span className="fc-dayheader-chip">
+              <span className="fc-chip-full">{availability.span?.full}</span>
+              <span className="fc-chip-compact">{availability.span?.compact}</span>
             </span>
           )}
         </div>
       );
     },
-    [availabilityByDay, isMonth, locale],
+    [availabilityByDay, isMonth, locale, labels.notAvailable],
+  );
+
+  const renderSlotLabel = useCallback(
+    (arg: SlotLabelContentArg) => new Intl.DateTimeFormat(locale, { hour: 'numeric', timeZone: 'UTC' }).format(arg.date),
+    [locale],
   );
 
   // The event content carries the accessible-button semantics (a focusable
@@ -327,16 +326,16 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
         direction={locale === 'ar' ? 'rtl' : 'ltr'}
         firstDay={0}
         headerToolbar={false}
-        height={isMonth ? 'auto' : 640}
-        expandRows={!isMonth}
+        // Whole range fits with no inner scroll: the height follows the
+        // (compact, 32px/hour) slots.
+        height="auto"
         allDaySlot={false}
         nowIndicator
         slotMinTime={`${String(minHour).padStart(2, '0')}:00:00`}
         slotMaxTime={`${String(maxHour).padStart(2, '0')}:00:00`}
-        scrollTime={scrollTime}
         slotDuration="00:30:00"
         slotLabelInterval="01:00"
-        slotLabelFormat={{ hour: 'numeric', meridiem: 'short' }}
+        slotLabelContent={renderSlotLabel}
         dayMaxEvents={3}
         moreLinkContent={(arg) => labels.moreLinkText(arg.num)}
         eventOverlap

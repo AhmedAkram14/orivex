@@ -1228,6 +1228,23 @@
       "nextWeek": "الأسبوع التالي",
       "previousMonth": "الشهر السابق",
       "nextMonth": "الشهر التالي",
+      "breadcrumb": {
+        "workspace": "مساحة الطبيب",
+        "current": "الجدول"
+      },
+      "timezoneInfoLabel": "حول الأوقات المعروضة",
+      "timezoneInfoTimes": "جميع الأوقات معروضة بتوقيت {timezone}.",
+      "viewFullCalendar": "عرض التقويم الكامل",
+      "breakCount": "{count, plural, one {استراحة #} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}",
+      "availabilityTable": {
+        "day": "اليوم",
+        "status": "الحالة",
+        "hours": "الساعات",
+        "breaks": "الاستراحات",
+        "actions": "الإجراءات",
+        "working": "يوم عمل",
+        "off": "غير متاح"
+      },
       "previousDay": "اليوم السابق",
       "nextDay": "اليوم التالي",
       "calendar": {
@@ -1271,7 +1288,7 @@
       "noAvailabilityConfiguredTitle": "لم يتم تحديد أي أوقات متاحة",
       "noAvailabilityConfiguredDescription": "حدد ساعات عملك أدناه لبدء إظهار الأوقات المتاحة في هذا التقويم.",
       "breaksCount": "{count, plural, zero {لا استراحات} one {استراحة واحدة} two {استراحتان} few {# استراحات} many {# استراحة} other {# استراحة}}",
-      "timezoneNote": "الأوقات المعروضة بتوقيت {timezone}.",
+      "timezoneNote": "الأوقات المعروضة بتوقيت {timezone}",
       "effectiveWindow": {
         "breakSingle": "استراحة {range}",
         "noBookableTime": "لا يوجد وقت قابل للحجز (الاستراحة تغطي اليوم بالكامل)"
@@ -2648,6 +2665,10 @@
       "rowActionsFor": "إجراءات الصف لـ {date}",
       "add": "إضافة",
       "remove": "إزالة الإجازة",
+      "save": "حفظ التغييرات",
+      "edit": "تعديل",
+      "editTitle": "تعديل الإجازة",
+      "noMoreTitle": "لا توجد إجازات أخرى مجدولة",
       "emptyTitle": "لا توجد إجازات مجدولة",
       "emptyDescription": "ستظهر هنا أيام الإجازة والتواريخ غير المتاحة التي تضيفها.",
       "type": {

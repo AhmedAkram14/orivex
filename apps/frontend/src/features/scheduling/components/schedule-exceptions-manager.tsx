@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { MoreVertical, Trash2 } from 'lucide-react';
+import { CalendarDays, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { useAddDoctorException } from '@/features/scheduling/hooks/use-add-doctor-exception';
@@ -17,7 +17,6 @@ import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -34,6 +33,13 @@ export interface ScheduleExceptionFormProps {
   onAdded?: () => void;
   /** ISO date (YYYY-MM-DD) to prefill -- e.g. the day of a slot picked on the Schedule calendar. */
   defaultDate?: string;
+  /**
+   * Edit mode: the entry being changed. There is no update endpoint, so
+   * saving removes the original and adds the edited one, and if the add
+   * fails the original is put back so an edit can never silently lose an
+   * entry.
+   */
+  replacing?: ScheduleException;
 }
 
 /**
@@ -44,20 +50,36 @@ export interface ScheduleExceptionFormProps {
  * table, matching how `WorkingHoursForm`'s edit flow and its own read-only
  * summary are likewise two separate surfaces now.
  */
-export function ScheduleExceptionForm({ onAdded, defaultDate }: ScheduleExceptionFormProps) {
+export function ScheduleExceptionForm({ onAdded, defaultDate, replacing }: ScheduleExceptionFormProps) {
   const t = useTranslations('scheduling.timeOff');
   const tType = useTranslations('scheduling.timeOff.type');
   const tValidation = useTranslations('scheduling.timeOff.validation');
   const addException = useAddDoctorException();
+  const removeException = useRemoveDoctorException();
 
   const form = useForm<ScheduleExceptionFormValues>({
     resolver: zodResolver(createScheduleExceptionSchema(tValidation)),
-    defaultValues: { date: defaultDate ?? '', type: 'vacation', reason: '' },
+    defaultValues: replacing
+      ? { date: replacing.date.slice(0, 10), type: replacing.type, reason: replacing.reason ?? '' }
+      : { date: defaultDate ?? '', type: 'vacation', reason: '' },
   });
 
   async function onSubmit(values: ScheduleExceptionFormValues) {
     try {
-      await addException.mutateAsync(values);
+      if (replacing) {
+        await removeException.mutateAsync(replacing.id);
+        try {
+          await addException.mutateAsync(values);
+        } catch (error) {
+          // Put the original back so a failed edit never loses the entry.
+          await addException
+            .mutateAsync({ date: replacing.date.slice(0, 10), type: replacing.type, hours: replacing.hours, reason: replacing.reason ?? '' })
+            .catch(() => undefined);
+          throw error;
+        }
+      } else {
+        await addException.mutateAsync(values);
+      }
       form.reset({ date: '', type: 'vacation', reason: '' });
       onAdded?.();
     } catch {
@@ -121,8 +143,8 @@ export function ScheduleExceptionForm({ onAdded, defaultDate }: ScheduleExceptio
             </FormItem>
           )}
         />
-        <Button type="submit" loading={addException.isPending}>
-          {t('add')}
+        <Button type="submit" loading={addException.isPending || removeException.isPending}>
+          {replacing ? t('save') : t('add')}
         </Button>
       </form>
     </Form>
@@ -131,65 +153,82 @@ export function ScheduleExceptionForm({ onAdded, defaultDate }: ScheduleExceptio
 
 export interface ScheduleExceptionsTableProps {
   exceptions: ScheduleException[];
+  /** Opens the edit form for one entry. */
+  onEdit?: (exception: ScheduleException) => void;
 }
 
-/** The Time Off card's always-visible read-only list — a real `Table` (Date/Type/Reason/Actions), replacing the old plain `<ul>` rows so it matches the rest of the redesigned Schedule page's denser, tabular "Weekly Availability"/"Time Off" section. */
-export function ScheduleExceptionsTable({ exceptions }: ScheduleExceptionsTableProps) {
+/** The Time Off card's list -- a bordered Date / Type / Reason / Actions table. Renders nothing when there are no entries (the card shows `ScheduleExceptionsEmptyState` instead). */
+export function ScheduleExceptionsTable({ exceptions, onEdit }: ScheduleExceptionsTableProps) {
   const t = useTranslations('scheduling.timeOff');
   const tType = useTranslations('scheduling.timeOff.type');
   const format = useFormatter();
   const removeException = useRemoveDoctorException();
 
-  if (exceptions.length === 0) {
-    return <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />;
-  }
+  if (exceptions.length === 0) return null;
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          <TableHead>{t('date')}</TableHead>
-          <TableHead>{t('typeLabel')}</TableHead>
-          <TableHead>{t('reasonColumnLabel')}</TableHead>
-          <TableHead className="text-end">{t('actionsColumnLabel')}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {exceptions.map((exception) => {
-          const dateLabel = format.dateTime(new Date(exception.date), { year: 'numeric', month: 'short', day: 'numeric' });
-          return (
-          <TableRow key={exception.id}>
-            <TableCell className="font-medium">{dateLabel}</TableCell>
-            <TableCell>
-              <Badge variant={badgeVariantByType[exception.type]}>{tType(exception.type)}</Badge>
-            </TableCell>
-            <TableCell className="text-text-secondary">{exception.reason ?? '—'}</TableCell>
-            <TableCell className="text-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={t('rowActionsFor', { date: dateLabel })}
-                    className="inline-flex size-8 items-center justify-center rounded-md text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-secondary"
-                  >
-                    <Icon icon={MoreVertical} size="sm" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    className="text-danger"
-                    onSelect={() => removeException.mutate(exception.id)}
-                  >
-                    <Icon icon={Trash2} size="sm" />
-                    {t('remove')}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
+    <div className="overflow-hidden rounded-lg border border-border-default">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>{t('date')}</TableHead>
+            <TableHead>{t('typeLabel')}</TableHead>
+            <TableHead>{t('reasonColumnLabel')}</TableHead>
+            <TableHead className="text-end">{t('actionsColumnLabel')}</TableHead>
           </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {exceptions.map((exception) => {
+            const dateLabel = format.dateTime(new Date(exception.date), { year: 'numeric', month: 'short', day: 'numeric' });
+            return (
+              <TableRow key={exception.id}>
+                <TableCell className="font-medium">{dateLabel}</TableCell>
+                <TableCell>
+                  <Badge variant={badgeVariantByType[exception.type]}>{tType(exception.type)}</Badge>
+                </TableCell>
+                <TableCell className="text-text-secondary">{exception.reason ?? '—'}</TableCell>
+                <TableCell className="text-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={t('rowActionsFor', { date: dateLabel })}
+                        className="inline-flex size-8 items-center justify-center rounded-md text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-secondary"
+                      >
+                        <Icon icon={MoreHorizontal} size="sm" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onEdit && (
+                        <DropdownMenuItem onSelect={() => onEdit(exception)}>
+                          <Icon icon={Pencil} size="sm" />
+                          {t('edit')}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem className="text-danger" onSelect={() => removeException.mutate(exception.id)}>
+                        <Icon icon={Trash2} size="sm" />
+                        {t('remove')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+/** Centered empty state under the time-off table (or on its own): "No more time off scheduled" once entries exist, "No time off scheduled" when there are none. */
+export function ScheduleExceptionsEmptyState({ hasEntries }: { hasEntries: boolean }) {
+  const t = useTranslations('scheduling.timeOff');
+  return (
+    <div className="flex flex-col items-center gap-2 py-6 text-center">
+      <Icon icon={CalendarDays} size="lg" className="text-text-tertiary" />
+      <p className="text-sm font-medium text-text-primary">{hasEntries ? t('noMoreTitle') : t('emptyTitle')}</p>
+      <p className="text-sm text-text-tertiary">{t('emptyDescription')}</p>
+    </div>
   );
 }

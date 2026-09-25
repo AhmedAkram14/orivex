@@ -1,23 +1,26 @@
 'use client';
 
-import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Info, MoreVertical, Plus, X } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, Info, MoreHorizontal, Pencil, Plus, Users, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import {
   DoctorScheduleCalendar,
-  type CalendarAccent,
   type CalendarAppointment,
   type DayAvailability,
   type ScheduleCalendarHandle,
   type ScheduleCalendarView,
   type VisibleRange,
+  type VisitTypeKey,
 } from '@/features/scheduling/components/doctor-schedule-calendar';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { UpcomingSlotsPanel } from '@/features/scheduling/components/upcoming-slots-panel';
 import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
-import { ScheduleExceptionForm, ScheduleExceptionsTable } from '@/features/scheduling/components/schedule-exceptions-manager';
+import {
+  ScheduleExceptionForm,
+  ScheduleExceptionsEmptyState,
+  ScheduleExceptionsTable,
+} from '@/features/scheduling/components/schedule-exceptions-manager';
 import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
 import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
 import { useHolidays } from '@/features/scheduling/hooks/use-holidays';
@@ -25,9 +28,9 @@ import { useSchedulingRules } from '@/features/scheduling/hooks/use-scheduling-r
 import { useAvailabilityWindows } from '@/features/scheduling/hooks/use-availability-windows';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useDoctorScheduleAppointments } from '@/features/doctor/hooks/use-doctor-schedule-appointments';
-import type { AppointmentStatus, AppointmentType } from '@/features/doctor/api/types';
+import type { AppointmentStatus } from '@/features/doctor/api/types';
 import { resolveDayForDate } from '@/features/scheduling/utils/resolve-day';
-import { computeEffectiveWindows } from '@/features/scheduling/utils/effective-window';
+import { describeDay } from '@/features/scheduling/utils/describe-day';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { addDays, addWeeks, getWeekDayName, getWeekDays, isSameDay, startOfWeek } from '@/features/doctor/lib/week';
 import { getDurationMinutes } from '@/shared/lib/date/format-duration';
@@ -43,17 +46,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet } from '@/shared/ui/side-panel';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { EmptyCalendar } from '@/shared/ui/schedule/empty-calendar';
-import { Legend } from '@/shared/ui/schedule/legend';
 import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/shared/ui/breadcrumb';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Badge } from '@/shared/ui/badge';
 import { Page } from '@/shared/ui/layout/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
-import type { Holiday, RecurringWeeklySchedule, ScheduleException, WorkingHoursDay } from '@/features/scheduling/types';
+import type { Holiday, RecurringWeeklySchedule, ScheduleException } from '@/features/scheduling/types';
 
-type ScheduleViewTab = ScheduleCalendarView | 'agenda' | 'upcoming-slots';
+type ScheduleViewTab = ScheduleCalendarView | 'agenda';
 
 const CALENDAR_VIEWS: ScheduleViewTab[] = ['week', 'month', 'day'];
 
@@ -61,13 +65,6 @@ const CALENDAR_VIEWS: ScheduleViewTab[] = ['week', 'month', 'day'];
 // over the shared Tabs primitive via tailwind-merge, so the other pages that
 // use Tabs keep their look).
 const ACTIVE_PILL_TAB = 'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none';
-
-const ACCENT_BY_APPOINTMENT_TYPE: Record<AppointmentType, CalendarAccent> = {
-  consultation: 'info',
-  follow_up: 'success',
-  new_patient: 'danger',
-  procedure: 'warning',
-};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -127,16 +124,17 @@ function asUtcDay(date: Date): Date {
  * The Doctor Schedule: one scheduling workspace built around a real
  * FullCalendar time grid (Week/Month/Day) over the doctor's real recurring
  * schedule, exceptions, holidays and booked appointments. The slot Agenda
- * and Upcoming-Slots tabs keep their existing panels. Working-hours and
- * time-off editing stay in the existing dialogs/forms. Every view resolves
- * availability through `resolveDayForDate`/`computeEffectiveWindows`, so no
- * view disagrees with another about the same date.
+ * view also hosts the Upcoming Slots panel. Working-hours and time-off
+ * editing stay in the existing dialogs/forms. Every surface resolves
+ * availability through `resolveDayForDate`/`describeDay`, so none disagrees
+ * with another about the same date.
  */
 export default function DoctorSchedulePage() {
   const t = useTranslations('doctor.schedule');
   const tAppointmentType = useTranslations('doctor.schedule.appointmentType');
   const tStatusFilterStatuses = useTranslations('doctor.schedule.statusFilter.statuses');
   const tAvailability = useTranslations('scheduling.availability');
+  const tTimeOff = useTranslations('scheduling.timeOff');
   const format = useFormatter();
   const locale = useLocale();
   const searchParams = useSearchParams();
@@ -176,8 +174,9 @@ export default function DoctorSchedulePage() {
   const [isEditingHours, setIsEditingHours] = useState(false);
   // Unsaved-changes guard for the working-hours editor's own close paths.
   const [isHoursFormDirty, setIsHoursFormDirty] = useState(false);
-  const [isAddingTimeOff, setIsAddingTimeOff] = useState(false);
+  const [isTimeOffDialogOpen, setIsTimeOffDialogOpen] = useState(false);
   const [timeOffDate, setTimeOffDate] = useState<string | undefined>(undefined);
+  const [editingException, setEditingException] = useState<ScheduleException | undefined>(undefined);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   // Below `md` the default view is Day (a single column that reads at any
   // width); a one-time default so a doctor's manual switch is never fought.
@@ -202,21 +201,23 @@ export default function DoctorSchedulePage() {
         ? resolveDayForDate(date, getWeekDayName(date), schedule, exceptions ?? [], holidays ?? [])
         : undefined;
       if (!day) return undefined;
-      if (!day.isWorkingDay) return { isWorkingDay: false, bookable: [], breaks: [], summary: t('noAvailability') };
-      const { bookableWindows, breaks } = computeEffectiveWindows(day.hours, day.breaks);
-      // Compact for the narrow day-header chip ("9 AM – 1 PM"); the fuller
-      // minutes form stays in the Weekly Availability list.
-      const compact = (time: string) => {
-        const [hours, minutes] = time.split(':').map(Number);
-        return format.dateTime(new Date(0, 0, 0, hours, minutes), minutes === 0 ? { hour: 'numeric' } : { hour: 'numeric', minute: 'numeric' });
+      const described = describeDay(day);
+      if (!described.isWorking || !described.span) return { isWorkingDay: false, bookable: [], breaks: [] };
+      const toLabel = (time: string, compact: boolean) =>
+        compact
+          ? format.dateTime(new Date(0, 0, 0, ...(time.split(':').map(Number) as [number, number])), time.endsWith(':00') ? { hour: 'numeric' } : { hour: 'numeric', minute: 'numeric' })
+          : format.dateTime(new Date(0, 0, 0, ...(time.split(':').map(Number) as [number, number])), { hour: 'numeric', minute: 'numeric' });
+      return {
+        isWorkingDay: true,
+        bookable: described.bookable,
+        breaks: described.breaks,
+        span: {
+          full: `${toLabel(described.span.start, false)} – ${toLabel(described.span.end, false)}`,
+          compact: `${toLabel(described.span.start, true)} – ${toLabel(described.span.end, true)}`,
+        },
       };
-      const summary =
-        bookableWindows.length > 0
-          ? bookableWindows.map((window) => `${compact(window.start)} – ${compact(window.end)}`).join(', ')
-          : t('effectiveWindow.noBookableTime');
-      return { isWorkingDay: true, bookable: bookableWindows, breaks, summary };
     },
-    [schedule, exceptions, holidays, format, t],
+    [schedule, exceptions, holidays, format],
   );
 
   // The week the sidebar stats describe: the visible week in Week view,
@@ -229,7 +230,8 @@ export default function DoctorSchedulePage() {
 
   // Appointments for the calendar's visible range (padded by a day each side
   // so a Cairo/UTC boundary never drops an edge appointment) or the stats
-  // week when a non-calendar tab is open.
+  // week when a non-calendar tab is open. The same query feeds the calendar
+  // and the "Appointments" stat, so they can never disagree.
   const fetchStart = useMemo(() => addDays(visibleRange && isCalendarView ? visibleRange.start : startOfWeek(today), -1), [visibleRange, isCalendarView, today]);
   const fetchEnd = useMemo(
     () => addDays(visibleRange && isCalendarView ? visibleRange.end : addWeeks(startOfWeek(today), 1), 1),
@@ -251,6 +253,7 @@ export default function DoctorSchedulePage() {
         const durationMinutes = appointment.endTime
           ? Math.max(15, getDurationMinutes(appointment.scheduledAt, appointment.endTime))
           : (rules?.slotDurationMinutes ?? 30);
+        const visitType: VisitTypeKey = appointment.appointmentType ?? 'other';
         return {
           id: appointment.id,
           start,
@@ -258,13 +261,13 @@ export default function DoctorSchedulePage() {
           patientName: appointment.patientName,
           timeLabel: format.dateTime(start, { hour: 'numeric', minute: 'numeric' }),
           typeLabel: appointment.appointmentType ? tAppointmentType(appointment.appointmentType) : undefined,
-          accent: appointment.appointmentType ? ACCENT_BY_APPOINTMENT_TYPE[appointment.appointmentType] : 'neutral',
+          visitType,
         };
       }),
     [scheduleAppointments, rules, format, tAppointmentType],
   );
 
-  // "This Week" sidebar stats.
+  // "This Week" stats.
   const workingDaysCount = schedule?.filter((day) => day.isWorkingDay).length ?? 0;
   const availableHoursThisWeek = schedule ? computeAvailableHoursThisWeek(schedule) : 0;
   const hoursBlockedThisWeek =
@@ -356,14 +359,15 @@ export default function DoctorSchedulePage() {
     return 'outsideHours' as const;
   }, [selection, getDayAvailability]);
 
-  function openTimeOffForSelection() {
-    if (selection) {
+  function openTimeOff(options?: { exception?: ScheduleException; fromSelection?: boolean }) {
+    setEditingException(options?.exception);
+    if (options?.fromSelection && selection) {
       const d = selection.start;
       setTimeOffDate(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`);
     } else {
       setTimeOffDate(undefined);
     }
-    setIsAddingTimeOff(true);
+    setIsTimeOffDialogOpen(true);
   }
 
   function handleHoursEditorOpenChange(nextOpen: boolean) {
@@ -378,178 +382,197 @@ export default function DoctorSchedulePage() {
   }
 
   const hasNoWorkingDays = !!schedule && !schedule.some((day) => day.isWorkingDay);
+  const cardClassName = 'rounded-xl border-border-default shadow-none';
 
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
-      <Page>
-        <WorkspaceHeader
-          breadcrumbs={<AppBreadcrumbs />}
-          title={t('title')}
-          description={t('subtitle')}
-          actions={
-            <span className="flex items-center gap-1.5 text-sm text-text-tertiary">
-              <Icon icon={Info} size="sm" />
-              {t('timezoneNote', { timezone: timezoneLabel })}
-            </span>
-          }
-        />
-
-        {isError && <Alert variant="danger">{t('loadError')}</Alert>}
-
-        {/* One Tabs root wraps the toolbar's tab list AND the panel it controls, so every tab's aria-controls points at a real element. */}
-        <Tabs value={scheduleView} onValueChange={handleViewChange} className="flex flex-col gap-6">
-        {/* Toolbar: view tabs on the left, navigation + primary action on the right. */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <TabsList className="max-w-full overflow-x-auto">
-              <TabsTrigger value="week" className={ACTIVE_PILL_TAB}>{t('weekTab')}</TabsTrigger>
-              <TabsTrigger value="month" className={ACTIVE_PILL_TAB}>{t('monthTab')}</TabsTrigger>
-              <TabsTrigger value="day" className={ACTIVE_PILL_TAB}>{t('dayTab')}</TabsTrigger>
-              <TabsTrigger value="agenda" className={ACTIVE_PILL_TAB}>{t('agendaTab')}</TabsTrigger>
-              <TabsTrigger value="upcoming-slots" className={ACTIVE_PILL_TAB}>{t('upcomingSlotsTab')}</TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {isCalendarView && !!schedule && !hasNoWorkingDays && (
-              <>
-                <div className="flex items-center rounded-lg border border-border-default bg-surface">
-                  <button
-                    type="button"
-                    aria-label={previousLabel}
-                    onClick={() => calendarRef.current?.prev()}
-                    className="inline-flex size-9 items-center justify-center rounded-s-lg text-text-secondary transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  >
-                    <Icon icon={ChevronLeft} size="sm" flipRtl />
-                  </button>
-                  <span className="min-w-36 px-3 text-center text-sm font-medium text-text-primary" aria-live="polite">
-                    {rangeLabel}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={nextLabel}
-                    onClick={() => calendarRef.current?.next()}
-                    className="inline-flex size-9 items-center justify-center rounded-e-lg text-text-secondary transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-                  >
-                    <Icon icon={ChevronRight} size="sm" flipRtl />
-                  </button>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleToday}>
-                  {t('today')}
-                </Button>
-              </>
-            )}
-            {statusFilter && (
-              <div className="flex items-center gap-1.5">
-                <Badge variant="info">{t('statusFilter.filteredBy', { status: tStatusFilterStatuses(statusFilter) })}</Badge>
-                <Button variant="outline" size="sm" onClick={clearStatusFilter}>
-                  <Icon icon={X} size="sm" className="me-1" />
-                  {t('statusFilter.clear')}
-                </Button>
-              </div>
-            )}
-            <Button size="sm" onClick={() => setIsEditingHours(true)}>
-              <Icon icon={Plus} size="sm" className="me-2" />
-              {t('addAvailability')}
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_18.5rem]">
-          {/* The calendar dominates: it takes the whole main column. */}
-          <TabsContent value={scheduleView} className="mt-0 flex min-w-0 flex-col gap-3">
-            {isLoading || !schedule ? (
-              <LoadingCalendar />
-            ) : hasNoWorkingDays ? (
-              <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
-            ) : isCalendarView ? (
-              <>
-                <div className="overflow-x-auto rounded-xl border border-border-default bg-surface">
-                  {isLoadingScheduleAppointments && <Skeleton className="h-1 w-full rounded-none" />}
-                  <div className={cn(calendarView === 'month' ? 'min-w-[560px]' : calendarView === 'week' ? 'min-w-[720px]' : undefined)}>
-                    <DoctorScheduleCalendar
-                      ref={calendarRef}
-                      view={calendarView}
-                      initialDate={pendingGotoDate ?? visibleRange?.currentStart ?? getCairoNow(today)}
-                      locale={locale}
-                      appointments={calendarAppointments}
-                      getDayAvailability={getDayAvailability}
-                      onRangeChange={setVisibleRange}
-                      onAppointmentClick={(id) => router.push(`/doctor/appointments?highlight=${id}`)}
-                      onSlotSelect={setSelection}
-                      onDayClick={handleDayClick}
-                      labels={{
-                        moreLinkText: (count) => t('calendar.moreLink', { count }),
-                        appointmentAria: (patient, time) => t('calendar.appointmentAria', { patient, time }),
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {selection && (
-                  <div
-                    role="status"
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2 text-sm"
-                  >
-                    <span className="flex flex-wrap items-center gap-x-2 text-text-primary">
-                      <span className="font-medium">
-                        {format.dateTime(selection.start, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })} ·{' '}
-                        {format.dateTime(selection.start, { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })} –{' '}
-                        {format.dateTime(selection.end, { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })}
-                      </span>
-                      {selectionStatus && <span className="text-text-secondary">{t(`calendar.selection.${selectionStatus}`)}</span>}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setIsEditingHours(true)}>
-                        {t('editWorkingHours')}
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={openTimeOffForSelection}>
-                        {t('calendar.selection.addTimeOff')}
-                      </Button>
+      <Page size="full">
+        {/* xl and up: the calendar column and the summary column sit side by side, level with the breadcrumb. Below xl everything stacks: header, toolbar, calendar, the two cards, then the bottom row. */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18.5rem]">
+          <div className="flex min-w-0 flex-col gap-6">
+            <WorkspaceHeader
+              breadcrumbs={
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link href="/doctor">{t('breadcrumb.workspace')}</Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>{t('breadcrumb.current')}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              }
+              title={t('title')}
+              description={t('subtitle')}
+              actions={
+                <span className="flex items-center gap-1.5 text-sm text-text-tertiary">
+                  <Icon icon={Globe} size="sm" />
+                  {t('timezoneNote', { timezone: timezoneLabel })}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <button
                         type="button"
-                        aria-label={t('calendar.selection.clear')}
-                        onClick={() => setSelection(null)}
-                        className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        aria-label={t('timezoneInfoLabel')}
+                        className="inline-flex size-6 items-center justify-center rounded-full text-text-tertiary hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                       >
-                        <Icon icon={X} size="sm" />
+                        <Icon icon={Info} size="sm" />
                       </button>
-                    </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-64">
+                      <p>{t('timezoneInfoTimes', { timezone: timezoneLabel })}</p>
+                      {rules && (
+                        <p className="mt-1">
+                          {t('bookingRules.slotLength')}: {t('bookingRules.minutesValue', { minutes: rules.slotDurationMinutes })} ·{' '}
+                          {t('bookingRules.buffer')}: {t('bookingRules.minutesValue', { minutes: rules.bufferMinutes })}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </span>
+              }
+            />
+
+            {isError && <Alert variant="danger">{t('loadError')}</Alert>}
+
+            {/* One Tabs root wraps the toolbar's tab list AND the panel it controls, so every tab's aria-controls points at a real element. */}
+            <Tabs value={scheduleView} onValueChange={handleViewChange} className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 2xl:flex-nowrap">
+                <TabsList className="max-w-full shrink-0 overflow-x-auto">
+                  <TabsTrigger value="week" className={ACTIVE_PILL_TAB}>{t('weekTab')}</TabsTrigger>
+                  <TabsTrigger value="month" className={ACTIVE_PILL_TAB}>{t('monthTab')}</TabsTrigger>
+                  <TabsTrigger value="day" className={ACTIVE_PILL_TAB}>{t('dayTab')}</TabsTrigger>
+                  <TabsTrigger value="agenda" className={ACTIVE_PILL_TAB}>{t('agendaTab')}</TabsTrigger>
+                </TabsList>
+
+                <div className="ms-auto flex flex-wrap items-center gap-2">
+                  {isCalendarView && !!schedule && !hasNoWorkingDays && (
+                    <>
+                      <div className="flex items-center rounded-lg border border-border-default bg-surface">
+                        <button
+                          type="button"
+                          aria-label={previousLabel}
+                          onClick={() => calendarRef.current?.prev()}
+                          className="inline-flex size-9 items-center justify-center rounded-s-lg text-text-secondary transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        >
+                          <Icon icon={ChevronLeft} size="sm" flipRtl />
+                        </button>
+                        <span className="min-w-36 whitespace-nowrap px-3 text-center text-sm font-medium text-text-primary" aria-live="polite">
+                          {rangeLabel}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label={nextLabel}
+                          onClick={() => calendarRef.current?.next()}
+                          className="inline-flex size-9 items-center justify-center rounded-e-lg text-text-secondary transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                        >
+                          <Icon icon={ChevronRight} size="sm" flipRtl />
+                        </button>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleToday}>
+                        {t('today')}
+                      </Button>
+                    </>
+                  )}
+                  {statusFilter && (
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="info">{t('statusFilter.filteredBy', { status: tStatusFilterStatuses(statusFilter) })}</Badge>
+                      <Button variant="outline" size="sm" onClick={clearStatusFilter}>
+                        <Icon icon={X} size="sm" className="me-1" />
+                        {t('statusFilter.clear')}
+                      </Button>
+                    </div>
+                  )}
+                  <Button size="sm" onClick={() => setIsEditingHours(true)}>
+                    <Icon icon={Plus} size="sm" className="me-2" />
+                    {t('addAvailability')}
+                  </Button>
+                </div>
+              </div>
+
+              <TabsContent value={scheduleView} className="mt-0 flex min-w-0 flex-col gap-3">
+                {isLoading || !schedule ? (
+                  <LoadingCalendar />
+                ) : hasNoWorkingDays ? (
+                  <EmptyCalendar title={t('noAvailabilityConfiguredTitle')} description={t('noAvailabilityConfiguredDescription')} />
+                ) : isCalendarView ? (
+                  <>
+                    <div className="overflow-x-auto rounded-xl border border-border-default bg-surface">
+                      {isLoadingScheduleAppointments && <Skeleton className="h-1 w-full rounded-none" />}
+                      <div className={cn(calendarView === 'month' ? 'min-w-[560px]' : calendarView === 'week' ? 'min-w-[640px]' : undefined)}>
+                        <DoctorScheduleCalendar
+                          ref={calendarRef}
+                          view={calendarView}
+                          initialDate={pendingGotoDate ?? visibleRange?.currentStart ?? getCairoNow(today)}
+                          locale={locale}
+                          appointments={calendarAppointments}
+                          getDayAvailability={getDayAvailability}
+                          onRangeChange={setVisibleRange}
+                          onAppointmentClick={(id) => router.push(`/doctor/appointments?highlight=${id}`)}
+                          onSlotSelect={setSelection}
+                          onDayClick={handleDayClick}
+                          labels={{
+                            moreLinkText: (count) => t('calendar.moreLink', { count }),
+                            appointmentAria: (patient, time) => t('calendar.appointmentAria', { patient, time }),
+                            notAvailable: t('noAvailability'),
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {selection && (
+                      <div
+                        role="status"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary-subtle px-3 py-2 text-sm"
+                      >
+                        <span className="flex flex-wrap items-center gap-x-2 text-text-primary">
+                          <span className="font-medium">
+                            {format.dateTime(selection.start, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })} ·{' '}
+                            {format.dateTime(selection.start, { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })} –{' '}
+                            {format.dateTime(selection.end, { hour: 'numeric', minute: 'numeric', timeZone: 'UTC' })}
+                          </span>
+                          {selectionStatus && <span className="text-text-secondary">{t(`calendar.selection.${selectionStatus}`)}</span>}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setIsEditingHours(true)}>
+                            {t('editWorkingHours')}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => openTimeOff({ fromSelection: true })}>
+                            {t('calendar.selection.addTimeOff')}
+                          </Button>
+                          <button
+                            type="button"
+                            aria-label={t('calendar.selection.clear')}
+                            onClick={() => setSelection(null)}
+                            className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+                          >
+                            <Icon icon={X} size="sm" />
+                          </button>
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-8">
+                    {rules && <ScheduleAgenda schedule={schedule} exceptions={exceptions ?? []} holidays={holidays ?? []} rules={rules} startDate={today} />}
+                    <section className="flex flex-col gap-3" aria-labelledby="upcoming-slots-heading">
+                      <h2 id="upcoming-slots-heading" className="text-base font-semibold text-text-primary">
+                        {t('upcomingSlotsTab')}
+                      </h2>
+                      <UpcomingSlotsPanel />
+                    </section>
                   </div>
                 )}
+              </TabsContent>
+            </Tabs>
+          </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-                  <Legend
-                    items={[
-                      { id: 'available', label: t('gridLegend.available'), colorClassName: 'bg-success' },
-                      { id: 'break', label: t('gridLegend.break'), colorClassName: 'bg-warning' },
-                      { id: 'booked', label: t('gridLegend.booked'), colorClassName: 'bg-info' },
-                      { id: 'not-available', label: t('gridLegend.notAvailable'), colorClassName: 'bg-neutral' },
-                    ]}
-                  />
-                  {rules && (
-                    <p className="flex flex-wrap items-center gap-x-2 text-xs text-text-tertiary">
-                      <span>{t('bookingRules.slotLength')}: {t('bookingRules.minutesValue', { minutes: rules.slotDurationMinutes })}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{t('bookingRules.buffer')}: {t('bookingRules.minutesValue', { minutes: rules.bufferMinutes })}</span>
-                      <Link href="/doctor/settings#consultation-defaults" className="inline-flex items-center gap-0.5 font-medium text-primary hover:underline">
-                        {t('bookingRules.manageInSettings')}
-                        <Icon icon={ArrowRight} size="xs" flipRtl />
-                      </Link>
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : scheduleView === 'agenda' ? (
-              rules && <ScheduleAgenda schedule={schedule} exceptions={exceptions ?? []} holidays={holidays ?? []} rules={rules} startDate={today} />
-            ) : (
-              <UpcomingSlotsPanel />
-            )}
-          </TabsContent>
-
-          {/* Compact summary column: two cards only. */}
-          <div className="grid min-w-0 grid-cols-1 content-start gap-4 md:grid-cols-2 2xl:grid-cols-1">
-            <Card className="rounded-xl border-border-default shadow-none">
+          {/* Summary column: This Week, then Next Available Slot. */}
+          <div className="grid min-w-0 grid-cols-1 content-start gap-4 md:grid-cols-2 xl:grid-cols-1">
+            <Card className={cardClassName}>
               <CardContent className="flex flex-col gap-3 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-base font-semibold text-text-primary">{t('thisWeek.title')}</h2>
@@ -559,29 +582,29 @@ export default function DoctorSchedulePage() {
                   </Link>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <ThisWeekStat accent="success" label={t('thisWeek.workingDays')} value={String(workingDaysCount)} loading={isLoading} />
-                  <ThisWeekStat accent="info" label={t('thisWeek.availableHours')} value={String(availableHoursThisWeek)} loading={isLoading} />
-                  <ThisWeekStat accent="primary" label={t('thisWeek.appointments')} value={String(appointmentsThisWeekCount)} loading={isLoadingScheduleAppointments} />
-                  <ThisWeekStat accent="warning" label={t('thisWeek.hoursBlocked')} value={String(hoursBlockedThisWeek)} loading={isLoading || isLoadingExceptions} />
+                  <ThisWeekStat icon={CalendarDays} accent="success" label={t('thisWeek.workingDays')} value={String(workingDaysCount)} loading={isLoading} />
+                  <ThisWeekStat icon={Clock} accent="info" label={t('thisWeek.availableHours')} value={String(availableHoursThisWeek)} loading={isLoading} />
+                  <ThisWeekStat icon={Users} accent="purple" label={t('thisWeek.appointments')} value={String(appointmentsThisWeekCount)} loading={isLoadingScheduleAppointments} />
+                  <ThisWeekStat icon={Clock} accent="warning" label={t('thisWeek.hoursBlocked')} value={String(hoursBlockedThisWeek)} loading={isLoading || isLoadingExceptions} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-xl border-border-default shadow-none">
-              <CardContent className="flex flex-col gap-3 p-4">
+            <Card className={cardClassName}>
+              <CardContent className="flex flex-col gap-4 p-4">
                 <h2 className="text-base font-semibold text-text-primary">{t('nextAvailableSlotTitle')}</h2>
                 {isLoading || isLoadingBookableWindows ? (
-                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-14 w-full" />
                 ) : nextAvailableSlot ? (
-                  <div className="flex items-center gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-info-subtle text-info-emphasis">
-                      <Icon icon={CalendarClock} size="md" />
+                  <div className="flex items-center gap-4">
+                    <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                      <Icon icon={CalendarClock} size="lg" />
                     </span>
-                    <div className="flex flex-col">
+                    <div className="flex min-w-0 flex-col">
                       <span className="text-sm text-text-secondary">
                         {format.dateTime(new Date(nextAvailableSlot.startTime), { weekday: 'long', month: 'short', day: 'numeric' })}
                       </span>
-                      <span className="text-xl font-semibold text-text-primary">
+                      <span className="text-3xl font-semibold text-primary">
                         {format.dateTime(new Date(nextAvailableSlot.startTime), { hour: 'numeric', minute: 'numeric' })}
                       </span>
                     </div>
@@ -589,15 +612,18 @@ export default function DoctorSchedulePage() {
                 ) : (
                   <p className="text-sm text-text-tertiary">{t('noUpcomingSlots')}</p>
                 )}
+                <Button className="w-full" onClick={() => setScheduleView('month')}>
+                  {t('viewFullCalendar')}
+                  <Icon icon={ArrowRight} size="sm" className="ms-2" flipRtl />
+                </Button>
               </CardContent>
             </Card>
           </div>
         </div>
-        </Tabs>
 
-        {/* Weekly availability + time off: compact, side by side on desktop. */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="rounded-xl border-border-default shadow-none">
+        {/* Weekly availability + time off: full width, two equal columns from md. */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Card className={cardClassName}>
             <CardContent className="flex flex-col gap-3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -606,71 +632,91 @@ export default function DoctorSchedulePage() {
                 </div>
                 {schedule && (
                   <Button variant="outline" size="sm" onClick={() => setIsEditingHours(true)}>
+                    <Icon icon={Pencil} size="sm" className="me-2" />
                     {t('editWorkingHours')}
                   </Button>
                 )}
               </div>
               {schedule && (
-                <ul className="flex flex-col divide-y divide-border-default">
-                  {schedule.map((day) => {
-                    const dayName = format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' });
-                    const summary = day.isWorkingDay ? formatEffectiveWindowSummary(day, format, t) : undefined;
-                    return (
-                      <li key={day.dayOfWeek} className="flex items-center justify-between gap-3 py-1.5">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <span
-                            // "Not available" is an ordinary schedule state, not
-                            // an error -- a neutral dot, never the danger token.
-                            className={cn('size-2 shrink-0 rounded-full', day.isWorkingDay ? 'bg-success' : 'bg-neutral')}
-                            aria-hidden="true"
-                          />
-                          <span className="w-24 shrink-0 text-sm font-medium text-text-primary">{dayName}</span>
-                          <span className="min-w-0 text-sm text-text-secondary">
-                            {summary ? (
-                              <>
-                                {summary.primary}
-                                {summary.breakNote && <span className="text-text-tertiary"> · {summary.breakNote}</span>}
-                              </>
-                            ) : (
-                              <span className="text-text-tertiary">{t('noAvailability')}</span>
-                            )}
-                          </span>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              type="button"
-                              aria-label={t('rowActionsFor', { day: dayName })}
-                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-secondary"
-                            >
-                              <Icon icon={MoreVertical} size="sm" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => setIsEditingHours(true)}>{t('editRowHours')}</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sr-only">
+                      <tr>
+                        <th scope="col">{t('availabilityTable.day')}</th>
+                        <th scope="col">{t('availabilityTable.status')}</th>
+                        <th scope="col">{t('availabilityTable.hours')}</th>
+                        <th scope="col">{t('availabilityTable.breaks')}</th>
+                        <th scope="col">{t('availabilityTable.actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-default">
+                      {orderedWeek(schedule).map((day) => {
+                        const dayName = format.dateTime(dayIndexDate(day.dayOfWeek), { weekday: 'long' });
+                        const described = describeDay(day);
+                        return (
+                          <tr key={day.dayOfWeek} className="whitespace-nowrap">
+                            <th scope="row" className="py-2 pe-3 text-start font-semibold text-text-primary">
+                              {dayName}
+                            </th>
+                            <td className="py-2 pe-2">
+                              <span
+                                className={cn('inline-block size-2 rounded-full', described.isWorking ? 'bg-success' : 'bg-danger')}
+                                role="img"
+                                aria-label={described.isWorking ? t('availabilityTable.working') : t('availabilityTable.off')}
+                              />
+                            </td>
+                            <td className="py-2 pe-3 text-text-secondary">
+                              {described.span ? `${described.span.start} – ${described.span.end}` : <span className="text-text-tertiary">{t('noAvailability')}</span>}
+                            </td>
+                            <td className="py-2 pe-3 text-text-secondary">
+                              {described.internalBreaks.length > 0 ? t('breakCount', { count: described.internalBreaks.length }) : '—'}
+                            </td>
+                            <td className="py-2 text-end">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    type="button"
+                                    aria-label={t('rowActionsFor', { day: dayName })}
+                                    className="inline-flex size-8 items-center justify-center rounded-md text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-secondary"
+                                  >
+                                    <Icon icon={MoreHorizontal} size="sm" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onSelect={() => setIsEditingHours(true)}>{t('editRowHours')}</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl border-border-default shadow-none">
+          <Card className={cardClassName}>
             <CardContent className="flex flex-col gap-3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="text-base font-semibold text-text-primary">{t('timeOffTitle')}</h2>
                   <p className="text-sm text-text-tertiary">{t('timeOffDescription')}</p>
                 </div>
-                <Button size="sm" onClick={() => { setTimeOffDate(undefined); setIsAddingTimeOff(true); }}>
+                <Button size="sm" onClick={() => openTimeOff()}>
                   <Icon icon={Plus} size="sm" className="me-2" />
                   {t('addTimeOff')}
                 </Button>
               </div>
-              {isLoadingExceptions ? <Skeleton className="h-16 w-full" /> : <ScheduleExceptionsTable exceptions={exceptions ?? []} />}
+              {isLoadingExceptions ? (
+                <Skeleton className="h-16 w-full" />
+              ) : (
+                <>
+                  <ScheduleExceptionsTable exceptions={exceptions ?? []} onEdit={(exception) => openTimeOff({ exception })} />
+                  <ScheduleExceptionsEmptyState hasEntries={(exceptions ?? []).length > 0} />
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -700,13 +746,18 @@ export default function DoctorSchedulePage() {
             </Sheet>
           ))}
 
-        <Dialog open={isAddingTimeOff} onOpenChange={setIsAddingTimeOff}>
+        <Dialog open={isTimeOffDialogOpen} onOpenChange={setIsTimeOffDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t('addTimeOff')}</DialogTitle>
+              <DialogTitle>{editingException ? tTimeOff('editTitle') : t('addTimeOff')}</DialogTitle>
             </DialogHeader>
             <div className="mt-2">
-              <ScheduleExceptionForm key={timeOffDate ?? 'blank'} defaultDate={timeOffDate} onAdded={() => setIsAddingTimeOff(false)} />
+              <ScheduleExceptionForm
+                key={editingException?.id ?? timeOffDate ?? 'blank'}
+                defaultDate={timeOffDate}
+                replacing={editingException}
+                onAdded={() => setIsTimeOffDialogOpen(false)}
+              />
             </div>
           </DialogContent>
         </Dialog>
@@ -716,7 +767,8 @@ export default function DoctorSchedulePage() {
 }
 
 interface ThisWeekStatProps {
-  accent: 'success' | 'info' | 'primary' | 'warning';
+  icon: typeof Clock;
+  accent: 'success' | 'info' | 'purple' | 'warning';
   label: string;
   value: string;
   loading?: boolean;
@@ -725,59 +777,26 @@ interface ThisWeekStatProps {
 const THIS_WEEK_ACCENT_CLASSES: Record<ThisWeekStatProps['accent'], string> = {
   success: 'bg-success-subtle text-success-emphasis',
   info: 'bg-info-subtle text-info-emphasis',
-  primary: 'bg-primary-subtle text-primary-emphasis',
+  purple: 'bg-[var(--color-accent-purple-subtle)] text-[var(--color-accent-purple)]',
   warning: 'bg-warning-subtle text-warning-emphasis',
 };
 
-function ThisWeekStat({ accent, label, value, loading }: ThisWeekStatProps) {
+/** One tile: icon in the top-start corner, a large number, a small label. */
+function ThisWeekStat({ icon, accent, label, value, loading }: ThisWeekStatProps) {
   return (
-    <div className={cn('flex flex-col gap-0.5 rounded-lg p-2.5', THIS_WEEK_ACCENT_CLASSES[accent])}>
-      {loading ? <Skeleton className="h-6 w-10" /> : <span className="text-xl font-semibold text-text-primary">{value}</span>}
+    <div className={cn('flex flex-col items-start gap-1 rounded-lg p-3', THIS_WEEK_ACCENT_CLASSES[accent])}>
+      <Icon icon={icon} size="sm" />
+      {loading ? <Skeleton className="h-7 w-10" /> : <span className="text-2xl font-semibold text-text-primary">{value}</span>}
       <span className="text-xs text-text-secondary">{label}</span>
     </div>
   );
 }
 
-/** "09:30" → [9, 30], for building a display-only `Date` via the existing `new Date(0,0,0,hour,minute)` formatting idiom. */
-function toHm(time: string): [number, number] {
-  const [hours, minutes] = time.split(':').map(Number);
-  return [hours, minutes];
-}
+const WEEK_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-/** A "HH:mm" time-of-day, formatted through the real locale-aware formatter via the existing display-only-`Date` idiom -- never a raw string pass-through. */
-function formatTimeOfDay(format: ReturnType<typeof useFormatter>, time: string): string {
-  return format.dateTime(new Date(0, 0, 0, ...toHm(time)), { hour: 'numeric', minute: 'numeric' });
-}
-
-/**
- * The one shared "effective availability" summary for a working day --
- * real bookable sub-windows (via `computeEffectiveWindows`) called out
- * alongside their break(s), instead of the raw full working-hours span a
- * break might not leave fully bookable. Used by the calendar's day headers
- * and the Weekly Availability list so they can never disagree.
- */
-function formatEffectiveWindowSummary(
-  day: WorkingHoursDay,
-  format: ReturnType<typeof useFormatter>,
-  t: ReturnType<typeof useTranslations>,
-): { primary: string; breakNote?: string } {
-  const { bookableWindows, breaks } = computeEffectiveWindows(day.hours, day.breaks);
-
-  const primary =
-    bookableWindows.length > 0
-      ? bookableWindows.map((window) => `${formatTimeOfDay(format, window.start)} – ${formatTimeOfDay(format, window.end)}`).join(', ')
-      : t('effectiveWindow.noBookableTime');
-
-  let breakNote: string | undefined;
-  if (breaks.length === 1) {
-    breakNote = t('effectiveWindow.breakSingle', {
-      range: `${formatTimeOfDay(format, breaks[0].start)} – ${formatTimeOfDay(format, breaks[0].end)}`,
-    });
-  } else if (breaks.length > 1) {
-    breakNote = t('breaksCount', { count: breaks.length });
-  }
-
-  return { primary, breakNote };
+/** The doctor's recurring schedule from Monday to Sunday (the API returns Sunday first). */
+function orderedWeek(schedule: RecurringWeeklySchedule): RecurringWeeklySchedule {
+  return [...schedule].sort((a, b) => WEEK_ORDER.indexOf(a.dayOfWeek) - WEEK_ORDER.indexOf(b.dayOfWeek));
 }
 
 const WEEKDAY_REFERENCE_DATES: Record<string, Date> = {

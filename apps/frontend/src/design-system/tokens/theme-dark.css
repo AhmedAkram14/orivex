@@ -49,6 +49,11 @@
     --color-text-disabled: var(--gray-600);
     --color-text-inverse: var(--gray-900);
 
+    --color-accent-pink: #f472b6;
+    --color-accent-pink-subtle: #4a1d36;
+    --color-accent-purple: #a78bfa;
+    --color-accent-purple-subtle: #2f2557;
+
     --color-border-default: var(--gray-800);
     --color-border-strong: var(--gray-700);
 
@@ -80,6 +85,10 @@
   --color-text-tertiary: var(--gray-400);
   --color-text-disabled: var(--gray-600);
   --color-text-inverse: var(--gray-900);
+  --color-accent-pink: #f472b6;
+  --color-accent-pink-subtle: #4a1d36;
+  --color-accent-purple: #a78bfa;
+  --color-accent-purple-subtle: #2f2557;
 
   --color-border-default: var(--gray-800);
   --color-border-strong: var(--gray-700);

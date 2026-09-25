@@ -14,8 +14,17 @@ test.describe('Doctor Schedule calendar', () => {
     await expect(grid).toBeVisible();
     // Seven day columns with their compact availability summary in the header.
     await expect(page.locator('.orivex-fc .fc-col-header-cell')).toHaveCount(7);
-    // Real availability drawn as bands behind the grid.
-    await expect(page.locator('.orivex-fc .fc-bg-available').first()).toBeVisible();
+    // Days off are drawn grey; working hours are plain white (no green fill).
+    await expect(page.locator('.orivex-fc .fc-bg-off').first()).toBeVisible();
+    await expect(page.locator('.orivex-fc .fc-bg-available')).toHaveCount(0);
+    // The colour key is gone.
+    await expect(page.getByText('Booked', { exact: true })).toHaveCount(0);
+    // The whole day fits: the grid does not scroll inside itself.
+    const innerScroll = await page.locator('.orivex-fc .fc-timegrid-body').evaluate((el) => {
+      const scroller = el.closest('.fc-scroller') as HTMLElement | null;
+      return scroller ? scroller.scrollHeight - scroller.clientHeight : 0;
+    });
+    expect(innerScroll).toBeLessThanOrEqual(1);
 
     const label = page.locator('[aria-live="polite"]').first();
     const before = await label.innerText();

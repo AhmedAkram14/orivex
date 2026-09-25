@@ -1228,6 +1228,23 @@
       "nextWeek": "Next week",
       "previousMonth": "Previous month",
       "nextMonth": "Next month",
+      "breadcrumb": {
+        "workspace": "Doctor Workspace",
+        "current": "Schedule"
+      },
+      "timezoneInfoLabel": "About the times shown",
+      "timezoneInfoTimes": "All times are shown in {timezone}.",
+      "viewFullCalendar": "View full calendar",
+      "breakCount": "{count, plural, one {# break} other {# breaks}}",
+      "availabilityTable": {
+        "day": "Day",
+        "status": "Status",
+        "hours": "Hours",
+        "breaks": "Breaks",
+        "actions": "Actions",
+        "working": "Working day",
+        "off": "Not working"
+      },
       "previousDay": "Previous day",
       "nextDay": "Next day",
       "calendar": {
@@ -1271,7 +1288,7 @@
       "noAvailabilityConfiguredTitle": "No availability configured",
       "noAvailabilityConfiguredDescription": "Set your working hours below to start showing availability on this calendar.",
       "breaksCount": "{count, plural, one {# break} other {# breaks}}",
-      "timezoneNote": "Times shown in {timezone}.",
+      "timezoneNote": "Times shown in {timezone}",
       "effectiveWindow": {
         "breakSingle": "break {range}",
         "noBookableTime": "No bookable time (break covers the full day)"
@@ -2648,6 +2665,10 @@
       "rowActionsFor": "Row actions for {date}",
       "add": "Add",
       "remove": "Remove time off",
+      "save": "Save changes",
+      "edit": "Edit",
+      "editTitle": "Edit time off",
+      "noMoreTitle": "No more time off scheduled",
       "emptyTitle": "No time off scheduled",
       "emptyDescription": "Vacation days and unavailable dates you add will appear here.",
       "type": {

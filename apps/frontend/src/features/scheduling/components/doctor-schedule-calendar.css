@@ -1,6 +1,7 @@
 /* Doctor Schedule calendar: FullCalendar skinned with the Orivex design
    tokens only (so light/dark and RTL come for free). Scoped under
-   `.orivex-fc` so nothing leaks to other pages. */
+   `.orivex-fc` so nothing leaks to other pages. Logical properties
+   (inline-start/end) are used throughout so Arabic mirrors correctly. */
 
 .orivex-fc {
   --fc-border-color: var(--color-border-default);
@@ -22,7 +23,7 @@
   border-color: var(--color-border-default);
 }
 
-/* Header: compact weekday + date + availability summary */
+/* Header: weekday, date number, one availability chip (or "Not available") */
 .orivex-fc .fc-col-header-cell {
   background: var(--color-surface);
   padding: 0.5rem 0.25rem;
@@ -33,12 +34,15 @@
   padding: 0;
   color: inherit;
   text-decoration: none;
+  /* Table cells cannot be size containers, so this block (as wide as the column) lets the chip pick compact text from the column's own width. */
+  container-type: inline-size;
 }
 .orivex-fc .fc-dayheader {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.125rem;
+  min-width: 0;
 }
 .orivex-fc .fc-dayheader-weekday {
   font-size: 0.75rem;
@@ -54,32 +58,47 @@
 .orivex-fc .fc-day-today .fc-dayheader-number {
   color: var(--color-primary);
 }
-.orivex-fc .fc-dayheader-summary {
+.orivex-fc .fc-dayheader-chip {
   max-width: 100%;
   padding: 0.125rem 0.375rem;
   border-radius: 0.375rem;
+  background: var(--color-success-subtle);
+  color: var(--color-success-emphasis);
   font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1rem;
-  text-align: center;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
 }
-.orivex-fc .fc-dayheader-summary--on {
-  background: var(--color-success-subtle);
-  color: var(--color-success-emphasis);
+.orivex-fc .fc-chip-compact {
+  display: none;
 }
-.orivex-fc .fc-dayheader-summary--off {
-  color: var(--color-text-tertiary);
+@container (max-width: 8.5rem) {
+  .orivex-fc .fc-chip-full {
+    display: none;
+  }
+  .orivex-fc .fc-chip-compact {
+    display: inline;
+  }
+}
+.orivex-fc .fc-dayheader-off {
+  font-size: 0.6875rem;
+  line-height: 1.25rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
-/* Today = subtle blue column */
+/* Today: light primary tint plus a primary top border */
 .orivex-fc .fc-day-today {
   background: var(--color-primary-subtle);
 }
+.orivex-fc .fc-col-header-cell.fc-day-today {
+  border-top: 2px solid var(--color-primary);
+}
 
-/* Time grid */
+/* Time grid: compact, 32px per hour */
 .orivex-fc .fc-timegrid-slot {
-  height: 1.875rem;
+  height: 1rem;
   border-color: var(--color-border-default);
 }
 .orivex-fc .fc-timegrid-slot-minor {
@@ -100,32 +119,27 @@
   border-color: var(--color-danger);
 }
 
-/* Availability bands */
+/* Off hours: days off and time outside the working span, light grey.
+   Working hours (including breaks) stay plain white. */
 .orivex-fc .fc-bg-event {
   opacity: 1;
 }
-.orivex-fc .fc-bg-available {
-  background: var(--color-success-subtle);
-}
-.orivex-fc .fc-bg-break {
-  background: var(--color-warning-subtle);
-}
-.orivex-fc .fc-bg-unavailable {
+.orivex-fc .fc-bg-off {
   background: var(--color-secondary-subtle);
-  opacity: 0.6;
 }
 
-/* Appointments */
+/* Appointments: tinted card, 3px accent on the inline-start edge */
 .orivex-fc .fc-event-main {
   color: inherit;
 }
 .orivex-fc .fc-appt {
+  --fc-appt-accent: var(--color-info);
+  --fc-appt-bg: var(--color-info-subtle);
   border: 0;
-  border-inline-start: 3px solid var(--fc-appt-accent, var(--color-info));
+  border-inline-start: 3px solid var(--fc-appt-accent);
   border-radius: 0.5rem;
-  background: var(--fc-appt-bg, var(--color-info-subtle));
+  background: var(--fc-appt-bg);
   color: var(--color-text-primary);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
   cursor: pointer;
   transition: box-shadow 120ms ease, transform 120ms ease;
 }
@@ -137,41 +151,48 @@
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
 }
-.orivex-fc .fc-appt--info {
+.orivex-fc .fc-appt--blue {
   --fc-appt-accent: var(--color-info);
   --fc-appt-bg: var(--color-info-subtle);
 }
-.orivex-fc .fc-appt--success {
+.orivex-fc .fc-appt--green {
   --fc-appt-accent: var(--color-success);
   --fc-appt-bg: var(--color-success-subtle);
 }
-.orivex-fc .fc-appt--danger {
-  --fc-appt-accent: var(--color-danger);
-  --fc-appt-bg: var(--color-danger-subtle);
+.orivex-fc .fc-appt--pink {
+  --fc-appt-accent: var(--color-accent-pink);
+  --fc-appt-bg: var(--color-accent-pink-subtle);
 }
-.orivex-fc .fc-appt--warning {
-  --fc-appt-accent: var(--color-warning);
-  --fc-appt-bg: var(--color-warning-subtle);
-}
-.orivex-fc .fc-appt--neutral {
-  --fc-appt-accent: var(--color-neutral);
-  --fc-appt-bg: var(--color-neutral-subtle);
+.orivex-fc .fc-appt--purple {
+  --fc-appt-accent: var(--color-accent-purple);
+  --fc-appt-bg: var(--color-accent-purple-subtle);
 }
 .orivex-fc .fc-appt-body {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0.25rem 0.375rem;
+  padding: 0.25rem 0.5rem;
   font-size: 0.6875rem;
-  line-height: 1.15;
+  line-height: 1.2;
   overflow: hidden;
+}
+/* A 30-minute visit is only ~16px tall at 32px/hour: three stacked lines cannot fit, so short cards put the time and the name on one line (the visit type is dropped). */
+.orivex-fc .fc-timegrid-event-short .fc-appt-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.375rem;
+  padding-block: 0;
+}
+.orivex-fc .fc-timegrid-event-short .fc-appt-type {
+  display: none;
+}
+.orivex-fc .fc-timegrid-event-short .fc-appt-time {
+  flex-shrink: 0;
 }
 .orivex-fc .fc-appt-time {
   font-weight: 600;
-  color: var(--color-text-secondary);
 }
 .orivex-fc .fc-appt-name {
-  font-weight: 600;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -213,7 +234,6 @@
   color: var(--color-primary);
   font-weight: 500;
 }
-/* Past days are muted, matching the earlier hand-built month view */
 .orivex-fc .fc-day-past.fc-daygrid-day .fc-daygrid-day-number {
   color: var(--color-text-tertiary);
 }

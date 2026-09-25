@@ -141,6 +141,14 @@
   --color-neutral-subtle: var(--gray-100);
   --color-neutral-foreground: var(--gray-0);
 
+  /* Categorical accents (no status meaning): the Schedule calendar colours
+     appointments by visit type, which needs a pink and a purple the status
+     palette above does not have. */
+  --color-accent-pink: #db2777;
+  --color-accent-pink-subtle: #fce7f3;
+  --color-accent-purple: #7c3aed;
+  --color-accent-purple-subtle: #ede9fe;
+
   --color-focus-ring: var(--brand-500);
 
   --color-cta-surface: var(--cta-surface-light);
