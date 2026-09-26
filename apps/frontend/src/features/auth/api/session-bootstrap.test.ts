@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { tokenStorage } from '@/shared/auth/token-storage';
+import { ApiError } from '@/shared/lib/api/client';
 
 const authApiMock = vi.hoisted(() => ({
   refreshSession: vi.fn(),
@@ -49,12 +50,31 @@ describe('bootstrapSession', () => {
     expect(authApiMock.refreshSession).toHaveBeenCalledTimes(1);
   });
 
-  it('clears the token and returns null when refreshSession fails on a cold start', async () => {
-    authApiMock.refreshSession.mockRejectedValue(new Error('no valid refresh cookie'));
+  it('clears the token and returns null when refreshSession is definitively rejected on a cold start', async () => {
+    authApiMock.refreshSession.mockRejectedValue(
+      new ApiError(401, { code: 'UNAUTHORIZED', message: 'no valid refresh cookie', requestId: 'r', timestamp: 't' }),
+    );
 
     const result = await bootstrapSession();
 
     expect(result).toBeNull();
     expect(tokenStorage.getAccessToken()).toBeNull();
+  });
+
+  it('rethrows a transient refresh failure (network/5xx) instead of reporting "no session", so the caller retries', async () => {
+    authApiMock.refreshSession.mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(bootstrapSession()).rejects.toThrow('Failed to fetch');
+
+    authApiMock.refreshSession.mockRejectedValue(
+      new ApiError(503, { code: 'UNAVAILABLE', message: 'cold start', requestId: 'r', timestamp: 't' }),
+    );
+    await expect(bootstrapSession()).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('rethrows a transient getSession failure after a successful refresh', async () => {
+    authApiMock.refreshSession.mockResolvedValue({ accessToken: 'fresh-token', accessTokenExpiresAt: '2030-01-01T00:00:00.000Z' });
+    authApiMock.getSession.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    await expect(bootstrapSession()).rejects.toThrow('Failed to fetch');
   });
 });

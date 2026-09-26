@@ -15,5 +15,5 @@ export function Content({ className, id = 'main-content', ...props }: HTMLAttrib
   // caller needs to) -- this is the one `<main>` landmark in the app shell
   // (see `ConsultationContainer`'s own comment on not duplicating it), and
   // now the fixed target for AppShell's skip link.
-  return <main id={id} className={cn('min-h-0 flex-1 overflow-y-auto bg-canvas', className)} {...props} />;
+  return <main id={id} className={cn('min-h-0 min-w-0 flex-1 overflow-y-auto bg-canvas', className)} {...props} />;
 }

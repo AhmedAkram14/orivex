@@ -5,7 +5,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useAuth } from '@/shared/auth/auth-context';
 import { usePathname, useRouter } from '@/shared/i18n/navigation';
 import { sessionExpiredFlag } from '@/shared/auth/session-expired-flag';
-import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
+import { ShellSkeleton } from '@/shared/ui/layout/shell-skeleton';
 
 export interface RequireAuthProps {
   children: ReactNode;
@@ -45,8 +45,12 @@ export function RequireAuth({ children, redirectTo }: RequireAuthProps) {
     }
   }, [status, redirectTo, router, pathname, searchParams]);
 
+  // `loading` (session still resolving, including transient-failure retries
+  // -- see `useSessionQuery`) and `unauthenticated` (redirect in flight) both
+  // hold the shell's silhouette; "Sign in required" is only ever reached via
+  // the redirect above, once the session has definitively resolved as none.
   if (status !== 'authenticated') {
-    return <AppLoadingScreen />;
+    return <ShellSkeleton />;
   }
 
   return children;

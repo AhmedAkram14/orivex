@@ -11,6 +11,7 @@ import type { Appointment } from '@/features/patient/api/types';
 import { canJoinCall, isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
+import { isAwaitingOutcome } from '@/shared/lib/consultation/awaiting-outcome';
 import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
 import { JoinCountdown } from '@/shared/ui/consultation/join-countdown';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -27,6 +28,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
  * sense that matters here (there's no future scheduledAt to check against).
  */
 function canReschedule(appointment: Appointment): boolean {
+  if (isAwaitingOutcome(appointment)) return false;
   return (
     ((appointment.status === 'requested' || appointment.status === 'confirmed') &&
       isAppointmentStillUpcoming(appointment.scheduledAt)) ||
@@ -43,6 +45,8 @@ function canReschedule(appointment: Appointment): boolean {
  * (`cancel()`'s guard was extended to allow it).
  */
 function canCancel(appointment: Appointment): boolean {
+  // A confirmed visit that has already passed reads "Awaiting outcome" -- nothing left for the patient to cancel (see isAwaitingOutcome).
+  if (isAwaitingOutcome(appointment)) return false;
   return appointment.status === 'requested' || appointment.status === 'confirmed' || appointment.status === 'no_show';
 }
 
@@ -68,6 +72,7 @@ function cancelWillRefund(appointment: Appointment): boolean {
  * a calendar).
  */
 function canAddToCalendar(appointment: Appointment): boolean {
+  if (isAwaitingOutcome(appointment)) return false;
   return (appointment.status === 'requested' || appointment.status === 'confirmed') && isAppointmentStillUpcoming(appointment.scheduledAt);
 }
 
@@ -122,6 +127,8 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
             />
           ) : null;
 
+        const awaitingOutcome = isAwaitingOutcome(appointment);
+
         const actions =
           primaryAction || canAddToCalendar(appointment) || canReschedule(appointment) || canCancel(appointment) ? (
             <>
@@ -149,8 +156,8 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
               })}
               counterpartyName={appointment.doctorName}
               counterpartyDetail={pickLocalizedName(appointment.specialization, appointment.specializationAr, locale)}
-              status={appointment.status}
-              statusLabel={tStatus(appointment.status)}
+              status={awaitingOutcome ? 'awaiting_outcome' : appointment.status}
+              statusLabel={tStatus(awaitingOutcome ? 'awaiting_outcome' : appointment.status)}
               consultationTypeLabel={tConsultationType(appointment.consultationType)}
               actions={actions}
             />

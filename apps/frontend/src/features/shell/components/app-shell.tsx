@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const specialtyName = matchedSpecialty ? pickLocalizedName(matchedSpecialty.name, matchedSpecialty.nameAr, locale) : undefined;
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-dvh flex-col overflow-hidden">
       {/* Phase 8: "Skip to main content" -- the very first focusable element
           in the shell, before the topbar's own logo/nav triggers. Invisible
           until it receives keyboard focus (`sr-only focus:not-sr-only`,

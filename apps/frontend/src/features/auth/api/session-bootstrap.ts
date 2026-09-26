@@ -1,6 +1,24 @@
 import { authApi } from '@/features/auth/api/auth-api';
 import { tokenStorage } from '@/shared/auth/token-storage';
 import type { AuthenticatedUser } from '@/shared/auth/types';
+import { ApiError } from '@/shared/lib/api/client';
+
+/**
+ * True for a failure that says nothing about whether a session exists: a
+ * dropped connection or CORS/DNS failure (a plain `TypeError` from `fetch`),
+ * a 5xx while the backend is cold-starting or restarting, or a 408/429. Only
+ * a definite 4xx from `/auth/*` (no cookie, rotated-away/expired/revoked
+ * refresh token) means "no session". Treating a transient failure as "no
+ * session" is what flashed the "Sign in required" screen on a hard reload of
+ * an authenticated route, because `useSessionQuery` resolves `null` straight
+ * to `unauthenticated`.
+ */
+export function isTransientSessionError(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    return error.status >= 500 || error.status === 408 || error.status === 429;
+  }
+  return true;
+}
 
 /**
  * Silent session recovery: on a genuine cold start (no access token in
@@ -35,7 +53,10 @@ export async function bootstrapSession(): Promise<AuthenticatedUser | null> {
     try {
       const refreshed = await authApi.refreshSession();
       tokenStorage.setAccessToken(refreshed.accessToken, refreshed.accessTokenExpiresAt);
-    } catch {
+    } catch (error) {
+      // Transient: rethrow so the session query retries (with backoff)
+      // instead of resolving `null` and signing the visitor out.
+      if (isTransientSessionError(error)) throw error;
       tokenStorage.clear();
       return null;
     }
@@ -48,7 +69,8 @@ export async function bootstrapSession(): Promise<AuthenticatedUser | null> {
       return null;
     }
     return session.user;
-  } catch {
+  } catch (error) {
+    if (isTransientSessionError(error)) throw error;
     tokenStorage.clear();
     return null;
   }

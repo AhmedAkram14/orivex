@@ -10,7 +10,9 @@ export type AppointmentCardStatus =
   | 'cancelled'
   | 'no_show'
   | 'completed'
-  | 'expired';
+  | 'expired'
+  // Derived, not a backend enum value: a confirmed appointment whose slot has passed (see isAwaitingOutcome).
+  | 'awaiting_outcome';
 
 const badgeVariantByStatus: Record<AppointmentCardStatus, 'info' | 'warning' | 'success' | 'neutral'> = {
   requested: 'info',
@@ -20,6 +22,7 @@ const badgeVariantByStatus: Record<AppointmentCardStatus, 'info' | 'warning' | '
   no_show: 'neutral',
   completed: 'success',
   expired: 'neutral',
+  awaiting_outcome: 'neutral',
 };
 
 export interface AppointmentCardProps {

@@ -77,14 +77,14 @@ export function DoctorCard({
   return (
     <Card className={cn('relative flex h-full flex-col gap-4 rounded-2xl p-6 pb-4 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md', className)}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <Avatar size="lg" className="size-20">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar size="lg" className="size-20 shrink-0">
             {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} />}
             <AvatarFallback>{initialsOf(fullName)}</AvatarFallback>
           </Avatar>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <span className="flex items-center gap-1 text-base font-bold text-text-primary">
-              {fullName}
+              <bdi className="min-w-0 wrap-break-word">{fullName}</bdi>
               <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-primary" aria-label={t('verified')} />
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -131,28 +131,39 @@ export function DoctorCard({
 
       <span className="h-px w-full bg-border-default" aria-hidden="true" />
 
-      {consultationFeeAmount !== undefined && (
-        <div className="flex flex-col">
-          <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
-          <span className={cn('text-base font-bold', consultationFeeAmount === 0 ? 'text-success' : 'text-text-primary')}>
-            {consultationFeeAmount === 0 ? t('consultationFeeFree') : t('consultationFee', { amount: consultationFeeAmount })}
-          </span>
-        </div>
-      )}
+      {/* Always rendered so every card in a grid keeps the same footer position; a doctor with no fee on record reads "Fee on request" instead of dropping the row. */}
+      <div className="flex flex-col">
+        <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
+        <span
+          className={cn(
+            'text-base font-bold',
+            consultationFeeAmount === undefined
+              ? 'text-text-secondary'
+              : consultationFeeAmount === 0
+                ? 'text-success'
+                : 'text-text-primary',
+          )}
+        >
+          {consultationFeeAmount === undefined
+            ? t('consultationFeeOnRequest')
+            : consultationFeeAmount === 0
+              ? t('consultationFeeFree')
+              : t('consultationFee', { amount: consultationFeeAmount })}
+        </span>
+      </div>
 
       {canBookAsPatient ? (
-        <div className="mt-auto flex items-center justify-between gap-8">
-          <Link
-            href={`/patient/doctors/${doctorProfileId}`}
-            className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
-          >
-            {t('viewProfile')}
-            <Icon icon={ArrowRight} size="sm" flipRtl />
-          </Link>
-          <Button asChild size="sm" className="flex-1 gap-1.5">
+        <div className="mt-auto grid grid-cols-2 gap-2">
+          <Button asChild variant="ghost" size="sm" className="min-w-0 gap-1 text-primary-emphasis">
+            <Link href={`/patient/doctors/${doctorProfileId}`}>
+              <span className="truncate">{t('viewProfile')}</span>
+              <Icon icon={ArrowRight} size="sm" flipRtl />
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="min-w-0 gap-1.5">
             <Link href={`/patient/appointments/book?doctorId=${doctorProfileId}`}>
               <Icon icon={CalendarCheck} size="sm" />
-              {t('bookAppointment')}
+              <span className="truncate">{t('bookAppointment')}</span>
             </Link>
           </Button>
         </div>
