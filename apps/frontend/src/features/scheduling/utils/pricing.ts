@@ -22,8 +22,13 @@ export function formatConsultationPrice(
   window: Pick<AvailabilityWindowData, 'consultationType' | 'feeAmount' | 'feeCurrency'>,
   format: Formatter,
   freeLabel: string,
+  /** The doctor's normal fee: when a slot is free, say why it is free is not knowable but what it normally costs is ("Free · normally 320 EGP"). Read from the same profile field everywhere. */
+  normally?: { amount: number | undefined; currency: string; label: (price: string) => string },
 ): string {
   if (window.consultationType === 'free' || window.feeAmount === null || window.feeCurrency === null) {
+    if (normally && normally.amount !== undefined && normally.amount > 0) {
+      return `${freeLabel} · ${normally.label(formatCurrency(format, normally.amount, normally.currency))}`;
+    }
     return freeLabel;
   }
   return formatCurrency(format, window.feeAmount, window.feeCurrency);

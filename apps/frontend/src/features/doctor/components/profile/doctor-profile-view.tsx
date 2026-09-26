@@ -584,8 +584,15 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
             <CardContent className="flex flex-col gap-4 p-6">
               <Heading as="h3" level={4}>{t('contactInformation')}</Heading>
               <div className="flex flex-col gap-3">
-                <InfoRow icon={Mail} label={t('email')} value={profile.email} />
-                <InfoRow icon={Phone} label={t('phone')} value={profile.phoneNumber ?? t('notOnRecord')} />
+                {isWorkspace ? (
+                  <>
+                    <InfoRow icon={Mail} label={t('email')} value={profile.email} />
+                    <InfoRow icon={Phone} label={t('phone')} value={profile.phoneNumber ?? t('notOnRecord')} />
+                  </>
+                ) : (
+                  // A patient never sees the doctor's personal email or phone: contact stays inside ORIVEX Messages, which keeps payment, disputes and the record trail intact.
+                  <p className="text-small text-text-secondary">{t('contactViaMessages')}</p>
+                )}
                 {hospital && <InfoRow icon={Building2} label={t('clinicName')} value={hospital.name} />}
               </div>
             </CardContent>

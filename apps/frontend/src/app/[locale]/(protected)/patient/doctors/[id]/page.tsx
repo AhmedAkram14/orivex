@@ -19,10 +19,9 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
  * read-only, no PHI), backed by the public GET /doctors/:id, beside a sticky
  * booking card (desktop, inline-end column) or a pinned bar (below `lg`).
  *
- * PRIVACY QUESTION (flagged in the redesign report, not changed here): the
- * profile's contact block still shows the doctor's email and phone to
- * patients. No feature flag or policy exists to hide it, and changing what
- * data is exposed is a product decision, not a visual one.
+ * The contact block never shows the doctor's personal email or phone to a
+ * patient (decided 2026-09): contact goes through ORIVEX Messages. A separate,
+ * doctor-published "Clinic phone" field would be an API change, not built.
  */
 export default function PatientDoctorProfilePage() {
   const t = useTranslations('patient.doctors');

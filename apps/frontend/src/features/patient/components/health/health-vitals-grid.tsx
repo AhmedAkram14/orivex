@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { HealthVitalSummary, VitalType } from '@/features/patient/api/types';
-import { evaluateVital, VITAL_REFERENCE_BANDS } from '@/shared/lib/health/vital-reference-ranges';
+import { vitalBandFor, vitalStatusFor } from '@/shared/lib/health/vital-reference-ranges';
 import { VitalCard } from '@/shared/ui/health/vital-card';
 import { MetricGrid } from '@/shared/ui/metric-stat';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
@@ -59,8 +59,8 @@ export function HealthVitalsGrid({ vitals, loading = false }: HealthVitalsGridPr
               title={t(`vitals.${type}.title`)}
               latest={latest ? { valueLabel: latest.valueLabel, recordedAt: latest.recordedAt } : undefined}
               readings={readings.map((reading) => ({ value: reading.value, recordedAt: reading.recordedAt, valueLabel: reading.valueLabel }))}
-              band={type === 'weight' ? undefined : VITAL_REFERENCE_BANDS[type]}
-              status={latest ? evaluateVital(type, latest.value, latest.diastolicValue) : null}
+              band={vitalBandFor(type)}
+              status={latest ? vitalStatusFor(type, latest.value, latest.diastolicValue) : null}
               trendLabel={t(`vitals.${type}.trendLabel`)}
               emptyTitle={t(`vitals.${type}.emptyTitle`)}
               emptyDescription={t(`vitals.${type}.emptyDescription`)}

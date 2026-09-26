@@ -1161,6 +1161,7 @@
         "toastTitle": "Review flagged and removed from your profile"
       },
       "contactInformation": "Contact information",
+      "contactViaMessages": "Contact your doctor through ORIVEX Messages. Messages are not for urgent concerns.",
       "email": "Email",
       "phone": "Phone",
       "clinicName": "Clinic",
@@ -3709,6 +3710,7 @@
     "fee": "Consultation fee",
     "feeOnRequest": "Fee on request",
     "free": "Free",
+    "normally": "normally {price}",
     "nextSlot": "Next available",
     "thisSlotPrice": "This slot: {price}",
     "noSlots": "No open slots in the next two weeks",

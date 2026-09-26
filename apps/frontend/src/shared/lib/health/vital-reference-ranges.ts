@@ -109,3 +109,35 @@ export function evaluateVital(
   }
   return null;
 }
+
+/**
+ * The single, versioned switchboard for what the UI may say about a vital.
+ *
+ * Status chips and shaded bands stay OFF until a clinician signs off on the
+ * guideline ORIVEX follows (US 2025 AHA/ACC and European 2024 ESC disagree
+ * about the same blood-pressure reading) and VitalReading records whether a
+ * glucose value was fasting / after a meal / random. Until then the trend line
+ * is shown on its own. To switch them on: set `statusLabelsEnabled`, fill in
+ * `source`, and bump `version`.
+ */
+export const VITAL_RANGES = {
+  version: 1,
+  /** The guideline the constants above follow. Unset: they are legacy product constants, not yet reviewed. */
+  source: null as string | null,
+  statusLabelsEnabled: false,
+} as const;
+
+/** The band to draw for a vital, or undefined while status labels are off. */
+export function vitalBandFor(type: 'weight' | 'blood-pressure' | 'blood-sugar'): VitalReferenceBand | undefined {
+  if (!VITAL_RANGES.statusLabelsEnabled || type === 'weight') return undefined;
+  return VITAL_REFERENCE_BANDS[type];
+}
+
+/** The status chip for a reading, or null while status labels are off. */
+export function vitalStatusFor(
+  type: 'weight' | 'blood-pressure' | 'blood-sugar',
+  value: number,
+  diastolicValue?: number,
+): VitalEvaluation | null {
+  return VITAL_RANGES.statusLabelsEnabled ? evaluateVital(type, value, diastolicValue) : null;
+}

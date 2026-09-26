@@ -51,7 +51,11 @@ export function DoctorBookingCard({ doctorProfileId, consultationFeeAmount, curr
   const slotWhen = nextSlot
     ? format.dateTime(new Date(nextSlot.startTime), { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
     : undefined;
-  const slotPrice = nextSlot ? formatConsultationPrice(nextSlot, format, t('free')) : undefined;
+  const slotPrice = nextSlot ? formatConsultationPrice(nextSlot, format, t('free'), {
+        amount: consultationFeeAmount,
+        currency,
+        label: (price) => t('normally', { price }),
+      }) : undefined;
 
   const bookHref = `/patient/appointments/book?doctorId=${doctorProfileId}`;
 

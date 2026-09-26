@@ -68,3 +68,12 @@ describe('evaluateVital', () => {
     expect(evaluateVital('weight', 72)).toBeNull();
   });
 });
+
+describe('VITAL_RANGES switchboard', () => {
+  it('shows no status chip or band while labels are off, until a clinician signs off', async () => {
+    const mod = await import('./vital-reference-ranges');
+    expect(mod.VITAL_RANGES.statusLabelsEnabled).toBe(false);
+    expect(mod.vitalStatusFor('blood-pressure', 150, 95)).toBeNull();
+    expect(mod.vitalBandFor('blood-pressure')).toBeUndefined();
+  });
+});

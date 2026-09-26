@@ -40,9 +40,16 @@ Blank Reports chart; session-bootstrap flake on 5xx/408/429; Browse Doctors card
 - Hero photo retains its baked English overlay, masked with live translated labels.
 
 ## Open product questions
-1. Should doctor email/phone be visible to patients? (left unchanged — no policy flag exists)
+
 2. Free-vs-fee display rules.
 3. Clinical reference-range source — BP 90–120/60–80, glucose 70–200 are pre-existing constants; **need clinical review**.
 4. Help-card destination (currently Knowledge Center per role, else mailto).
 5. Is the patient profile-completion gate mandatory? (kept as mandatory redirect to `/patient/intake`)
 6. Cancel hidden where not permitted, and search placeholder wording — decisions made, confirm.
+
+## Product decisions applied (post-report)
+1. **Doctor contact:** email/phone no longer shown to patients; the profile says to use ORIVEX Messages. A doctor-published "Clinic phone" field is not built (needs an API change).
+2. **Fee display:** a free slot shows "Free · normally {fee}" on the booking card, reading the doctor's profile fee. The review step already showed the standard fee. Still to confirm: what makes a slot "free" — today it is a per-slot pricing type the doctor sets.
+3. **Vital ranges:** status chips and shaded bands are off. `VITAL_RANGES` in `shared/lib/health/vital-reference-ranges.ts` holds the version, source guideline and the on/off switch. The glucose fasting/after-meal/random field is not built (data-model change).
+4. **Help card:** opens the landing FAQ (`/#faq`, ends with a support contact) for every role.
+5. **Profile-completion gate:** unchanged (needs intake and validation changes plus the allergy-banner fix).

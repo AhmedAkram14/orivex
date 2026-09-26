@@ -3,7 +3,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { DoctorPatientChartVitalSummary } from '@/features/doctor/api/types';
-import { evaluateVital, VITAL_REFERENCE_BANDS } from '@/shared/lib/health/vital-reference-ranges';
+import { vitalBandFor, vitalStatusFor } from '@/shared/lib/health/vital-reference-ranges';
 import { formatRelativeTime } from '@/shared/lib/date/relative-time';
 import { Badge } from '@/shared/ui/badge';
 import { VitalCard } from '@/shared/ui/health/vital-card';
@@ -44,8 +44,8 @@ export function VitalTile({ icon, label, summary, notOnRecordLabel }: VitalTileP
         recordedAt: reading.recordedAt,
         valueLabel: reading.valueLabel,
       }))}
-      band={type === 'blood-pressure' || type === 'blood-sugar' ? VITAL_REFERENCE_BANDS[type] : undefined}
-      status={latest && type ? evaluateVital(type, latest.value, latest.diastolicValue) : null}
+      band={type ? vitalBandFor(type) : undefined}
+      status={latest && type ? vitalStatusFor(type, latest.value, latest.diastolicValue) : null}
       trendLabel={label}
       emptyTitle={notOnRecordLabel}
       emptyDescription=""
