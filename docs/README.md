@@ -37,7 +37,7 @@ Decisions
 - 14-adrs.md — Accepted Architecture Decision Records (summary; full reasoning in 06-system-architecture.md, Section 15)
 
 Frontend
-- 16-design-system.md — ORIVEX Design System: colors, typography, spacing, radius, elevation, motion, component primitives, dark mode, responsive/RTL rules (Phase 6A: Design System & UI/UX Transformation)
+- 16-design-system.md — ORIVEX Design System: colors, typography, spacing, radius, elevation, motion, component primitives, dark mode, responsive/RTL rules (Phase 6A: Design System & UI/UX Transformation) Redesign addendum (2026): tokens, primitives and per-phase report in redesign/.
 
 Resolved since the last integrity review
 - Phase 4 is no longer merged into 05-information-architecture.md — it now lives in its own file, 06-system-architecture.md, with the corrupted paste-artifact text removed and no other content altered.
