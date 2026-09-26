@@ -6,7 +6,7 @@ import { AppProviders } from '@/shared/providers/app-providers';
 import { MockProvider } from '@/shared/providers/mock-provider';
 import { ServiceWorkerRegistration } from '@/shared/providers/service-worker-registration';
 import { ThemeScript } from '@/shared/providers/theme-provider';
-import { plexSansArabic, plexSansLatin } from '@/design-system/fonts';
+import { outfitDisplay, plexSansArabic, plexSansLatin } from '@/design-system/fonts';
 import { routing, isRtlLocale, type AppLocale } from '@/shared/i18n/routing';
 import { buildPageMetadata } from '@/shared/lib/seo';
 
@@ -46,7 +46,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={isRtlLocale(locale) ? 'rtl' : 'ltr'}
-      className={`${plexSansLatin.variable} ${plexSansArabic.variable}`}
+      className={`${plexSansLatin.variable} ${plexSansArabic.variable} ${outfitDisplay.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -1,109 +1,183 @@
 /*
- * UX Reliability Pass -- dark-mode contrast audit: every `--color-X-subtle`
- * background below is overridden to a saturated near-black tint of that
- * SAME hue (e.g. primary-subtle -> brand-900, a dark blue), but the base
- * `--color-X` text/icon token was never overridden, so anything pairing
- * `text-X` on `bg-X-subtle` (badges, active nav, icon tiles, booked-slot
- * state, accent cards) rendered as low-contrast color-on-itself in dark
- * mode. Measured (WCAG relative-luminance contrast ratio, X-600 text on
- * X-900 background): primary/info ~2.0:1, success ~2.6:1, warning ~2.8:1,
- * danger ~2.1:1 -- ALL fail even the 3:1 UI-component minimum, let alone
- * 4.5:1 for text. The `-emphasis` tokens below (X-300 in dark mode) fix
- * every one of them to 5.2-6.4:1, comfortably clearing AA text contrast,
- * without touching `--color-X` itself (solid buttons/links stay exactly as
- * they were -- white text on a saturated -600 background was never the
- * problem here).
- *
  * Dark values for the semantic tokens declared in colors.css's @theme block.
+ * No pure black: canvas #0b1112, then surface steps (surface -> surface-2 ->
+ * surface-raised) carry elevation, with a 1px border instead of shadows.
  *
- * This is the token LAYER only (roadmap Phase 1's Definition of Done). It does
- * NOT implement a toggle, persistence, or a `useTheme()` hook — that mechanism
- * is Phase 24 (Dark Mode) in docs/roadmaps/frontend-master-plan.md. Phase 24's
- * only job will be to stamp `data-theme="dark"` / `data-theme="light"` onto
- * <html>; every value it needs already exists here.
+ * Status and category colours use ~14% tints (pulse and warm 12%) with the
+ * full-strength hue as text, so a chip/badge/icon tile is never a solid
+ * saturated disc. Every `-emphasis` text token holds >= 4.5:1 on its own
+ * tint (measured: success 7.6, warning 7.9, danger 5.3, info 5.5).
  *
- * Two selectors, deliberately not nested inside each other:
- *   - `@media (prefers-color-scheme: dark)` — respects the OS/browser
- *     preference before any explicit user choice exists (i.e. today, since
- *     Phase 24 hasn't shipped a toggle yet).
- *   - `:root[data-theme='dark']` — the explicit override Phase 24 will set.
- * The media-query block excludes `[data-theme='light']` so that once Phase 24
- * exists, an explicit light choice can still win over a dark OS preference.
- * Both selectors have equal, higher-than-`:root`-alone specificity, so which
- * one "wins" never depends on source order — see the code comment in
- * colors.css for why that matters here.
+ * Two selectors, deliberately not nested inside each other, and kept
+ * IDENTICAL (generated from one map -- edit both blocks together):
+ *   - `@media (prefers-color-scheme: dark)` follows the OS until the user
+ *     makes an explicit choice; it excludes `[data-theme='light']` so an
+ *     explicit light choice still wins over a dark OS preference.
+ *   - `:root[data-theme='dark']` is the explicit override ThemeProvider sets.
  */
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* The light-blue gradient stops read as muddy/wrong on a dark ground -- dark mode keeps the flat --color-canvas body background instead. */
-    --gradient-canvas: none;
-    --color-canvas: var(--gray-950);
-    --color-surface: var(--gray-900);
-    --color-surface-raised: var(--gray-800);
-    --color-overlay: rgb(0 0 0 / 0.7);
-
-    --color-text-primary: var(--gray-50);
-    --color-text-secondary: var(--gray-300);
-    --color-text-tertiary: var(--gray-400);
-    --color-text-disabled: var(--gray-600);
-    --color-text-inverse: var(--gray-900);
-
+    --color-canvas: #0b1112;
+    --color-surface: #121a1c;
+    --color-surface-raised: #1e2a27;
+    --color-surface-2: #18221f;
+    --color-overlay: rgb(0 0 0 / 0.65);
+    --color-text-primary: #eef2ef;
+    --color-text-secondary: #c4ccc8;
+    --color-text-tertiary: #9aa6a2;
+    --color-text-disabled: #5f6b67;
+    --color-text-inverse: #0f1c1b;
+    --color-border-default: #26312f;
+    --color-border-strong: #5d6a66;
+    --color-border-focus: #5b95ff;
+    --color-primary: #eef2ef;
+    --color-primary-hover: #ffffff;
+    --color-primary-active: #d5dbd7;
+    --color-primary-subtle: #232f2c;
+    --color-primary-foreground: #0f1c1b;
+    --color-primary-emphasis: #eef2ef;
+    --color-secondary: #2b3835;
+    --color-secondary-hover: #34433f;
+    --color-secondary-subtle: #18221f;
+    --color-secondary-foreground: #eef2ef;
+    --color-success: #4ade80;
+    --color-success-subtle: #1a352a;
+    --color-success-foreground: #0f1c1b;
+    --color-success-emphasis: #4ade80;
+    --color-warning: #fbbf24;
+    --color-warning-subtle: #33311d;
+    --color-warning-foreground: #0f1c1b;
+    --color-warning-emphasis: #fbbf24;
+    --color-danger: #f87171;
+    --color-danger-subtle: #322628;
+    --color-danger-foreground: #0f1c1b;
+    --color-danger-emphasis: #f87171;
+    --color-info: #60a5fa;
+    --color-info-subtle: #1d2d3b;
+    --color-info-foreground: #0f1c1b;
+    --color-info-emphasis: #60a5fa;
+    --color-neutral: #9aa6a2;
+    --color-neutral-subtle: #1f2b28;
+    --color-neutral-foreground: #0f1c1b;
+    --color-pulse: #c8e85a;
+    --color-pulse-foreground: #0f1c1b;
+    --color-pulse-subtle: #283323;
+    --color-care: #5b95ff;
+    --color-care-text: #7aa8ff;
+    --color-care-subtle: #1c2b3c;
+    --color-warm-1: #2e2c29;
+    --color-warm-2: #2e282d;
     --color-accent-pink: #f472b6;
-    --color-accent-pink-subtle: #4a1d36;
+    --color-accent-pink-subtle: #322632;
     --color-accent-purple: #a78bfa;
-    --color-accent-purple-subtle: #2f2557;
-
-    --color-border-default: var(--gray-800);
-    --color-border-strong: var(--gray-700);
-
-    --color-primary-subtle: var(--brand-900);
-    --color-primary-emphasis: var(--brand-300);
-    --color-secondary-subtle: var(--gray-800);
-    --color-success-subtle: var(--success-900);
-    --color-success-emphasis: var(--success-300);
-    --color-warning-subtle: var(--warning-900);
-    --color-warning-emphasis: var(--warning-300);
-    --color-danger-subtle: var(--danger-900);
-    --color-danger-emphasis: var(--danger-300);
-    --color-info-subtle: var(--info-900);
-    --color-info-emphasis: var(--info-300);
-    --color-neutral-subtle: var(--gray-800);
-    --color-cta-surface: var(--gray-800);
+    --color-accent-purple-subtle: #272a3b;
+    --color-focus-ring: #5b95ff;
+    --color-cta-surface: #18221f;
+    --color-spec-1: #ff8a80;
+    --color-spec-2: #7fa8ff;
+    --color-spec-3: #5eead4;
+    --color-spec-4: #b79cff;
+    --color-spec-5: #ffb066;
+    --color-spec-6: #ff8fc0;
+    --color-spec-7: #b5e05a;
+    --color-spec-8: #6fd0f5;
+    --color-spec-9: #e3cf85;
+    --color-spec-1-tint: #332a2a;
+    --color-spec-2-tint: #212e3c;
+    --color-spec-3-tint: #1d3736;
+    --color-spec-4-tint: #292c3c;
+    --color-spec-5-tint: #332f26;
+    --color-spec-6-tint: #332a33;
+    --color-spec-7-tint: #293625;
+    --color-spec-8-tint: #1f333a;
+    --color-spec-9-tint: #2f332b;
+    --shadow-xs: none;
+    --shadow-sm: none;
+    --shadow-md: 0 0 0 1px #26312f;
+    --shadow-lg: 0 0 0 1px #26312f;
+    --shadow-xl: 0 0 0 1px #26312f;
   }
 }
 
 :root[data-theme='dark'] {
-  --gradient-canvas: none;
-  --color-canvas: var(--gray-950);
-  --color-surface: var(--gray-900);
-  --color-surface-raised: var(--gray-800);
-  --color-overlay: rgb(0 0 0 / 0.7);
-
-  --color-text-primary: var(--gray-50);
-  --color-text-secondary: var(--gray-300);
-  --color-text-tertiary: var(--gray-400);
-  --color-text-disabled: var(--gray-600);
-  --color-text-inverse: var(--gray-900);
+  --color-canvas: #0b1112;
+  --color-surface: #121a1c;
+  --color-surface-raised: #1e2a27;
+  --color-surface-2: #18221f;
+  --color-overlay: rgb(0 0 0 / 0.65);
+  --color-text-primary: #eef2ef;
+  --color-text-secondary: #c4ccc8;
+  --color-text-tertiary: #9aa6a2;
+  --color-text-disabled: #5f6b67;
+  --color-text-inverse: #0f1c1b;
+  --color-border-default: #26312f;
+  --color-border-strong: #5d6a66;
+  --color-border-focus: #5b95ff;
+  --color-primary: #eef2ef;
+  --color-primary-hover: #ffffff;
+  --color-primary-active: #d5dbd7;
+  --color-primary-subtle: #232f2c;
+  --color-primary-foreground: #0f1c1b;
+  --color-primary-emphasis: #eef2ef;
+  --color-secondary: #2b3835;
+  --color-secondary-hover: #34433f;
+  --color-secondary-subtle: #18221f;
+  --color-secondary-foreground: #eef2ef;
+  --color-success: #4ade80;
+  --color-success-subtle: #1a352a;
+  --color-success-foreground: #0f1c1b;
+  --color-success-emphasis: #4ade80;
+  --color-warning: #fbbf24;
+  --color-warning-subtle: #33311d;
+  --color-warning-foreground: #0f1c1b;
+  --color-warning-emphasis: #fbbf24;
+  --color-danger: #f87171;
+  --color-danger-subtle: #322628;
+  --color-danger-foreground: #0f1c1b;
+  --color-danger-emphasis: #f87171;
+  --color-info: #60a5fa;
+  --color-info-subtle: #1d2d3b;
+  --color-info-foreground: #0f1c1b;
+  --color-info-emphasis: #60a5fa;
+  --color-neutral: #9aa6a2;
+  --color-neutral-subtle: #1f2b28;
+  --color-neutral-foreground: #0f1c1b;
+  --color-pulse: #c8e85a;
+  --color-pulse-foreground: #0f1c1b;
+  --color-pulse-subtle: #283323;
+  --color-care: #5b95ff;
+  --color-care-text: #7aa8ff;
+  --color-care-subtle: #1c2b3c;
+  --color-warm-1: #2e2c29;
+  --color-warm-2: #2e282d;
   --color-accent-pink: #f472b6;
-  --color-accent-pink-subtle: #4a1d36;
+  --color-accent-pink-subtle: #322632;
   --color-accent-purple: #a78bfa;
-  --color-accent-purple-subtle: #2f2557;
-
-  --color-border-default: var(--gray-800);
-  --color-border-strong: var(--gray-700);
-
-  --color-primary-subtle: var(--brand-900);
-  --color-primary-emphasis: var(--brand-300);
-  --color-secondary-subtle: var(--gray-800);
-  --color-success-subtle: var(--success-900);
-  --color-success-emphasis: var(--success-300);
-  --color-warning-subtle: var(--warning-900);
-  --color-warning-emphasis: var(--warning-300);
-  --color-danger-subtle: var(--danger-900);
-  --color-danger-emphasis: var(--danger-300);
-  --color-info-subtle: var(--info-900);
-  --color-info-emphasis: var(--info-300);
-  --color-neutral-subtle: var(--gray-800);
-  --color-cta-surface: var(--gray-800);
+  --color-accent-purple-subtle: #272a3b;
+  --color-focus-ring: #5b95ff;
+  --color-cta-surface: #18221f;
+  --color-spec-1: #ff8a80;
+  --color-spec-2: #7fa8ff;
+  --color-spec-3: #5eead4;
+  --color-spec-4: #b79cff;
+  --color-spec-5: #ffb066;
+  --color-spec-6: #ff8fc0;
+  --color-spec-7: #b5e05a;
+  --color-spec-8: #6fd0f5;
+  --color-spec-9: #e3cf85;
+  --color-spec-1-tint: #332a2a;
+  --color-spec-2-tint: #212e3c;
+  --color-spec-3-tint: #1d3736;
+  --color-spec-4-tint: #292c3c;
+  --color-spec-5-tint: #332f26;
+  --color-spec-6-tint: #332a33;
+  --color-spec-7-tint: #293625;
+  --color-spec-8-tint: #1f333a;
+  --color-spec-9-tint: #2f332b;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: 0 0 0 1px #26312f;
+  --shadow-lg: 0 0 0 1px #26312f;
+  --shadow-xl: 0 0 0 1px #26312f;
 }

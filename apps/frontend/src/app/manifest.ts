@@ -13,8 +13,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Orivex healthcare platform — book and manage consultations with verified doctors.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f9fafb',
-    theme_color: '#2563eb',
+    background_color: '#eff1ec',
+    theme_color: '#0f1c1b',
     icons: [
       {
         src: '/logo-transparent.png',

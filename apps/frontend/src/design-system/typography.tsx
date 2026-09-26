@@ -10,7 +10,7 @@ interface PolymorphicProps {
 /** Large marketing/hero-scale text. Rare — most screens should reach for Heading. */
 export function Display({ as: Component = 'h1', className, children }: PolymorphicProps) {
   return (
-    <Component className={cn('text-4xl font-bold tracking-tight text-primary', className)}>
+    <Component className={cn('font-display text-display text-text-primary', className)}>
       {children}
     </Component>
   );
@@ -21,10 +21,10 @@ interface HeadingProps extends PolymorphicProps {
 }
 
 const headingSizeByLevel: Record<NonNullable<HeadingProps['level']>, string> = {
-  1: 'text-3xl font-semibold tracking-tight',
-  2: 'text-2xl font-semibold tracking-tight',
-  3: 'text-xl font-semibold',
-  4: 'text-lg font-semibold',
+  1: 'font-display text-h1',
+  2: 'font-display text-h2',
+  3: 'text-h3',
+  4: 'text-body font-semibold',
 };
 
 /** Section/page headings. `level` controls visual size; `as` controls the semantic tag — they are independent so visual hierarchy never forces an incorrect heading nesting order. */
@@ -43,8 +43,8 @@ interface TextProps extends PolymorphicProps {
 }
 
 const textSizeClass: Record<NonNullable<TextProps['size']>, string> = {
-  sm: 'text-sm',
-  base: 'text-base',
+  sm: 'text-small',
+  base: 'text-body',
   lg: 'text-lg',
 };
 
@@ -66,7 +66,7 @@ export function Text({ as: Component = 'p', size = 'base', tone = 'primary', cla
 /** Small supporting text — captions, hints, metadata. */
 export function Caption({ as: Component = 'span', className, children }: PolymorphicProps) {
   return (
-    <Component className={cn('text-xs text-text-tertiary', className)}>{children}</Component>
+    <Component className={cn('text-caption text-text-tertiary', className)}>{children}</Component>
   );
 }
 

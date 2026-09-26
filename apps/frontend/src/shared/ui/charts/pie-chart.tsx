@@ -1,7 +1,7 @@
 'use client';
 
 import { Cell, Legend, Pie, PieChart as RechartsPieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { CHART_GRID_COLOR, CHART_SERIES_COLORS } from '@/shared/ui/charts/chart-colors';
+import { CHART_SERIES_COLORS, CHART_TOOLTIP_STYLE } from '@/shared/ui/charts/chart-colors';
 
 export interface PieSlice {
   name: string;
@@ -25,7 +25,7 @@ export function PieChart({ data, height = 260, innerRadius = 0 }: PieChartProps)
             <Cell key={entry.name} fill={CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]} stroke="var(--color-surface)" strokeWidth={2} />
           ))}
         </Pie>
-        <Tooltip contentStyle={{ background: 'var(--color-surface)', border: `1px solid ${CHART_GRID_COLOR}`, borderRadius: 8 }} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         <Legend />
       </RechartsPieChart>
     </ResponsiveContainer>

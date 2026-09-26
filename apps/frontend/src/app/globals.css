@@ -108,3 +108,23 @@ body {
     display: none !important;
   }
 }
+
+/* Skeleton: a content-shaped placeholder with a 1.4s shimmer band. Static (no
+   animation, flat fill) under `prefers-reduced-motion`. */
+.skeleton {
+  background-color: var(--color-border-default);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-surface) 55%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}

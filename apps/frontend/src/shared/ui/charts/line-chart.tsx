@@ -1,7 +1,7 @@
 'use client';
 
 import { CartesianGrid, Line, LineChart as RechartsLineChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHART_AXIS_COLOR, CHART_GRID_COLOR, CHART_SERIES_COLORS } from '@/shared/ui/charts/chart-colors';
+import { CHART_AXIS_COLOR, CHART_GRID_COLOR, CHART_SERIES_COLORS, CHART_TOOLTIP_STYLE } from '@/shared/ui/charts/chart-colors';
 
 export interface ChartSeries {
   key: string;
@@ -23,7 +23,7 @@ export function LineChart({ data, xKey, series, height = 260 }: LineChartProps) 
         <CartesianGrid stroke={CHART_GRID_COLOR} strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey={xKey} stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
-        <Tooltip contentStyle={{ background: 'var(--color-surface)', border: `1px solid ${CHART_GRID_COLOR}`, borderRadius: 8 }} />
+        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
         {series.length > 1 && <Legend />}
         {series.map((item, index) => (
           <Line

@@ -1,167 +1,140 @@
 /*
- * Color tokens — two layers, deliberately kept separate:
+ * Color tokens -- "Calm clinic, living pulse" (visual redesign, Phase 2).
  *
- * 1. Primitives (plain :root custom properties): the raw color palette.
- *    Feature/component code must NEVER reference these directly
- *    (e.g. never `bg-[var(--brand-600)]`) — they exist only to back the
- *    semantic layer below. This is what makes white-labeling (a future
- *    per-tenant palette swap, roadmap Phase 19) a token-file change
- *    instead of a component rewrite.
+ * One semantic layer, declared inside @theme so Tailwind generates the
+ * utilities (`bg-surface`, `text-text-tertiary`, `border-border-default`, ...).
+ * Components only ever reference these names -- never a hex value. There is no
+ * separate primitive layer any more: nothing consumed it (verified by grep),
+ * and a second indirection made the palette harder to audit than to change.
  *
- * 2. Semantic tokens (inside @theme, so Tailwind generates utilities like
- *    `bg-primary`, `text-primary`, `border-default`): the only color
- *    vocabulary components are allowed to use.
+ * Canvas is a warm neutral. Primary actions are confident ink. ONE living
+ * accent -- the vital-lime "pulse" -- marks what is happening now (today, live,
+ * the active item, progress). The logo's care blue stays the trust/info/link
+ * colour.
  *
- * Dark values are defined once, in theme-dark.css, and override these same
- * semantic variable names — see that file's comment for why light and dark
- * are split into a separate file rather than nested here.
+ * Contrast (measured, WCAG relative luminance):
+ *   text-primary   #0F1C1B on canvas  15.4:1     text-secondary #4B5754 on canvas 6.6:1
+ *   text-tertiary  #5B6663 on canvas   5.2:1     care-text      #1159E0 on canvas 5.2:1
+ *   ink on pulse   14.1:1  --  pulse is an accent FILL only. Never use it as text
+ *   on a light surface (1.24:1); the text on a pulse fill is always ink.
+ *   border-strong  #878F8B on surface  3.3:1 (WCAG 1.4.11 for control boundaries);
+ *   border-default is a decorative hairline.
+ *
+ * Dark values live in theme-dark.css and override these same names.
  */
 
-:root {
-  --gray-0: #ffffff;
-  --gray-50: #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-300: #d1d5db;
-  --gray-400: #9ca3af;
-  --gray-500: #6b7280;
-  --gray-550: #5f6672; /* between 500 and 600: keeps tertiary text >= 4.5:1 on gray-100 surfaces (500 is 4.39:1) */
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
-  --gray-950: #030712;
+@theme static {
+  --color-canvas: #eff1ec;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  /* Inset rows, table headers, quiet fills. */
+  --color-surface-2: #f6f7f3;
+  --color-overlay: rgb(15 28 27 / 0.5);
 
-  --brand-50: #eff6ff;
-  --brand-100: #dbeafe;
-  --brand-300: #93c5fd;
-  --brand-500: #3b82f6;
-  --brand-600: #2563eb;
-  --brand-700: #1d4ed8;
-  --brand-800: #1e40af;
-  --brand-900: #1e3a8a;
+  --color-text-primary: #0f1c1b;
+  --color-text-secondary: #4b5754;
+  --color-text-tertiary: #5b6663;
+  --color-text-disabled: #9aa09f;
+  --color-text-inverse: #ffffff;
 
-  --success-50: #ecfdf5;
-  --success-300: #6ee7b7;
-  --success-600: #059669;
-  --success-900: #064e3b;
+  --color-border-default: #e1e4de;
+  --color-border-strong: #878f8b;
+  --color-border-focus: #1466f5;
 
-  --warning-50: #fffbeb;
-  --warning-300: #fcd34d;
-  --warning-600: #d97706;
-  --warning-900: #78350f;
+  /* Ink is the primary action colour. Hover is a touch lighter (a near-black
+     can't get "darker" in any way the eye reads). */
+  --color-primary: #0f1c1b;
+  --color-primary-hover: #26332f;
+  --color-primary-active: #050b0a;
+  --color-primary-subtle: #e6e9e2;
+  --color-primary-foreground: #ffffff;
+  --color-primary-emphasis: #0f1c1b;
 
-  --danger-50: #fef2f2;
-  --danger-300: #fca5a5;
-  --danger-600: #dc2626;
-  --danger-900: #7f1d1d;
+  --color-secondary: #3a4744;
+  --color-secondary-hover: #2a3532;
+  --color-secondary-subtle: #f6f7f3;
+  --color-secondary-foreground: #ffffff;
 
-  --info-50: #eff6ff;
-  --info-300: #93c5fd;
-  --info-600: #2563eb;
-  --info-900: #1e3a8a;
+  --color-success: #15803d;
+  --color-success-subtle: #dcfce7;
+  --color-success-foreground: #ffffff;
+  --color-success-emphasis: #166534;
 
-  /* Canvas-gradient stops -- backs --gradient-canvas below only. Not a
-     semantic color (no single "this means X" reading), so it stays a
-     primitive rather than living in the @theme block, which expects a
-     flat color per token, not a multi-stop composite. */
-  --canvas-gradient-a: #eaf2ff;
-  --canvas-gradient-b: #f5f9ff;
-  --canvas-gradient-c: #f8faff;
+  --color-warning: #b45309;
+  --color-warning-subtle: #fef3c7;
+  --color-warning-foreground: #0f1c1b;
+  --color-warning-emphasis: #92400e;
 
-  /* CTA section's own light-mode surface -- lighter/bluer than the generic
-     --gray-100 secondary-subtle scale, so it stays a dedicated primitive
-     rather than being folded into that scale. */
-  --cta-surface-light: #e9effd;
-}
+  --color-danger: #b91c1c;
+  --color-danger-subtle: #fee2e2;
+  --color-danger-foreground: #ffffff;
+  --color-danger-emphasis: #991b1b;
 
-@theme {
-  --color-canvas: var(--gray-50);
-  --color-surface: var(--gray-0);
-  --color-surface-raised: var(--gray-0);
-  --color-overlay: rgb(0 0 0 / 0.5);
+  --color-info: #1d4ed8;
+  --color-info-subtle: #dbeafe;
+  --color-info-foreground: #ffffff;
+  --color-info-emphasis: #1e40af;
 
-  --color-text-primary: var(--gray-900);
-  --color-text-secondary: var(--gray-600);
-  --color-text-tertiary: var(--gray-550);
-  --color-text-disabled: var(--gray-400);
-  --color-text-inverse: var(--gray-0);
+  --color-neutral: #4b5754;
+  --color-neutral-subtle: #eceee8;
+  --color-neutral-foreground: #ffffff;
 
-  --color-border-default: var(--gray-200);
-  --color-border-strong: var(--gray-300);
-  --color-border-focus: var(--brand-500);
+  /* The pulse: accent FILLS only (active nav, live badge, today marker,
+     progress). `pulse-subtle` is the ~16% wash used behind an active item. */
+  --color-pulse: #d8f36a;
+  --color-pulse-foreground: #0f1c1b;
+  --color-pulse-subtle: #ebf1d7;
 
-  --color-primary: var(--brand-600);
-  --color-primary-hover: var(--brand-700);
-  --color-primary-active: var(--brand-800);
-  --color-primary-subtle: var(--brand-50);
-  --color-primary-foreground: var(--gray-0);
-  /* "On subtle background" text/icon color -- deliberately decoupled from
-     --color-primary itself (which also backs solid buttons/links and must
-     stay unchanged there). Equal to the base color in light mode; overridden
-     brighter in dark mode (theme-dark.css) since --color-primary-subtle's
-     dark value is a saturated near-black tint of the SAME hue as the base
-     color, which otherwise renders as low-contrast color-on-itself. See
-     that file's comment for the measured contrast ratios. */
-  --color-primary-emphasis: var(--brand-600);
+  /* Care blue: links, the focus ring, the video CTA. `care-text` is the
+     slightly deeper step that holds 4.5:1 on canvas. */
+  --color-care: #1466f5;
+  --color-care-text: #1159e0;
+  --color-care-subtle: #e3edff;
 
-  --color-secondary: var(--gray-700);
-  --color-secondary-hover: var(--gray-800);
-  --color-secondary-subtle: var(--gray-100);
-  --color-secondary-foreground: var(--gray-0);
-
-  --color-success: var(--success-600);
-  --color-success-subtle: var(--success-50);
-  --color-success-foreground: var(--gray-0);
-  /* Security Center audit: text-success-emphasis on bg-success-subtle (the
-     Badge/Alert "success" variant) measured ~3.6:1 with the -600 step --
-     below WCAG AA's 4.5:1 for normal-size text. The -900 step keeps the
-     same hue and clears 9:1+ against -50, with no dark-mode change needed
-     (theme-dark.css already pairs -300 text on a -900 background). Applies
-     everywhere this token is used (Badge, Alert, and other status text),
-     not just the Security Center page it was caught on. */
-  --color-success-emphasis: var(--success-900);
-
-  --color-warning: var(--warning-600);
-  --color-warning-subtle: var(--warning-50);
-  --color-warning-foreground: var(--gray-900);
-  --color-warning-emphasis: var(--warning-900);
-
-  --color-danger: var(--danger-600);
-  --color-danger-subtle: var(--danger-50);
-  --color-danger-foreground: var(--gray-0);
-  --color-danger-emphasis: var(--danger-900);
-
-  --color-info: var(--info-600);
-  --color-info-subtle: var(--info-50);
-  --color-info-foreground: var(--gray-0);
-  --color-info-emphasis: var(--info-900);
-
-  --color-neutral: var(--gray-600);
-  --color-neutral-subtle: var(--gray-100);
-  --color-neutral-foreground: var(--gray-0);
+  /* Patient-surface warmth -- the HeroSurface gradient only. */
+  --color-warm-1: #ffe3d3;
+  --color-warm-2: #ffd1dc;
 
   /* Categorical accents (no status meaning): the Schedule calendar colours
-     appointments by visit type, which needs a pink and a purple the status
-     palette above does not have. */
-  --color-accent-pink: #db2777;
+     appointments by visit type. */
+  --color-accent-pink: #be185d;
   --color-accent-pink-subtle: #fce7f3;
-  --color-accent-purple: #7c3aed;
+  --color-accent-purple: #6d28d9;
   --color-accent-purple-subtle: #ede9fe;
 
-  --color-focus-ring: var(--brand-500);
+  --color-focus-ring: #1466f5;
 
-  --color-cta-surface: var(--cta-surface-light);
+  --color-cta-surface: #e4e9dc;
+
+  /*
+   * Specialty palette: nine fixed categorical hues (tint + glyph), keyed by
+   * specialty in `shared/lib/specialty-palette.ts`. Chips and icon tiles ONLY,
+   * identical on the landing page, the doctor directory and the specialties
+   * page. Each glyph holds >= 4.5:1 on its own tint.
+   */
+  --color-spec-1: #b4231f;
+  --color-spec-1-tint: #fde7e4;
+  --color-spec-2: #1d4ed8;
+  --color-spec-2-tint: #e0eaff;
+  --color-spec-3: #0f766e;
+  --color-spec-3-tint: #d9f3ef;
+  --color-spec-4: #6d28d9;
+  --color-spec-4-tint: #ece5fd;
+  --color-spec-5: #a3470a;
+  --color-spec-5-tint: #fdebd3;
+  --color-spec-6: #be185d;
+  --color-spec-6-tint: #fce4ee;
+  --color-spec-7: #3f6212;
+  --color-spec-7-tint: #e6f2c9;
+  --color-spec-8: #0e6a8f;
+  --color-spec-8-tint: #dcf0f8;
+  --color-spec-9: #5b4a1a;
+  --color-spec-9-tint: #f2ead0;
 }
 
-/* Plain custom property, not inside @theme -- Tailwind's @theme block
-   generates single-color utilities per token; this is a multi-stop
-   `background-image` composite, not a color, so it's consumed directly
-   (`background-image: var(--gradient-canvas)`) rather than through a
-   `bg-*` utility class. Dark mode clears this back to `none` in
-   theme-dark.css -- these exact light-blue stops are light-theme only. */
+/* The canvas is a flat warm neutral now (the old radial blue wash is gone).
+   Kept as a variable because `body` still reads it and the landing page
+   layers its own gradient over it. */
 :root {
-  --gradient-canvas: radial-gradient(circle at 80% 30%, var(--canvas-gradient-a) 0%, transparent 35%),
-    radial-gradient(circle at 15% 85%, var(--canvas-gradient-b) 0%, transparent 30%),
-    linear-gradient(180deg, var(--gray-0) 0%, var(--canvas-gradient-c) 100%);
+  --gradient-canvas: none;
 }

@@ -1,46 +1,65 @@
 /*
- * Non-color scale tokens: spacing, radius, shadow, opacity, motion, z-index,
- * breakpoints.
+ * Non-color scale tokens: spacing, radius, elevation, density, opacity,
+ * motion, z-index, breakpoints.
  *
  * Spacing and breakpoints deliberately reuse Tailwind v4's own built-in
- * scales (--spacing base unit, and the default sm/md/lg/xl/2xl breakpoint
- * values of 640/768/1024/1280/1536px) rather than redefining a parallel
- * scale that could silently drift from what `p-4`, `md:flex`, etc. actually
- * produce. Radius, shadow, and font-weight are redeclared explicitly below
- * so this file is the one place that documents the full scale.
+ * scales (4pt --spacing base unit; sm/md/lg/xl/2xl = 640/768/1024/1280/1536px)
+ * rather than redefining a parallel scale that could silently drift from what
+ * `p-4`, `md:flex`, etc. actually produce.
  *
- * Opacity, motion, and z-index are exposed as plain CSS custom properties,
- * not inside @theme — Tailwind v4 already ships its own generic opacity and
- * z-index utilities (opacity-0..100, z-0/10/20/.../50/auto) for arbitrary use;
- * these named tokens exist for the *semantic* levels this design system
- * actually needs (e.g. --z-dialog, not "z-40"), consumed via Tailwind's
- * arbitrary-value syntax, e.g. `z-[var(--z-dialog)]`.
+ * Opacity, motion, density and z-index are plain CSS custom properties, not
+ * inside @theme -- Tailwind already ships generic utilities for those; these
+ * names exist for the *semantic* levels this design system needs, consumed via
+ * arbitrary-value syntax (`duration-(--duration-fast)`, `p-(--card-pad)`).
  */
 
 @theme {
+  /*
+   * Radius -- five values, and only five. The Tailwind scale is collapsed onto
+   * them so every existing `rounded-*` utility lands on a token:
+   *   10px  --r-sm       compact controls, small inset elements
+   *   12px  --r-control  buttons, inputs, selects
+   *   20px  --r-card     cards, panels, dialogs
+   *   28px  --r-hero     the one hero surface per page
+   *   pill  --r-pill     chips, badges, filters, avatars ONLY
+   */
   --radius-none: 0px;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
+  --radius-xs: 10px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-3xl: 28px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  /* Elevation (light). Dark mode replaces these with surface steps + a 1px
+     border (theme-dark.css). `lg`/`xl` are aliases of `md` so legacy utilities
+     stay on the three-step scale. */
+  --shadow-xs: 0 1px 2px rgb(15 28 27 / 0.05);
+  --shadow-sm: 0 2px 8px -2px rgb(15 28 27 / 0.08);
+  --shadow-md: 0 12px 32px -12px rgb(15 28 27 / 0.18);
+  --shadow-lg: 0 12px 32px -12px rgb(15 28 27 / 0.18);
+  --shadow-xl: 0 12px 32px -12px rgb(15 28 27 / 0.18);
 
-  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-decelerate: cubic-bezier(0, 0, 0, 1);
   --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
 
-  /* AppLoadingScreen's own two decorative loops (brand glow + traveling
-     loading bar) — kept as named tokens rather than inline Tailwind
-     arbitrary values so both consumers (component + its
-     prefers-reduced-motion override below) reference the same names. */
   --animate-glow-pulse: glow-pulse 3.2s var(--ease-standard) infinite;
   --animate-loading-bar: loading-bar 1.3s var(--ease-standard) infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-pulse-draw: pulse-draw 1.6s var(--ease-standard) forwards;
+  --animate-pulse-live: pulse-live 1.8s ease-out infinite;
+  --animate-pulse-loop: pulse-loop 2.2s linear infinite;
+  --animate-sheet-up: sheet-up var(--duration-slow) var(--ease-standard) both;
+  --animate-toast-progress: toast-progress var(--toast-duration, 4s) linear forwards;
+  --animate-draw-in: pulse-draw 500ms var(--ease-standard) both;
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-standard) both;
+  --animate-pop-in: pop-in var(--duration-slow) var(--ease-standard) both;
+  --animate-slide-in-end: slide-in-end var(--duration-slow) var(--ease-standard) both;
+  --animate-ring-once: ring-once 700ms ease-out 1;
+  --animate-bell-tilt: bell-tilt 600ms var(--ease-standard) 1;
 }
 
 @keyframes glow-pulse {
@@ -67,22 +86,155 @@
   }
 }
 
+/* Skeleton shimmer: a highlight band travelling across a `.skeleton` element. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* PulseLine `animated`: the ECG path draws itself (pathLength is normalised to 1). */
+@keyframes pulse-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* PulseLine `live`: draws, holds, then fades and restarts. */
+@keyframes pulse-loop {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  85% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+}
+
+/* The live dot's expanding ring. */
+@keyframes pulse-live {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Enters from the inline-end edge (right in LTR, left in RTL). */
+@keyframes slide-in-end {
+  from {
+    opacity: 0;
+    transform: translateX(calc(16px * var(--dir, 1)));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* StatusBadge: a one-shot soft ring when the status changes. */
+@keyframes ring-once {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 35%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes bell-tilt {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  35% {
+    transform: rotate(6deg);
+  }
+  70% {
+    transform: rotate(-4deg);
+  }
+}
+
 :root {
-  /* Opacity — semantic levels beyond Tailwind's default opacity-* scale */
-  --opacity-disabled: 0.5;
+  --r-sm: 10px;
+  --r-control: 12px;
+  --r-card: 20px;
+  --r-hero: 28px;
+  --r-pill: 9999px;
+
+  /* Opacity -- semantic levels beyond Tailwind's default opacity-* scale */
+  --opacity-disabled: 0.45;
   --opacity-hover: 0.08;
   --opacity-pressed: 0.12;
   --opacity-overlay: 0.5;
 
-  /* Motion durations — calm, low-motion by default (Phase 1's stated
-     product direction; consumed with prefers-reduced-motion handling by
-     every component, never a bare hardcoded duration in feature code). */
+  /* Motion. Calm, low-motion by default; everything collapses to a <=120ms
+     opacity fade under `prefers-reduced-motion` (block at the bottom). */
   --duration-fast: 120ms;
   --duration-base: 200ms;
   --duration-slow: 320ms;
+  --dur-fast: var(--duration-fast);
+  --dur-base: var(--duration-base);
+  --dur-slow: var(--duration-slow);
+  --ease: var(--ease-standard);
 
-  /* Z-index — named layers, not raw numbers, so stacking order is a single
-     source of truth across dialogs/drawers/popovers/toasts. */
+  /* Z-index -- named layers, not raw numbers. */
   --z-dropdown: 1000;
   --z-sticky: 1100;
   --z-overlay: 1200;
@@ -92,25 +244,89 @@
   --z-tooltip: 1600;
   --z-toast: 1700;
 
-  /* Breakpoints, mirrored from Tailwind's defaults, exposed for JS
-     consumers (e.g. a `useMediaQuery` hook) that can't read Tailwind's
-     internal theme config at runtime. */
+  /* Breakpoints, mirrored from Tailwind's defaults for JS consumers. */
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
   --breakpoint-2xl: 1536px;
+
+  /*
+   * Density. `data-density="comfortable"` is the default (patient, admin,
+   * public); the doctor shell sets `data-density="compact"` on its root.
+   * Components read these variables instead of hard-coding spacing:
+   * `p-(--card-pad)`, `gap-(--card-gap)`, `min-h-(--row-h)`.
+   */
+  --page-gutter: 32px;
+  --section-gap: 40px;
+  --card-pad: 24px;
+  --card-gap: 20px;
+  --field-gap: 20px;
+  --label-gap: 8px;
+  --row-h: 56px;
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 1023px) {
   :root {
-    --duration-fast: 0ms;
-    --duration-base: 0ms;
-    --duration-slow: 0ms;
+    --page-gutter: 24px;
+  }
+}
+@media (max-width: 767px) {
+  :root {
+    --page-gutter: 16px;
+  }
+}
+
+[data-density='compact'] {
+  --page-gutter: 24px;
+  --section-gap: 28px;
+  --card-pad: 20px;
+  --card-gap: 16px;
+  --field-gap: 16px;
+  --label-gap: 6px;
+  --row-h: 44px;
+}
+@media (max-width: 1023px) {
+  [data-density='compact'] {
+    --page-gutter: 20px;
+  }
+}
+@media (max-width: 767px) {
+  [data-density='compact'] {
+    --page-gutter: 16px;
+  }
+}
+
+/* RTL flips the slide-in direction of `--animate-slide-in-end`. */
+:root[dir='rtl'] {
+  --dir: -1;
+}
+
+/*
+ * prefers-reduced-motion: no animated transforms, no looping or one-shot
+ * keyframe motion, and transitions limited to non-transform properties at
+ * <=120ms (opacity/colour fades are kept). Static transforms that are part of
+ * layout (e.g. `-translate-y-1/2` centring) are untouched -- only *motion* is
+ * removed, so nothing shifts position.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, color, background-color, border-color, box-shadow, fill, stroke !important;
+    transition-duration: 120ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
   }
 
   .animate-glow-pulse,
-  .animate-loading-bar {
-    animation: none;
+  .animate-loading-bar,
+  .animate-shimmer,
+  .animate-pulse-loop,
+  .animate-pulse-live {
+    animation: none !important;
   }
 }

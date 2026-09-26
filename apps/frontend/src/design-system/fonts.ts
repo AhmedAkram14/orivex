@@ -1,4 +1,4 @@
-import { IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from 'next/font/google';
+import { IBM_Plex_Sans, IBM_Plex_Sans_Arabic, Outfit } from 'next/font/google';
 
 // ORIVEX Design System — typeface decision (Phase 6A). `next/font/google`
 // self-hosts these at build time (no manual asset fetch, no external
@@ -16,6 +16,16 @@ export const plexSansLatin = IBM_Plex_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-ibm-plex-sans',
+  display: 'swap',
+});
+
+// Outfit: the display face for headings and metrics, English only (redesign
+// Phase 2). `typography.css` re-points `--font-display` at Plex Sans Arabic
+// under :lang(ar), so this font never renders Arabic.
+export const outfitDisplay = Outfit({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-outfit',
   display: 'swap',
 });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Area, AreaChart as RechartsAreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHART_AXIS_COLOR, CHART_GRID_COLOR, CHART_SERIES_COLORS } from '@/shared/ui/charts/chart-colors';
+import { CHART_AXIS_COLOR, CHART_GRID_COLOR, CHART_SERIES_COLORS, CHART_TOOLTIP_STYLE } from '@/shared/ui/charts/chart-colors';
 import type { ChartSeries } from '@/shared/ui/charts/line-chart';
 
 export interface AreaChartProps {
@@ -51,7 +51,7 @@ export function AreaChart({ data, xKey, series, height = 260, type = 'monotone',
         <YAxis stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
         <Tooltip
           labelFormatter={timeAxis ? (value) => timeAxis.format(Number(value)) : undefined}
-          contentStyle={{ background: 'var(--color-surface)', border: `1px solid ${CHART_GRID_COLOR}`, borderRadius: 8 }} />
+          contentStyle={CHART_TOOLTIP_STYLE} />
         {series.length > 1 && <Legend />}
         {series.map((item, index) => (
           <Area

@@ -25,6 +25,11 @@
 }
 
 @theme {
+  /* Outfit (600/700) is the display face for headings and metrics, English only.
+     `--font-display` is re-pointed at Plex Sans Arabic under :lang(ar) below,
+     so the same `font-display` utility and the h1/h2 rule stay correct in both
+     scripts. */
+  --font-display: var(--font-outfit), var(--font-sans-latin);
   --font-sans: var(--font-sans-latin);
   --font-arabic: var(--font-sans-arabic);
   --font-mono: var(--font-mono);
@@ -48,8 +53,77 @@
   --text-5xl: 3rem;
   --text-5xl--line-height: 1.1;
 
+  /* Display / heading / metric scale (redesign Phase 2). Each entry carries its
+     own line-height, weight and tracking, so `text-h1` alone is a complete
+     style. Tracking is negative for the large sizes and is neutralised for
+     Arabic below -- never letter-space Arabic. */
+  --text-display: 2.75rem;
+  --text-display--line-height: 3.25rem;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 700;
+  --text-display-hero: 3.5rem;
+  --text-display-hero--line-height: 4rem;
+  --text-display-hero--letter-spacing: -0.02em;
+  --text-display-hero--font-weight: 700;
+  --text-h1: 2rem;
+  --text-h1--line-height: 2.5rem;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h1--font-weight: 600;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.875rem;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 600;
+  --text-h3: 1.0625rem;
+  --text-h3--line-height: 1.5rem;
+  --text-h3--font-weight: 600;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.5rem;
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--letter-spacing: 0.02em;
+  --text-caption--font-weight: 500;
+  --text-metric-xl: 2.5rem;
+  --text-metric-xl--line-height: 2.75rem;
+  --text-metric-xl--letter-spacing: -0.02em;
+  --text-metric-xl--font-weight: 600;
+  --text-metric: 1.5rem;
+  --text-metric--line-height: 2rem;
+  --text-metric--letter-spacing: -0.01em;
+  --text-metric--font-weight: 600;
+
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+}
+
+/*
+ * Script-specific type rules.
+ *  - Arabic: headings use Plex Sans Arabic (weight comes from the size token,
+ *    600), body line-height is 1.7, and letter-spacing is always neutral.
+ *  - Numbers in metrics, tables, money and times are tabular.
+ */
+:lang(ar) {
+  --font-display: var(--font-sans-arabic);
+}
+
+:lang(ar) :is(p, li, dd, blockquote) {
+  line-height: 1.7;
+}
+
+:lang(ar) * {
+  letter-spacing: normal !important;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
+table,
+time,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
 }
