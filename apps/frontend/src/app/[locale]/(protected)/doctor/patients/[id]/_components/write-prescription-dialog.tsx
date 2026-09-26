@@ -234,7 +234,7 @@ function PrescriptionComposer({ consultationSessionId, onClose }: PrescriptionCo
         <div className="flex justify-end gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             loading={downloadPrescriptionPdf.isPending}
             onClick={() => downloadPrescriptionPdf.mutate(signedPrescriptionId)}
@@ -280,7 +280,7 @@ function PrescriptionComposer({ consultationSessionId, onClose }: PrescriptionCo
         )}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => setStep('compose')}>
+          <Button type="button" variant="secondary" onClick={() => setStep('compose')}>
             {t('back')}
           </Button>
           <Button type="button" loading={signPrescription.isPending} onClick={handleSign}>
@@ -415,7 +415,7 @@ function PrescriptionComposer({ consultationSessionId, onClose }: PrescriptionCo
             </div>
           ))}
 
-          <Button type="button" variant="outline" size="sm" className="self-start" onClick={() => append(EMPTY_PRESCRIPTION_LINE_ITEM)}>
+          <Button type="button" variant="secondary" size="sm" className="self-start" onClick={() => append(EMPTY_PRESCRIPTION_LINE_ITEM)}>
             <Icon icon={Plus} size="sm" />
             {t('addMedication')}
           </Button>

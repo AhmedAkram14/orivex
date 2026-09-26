@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 export interface ToastOptions {
   title?: string;
   description?: string;
-  variant?: 'default' | 'success' | 'danger';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
   /** Milliseconds before auto-dismiss. */
   duration?: number;
 }
@@ -23,7 +23,7 @@ interface ToastRecord extends ToastOptions {
 }
 
 const TOAST_LIMIT = 3;
-const DEFAULT_DURATION = 5000;
+const DEFAULT_DURATION = 4000;
 
 let toasts: ToastRecord[] = [];
 const listeners = new Set<(toasts: ToastRecord[]) => void>();

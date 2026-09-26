@@ -380,7 +380,7 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
                           }
                         }}
                       />
-                      <Button type="button" variant="outline" onClick={addProvider}>
+                      <Button type="button" variant="secondary" onClick={addProvider}>
                         {t('addInsuranceProvider')}
                       </Button>
                     </div>
@@ -398,7 +398,7 @@ export function ProfileStep({ profile, onSaved }: ProfileStepProps) {
             workExperience.fields.length < MAX_WORK_EXPERIENCE_ENTRIES ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() =>
                   workExperience.append({

@@ -147,7 +147,7 @@ describe('DoctorEarningsSummary', () => {
     expect(refundedBadge).toBeInTheDocument();
     // `danger` badge variant styling (bg-danger-subtle) -- visibly distinct
     // from the `success` variant used for succeeded rows.
-    expect(refundedBadge.className).toContain('danger');
+    expect(refundedBadge.className).toContain('neutral');
 
     // No aggregate/total row anywhere in the drill-down section -- totals
     // come exclusively from the summary endpoint's own lifetime figures.

@@ -101,7 +101,7 @@ export function ReportsDateRangePicker({ dateFrom, dateTo, onChange }: ReportsDa
           <Button
             key={preset.key}
             type="button"
-            variant={activePresetKey === preset.key ? 'secondary' : 'outline'}
+            variant={activePresetKey === preset.key ? 'primary' : 'secondary'}
             size="sm"
             aria-pressed={activePresetKey === preset.key}
             className={cn(activePresetKey === preset.key && 'ring-1 ring-inset ring-border-strong')}

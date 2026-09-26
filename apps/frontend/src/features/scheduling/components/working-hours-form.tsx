@@ -83,7 +83,7 @@ function DayBreaks({ control, dayIndex }: { control: Control<WorkingHoursFormVal
           </Button>
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={() => breaks.append({ start: '13:00', end: '14:00' })}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => breaks.append({ start: '13:00', end: '14:00' })}>
         <Icon icon={Plus} size="sm" className="me-2" />
         {t('addBreak')}
       </Button>
@@ -317,7 +317,7 @@ export function WorkingHoursForm({ schedule, onSaved, onCancel, onDirtyChange }:
           <Button type="submit" loading={updateAvailability.isPending}>
             {t('save')}
           </Button>
-          <Button type="button" variant="outline" onClick={handleCancel}>
+          <Button type="button" variant="secondary" onClick={handleCancel}>
             {t('cancel')}
           </Button>
         </div>

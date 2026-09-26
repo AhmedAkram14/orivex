@@ -19,7 +19,7 @@ export interface RecordDownloadButtonProps {
  */
 export function RecordDownloadButton({ href, label, className }: RecordDownloadButtonProps) {
   return (
-    <Button asChild variant="outline" size="sm" className={className}>
+    <Button asChild variant="secondary" size="sm" className={className}>
       <a href={href} download>
         <Icon icon={Download} size="sm" className="me-2" />
         {label}

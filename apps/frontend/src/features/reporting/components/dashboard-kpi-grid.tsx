@@ -19,8 +19,7 @@ import { useTranslations } from 'next-intl';
 import { useDashboardKpis } from '@/features/reporting/hooks/use-dashboard-kpis';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 export interface DashboardKpiGridProps {
   filter: ReportFilterParams;
@@ -51,31 +50,31 @@ export function DashboardKpiGrid({ filter, refetchIntervalMs }: DashboardKpiGrid
     value === null || value === undefined ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
 
   return (
-    <DashboardGrid columns={4}>
-      <LinkableStatCard icon={Stethoscope} label={t('totalDoctors')} value={format(data?.totalDoctors)} loading={isLoading} href="/admin/users" />
-      <LinkableStatCard icon={BadgeCheck} label={t('verifiedDoctors')} value={format(data?.verifiedDoctors)} loading={isLoading} href="/admin/verification-queue" />
-      <LinkableStatCard icon={Hourglass} label={t('pendingVerification')} value={format(data?.pendingVerification)} loading={isLoading} href="/admin/verification-queue" />
-      <LinkableStatCard icon={Users} label={t('totalPatients')} value={format(data?.totalPatients)} loading={isLoading} href="/admin/users" />
-      <LinkableStatCard icon={Activity} label={t('activePatients')} value={format(data?.activePatients)} loading={isLoading} />
-      <LinkableStatCard icon={CalendarClock} label={t('totalAppointments')} value={format(data?.totalAppointments)} loading={isLoading} />
-      <LinkableStatCard icon={CalendarCheck} label={t('completedAppointments')} value={format(data?.completedAppointments)} loading={isLoading} />
-      <LinkableStatCard icon={CalendarX} label={t('cancelledAppointments')} value={format(data?.cancelledAppointments)} loading={isLoading} />
-      <LinkableStatCard icon={Clock} label={t('upcomingAppointments')} value={format(data?.upcomingAppointments)} loading={isLoading} />
-      <LinkableStatCard icon={Video} label={t('videoConsultations')} value={format(data?.videoConsultations)} loading={isLoading} />
-      <LinkableStatCard icon={CreditCard} label={t('payments')} value={format(data?.payments)} loading={isLoading} />
-      <LinkableStatCard icon={Wallet} label={t('revenue')} value={format(data?.revenue, 2)} loading={isLoading} />
-      <LinkableStatCard
+    <MetricGrid columns={4}>
+      <MetricStat icon={Stethoscope} label={t('totalDoctors')} value={format(data?.totalDoctors)} loading={isLoading} href="/admin/users" />
+      <MetricStat icon={BadgeCheck} label={t('verifiedDoctors')} value={format(data?.verifiedDoctors)} loading={isLoading} href="/admin/verification-queue" />
+      <MetricStat icon={Hourglass} label={t('pendingVerification')} value={format(data?.pendingVerification)} loading={isLoading} href="/admin/verification-queue" />
+      <MetricStat icon={Users} label={t('totalPatients')} value={format(data?.totalPatients)} loading={isLoading} href="/admin/users" />
+      <MetricStat icon={Activity} label={t('activePatients')} value={format(data?.activePatients)} loading={isLoading} />
+      <MetricStat icon={CalendarClock} label={t('totalAppointments')} value={format(data?.totalAppointments)} loading={isLoading} />
+      <MetricStat icon={CalendarCheck} label={t('completedAppointments')} value={format(data?.completedAppointments)} loading={isLoading} />
+      <MetricStat icon={CalendarX} label={t('cancelledAppointments')} value={format(data?.cancelledAppointments)} loading={isLoading} />
+      <MetricStat icon={Clock} label={t('upcomingAppointments')} value={format(data?.upcomingAppointments)} loading={isLoading} />
+      <MetricStat icon={Video} label={t('videoConsultations')} value={format(data?.videoConsultations)} loading={isLoading} />
+      <MetricStat icon={CreditCard} label={t('payments')} value={format(data?.payments)} loading={isLoading} />
+      <MetricStat icon={Wallet} label={t('revenue')} value={format(data?.revenue, 2)} loading={isLoading} />
+      <MetricStat
         icon={Clock}
         label={t('averageConsultationDuration')}
         value={data?.averageConsultationDurationMinutes == null ? t('notAvailable') : `${format(data.averageConsultationDurationMinutes, 1)} ${t('minutes')}`}
         loading={isLoading}
       />
-      <LinkableStatCard
+      <MetricStat
         icon={Star}
         label={t('averageRating')}
         value={data?.averageRating == null ? t('notAvailable') : format(data.averageRating, 2)}
         loading={isLoading}
       />
-    </DashboardGrid>
+    </MetricGrid>
   );
 }

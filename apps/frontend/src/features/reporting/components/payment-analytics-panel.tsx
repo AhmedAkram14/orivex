@@ -7,8 +7,7 @@ import { usePaymentAnalytics } from '@/features/reporting/hooks/use-payment-anal
 import { ExportButton } from '@/features/reporting/components/export-button';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 export function PaymentAnalyticsPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
   const t = useTranslations('admin.analytics.payments');
@@ -25,21 +24,21 @@ export function PaymentAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
         <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="payments" filter={filter} />
       </div>
-      <DashboardGrid columns={4}>
-        <LinkableStatCard icon={Wallet} label={t('revenue')} value={(data?.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} loading={isLoading} />
-        <LinkableStatCard
+      <MetricGrid columns={4}>
+        <MetricStat icon={Wallet} label={t('revenue')} value={(data?.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} loading={isLoading} />
+        <MetricStat
           icon={growth != null && growth < 0 ? TrendingDown : TrendingUp}
           label={t('revenueGrowth')}
           value={growthLabel}
           helperText={filter.comparePrevious ? t('comparePreviousPeriod') : undefined}
           loading={isLoading}
         />
-        <LinkableStatCard icon={Wallet} label={t('transactions')} value={String(data?.transactions ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Wallet} label={t('averagePrice')} value={data?.averageConsultationPrice == null ? t('notAvailable') : data.averageConsultationPrice.toFixed(2)} loading={isLoading} />
-        <LinkableStatCard icon={Wallet} label={t('successful')} value={String(data?.successfulPayments ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Wallet} label={t('failed')} value={String(data?.failedPayments ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Wallet} label={t('refunds')} value={String(data?.refunds ?? 0)} loading={isLoading} />
-      </DashboardGrid>
+        <MetricStat icon={Wallet} label={t('transactions')} value={String(data?.transactions ?? 0)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('averagePrice')} value={data?.averageConsultationPrice == null ? t('notAvailable') : data.averageConsultationPrice.toFixed(2)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('successful')} value={String(data?.successfulPayments ?? 0)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('failed')} value={String(data?.failedPayments ?? 0)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('refunds')} value={String(data?.refunds ?? 0)} loading={isLoading} />
+      </MetricGrid>
     </div>
   );
 }

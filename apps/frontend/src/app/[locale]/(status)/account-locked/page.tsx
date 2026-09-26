@@ -26,7 +26,7 @@ export default async function AccountLockedPage() {
       title={t('title')}
       description={t('description')}
       action={
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href="/forgot-password">{t('resetPasswordLink')}</Link>
         </Button>
       }

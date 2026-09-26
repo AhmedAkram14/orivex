@@ -9,7 +9,7 @@ export const Default: StoryObj = {
   render: () => (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="outline">Hover me</Button>
+        <Button variant="secondary">Hover me</Button>
       </TooltipTrigger>
       <TooltipContent>Acknowledge this suggestion before signing.</TooltipContent>
     </Tooltip>

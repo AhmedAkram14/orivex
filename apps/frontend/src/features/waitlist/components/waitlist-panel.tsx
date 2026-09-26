@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock3 } from 'lucide-react';
+
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
@@ -122,7 +122,7 @@ export function WaitlistPanel() {
         </CardHeader>
         <CardContent>
           {entries.length === 0 ? (
-            <EmptyState icon={Clock3} title={t('emptyTitle')} description={t('emptyDescription')} />
+            <EmptyState illustration="waitlist-none" title={t('emptyTitle')} description={t('emptyDescription')} />
           ) : (
             <ul className="flex flex-col gap-3">
               {entries.map((entry) => (
@@ -143,7 +143,7 @@ export function WaitlistPanel() {
                     <div>
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         loading={cancelEntry.isPending}
                         onClick={() => cancelEntry.mutate(entry.id)}
@@ -217,7 +217,7 @@ export function WaitlistPanel() {
           {joinWaitlist.isError && <Alert variant="danger">{t('joinError')}</Alert>}
 
           <DialogFooter>
-            <Button variant="outline" onClick={closePicker}>
+            <Button variant="secondary" onClick={closePicker}>
               {t('cancel')}
             </Button>
             <Button

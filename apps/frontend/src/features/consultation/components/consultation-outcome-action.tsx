@@ -11,6 +11,7 @@ import type { ConsultationFeedback } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Icon } from '@/shared/icons/icon';
 import { Section } from '@/shared/ui/layout/section';
@@ -49,9 +50,16 @@ function SubmittedRatingView({ feedback, onEdit, consultationSessionId, doctorPr
   const t = useTranslations('consultation.outcome');
   const deleteFeedback = useDeleteConsultationFeedback(consultationSessionId, doctorProfileId);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   async function handleDelete() {
-    if (!window.confirm(t('deleteConfirmBody'))) return;
-    await deleteFeedback.mutateAsync();
+    try {
+      await deleteFeedback.mutateAsync();
+      setConfirmOpen(false);
+    } catch {
+      // Surfaced below via deleteFeedback.isError.
+      setConfirmOpen(false);
+    }
   }
 
   return (
@@ -69,13 +77,22 @@ function SubmittedRatingView({ feedback, onEdit, consultationSessionId, doctorPr
       {feedback.comment && <p className="text-sm text-text-secondary">{feedback.comment}</p>}
       {deleteFeedback.isError && <Alert variant="danger">{t('deleteError')}</Alert>}
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={onEdit}>
+        <Button type="button" variant="secondary" size="sm" onClick={onEdit}>
           {t('edit')}
         </Button>
-        <Button type="button" variant="danger" size="sm" loading={deleteFeedback.isPending} onClick={handleDelete}>
+        <Button type="button" variant="destructive" size="sm" onClick={() => setConfirmOpen(true)}>
           {t('delete')}
         </Button>
       </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t('delete')}
+        description={t('deleteConfirmBody')}
+        confirmLabel={t('delete')}
+        loading={deleteFeedback.isPending}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
@@ -108,7 +125,7 @@ export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = fa
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
         {t('openAction')}
       </Button>
       <DialogContent className="max-w-xl">

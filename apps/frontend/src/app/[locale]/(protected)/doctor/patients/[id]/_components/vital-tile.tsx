@@ -11,7 +11,7 @@ import { formatRelativeTime } from '@/shared/lib/date/relative-time';
 import { cn } from '@/shared/lib/cn';
 import type { DoctorPatientChartVitalSummary } from '@/features/doctor/api/types';
 import { VITAL_STALE_AFTER_DAYS, isStale } from '../_lib/vital-staleness';
-import { flagBloodPressure, flagGlucose, type RangeFlag } from '../_lib/vital-reference-ranges';
+import { flagBloodPressure, flagGlucose, type RangeFlag } from '@/shared/lib/health/vital-reference-ranges';
 
 export interface VitalTileProps {
   icon: LucideIcon;

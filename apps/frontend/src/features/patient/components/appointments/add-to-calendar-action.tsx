@@ -24,7 +24,7 @@ export function AddToCalendarAction({ appointmentId }: AddToCalendarActionProps)
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="secondary"
       size="sm"
       loading={downloadInvite.isPending}
       onClick={() => downloadInvite.mutate(appointmentId)}

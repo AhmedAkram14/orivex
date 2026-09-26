@@ -26,7 +26,7 @@ export function BecomeADoctorCta() {
         </span>
         <p className="text-sm font-medium text-text-primary">{t('title')}</p>
       </div>
-      <Button asChild variant="outline" size="sm" className="rounded-xl bg-surface">
+      <Button asChild variant="secondary" size="sm" className="rounded-xl bg-surface">
         <Link href="/doctor/onboarding">{t('action')}</Link>
       </Button>
     </div>

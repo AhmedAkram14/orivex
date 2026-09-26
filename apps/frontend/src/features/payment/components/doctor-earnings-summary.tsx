@@ -12,15 +12,12 @@ import { ExportEarningsButton } from '@/features/payment/components/export-earni
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
-import { Badge, badgeVariants } from '@/shared/ui/badge';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { StatusBadge } from '@/shared/ui/status-badge';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import type { PaymentStatus } from '@/features/payment/api/types';
-import type { VariantProps } from 'class-variance-authority';
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>;
 
 // Same positive/neutral/negative badge convention as `AdminPaymentsTable`'s
 // own `STATUS_BADGE_VARIANT` -- `refunded` gets a visibly distinct, negative
@@ -28,15 +25,6 @@ type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>;
 // doctor-facing drill-down a refund is money the doctor no longer has,
 // which reads as a "problem/reversed" state worth flagging, not a plain
 // resolved-and-inactive one.
-const STATUS_BADGE_VARIANT: Record<PaymentStatus, BadgeVariant> = {
-  succeeded: 'success',
-  settled: 'success',
-  refunded: 'danger',
-  initiated: 'warning',
-  failed: 'danger',
-  disputed: 'danger',
-};
-
 /**
  * I2 -- Doctor earnings dashboard (docs/01-prd.md L15 "earnings dashboard",
  * L94 §2.10, L189 "commission taken transparently and disclosed to doctors
@@ -128,7 +116,7 @@ export function DoctorEarningsSummary() {
        * especially since the table's own Commission column already shows it
        * in currency terms. Moved to a footnote under the table instead.
        */}
-      <DashboardGrid columns={3}>
+      <MetricGrid columns={3}>
         {/*
          * Phase 9 [VERIFY]: the audit found these easy to misread as
          * scoped to the date-range picker below (they aren't -- see the
@@ -138,31 +126,28 @@ export function DoctorEarningsSummary() {
          * explicitly on every tile instead of relying on the page layout
          * alone to imply it.
          */}
-        <LinkableStatCard
+        <MetricStat
           icon={Wallet}
-          iconClassName="bg-success-subtle text-success-emphasis"
           label={t('stats.lifetimeNet')}
           value={data ? formatMoney(data.lifetimeNetAmount) : '—'}
           helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
-        <LinkableStatCard
+        <MetricStat
           icon={Banknote}
-          iconClassName="bg-primary-subtle text-primary-emphasis"
           label={t('stats.lifetimeGross')}
           value={data ? formatMoney(data.lifetimeGrossAmount) : '—'}
           helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
-        <LinkableStatCard
+        <MetricStat
           icon={PiggyBank}
-          iconClassName="bg-info-subtle text-info-emphasis"
           label={t('stats.transactionCount')}
           value={String(data?.lifetimeTransactionCount ?? 0)}
           helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
-      </DashboardGrid>
+      </MetricGrid>
 
       {/*
        * Payout honesty (Doctor Earnings page rebuild, plan decision 5): no
@@ -188,7 +173,7 @@ export function DoctorEarningsSummary() {
         {isLoading ? (
           <Skeleton className="h-32 w-full" />
         ) : !data || data.cycles.length === 0 ? (
-          <EmptyState title={t('cyclesEmptyTitle')} description={t('cyclesEmptyDescription')} />
+          <EmptyState illustration="records-start" title={t('cyclesEmptyTitle')} description={t('cyclesEmptyDescription')} />
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-border-default">
             <table className="w-full text-sm">
@@ -256,7 +241,7 @@ export function DoctorEarningsSummary() {
         ) : transactionsLoading ? (
           <Skeleton className="h-32 w-full" />
         ) : !transactions || transactions.length === 0 ? (
-          <EmptyState title={t('transactionsEmptyTitle')} description={t('transactionsEmptyDescription')} />
+          <EmptyState illustration="records-start" title={t('transactionsEmptyTitle')} description={t('transactionsEmptyDescription')} />
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-border-default">
             <table className="w-full text-sm">
@@ -280,7 +265,7 @@ export function DoctorEarningsSummary() {
                       {format.number(transaction.amount.amount, { style: 'currency', currency: transaction.amount.currency })}
                     </td>
                     <td className="px-4 py-2">
-                      <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>{t(`status.${transaction.status}`)}</Badge>
+                      <StatusBadge status={transaction.status} label={t(`status.${transaction.status}`)} />
                     </td>
                     <td className="px-4 py-2 text-end">
                       {/*

@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import type { EmergencyRelationship, PatientProfile } from '@/features/patient/api/types';
 import { useUpdatePatientProfile } from '@/features/patient/hooks/use-update-patient-profile';
@@ -15,6 +16,7 @@ import { ApiError } from '@/shared/lib/api/client';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -63,6 +65,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
   });
 
   const contacts = useFieldArray({ control: form.control, name: 'emergencyContacts' });
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
 
   async function onSubmit(values: PatientProfileFormValues) {
     try {
@@ -233,7 +236,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
             contacts.fields.length < MAX_EMERGENCY_CONTACTS ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => contacts.append({ name: '', relationship: 'other', phoneNumber: '' })}
               >
@@ -307,7 +310,7 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                       variant="ghost"
                       size="icon"
                       aria-label={t('removeContact')}
-                      onClick={() => contacts.remove(index)}
+                      onClick={() => setRemoveIndex(index)}
                     >
                       <Icon icon={Trash2} size="sm" />
                     </Button>
@@ -318,11 +321,23 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
           )}
         </Section>
 
+        <ConfirmDialog
+          open={removeIndex !== null}
+          onOpenChange={(next) => !next && setRemoveIndex(null)}
+          title={t('removeContactTitle')}
+          description={t('removeContactBody')}
+          confirmLabel={t('removeContactConfirm')}
+          onConfirm={() => {
+            if (removeIndex !== null) contacts.remove(removeIndex);
+            setRemoveIndex(null);
+          }}
+        />
+
         <div className="flex items-center gap-2">
           <Button type="submit" loading={updateProfile.isPending}>
             {t('save')}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="secondary" onClick={onCancel}>
             {t('cancel')}
           </Button>
         </div>

@@ -21,7 +21,7 @@ export const Pending: Story = {
     actions: (
       <>
         <Button>Confirm</Button>
-        <Button variant="outline">Back</Button>
+        <Button variant="secondary">Back</Button>
       </>
     ),
   },
@@ -37,7 +37,7 @@ export const Confirmed: Story = {
     statusLabel: 'Confirmed',
     actions: (
       <>
-        <Button variant="outline">Reschedule</Button>
+        <Button variant="secondary">Reschedule</Button>
         <Button variant="ghost">Cancel</Button>
       </>
     ),

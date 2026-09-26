@@ -61,7 +61,7 @@ export function PatientReviewStep({ patientProfileId, documents, onSubmitted, on
       </Card>
 
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" onClick={onBack}>
+        <Button type="button" variant="secondary" onClick={onBack}>
           {t('back')}
         </Button>
         <Button type="button" onClick={handleSubmit} loading={submitVerification.isPending}>

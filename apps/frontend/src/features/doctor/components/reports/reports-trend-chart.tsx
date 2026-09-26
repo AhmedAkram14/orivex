@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp } from 'lucide-react';
+
 import { useFormatter, useTranslations } from 'next-intl';
 import type { DoctorReportsAnalyticsBucketPoint } from '@/features/doctor/api/types';
 import { AreaChart } from '@/shared/ui/charts/area-chart';
@@ -25,7 +25,7 @@ export function ReportsTrendChart({ data }: ReportsTrendChartProps) {
 
   if (data.length === 0) {
     return (
-      <EmptyState icon={TrendingUp} title={t('emptyTitle')} description={t('emptyDescription')} />
+      <EmptyState illustration="records-start" title={t('emptyTitle')} description={t('emptyDescription')} />
     );
   }
 

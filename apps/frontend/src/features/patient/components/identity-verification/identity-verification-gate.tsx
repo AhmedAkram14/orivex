@@ -1,6 +1,6 @@
 'use client';
 
-import { ShieldCheck } from 'lucide-react';
+
 import { useTranslations } from 'next-intl';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
@@ -30,9 +30,8 @@ export function IdentityVerificationGate({ action, returnTo }: IdentityVerificat
   const href = returnTo ? `/patient/verify-identity?returnTo=${encodeURIComponent(returnTo)}` : '/patient/verify-identity';
 
   return (
-    <EmptyState
+    <EmptyState illustration="verified-seal"
       className="rounded-lg border border-border-default p-6"
-      icon={ShieldCheck}
       title={t(`title.${action}`)}
       description={t(`description.${action}`)}
       action={

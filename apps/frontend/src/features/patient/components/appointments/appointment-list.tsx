@@ -95,7 +95,7 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
   const locale = useLocale();
 
   if (appointments.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return <EmptyState illustration="calendar-clear" title={emptyTitle} description={emptyDescription} />;
   }
 
   return (

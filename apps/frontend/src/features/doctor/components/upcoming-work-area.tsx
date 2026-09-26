@@ -44,7 +44,7 @@ export function UpcomingWorkArea() {
           ))}
         </ul>
       ) : (
-        <EmptyState title={t('upcomingWorkEmptyTitle')} description={t('upcomingWorkEmptyDescription')} />
+        <EmptyState illustration="calendar-clear" title={t('upcomingWorkEmptyTitle')} description={t('upcomingWorkEmptyDescription')} />
       )}
     </WidgetContainer>
   );

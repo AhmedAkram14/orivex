@@ -62,26 +62,26 @@ export function PatientRecordHeaderActions({
   return (
     <div className="print-hidden flex flex-col items-end gap-1.5">
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" loading={startOrGetThread.isPending} onClick={handleMessage}>
+        <Button type="button" variant="secondary" size="sm" loading={startOrGetThread.isPending} onClick={handleMessage}>
           <Icon icon={MessageSquare} size="sm" />
           {t('messagePatient')}
         </Button>
 
         {canWritePrescription && (
-          <Button type="button" variant="outline" size="sm" onClick={onWritePrescription}>
+          <Button type="button" variant="secondary" size="sm" onClick={onWritePrescription}>
             <Icon icon={Pill} size="sm" />
             {t('writePrescription')}
           </Button>
         )}
 
-        <Button type="button" variant="outline" size="sm" onClick={onAddCondition}>
+        <Button type="button" variant="secondary" size="sm" onClick={onAddCondition}>
           <Icon icon={ListPlus} size="sm" />
           {t('addCondition')}
         </Button>
 
         <DropdownMenu open={open} onOpenChange={setOpen}>
           <DropdownMenuTrigger asChild>
-            <Button type="button" variant="outline" size="icon" aria-label={t('moreActions')}>
+            <Button type="button" variant="secondary" size="icon" aria-label={t('moreActions')}>
               <Icon icon={MoreHorizontal} size="sm" />
             </Button>
           </DropdownMenuTrigger>

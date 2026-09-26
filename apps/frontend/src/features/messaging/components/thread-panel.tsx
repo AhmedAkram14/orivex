@@ -16,7 +16,7 @@ import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { ArrowLeft, MessageCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 // Messages Page Overhaul (Phase 2): how long a typing indicator stays shown
 // after the last `messaging.typing` event for this thread -- if the other
@@ -183,7 +183,7 @@ export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId,
             <div ref={bottomRef} />
           </div>
         ) : (
-          <EmptyState icon={MessageCircle} title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
         )}
       </div>
 

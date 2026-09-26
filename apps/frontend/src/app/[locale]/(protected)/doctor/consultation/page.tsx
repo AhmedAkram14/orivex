@@ -142,7 +142,7 @@ export default function DoctorConsultationPage() {
               </div>
             </div>
           ) : (
-            <EmptyWorkspace icon={activeSection.icon} title={t(`sections.${section}`)} description={t('sectionEmptyDescription')} />
+            <EmptyWorkspace title={t(`sections.${section}`)} description={t('sectionEmptyDescription')} />
           )}
         </ConsultationContainer>
       </Page>

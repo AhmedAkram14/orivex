@@ -1,6 +1,5 @@
 'use client';
 
-import { Layers } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
@@ -9,6 +8,7 @@ import { Card, CardContent } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { SpecialtyIconTile } from '@/shared/ui/specialty-chip';
 
 /**
  * Onboarding Redesign (2026-07-21 proposal, Stage O.5): Browse Specialties
@@ -36,7 +36,7 @@ export function SpecialtyDirectoryBrowser() {
   }
 
   if (activeSpecialties.length === 0) {
-    return <EmptyState icon={Layers} title={t('emptyTitle')} />;
+    return <EmptyState illustration="search-no-results" title={t('emptyTitle')} />;
   }
 
   return (
@@ -45,7 +45,7 @@ export function SpecialtyDirectoryBrowser() {
         <Link key={specialty.id} href={`/patient/doctors?specialtyId=${specialty.id}`}>
           <Card className="h-full transition-shadow hover:shadow-md">
             <CardContent className="flex items-center gap-3 pt-6">
-              <Layers className="size-5 text-primary" aria-hidden="true" />
+              <SpecialtyIconTile name={specialty.name} />
               <p className="text-sm font-medium text-text-primary">
                 {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
               </p>

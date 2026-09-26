@@ -16,7 +16,7 @@ export const Default: StoryObj = {
         <p className="text-sm text-text-secondary">Dr. Sarah Ahmed — Cardiology</p>
       </CardContent>
       <CardFooter>
-        <Button size="sm" variant="outline">Reschedule</Button>
+        <Button size="sm" variant="secondary">Reschedule</Button>
         <Button size="sm">Confirm</Button>
       </CardFooter>
     </Card>

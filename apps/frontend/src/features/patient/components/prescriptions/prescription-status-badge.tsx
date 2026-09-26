@@ -1,18 +1,13 @@
 import type { ReactNode } from 'react';
 import type { PrescriptionStatus } from '@/features/patient/api/types';
-import { Badge } from '@/shared/ui/badge';
-
-const badgeVariantByStatus: Record<PrescriptionStatus, 'success' | 'danger'> = {
-  active: 'success',
-  expired: 'danger',
-};
+import { StatusBadge } from '@/shared/ui/status-badge';
 
 export interface PrescriptionStatusBadgeProps {
   status: PrescriptionStatus;
   label: ReactNode;
 }
 
-/** Maps the real 2-value `PrescriptionStatus` ('active' | 'expired') to a `Badge` variant — never a 3rd "completed" state the domain doesn't have. */
+/** The real 2-value `PrescriptionStatus` ('active' | 'expired') through the shared status map -- never a 3rd "completed" state the domain doesn't have. */
 export function PrescriptionStatusBadge({ status, label }: PrescriptionStatusBadgeProps) {
-  return <Badge variant={badgeVariantByStatus[status]}>{label}</Badge>;
+  return <StatusBadge status={status} label={typeof label === 'string' ? label : undefined} />;
 }

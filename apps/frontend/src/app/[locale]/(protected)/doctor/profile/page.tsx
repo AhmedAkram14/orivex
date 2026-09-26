@@ -46,7 +46,7 @@ export default function DoctorProfilePage() {
               <Icon icon={Eye} size="sm" />
               {t('previewBanner')}
             </span>
-            <Button variant="outline" size="sm" onClick={() => setMode('view')}>
+            <Button variant="secondary" size="sm" onClick={() => setMode('view')}>
               {t('exitPreview')}
             </Button>
           </div>

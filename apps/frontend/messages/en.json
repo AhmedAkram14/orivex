@@ -79,6 +79,7 @@
         "neurology": "Expert care for the brain and nervous system.",
         "ophthalmology": "Comprehensive eye care and vision health.",
         "ent": "Care for the ear, nose, and throat.",
+        "psychiatry": "Support for mental health and emotional well-being.",
         "generic": "Expert, verified care from trusted specialists."
       }
     },
@@ -1023,6 +1024,7 @@
       "consultationFee": "{amount} EGP",
       "consultationFeeFree": "Free",
       "consultationFeeOnRequest": "Fee on request",
+      "book": "Book",
       "viewProfile": "View Profile",
       "bookAppointment": "Book Appointment",
       "topRated": "Top Rated",
@@ -2131,6 +2133,9 @@
       "emergencyContactsEmptyDescription": "Add someone we can contact in case of an emergency.",
       "addContact": "Add contact",
       "removeContact": "Remove contact",
+      "removeContactTitle": "Remove this emergency contact?",
+      "removeContactBody": "They will no longer be listed as someone we can contact in an emergency. Save the form to apply this change.",
+      "removeContactConfirm": "Remove",
       "contactName": "Name",
       "contactRelationship": "Relationship",
       "relationshipOptions": {
@@ -3461,6 +3466,75 @@
       "labRequests": "Lab requests",
       "vitals": "Vitals recorded",
       "followUp": "Recommended follow-up"
+    }
+  },
+  "ds": {
+    "status": {
+      "pending": "Pending",
+      "requested": "Awaiting approval",
+      "pending_review": "In review",
+      "more_info_needed": "More info needed",
+      "disputed": "Disputed",
+      "suspended": "Suspended",
+      "rescheduled": "Rescheduled",
+      "scheduled": "Scheduled",
+      "confirmed": "Confirmed",
+      "initiated": "Initiated",
+      "waiting": "Waiting",
+      "notified": "Notified",
+      "upcoming": "Upcoming",
+      "in_consultation": "In consultation",
+      "in-consultation": "In consultation",
+      "in_progress": "In progress",
+      "in-progress": "In progress",
+      "live": "Live",
+      "completed": "Completed",
+      "paid": "Paid",
+      "succeeded": "Succeeded",
+      "settled": "Settled",
+      "fulfilled": "Fulfilled",
+      "published": "Published",
+      "approved": "Approved",
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "no_show": "No-show",
+      "failed": "Failed",
+      "rejected": "Rejected",
+      "expired": "Expired",
+      "refunded": "Refunded",
+      "awaiting_outcome": "Awaiting outcome",
+      "draft": "Draft",
+      "archived": "Archived",
+      "closed": "Closed",
+      "available": "Available",
+      "booked": "Booked",
+      "blocked": "Blocked",
+      "past": "Past",
+      "open": "Open",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed",
+      "withdrawn": "Withdrawn"
+    },
+    "vital": {
+      "inRange": "In range",
+      "aboveTarget": "Above target",
+      "belowTarget": "Below target",
+      "rangeNote": "General adult reference: {range}. Not a diagnosis.",
+      "recordedBy": "Recorded by {name}",
+      "range7": "7 days",
+      "range30": "30 days",
+      "range90": "90 days",
+      "rangeAll": "All time",
+      "rangeLabel": "Time range"
+    },
+    "errorState": {
+      "title": "We couldn't load this",
+      "description": "Check your connection and try again. If it keeps happening, our team can help.",
+      "retry": "Try again",
+      "support": "Contact support"
+    },
+    "confirm": {
+      "cancel": "Cancel"
     }
   }
 }

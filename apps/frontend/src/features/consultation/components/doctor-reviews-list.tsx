@@ -60,7 +60,7 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
   const reviews = data?.reviews ?? [];
 
   if (reviews.length === 0) {
-    return <EmptyState title={t('reviewsEmptyTitle')} description={t('reviewsEmptyDescription')} />;
+    return <EmptyState illustration="articles-none" title={t('reviewsEmptyTitle')} description={t('reviewsEmptyDescription')} />;
   }
 
   const hrefFor = (patientProfileId: string) =>

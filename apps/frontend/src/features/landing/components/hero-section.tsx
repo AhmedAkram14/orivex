@@ -86,14 +86,14 @@ export function HeroSection() {
                   </Link>
                 </Button>
                 {isAuthenticated ? (
-                  <Button asChild size="lg" variant="outline">
+                  <Button asChild size="lg" variant="secondary">
                     <Link href="/dashboard">
                       <Icon icon={LayoutDashboard} size="sm" />
                       {tNav('goToDashboard')}
                     </Link>
                   </Button>
                 ) : (
-                  <Button asChild size="lg" variant="outline">
+                  <Button asChild size="lg" variant="secondary">
                     <Link href="/register">
                       <Icon icon={UserPlus} size="sm" />
                       {t('secondaryCta')}

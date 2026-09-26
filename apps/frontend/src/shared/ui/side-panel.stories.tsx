@@ -9,7 +9,7 @@ export const DrawerExample: StoryObj = {
   render: () => (
     <Drawer>
       <Drawer.Trigger asChild>
-        <Button variant="outline">Open drawer</Button>
+        <Button variant="secondary">Open drawer</Button>
       </Drawer.Trigger>
       <Drawer.Content side="end">
         <Drawer.Header>
@@ -27,7 +27,7 @@ export const SheetExample: StoryObj = {
   render: () => (
     <Sheet>
       <Sheet.Trigger asChild>
-        <Button variant="outline">Open sheet</Button>
+        <Button variant="secondary">Open sheet</Button>
       </Sheet.Trigger>
       <Sheet.Content>
         <Sheet.Header>

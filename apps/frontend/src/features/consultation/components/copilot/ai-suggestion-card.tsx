@@ -156,7 +156,7 @@ export function AISuggestionCard({
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 disabled={isDeciding}
                 onClick={() => {
@@ -169,12 +169,12 @@ export function AISuggestionCard({
             </>
           ) : isRejecting ? (
             <>
-              <Button type="button" variant="danger" size="sm" loading={isDeciding} onClick={handleReject}>
+              <Button type="button" variant="destructive" size="sm" loading={isDeciding} onClick={handleReject}>
                 {t('reject')}
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 disabled={isDeciding}
                 onClick={() => {
@@ -192,10 +192,10 @@ export function AISuggestionCard({
                 <Icon icon={Check} size="sm" label="" />
                 {t('approve')}
               </Button>
-              <Button type="button" variant="outline" size="sm" disabled={isDeciding} onClick={() => setIsEditing(true)}>
+              <Button type="button" variant="secondary" size="sm" disabled={isDeciding} onClick={() => setIsEditing(true)}>
                 {t('edit')}
               </Button>
-              <Button type="button" variant="outline" size="sm" disabled={isDeciding} onClick={() => setIsRejecting(true)}>
+              <Button type="button" variant="secondary" size="sm" disabled={isDeciding} onClick={() => setIsRejecting(true)}>
                 <Icon icon={X} size="sm" label="" />
                 {t('reject')}
               </Button>

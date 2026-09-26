@@ -48,3 +48,23 @@ describe('flagGlucose', () => {
     expect(flagGlucose(85)).toBeNull();
   });
 });
+
+import { evaluateVital } from './vital-reference-ranges';
+
+describe('evaluateVital', () => {
+  it('reports blood pressure as in range, above or below', () => {
+    expect(evaluateVital('blood-pressure', 110, 70)).toBe('in_range');
+    expect(evaluateVital('blood-pressure', 140, 90)).toBe('above');
+    expect(evaluateVital('blood-pressure', 85, 55)).toBe('below');
+  });
+
+  it('never reports the unflagged glucose middle band as in range', () => {
+    expect(evaluateVital('blood-sugar', 140)).toBeNull();
+    expect(evaluateVital('blood-sugar', 250)).toBe('above');
+    expect(evaluateVital('blood-sugar', 60)).toBe('below');
+  });
+
+  it('does not evaluate weight', () => {
+    expect(evaluateVital('weight', 72)).toBeNull();
+  });
+});

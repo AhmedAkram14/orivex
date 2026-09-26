@@ -211,7 +211,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
         {t('openAction')}
       </Button>
       <DialogContent className="max-w-4xl">

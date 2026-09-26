@@ -29,7 +29,7 @@ export interface ConfirmNoKnownAllergiesDialogProps {
 export function ConfirmNoKnownAllergiesDialog({
   patientProfileId,
   triggerLabel,
-  triggerVariant = 'outline',
+  triggerVariant = 'secondary',
   triggerSize = 'sm',
   className,
 }: ConfirmNoKnownAllergiesDialogProps) {
@@ -79,7 +79,7 @@ export function ConfirmNoKnownAllergiesDialog({
         )}
 
         <DialogFooter>
-          <Button ref={cancelButtonRef} type="button" variant="outline" onClick={closeDialog}>
+          <Button ref={cancelButtonRef} type="button" variant="secondary" onClick={closeDialog}>
             {t('confirmNoKnownAllergiesCancelAction')}
           </Button>
           <Button type="button" loading={confirmNoKnownAllergies.isPending} onClick={handleConfirm}>

@@ -73,7 +73,7 @@ export function LoginHistoryTable() {
         ) : isError ? (
           <Alert variant="danger">{t('loadError')}</Alert>
         ) : !data || data.items.length === 0 ? (
-          <EmptyState title={t('emptyTitle')} description={t('emptyPeriodDescription')} />
+          <EmptyState illustration="records-start" title={t('emptyTitle')} description={t('emptyPeriodDescription')} />
         ) : (
           <>
             {/* Desktop/tablet: a real table. Below 640px: stacked cards (no horizontal scroll) -- the same row data, just laid out differently. */}

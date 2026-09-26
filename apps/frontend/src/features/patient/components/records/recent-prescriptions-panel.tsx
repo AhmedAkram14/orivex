@@ -39,7 +39,7 @@ export function RecentPrescriptionsPanel() {
     .slice(0, RECENT_LIMIT);
 
   if (recent.length === 0) {
-    return <EmptyState title={t('recentPrescriptionsEmptyTitle')} description={t('recentPrescriptionsEmptyDescription')} className="py-6" />;
+    return <EmptyState illustration="prescription-none" size="sm" title={t('recentPrescriptionsEmptyTitle')} description={t('recentPrescriptionsEmptyDescription')} className="py-6" />;
   }
 
   return (

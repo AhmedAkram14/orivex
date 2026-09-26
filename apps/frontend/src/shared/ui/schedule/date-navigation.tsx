@@ -25,13 +25,13 @@ export function DateNavigation({
 }: DateNavigationProps) {
   return (
     <div className={cn('flex items-center gap-1', className)}>
-      <Button variant="outline" size="icon" onClick={onPrevious} aria-label={previousLabel}>
+      <Button variant="secondary" size="icon" onClick={onPrevious} aria-label={previousLabel}>
         <Icon icon={ChevronLeft} size="sm" flipRtl />
       </Button>
-      <Button variant="outline" size="sm" onClick={onToday}>
+      <Button variant="secondary" size="sm" onClick={onToday}>
         {todayLabel}
       </Button>
-      <Button variant="outline" size="icon" onClick={onNext} aria-label={nextLabel}>
+      <Button variant="secondary" size="icon" onClick={onNext} aria-label={nextLabel}>
         <Icon icon={ChevronRight} size="sm" flipRtl />
       </Button>
     </div>

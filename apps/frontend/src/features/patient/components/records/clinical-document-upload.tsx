@@ -62,7 +62,7 @@ export function ClinicalDocumentUpload() {
       )}
 
       <input ref={inputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleFileSelected} />
-      <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} loading={upload.isPending}>
+      <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()} loading={upload.isPending}>
         <Icon icon={Upload} size="sm" />
         {t('uploadButton')}
       </Button>

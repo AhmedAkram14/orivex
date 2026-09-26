@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { CalendarClock } from 'lucide-react';
+
 import { useUpcomingSlots } from '@/features/scheduling/hooks/use-upcoming-slots';
 import { SlotPricingDialog } from '@/features/scheduling/components/slot-pricing-dialog';
 import type { AvailabilityWindowData } from '@/features/scheduling/types';
@@ -13,7 +13,7 @@ import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { StatusBadge, type ScheduleStatusTone } from '@/shared/ui/schedule/status-badge';
+import { StatusBadge, type StatusKey as ScheduleStatusTone } from '@/shared/ui/status-badge';
 
 const toneByWindowStatus: Record<AvailabilityWindowData['status'], ScheduleStatusTone> = {
   open: 'available',
@@ -69,7 +69,7 @@ export function UpcomingSlotsPanel() {
   const sorted = [...(windows ?? [])].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
   if (sorted.length === 0) {
-    return <EmptyState icon={CalendarClock} title={t('emptyTitle')} description={t('emptyDescription')} />;
+    return <EmptyState illustration="calendar-clear" title={t('emptyTitle')} description={t('emptyDescription')} />;
   }
 
   const groups = groupByDate(sorted);
@@ -106,10 +106,10 @@ export function UpcomingSlotsPanel() {
                       >
                         {priceLabel}
                       </span>
-                      <StatusBadge tone={toneByWindowStatus[window.status]} label={t(`status.${window.status}`)} />
+                      <StatusBadge status={toneByWindowStatus[window.status]} label={t(`status.${window.status}`)} />
                     </div>
                     {window.status === 'open' && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => setEditingWindow(window)}>
+                      <Button type="button" variant="secondary" size="sm" onClick={() => setEditingWindow(window)}>
                         {t('edit')}
                       </Button>
                     )}

@@ -8,6 +8,7 @@ import { useResolveDispute } from '@/features/admin/hooks/use-resolve-dispute';
 import type { DisputeCategory } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
@@ -114,7 +115,7 @@ export function DisputeQueue() {
       </div>
 
       {!disputes || disputes.length === 0 ? (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="disputes-none" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <ul className="flex flex-col gap-3">
           {disputes.map((dispute) => (
@@ -123,7 +124,7 @@ export function DisputeQueue() {
                 <span className="font-mono text-xs text-text-tertiary">{dispute.appointmentId.slice(0, 8)}</span>
                 <div className="flex items-center gap-2">
                   {dispute.category && <Badge variant="neutral">{t(`category.${dispute.category}`)}</Badge>}
-                  <Badge variant="neutral">{t(`status.${dispute.status}`)}</Badge>
+                  <StatusBadge status={dispute.status} label={t(`status.${dispute.status}`)} />
                   <span className="text-xs text-text-tertiary">
                     {format.dateTime(new Date(dispute.createdAt), { dateStyle: 'medium' })}
                   </span>
@@ -134,7 +135,7 @@ export function DisputeQueue() {
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={() => setPending({ disputeId: dispute.id, status: 'dismissed' })}
                   >
@@ -169,7 +170,7 @@ export function DisputeQueue() {
           {resolve.isError && <Alert variant="danger">{t('resolveError')}</Alert>}
 
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
+            <Button variant="secondary" onClick={closeDialog}>
               {t('cancel')}
             </Button>
             <Button loading={resolve.isPending} disabled={notes.trim().length === 0} onClick={handleConfirm}>

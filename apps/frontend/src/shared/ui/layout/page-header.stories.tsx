@@ -23,7 +23,7 @@ export const WithActions: Story = {
     description: 'Manage patient records.',
     actions: (
       <PageActions>
-        <Button variant="outline">Export</Button>
+        <Button variant="secondary">Export</Button>
         <Button>Add patient</Button>
       </PageActions>
     ),

@@ -141,7 +141,7 @@ export function ConsultationCopilotPanel({ consultationSessionId, isConsultation
               <Button
                 key={type}
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 className="justify-start"
                 loading={activeType === type}

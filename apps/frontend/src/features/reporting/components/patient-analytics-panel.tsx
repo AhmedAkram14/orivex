@@ -11,8 +11,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { PieChart } from '@/shared/ui/charts/pie-chart';
 import { ChartSkeleton } from '@/shared/ui/charts/chart-skeleton';
 import { ChartContainer } from '@/shared/ui/layout/chart-container';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
 export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
@@ -30,18 +29,18 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
         <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="patients" filter={filter} />
       </div>
-      <DashboardGrid columns={4}>
-        <LinkableStatCard icon={Users} label={t('newPatients')} value={String(data?.newPatients ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Users} label={t('returningPatients')} value={String(data?.returningPatients ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Users} label={t('verifiedPatients')} value={String(data?.verifiedPatients ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Users} label={t('activePatients')} value={String(data?.activePatients ?? 0)} loading={isLoading} />
-      </DashboardGrid>
+      <MetricGrid columns={4}>
+        <MetricStat icon={Users} label={t('newPatients')} value={String(data?.newPatients ?? 0)} loading={isLoading} />
+        <MetricStat icon={Users} label={t('returningPatients')} value={String(data?.returningPatients ?? 0)} loading={isLoading} />
+        <MetricStat icon={Users} label={t('verifiedPatients')} value={String(data?.verifiedPatients ?? 0)} loading={isLoading} />
+        <MetricStat icon={Users} label={t('activePatients')} value={String(data?.activePatients ?? 0)} loading={isLoading} />
+      </MetricGrid>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ChartContainer title={t('genderTitle')}>
-          {isLoading ? <ChartSkeleton /> : genderSlices.length === 0 ? <EmptyState icon={Users} title={t('emptyTitle')} /> : <PieChart data={genderSlices} />}
+          {isLoading ? <ChartSkeleton /> : genderSlices.length === 0 ? <EmptyState illustration="records-start" title={t('emptyTitle')} /> : <PieChart data={genderSlices} />}
         </ChartContainer>
         <ChartContainer title={t('ageTitle')}>
-          {isLoading ? <ChartSkeleton /> : ageSlices.length === 0 ? <EmptyState icon={Users} title={t('emptyTitle')} /> : <PieChart data={ageSlices} innerRadius={55} />}
+          {isLoading ? <ChartSkeleton /> : ageSlices.length === 0 ? <EmptyState illustration="records-start" title={t('emptyTitle')} /> : <PieChart data={ageSlices} innerRadius={55} />}
         </ChartContainer>
       </div>
       <WidgetContainer title={t('mostActiveTitle')} loading={isLoading}>
@@ -55,7 +54,7 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
             ))}
           </ul>
         ) : (
-          <EmptyState icon={Users} title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="records-start" title={t('emptyTitle')} description={t('emptyDescription')} />
         )}
       </WidgetContainer>
     </div>

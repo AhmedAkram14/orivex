@@ -179,7 +179,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
           actions={
             isConflictError ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => {
                   setSelectedWindow(null);
                   setStep('select');
@@ -192,7 +192,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
                 <Button loading={rescheduleAppointment.isPending} onClick={handleConfirm}>
                   {tReschedule('confirm')}
                 </Button>
-                <Button variant="outline" onClick={() => setStep('select')}>
+                <Button variant="secondary" onClick={() => setStep('select')}>
                   {tReschedule('back')}
                 </Button>
               </>
@@ -235,7 +235,7 @@ export function RescheduleFlow({ appointmentId, doctorId, onDone }: RescheduleFl
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}
       {!isLoading && !isError && (windows ?? []).length > 0 && <TimeGrid slots={gridSlots} />}
       {!isLoading && !isError && (windows ?? []).length === 0 && (
-        <EmptyState title={t('noSlotsTitle')} description={t('noSlotsDescription')} />
+        <EmptyState illustration="calendar-clear" title={t('noSlotsTitle')} description={t('noSlotsDescription')} />
       )}
     </div>
   );

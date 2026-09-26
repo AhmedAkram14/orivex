@@ -27,7 +27,7 @@ export default async function ForbiddenPage() {
       title={t('title')}
       description={t('description')}
       action={
-        <Button asChild variant="outline">
+        <Button asChild variant="secondary">
           <Link href="/">{t('backHome')}</Link>
         </Button>
       }

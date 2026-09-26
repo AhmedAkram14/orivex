@@ -21,7 +21,7 @@ export interface PeriodDeltaBadgeProps {
 /**
  * Doctor Reports page rebuild (Phase 3): the "vs previous period" delta next
  * to Total/Completed/Cancelled when "compare previous period" is on --
- * deliberately kept separate from `LinkableStatCard` itself (rendered
+ * deliberately kept separate from `MetricStat` itself (rendered
  * alongside it, not inside it) so that shared primitive stays untouched.
  */
 export function PeriodDeltaBadge({ current, previous, direction, className }: PeriodDeltaBadgeProps) {

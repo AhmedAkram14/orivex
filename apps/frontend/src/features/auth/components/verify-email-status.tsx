@@ -54,7 +54,7 @@ export function VerifyEmailStatus({ token }: VerifyEmailStatusProps) {
       <Alert variant="danger" title={isTokenIssue ? t('invalidLinkTitle') : t('genericErrorTitle')}>
         {isTokenIssue ? t('invalidLinkDescription') : t('genericErrorDescription')}
       </Alert>
-      <Button asChild variant="outline">
+      <Button asChild variant="secondary">
         <Link href="/login">{t('backToLogin')}</Link>
       </Button>
     </div>

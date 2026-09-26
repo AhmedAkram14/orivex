@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarX2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -181,7 +181,7 @@ export function AppointmentsWorkspace() {
       );
     }
     if (items.length === 0) {
-      return <EmptyState icon={CalendarX2} title={emptyTitle} description={emptyDescription} />;
+      return <EmptyState illustration="calendar-clear" title={emptyTitle} description={emptyDescription} />;
     }
     return <ul className="flex flex-col gap-3">{items.map((appointment) => renderRow(appointment, showCancel))}</ul>;
   }

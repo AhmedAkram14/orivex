@@ -9,7 +9,7 @@ export const Default: StoryObj = {
   render: () => (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">Filters</Button>
+        <Button variant="secondary">Filters</Button>
       </PopoverTrigger>
       <PopoverContent>
         <p className="text-sm text-text-primary">Filter by status, date range, or assigned doctor.</p>

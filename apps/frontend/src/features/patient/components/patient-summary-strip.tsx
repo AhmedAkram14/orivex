@@ -8,7 +8,7 @@ import { usePatientDashboardSummary } from '@/features/patient/hooks/use-patient
 import { selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricStat } from '@/shared/ui/metric-stat';
 
 /**
  * The compact summary strip (replaces the old three-tile Health Summary and
@@ -36,7 +36,7 @@ export function PatientSummaryStrip() {
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <LinkableStatCard
+      <MetricStat
         icon={CalendarClock}
         label={t('upcomingAppointmentsTitle')}
         value={String(upcoming.length)}
@@ -44,29 +44,26 @@ export function PatientSummaryStrip() {
         href="/patient/appointments"
         helperText={next ? t('nextVisitHelper', { date: format.dateTime(new Date(next.scheduledAt), { month: 'short', day: 'numeric' }) }) : undefined}
       />
-      <LinkableStatCard
+      <MetricStat
         icon={Pill}
         label={t('activePrescriptionsTitle')}
         value={String(summaryQuery.data?.activePrescriptionsCount ?? 0)}
         loading={summaryQuery.isLoading}
         href="/patient/prescriptions"
-        iconClassName="bg-success-subtle text-success-emphasis"
       />
-      <LinkableStatCard
+      <MetricStat
         icon={History}
         label={t('lastVisit')}
         value={lastVisitAt ? format.dateTime(new Date(lastVisitAt), { month: 'short', day: 'numeric' }) : '—'}
         helperText={lastVisitAt ? format.dateTime(new Date(lastVisitAt), { year: 'numeric' }) : t('noVisitsYet')}
         loading={summaryQuery.isLoading}
         href="/patient/records"
-        iconClassName="bg-warning-subtle text-warning-emphasis"
       />
-      <LinkableStatCard
+      <MetricStat
         icon={MessageSquare}
         label={t('unreadMessagesTitle')}
         value={String(unreadMessages)}
         href="/patient/messages"
-        iconClassName="bg-info-subtle text-info-emphasis"
       />
     </div>
   );

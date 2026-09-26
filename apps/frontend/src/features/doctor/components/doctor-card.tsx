@@ -1,25 +1,17 @@
 'use client';
 
-import { ArrowRight, BadgeCheck, Briefcase, CalendarCheck, Flame, MapPin, Stethoscope, Trophy } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Briefcase, CalendarCheck, Flame, MapPin, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
-import { Badge, type BadgeProps } from '@/shared/ui/badge';
+import { PersonAvatar } from '@/shared/ui/avatar';
+import { Badge } from '@/shared/ui/badge';
+import { SpecialtyChip } from '@/shared/ui/specialty-chip';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { cn } from '@/shared/lib/cn';
-
-function initialsOf(fullName: string): string {
-  return fullName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-}
 
 export type DoctorCardProfessionalRank = 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
 
@@ -28,7 +20,8 @@ export interface DoctorCardProps {
   fullName: string;
   avatarUrl?: string;
   specialtyLabel: string;
-  specialtyBadgeVariant?: BadgeProps['variant'];
+  /** Canonical (English) specialty name -- picks the chip's hue/glyph. Falls back to the label. */
+  specialtyName?: string;
   professionalRank?: DoctorCardProfessionalRank;
   yearsOfExperience?: number;
   hospitalName?: string;
@@ -56,7 +49,7 @@ export function DoctorCard({
   fullName,
   avatarUrl,
   specialtyLabel,
-  specialtyBadgeVariant = 'primary',
+  specialtyName,
   professionalRank,
   yearsOfExperience,
   hospitalName,
@@ -75,23 +68,17 @@ export function DoctorCard({
   const canBookAsPatient = status !== 'authenticated' || (user?.roles.includes('patient') ?? false);
 
   return (
-    <Card className={cn('relative flex h-full flex-col gap-4 rounded-2xl p-6 pb-4 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md', className)}>
+    <Card className={cn('relative flex h-full min-w-0 flex-col gap-4 p-(--card-pad) transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md', className)}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar size="lg" className="size-20 shrink-0">
-            {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} />}
-            <AvatarFallback>{initialsOf(fullName)}</AvatarFallback>
-          </Avatar>
+          <PersonAvatar name={fullName} src={avatarUrl} size="lg" />
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="flex items-center gap-1 text-base font-bold text-text-primary">
               <bdi className="min-w-0 wrap-break-word">{fullName}</bdi>
-              <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-primary" aria-label={t('verified')} />
+              <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-care-text" label={t('verified')} />
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant={specialtyBadgeVariant} className="w-fit gap-1">
-                <Icon icon={Stethoscope} size="xs" />
-                {specialtyLabel}
-              </Badge>
+              <SpecialtyChip name={specialtyName ?? specialtyLabel} label={specialtyLabel} />
               {professionalRank && <Badge variant="neutral">{t(`ranks.${professionalRank}`)}</Badge>}
             </div>
 
@@ -102,7 +89,7 @@ export function DoctorCard({
         {rankBadge && (
           <Badge
             variant={rankBadge === 'topRated' ? 'success' : 'warning'}
-            className="absolute top-0 end-0 shrink-0 gap-1 rounded-lg px-2 py-2"
+            className="absolute top-3 end-3 shrink-0 gap-1"
           >
             <Icon icon={rankBadge === 'topRated' ? Trophy : Flame} size="xs" />
             {rankBadge === 'topRated' ? t('topRated') : t('mostBooked')}
@@ -133,10 +120,11 @@ export function DoctorCard({
 
       {/* Always rendered so every card in a grid keeps the same footer position; a doctor with no fee on record reads "Fee on request" instead of dropping the row. */}
       <div className="flex flex-col">
-        <span className="text-xs text-text-tertiary">{t('consultationFeeLabel')}</span>
+        <span className="text-caption text-text-tertiary">{t('consultationFeeLabel')}</span>
         <span
+          data-numeric
           className={cn(
-            'text-base font-bold',
+            'font-display text-h2',
             consultationFeeAmount === undefined
               ? 'text-text-secondary'
               : consultationFeeAmount === 0
@@ -154,7 +142,7 @@ export function DoctorCard({
 
       {canBookAsPatient ? (
         <div className="mt-auto grid grid-cols-2 gap-2">
-          <Button asChild variant="ghost" size="sm" className="min-w-0 gap-1 text-primary-emphasis">
+          <Button asChild variant="ghost" size="sm" className="min-w-0 gap-1">
             <Link href={`/patient/doctors/${doctorProfileId}`}>
               <span className="truncate">{t('viewProfile')}</span>
               <Icon icon={ArrowRight} size="sm" flipRtl />
@@ -163,7 +151,7 @@ export function DoctorCard({
           <Button asChild size="sm" className="min-w-0 gap-1.5">
             <Link href={`/patient/appointments/book?doctorId=${doctorProfileId}`}>
               <Icon icon={CalendarCheck} size="sm" />
-              <span className="truncate">{t('bookAppointment')}</span>
+              <span className="truncate">{t('book')}</span>
             </Link>
           </Button>
         </div>

@@ -16,7 +16,7 @@ export function WaitingQueue({ title, emptyTitle, emptyDescription, items, isEmp
   return (
     <WidgetContainer title={title} {...props}>
       {isEmpty ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        <EmptyState illustration="waiting-room-empty" title={emptyTitle} description={emptyDescription} />
       ) : (
         <ul className="flex flex-col gap-2">{items}</ul>
       )}

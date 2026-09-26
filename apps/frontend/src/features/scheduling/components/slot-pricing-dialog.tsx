@@ -141,7 +141,7 @@ export function SlotPricingDialog({ window, timeLabel, open, onOpenChange }: Slo
             )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
                 {t('cancel')}
               </Button>
               <Button type="submit" loading={updatePricing.isPending}>

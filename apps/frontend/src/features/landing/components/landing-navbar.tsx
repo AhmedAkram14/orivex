@@ -92,7 +92,7 @@ export function LandingNavbar() {
                   <LandingUserMenu user={user} />
                 ) : (
                   <>
-                    <Button asChild variant="outline" className="rounded-full">
+                    <Button asChild variant="secondary" className="rounded-full">
                       <Link href="/login">{t('signIn')}</Link>
                     </Button>
                     <Button asChild className="rounded-full">

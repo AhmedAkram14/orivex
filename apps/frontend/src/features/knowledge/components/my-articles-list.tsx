@@ -132,7 +132,7 @@ export function MyArticlesList() {
             ))}
           </div>
         ) : !hasAnyArticles ? (
-          <EmptyState
+          <EmptyState illustration="articles-none"
             title={t('emptyTitle')}
             description={t('emptyDescription')}
             action={
@@ -180,11 +180,11 @@ export function MyArticlesList() {
             {filtered.length === 0 ? (
               <Card>
                 <div className="flex flex-col items-center gap-4 p-6">
-                  <EmptyState title={t('noResultsTitle')} description={t('noResultsDescription')} />
+                  <EmptyState illustration="search-no-results" title={t('noResultsTitle')} description={t('noResultsDescription')} />
                   {hasActiveFilters && (
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       onClick={() => {
                         setSearch('');
@@ -230,7 +230,7 @@ export function MyArticlesList() {
                       {(article.status === 'draft' || article.status === 'pending_review' || article.status === 'published') && (
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="secondary"
                           size="sm"
                           onClick={() => setComposerMode({ editing: article })}
                         >
@@ -238,7 +238,7 @@ export function MyArticlesList() {
                         </Button>
                       )}
                       {article.status === 'published' && (
-                        <Button type="button" variant="outline" size="sm" onClick={() => setUnpublishTarget(article)}>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => setUnpublishTarget(article)}>
                           {t('unpublishAction')}
                         </Button>
                       )}
@@ -268,11 +268,11 @@ export function MyArticlesList() {
           {unpublish.isError && <Alert variant="danger">{t('unpublishError')}</Alert>}
 
           <DialogFooter>
-            <Button variant="outline" onClick={closeUnpublishDialog}>
+            <Button variant="secondary" onClick={closeUnpublishDialog}>
               {t('cancel')}
             </Button>
             <Button
-              variant="danger"
+              variant="destructive-solid"
               loading={unpublish.isPending}
               disabled={unpublishReason.trim().length === 0}
               onClick={handleConfirmUnpublish}

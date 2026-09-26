@@ -54,14 +54,14 @@ function AttentionItem({ appointment, kind }: { appointment: Appointment; kind: 
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button asChild size="sm" variant="outline">
+        <Button asChild size="sm" variant="secondary">
           <Link href={`/patient/appointments?highlight=${appointment.id}`}>{t('viewAppointment')}</Link>
         </Button>
-        <Button size="sm" variant="outline" loading={startThread.isPending} onClick={messageDoctor}>
+        <Button size="sm" variant="secondary" loading={startThread.isPending} onClick={messageDoctor}>
           {t('messageDoctor')}
         </Button>
         {kind === 'awaitingUpdate' && (
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="secondary">
             <Link href="/patient/disputes">{t('raiseDispute')}</Link>
           </Button>
         )}

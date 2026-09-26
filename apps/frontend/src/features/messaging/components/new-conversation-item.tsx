@@ -30,7 +30,7 @@ export function NewConversationItem({ counterpartyProfileId, counterpartyName, s
           {format.dateTime(new Date(scheduledAt), { year: 'numeric', month: 'short', day: 'numeric' })}
         </p>
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={() => onStart(counterpartyProfileId)} loading={starting}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => onStart(counterpartyProfileId)} loading={starting}>
         {t('startConversation')}
       </Button>
     </li>

@@ -102,7 +102,7 @@ export function AccountsTable() {
     return (
       <div className="flex flex-col gap-4">
         {roleFilterControl}
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
       </div>
     );
   }
@@ -166,7 +166,7 @@ export function AccountsTable() {
             <DialogDescription>{t('roleChangeDialogDescription')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
+            <Button variant="secondary" onClick={closeDialog}>
               {t('cancel')}
             </Button>
             <Button loading={updateRole.isPending} onClick={handleConfirmRoleChange}>

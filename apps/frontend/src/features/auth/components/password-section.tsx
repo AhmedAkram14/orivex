@@ -30,7 +30,7 @@ export function PasswordSection() {
       {formOpen ? (
         <ChangePasswordForm />
       ) : (
-        <Button variant="outline" className="self-start" onClick={() => setFormOpen(true)}>
+        <Button variant="secondary" className="self-start" onClick={() => setFormOpen(true)}>
           {t('changeButton')}
         </Button>
       )}

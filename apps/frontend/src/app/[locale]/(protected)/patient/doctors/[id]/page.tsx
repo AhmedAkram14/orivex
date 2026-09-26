@@ -34,7 +34,7 @@ export default function PatientDoctorProfilePage() {
       <Page>
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('profileTitle')} />
         {isLoading && <Skeleton className="h-96 w-full" />}
-        {notFound && <EmptyState title={t('profileNotFoundTitle')} description={t('profileNotFoundDescription')} />}
+        {notFound && <EmptyState illustration="search-no-results" title={t('profileNotFoundTitle')} description={t('profileNotFoundDescription')} />}
         {!isLoading && !notFound && error && <Alert variant="danger">{t('loadError')}</Alert>}
         {profile && (
           <>

@@ -96,7 +96,7 @@ export function PrescriptionCard({
         )}
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
           loading={downloadPdf.isPending}
           onClick={() => downloadPdf.mutate(id)}

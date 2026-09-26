@@ -204,7 +204,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
           actions={
             isConflictError || isFreeTierMonthlyCapError || isNoShowRestrictedError ? (
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => {
                   setSelectedWindow(null);
                   setStep('select');
@@ -217,7 +217,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
                 <Button loading={bookAppointment.isPending} onClick={handleConfirm}>
                   {t('confirm')}
                 </Button>
-                <Button variant="outline" onClick={() => setStep('select')}>
+                <Button variant="secondary" onClick={() => setStep('select')}>
                   {t('back')}
                 </Button>
               </>
@@ -260,7 +260,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}
       {!isLoading && !isError && (windows ?? []).length > 0 && <TimeGrid slots={gridSlots} />}
       {!isLoading && !isError && (windows ?? []).length === 0 && (
-        <EmptyState title={t('noSlotsTitle')} description={t('noSlotsDescription')} />
+        <EmptyState illustration="calendar-clear" title={t('noSlotsTitle')} description={t('noSlotsDescription')} />
       )}
     </div>
   );

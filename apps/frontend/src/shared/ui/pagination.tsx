@@ -22,7 +22,7 @@ export function Pagination({ page, pageCount, onPageChange, className }: Paginat
   return (
     <nav aria-label={t('label')} className={cn('flex items-center justify-between gap-4', className)}>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         disabled={!canGoPrevious}
         onClick={() => onPageChange(page - 1)}
@@ -32,7 +32,7 @@ export function Pagination({ page, pageCount, onPageChange, className }: Paginat
       </Button>
       <span className="text-sm text-text-secondary">{t('pageOf', { page, pageCount })}</span>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         disabled={!canGoNext}
         onClick={() => onPageChange(page + 1)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageCircle, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -257,7 +257,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
             />
           ) : (
             <div className="flex h-full items-center justify-center p-8">
-              <EmptyState icon={MessageCircle} title={t('selectConversationTitle')} description={t('selectConversationDescription')} />
+              <EmptyState illustration="inbox-quiet" title={t('selectConversationTitle')} description={t('selectConversationDescription')} />
             </div>
           )}
         </Card>

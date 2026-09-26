@@ -217,7 +217,7 @@ export function JourneyScreen() {
                   </span>
                 ))}
               </div>
-              <Button className="mt-auto w-full" variant="outline" onClick={handleChooseDoctor}>
+              <Button className="mt-auto w-full" variant="secondary" onClick={handleChooseDoctor}>
                 {t('doctorCardAction')}
               </Button>
             </CardContent>

@@ -103,7 +103,7 @@ export function DocumentsStep({ slots, translationNamespace, documents, onDocume
                 ) : (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     loading={uploadingSlot === slot}
                     onClick={() => inputRefs.current[slot]?.click()}
@@ -119,7 +119,7 @@ export function DocumentsStep({ slots, translationNamespace, documents, onDocume
       </ul>
 
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" onClick={onBack}>
+        <Button type="button" variant="secondary" onClick={onBack}>
           {t('back')}
         </Button>
         <Button type="button" onClick={onContinue} disabled={!allSlotsFilled}>

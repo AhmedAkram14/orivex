@@ -3,12 +3,11 @@ import { LayoutDashboard, Stethoscope, Users } from 'lucide-react';
 import { Icon } from '@/shared/icons/icon';
 import { Content } from './content';
 import { Footer } from './footer';
-import { MetricCard } from './metric-card';
+import { MetricStat } from '../metric-stat';
 import { PageContainer } from './page-container';
 import { PageHeader } from './page-header';
 import { Section } from './section';
 import { Sidebar, SidebarSection, SidebarSectionLabel } from './sidebar';
-import { StatCard } from './stat-card';
 import { Topbar } from './topbar';
 
 const meta: Meta = { title: 'UI/Layout' };
@@ -37,9 +36,9 @@ export const AppShellSkeleton: StoryObj = {
             <PageHeader title="Dashboard" description="Today's overview" />
             <Section title="Key metrics">
               <div className="grid grid-cols-3 gap-4">
-                <MetricCard label="Today's appointments" value="24" trend={12.4} />
-                <StatCard icon={Stethoscope} label="Active doctors" value="8" />
-                <StatCard icon={Users} label="Active patients" value="312" />
+                <MetricStat label="Today's appointments" value="24" delta={{ label: '+12.4%', direction: 'up', tone: 'success' }} />
+                <MetricStat icon={Stethoscope} label="Active doctors" value="8" />
+                <MetricStat icon={Users} label="Active patients" value="312" />
               </div>
             </Section>
           </PageContainer>

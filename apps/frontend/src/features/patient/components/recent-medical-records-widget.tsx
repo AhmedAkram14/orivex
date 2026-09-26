@@ -74,7 +74,7 @@ export function RecentMedicalRecordsWidget() {
           ))}
         </ul>
       ) : (
-        <EmptyState className="py-6" title={t('recentMedicalRecordsEmptyTitle')} description={t('recentMedicalRecordsEmptyDescription')} />
+        <EmptyState illustration="records-start" size="sm" className="py-6" title={t('recentMedicalRecordsEmptyTitle')} description={t('recentMedicalRecordsEmptyDescription')} />
       )}
     </WidgetContainer>
   );

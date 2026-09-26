@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { UserCheck } from 'lucide-react';
+
 import { EmptyState } from '@/shared/ui/empty-state';
 import { WidgetContainer, type WidgetContainerProps } from '@/shared/ui/layout/widget-container';
 
@@ -15,7 +15,7 @@ export interface CurrentPatientCardProps extends Omit<WidgetContainerProps, 'chi
 export function CurrentPatientCard({ title, emptyTitle, emptyDescription, content, ...props }: CurrentPatientCardProps) {
   return (
     <WidgetContainer title={title} {...props}>
-      {content ?? <EmptyState icon={UserCheck} title={emptyTitle} description={emptyDescription} />}
+      {content ?? <EmptyState illustration="waiting-room-empty" title={emptyTitle} description={emptyDescription} />}
     </WidgetContainer>
   );
 }

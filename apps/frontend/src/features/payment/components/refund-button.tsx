@@ -18,7 +18,7 @@ export function RefundButton({ paymentTransactionId }: RefundButtonProps) {
     <div className="flex flex-col gap-2">
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         loading={refundPayment.isPending}
         onClick={() => refundPayment.mutate(paymentTransactionId)}
       >

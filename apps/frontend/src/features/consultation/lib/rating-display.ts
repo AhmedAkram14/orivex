@@ -12,7 +12,7 @@ import type { useTranslations } from 'next-intl';
  *
  * Contract: `value` is ALWAYS either a real "X.X" figure or the em dash --
  * never prose (a stat tile's value slot must never carry a sentence, see
- * `StatCard`/`LinkableStatCard`). Any explanatory copy ("not enough
+ * `StatCard`/`MetricStat`). Any explanatory copy ("not enough
  * ratings yet", "no ratings yet") lives in `helperText` instead.
  */
 

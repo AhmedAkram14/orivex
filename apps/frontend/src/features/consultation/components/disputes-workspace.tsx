@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Paperclip, X } from 'lucide-react';
+import { Paperclip, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useRef, useState } from 'react';
 import { Heading } from '@/design-system/typography';
@@ -247,7 +247,7 @@ export function DisputesWorkspace({ role }: DisputesWorkspaceProps) {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {disputes.length === 0 ? (
-            <EmptyState icon={AlertTriangle} title={t('emptyTitle')} description={t('emptyDescription')} action={raiseTrigger} />
+            <EmptyState illustration="disputes-none" title={t('emptyTitle')} description={t('emptyDescription')} action={raiseTrigger} />
           ) : (
             <>
               <p className="text-sm text-text-tertiary">{t('totalCount', { count: filteredDisputes.length })}</p>
@@ -379,7 +379,7 @@ export function DisputesWorkspace({ role }: DisputesWorkspaceProps) {
               />
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 loading={uploadAttachment.isPending}
@@ -398,7 +398,7 @@ export function DisputesWorkspace({ role }: DisputesWorkspaceProps) {
             {raiseDispute.isError && <Alert variant="danger">{t('raiseError')}</Alert>}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={closePicker}>
+              <Button type="button" variant="secondary" onClick={closePicker}>
                 {t('cancel')}
               </Button>
               <Button type="submit" loading={raiseDispute.isPending} disabled={!canSubmit}>
@@ -439,7 +439,7 @@ function WithdrawDisputeAction({ disputeId }: { disputeId: string }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : closeDialog())}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
         {t('withdrawAction')}
       </Button>
       <DialogContent>
@@ -451,10 +451,10 @@ function WithdrawDisputeAction({ disputeId }: { disputeId: string }) {
         {withdrawDispute.isError && <Alert variant="danger">{t('withdrawError')}</Alert>}
 
         <DialogFooter>
-          <Button variant="outline" onClick={closeDialog}>
+          <Button variant="secondary" onClick={closeDialog}>
             {t('cancel')}
           </Button>
-          <Button variant="danger" loading={withdrawDispute.isPending} onClick={handleConfirm}>
+          <Button variant="destructive-solid" loading={withdrawDispute.isPending} onClick={handleConfirm}>
             {t('confirmWithdraw')}
           </Button>
         </DialogFooter>

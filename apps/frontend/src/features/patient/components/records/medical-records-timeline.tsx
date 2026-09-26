@@ -24,7 +24,7 @@ export function MedicalRecordsTimeline({ entries }: MedicalRecordsTimelineProps)
   }, [highlightId, entries.length]);
 
   if (entries.length === 0) {
-    return <EmptyState title={t('timelineEmptyTitle')} description={t('timelineEmptyDescription')} />;
+    return <EmptyState illustration="records-start" title={t('timelineEmptyTitle')} description={t('timelineEmptyDescription')} />;
   }
 
   const sorted = [...entries].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

@@ -9,7 +9,7 @@ import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Badge, type BadgeProps } from '@/shared/ui/badge';
+import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
@@ -21,21 +21,6 @@ import { Skeleton } from '@/shared/ui/skeleton';
 // grid to not all match, so a name-hash over the same 4 distinct hues this
 // design system actually has (see specialties-section.tsx's own comment on
 // the info/primary token duplicate) is enough.
-const SPECIALTY_BADGE_VARIANTS: BadgeProps['variant'][] = [
-  'primary',
-  'success',
-  'warning',
-  'danger',
-];
-
-function specialtyBadgeVariant(specialtyName: string): BadgeProps['variant'] {
-  let hash = 0;
-  for (let index = 0; index < specialtyName.length; index += 1) {
-    hash = (hash * 31 + specialtyName.charCodeAt(index)) | 0;
-  }
-  return SPECIALTY_BADGE_VARIANTS[Math.abs(hash) % SPECIALTY_BADGE_VARIANTS.length];
-}
-
 /** Landing already has the rating aggregate inline in its own bulk `/public/doctors` payload -- built here and passed into the shared card's `ratingSlot`, rather than the card re-fetching it per doctor. */
 function PopularDoctorRating({ doctor }: { doctor: PublicDoctor }) {
   const t = useTranslations('landing.popularDoctors');
@@ -72,7 +57,7 @@ function LandingDoctorCard({ doctor }: { doctor: PublicDoctor }) {
       fullName={doctor.fullName}
       avatarUrl={doctor.avatarUrl}
       specialtyLabel={specialtyName}
-      specialtyBadgeVariant={specialtyBadgeVariant(doctor.specialtyName)}
+      specialtyName={doctor.specialtyName}
       professionalRank={doctor.professionalRank}
       yearsOfExperience={doctor.yearsOfExperience}
       hospitalName={doctor.hospitalName}
@@ -139,7 +124,7 @@ export function PopularDoctorsSection() {
         <div className="flex justify-center sm:justify-end">
           <Button
             asChild
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="rounded-xl border-border-default px-5.5 py-4.5 text-primary"
           >
@@ -160,7 +145,7 @@ export function PopularDoctorsSection() {
       )}
 
       {!isLoading && doctors.length === 0 && (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="search-no-results" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
 
       {!isLoading && doctors.length > 0 && (

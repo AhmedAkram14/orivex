@@ -23,7 +23,7 @@ export function ActiveConditionsPanel({ entries }: ActiveConditionsPanelProps) {
 
   if (conditions.length === 0) {
     return (
-      <EmptyState
+      <EmptyState illustration="records-start" size="sm"
         title={t('conditionsEmptyTitle')}
         description={t('conditionsEmptyDescription')}
         className="py-6"

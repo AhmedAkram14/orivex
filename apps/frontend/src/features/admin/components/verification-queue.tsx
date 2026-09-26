@@ -96,7 +96,7 @@ export function VerificationQueue() {
       {isLoading && <Skeleton className="h-32 w-full" />}
 
       {!isLoading && !isError && (!cases || cases.length === 0) && (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="waiting-room-empty" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
 
       {!isLoading && !isError && cases && cases.length > 0 && (
@@ -128,7 +128,7 @@ export function VerificationQueue() {
                   })}
                 </TableCell>
                 <TableCell>
-                  <Button asChild size="sm" variant="outline">
+                  <Button asChild size="sm" variant="secondary">
                     <Link href={`/admin/verification-queue/${verificationCase.id}`}>{t('viewCase')}</Link>
                   </Button>
                 </TableCell>

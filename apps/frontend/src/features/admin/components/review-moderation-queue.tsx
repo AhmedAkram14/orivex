@@ -71,7 +71,7 @@ export function ReviewModerationQueue() {
       </Heading>
 
       {!reviews || reviews.length === 0 ? (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="waiting-room-empty" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <ul className="flex flex-col gap-3">
           {reviews.map((review) => (
@@ -96,7 +96,7 @@ export function ReviewModerationQueue() {
               <div className="flex gap-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={() => setPending({ feedbackId: review.id, status: 'visible' })}
                 >
@@ -104,7 +104,7 @@ export function ReviewModerationQueue() {
                 </Button>
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="destructive"
                   size="sm"
                   onClick={() => setPending({ feedbackId: review.id, status: 'hidden' })}
                 >
@@ -135,11 +135,11 @@ export function ReviewModerationQueue() {
           {moderate.isError && <Alert variant="danger">{t('moderateError')}</Alert>}
 
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
+            <Button variant="secondary" onClick={closeDialog}>
               {t('cancel')}
             </Button>
             <Button
-              variant={pending?.status === 'hidden' ? 'danger' : 'primary'}
+              variant={pending?.status === 'hidden' ? 'destructive-solid' : 'primary'}
               loading={moderate.isPending}
               disabled={reason.trim().length === 0}
               onClick={handleConfirm}

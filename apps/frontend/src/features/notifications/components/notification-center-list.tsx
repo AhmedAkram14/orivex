@@ -44,7 +44,7 @@ export function NotificationCenterList() {
   }
 
   if (!data || data.notifications.length === 0) {
-    return <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />;
+    return <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />;
   }
 
   const pageCount = Math.max(1, Math.ceil(data.total / PAGE_SIZE));

@@ -34,7 +34,7 @@ describe('PopularDoctorsSection', () => {
     const viewProfileLink = screen.getByRole('link', { name: 'View Profile' });
     expect(viewProfileLink).toHaveAttribute('href', expect.stringContaining('/patient/doctors/doctor-profile-1'));
 
-    const bookLink = screen.getByRole('link', { name: /Book Appointment/ });
+    const bookLink = screen.getByRole('link', { name: /^Book$/ });
     expect(bookLink).toHaveAttribute('href', expect.stringContaining('doctorId=doctor-profile-1'));
 
     const viewAllLink = screen.getByRole('link', { name: /View All Doctors/ });

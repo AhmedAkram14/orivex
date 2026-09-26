@@ -77,7 +77,7 @@ export function KnowledgeModerationQueue() {
       </Heading>
 
       {!articles || articles.length === 0 ? (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="waiting-room-empty" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <ul className="flex flex-col gap-3">
           {articles.map((article) => (
@@ -103,7 +103,7 @@ export function KnowledgeModerationQueue() {
                 </Button>
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="destructive"
                   size="sm"
                   onClick={() => setPending({ articleId: article.id, status: 'rejected' })}
                 >
@@ -134,11 +134,11 @@ export function KnowledgeModerationQueue() {
           {moderate.isError && <Alert variant="danger">{t('moderateError')}</Alert>}
 
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
+            <Button variant="secondary" onClick={closeDialog}>
               {t('cancel')}
             </Button>
             <Button
-              variant={pending?.status === 'rejected' ? 'danger' : 'primary'}
+              variant={pending?.status === 'rejected' ? 'destructive-solid' : 'primary'}
               loading={moderate.isPending}
               disabled={reason.trim().length === 0}
               onClick={handleConfirm}

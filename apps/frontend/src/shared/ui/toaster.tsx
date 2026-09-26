@@ -9,8 +9,8 @@ export function Toaster() {
 
   return (
     <>
-      {toasts.map(({ id, title, description, variant }) => (
-        <Toast key={id} variant={variant} open onOpenChange={(open) => !open && dismissToast(id)}>
+      {toasts.map(({ id, title, description, variant, duration }) => (
+        <Toast key={id} variant={variant} durationMs={duration ?? 4000} open onOpenChange={(open) => !open && dismissToast(id)}>
           <div className="flex flex-col gap-1">
             {title && <ToastTitle>{title}</ToastTitle>}
             {description && <ToastDescription>{description}</ToastDescription>}

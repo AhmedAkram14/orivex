@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, Video } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { ConsultationOutcomeAction } from '@/features/consultation/components/consultation-outcome-action';
 import { PayNowAction } from '@/features/payment/components/pay-now-action';
@@ -87,9 +87,8 @@ export function NextAppointmentCard() {
     return (
       <Card className={HERO_CARD_CLASSNAME}>
         <CardContent className="p-6">
-          <EmptyState
+          <EmptyState illustration="calendar-clear"
             className="w-full py-6"
-            icon={CalendarClock}
             title={t('nextAppointmentEmptyTitle')}
             description={t('nextAppointmentEmptyDescription')}
             action={
@@ -98,7 +97,7 @@ export function NextAppointmentCard() {
                   <Link href="/patient/doctors">{t('bookAppointmentAction')}</Link>
                 </Button>
                 {lastCompleted && (
-                  <Button asChild size="sm" variant="outline">
+                  <Button asChild size="sm" variant="secondary">
                     <Link href={`/patient/appointments/book?doctorId=${lastCompleted.doctorId}`}>
                       {t('bookAgainAction', { doctor: lastCompleted.doctorName })}
                     </Link>
@@ -180,7 +179,7 @@ export function NextAppointmentCard() {
 
           <div className="flex flex-wrap items-center gap-2">
             {primaryAction}
-            <Button asChild variant="outline" size="sm" className="bg-surface/70">
+            <Button asChild variant="secondary" size="sm" className="bg-surface/70">
               <Link href={`/patient/appointments?highlight=${next.id}`}>{t('viewAppointmentAction')}</Link>
             </Button>
           </div>

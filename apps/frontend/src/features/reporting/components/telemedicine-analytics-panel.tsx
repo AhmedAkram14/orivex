@@ -7,8 +7,7 @@ import { useTelemedicineAnalytics } from '@/features/reporting/hooks/use-telemed
 import { ExportButton } from '@/features/reporting/components/export-button';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 /**
  * Average join delay, connection success rate, and missed calls are not
@@ -32,16 +31,16 @@ export function TelemedicineAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         </div>
         <ExportButton section="telemedicine" filter={filter} />
       </div>
-      <DashboardGrid columns={3}>
-        <LinkableStatCard icon={Video} label={t('totalSessions')} value={String(data?.totalSessions ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Video} label={t('completedSessions')} value={String(data?.completedSessions ?? 0)} loading={isLoading} />
-        <LinkableStatCard
+      <MetricGrid columns={3}>
+        <MetricStat icon={Video} label={t('totalSessions')} value={String(data?.totalSessions ?? 0)} loading={isLoading} />
+        <MetricStat icon={Video} label={t('completedSessions')} value={String(data?.completedSessions ?? 0)} loading={isLoading} />
+        <MetricStat
           icon={Video}
           label={t('averageDuration')}
           value={data?.averageDurationMinutes == null ? t('notAvailable') : `${data.averageDurationMinutes.toFixed(1)} ${t('minutes')}`}
           loading={isLoading}
         />
-      </DashboardGrid>
+      </MetricGrid>
     </div>
   );
 }

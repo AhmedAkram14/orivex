@@ -52,10 +52,10 @@ export function LoginHistoryDateRangePicker({ from, to, onChange }: LoginHistory
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(7), undefined)}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(daysAgoIso(7), undefined)}>
           {t('preset7Days')}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(30), undefined)}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(daysAgoIso(30), undefined)}>
           {t('preset30Days')}
         </Button>
         {(from || to) && (

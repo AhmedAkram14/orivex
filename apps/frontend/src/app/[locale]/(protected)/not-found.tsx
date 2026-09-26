@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass } from 'lucide-react';
+
 import { useTranslations } from 'next-intl';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
@@ -28,8 +28,7 @@ export default function ProtectedNotFound() {
   return (
     <Page>
       <WorkspaceHeader title={t('title')} description={t('description')} />
-      <EmptyState
-        icon={Compass}
+      <EmptyState illustration="search-no-results"
         title={t('emptyTitle')}
         description={t('emptyDescription')}
         action={

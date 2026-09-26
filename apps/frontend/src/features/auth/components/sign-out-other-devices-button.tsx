@@ -12,7 +12,7 @@ export function SignOutOtherDevicesButton() {
 
   return (
     <Button
-      variant="outline"
+      variant="secondary"
       loading={revokeOthers.isPending}
       onClick={() => {
         revokeOthers.mutate(undefined, {

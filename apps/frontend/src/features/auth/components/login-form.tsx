@@ -80,7 +80,7 @@ export function LoginForm() {
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
+                variant="secondary"
                 loading={resendVerification.isPending}
                 onClick={() => resendVerification.mutate({ email: unverifiedEmail })}
                 className="self-start"

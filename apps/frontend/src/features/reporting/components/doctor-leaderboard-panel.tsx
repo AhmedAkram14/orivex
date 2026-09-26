@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Stethoscope } from 'lucide-react';
+
 import { useTranslations } from 'next-intl';
 import { Link } from '@/shared/i18n/navigation';
 import { useDoctorAnalytics } from '@/features/reporting/hooks/use-doctor-analytics';
@@ -87,7 +87,7 @@ export function DoctorLeaderboardPanel({ filter, refetchIntervalMs }: { filter: 
           </TableBody>
         </Table>
       ) : (
-        <EmptyState icon={Stethoscope} title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="records-start" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
     </WidgetContainer>
   );

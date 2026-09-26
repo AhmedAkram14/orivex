@@ -74,7 +74,7 @@ export default function PublicPatientProfilePage() {
       <Page>
         <WorkspaceHeader title={t('title')} />
         {isLoading && <Skeleton className="h-40 w-full" />}
-        {notFound && <EmptyState title={t('notFoundTitle')} description={t('notFoundDescription')} />}
+        {notFound && <EmptyState illustration="search-no-results" title={t('notFoundTitle')} description={t('notFoundDescription')} />}
         {!isLoading && !notFound && error && <Alert variant="danger">{t('loadError')}</Alert>}
         {patient && (
           <div className="flex flex-col gap-6">

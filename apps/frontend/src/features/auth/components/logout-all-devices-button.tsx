@@ -25,7 +25,7 @@ export function LogoutAllDevicesButton() {
 
   return (
     <>
-      <Button variant="danger" onClick={() => setConfirmOpen(true)}>
+      <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
         {t('trigger')}
       </Button>
 
@@ -37,10 +37,10 @@ export function LogoutAllDevicesButton() {
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">{t('cancel')}</Button>
+              <Button variant="secondary">{t('cancel')}</Button>
             </DialogClose>
             <Button
-              variant="danger"
+              variant="destructive-solid"
               loading={logoutAll.isPending}
               onClick={() => {
                 logoutAll.mutate(undefined, {

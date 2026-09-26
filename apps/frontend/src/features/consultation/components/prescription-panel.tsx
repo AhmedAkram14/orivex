@@ -132,7 +132,7 @@ export function PrescriptionPanel({ consultationSessionId, onDirtyChange }: Pres
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 loading={downloadPrescriptionPdf.isPending}
                 onClick={() => downloadPrescriptionPdf.mutate(prescription.id)}

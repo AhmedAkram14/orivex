@@ -67,10 +67,10 @@ export function FlagReviewAction({ feedbackId, doctorProfileId }: FlagReviewActi
         {flagReview.isError && <Alert variant="danger">{t('flagError')}</Alert>}
 
         <DialogFooter>
-          <Button variant="outline" onClick={closeDialog}>
+          <Button variant="secondary" onClick={closeDialog}>
             {t('cancel')}
           </Button>
-          <Button variant="danger" loading={flagReview.isPending} disabled={reason.trim().length === 0} onClick={handleConfirm}>
+          <Button variant="destructive-solid" loading={flagReview.isPending} disabled={reason.trim().length === 0} onClick={handleConfirm}>
             {t('confirmFlag')}
           </Button>
         </DialogFooter>

@@ -55,10 +55,10 @@ function FeedArticleCard({
             <ArticleAuthorName doctorProfileId={article.authoringDoctorId} />
           </span>
           <div className="flex gap-2">
-            <Button type="button" variant={isSaved ? 'outline' : 'primary'} size="sm" loading={saving} onClick={onToggleSave}>
+            <Button type="button" variant={isSaved ? 'secondary' : 'primary'} size="sm" loading={saving} onClick={onToggleSave}>
               {isSaved ? t('unsaveAction') : t('saveAction')}
             </Button>
-            <Button type="button" variant="outline" size="sm" loading={followingPending} onClick={onToggleFollow}>
+            <Button type="button" variant="secondary" size="sm" loading={followingPending} onClick={onToggleFollow}>
               {isFollowing ? t('unfollowAction') : t('followAction')}
             </Button>
           </div>
@@ -74,7 +74,7 @@ function SavedArticleRow({ articleId, onUnsave, unsaving }: { articleId: string;
   return (
     <li className="flex items-center justify-between gap-2 rounded-2xl border border-border-default p-4">
       <span dir="auto" className="text-sm text-text-secondary">{article?.title ?? '…'}</span>
-      <Button type="button" variant="outline" size="sm" loading={unsaving} onClick={onUnsave}>
+      <Button type="button" variant="secondary" size="sm" loading={unsaving} onClick={onUnsave}>
         {t('unsaveAction')}
       </Button>
     </li>
@@ -91,7 +91,7 @@ function FollowedDoctorRow({ doctorProfileId, onUnfollow, unfollowing }: {
   return (
     <li className="flex items-center justify-between gap-2 rounded-2xl border border-border-default p-4">
       <span className="font-medium text-text-primary">{doctor?.fullName ?? '…'}</span>
-      <Button type="button" variant="outline" size="sm" loading={unfollowing} onClick={onUnfollow}>
+      <Button type="button" variant="secondary" size="sm" loading={unfollowing} onClick={onUnfollow}>
         {t('unfollowAction')}
       </Button>
     </li>
@@ -183,7 +183,7 @@ export function KnowledgeFeed() {
             ))}
           </div>
         ) : !feedResult || feedResult.articles.length === 0 ? (
-          <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="articles-none" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
           <ul className="flex flex-col gap-3">
             {feedResult.articles.map((article) => (
@@ -211,7 +211,7 @@ export function KnowledgeFeed() {
             ))}
           </div>
         ) : !saved || saved.length === 0 ? (
-          <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="articles-none" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
           <ul className="flex flex-col gap-3">
             {saved.map((entry) => (
@@ -238,7 +238,7 @@ export function KnowledgeFeed() {
             ))}
           </div>
         ) : !followed || followed.length === 0 ? (
-          <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="articles-none" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
           <ul className="flex flex-col gap-3">
             {followed.map((entry) => (

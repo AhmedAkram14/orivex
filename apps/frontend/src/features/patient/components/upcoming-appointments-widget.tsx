@@ -84,7 +84,7 @@ export function UpcomingAppointmentsWidget() {
           ))}
         </ul>
       ) : (
-        <EmptyState
+        <EmptyState illustration="calendar-clear" size="sm"
           className="py-6"
           title={t('upcomingAppointmentsEmptyTitle')}
           description={t('upcomingAppointmentsEmptyDescription')}

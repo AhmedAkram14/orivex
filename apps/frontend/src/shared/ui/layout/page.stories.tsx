@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { StatCard } from './stat-card';
+import { MetricStat } from '../metric-stat';
 import { Stethoscope, Users } from 'lucide-react';
 import { DashboardGrid, Page } from './page';
 import { PageHeader } from './page-header';
@@ -12,9 +12,9 @@ export const PageWithGrid: StoryObj = {
     <Page>
       <PageHeader title="Dashboard" description="Today's overview" />
       <DashboardGrid columns={3}>
-        <StatCard icon={Stethoscope} label="Active doctors" value="8" />
-        <StatCard icon={Users} label="Active patients" value="312" />
-        <StatCard icon={Users} label="New this week" value="14" />
+        <MetricStat icon={Stethoscope} label="Active doctors" value="8" />
+        <MetricStat icon={Users} label="Active patients" value="312" />
+        <MetricStat icon={Users} label="New this week" value="14" />
       </DashboardGrid>
     </Page>
   ),
@@ -23,8 +23,8 @@ export const PageWithGrid: StoryObj = {
 export const TwoColumnGrid: StoryObj = {
   render: () => (
     <DashboardGrid columns={2}>
-      <StatCard icon={Stethoscope} label="Active doctors" value="8" />
-      <StatCard icon={Users} label="Active patients" value="312" />
+      <MetricStat icon={Stethoscope} label="Active doctors" value="8" />
+      <MetricStat icon={Users} label="Active patients" value="312" />
     </DashboardGrid>
   ),
 };

@@ -16,7 +16,7 @@ export const Default: StoryObj = {
   render: () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">Actions</Button>
+        <Button variant="secondary">Actions</Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuLabel>Account</DropdownMenuLabel>

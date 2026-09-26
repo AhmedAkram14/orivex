@@ -44,7 +44,7 @@ export default function PatientPrescriptionsPage() {
           title={t('title')}
           description={t('subtitle')}
           actions={
-            <Button type="button" variant="outline" onClick={() => window.print()}>
+            <Button type="button" variant="secondary" onClick={() => window.print()}>
               <Icon icon={Printer} size="sm" />
               {t('printList')}
             </Button>
@@ -77,7 +77,7 @@ export default function PatientPrescriptionsPage() {
                       emptyDescription={t('activeEmptyDescription')}
                       emptyActions={
                         <>
-                          <Button asChild variant="outline">
+                          <Button asChild variant="secondary">
                             <Link href="/patient/doctors">{t('browseDoctors')}</Link>
                           </Button>
                           <Button asChild>

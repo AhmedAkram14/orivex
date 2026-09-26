@@ -177,7 +177,7 @@ export function NotificationPanel() {
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
       {!isLoading && !isError && notifications && notifications.length === 0 && (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
 
       {!isLoading && !isError && notifications && notifications.length > 0 && (

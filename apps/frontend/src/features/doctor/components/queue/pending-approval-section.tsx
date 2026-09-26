@@ -66,7 +66,7 @@ export function PendingApprovalSection() {
       {!isError && (!pending || pending.length === 0) && (
         <Card>
           <CardContent className="pt-6">
-            <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+            <EmptyState illustration="waiting-room-empty" title={t('emptyTitle')} description={t('emptyDescription')} />
           </CardContent>
         </Card>
       )}
@@ -95,7 +95,7 @@ export function PendingApprovalSection() {
                     <div className="flex items-center gap-2">
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         disabled={declineAppointment.isPending}
                         onClick={() => (decliningId === appointment.id ? cancelDecline() : startDecline(appointment.id))}
@@ -131,7 +131,7 @@ export function PendingApprovalSection() {
                         </Button>
                         <Button
                           type="button"
-                          variant="danger"
+                          variant="destructive"
                           size="sm"
                           loading={declineAppointment.isPending}
                           onClick={() => submitDecline(appointment.id)}

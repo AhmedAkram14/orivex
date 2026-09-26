@@ -101,7 +101,7 @@ export function Carousel({ className, children, showControls = false, ...props }
               horizontal overflow. */}
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="icon"
             aria-label={t('previous')}
             disabled={activePage === 0}
@@ -112,7 +112,7 @@ export function Carousel({ className, children, showControls = false, ...props }
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="icon"
             aria-label={t('next')}
             disabled={activePage === pageCount - 1}

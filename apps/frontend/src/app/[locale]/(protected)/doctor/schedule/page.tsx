@@ -497,7 +497,7 @@ export default function DoctorSchedulePage() {
                           <Icon icon={ChevronRight} size="sm" flipRtl />
                         </button>
                       </div>
-                      <Button variant="outline" size="sm" onClick={handleToday}>
+                      <Button variant="secondary" size="sm" onClick={handleToday}>
                         {t('today')}
                       </Button>
                     </>
@@ -505,7 +505,7 @@ export default function DoctorSchedulePage() {
                   {statusFilter && (
                     <div className="flex items-center gap-1.5">
                       <Badge variant="info">{t('statusFilter.filteredBy', { status: tStatusFilterStatuses(statusFilter) })}</Badge>
-                      <Button variant="outline" size="sm" onClick={clearStatusFilter}>
+                      <Button variant="secondary" size="sm" onClick={clearStatusFilter}>
                         <Icon icon={X} size="sm" className="me-1" />
                         {t('statusFilter.clear')}
                       </Button>
@@ -591,10 +591,10 @@ export default function DoctorSchedulePage() {
                           {selectionStatus && <span className="text-text-secondary">{t(`calendar.selection.${selectionStatus}`)}</span>}
                         </span>
                         <span className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setIsEditingHours(true)}>
+                          <Button size="sm" variant="secondary" onClick={() => setIsEditingHours(true)}>
                             {t('editWorkingHours')}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => openTimeOff({ fromSelection: true })}>
+                          <Button size="sm" variant="secondary" onClick={() => openTimeOff({ fromSelection: true })}>
                             {t('calendar.selection.addTimeOff')}
                           </Button>
                           <button
@@ -685,7 +685,7 @@ export default function DoctorSchedulePage() {
                   <p className="text-sm text-text-tertiary">{t('workingHoursDescription')}</p>
                 </div>
                 {schedule && (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditingHours(true)}>
+                  <Button variant="secondary" size="sm" onClick={() => setIsEditingHours(true)}>
                     <Icon icon={Pencil} size="sm" className="me-2" />
                     {t('editWorkingHours')}
                   </Button>

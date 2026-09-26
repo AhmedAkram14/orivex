@@ -122,7 +122,7 @@ export function AccountSecuritySection() {
               </div>
               <p className="text-xs text-text-secondary">{t('emailChange.description')}</p>
             </div>
-            <Button type="button" variant="outline" size="sm" disabled>
+            <Button type="button" variant="secondary" size="sm" disabled>
               {t('emailChange.action')}
             </Button>
           </div>
@@ -139,7 +139,7 @@ export function AccountSecuritySection() {
             <p className="text-sm font-medium text-text-primary">{t('deletion.title')}</p>
             <p className="text-xs text-text-secondary">{t('deletion.description')}</p>
           </div>
-          <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(true)}>
+          <Button type="button" variant="secondary" onClick={() => setDeleteDialogOpen(true)}>
             {t('deletion.action')}
           </Button>
         </div>
@@ -155,7 +155,7 @@ export function AccountSecuritySection() {
             {env.supportEmail}
           </a>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button type="button" variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
               {t('deletion.close')}
             </Button>
           </DialogFooter>

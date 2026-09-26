@@ -4,8 +4,7 @@ import { Building2, Stethoscope, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePlatformKpis } from '@/features/admin/hooks/use-platform-kpis';
 import { Alert } from '@/shared/ui/alert';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 /**
  * The Admin Overview's KPI row — real counts from `/admin/kpis`. Only
@@ -22,28 +21,28 @@ export function PlatformKpis() {
   }
 
   return (
-    <DashboardGrid columns={3}>
-      <LinkableStatCard
+    <MetricGrid columns={3}>
+      <MetricStat
         icon={Stethoscope}
         label={t('activeDoctorCount')}
         value={String(data?.activeDoctorCount ?? 0)}
         loading={isLoading}
         href="/admin/users"
       />
-      <LinkableStatCard
+      <MetricStat
         icon={Users}
         label={t('activePatientCount')}
         value={String(data?.activePatientCount ?? 0)}
         loading={isLoading}
         href="/admin/users"
       />
-      <LinkableStatCard
+      <MetricStat
         icon={Building2}
         label={t('hospitalCount')}
         value={String(data?.hospitalCount ?? 0)}
         loading={isLoading}
         href="/admin/hospitals"
       />
-    </DashboardGrid>
+    </MetricGrid>
   );
 }

@@ -62,7 +62,7 @@ export function DeviceSessionsList() {
   }
 
   if (!sessions || sessions.length === 0) {
-    return <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />;
+    return <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />;
   }
 
   const sorted = sortSessions(sessions);
@@ -128,7 +128,7 @@ export function DeviceSessionsList() {
               </div>
               {!session.isCurrent && (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   className="self-start border-danger text-danger hover:bg-danger-subtle sm:self-center"
                   onClick={() => setPendingRevoke(session)}
@@ -151,10 +151,10 @@ export function DeviceSessionsList() {
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">{t('cancel')}</Button>
+              <Button variant="secondary">{t('cancel')}</Button>
             </DialogClose>
             <Button
-              variant="danger"
+              variant="destructive-solid"
               loading={revokeSession.isPending}
               onClick={() => {
                 if (!pendingRevoke) return;

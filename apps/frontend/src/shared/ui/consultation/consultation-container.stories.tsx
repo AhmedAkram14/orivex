@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { User } from 'lucide-react';
+
 import { EmptyWorkspace } from '@/shared/ui/layout/empty-workspace';
 import { ConsultationContainer } from './consultation-container';
 
@@ -17,9 +17,9 @@ export const Default: StoryObj = {
           <span className="px-2 py-1.5">History</span>
         </nav>
       }
-      rightPanel={<EmptyWorkspace icon={User} title="Patient information" />}
+      rightPanel={<EmptyWorkspace title="Patient information" />}
     >
-      <EmptyWorkspace icon={User} title="Overview" description="This section will be available once the Consultation module is built." />
+      <EmptyWorkspace title="Overview" description="This section will be available once the Consultation module is built." />
     </ConsultationContainer>
   ),
 };

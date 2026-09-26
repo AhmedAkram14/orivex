@@ -8,7 +8,7 @@ import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-da
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { usePendingApprovalAppointments } from '@/features/doctor/hooks/use-pending-approval-appointments';
 import { Alert } from '@/shared/ui/alert';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricStat } from '@/shared/ui/metric-stat';
 
 /**
  * The Doctor Workspace's "Today's Summary" row — real counts from the
@@ -50,43 +50,35 @@ export function TodaysSummary() {
     // `patients-list.tsx`'s own KPI row already uses instead of the shared
     // primitive. `sm`/`lg` unchanged from before (2-across, then 4-across).
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-      <LinkableStatCard
-        size="lg"
+      <MetricStat
         icon={ClipboardCheck}
-        iconClassName="bg-primary-subtle text-primary-emphasis"
         label={tQueue('stats.pendingApproval.title')}
         value={String(pending?.length ?? 0)}
         loading={pendingLoading}
         href="/doctor/queue"
         className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
       />
-      <LinkableStatCard
-        size="lg"
+      <MetricStat
         icon={CalendarCheck}
-        iconClassName="bg-info-subtle text-info-emphasis"
         label={t('consultationsToday')}
         value={String(data?.consultationsToday ?? 0)}
         loading={isLoading}
         href="/doctor/schedule"
         className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
       />
-      <LinkableStatCard
-        size="lg"
+      <MetricStat
         icon={Users}
-        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('patientsInQueue')}
         value={String(data?.patientsInQueue ?? 0)}
         loading={isLoading}
         href="/doctor/queue"
         className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
       />
-      <LinkableStatCard
-        size="lg"
+      <MetricStat
         icon={Star}
         // Amber, not blue -- matches the Star icon everywhere else it
         // appears (Profile page's hero rating stat, the actual review
         // stars), so "rating" reads as one consistent accent across pages.
-        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={t('averageRating')}
         value={rating.value}
         helperText={rating.helperText}

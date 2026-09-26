@@ -126,7 +126,7 @@ export function VerificationReviewActions({ verificationCase }: VerificationRevi
             <Button loading={review.isPending && dialogKind === 'approve'} onClick={() => openDialog('approve')}>
               {t('approve')}
             </Button>
-            <Button variant="outline" onClick={() => openDialog('more_info_needed')}>
+            <Button variant="secondary" onClick={() => openDialog('more_info_needed')}>
               {t('requestMoreInfo')}
             </Button>
             <Button variant="ghost" onClick={() => openDialog('reject')}>
@@ -135,7 +135,7 @@ export function VerificationReviewActions({ verificationCase }: VerificationRevi
           </>
         )}
         {canSuspend && (
-          <Button variant="danger" onClick={() => openDialog('suspend')}>
+          <Button variant="destructive" onClick={() => openDialog('suspend')}>
             {t('suspend')}
           </Button>
         )}
@@ -149,7 +149,7 @@ export function VerificationReviewActions({ verificationCase }: VerificationRevi
             <DialogDescription>{t('approveDialogDescription')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
+            <Button variant="secondary" onClick={closeDialog}>
               {t('cancel')}
             </Button>
             <Button loading={review.isPending} onClick={handleConfirmApprove}>
@@ -175,11 +175,11 @@ export function VerificationReviewActions({ verificationCase }: VerificationRevi
                 rows={4}
               />
               <DialogFooter>
-                <Button variant="outline" onClick={closeDialog}>
+                <Button variant="secondary" onClick={closeDialog}>
                   {t('cancel')}
                 </Button>
                 <Button
-                  variant={dialogKind === 'reject' || dialogKind === 'suspend' ? 'danger' : 'primary'}
+                  variant={dialogKind === 'reject' || dialogKind === 'suspend' ? 'destructive-solid' : 'primary'}
                   disabled={reason.trim().length === 0}
                   loading={mutation.isPending}
                   onClick={handleConfirmReasonDialog}

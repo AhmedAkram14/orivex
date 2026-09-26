@@ -25,8 +25,8 @@ export const Default: StoryObj = {
           <DialogDescription>This action cannot be undone. The slot will be released.</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline">Keep appointment</Button>
-          <Button variant="danger">Cancel appointment</Button>
+          <Button variant="secondary">Keep appointment</Button>
+          <Button variant="destructive">Cancel appointment</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

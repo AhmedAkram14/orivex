@@ -2,11 +2,13 @@
 
 import { Activity, Droplet, Scale } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import type { HealthVitalSummary, VitalType } from '@/features/patient/api/types';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { VitalTrendCard } from '@/shared/ui/health/vital-trend-card';
-import type { TrendChartTone } from '@/shared/ui/health/trend-chart';
+import { cn } from '@/shared/lib/cn';
+import { evaluateVital, VITAL_REFERENCE_BANDS } from '@/shared/lib/health/vital-reference-ranges';
+import { VitalCard } from '@/shared/ui/health/vital-card';
+import { MetricGrid } from '@/shared/ui/metric-stat';
 
 const iconByType: Record<VitalType, LucideIcon> = {
   weight: Scale,
@@ -14,60 +16,69 @@ const iconByType: Record<VitalType, LucideIcon> = {
   'blood-sugar': Droplet,
 };
 
-/** One accent color per vital — a visual identifier only (matches the icon circle to its trend line), never a clinical judgment about the reading itself. */
-const toneByType: Record<VitalType, TrendChartTone> = {
-  weight: 'info',
-  'blood-pressure': 'danger',
-  'blood-sugar': 'success',
-};
-
-const accentClassNameByType: Record<VitalType, string> = {
-  weight: 'bg-info-subtle text-info-emphasis',
-  'blood-pressure': 'bg-danger-subtle text-danger-emphasis',
-  'blood-sugar': 'bg-success-subtle text-success-emphasis',
-};
+const RANGES = [
+  { key: 'range7', days: 7 },
+  { key: 'range30', days: 30 },
+  { key: 'range90', days: 90 },
+  { key: 'rangeAll', days: null },
+] as const;
 
 export interface HealthVitalsGridProps {
   vitals: HealthVitalSummary[];
   loading?: boolean;
 }
 
-/** Maps the `/patient/health-dashboard` response into the three vital-sign trend cards (Weight/Blood Pressure/Blood Sugar), milestone 6's reusable health widgets. */
+/** Maps the `/patient/health-dashboard` response into the three `VitalCard`s (Weight / Blood Pressure / Blood Sugar) with a shared time-range toggle. The latest reading and its status chip always come from the newest reading overall, not the selected window. */
 export function HealthVitalsGrid({ vitals, loading = false }: HealthVitalsGridProps) {
   const t = useTranslations('patient.health');
-  const format = useFormatter();
+  const tDs = useTranslations('ds.vital');
+  const [rangeIndex, setRangeIndex] = useState(3);
+  const range = RANGES[rangeIndex];
 
   const vitalTypes: VitalType[] = ['weight', 'blood-pressure', 'blood-sugar'];
+  const cutoff = range.days === null ? 0 : Date.now() - range.days * 86_400_000;
 
   return (
-    <DashboardGrid columns={3}>
-      {vitalTypes.map((type) => {
-        const summary = vitals.find((vital) => vital.type === type);
-        return (
-          <VitalTrendCard
-            key={type}
-            icon={iconByType[type]}
-            accentClassName={accentClassNameByType[type]}
-            tone={toneByType[type]}
-            title={t(`vitals.${type}.title`)}
-            latestValueLabel={summary?.latest?.valueLabel}
-            latestDateLabel={
-              summary?.latest
-                ? format.dateTime(new Date(summary.latest.recordedAt), {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                : undefined
-            }
-            trendValues={(summary?.readings ?? []).map((reading) => reading.value)}
-            trendLabel={t(`vitals.${type}.trendLabel`)}
-            emptyTitle={t(`vitals.${type}.emptyTitle`)}
-            emptyDescription={t(`vitals.${type}.emptyDescription`)}
-            loading={loading}
-          />
-        );
-      })}
-    </DashboardGrid>
+    <div className="flex flex-col gap-4">
+      <div role="group" aria-label={tDs('rangeLabel')} className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-border-default bg-surface p-1">
+        {RANGES.map((item, index) => (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={index === rangeIndex}
+            onClick={() => setRangeIndex(index)}
+            className={cn(
+              'h-8 rounded-full px-3.5 text-small font-medium transition-colors duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
+              index === rangeIndex ? 'bg-primary text-primary-foreground' : 'text-text-secondary hover:bg-surface-2',
+            )}
+          >
+            {tDs(item.key)}
+          </button>
+        ))}
+      </div>
+
+      <MetricGrid columns={3}>
+        {vitalTypes.map((type) => {
+          const summary = vitals.find((vital) => vital.type === type);
+          const latest = summary?.latest;
+          const readings = (summary?.readings ?? []).filter((reading) => new Date(reading.recordedAt).getTime() >= cutoff);
+          return (
+            <VitalCard
+              key={type}
+              icon={iconByType[type]}
+              title={t(`vitals.${type}.title`)}
+              latest={latest ? { valueLabel: latest.valueLabel, recordedAt: latest.recordedAt } : undefined}
+              readings={readings.map((reading) => ({ value: reading.value, recordedAt: reading.recordedAt, valueLabel: reading.valueLabel }))}
+              band={type === 'weight' ? undefined : VITAL_REFERENCE_BANDS[type]}
+              status={latest ? evaluateVital(type, latest.value, latest.diastolicValue) : null}
+              trendLabel={t(`vitals.${type}.trendLabel`)}
+              emptyTitle={t(`vitals.${type}.emptyTitle`)}
+              emptyDescription={t(`vitals.${type}.emptyDescription`)}
+              loading={loading}
+            />
+          );
+        })}
+      </MetricGrid>
+    </div>
   );
 }

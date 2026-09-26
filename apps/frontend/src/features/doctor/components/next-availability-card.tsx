@@ -28,7 +28,7 @@ export function NextAvailabilityCard() {
   const next = availability ? getNextAvailability(availability, getCairoNow()) : null;
 
   if (!next) {
-    return <EmptyState icon={CalendarClock} title={t('noAvailabilityTitle')} />;
+    return <EmptyState illustration="calendar-clear" title={t('noAvailabilityTitle')} />;
   }
 
   const dateLabel = isSameDay(next.date, getCairoNow())

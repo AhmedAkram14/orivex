@@ -43,7 +43,7 @@ export const Forbidden: Story = {
     icon: ShieldAlert,
     title: 'Access restricted',
     description: "Your account doesn't have permission to view this page.",
-    action: <Button variant="outline">Back to home</Button>,
+    action: <Button variant="secondary">Back to home</Button>,
   },
 };
 
@@ -52,6 +52,6 @@ export const AccessDenied: Story = {
     icon: Ban,
     title: 'Access denied',
     description: "You don't have access to this resource.",
-    action: <Button variant="outline">Back to home</Button>,
+    action: <Button variant="secondary">Back to home</Button>,
   },
 };

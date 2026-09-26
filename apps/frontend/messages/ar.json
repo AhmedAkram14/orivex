@@ -79,6 +79,7 @@
         "neurology": "رعاية متخصصة للدماغ والجهاز العصبي.",
         "ophthalmology": "رعاية شاملة للعين وصحة البصر.",
         "ent": "رعاية الأذن والأنف والحنجرة.",
+        "psychiatry": "دعم الصحة النفسية والرفاه العاطفي.",
         "generic": "رعاية متخصصة وموثّقة من أخصائيين موثوقين."
       }
     },
@@ -1023,6 +1024,7 @@
       "consultationFee": "{amount} جنيه",
       "consultationFeeFree": "مجانًا",
       "consultationFeeOnRequest": "الرسوم عند الطلب",
+      "book": "احجز",
       "viewProfile": "عرض الملف الشخصي",
       "bookAppointment": "حجز موعد",
       "topRated": "الأعلى تقييمًا",
@@ -2131,6 +2133,9 @@
       "emergencyContactsEmptyDescription": "أضف شخصًا يمكننا التواصل معه في حالة الطوارئ.",
       "addContact": "إضافة جهة اتصال",
       "removeContact": "إزالة جهة الاتصال",
+      "removeContactTitle": "إزالة جهة اتصال الطوارئ هذه؟",
+      "removeContactBody": "لن تُدرج بعد الآن كشخص يمكننا الاتصال به في حالات الطوارئ. احفظ النموذج لتطبيق هذا التغيير.",
+      "removeContactConfirm": "إزالة",
       "contactName": "الاسم",
       "contactRelationship": "صلة القرابة",
       "relationshipOptions": {
@@ -3461,6 +3466,75 @@
       "labRequests": "طلبات التحاليل",
       "vitals": "المؤشرات الحيوية المسجّلة",
       "followUp": "المتابعة الموصى بها"
+    }
+  },
+  "ds": {
+    "status": {
+      "pending": "قيد الانتظار",
+      "requested": "بانتظار الموافقة",
+      "pending_review": "قيد المراجعة",
+      "more_info_needed": "مطلوب مزيد من المعلومات",
+      "disputed": "محل نزاع",
+      "suspended": "موقوف",
+      "rescheduled": "أُعيدت جدولته",
+      "scheduled": "مجدول",
+      "confirmed": "مؤكد",
+      "initiated": "بدأ",
+      "waiting": "في الانتظار",
+      "notified": "تم الإشعار",
+      "upcoming": "قادم",
+      "in_consultation": "في استشارة",
+      "in-consultation": "في استشارة",
+      "in_progress": "جارٍ",
+      "in-progress": "جارٍ",
+      "live": "مباشر",
+      "completed": "مكتمل",
+      "paid": "مدفوع",
+      "succeeded": "ناجح",
+      "settled": "مسوّى",
+      "fulfilled": "تم التنفيذ",
+      "published": "منشور",
+      "approved": "موافق عليه",
+      "active": "نشط",
+      "cancelled": "ملغى",
+      "no_show": "لم يحضر",
+      "failed": "فشل",
+      "rejected": "مرفوض",
+      "expired": "منتهي الصلاحية",
+      "refunded": "مسترد",
+      "awaiting_outcome": "بانتظار النتيجة",
+      "draft": "مسودة",
+      "archived": "مؤرشف",
+      "closed": "مغلق",
+      "available": "متاح",
+      "booked": "محجوز",
+      "blocked": "محظور",
+      "past": "منتهٍ",
+      "open": "مفتوح",
+      "resolved": "تم الحل",
+      "dismissed": "مرفوض",
+      "withdrawn": "مسحوب"
+    },
+    "vital": {
+      "inRange": "ضمن النطاق",
+      "aboveTarget": "أعلى من المستهدف",
+      "belowTarget": "أقل من المستهدف",
+      "rangeNote": "مرجع عام للبالغين: {range}. ليس تشخيصًا.",
+      "recordedBy": "سجّلها {name}",
+      "range7": "7 أيام",
+      "range30": "30 يومًا",
+      "range90": "90 يومًا",
+      "rangeAll": "كل الفترة",
+      "rangeLabel": "الفترة الزمنية"
+    },
+    "errorState": {
+      "title": "تعذّر تحميل هذا المحتوى",
+      "description": "تحقق من اتصالك وحاول مرة أخرى. إذا تكرر ذلك، فريقنا جاهز للمساعدة.",
+      "retry": "حاول مرة أخرى",
+      "support": "تواصل مع الدعم"
+    },
+    "confirm": {
+      "cancel": "إلغاء"
     }
   }
 }

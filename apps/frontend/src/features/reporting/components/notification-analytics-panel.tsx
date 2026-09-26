@@ -7,8 +7,7 @@ import { useNotificationAnalytics } from '@/features/reporting/hooks/use-notific
 import { ExportButton } from '@/features/reporting/components/export-button';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 /**
  * Reminder Success/Failures is not shown -- the BullMQ reminder worker only
@@ -31,11 +30,11 @@ export function NotificationAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         </div>
         <ExportButton section="notifications" filter={filter} />
       </div>
-      <DashboardGrid columns={3}>
-        <LinkableStatCard icon={Bell} label={t('sent')} value={String(data?.sent ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Bell} label={t('read')} value={String(data?.read ?? 0)} loading={isLoading} />
-        <LinkableStatCard icon={Bell} label={t('unread')} value={String(data?.unread ?? 0)} loading={isLoading} />
-      </DashboardGrid>
+      <MetricGrid columns={3}>
+        <MetricStat icon={Bell} label={t('sent')} value={String(data?.sent ?? 0)} loading={isLoading} />
+        <MetricStat icon={Bell} label={t('read')} value={String(data?.read ?? 0)} loading={isLoading} />
+        <MetricStat icon={Bell} label={t('unread')} value={String(data?.unread ?? 0)} loading={isLoading} />
+      </MetricGrid>
     </div>
   );
 }

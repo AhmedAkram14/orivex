@@ -59,3 +59,53 @@ export function flagGlucose(value: number): RangeFlag | null {
   }
   return null;
 }
+
+/**
+ * The shaded reference band a `VitalCard` draws behind its trend line, in the
+ * same units as the plotted series (`VitalReading.value`). These are the SAME
+ * general-adult thresholds `flagBloodPressure` / `flagGlucose` use above --
+ * one source, so the band and the status chip can never disagree.
+ *
+ * CLINICAL REVIEW: the numbers are pre-existing product constants (introduced
+ * with the doctor's Patient Record page), not new here. Blood pressure plots
+ * systolic only (the band is its normal systolic range); weight has no band
+ * (no height/BMI context anywhere in the domain); glucose shows only the
+ * always-abnormal edges (no fasting/random field on `VitalReading`).
+ */
+export interface VitalReferenceBand {
+  low: number;
+  high: number;
+  /** Unit-bearing text for the tooltip / legend, e.g. "90-120 mmHg (systolic)". */
+  label: string;
+}
+
+export const VITAL_REFERENCE_BANDS: Partial<Record<'blood-pressure' | 'blood-sugar', VitalReferenceBand>> = {
+  'blood-pressure': { low: BP_SYSTOLIC_RANGE[0], high: BP_SYSTOLIC_RANGE[1], label: '90-120 mmHg' },
+  'blood-sugar': { low: GLUCOSE_LOW_THRESHOLD, high: GLUCOSE_HIGH_THRESHOLD, label: GLUCOSE_RANGE_LABEL },
+};
+
+export type VitalEvaluation = 'in_range' | 'above' | 'below';
+
+/**
+ * The chip a `VitalCard` shows for the latest reading: a measurement against a
+ * stated range, never a diagnosis. Blood pressure is "in range" when neither
+ * flag fires. Glucose is only ever flagged at its always-abnormal edges -- the
+ * unflagged middle is deliberately NOT reported as "in range" (see the note at
+ * the top of this file: no fasting/random context, so reassurance would be
+ * as unsafe as an alarm). Weight has no reference at all.
+ */
+export function evaluateVital(
+  type: 'weight' | 'blood-pressure' | 'blood-sugar',
+  value: number,
+  diastolicValue?: number,
+): VitalEvaluation | null {
+  if (type === 'blood-pressure') {
+    if (diastolicValue === undefined) return null;
+    const flag = flagBloodPressure(value, diastolicValue);
+    return flag ? flag.direction : 'in_range';
+  }
+  if (type === 'blood-sugar') {
+    return flagGlucose(value)?.direction ?? null;
+  }
+  return null;
+}

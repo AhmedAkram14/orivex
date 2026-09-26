@@ -57,7 +57,7 @@ export function RecentActivity() {
           ))}
         </ul>
       ) : (
-        <EmptyState className="py-6" title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="inbox-quiet" size="sm" className="py-6" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
     </WidgetContainer>
   );

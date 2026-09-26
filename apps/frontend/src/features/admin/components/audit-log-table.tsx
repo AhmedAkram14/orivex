@@ -79,7 +79,7 @@ export function AuditLogTable() {
           ))}
         </div>
       ) : !data || data.entries.length === 0 ? (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <>
           <div className="overflow-x-auto">

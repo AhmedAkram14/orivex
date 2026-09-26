@@ -139,7 +139,7 @@ export function AppointmentPopover({ appointment, anchorRect, onClose }: Appoint
                     </Button>
                     <Button
                       type="button"
-                      variant="danger"
+                      variant="destructive"
                       size="sm"
                       loading={decline.isPending}
                       onClick={() =>
@@ -157,7 +157,7 @@ export function AppointmentPopover({ appointment, anchorRect, onClose }: Appoint
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     className="border-danger text-danger hover:bg-danger-subtle"
                     onClick={() => {
                       setActionError(null);
@@ -181,7 +181,7 @@ export function AppointmentPopover({ appointment, anchorRect, onClose }: Appoint
               )
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                <Button asChild variant="outline">
+                <Button asChild variant="secondary">
                   <Link href={`/doctor/patients/${appointment.patientId}`}>{t('patientChart')}</Link>
                 </Button>
                 <Button asChild>

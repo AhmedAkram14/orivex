@@ -26,7 +26,7 @@ export function PatientQuickActions() {
   return (
     <div className="flex flex-wrap gap-2">
       {actions.map((action) => (
-        <Button key={action.id} asChild variant="outline" size="sm" className="rounded-xl bg-surface">
+        <Button key={action.id} asChild variant="secondary" size="sm" className="rounded-xl bg-surface">
           <Link href={action.href}>
             <Icon icon={action.icon} size="sm" className="me-2" />
             {action.label}

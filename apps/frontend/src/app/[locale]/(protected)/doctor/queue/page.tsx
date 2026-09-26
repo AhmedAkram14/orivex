@@ -201,7 +201,7 @@ export default function DoctorQueuePage() {
           title={t('title')}
           description={t('description')}
           actions={
-            <Button asChild variant="outline">
+            <Button asChild variant="secondary">
               <Link href="/doctor/schedule">
                 <Icon icon={Settings} size="sm" />
                 {t('queueSettings')}

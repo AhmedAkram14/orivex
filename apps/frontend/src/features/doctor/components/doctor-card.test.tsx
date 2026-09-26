@@ -19,7 +19,8 @@ describe('DoctorCard avatar', () => {
     await waitFor(() => expect(container.querySelector('img')).toBeInTheDocument());
     const image = container.querySelector('img');
     expect(image).toHaveAttribute('src', '/demo/avatars/doctor-01.png');
-    expect(image).toHaveAttribute('alt', 'Dr. Omar Hassan');
+    // Decorative: the name is rendered right beside it.
+    expect(image).toHaveAttribute('alt', '');
   });
 
   it('falls back to initials when no avatarUrl is on record -- never a broken image, never a blank avatar', async () => {
@@ -27,11 +28,11 @@ describe('DoctorCard avatar', () => {
       <DoctorCard doctorProfileId="doctor-2" fullName="Dr. Salma Adel" specialtyLabel="Psychiatry" ratingSlot={null} />,
     );
 
-    // initialsOf() takes the first letter of the first two words -- "Dr."
+    // initialsOf() skips the "Dr." title, so this is the person's own initials.
     // counts as the first word, so this is "DS", not the person's own
     // initials "SA". That's an existing, pre-existing quirk of how doctor
     // names ("Dr. X Y") get abbreviated everywhere in this app, not
     // something this test invents.
-    expect(await screen.findByText('DS')).toBeInTheDocument();
+    expect(await screen.findByText('SA')).toBeInTheDocument();
   });
 });

@@ -14,7 +14,7 @@ export const DialogOverlay = forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-(--z-overlay) bg-overlay', className)}
+    className={cn('fixed inset-0 z-(--z-overlay) animate-fade-in bg-overlay', className)}
     {...props}
   />
 ));
@@ -29,7 +29,9 @@ export const DialogContent = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed start-1/2 top-1/2 z-(--z-dialog) w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border-default bg-surface p-6 shadow-xl rtl:translate-x-1/2',
+        'fixed start-1/2 top-1/2 z-(--z-dialog) w-full max-w-lg -translate-x-1/2 -translate-y-1/2 animate-pop-in rounded-(--r-card) border border-border-default bg-surface-raised p-6 shadow-md rtl:translate-x-1/2',
+        // Below 640px a dialog is a bottom sheet that slides up.
+        'max-sm:inset-x-0 max-sm:start-0 max-sm:top-auto max-sm:bottom-0 max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:animate-sheet-up max-sm:rounded-b-none max-sm:rtl:translate-x-0',
         'max-h-[90vh] overflow-y-auto',
         'focus-visible:outline-none',
         className,
@@ -58,7 +60,7 @@ export const DialogTitle = forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Title ref={ref} className={cn('text-lg font-semibold text-text-primary', className)} {...props} />
+  <DialogPrimitive.Title ref={ref} className={cn('text-h3 text-text-primary', className)} {...props} />
 ));
 DialogTitle.displayName = 'DialogTitle';
 
@@ -66,7 +68,7 @@ export const DialogDescription = forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description ref={ref} className={cn('text-sm text-text-secondary', className)} {...props} />
+  <DialogPrimitive.Description ref={ref} className={cn('text-small text-text-secondary', className)} {...props} />
 ));
 DialogDescription.displayName = 'DialogDescription';
 

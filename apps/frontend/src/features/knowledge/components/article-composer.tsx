@@ -248,7 +248,7 @@ export function ArticleComposer({ mode, onDone }: ArticleComposerProps) {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" loading={isBusy && !confirmSubmitOpen} disabled={!language} onClick={handleSaveDraft}>
+            <Button type="button" variant="secondary" loading={isBusy && !confirmSubmitOpen} disabled={!language} onClick={handleSaveDraft}>
               {t('saveDraftAction')}
             </Button>
             <Button
@@ -286,7 +286,7 @@ export function ArticleComposer({ mode, onDone }: ArticleComposerProps) {
           </DialogHeader>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmSubmitOpen(false)}>
+            <Button variant="secondary" onClick={() => setConfirmSubmitOpen(false)}>
               {t('cancel')}
             </Button>
             <Button loading={isBusy} onClick={handleConfirmSubmit}>

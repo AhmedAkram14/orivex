@@ -104,7 +104,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
 
       <CardHeader className="relative z-10 flex-row items-center justify-between px-7 py-6">
         <CardTitle>{t('personalInformation')}</CardTitle>
-        <Button variant="outline" size="sm" onClick={onEdit} className="bg-surface/80">
+        <Button variant="secondary" size="sm" onClick={onEdit} className="bg-surface/80">
           <Icon icon={Pencil} size="sm" className="me-2" />
           {t('edit')}
         </Button>
@@ -189,7 +189,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
     <Card className={cn('flex h-full flex-col', CARD_CLASSNAME)}>
       <CardHeader className="flex-row items-center justify-between px-7 py-6">
         <CardTitle>{t('emergencyContacts')}</CardTitle>
-        <Button variant="outline" size="sm" onClick={onEdit}>
+        <Button variant="secondary" size="sm" onClick={onEdit}>
           <Icon icon={Plus} size="sm" className="me-2" />
           {t('addContact')}
         </Button>
@@ -240,7 +240,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
             </div>
             <CardTitle className="text-base">{t('insurance')}</CardTitle>
           </div>
-          <Button variant="outline" size="sm" onClick={onEdit}>
+          <Button variant="secondary" size="sm" onClick={onEdit}>
             <Icon icon={Plus} size="sm" className="me-2" />
             {t('addInsurance')}
           </Button>
@@ -261,7 +261,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
     <Card className={cn('flex h-full flex-col', CARD_CLASSNAME)}>
       <CardHeader className="flex-row items-center justify-between px-7 py-6">
         <CardTitle>{t('healthPassport')}</CardTitle>
-        <Button variant="outline" size="sm" onClick={onEdit}>
+        <Button variant="secondary" size="sm" onClick={onEdit}>
           <Icon icon={Pencil} size="sm" className="me-2" />
           {t('edit')}
         </Button>
@@ -297,7 +297,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
             </div>
             <CardTitle className="text-base">{t('settings')}</CardTitle>
           </div>
-          <Button variant="outline" size="sm" disabled>
+          <Button variant="secondary" size="sm" disabled>
             {t('learnMore')}
           </Button>
         </div>

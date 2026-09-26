@@ -31,7 +31,7 @@ export function RecentActivityContainer({
   return (
     <WidgetContainer title={title} {...props}>
       {isEmpty ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        <EmptyState illustration="inbox-quiet" title={emptyTitle} description={emptyDescription} />
       ) : (
         <ul className="flex flex-col gap-4">{items}</ul>
       )}

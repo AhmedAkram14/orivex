@@ -21,7 +21,7 @@ export function TwoFactorSection() {
         {t('status')}
       </Badge>
       <p className="text-sm text-text-secondary">{t('description')}</p>
-      <Button variant="outline" className="self-start" disabled aria-disabled="true">
+      <Button variant="secondary" className="self-start" disabled aria-disabled="true">
         {t('enableButton')}
       </Button>
     </div>

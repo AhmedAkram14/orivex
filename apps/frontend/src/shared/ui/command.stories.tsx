@@ -11,7 +11,7 @@ export const Default: StoryObj = {
     const [open, setOpen] = useState(false);
     return (
       <>
-        <Button variant="outline" onClick={() => setOpen(true)}>
+        <Button variant="secondary" onClick={() => setOpen(true)}>
           Open command palette
         </Button>
         <CommandDialog open={open} onOpenChange={setOpen}>

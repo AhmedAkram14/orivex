@@ -57,7 +57,7 @@ export function UpcomingAvailability() {
   return (
     <WidgetContainer title={widgetTitle} className={widgetClassName} contentClassName={contentClassName}>
       {days.length === 0 ? (
-        <EmptyState icon={CalendarClock} title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="calendar-clear" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <ul className="flex flex-col divide-y divide-border-default">
           {days.map(({ date, day }) => {

@@ -186,7 +186,7 @@ export function SpecialtiesSection() {
         </>
       )}
 
-      {!isLoading && visible.length === 0 && <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />}
+      {!isLoading && visible.length === 0 && <EmptyState illustration="search-no-results" title={t('emptyTitle')} description={t('emptyDescription')} />}
 
       {!isLoading && visible.length > 0 && (
         <>

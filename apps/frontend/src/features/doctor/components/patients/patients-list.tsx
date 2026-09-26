@@ -15,7 +15,7 @@ import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Input } from '@/shared/ui/input';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricStat } from '@/shared/ui/metric-stat';
 import { Pagination } from '@/shared/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -163,7 +163,7 @@ export function PatientsList() {
   }
 
   if (!patients || patients.length === 0) {
-    return <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />;
+    return <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />;
   }
 
   return (
@@ -175,33 +175,29 @@ export function PatientsList() {
           `getRatingDisplay`/`useDoctorReviews`). Removing it here loses no
           real data, just a vanity metric out of place. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <LinkableStatCard
+        <MetricStat
           icon={Users}
           label={t('kpis.totalPatients')}
           value={String(kpis.total)}
           helperText={t('kpis.totalPatientsHelper')}
-          iconClassName="bg-info-subtle text-info-emphasis"
         />
-        <LinkableStatCard
+        <MetricStat
           icon={UserCheck}
           label={t('kpis.activePatients')}
           value={String(kpis.active)}
           helperText={t('kpis.activePatientsHelper')}
-          iconClassName="bg-success-subtle text-success-emphasis"
         />
-        <LinkableStatCard
+        <MetricStat
           icon={Calendar}
           label={t('kpis.thisMonth')}
           value={String(kpis.thisMonth)}
           helperText={t('kpis.thisMonthHelper')}
-          iconClassName="bg-primary-subtle text-primary-emphasis"
         />
-        <LinkableStatCard
+        <MetricStat
           icon={TrendingUp}
           label={t('kpis.thisWeek')}
           value={String(kpis.thisWeek)}
           helperText={t('kpis.thisWeekHelper')}
-          iconClassName="bg-warning-subtle text-warning-emphasis"
         />
       </div>
 
@@ -267,11 +263,11 @@ export function PatientsList() {
       {filtered.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center gap-4 p-6">
-            <EmptyState title={t('noResultsTitle')} description={t('noResultsDescription')} />
+            <EmptyState illustration="search-no-results" title={t('noResultsTitle')} description={t('noResultsDescription')} />
             {(search || typeFilter !== 'all' || statusFilter !== 'all') && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setSearch('');

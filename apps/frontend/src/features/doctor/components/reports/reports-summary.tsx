@@ -17,8 +17,7 @@ import { Alert } from '@/shared/ui/alert';
 import { ChartSkeleton } from '@/shared/ui/charts/chart-skeleton';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { ChartContainer } from '@/shared/ui/layout/chart-container';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 // Each panel below the tile grid renders a Recharts bundle -- next/dynamic +
 // ssr:false keeps that bundle out of server rendering entirely (Recharts
@@ -29,7 +28,7 @@ const ReportsTrendChart = dynamic(
   { ssr: false, loading: () => <ChartSkeleton height={260} /> },
 );
 
-/** A tile wrapped with an optional "vs previous period" badge in its corner -- keeps `PeriodDeltaBadge` fully outside `LinkableStatCard`, so that shared primitive stays untouched. */
+/** A tile wrapped with an optional "vs previous period" badge in its corner -- keeps `PeriodDeltaBadge` fully outside `MetricStat`, so that shared primitive stays untouched. */
 function TileWithDelta({ children, badge }: { children: ReactNode; badge?: ReactNode }) {
   return (
     <div className="relative">
@@ -165,7 +164,7 @@ export function ReportsSummary() {
         {t('tilesHeading')}
       </Heading>
 
-      <DashboardGrid columns={4}>
+      <MetricGrid columns={4}>
         <TileWithDelta
           badge={
             showDelta && data ? (
@@ -173,9 +172,8 @@ export function ReportsSummary() {
             ) : undefined
           }
         >
-          <LinkableStatCard
+          <MetricStat
             icon={CalendarCheck}
-            iconClassName="bg-primary-subtle text-primary-emphasis"
             label={t('stats.totalAppointments')}
             value={String(data?.totalAppointments ?? 0)}
             helperText={data ? t('stats.expiredFootnote', { count: data.expired }) : undefined}
@@ -190,9 +188,8 @@ export function ReportsSummary() {
             ) : undefined
           }
         >
-          <LinkableStatCard
+          <MetricStat
             icon={CheckCircle2}
-            iconClassName="bg-success-subtle text-success-emphasis"
             label={t('stats.completed')}
             value={String(data?.completed ?? 0)}
             href="/doctor/schedule?status=completed"
@@ -200,18 +197,16 @@ export function ReportsSummary() {
           />
         </TileWithDelta>
 
-        <LinkableStatCard
+        <MetricStat
           icon={Hourglass}
-          iconClassName="bg-warning-subtle text-warning-emphasis"
           label={t('stats.pendingApproval')}
           value={String(data?.pendingApproval ?? 0)}
           href="/doctor/schedule?status=requested"
           loading={isLoading}
         />
 
-        <LinkableStatCard
+        <MetricStat
           icon={Clock}
-          iconClassName="bg-info-subtle text-info-emphasis"
           label={t('stats.upcoming')}
           value={String(data?.upcoming ?? 0)}
           // This tile counts Confirmed/Rescheduled/paid-Requested
@@ -236,9 +231,8 @@ export function ReportsSummary() {
             ) : undefined
           }
         >
-          <LinkableStatCard
+          <MetricStat
             icon={XCircle}
-            iconClassName="bg-danger-subtle text-danger-emphasis"
             label={t('stats.cancelled')}
             value={String(data?.cancelled ?? 0)}
             href="/doctor/schedule?status=cancelled"
@@ -246,24 +240,22 @@ export function ReportsSummary() {
           />
         </TileWithDelta>
 
-        <LinkableStatCard
+        <MetricStat
           icon={UserX}
-          iconClassName="bg-secondary-subtle text-text-secondary"
           label={t('stats.noShow')}
           value={String(data?.noShow ?? 0)}
           href="/doctor/schedule?status=no_show"
           loading={isLoading}
         />
 
-        <LinkableStatCard
+        <MetricStat
           icon={Star}
-          iconClassName="bg-neutral-subtle text-text-secondary"
           label={t('stats.averageRating')}
           value={rating.value}
           helperText={rating.helperText}
           loading={isLoading}
         />
-      </DashboardGrid>
+      </MetricGrid>
 
       <ChartContainer title={t('trendTitle')}>
         {isLoading ? <ChartSkeleton height={260} /> : <ReportsTrendChart data={data?.byBucket ?? []} />}

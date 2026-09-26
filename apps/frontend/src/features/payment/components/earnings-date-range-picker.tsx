@@ -83,19 +83,19 @@ export function EarningsDateRangePicker({ dateFrom, dateTo, onChange }: Earnings
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(7), todayIso())}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(daysAgoIso(7), todayIso())}>
           {t('preset7Days')}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(30), todayIso())}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(daysAgoIso(30), todayIso())}>
           {t('preset30Days')}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(daysAgoIso(90), todayIso())}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(daysAgoIso(90), todayIso())}>
           {t('preset90Days')}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(startOfThisMonthIso(), todayIso())}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(startOfThisMonthIso(), todayIso())}>
           {t('presetThisMonth')}
         </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange(ALL_TIME_START_ISO, todayIso())}>
+        <Button type="button" variant="secondary" size="sm" onClick={() => onChange(ALL_TIME_START_ISO, todayIso())}>
           {t('presetAllTime')}
         </Button>
       </div>

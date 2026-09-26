@@ -15,9 +15,10 @@ type Story = StoryObj<typeof Button>;
 
 export const Primary: Story = { args: { children: 'Save changes', variant: 'primary' } };
 export const Secondary: Story = { args: { children: 'Secondary', variant: 'secondary' } };
-export const Outline: Story = { args: { children: 'Outline', variant: 'outline' } };
+export const Accent: Story = { args: { children: 'Start consultation', variant: 'accent' } };
 export const Ghost: Story = { args: { children: 'Ghost', variant: 'ghost' } };
-export const Danger: Story = { args: { children: 'Delete', variant: 'danger' } };
+export const Destructive: Story = { args: { children: 'Delete', variant: 'destructive' } };
+export const Link: Story = { args: { children: 'Learn more', variant: 'link' } };
 export const Loading: Story = { args: { children: 'Saving…', loading: true } };
 export const Disabled: Story = { args: { children: 'Disabled', disabled: true } };
 

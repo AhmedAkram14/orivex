@@ -89,7 +89,7 @@ export function HospitalsManager() {
       {isLoading ? (
         <Skeleton className="h-32 w-full" />
       ) : !hospitals || hospitals.length === 0 ? (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <div className="flex flex-col gap-2">
           {hospitals.map((hospital) => (
@@ -157,7 +157,7 @@ function DepartmentsPanel({ hospitalId }: { hospitalId: string }) {
             onChange={(event) => setDepartmentName(event.target.value)}
           />
         </div>
-        <Button type="submit" size="sm" variant="outline" loading={createDepartment.isPending}>
+        <Button type="submit" size="sm" variant="secondary" loading={createDepartment.isPending}>
           {t('addDepartment')}
         </Button>
       </form>

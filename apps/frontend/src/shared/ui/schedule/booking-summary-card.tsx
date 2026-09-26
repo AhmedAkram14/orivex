@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Card, CardContent } from '@/shared/ui/card';
-import { StatusBadge, type ScheduleStatusTone } from '@/shared/ui/schedule/status-badge';
+import { StatusBadge, type StatusKey as ScheduleStatusTone } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/cn';
 
 export type BookingSummaryStatus = Extract<ScheduleStatusTone, 'pending' | 'confirmed' | 'cancelled'>;
@@ -51,7 +51,7 @@ export function BookingSummaryCard({
       <CardContent className="flex flex-col gap-4 p-6">
         <div className="flex items-center justify-between gap-2">
           <p className="text-base font-semibold text-text-primary">{dateLabel}</p>
-          <StatusBadge tone={status} label={statusLabel} />
+          <StatusBadge status={status} label={statusLabel} />
         </div>
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex items-center justify-between">

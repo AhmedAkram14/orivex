@@ -9,8 +9,7 @@ import type { ReportFilterParams } from '@/features/reporting/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { ChartContainer } from '@/shared/ui/layout/chart-container';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 import { AreaChart } from '@/shared/ui/charts/area-chart';
 import { BarChart } from '@/shared/ui/charts/bar-chart';
 import { ChartSkeleton } from '@/shared/ui/charts/chart-skeleton';
@@ -35,16 +34,16 @@ export function AppointmentAnalyticsPanel({ filter, refetchIntervalMs }: { filte
         <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="appointments" filter={filter} />
       </div>
-      <DashboardGrid columns={3}>
-        <LinkableStatCard icon={CalendarDays} label={t('completionRate')} value={percent(data?.completionRate)} loading={isLoading} />
-        <LinkableStatCard icon={CalendarDays} label={t('cancellationRate')} value={percent(data?.cancellationRate)} loading={isLoading} />
-        <LinkableStatCard icon={CalendarDays} label={t('noShowRate')} value={percent(data?.noShowRate)} loading={isLoading} />
-      </DashboardGrid>
+      <MetricGrid columns={3}>
+        <MetricStat icon={CalendarDays} label={t('completionRate')} value={percent(data?.completionRate)} loading={isLoading} />
+        <MetricStat icon={CalendarDays} label={t('cancellationRate')} value={percent(data?.cancellationRate)} loading={isLoading} />
+        <MetricStat icon={CalendarDays} label={t('noShowRate')} value={percent(data?.noShowRate)} loading={isLoading} />
+      </MetricGrid>
       <ChartContainer title={t('trendTitle')}>
         {isLoading ? (
           <ChartSkeleton />
         ) : trend.length === 0 ? (
-          <EmptyState icon={CalendarDays} title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="calendar-clear" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
           <AreaChart data={trend} xKey="date" series={[{ key: 'count', label: t('trendSeriesLabel') }]} />
         )}
@@ -53,7 +52,7 @@ export function AppointmentAnalyticsPanel({ filter, refetchIntervalMs }: { filte
         {isLoading ? (
           <ChartSkeleton />
         ) : peakHours.length === 0 ? (
-          <EmptyState icon={CalendarDays} title={t('emptyTitle')} description={t('emptyDescription')} />
+          <EmptyState illustration="calendar-clear" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
           <BarChart data={peakHours} xKey="hour" series={[{ key: 'count', label: t('peakHoursSeriesLabel') }]} />
         )}

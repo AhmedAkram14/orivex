@@ -73,7 +73,7 @@ export function RecentActivity() {
           })}
         </ul>
       ) : (
-        <EmptyState title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
     </WidgetContainer>
   );

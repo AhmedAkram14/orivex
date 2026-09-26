@@ -53,7 +53,7 @@ export function PrescriptionCard({ prescription }: PrescriptionCardProps) {
         </p>
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           size="sm"
           loading={downloadPrescriptionPdf.isPending}
           onClick={() => downloadPrescriptionPdf.mutate(prescription.id)}

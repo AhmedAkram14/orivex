@@ -31,7 +31,7 @@ export function RescheduleAction({ appointmentId, doctorId }: RescheduleActionPr
         setOpen(next);
       }}
     >
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
         {t('button')}
       </Button>
       <DialogContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import { ListFilter, Search, Shield, Star, Stethoscope } from 'lucide-react';
+import { ListFilter, Search, Shield, Star } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { DoctorRatingSummary } from '@/features/consultation/components/doctor-rating-summary';
@@ -100,6 +100,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
   const specialtyNameById = new Map(
     (specialties ?? []).map((specialty) => [specialty.id, pickLocalizedName(specialty.name, specialty.nameAr, locale)]),
   );
+  const specialtyCanonicalById = new Map((specialties ?? []).map((specialty) => [specialty.id, specialty.name]));
   const hospitalNameById = new Map((hospitals ?? []).map((hospital) => [hospital.id, hospital.name]));
 
   const pageCount = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
@@ -164,7 +165,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
         </Select>
         <Popover>
           <PopoverTrigger asChild>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="secondary">
               <Icon icon={ListFilter} size="sm" className="me-2" />
               {t('filters')}
               {activeFilterCount > 0 && (
@@ -276,7 +277,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
           ))}
         </div>
       ) : !data || data.doctors.length === 0 ? (
-        <EmptyState icon={Stethoscope} title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="search-no-results" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -287,6 +288,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
                 fullName={doctor.displayName}
                 avatarUrl={doctor.avatarUrl}
                 specialtyLabel={specialtyNameById.get(doctor.specialtyId) ?? t('unknownSpecialty')}
+                specialtyName={specialtyCanonicalById.get(doctor.specialtyId)}
                 yearsOfExperience={doctor.yearsOfExperience}
                 hospitalName={doctor.hospitalId ? hospitalNameById.get(doctor.hospitalId) : undefined}
                 consultationFeeAmount={doctor.consultationFeeAmount}

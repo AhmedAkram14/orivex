@@ -51,7 +51,7 @@ export function CancelAppointmentDialog({ appointmentId, willRefund }: CancelApp
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : closeDialog())}>
-      <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
         {t('button')}
       </Button>
       <DialogContent>
@@ -79,10 +79,10 @@ export function CancelAppointmentDialog({ appointmentId, willRefund }: CancelApp
             <Button onClick={closeDialog}>{t('close')}</Button>
           ) : (
             <>
-              <Button variant="outline" onClick={closeDialog}>
+              <Button variant="secondary" onClick={closeDialog}>
                 {t('keepAppointment')}
               </Button>
-              <Button variant="danger" loading={cancelAppointment.isPending} onClick={handleConfirm}>
+              <Button variant="destructive-solid" loading={cancelAppointment.isPending} onClick={handleConfirm}>
                 {t('confirmCancel')}
               </Button>
             </>

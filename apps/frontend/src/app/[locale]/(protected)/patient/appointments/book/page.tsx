@@ -34,7 +34,7 @@ export default function BookAppointmentPage() {
         {doctorId ? (
           <BookingFlow doctorId={doctorId} />
         ) : (
-          <EmptyState
+          <EmptyState illustration="calendar-clear"
             title={t('noDoctorSelectedTitle')}
             description={t('noDoctorSelectedDescription')}
             action={

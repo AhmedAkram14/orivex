@@ -1,23 +1,6 @@
 'use client';
 
-import {
-  Activity,
-  CalendarDays,
-  ClipboardList,
-  Droplet,
-  Droplets,
-  FileText,
-  HeartPulse,
-  Mail,
-  MapPin,
-  Phone,
-  Pill,
-  Scale,
-  Shield,
-  Stethoscope,
-  Upload,
-  UserRoundPlus,
-} from 'lucide-react';
+import { Activity, Droplet, Droplets, FileText, HeartPulse, Mail, MapPin, Phone, Scale, Shield, Upload } from 'lucide-react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -191,7 +174,7 @@ export default function DoctorPatientChartPage() {
       {!profileLoading && notFound && (
         <Page>
           <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} />
-          <EmptyState title={t('notFoundTitle')} description={t('notFoundDescription')} />
+          <EmptyState illustration="search-no-results" title={t('notFoundTitle')} description={t('notFoundDescription')} />
         </Page>
       )}
 
@@ -473,7 +456,7 @@ export default function DoctorPatientChartPage() {
                               ))}
                             </ul>
                           ) : (
-                            <EmptyState icon={UserRoundPlus} title={t('noEmergencyContacts')} />
+                            <EmptyState illustration="records-start" title={t('noEmergencyContacts')} />
                           )}
                         </div>
                       </CardContent>
@@ -543,7 +526,7 @@ export default function DoctorPatientChartPage() {
                     <CardContent className="px-7 pt-0 pb-7">
                       {medicalRecordsLoading && <ListSkeleton />}
                       {!medicalRecordsLoading && (medicalRecords?.length ?? 0) === 0 && (
-                        <EmptyState icon={ClipboardList} title={t('noMedicalHistory')} />
+                        <EmptyState illustration="records-start" title={t('noMedicalHistory')} />
                       )}
                       {!medicalRecordsLoading && medicalRecords && medicalRecords.length > 0 && (
                         <ol className="flex flex-col gap-4">
@@ -587,7 +570,7 @@ export default function DoctorPatientChartPage() {
                     <CardContent className="px-7 pt-0 pb-7">
                       {appointmentsLoading && <ListSkeleton rows={2} />}
                       {!appointmentsLoading && upcomingAppointments.length === 0 && (
-                        <EmptyState icon={CalendarDays} title={t('noUpcomingAppointments')} />
+                        <EmptyState illustration="calendar-clear" title={t('noUpcomingAppointments')} />
                       )}
                       {!appointmentsLoading && upcomingAppointments.length > 0 && (
                         <ul className="flex flex-col gap-3">
@@ -630,7 +613,7 @@ export default function DoctorPatientChartPage() {
                     <CardContent className="px-7 pt-0 pb-7">
                       {appointmentsLoading && <ListSkeleton rows={2} />}
                       {!appointmentsLoading && previousVisits.length === 0 && (
-                        <EmptyState icon={Stethoscope} title={t('noPreviousVisits')} />
+                        <EmptyState illustration="records-start" title={t('noPreviousVisits')} />
                       )}
                       {!appointmentsLoading && previousVisits.length > 0 && (
                         <ul className="flex flex-col gap-3">
@@ -657,7 +640,7 @@ export default function DoctorPatientChartPage() {
                     <CardContent className="px-7 pt-0 pb-7">
                       {prescriptionsLoading && <ListSkeleton />}
                       {!prescriptionsLoading && (prescriptions?.length ?? 0) === 0 && (
-                        <EmptyState icon={Pill} title={t('noPrescriptions')} />
+                        <EmptyState illustration="prescription-none" title={t('noPrescriptions')} />
                       )}
                       {!prescriptionsLoading && prescriptions && prescriptions.length > 0 && (
                         <ul className="flex flex-col gap-3">
@@ -679,7 +662,7 @@ export default function DoctorPatientChartPage() {
                     <CardContent className="px-7 pt-0 pb-7">
                       {documentsLoading && <ListSkeleton />}
                       {!documentsLoading && (documents?.length ?? 0) === 0 && (
-                        <EmptyState icon={FileText} title={t('noDocuments')} />
+                        <EmptyState illustration="records-start" title={t('noDocuments')} />
                       )}
                       {!documentsLoading && documents && documents.length > 0 && (
                         <ul className="flex flex-col gap-3">
@@ -882,7 +865,7 @@ function UploadDocumentControl({ patientProfileId }: { patientProfileId: string 
         </SelectContent>
       </Select>
       <input ref={inputRef} type="file" className="hidden" onChange={handleFileSelected} />
-      <Button type="button" variant="outline" size="sm" loading={upload.isPending} onClick={() => inputRef.current?.click()}>
+      <Button type="button" variant="secondary" size="sm" loading={upload.isPending} onClick={() => inputRef.current?.click()}>
         <Icon icon={Upload} size="sm" />
         {t('uploadDocument')}
       </Button>
@@ -970,7 +953,7 @@ function AppointmentRow({ appointment, showCancel = false }: { appointment: Doct
           <div className="flex justify-end gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               disabled={declineAppointment.isPending}
               onClick={() => setIsDeclining((prev) => !prev)}
@@ -1003,7 +986,7 @@ function AppointmentRow({ appointment, showCancel = false }: { appointment: Doct
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIsDeclining(false)}>
                   {t('cancelDeclineAppointment')}
                 </Button>
-                <Button type="button" variant="danger" size="sm" loading={declineAppointment.isPending} onClick={submitDecline}>
+                <Button type="button" variant="destructive" size="sm" loading={declineAppointment.isPending} onClick={submitDecline}>
                   {t('confirmDeclineAppointment')}
                 </Button>
               </div>

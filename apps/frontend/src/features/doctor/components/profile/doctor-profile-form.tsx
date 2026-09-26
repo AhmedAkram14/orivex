@@ -299,7 +299,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                           }
                         }}
                       />
-                      <Button type="button" variant="outline" onClick={addProvider}>
+                      <Button type="button" variant="secondary" onClick={addProvider}>
                         {tShared('addInsuranceProvider')}
                       </Button>
                     </div>
@@ -346,7 +346,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
             {workExperience.fields.length < MAX_WORK_EXPERIENCE_ENTRIES && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() =>
                   workExperience.append({
@@ -504,7 +504,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
             {publications.fields.length < MAX_PUBLICATION_ENTRIES && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => publications.append({ title: '', reference: '' })}
               >
@@ -571,7 +571,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
             {awards.fields.length < MAX_AWARD_ENTRIES && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 onClick={() => awards.append({ title: '', issuingBody: '' })}
               >
@@ -643,7 +643,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
           <Button type="submit" loading={updateProfile.isPending} disabled={!form.formState.isDirty}>
             {t('save')}
           </Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="secondary" onClick={onCancel}>
             {t('cancel')}
           </Button>
         </div>

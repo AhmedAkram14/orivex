@@ -8,31 +8,20 @@ import { useAdminRefundPayment } from '@/features/admin/hooks/use-admin-refund-p
 import type { PaymentStatus } from '@/features/payment/api/types';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
-import { Badge, badgeVariants } from '@/shared/ui/badge';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import { Button } from '@/shared/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Pagination } from '@/shared/ui/pagination';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
-import type { VariantProps } from 'class-variance-authority';
 
-type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>;
 
 // Same positive/neutral/negative badge convention as VerificationQueue /
 // VerificationCaseDetail's STATUS_BADGE_VARIANT: success = a settled good
 // outcome, danger = a terminal negative outcome, warning = still in
 // progress, neutral = a resolved-but-inactive state (money already
 // returned, no action pending).
-const STATUS_BADGE_VARIANT: Record<PaymentStatus, BadgeVariant> = {
-  succeeded: 'success',
-  settled: 'success',
-  refunded: 'neutral',
-  initiated: 'warning',
-  failed: 'danger',
-  disputed: 'danger',
-};
-
 const REFUNDABLE_STATUSES = new Set(['succeeded', 'settled']);
 const PAGE_SIZE = 20;
 
@@ -72,7 +61,7 @@ export function AdminPaymentsTable() {
   }
 
   if (!data || data.transactions.length === 0) {
-    return <EmptyState title={t('transactionsEmptyTitle')} description={t('transactionsEmptyDescription')} />;
+    return <EmptyState illustration="records-start" title={t('transactionsEmptyTitle')} description={t('transactionsEmptyDescription')} />;
   }
 
   const pageCount = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
@@ -117,16 +106,14 @@ export function AdminPaymentsTable() {
                   {transaction.amount.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {transaction.amount.currency}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={STATUS_BADGE_VARIANT[transaction.status]}>
-                    {t(`status.${transaction.status}`)}
-                  </Badge>
+                  <StatusBadge status={transaction.status} label={t(`status.${transaction.status}`)} />
                 </TableCell>
                 <TableCell>{new Date(transaction.createdAt).toLocaleDateString(undefined, { timeZone: 'Africa/Cairo' })}</TableCell>
                 <TableCell>
                   {refundable ? (
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="secondary"
                       size="sm"
                       loading={refund.isPending && refund.variables === transaction.id}
                       onClick={() => setConfirmingId(transaction.id)}
@@ -155,10 +142,10 @@ export function AdminPaymentsTable() {
             <DialogDescription>{t('refundDialogDescription')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
+            <Button variant="secondary" onClick={closeDialog}>
               {t('cancel')}
             </Button>
-            <Button variant="danger" loading={refund.isPending} onClick={handleConfirmRefund}>
+            <Button variant="destructive-solid" loading={refund.isPending} onClick={handleConfirmRefund}>
               {t('refundAction')}
             </Button>
           </DialogFooter>

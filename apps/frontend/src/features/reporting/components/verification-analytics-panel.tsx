@@ -11,8 +11,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { PieChart } from '@/shared/ui/charts/pie-chart';
 import { ChartSkeleton } from '@/shared/ui/charts/chart-skeleton';
 import { ChartContainer } from '@/shared/ui/layout/chart-container';
-import { DashboardGrid } from '@/shared/ui/layout/page';
-import { LinkableStatCard } from '@/shared/ui/layout/linkable-stat-card';
+import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 export function VerificationAnalyticsPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
   const t = useTranslations('admin.analytics.verification');
@@ -28,15 +27,15 @@ export function VerificationAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="verification" filter={filter} />
       </div>
-      <DashboardGrid columns={4}>
-        <LinkableStatCard icon={ShieldCheck} label={t('pending')} value={String(data?.pending ?? 0)} loading={isLoading} href="/admin/verification-queue" />
-        <LinkableStatCard icon={ShieldCheck} label={t('approved')} value={String(data?.approved ?? 0)} loading={isLoading} href="/admin/verification-queue" />
-        <LinkableStatCard icon={ShieldCheck} label={t('rejected')} value={String(data?.rejected ?? 0)} loading={isLoading} href="/admin/verification-queue" />
-        <LinkableStatCard icon={ShieldCheck} label={t('suspended')} value={String(data?.suspended ?? 0)} loading={isLoading} href="/admin/verification-queue" />
-      </DashboardGrid>
+      <MetricGrid columns={4}>
+        <MetricStat icon={ShieldCheck} label={t('pending')} value={String(data?.pending ?? 0)} loading={isLoading} href="/admin/verification-queue" />
+        <MetricStat icon={ShieldCheck} label={t('approved')} value={String(data?.approved ?? 0)} loading={isLoading} href="/admin/verification-queue" />
+        <MetricStat icon={ShieldCheck} label={t('rejected')} value={String(data?.rejected ?? 0)} loading={isLoading} href="/admin/verification-queue" />
+        <MetricStat icon={ShieldCheck} label={t('suspended')} value={String(data?.suspended ?? 0)} loading={isLoading} href="/admin/verification-queue" />
+      </MetricGrid>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ChartContainer title={t('doctorVsPatientTitle')}>
-          {isLoading ? <ChartSkeleton /> : subjectSlices.every((slice) => slice.value === 0) ? <EmptyState icon={ShieldCheck} title={t('emptyTitle')} /> : <PieChart data={subjectSlices} innerRadius={55} />}
+          {isLoading ? <ChartSkeleton /> : subjectSlices.every((slice) => slice.value === 0) ? <EmptyState illustration="records-start" title={t('emptyTitle')} /> : <PieChart data={subjectSlices} innerRadius={55} />}
         </ChartContainer>
         <ChartContainer title={t('averageReviewTimeTitle')}>
           <div className="flex h-full items-center justify-center text-2xl font-semibold text-text-primary">

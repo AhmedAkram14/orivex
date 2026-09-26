@@ -403,13 +403,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                 })}
               </ol>
             ) : (
-              <EmptyState
-                icon={History}
+              <EmptyState illustration="records-start"
                 title={t('experienceEmptyTitle')}
                 description={t('experienceEmptyDescription')}
                 action={
                   isWorkspace && onEdit ? (
-                    <Button variant="outline" size="sm" onClick={onEdit}>
+                    <Button variant="secondary" size="sm" onClick={onEdit}>
                       {t('addWorkExperience')}
                     </Button>
                   ) : undefined
@@ -422,13 +421,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
             {profile.biography ? (
               <p className="text-sm leading-relaxed text-text-secondary">{profile.biography}</p>
             ) : (
-              <EmptyState
-                icon={UserRound}
+              <EmptyState illustration="records-start"
                 title={t('aboutEmptyTitle')}
                 description={t('aboutEmptyDescription')}
                 action={
                   isWorkspace && onEdit ? (
-                    <Button variant="outline" size="sm" onClick={onEdit}>
+                    <Button variant="secondary" size="sm" onClick={onEdit}>
                       {t('editProfile')}
                     </Button>
                   ) : undefined
@@ -448,13 +446,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                 ))}
               </ul>
             ) : (
-              <EmptyState
-                icon={Book}
+              <EmptyState illustration="records-start"
                 title={t('publicationsEmptyTitle')}
                 description={t('publicationsEmptyDescription')}
                 action={
                   isWorkspace && onEdit ? (
-                    <Button variant="outline" size="sm" onClick={onEdit}>
+                    <Button variant="secondary" size="sm" onClick={onEdit}>
                       {t('addPublication')}
                     </Button>
                   ) : undefined
@@ -474,13 +471,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                 ))}
               </ul>
             ) : (
-              <EmptyState
-                icon={Award}
+              <EmptyState illustration="records-start"
                 title={t('awardsEmptyTitle')}
                 description={t('awardsEmptyDescription')}
                 action={
                   isWorkspace && onEdit ? (
-                    <Button variant="outline" size="sm" onClick={onEdit}>
+                    <Button variant="secondary" size="sm" onClick={onEdit}>
                       {t('addAward')}
                     </Button>
                   ) : undefined

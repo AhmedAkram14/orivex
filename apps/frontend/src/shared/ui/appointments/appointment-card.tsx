@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Badge } from '@/shared/ui/badge';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/cn';
 
 // Matches ConsultationModule's real AppointmentStatus enum exactly.
@@ -13,17 +13,6 @@ export type AppointmentCardStatus =
   | 'expired'
   // Derived, not a backend enum value: a confirmed appointment whose slot has passed (see isAwaitingOutcome).
   | 'awaiting_outcome';
-
-const badgeVariantByStatus: Record<AppointmentCardStatus, 'info' | 'warning' | 'success' | 'neutral'> = {
-  requested: 'info',
-  confirmed: 'info',
-  rescheduled: 'warning',
-  cancelled: 'neutral',
-  no_show: 'neutral',
-  completed: 'success',
-  expired: 'neutral',
-  awaiting_outcome: 'neutral',
-};
 
 export interface AppointmentCardProps {
   /** Pre-formatted, localized date+time text (e.g. "Jul 20, 2026, 10:00 AM") — this component never formats a date itself. */
@@ -68,7 +57,7 @@ export function AppointmentCard({
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-medium text-text-primary">{scheduledAtLabel}</p>
-          <Badge variant={badgeVariantByStatus[status]}>{statusLabel}</Badge>
+          <StatusBadge status={status} label={typeof statusLabel === 'string' ? statusLabel : undefined} />
         </div>
         <p className="text-sm text-text-secondary">
           {counterpartyName}
