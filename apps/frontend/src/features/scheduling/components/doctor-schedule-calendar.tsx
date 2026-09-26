@@ -117,6 +117,8 @@ export interface DoctorScheduleCalendarProps {
     moreLinkText: (count: number) => string;
     appointmentAria: (patient: string, time: string) => string;
     notAvailable: string;
+    /** Accessible name of the scrolling hours box (week/day). */
+    scrollRegion: string;
   };
   className?: string;
 }
@@ -168,6 +170,7 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
   handle,
 ) {
   const calendarRef = useRef<FullCalendar>(null);
+  const scrollBoxRef = useRef<HTMLDivElement>(null);
   const [range, setRange] = useState<{ start: Date; end: Date } | null>(null);
   const isMonth = view === 'month';
   // FullCalendar treats `initialDate` as an option: handing it a fresh Date
@@ -296,6 +299,14 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
     return [Math.max(0, Math.floor(min / 60)), Math.min(24, Math.ceil(max / 60))] as const;
   }, [availabilityByDay, appointments]);
 
+  // Where the scrolling hours box opens: an hour before now while now is
+  // inside the visible day, otherwise the top of it.
+  const openAtTime = useMemo(() => {
+    const nowHour = toWallClockUtc(new Date()).getUTCHours();
+    const target = nowHour >= minHour && nowHour < maxHour ? Math.max(minHour, nowHour - 1) : minHour;
+    return `${String(target).padStart(2, '0')}:00:00`;
+  }, [minHour, maxHour]);
+
   const renderDayHeader = useCallback(
     (arg: DayHeaderContentArg) => {
       const availability = availabilityByDay.get(Date.UTC(arg.date.getUTCFullYear(), arg.date.getUTCMonth(), arg.date.getUTCDate()));
@@ -383,66 +394,86 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
     [labels],
   );
 
+  // Week/day scroll inside a box of our own (FullCalendar itself runs at auto
+  // height with a sticky day header): its own scrollers sit inside its layout
+  // table, where axe rejects a focusable scroller. The box is always rendered
+  // so switching views does not remount the calendar.
+  const scrollBoxProps = isMonth ? {} : { tabIndex: 0, role: 'region', 'aria-label': labels.scrollRegion };
+
   return (
-    <div className={cn('orivex-fc', className)}>
-      <FullCalendar
-        ref={calendarRef}
-        plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-        initialView={FC_VIEW[view]}
-        initialDate={initialUtcDate}
-        timeZone="UTC"
-        now={() => toWallClockUtc(new Date())}
-        locales={[arLocale]}
-        locale={locale}
-        direction={locale === 'ar' ? 'rtl' : 'ltr'}
-        firstDay={0}
-        headerToolbar={false}
-        // Whole range fits with no inner scroll: the height follows the slots
-        // (64-112px per hour, see the stylesheet).
-        height="auto"
-        // Below this a card is "short": one line instead of three.
-        eventShortHeight={48}
-        allDaySlot={false}
-        nowIndicator
-        slotMinTime={`${String(minHour).padStart(2, '0')}:00:00`}
-        slotMaxTime={`${String(maxHour).padStart(2, '0')}:00:00`}
-        slotDuration="00:30:00"
-        slotLabelInterval="01:00"
-        slotLabelContent={renderSlotLabel}
-        fixedWeekCount
-        showNonCurrentDates
-        dayMaxEvents={2}
-        moreLinkContent={(arg) => labels.moreLinkText(arg.num)}
-        eventOverlap
-        slotEventOverlap
-        editable={false}
-        selectable={!isMonth}
-        selectMirror
-        unselectAuto={false}
-        events={[...backgroundEvents, ...timeOffEvents, ...appointmentEvents]}
-        datesSet={handleDatesSet}
-        dayHeaderContent={renderDayHeader}
-        // Month headers are per weekday, not per date, so FullCalendar only flags
-        // "today" when it falls in the first row; underline today's weekday
-        // whenever today is inside the visible range.
-        dayHeaderClassNames={(arg) => {
-          if (!isMonth || !range) return [];
-          const now = toWallClockUtc(new Date());
-          const todayVisible = now.getTime() >= range.start.getTime() && now.getTime() < range.end.getTime();
-          return todayVisible && arg.date.getUTCDay() === now.getUTCDay() ? ['fc-weekday-today'] : [];
-        }}
-        eventContent={renderEvent}
-        eventClick={(arg) => {
-          if (arg.event.display === 'background' || arg.event.extendedProps.kind === 'timeOff') return;
-          arg.jsEvent.preventDefault();
-          const rect = arg.el.getBoundingClientRect();
-          onAppointmentClick(arg.event.id, { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-        }}
-        select={(arg) => onSlotSelect({ start: arg.start, end: arg.end })}
-        dateClick={(arg) => {
-          if (isMonth) onDayClick(arg.date);
-        }}
-      />
+    <div ref={scrollBoxRef} className={cn(!isMonth && 'orivex-fc-scrollbox')} {...scrollBoxProps}>
+      <div className={cn('orivex-fc', className)}>
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
+          initialView={FC_VIEW[view]}
+          initialDate={initialUtcDate}
+          timeZone="UTC"
+          now={() => toWallClockUtc(new Date())}
+          locales={[arLocale]}
+          locale={locale}
+          direction={locale === 'ar' ? 'rtl' : 'ltr'}
+          firstDay={0}
+          headerToolbar={false}
+          height="auto"
+          // Week/day: the day header stays put while the box scrolls. Month has no
+          // hours and scrolls with the page, so its header must not stick.
+          stickyHeaderDates={!isMonth}
+          viewDidMount={(arg) => {
+            if (!arg.view.type.startsWith('timeGrid')) return;
+            // One frame later: the slot rows are not laid out yet when the view mounts.
+            requestAnimationFrame(() => {
+              const box = scrollBoxRef.current;
+              const slot = arg.el.querySelector<HTMLElement>(`.fc-timegrid-slot-lane[data-time="${openAtTime}"]`);
+              if (!box || !slot) return;
+              const headerHeight = arg.el.querySelector<HTMLElement>('.fc-scrollgrid-section-header')?.offsetHeight ?? 0;
+              box.scrollTop = slot.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - headerHeight;
+            });
+          }}
+          // Below this a card is "short": one line instead of three.
+          eventShortHeight={48}
+          allDaySlot={false}
+          nowIndicator
+          slotMinTime={`${String(minHour).padStart(2, '0')}:00:00`}
+          slotMaxTime={`${String(maxHour).padStart(2, '0')}:00:00`}
+          slotDuration="00:30:00"
+          slotLabelInterval="01:00"
+          slotLabelContent={renderSlotLabel}
+          fixedWeekCount
+          showNonCurrentDates
+          dayMaxEvents={2}
+          moreLinkContent={(arg) => labels.moreLinkText(arg.num)}
+          eventOverlap
+          slotEventOverlap
+          editable={false}
+          selectable={!isMonth}
+          selectMirror
+          unselectAuto={false}
+          events={[...backgroundEvents, ...timeOffEvents, ...appointmentEvents]}
+          datesSet={handleDatesSet}
+          dayHeaderContent={renderDayHeader}
+          // Month headers are per weekday, not per date, so FullCalendar only flags
+          // "today" when it falls in the first row; underline today's weekday
+          // whenever today is inside the visible range.
+          dayHeaderClassNames={(arg) => {
+            if (!isMonth || !range) return [];
+            const now = toWallClockUtc(new Date());
+            const todayVisible = now.getTime() >= range.start.getTime() && now.getTime() < range.end.getTime();
+            return todayVisible && arg.date.getUTCDay() === now.getUTCDay() ? ['fc-weekday-today'] : [];
+          }}
+          eventContent={renderEvent}
+          eventClick={(arg) => {
+            if (arg.event.display === 'background' || arg.event.extendedProps.kind === 'timeOff') return;
+            arg.jsEvent.preventDefault();
+            const rect = arg.el.getBoundingClientRect();
+            onAppointmentClick(arg.event.id, { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+          }}
+          select={(arg) => onSlotSelect({ start: arg.start, end: arg.end })}
+          dateClick={(arg) => {
+            if (isMonth) onDayClick(arg.date);
+          }}
+        />
+      </div>
     </div>
   );
 });

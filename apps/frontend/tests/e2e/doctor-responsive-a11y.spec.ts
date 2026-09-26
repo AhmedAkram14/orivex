@@ -80,4 +80,18 @@ test.describe('Doctor routes: axe', () => {
       ).toEqual([]);
     });
   }
+
+  // The hours grid scrolls inside the calendar. In a week with no appointments
+  // it holds nothing focusable, which is where axe's scrollable-region rule bites.
+  test('schedule week with no appointments (scrolling hours grid) has no serious or critical axe violations', async ({ page }) => {
+    await loginAs(page, 'doctor');
+    await page.goto('/en/doctor/schedule');
+    await expect(page.locator('.orivex-fc .fc-timegrid')).toBeVisible();
+    for (let i = 0; i < 4; i += 1) await page.getByRole('button', { name: 'Next week' }).click();
+    await expect(page.locator('.orivex-fc .fc-appt')).toHaveCount(0);
+
+    const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+    const blocking = results.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical');
+    expect(blocking.map((violation) => violation.id)).toEqual([]);
+  });
 });

@@ -98,6 +98,20 @@
   border-top: 2px solid var(--color-primary);
 }
 
+/* Week and day scroll inside a fixed-height box (a wrapper of ours, around
+   FullCalendar): the day header stays put (FullCalendar's sticky header) and
+   only the hours move. The box takes the rest of the viewport (never under
+   28rem, never over 50rem). */
+.orivex-fc-scrollbox {
+  height: clamp(28rem, calc(100vh - 21rem), 50rem);
+  height: clamp(28rem, calc(100dvh - 21rem), 50rem);
+  overflow-y: auto;
+}
+.orivex-fc-scrollbox:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
 /* Time grid: roomy hour cells. A slot is half an hour, so an hour is 2 x this.
    Day view: a fixed 64px per hour. Week view: an hour is as tall as a day
    column is wide, so cells come out roughly square (the axis takes ~4rem,
@@ -244,9 +258,10 @@
   color: var(--color-text-tertiary);
 }
 
+/* `clip`, not `hidden`: hidden would make the table its own scroll container and stop the day header sticking to the scroll box. */
 .orivex-fc .fc-scrollgrid {
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* ---- Month view: leave-calendar look ---------------------------------

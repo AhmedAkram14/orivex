@@ -552,6 +552,7 @@ export default function DoctorSchedulePage() {
                             moreLinkText: (count) => t('calendar.moreLink', { count }),
                             appointmentAria: (patient, time) => t('calendar.appointmentAria', { patient, time }),
                             notAvailable: t('noAvailability'),
+                            scrollRegion: t('calendar.scrollRegion'),
                           }}
                         />
                       </div>

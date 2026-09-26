@@ -19,12 +19,17 @@ test.describe('Doctor Schedule calendar', () => {
     await expect(page.locator('.orivex-fc .fc-bg-available')).toHaveCount(0);
     // The colour key is gone.
     await expect(page.getByText('Booked', { exact: true })).toHaveCount(0);
-    // The whole day fits: the grid does not scroll inside itself.
-    const innerScroll = await page.locator('.orivex-fc .fc-timegrid-body').evaluate((el) => {
-      const scroller = el.closest('.fc-scroller') as HTMLElement | null;
-      return scroller ? scroller.scrollHeight - scroller.clientHeight : 0;
-    });
-    expect(innerScroll).toBeLessThanOrEqual(1);
+    // The hours scroll inside the calendar (it does not grow the page).
+    const scroller = page.locator('.orivex-fc-scrollbox');
+    const { scrollable, hasRoom } = await scroller.evaluate((el) => ({
+      scrollable: el.scrollHeight - el.clientHeight,
+      hasRoom: el.clientHeight > 300,
+    }));
+    expect(scrollable).toBeGreaterThan(50);
+    expect(hasRoom).toBe(true);
+    // The whole calendar card fits in the window (no need to scroll the page to see its bottom edge).
+    const card = await scroller.boundingBox();
+    expect(card!.y + card!.height).toBeLessThanOrEqual(900);
 
     const label = page.locator('[aria-live="polite"]').first();
     const before = await label.innerText();
@@ -59,6 +64,52 @@ test.describe('Doctor Schedule calendar', () => {
     expect(Math.abs(hour - target)).toBeLessThanOrEqual(target * 0.15);
 
     await page.locator('.orivex-fc').screenshot({ path: testInfo.outputPath('week-cells.png') });
+  });
+
+  test('week view scrolls vertically inside the calendar while the day header stays put', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await loginAs(page, 'doctor');
+    await page.goto('/en/doctor/schedule');
+    await expect(page.locator('.orivex-fc .fc-timegrid')).toBeVisible();
+
+    const scroller = page.locator('.orivex-fc-scrollbox');
+    const header = page.locator('.orivex-fc .fc-col-header-cell').first();
+    const pageHeightBefore = await page.evaluate(() => document.documentElement.scrollHeight);
+
+    // It opens around the current time, not at the very top of the day: the
+    // mock doctor's day is 8-19, so from mid-morning on the first hour is scrolled away.
+    const cairoHour = Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: 'Africa/Cairo' }).format(new Date()));
+    if (cairoHour >= 10 && cairoHour < 19) {
+      await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+    }
+    const headerTop = (await header.boundingBox())!.y;
+
+    // Scrolling moves the hours but neither the page nor the day header.
+    await scroller.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await expect(page.getByText('8 AM', { exact: true })).toBeInViewport();
+    await scroller.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect(page.getByText('6 PM', { exact: true })).toBeInViewport();
+    await expect(page.getByText('8 AM', { exact: true })).not.toBeInViewport();
+    // (within a pixel or two: the sticky header sits on the table's own border)
+    expect(Math.abs((await header.boundingBox())!.y - headerTop)).toBeLessThanOrEqual(2);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(pageHeightBefore);
+
+    // Keyboard users can reach the scroll box by name.
+    await expect(scroller).toHaveAttribute('tabindex', '0');
+    await expect(page.getByRole('region', { name: 'Schedule hours' })).toBeVisible();
+
+    // A real mouse wheel over the grid scrolls it too.
+    await scroller.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    const box = (await scroller.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => scroller.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   });
 
   test('view tabs switch the calendar view, and a month day opens that day', async ({ page }) => {

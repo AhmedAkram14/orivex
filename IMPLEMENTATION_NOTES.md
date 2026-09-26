@@ -903,5 +903,13 @@ Both `en.json`/`ar.json`: `messaging.inbox.unread` — the inbox row's `sr-only`
 
 - **Ask**: hour cells like the calendar reference (about square) instead of the earlier compact 32px/hour grid.
 - **Week view**: an hour is as tall as a day column is wide (`(100cqw - 4rem) / 7`, via a container query on the calendar root), clamped to 64-112px, so it stays roughly square from small laptops to wide monitors. **Day view**: a fixed 64px per hour (one wide column would otherwise be absurdly tall). Month is unchanged.
-- **Side effects**: the page is taller (about 11 hours x 64-112px), still with no inner scroll. A 30-minute visit is now 32-56px, so many cards show time and name on two lines and only cards under 48px drop the visit type.
+- **Side effects**: an hour is now 64-112px, so the whole day no longer fits on screen; see the scrolling section below. A 30-minute visit is now 32-56px, so many cards show time and name on two lines and only cards under 48px drop the visit type.
 - **Test**: a browser test measures the rendered hour against the day-column width (within 15%, inside the 64-112px clamp).
+
+### Schedule page: the hours scroll inside the calendar
+
+- **Ask**: with taller hour cells, make the calendar scrollable vertically.
+- **Week and Day**: a wrapper of ours around the calendar is a fixed-height scroll box (the rest of the window, `100dvh - 21rem`, never under 28rem or over 50rem); FullCalendar itself stays at auto height with its sticky day header (`stickyHeaderDates`). The day header row stays put; only the hours scroll. The box opens an hour before the current time (or at the top of the day when now is outside it) and keeps its position when moving between weeks. **Month** is unchanged: it has no hours, so it grows to fit its weeks.
+- **Accessibility**: the scroll box is a named region (`role="region"`, `aria-label` "Schedule hours"/"ساعات الجدول", `tabindex="0"`) so keyboard users can reach it and scroll with the arrow keys / Page Up/Down, with a visible focus ring. It is our own wrapper on purpose: FullCalendar's own scrollers sit inside its layout table, where axe rejects a focusable or region element (`aria-required-children`, and `scrollable-region-focusable` when the week is empty). A test covers an empty week.
+- **Range**: the visible day is still 8 AM-7 PM (widened only by real working hours or appointments); this change does not add hours that have no data.
+- **Test**: the browser test checks the grid really scrolls (early and late hours appear/disappear), the day header does not move, the page height does not change, the box fits the window, the box is a keyboard-reachable named region, and a mouse wheel scrolls it.

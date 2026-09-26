@@ -1271,6 +1271,7 @@
       "calendar": {
         "moreLink": "+{count} more",
         "appointmentAria": "Appointment with {patient} at {time}",
+        "scrollRegion": "Schedule hours",
         "selection": {
           "available": "Available for booking",
           "break": "During a break",

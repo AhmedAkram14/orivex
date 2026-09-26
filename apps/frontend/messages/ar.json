@@ -1271,6 +1271,7 @@
       "calendar": {
         "moreLink": "+{count} أخرى",
         "appointmentAria": "موعد مع {patient} في {time}",
+        "scrollRegion": "ساعات الجدول",
         "selection": {
           "available": "متاح للحجز",
           "break": "أثناء استراحة",

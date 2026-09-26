@@ -43,7 +43,7 @@ for (const { locale, width, height } of CASES) {
     // with the title. Below xl it stacks under the calendar.
     const summary = page.getByRole('heading', { name: /This Week|هذا الأسبوع/ });
     const title = page.getByRole('heading', { level: 1 });
-    const calendar = page.locator('.orivex-fc').first();
+    const calendar = page.locator('.orivex-fc-scrollbox, .orivex-fc').first();
     const [summaryBox, titleBox, calendarBox] = await Promise.all([summary.boundingBox(), title.boundingBox(), calendar.boundingBox()]);
     if (width >= 1280) {
       expect(summaryBox!.y).toBeLessThan(calendarBox!.y);
