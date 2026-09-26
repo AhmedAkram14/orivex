@@ -18,7 +18,7 @@ describe('SpecialtiesSection', () => {
     renderWithProviders(<SpecialtiesSection />);
 
     expect((await screen.findAllByText('Cardiology'))[0]).toBeInTheDocument();
-    await waitFor(() => expect(screen.getAllByText('1 doctors').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('1 doctor').length).toBeGreaterThan(0));
 
     // Dermatology/Pediatrics have zero seeded doctors -- never shown as a dead-end choice.
     expect(screen.queryByText('Dermatology')).not.toBeInTheDocument();

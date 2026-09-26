@@ -1,26 +1,11 @@
 'use client';
 
-import {
-  ArrowRight,
-  Baby,
-  Bone,
-  Brain,
-  Ear,
-  Eye,
-  HeartPulse,
-  ShieldCheck,
-  ScanLine,
-  Smile,
-  Stethoscope,
-  Syringe,
-  Users,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, ShieldCheck, Stethoscope, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePublicSpecialties } from '@/features/landing/hooks/use-public-specialties';
 import type { PublicSpecialty } from '@/features/landing/api/types';
 import { Heading, Text } from '@/design-system/typography';
-import { Badge, type BadgeProps } from '@/shared/ui/badge';
+import { Badge } from '@/shared/ui/badge';
 import { Carousel, CarouselItem } from '@/shared/ui/carousel';
 import { Icon } from '@/shared/icons/icon';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
@@ -29,91 +14,30 @@ import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { cn } from '@/shared/lib/cn';
-
-// "info" is deliberately excluded here -- this design system's own tokens
-// define --color-info as the exact same hex as --color-primary (both
-// #2563eb), so a card accented "info" is visually indistinguishable from
-// one accented "primary", not just similar. These 4 are the only genuinely
-// distinct hues the existing token set has to offer.
-type AccentKey = 'primary' | 'success' | 'warning' | 'danger';
-
-const ACCENTS: Record<AccentKey, { badge: BadgeProps['variant']; icon: string; iconBg: string; border: string }> = {
-  primary: { badge: 'primary', icon: 'text-primary-emphasis', iconBg: 'bg-primary-subtle', border: 'border-t-primary' },
-  success: { badge: 'success', icon: 'text-success-emphasis', iconBg: 'bg-success-subtle', border: 'border-t-success' },
-  warning: { badge: 'warning', icon: 'text-warning-emphasis', iconBg: 'bg-warning-subtle', border: 'border-t-warning' },
-  danger: { badge: 'danger', icon: 'text-danger-emphasis', iconBg: 'bg-danger-subtle', border: 'border-t-danger' },
-};
-const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];
-
-// Matched by keyword against the real specialty name -- purely cosmetic
-// (which icon/color/tagline a card gets), never a source of truth about
-// what the specialty is. Each category keeps the SAME icon+color+tagline
-// every time (keyed off the category itself, not the card's position in
-// the grid), so a specialty's look stays stable even if the real doctor
-// counts driving the sort order change. Adjacent categories are assigned
-// different accents from each other so no two neighbors render
-// identically; with only 4 distinct hues and more than 4 categories, a
-// repeat is unavoidable somewhere, but never between neighbors. Anything
-// unmatched falls back to a generic stethoscope + a hash-stable color
-// (still consistent per specialty, just not hand-picked) and a generic
-// tagline.
-const CATEGORIES: { pattern: RegExp; key: string; icon: LucideIcon; accent: AccentKey }[] = [
-  { pattern: /orthop|bone|spine/i, key: 'orthopedics', icon: Bone, accent: 'primary' },
-  { pattern: /anesthes/i, key: 'anesthesiology', icon: Syringe, accent: 'success' },
-  { pattern: /dent|oral/i, key: 'dentistry', icon: Smile, accent: 'warning' },
-  { pattern: /pediatric/i, key: 'pediatrics', icon: Baby, accent: 'danger' },
-  { pattern: /radiol|imaging/i, key: 'radiology', icon: ScanLine, accent: 'success' },
-  { pattern: /cardio|heart/i, key: 'cardiology', icon: HeartPulse, accent: 'danger' },
-  { pattern: /neuro|brain/i, key: 'neurology', icon: Brain, accent: 'warning' },
-  { pattern: /ophthalmol|\beye/i, key: 'ophthalmology', icon: Eye, accent: 'primary' },
-  { pattern: /\bent\b|ear|nose|throat/i, key: 'ent', icon: Ear, accent: 'success' },
-];
-
-function hashIndex(value: string, length: number): number {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) | 0;
-  }
-  return Math.abs(hash) % length;
-}
-
-function styleFor(specialty: PublicSpecialty) {
-  const matched = CATEGORIES.find((category) => category.pattern.test(specialty.name));
-  if (matched) return matched;
-  return { key: 'generic', icon: Stethoscope, accent: ACCENT_KEYS[hashIndex(specialty.name, ACCENT_KEYS.length)] };
-}
+import { getSpecialtyStyle } from '@/shared/lib/specialty-palette';
+import { SpecialtyIconTile } from '@/shared/ui/specialty-chip';
 
 function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
   const t = useTranslations('landing.specialties');
   const locale = useLocale();
-  const style = styleFor(specialty);
-  const accent = ACCENTS[style.accent];
+  // The same icon + hue for the same specialty everywhere (landing, directory, specialties page).
+  const style = getSpecialtyStyle(specialty.name);
 
   return (
     <Link href={`/patient/doctors?specialtyId=${specialty.id}`} className="block h-full">
-      <Card
-        className={cn(
-          'flex h-full flex-col items-center gap-3 rounded-2xl border-t-4 p-6 text-center transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md',
-          accent.border,
-        )}
-      >
-        <div className={cn('flex size-14 items-center justify-center rounded-full', accent.iconBg)}>
-          <Icon icon={style.icon} size="lg" className={accent.icon} />
-        </div>
-        <Heading level={4}>{pickLocalizedName(specialty.name, specialty.nameAr, locale)}</Heading>
-        <Text size="sm" tone="secondary">
+      <Card className="flex h-full flex-col gap-3 p-5 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md">
+        <SpecialtyIconTile name={specialty.name} size="lg" />
+        <Heading as="h3" level={4}>{pickLocalizedName(specialty.name, specialty.nameAr, locale)}</Heading>
+        <Text size="sm" tone="secondary" className="grow">
           {t(`categories.${style.key}`)}
         </Text>
-        <Badge variant={accent.badge} className="gap-1.5">
-          <Icon icon={Users} size="xs" />
-          {t('doctorCount', { count: specialty.doctorCount })}
-        </Badge>
-        <span className="h-px w-full bg-border-default" aria-hidden="true" />
-        <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
-          {t('viewDoctors')}
-          <Icon icon={ArrowRight} size="sm" flipRtl />
-        </span>
+        <div className="flex items-center justify-between gap-2 border-t border-border-default pt-3">
+          <span className="text-small text-text-tertiary">{t('doctorCount', { count: specialty.doctorCount })}</span>
+          <span className="inline-flex items-center gap-1 text-small font-semibold text-care-text">
+            {t('viewDoctors')}
+            <Icon icon={ArrowRight} size="sm" flipRtl />
+          </span>
+        </div>
       </Card>
     </Link>
   );
@@ -140,7 +64,7 @@ export function SpecialtiesSection() {
           <Icon icon={ShieldCheck} size="xs" />
           {t('verifiedBadge')}
         </Badge>
-        <Heading level={1}>{t('title')}</Heading>
+        <Heading as="h2" level={2}>{t('title')}</Heading>
         <Text tone="secondary" className="max-w-xl">
           {t('description')}
         </Text>

@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
+import { ArrowRight, LayoutDashboard, Search, ShieldCheck, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
@@ -33,6 +33,7 @@ import { Container } from '@/shared/ui/container';
 export function HeroSection() {
   const t = useTranslations('landing.hero');
   const tNav = useTranslations('landing.nav');
+  const tUi = useTranslations('landingUi');
   const { status, user } = useAuth();
   const { data: specialties } = usePublicSpecialties();
   const visible = specialties?.filter((specialty) => specialty.doctorCount > 0) ?? [];
@@ -45,8 +46,8 @@ export function HeroSection() {
       <div className="grid grid-cols-1 items-center gap-10 pt-10 lg:grid-cols-2 lg:gap-14">
         <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-start">
           <div className="flex items-center gap-2">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
-              <Icon icon={ShieldCheck} size="sm" className="text-primary" />
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-2">
+              <Icon icon={ShieldCheck} size="sm" className="text-text-secondary" />
             </span>
             <Text size="sm" tone="secondary">
               {t('trustLine')}
@@ -59,10 +60,10 @@ export function HeroSection() {
               Tailwind's un-tokenized text-6xl -- this is the one place on
               the page large-scale type is appropriate, so it's the one
               place Display (not Heading) is used. */}
-          <Display as="h1" className="text-balance text-4xl text-text-primary sm:text-5xl">
+          <Display as="h1" className="text-balance text-4xl text-text-primary sm:text-display-hero">
             {t('headlineLine1')}
             <br />
-            <span className="text-primary">{t('headlineLine2')}</span>
+            <span className="rounded-md bg-pulse px-2 text-pulse-foreground box-decoration-clone">{t('headlineLine2')}</span>
           </Display>
 
           <Text size="lg" tone="secondary" className="max-w-md text-balance">
@@ -107,22 +108,22 @@ export function HeroSection() {
           {visible.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-8 pt-4 sm:justify-start">
               <div className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-success-subtle">
-                  <Icon icon={Users} size="md" className="text-success" />
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-2">
+                  <Icon icon={Users} size="md" className="text-text-secondary" />
                 </span>
                 <div className="flex flex-col text-start">
-                  <span className="text-lg font-bold text-text-primary">{totalDoctors}+</span>
+                  <span data-numeric className="font-display text-metric text-text-primary">{totalDoctors}+</span>
                   <Text size="sm" tone="tertiary">
                     {t('doctorsStat')}
                   </Text>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
-                  <Icon icon={Stethoscope} size="md" className="text-primary" />
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-2">
+                  <Icon icon={Stethoscope} size="md" className="text-text-secondary" />
                 </span>
                 <div className="flex flex-col text-start">
-                  <span className="text-lg font-bold text-text-primary">{visible.length}+</span>
+                  <span data-numeric className="font-display text-metric text-text-primary">{visible.length}+</span>
                   <Text size="sm" tone="tertiary">
                     {t('specialtiesStat')}
                   </Text>
@@ -138,7 +139,7 @@ export function HeroSection() {
             className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"
             aria-hidden="true"
           />
-          <div className="relative w-full overflow-hidden rounded-2xl border-2 border-white shadow-xl">
+          <div className="relative w-full overflow-hidden rounded-(--r-hero) border border-border-default shadow-md">
             <Image
               src="/hero-1.png"
               alt={t('imageAlt')}
@@ -148,14 +149,24 @@ export function HeroSection() {
               sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-auto w-full"
             />
+            {/* The photo has English labels baked in at its top-left. A blurred pad hides them and the labels below are live, translated text. */}
+            <div aria-hidden="true" className="absolute left-0 top-0 h-[14%] w-[24%] backdrop-blur-2xl" />
+            <div className="absolute start-3 top-3 flex items-center gap-2 rounded-full bg-text-primary/70 px-3 py-1 text-caption font-semibold text-text-inverse backdrop-blur-sm">
+              <span aria-hidden="true" className="size-2 rounded-full bg-pulse" />
+              {tUi('videoLabel')} · {tUi('live')}
+            </div>
           </div>
-          {/* w-[32%] is deliberate, not a token gap: this floating card must
-              stay a fixed proportion of the main panel it overlaps
-              (hero-1.png) so the overlap composition holds at every
-              breakpoint -- no fixed-width or scale token expresses "32% of
-              my sibling's rendered width". */}
-          <div className="absolute -bottom-10 -end-6 w-[32%] drop-shadow-xl">
-            <Image src="/hero-2.png" alt={t('cardAlt')} width={1124} height={1133} className="h-auto w-full" />
+          {/* The "priority" card is live text (translated, real link), not a flattened image. */}
+          <div className="absolute -bottom-10 -end-2 w-[46%] max-w-64 rounded-(--r-card) border border-border-default bg-surface p-4 shadow-md sm:-end-6">
+            <ShieldCheck aria-hidden="true" className="mb-2 size-6 text-text-primary" />
+            <p className="text-h3 text-text-primary">{tUi('cardTitle')}</p>
+            <p className="mt-1 text-small text-text-secondary">
+              {tUi('cardLineOne')} {tUi('cardLineTwo')} {tUi('cardLineThree')}
+            </p>
+            <Link href="#how-it-works" className="mt-2 inline-flex items-center gap-1 text-small font-semibold text-care-text hover:underline">
+              {tUi('cardCta')}
+              <Icon icon={ArrowRight} size="sm" flipRtl />
+            </Link>
           </div>
         </div>
       </div>

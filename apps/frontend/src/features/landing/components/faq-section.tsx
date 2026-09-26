@@ -64,7 +64,7 @@ export function FaqSection() {
           <Icon icon={CircleHelp} size="xs" />
           {t('eyebrow')}
         </Badge>
-        <Heading level={1}>{t('title')}</Heading>
+        <Heading as="h2" level={2}>{t('title')}</Heading>
         <Text tone="secondary">
           {t.rich('description', { brand: (chunks) => <span className="font-semibold text-primary">{chunks}</span> })}
         </Text>

@@ -67,7 +67,7 @@
       "doctorsStat": "Verified Doctors",
       "emptyTitle": "No specialties available yet",
       "emptyDescription": "Check back soon as more doctors join the platform.",
-      "doctorCount": "{count} doctors",
+      "doctorCount": "{count, plural, one {# doctor} other {# doctors}}",
       "viewDoctors": "View Doctors",
       "categories": {
         "orthopedics": "Bone, joint and spine care for better movement.",
@@ -486,8 +486,8 @@
       "trust": {
         "secureTitle": "Secure & Private",
         "secureDescription": "Your data is encrypted and protected",
-        "trustedTitle": "Trusted by Doctors",
-        "trustedDescription": "Join thousands of healthcare professionals"
+        "trustedTitle": "Built for care",
+        "trustedDescription": "Doctors and patients in one calm workspace"
       }
     },
     "forbidden": {
@@ -3758,5 +3758,16 @@
   "tagInput": {
     "remove": "Remove {tag}",
     "hint": "Press Enter or comma to add"
+  },
+  "landingUi": {
+    "videoLabel": "Video consultation",
+    "live": "Live",
+    "cardTitle": "Your health, our priority",
+    "cardLineOne": "Safe consultations.",
+    "cardLineTwo": "Trusted doctors.",
+    "cardLineThree": "Better care.",
+    "cardCta": "Learn more",
+    "patientPanelTitle": "Care that fits your day",
+    "doctorPanelTitle": "Your practice, simplified"
   }
 }

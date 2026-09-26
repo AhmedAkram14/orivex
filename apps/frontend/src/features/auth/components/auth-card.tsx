@@ -6,6 +6,7 @@ import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Logo } from '@/shared/ui/logo';
+import { PulseLine } from '@/shared/ui/pulse-line';
 
 export interface AuthCardProps {
   title: string;
@@ -28,16 +29,17 @@ const PANEL_BULLET_KEYS = ['verified', 'secure', 'everywhere'] as const;
  */
 export async function AuthCard({ title, description, children, footer }: AuthCardProps) {
   const t = await getTranslations('auth.panel');
+  const tCommon = await getTranslations('common');
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex">
-        <div aria-hidden="true" className="absolute -end-20 -top-20 size-80 rounded-full bg-white/10" />
-        <div aria-hidden="true" className="absolute -start-24 -bottom-24 size-96 rounded-full bg-white/10" />
+        {/* The one PulseLine on the page. */}
+        <PulseLine variant="divider" animated className="absolute inset-x-12 top-1/2 text-pulse opacity-40" />
 
         <Link href="/" className="relative flex items-center gap-2">
           <Logo size="sm" />
-          <span className="text-lg font-semibold">Orivex</span>
+          <span className="font-display text-h3">{tCommon('appName')}</span>
         </Link>
 
         <div className="relative flex flex-col gap-8">
@@ -63,7 +65,7 @@ export async function AuthCard({ title, description, children, footer }: AuthCar
       <div className="flex flex-col items-center justify-center gap-6 p-4 sm:p-8">
         <Logo size="lg" className="lg:hidden" />
         <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col gap-6 p-8">
+          <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
             <div className="flex flex-col gap-1 text-center">
               <Heading level={2}>{title}</Heading>
               {description && <Text tone="secondary">{description}</Text>}

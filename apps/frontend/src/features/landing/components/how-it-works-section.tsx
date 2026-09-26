@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Clock,
   FileText,
-  HeartPulse,
   IdCard,
   Search,
   ShieldCheck,
@@ -18,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import { Heading, Text } from '@/design-system/typography';
 import { Badge } from '@/shared/ui/badge';
 import { Container } from '@/shared/ui/container';
+import { PulseLine } from '@/shared/ui/pulse-line';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
 
@@ -148,15 +148,12 @@ export function HowItWorksSection() {
           <Icon icon={ShieldCheck} size="xs" />
           {t('eyebrow')}
         </Badge>
-        <Heading level={1}>{t('title')}</Heading>
+        <Heading as="h2" level={2}>{t('title')}</Heading>
         <Text tone="secondary" className="max-w-xl">
           {t('description')}
         </Text>
-        <div className="flex items-center gap-3 pt-1" aria-hidden="true">
-          <span className="h-px w-10 bg-primary/40" />
-          <Icon icon={HeartPulse} size="sm" className="text-primary" />
-          <span className="h-px w-10 bg-primary/40" />
-        </div>
+        {/* The one PulseLine on the page: the divider under the section title. */}
+        <PulseLine variant="divider" animated className="max-w-xs pt-2" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

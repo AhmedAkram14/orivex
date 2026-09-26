@@ -32,7 +32,7 @@ export function CoreFeaturesSection() {
           <Icon icon={HeartPulse} size="xs" />
           {t('eyebrow')}
         </Badge>
-        <Heading level={1}>{t('title')}</Heading>
+        <Heading as="h2" level={2}>{t('title')}</Heading>
         <Text tone="secondary" className="max-w-xl">
           {t('description')}
         </Text>

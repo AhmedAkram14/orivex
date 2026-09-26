@@ -38,6 +38,7 @@ const PATIENT_ROUTES: FooterLink[] = [
 export function LandingFooter() {
   const t = useTranslations('landing.footer');
   const tNav = useTranslations('landing.nav');
+  const tCommon = useTranslations('common');
   const { status, user } = useAuth();
   const isAuthenticated = status === 'authenticated';
   const isPatient = user?.roles.includes('patient') ?? false;
@@ -64,11 +65,14 @@ export function LandingFooter() {
   ];
 
   return (
-    <Footer className="py-12">
+    <Footer className="pt-12 pb-24">
       <Container size="lg" className="flex flex-col gap-8">
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           <div className="col-span-2 flex flex-col gap-2 sm:col-span-1">
-            <Logo size="sm" />
+            <span className="flex items-center gap-2">
+              <Logo size="sm" />
+              <span className="font-display text-h3 text-text-primary">{tCommon('appName')}</span>
+            </span>
             <Text size="sm" tone="tertiary">
               {t('tagline')}
             </Text>

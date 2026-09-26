@@ -44,7 +44,7 @@ export function CtaSection() {
                 shouldn't out-scale them; the section's own weight comes
                 from being last and from the tinted banner around it, not
                 from oversized type. */}
-            <Heading level={1}>{t('title')}</Heading>
+            <Heading as="h2" level={2}>{t('title')}</Heading>
 
             <Text size="lg" tone="secondary" className="max-w-md">
               {t('description')}

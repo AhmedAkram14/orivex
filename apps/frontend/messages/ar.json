@@ -67,7 +67,7 @@
       "doctorsStat": "طبيب موثّق",
       "emptyTitle": "لا توجد تخصصات متاحة بعد",
       "emptyDescription": "تحقق لاحقًا مع انضمام المزيد من الأطباء إلى المنصة.",
-      "doctorCount": "{count} طبيب",
+      "doctorCount": "{count, plural, one {طبيب واحد} two {طبيبان} few {# أطباء} many {# طبيبًا} other {# طبيب}}",
       "viewDoctors": "عرض الأطباء",
       "categories": {
         "orthopedics": "رعاية العظام والمفاصل والعمود الفقري لحركة أفضل.",
@@ -486,8 +486,8 @@
       "trust": {
         "secureTitle": "آمن وخاص",
         "secureDescription": "بياناتك مشفرة ومحمية",
-        "trustedTitle": "موثوق به من الأطباء",
-        "trustedDescription": "انضم إلى آلاف المتخصصين في الرعاية الصحية"
+        "trustedTitle": "مصمم للرعاية",
+        "trustedDescription": "الأطباء والمرضى في مساحة عمل هادئة واحدة"
       }
     },
     "forbidden": {
@@ -3758,5 +3758,16 @@
   "tagInput": {
     "remove": "إزالة {tag}",
     "hint": "اضغط Enter أو الفاصلة للإضافة"
+  },
+  "landingUi": {
+    "videoLabel": "استشارة بالفيديو",
+    "live": "مباشر",
+    "cardTitle": "صحتك أولويتنا",
+    "cardLineOne": "استشارات آمنة.",
+    "cardLineTwo": "أطباء موثوقون.",
+    "cardLineThree": "رعاية أفضل.",
+    "cardCta": "اعرف المزيد",
+    "patientPanelTitle": "رعاية تناسب يومك",
+    "doctorPanelTitle": "عيادتك أبسط"
   }
 }

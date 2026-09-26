@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithProviders as render } from '@/shared/test/render-with-providers';
 import { describe, expect, it } from 'vitest';
 import { PatientQueueCard } from './patient-queue-card';
 
@@ -11,12 +12,13 @@ describe('PatientQueueCard', () => {
   });
 
   it('renders the estimated wait time only when provided', () => {
-    const { rerender } = render(
+    const { unmount } = render(
       <PatientQueueCard position={1} label="Patient #1" status="waiting" statusLabel="Waiting" waitTimeLabel="~10 min" />,
     );
     expect(screen.getByText('~10 min')).toBeInTheDocument();
 
-    rerender(<PatientQueueCard position={1} label="Patient #1" status="waiting" statusLabel="Waiting" />);
+    unmount();
+    render(<PatientQueueCard position={1} label="Patient #1" status="waiting" statusLabel="Waiting" />);
     expect(screen.queryByText('~10 min')).not.toBeInTheDocument();
   });
 });
