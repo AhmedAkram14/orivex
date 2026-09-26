@@ -767,13 +767,17 @@
       "nationality": "الجنسية",
       "nationalityPlaceholder": "اختر الجنسية",
       "address": "العنوان",
+      "phone": "رقم الهاتف",
+      "phonePlaceholder": "+20 100 000 0000",
       "saveAndContinue": "حفظ ومتابعة",
       "validation": {
         "dateOfBirthRequired": "تاريخ الميلاد مطلوب.",
         "genderRequired": "الجنس مطلوب.",
         "nationalityRequired": "الجنسية مطلوبة.",
         "addressRequired": "العنوان مطلوب.",
-        "addressTooLong": "يجب ألا يتجاوز العنوان {max} حرفًا."
+        "addressTooLong": "يجب ألا يتجاوز العنوان {max} حرفًا.",
+        "phoneRequired": "رقم الهاتف مطلوب.",
+        "phoneInvalid": "أدخل رقم هاتف صحيحًا."
       }
     }
   },
@@ -3771,5 +3775,31 @@
     "cardCta": "اعرف المزيد",
     "patientPanelTitle": "رعاية تناسب يومك",
     "doctorPanelTitle": "عيادتك أبسط"
+  },
+  "profileFlow": {
+    "intakeDescription": "ثلاث معلومات سريعة تكفي لتبدأ الحجز. يمكنك إضافة الباقي في أي وقت.",
+    "allergyTitle": "هل لديك أي حساسية؟",
+    "allergyDescription": "يطّلع طبيبك على هذا قبل زيارتك. أضف أي حساسية لديك، أو أخبرنا أنه لا توجد.",
+    "allergyLabel": "الحساسية",
+    "allergySave": "حفظ الحساسية",
+    "allergyNone": "لا توجد حساسية معروفة",
+    "allergyHave": "لدي حساسية",
+    "allergyNoneNote": "تم تسجيلها لهذا الحجز. سيؤكدها طبيبك خلال الزيارة.",
+    "allergyRequired": "أضف الحساسية لديك، أو اختر \"لا توجد حساسية معروفة\" للمتابعة.",
+    "allergySaveError": "تعذّر حفظ الحساسية. حاول مرة أخرى.",
+    "nudgeTitle": "أكمل ملفك الشخصي",
+    "nudgeProgress": "تم {done} من {total}",
+    "nudgeDescription": "اختياري، لكنه يساعد أطباءك على رعايتك.",
+    "nudgeCta": "متابعة",
+    "nudgeRing": "اكتمل الملف بنسبة {percent}٪",
+    "gaps": {
+      "nationality": "الجنسية",
+      "address": "العنوان",
+      "bloodType": "فصيلة الدم",
+      "allergies": "الحساسية",
+      "chronicDiseases": "الأمراض المزمنة",
+      "emergencyContact": "جهة اتصال للطوارئ",
+      "insurance": "التأمين"
+    }
   }
 }

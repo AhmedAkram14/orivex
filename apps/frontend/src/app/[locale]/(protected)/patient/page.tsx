@@ -6,6 +6,7 @@ import { ActivePrescriptionsWidget } from '@/features/patient/components/active-
 import { HealthSnapshotCard } from '@/features/patient/components/health-snapshot-card';
 import { NeedsAttentionCard } from '@/features/patient/components/needs-attention-card';
 import { NextAppointmentCard } from '@/features/patient/components/next-appointment-card';
+import { ProfileNudgeCard } from '@/features/patient/components/profile-nudge-card';
 import { PatientSummaryStrip } from '@/features/patient/components/patient-summary-strip';
 import { PatientQuickActions } from '@/features/patient/components/patient-quick-actions';
 import { RecentActivity } from '@/features/patient/components/recent-activity';
@@ -30,8 +31,8 @@ import { WidgetContainer } from '@/shared/ui/layout/widget-container';
  * real hook.
  *
  * Profile-completion gate: an incomplete `PatientProfile` is redirected to
- * `/patient/intake` (unchanged behaviour -- the code treats it as required;
- * see the redesign report's open product question).
+ * `/patient/intake` -- but only for the three things booking needs (date of
+ * birth, gender, phone); the rest is the optional ProfileNudgeCard.
  */
 export default function PatientDashboardPage() {
   const t = useTranslations('patient.dashboard');
@@ -59,6 +60,7 @@ export default function PatientDashboardPage() {
 
         <NeedsAttentionCard />
         <PatientSummaryStrip />
+        <ProfileNudgeCard />
         <HealthSnapshotCard />
 
         <UpcomingAppointmentsWidget />

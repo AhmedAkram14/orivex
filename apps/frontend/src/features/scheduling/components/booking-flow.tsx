@@ -17,6 +17,8 @@ import { useBookAppointment } from '@/features/patient/hooks/use-book-appointmen
 import type { AppointmentType, BookedAppointment } from '@/features/patient/api/types';
 import type { AvailabilityWindowData } from '@/features/scheduling/types';
 import { formatConsultationPrice } from '@/features/scheduling/utils/pricing';
+import { AllergyPrompt } from '@/features/patient/components/allergy-prompt';
+import { usePatientProfile } from '@/features/patient/hooks/use-patient-profile';
 import { DEFAULT_TIME_ZONE, getTimezoneOffsetLabel } from '@/features/scheduling/utils/timezone';
 import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { addDays } from '@/shared/lib/date/week';
@@ -67,6 +69,7 @@ function period(hour: number): 'morning' | 'afternoon' | 'evening' {
 export function BookingFlow({ doctorId }: BookingFlowProps) {
   const t = useTranslations('scheduling.booking');
   const tUi = useTranslations('bookingUi');
+  const tFlow = useTranslations('profileFlow');
   const format = useFormatter();
   const locale = useLocale();
   const pathname = usePathname();
@@ -74,6 +77,10 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const bookAppointment = useBookAppointment();
   const { data: doctor } = useDoctorById(doctorId);
   const { data: specialties } = useSpecialtiesList();
+  const { data: patientProfile } = usePatientProfile();
+  const [allergyNone, setAllergyNone] = useState(false);
+  // Ask about allergies right before a booking, until some are on record or the patient says none.
+  const needsAllergyAnswer = Boolean(patientProfile) && !patientProfile?.allergies && !allergyNone;
 
   const today = useMemo(() => new Date(), []);
   const rangeStart = useMemo(() => {
@@ -327,6 +334,12 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
             </p>
           )}
 
+          {patientProfile && !patientProfile.allergies && (
+            <AllergyPrompt noneChosen={allergyNone} onChooseNone={() => setAllergyNone(true)} />
+          )}
+
+          {needsAllergyAnswer && <p className="text-small text-text-tertiary">{tFlow('allergyRequired')}</p>}
+
           <div className="flex flex-wrap gap-2">
             {actionsDisabled ? (
               <Button
@@ -340,7 +353,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
               </Button>
             ) : (
               <>
-                <Button loading={bookAppointment.isPending} onClick={handleConfirm}>
+                <Button loading={bookAppointment.isPending} disabled={needsAllergyAnswer} onClick={handleConfirm}>
                   {t('confirm')}
                 </Button>
                 <Button variant="secondary" onClick={() => setStep('select')}>

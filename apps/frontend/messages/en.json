@@ -767,13 +767,17 @@
       "nationality": "Nationality",
       "nationalityPlaceholder": "Select a nationality",
       "address": "Address",
+      "phone": "Phone number",
+      "phonePlaceholder": "+20 100 000 0000",
       "saveAndContinue": "Save and continue",
       "validation": {
         "dateOfBirthRequired": "Date of birth is required.",
         "genderRequired": "Gender is required.",
         "nationalityRequired": "Nationality is required.",
         "addressRequired": "Address is required.",
-        "addressTooLong": "Address must be {max} characters or fewer."
+        "addressTooLong": "Address must be {max} characters or fewer.",
+        "phoneRequired": "Phone number is required.",
+        "phoneInvalid": "Enter a valid phone number."
       }
     }
   },
@@ -3771,5 +3775,31 @@
     "cardCta": "Learn more",
     "patientPanelTitle": "Care that fits your day",
     "doctorPanelTitle": "Your practice, simplified"
+  },
+  "profileFlow": {
+    "intakeDescription": "Three quick details are all we need to get you booking. You can add the rest any time.",
+    "allergyTitle": "Do you have any allergies?",
+    "allergyDescription": "Your doctor sees this before your visit. Add any allergies, or tell us you have none.",
+    "allergyLabel": "Allergies",
+    "allergySave": "Save allergies",
+    "allergyNone": "None known",
+    "allergyHave": "I have allergies",
+    "allergyNoneNote": "Noted for this booking. Your doctor will confirm it at your visit.",
+    "allergyRequired": "Add your allergies, or choose \"None known\", to continue.",
+    "allergySaveError": "Couldn't save your allergies. Please try again.",
+    "nudgeTitle": "Finish your profile",
+    "nudgeProgress": "{done} of {total} done",
+    "nudgeDescription": "Optional, but it helps your doctors care for you.",
+    "nudgeCta": "Continue",
+    "nudgeRing": "Profile {percent}% complete",
+    "gaps": {
+      "nationality": "Nationality",
+      "address": "Address",
+      "bloodType": "Blood type",
+      "allergies": "Allergies",
+      "chronicDiseases": "Chronic conditions",
+      "emergencyContact": "Emergency contact",
+      "insurance": "Insurance"
+    }
   }
 }

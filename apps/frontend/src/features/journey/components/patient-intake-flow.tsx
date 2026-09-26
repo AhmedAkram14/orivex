@@ -1,90 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { Heading } from '@/design-system/typography';
-import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
+import { EssentialInfoStep } from '@/features/identity/components/essential-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
-import { PatientProfileForm } from '@/features/patient/components/profile/patient-profile-form';
-import { usePatientProfile } from '@/features/patient/hooks/use-patient-profile';
 import { useRouter } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { Stepper } from '@/shared/ui/stepper';
-
-type IntakeStep = 'personal' | 'medical';
 
 /**
- * Product follow-up (2026-07-26): a Patient must complete Personal Info
- * (gender/nationality/address, shared step, §0a) and Medical Information
- * (blood type/allergies/chronic conditions, emergency contacts/insurance
- * stay optional) before the Patient Dashboard becomes reachable --
- * superseding the original proposal's "Medical Profile is optional, fill in
- * any time" decision (§3) per explicit product direction. Mirrors the
- * Doctor Onboarding wizard's own step-by-step shape (`onboarding-flow.tsx`)
- * for UI consistency, just two steps instead of four -- no documents/review
- * step here, since Patient identity verification is a separate, later gate
- * (§7a), not part of this intake.
+ * Patient intake (product decision, 2026-09): one short step -- date of birth,
+ * gender and phone, the only things booking truly needs -- before the
+ * dashboard opens. Everything else (nationality, address, blood type,
+ * allergies, chronic conditions, emergency contact, insurance) is an optional
+ * nudge on the Overview; allergies are asked right before a first booking.
+ * Supersedes the 2026-07-26 two-step Personal + Medical gate.
  */
 export function PatientIntakeFlow() {
   const t = useTranslations('journey.intake');
+  const tFlow = useTranslations('profileFlow');
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: account, isLoading: accountLoading } = useMyAccount();
-  const { data: profile, isLoading: profileLoading, isError } = usePatientProfile();
-  const [step, setStep] = useState<IntakeStep>('personal');
+  const { data: account, isLoading, isError } = useMyAccount();
 
-  // Resume at the medical step if Personal Info was already completed in a
-  // prior visit (the account's own gender/nationality/address are already
-  // on record) -- never force it again, matching the doctor wizard's own
-  // resume-at-the-right-step precedent.
-  useEffect(() => {
-    if (accountLoading || !account) return;
-    if (account.gender && account.nationalityId && account.address) {
-      setStep('medical');
-    }
-  }, [accountLoading, account]);
-
-  if (accountLoading || profileLoading) {
+  if (isLoading) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="mx-auto flex max-w-md flex-col gap-3 py-8">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
-  if (isError || !profile) {
+  if (isError || !account) {
     return <Alert variant="danger">{t('loadError')}</Alert>;
   }
 
-  async function handleFinished() {
+  async function handleSaved() {
     await queryClient.invalidateQueries({ queryKey: ['journey-status'] });
     router.push('/patient');
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 py-8">
+    <div className="mx-auto flex max-w-md flex-col gap-6 py-8">
       <div className="flex flex-col gap-2 text-center">
         <Heading as="h1" level={2}>{t('title')}</Heading>
-        <p className="text-text-secondary">{t('description')}</p>
+        <p className="text-text-secondary">{tFlow('intakeDescription')}</p>
       </div>
-
-      <Stepper
-        className="mx-auto w-full max-w-xs"
-        currentKey={step}
-        steps={[
-          { key: 'personal', label: t('steps.personal') },
-          { key: 'medical', label: t('steps.medical') },
-        ]}
-      />
-
-      {step === 'personal' && <PersonalInfoStep account={account} onSaved={() => setStep('medical')} />}
-
-      {step === 'medical' && (
-        <PatientProfileForm profile={profile} onSaved={handleFinished} onCancel={() => setStep('personal')} />
-      )}
+      <EssentialInfoStep account={account} onSaved={handleSaved} />
     </div>
   );
 }

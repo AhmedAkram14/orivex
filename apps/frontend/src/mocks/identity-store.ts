@@ -181,6 +181,7 @@ export function updateMyPersonalProfile(request: UpdatePersonalProfileRequest): 
     gender: request.gender ?? account.gender,
     nationalityId: request.nationalityId ?? account.nationalityId,
     address: request.address ?? account.address,
+    phoneNumber: request.phoneNumber ?? account.phoneNumber,
     updatedAt: new Date().toISOString(),
   };
   if (accountsById[account.id]) {

@@ -20,9 +20,10 @@ const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
  */
 export function createPatientProfileSchema(t: Translate) {
   return z.object({
-    bloodType: z.enum(BLOOD_TYPES, { required_error: t('bloodTypeRequired') }),
-    allergies: z.string().min(1, t('allergiesRequired')).max(2000, t('allergiesTooLong', { max: 2000 })),
-    chronicDiseases: z.string().min(1, t('chronicDiseasesRequired')).max(2000, t('chronicDiseasesTooLong', { max: 2000 })),
+    // Optional since 2026-09: only date of birth, gender and phone gate the dashboard (Personal Info step); allergies are asked right before a first booking.
+    bloodType: z.enum(BLOOD_TYPES).optional(),
+    allergies: z.string().max(2000, t('allergiesTooLong', { max: 2000 })).optional(),
+    chronicDiseases: z.string().max(2000, t('chronicDiseasesTooLong', { max: 2000 })).optional(),
     insuranceProviderId: z.string().optional(),
     // I6 -- Health Passport (docs/01.1-prd-update.md §17-30). Deliberately
     // optional, unlike bloodType/allergies/chronicDiseases above -- these

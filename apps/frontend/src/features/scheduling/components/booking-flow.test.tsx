@@ -54,6 +54,16 @@ function makeAllDaysFree(): void {
   );
 }
 
+/** Forces every day to Paid (500 EGP): the seeded weekend defaults to Free, so without this the Paid path would depend on which weekday the suite runs. */
+function makeAllDaysPaid(): void {
+  updateDoctorAvailability(
+    getDoctorAvailability().map((day) => ({
+      ...day,
+      pricing: { pricingType: 'paid', feeAmount: 500, feeCurrency: 'EGP' },
+    })),
+  );
+}
+
 describe('BookingFlow', () => {
   // Onboarding Redesign integration-gap closure (2026-07-25): every slot
   // rendered here comes from the real, MSW-backed
@@ -100,6 +110,7 @@ describe('BookingFlow', () => {
   // without needing a full Stripe mock just to prove no premature redirect
   // happened).
   it("shows the inline payment step for a Paid slot instead of redirecting immediately", async () => {
+    makeAllDaysPaid();
     addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
     setPatientVerified(true);
     renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);

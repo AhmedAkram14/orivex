@@ -29,6 +29,7 @@ Blank Reports chart; session-bootstrap flake on 5xx/408/429; Browse Doctors card
 - `vitest`: 847/850. Failures: `booking-flow` "inline payment step for a Paid slot" (**pre-existing**, fails on untouched baseline); two others (`verification-case-detail`, `book/page`) time out only under full-suite load and pass in isolation.
 - Overflow: no horizontal scroll at 390/768/1150/1440, EN + AR, for landing, login, register, patient and doctor routes (390/768 sweep of patient/doctor main routes).
 - Screenshots (light/dark, EN/AR, 390/768/1440): [after/](after/). Before-shots kept in the scratchpad baseline only, not committed.
+- The Paid-slot booking test is fixed: it depended on the weekday (the seeded doctor's weekend is Free); it now sets Paid pricing explicitly.
 - **Not run:** Lighthouse a11y scores (≥95 target) and a real-backend hard-reload of every authenticated route — mock mode only. Contrast was checked via the token script, not per-page axe.
 
 ## Deferred
@@ -52,4 +53,4 @@ Blank Reports chart; session-bootstrap flake on 5xx/408/429; Browse Doctors card
 2. **Fee display:** a free slot shows "Free · normally {fee}" on the booking card, reading the doctor's profile fee. The review step already showed the standard fee. Still to confirm: what makes a slot "free" — today it is a per-slot pricing type the doctor sets.
 3. **Vital ranges:** status chips and shaded bands are off. `VITAL_RANGES` in `shared/lib/health/vital-reference-ranges.ts` holds the version, source guideline and the on/off switch. The glucose fasting/after-meal/random field is not built (data-model change).
 4. **Help card:** opens the landing FAQ (`/#faq`, ends with a support contact) for every role.
-5. **Profile-completion gate:** unchanged (needs intake and validation changes plus the allergy-banner fix).
+5. **Profile-completion gate:** now only date of birth, gender and phone (name is set at registration) gate the dashboard, via a one-step intake. Nationality, address, blood type, allergies, chronic conditions, emergency contact and insurance are optional and nudged by a completion ring on the Overview. Allergies are asked in the booking review step until some are on record. **Open:** "None known" is not stored, because the backend only models a doctor-confirmed "no known allergies" (and rejects it while `allergies` has text); persisting a patient-reported "none" needs a new backend field and OpenAPI change. Until then a patient who says "None known" is asked again at their next booking.

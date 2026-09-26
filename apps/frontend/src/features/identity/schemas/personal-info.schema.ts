@@ -12,4 +12,19 @@ export function createPersonalInfoSchema(t: Translate) {
   });
 }
 
+/** The patient intake's essentials only (product decision, 2026-09): what booking truly needs. Nationality and address become optional nudges on the profile page. */
+export function createEssentialInfoSchema(t: Translate) {
+  return z.object({
+    dateOfBirth: z.string().min(1, t('dateOfBirthRequired')),
+    gender: z.enum(['male', 'female', 'other'], { required_error: t('genderRequired') }),
+    phoneNumber: z
+      .string()
+      .trim()
+      .min(1, t('phoneRequired'))
+      .regex(/^\+?[0-9\s-]{7,20}$/, t('phoneInvalid')),
+  });
+}
+
+export type EssentialInfoFormValues = z.infer<ReturnType<typeof createEssentialInfoSchema>>;
+
 export type PersonalInfoFormValues = z.infer<ReturnType<typeof createPersonalInfoSchema>>;
