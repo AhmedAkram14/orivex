@@ -23,7 +23,7 @@ export const TabsTrigger = forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      'rounded-sm px-3 py-1.5 text-sm font-medium text-text-secondary transition-colors duration-(--duration-fast)',
+      'min-h-9 rounded-sm px-3 py-1.5 text-small font-medium text-text-secondary transition-[background-color,color,box-shadow] duration-(--duration-base) ease-standard',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
       'data-[state=active]:bg-surface data-[state=active]:text-text-primary data-[state=active]:shadow-sm',
       'disabled:pointer-events-none disabled:opacity-(--opacity-disabled)',

@@ -32,7 +32,7 @@ export function CallRoom({ consultationSessionId, displayName, onLeave }: CallRo
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[480px] items-center justify-center rounded-xl border border-border-default bg-secondary-subtle">
+      <div className="flex min-h-[480px] items-center justify-center rounded-(--r-card) border border-border-default bg-surface-2">
         <p className="text-sm text-text-secondary">{t('connecting')}</p>
       </div>
     );

@@ -28,7 +28,7 @@ export function NotificationBell() {
         className="relative rounded-md p-2 text-text-secondary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
         aria-label={unreadCount > 0 ? t('bellLabelWithCount', { count: unreadCount }) : t('bellLabel')}
       >
-        <Icon icon={Bell} size="md" />
+        <Icon key={unreadCount} icon={Bell} size="md" className={unreadCount > 0 ? 'origin-top animate-bell-tilt' : undefined} />
         {unreadCount > 0 && (
           <Badge variant="danger" dir="ltr" className="absolute -end-1 -top-1 min-w-5 justify-center px-1 py-0">
             {unreadCount > 9 ? '9+' : unreadCount}

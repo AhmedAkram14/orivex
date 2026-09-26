@@ -31,7 +31,7 @@ export function RecentActivity() {
     <WidgetContainer
       title={<span className="text-lg font-semibold">{t('title')}</span>}
       titleAs="h2"
-      className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+      className="rounded-3xl border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">
           <Link href="/notifications">{t('viewAll')}</Link>

@@ -133,7 +133,7 @@ export function HeroSection() {
           )}
         </div>
 
-        <div className="relative flex items-center justify-center pb-10">
+        <div className="relative flex overflow-x-clip items-center justify-center pb-10">
           {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. Less blur/spread than before, closer to the reference's tighter glow. */}
           <div
             className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"

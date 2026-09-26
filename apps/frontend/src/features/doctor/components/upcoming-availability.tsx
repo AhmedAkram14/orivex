@@ -32,7 +32,7 @@ export function UpcomingAvailability() {
   // list itself (not the whole card) scrolling internally -- see
   // `TodaysProgress`'s own comment for why the row no longer stretches to
   // whichever sibling widget is naturally tallest.
-  const widgetClassName = 'h-[380px] rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]';
+  const widgetClassName = 'h-[380px] rounded-(--r-card) border-border-default shadow-sm';
   const contentClassName = 'overflow-y-auto';
   const widgetTitle = <span className="text-xl font-semibold">{t('title')}</span>;
 

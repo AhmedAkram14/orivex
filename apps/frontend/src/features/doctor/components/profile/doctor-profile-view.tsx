@@ -54,7 +54,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
 
-const CARD_CLASS = 'rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]';
+const CARD_CLASS = 'rounded-3xl border-border-default shadow-sm';
 
 function initialsFor(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);

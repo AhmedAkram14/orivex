@@ -44,7 +44,7 @@ export function RecentActivity() {
       // Fixed height shared with `TodaysProgress`/`UpcomingAvailability`,
       // with the list scrolling internally -- see `TodaysProgress`'s own
       // comment for why this row no longer stretches to the tallest sibling.
-      className="h-[380px] rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+      className="h-[380px] rounded-(--r-card) border-border-default shadow-sm"
       contentClassName="overflow-y-auto"
     >
       {isError ? (

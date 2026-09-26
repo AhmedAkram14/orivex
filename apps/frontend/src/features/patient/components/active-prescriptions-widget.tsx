@@ -33,7 +33,7 @@ export function ActivePrescriptionsWidget() {
     <WidgetContainer
       title={<span className="text-lg font-semibold">{t('activePrescriptionsTitle')}</span>}
       titleAs="h2"
-      className="rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]"
+      className="rounded-3xl border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">
           <Link href="/patient/prescriptions">{t('viewPrescriptionsAction')}</Link>

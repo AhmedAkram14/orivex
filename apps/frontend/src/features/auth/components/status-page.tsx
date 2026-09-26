@@ -29,24 +29,24 @@ export function StatusPage({ icon, title, description, action, footer }: StatusP
   return (
     <div className="relative isolate flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden p-8 text-center">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-32 -right-32 size-96 rounded-full bg-primary-subtle opacity-60 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 size-96 rounded-full bg-primary-subtle opacity-60 blur-3xl" />
+        <div className="absolute -top-32 -end-32 size-96 rounded-full bg-primary-subtle opacity-60 blur-3xl" />
+        <div className="absolute -bottom-32 -start-32 size-96 rounded-full bg-primary-subtle opacity-60 blur-3xl" />
         <div
-          className="absolute top-10 left-10 size-24 opacity-40"
+          className="absolute top-10 start-10 size-24 opacity-40"
           style={{
             backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)',
             backgroundSize: '12px 12px',
           }}
         />
         <div
-          className="absolute right-10 bottom-10 size-24 opacity-40"
+          className="absolute end-10 bottom-10 size-24 opacity-40"
           style={{
             backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)',
             backgroundSize: '12px 12px',
           }}
         />
-        <Icon icon={HeartPulse} className="absolute top-1/3 left-8 size-20 text-primary opacity-10 md:left-16" />
-        <Icon icon={Plus} className="absolute top-1/2 right-8 size-16 text-primary opacity-10 md:right-16" />
+        <Icon icon={HeartPulse} className="absolute top-1/3 start-8 size-20 text-primary opacity-10 md:start-16" />
+        <Icon icon={Plus} className="absolute top-1/2 end-8 size-16 text-primary opacity-10 md:end-16" />
       </div>
       <div className="flex items-center gap-2">
         <Logo size="md" />

@@ -54,7 +54,7 @@ export function FaqSection() {
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute -end-4 top-0 hidden size-24 opacity-40 sm:block"
+        className="pointer-events-none absolute end-0 top-0 hidden size-24 opacity-40 sm:block"
         style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '12px 12px' }}
         aria-hidden="true"
       />

@@ -25,7 +25,7 @@ export function TodaysProgress() {
   // widget's own natural content size rather than stretching to match
   // whichever sibling has the most list rows -- those two scroll their own
   // content internally instead.
-  const widgetClassName = 'h-[380px] rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]';
+  const widgetClassName = 'h-[380px] rounded-(--r-card) border-border-default shadow-sm';
   const contentClassName = 'flex flex-col items-center justify-center overflow-y-auto';
 
   if (isError) {

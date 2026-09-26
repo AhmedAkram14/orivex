@@ -21,7 +21,7 @@ export interface ConsultationContainerProps {
  * Consultation data or medical forms.
  */
 export function ConsultationContainer({ leftNav, children, rightPanel, className }: ConsultationContainerProps) {
-  const cardClass = 'rounded-3xl border-border-default bg-surface shadow-[0_10px_30px_rgba(15,23,42,0.06)]';
+  const cardClass = 'rounded-3xl border-border-default bg-surface shadow-sm';
 
   return (
     <div className={cn('grid grid-cols-1 gap-6 lg:grid-cols-[240px_1fr] xl:grid-cols-[240px_1fr_300px]', className)}>

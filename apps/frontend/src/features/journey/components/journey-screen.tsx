@@ -141,7 +141,7 @@ export function JourneyScreen() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card
             className={cn(
-              'flex flex-col overflow-hidden rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]',
+              'flex flex-col overflow-hidden rounded-3xl border-border-default shadow-sm',
               preselected === 'patient' && 'ring-2 ring-primary',
             )}
           >
@@ -185,7 +185,7 @@ export function JourneyScreen() {
 
           <Card
             className={cn(
-              'flex flex-col overflow-hidden rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)]',
+              'flex flex-col overflow-hidden rounded-3xl border-border-default shadow-sm',
               preselected === 'doctor' && 'ring-2 ring-success',
             )}
           >

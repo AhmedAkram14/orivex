@@ -158,7 +158,7 @@ export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId,
         {isLoading ? (
           <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
             <Skeleton className="h-12 w-2/3" />
-            <Skeleton className="ml-auto h-12 w-2/3" />
+            <Skeleton className="ms-auto h-12 w-2/3" />
           </div>
         ) : messages && messages.length > 0 ? (
           <div className="flex flex-col gap-3">
