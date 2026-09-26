@@ -10,3 +10,14 @@ describe('cn', () => {
     expect(cn('p-2', 'p-4')).toBe('p-4');
   });
 });
+
+describe('cn with the design-system type scale', () => {
+  it('keeps a scale size next to a text colour instead of treating it as a conflicting colour', () => {
+    expect(cn('font-display text-h1', 'text-text-primary')).toBe('font-display text-h1 text-text-primary');
+  });
+
+  it('still lets a later size override an earlier one', () => {
+    expect(cn('text-h1', 'text-small')).toBe('text-small');
+    expect(cn('text-caption', 'text-sm')).toBe('text-sm');
+  });
+});

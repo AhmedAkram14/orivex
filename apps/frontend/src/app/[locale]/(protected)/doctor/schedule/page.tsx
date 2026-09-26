@@ -46,6 +46,7 @@ import { Card, CardContent } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Sheet } from '@/shared/ui/side-panel';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { EmptyCalendar } from '@/shared/ui/schedule/empty-calendar';
 import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
@@ -651,20 +652,20 @@ export default function DoctorSchedulePage() {
                   <Skeleton className="h-14 w-full" />
                 ) : nextAvailableSlot ? (
                   <div className="flex items-center gap-4">
-                    <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary">
+                    <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-pulse text-pulse-foreground">
                       <Icon icon={CalendarClock} size="lg" />
                     </span>
                     <div className="flex min-w-0 flex-col">
                       <span className="text-sm text-text-secondary">
                         {format.dateTime(new Date(nextAvailableSlot.startTime), { weekday: 'long', month: 'short', day: 'numeric' })}
                       </span>
-                      <span className="text-3xl font-semibold text-primary">
+                      <span className="font-display text-metric text-text-primary tabular-nums">
                         {format.dateTime(new Date(nextAvailableSlot.startTime), { hour: 'numeric', minute: 'numeric' })}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-text-tertiary">{t('noUpcomingSlots')}</p>
+                  <EmptyState size="sm" illustration="calendar-clear" title={t('noUpcomingSlots')} />
                 )}
                 <Button className="w-full" onClick={() => setScheduleView('month')}>
                   {t('viewFullCalendar')}

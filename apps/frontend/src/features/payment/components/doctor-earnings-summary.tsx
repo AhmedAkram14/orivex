@@ -3,6 +3,7 @@
 import { ArrowRight, Banknote, PiggyBank, Wallet } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { useDoctorEarningsSummary } from '@/features/payment/hooks/use-doctor-earnings-summary';
@@ -13,9 +14,16 @@ import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { StatusBadge } from '@/shared/ui/status-badge';
-import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
+import { ChartSkeleton } from '@/shared/ui/charts/chart-skeleton';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
+
+// Recharts needs a real DOM, so the chart loads client-side only (same as Reports).
+const BarChart = dynamic(() => import('@/shared/ui/charts/bar-chart').then((mod) => mod.BarChart), {
+  ssr: false,
+  loading: () => <ChartSkeleton height={220} />,
+});
 import type { PaymentStatus } from '@/features/payment/api/types';
 
 
@@ -110,30 +118,47 @@ export function DoctorEarningsSummary() {
         <Icon icon={ArrowRight} size="sm" flipRtl />
       </Link>
 
-      {/*
-       * Commission rate is a fixed platform constant, not a per-doctor
-       * metric -- it doesn't belong in a KPI row next to real money figures,
-       * especially since the table's own Commission column already shows it
-       * in currency terms. Moved to a footnote under the table instead.
-       */}
-      <MetricGrid columns={3}>
-        {/*
-         * Phase 9 [VERIFY]: the audit found these easy to misread as
-         * scoped to the date-range picker below (they aren't -- see the
-         * `hasRange` branch in GetDoctorEarningsSummaryUseCase, which
-         * always sums the doctor's full, unfiltered ledger for these three
-         * fields regardless of dateFrom/dateTo). `helperText` now says so
-         * explicitly on every tile instead of relying on the page layout
-         * alone to imply it.
-         */}
+      {/* Net earnings lead (hero); the monthly net chart sits beside it; every disclaimer lives in ONE note under the chart. Lifetime tiles are NOT scoped to the date range below, and each says so. */}
+      <div className="grid gap-(--card-gap) lg:grid-cols-3">
         <MetricStat
+          variant="hero"
           icon={Wallet}
           label={t('stats.lifetimeNet')}
           value={data ? formatMoney(data.lifetimeNetAmount) : '—'}
           helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
+        <div className="flex min-w-0 flex-col gap-3 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs lg:col-span-2">
+          <h2 className="text-h3 text-text-primary">{t('cyclesTitle')}</h2>
+          {isLoading ? (
+            <ChartSkeleton height={220} />
+          ) : !data || data.cycles.length === 0 ? (
+            <EmptyState size="sm" illustration="records-start" title={t('cyclesEmptyTitle')} description={t('cyclesEmptyDescription')} />
+          ) : (
+            <BarChart
+              height={220}
+              xKey="month"
+              series={[{ key: 'net', label: t('table.net') }]}
+              data={[...data.cycles]
+                .sort((left, right) => left.cycleLabel.localeCompare(right.cycleLabel))
+                .map((cycle) => ({ month: formatCycleLabel(cycle.cycleLabel), net: cycle.netAmount }))}
+            />
+          )}
+          <Alert variant="info" className="text-small">
+            <span className="block">{t('payoutHonesty')}</span>
+            {data && (
+              <span className="block">
+                {t('commissionFootnote', { rate: Math.round(data.commissionRate * 100) })} {t('taxFootnote')}
+              </span>
+            )}
+            <span className="block">{t('recognitionBasis')}</span>
+          </Alert>
+        </div>
+      </div>
+
+      <MetricStrip>
         <MetricStat
+          variant="inline"
           icon={Banknote}
           label={t('stats.lifetimeGross')}
           value={data ? formatMoney(data.lifetimeGrossAmount) : '—'}
@@ -141,22 +166,14 @@ export function DoctorEarningsSummary() {
           loading={isLoading}
         />
         <MetricStat
+          variant="inline"
           icon={PiggyBank}
           label={t('stats.transactionCount')}
           value={String(data?.lifetimeTransactionCount ?? 0)}
           helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
-      </MetricGrid>
-
-      {/*
-       * Payout honesty (Doctor Earnings page rebuild, plan decision 5): no
-       * payout/invoice infrastructure exists anywhere in this codebase, so
-       * this deliberately states only what these figures ARE (recorded
-       * earnings) and are NOT (confirmation of a transfer) -- no invented
-       * payout-schedule language.
-       */}
-      <p className="text-xs text-text-tertiary">{t('payoutHonesty')}</p>
+      </MetricStrip>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <EarningsDateRangePicker dateFrom={dateFrom} dateTo={dateTo} onChange={handleDateRangeChange} />
@@ -172,9 +189,7 @@ export function DoctorEarningsSummary() {
         </div>
         {isLoading ? (
           <Skeleton className="h-32 w-full" />
-        ) : !data || data.cycles.length === 0 ? (
-          <EmptyState illustration="records-start" title={t('cyclesEmptyTitle')} description={t('cyclesEmptyDescription')} />
-        ) : (
+        ) : !data || data.cycles.length === 0 ? null : (
           <div className="overflow-x-auto rounded-2xl border border-border-default">
             <table className="w-full text-sm">
               <thead>
@@ -199,11 +214,6 @@ export function DoctorEarningsSummary() {
               </tbody>
             </table>
           </div>
-        )}
-        {data && (
-          <p className="text-xs text-text-tertiary">
-            {t('commissionFootnote', { rate: Math.round(data.commissionRate * 100) })} {t('taxFootnote')}
-          </p>
         )}
       </div>
 
@@ -234,7 +244,6 @@ export function DoctorEarningsSummary() {
            * are disclosed here honestly instead of implying "recorded when
            * the consultation happened."
            */}
-          <p className="text-xs text-text-tertiary">{t('recognitionBasis')}</p>
         </div>
         {transactionsError ? (
           <Alert variant="danger">{t('transactionsLoadError')}</Alert>

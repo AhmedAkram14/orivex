@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Eye, Search, TrendingUp, UserCheck, Users, X } from 'lucide-react';
+import { Calendar, ChevronRight, Search, TrendingUp, UserCheck, Users, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
@@ -8,17 +8,17 @@ import type { DoctorPatientListItem } from '@/features/doctor/api/types';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
-import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
+import { ErrorState } from '@/shared/ui/error-state';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Input } from '@/shared/ui/input';
-import { MetricStat } from '@/shared/ui/metric-stat';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
+import { SkeletonRow } from '@/shared/ui/skeletons';
 import { Pagination } from '@/shared/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
-import { Skeleton } from '@/shared/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 
 type PatientType = 'all' | 'new' | 'returning';
@@ -59,19 +59,22 @@ function calculateAge(dateOfBirth: string, now: Date): number {
   return age;
 }
 
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
-
-const patientStatusBadgeVariant: Record<Exclude<PatientStatus, 'all'>, 'success' | 'primary' | 'neutral' | 'warning'> = {
-  active: 'success',
-  follow_up: 'primary',
-  completed: 'neutral',
-  inactive: 'warning',
+const patientStatusDot: Record<Exclude<PatientStatus, 'all'>, string> = {
+  active: 'bg-success',
+  follow_up: 'bg-warning',
+  completed: 'bg-info',
+  inactive: 'bg-text-tertiary',
 };
+
+/** A patient's relationship status -- deliberately a different visual from an appointment's StatusBadge (outlined with a dot, not a tinted fill), so the two vocabularies are never confused. */
+function PatientStatusChip({ status, label }: { status: Exclude<PatientStatus, 'all'>; label: string }) {
+  return (
+    <span className="inline-flex h-5.5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border-default bg-surface px-2.5 text-caption font-semibold tracking-normal text-text-secondary">
+      <span aria-hidden="true" className={`size-1.5 rounded-full ${patientStatusDot[status]}`} />
+      {label}
+    </span>
+  );
+}
 
 /**
  * The Doctor Workspace's "Patients" page — a real, distinct-patient list
@@ -89,7 +92,7 @@ export function PatientsList() {
   const tPatientStatus = useTranslations('doctor.patients.patientStatus');
   const tGender = useTranslations('doctor.patients.gender');
   const format = useFormatter();
-  const { data: patients, isLoading, isError } = useDoctorPatients();
+  const { data: patients, isLoading, isError, refetch } = useDoctorPatients();
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<PatientType>('all');
@@ -149,15 +152,16 @@ export function PatientsList() {
   const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   if (isError) {
-    return <Alert variant="danger">{t('loadError')}</Alert>;
+    return <ErrorState description={t('loadError')} onRetry={() => void refetch()} />;
   }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }
@@ -174,32 +178,12 @@ export function PatientsList() {
           Overview/Profile/Reports (Phase 1 consolidation via
           `getRatingDisplay`/`useDoctorReviews`). Removing it here loses no
           real data, just a vanity metric out of place. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <MetricStat
-          icon={Users}
-          label={t('kpis.totalPatients')}
-          value={String(kpis.total)}
-          helperText={t('kpis.totalPatientsHelper')}
-        />
-        <MetricStat
-          icon={UserCheck}
-          label={t('kpis.activePatients')}
-          value={String(kpis.active)}
-          helperText={t('kpis.activePatientsHelper')}
-        />
-        <MetricStat
-          icon={Calendar}
-          label={t('kpis.thisMonth')}
-          value={String(kpis.thisMonth)}
-          helperText={t('kpis.thisMonthHelper')}
-        />
-        <MetricStat
-          icon={TrendingUp}
-          label={t('kpis.thisWeek')}
-          value={String(kpis.thisWeek)}
-          helperText={t('kpis.thisWeekHelper')}
-        />
-      </div>
+      <MetricStrip>
+        <MetricStat variant="inline" icon={Users} label={t('kpis.totalPatients')} value={String(kpis.total)} helperText={t('kpis.totalPatientsHelper')} />
+        <MetricStat variant="inline" icon={UserCheck} label={t('kpis.activePatients')} value={String(kpis.active)} helperText={t('kpis.activePatientsHelper')} />
+        <MetricStat variant="inline" icon={Calendar} label={t('kpis.thisMonth')} value={String(kpis.thisMonth)} helperText={t('kpis.thisMonthHelper')} />
+        <MetricStat variant="inline" icon={TrendingUp} label={t('kpis.thisWeek')} value={String(kpis.thisWeek)} helperText={t('kpis.thisWeekHelper')} />
+      </MetricStrip>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-64 flex-1">
@@ -283,16 +267,7 @@ export function PatientsList() {
         </Card>
       ) : (
         <>
-          {/* Responsive pass (Phase 7): below `md` (768px) the 7-column table
-              was ~634px of content in a ~346px viewport, forcing a horizontal
-              scroll that pushed the "View" action off-screen entirely. No
-              `ResponsiveTable` primitive exists anywhere in the codebase
-              (checked fresh -- still just `shared/ui/table.tsx`, a plain
-              scrollable `<table>`), so below `md` this renders a stacked
-              card list instead, kept local to this file rather than built as
-              a new generic primitive for a single caller. Both branches
-              render from the same `pageItems`/derived `status` -- never two
-              different data sources. */}
+          {/* Compact rows (44px) from md up; stacked tappable cards below. Both branches read the same `pageItems`/derived status. */}
           <Card className="hidden overflow-hidden md:block" data-testid="patients-table">
             <Table>
               <TableHeader>
@@ -303,91 +278,69 @@ export function PatientsList() {
                   <TableHead>{t('columns.lastVisit')}</TableHead>
                   <TableHead>{t('columns.nextAppointment')}</TableHead>
                   <TableHead>{t('columns.patientStatus')}</TableHead>
-                  <TableHead>{t('columns.actions')}</TableHead>
+                  <TableHead>
+                    <span className="sr-only">{t('columns.actions')}</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pageItems.map((patient) => {
                   const status = derivePatientStatus(patient, now);
                   return (
-                    // `relative` + the name link's `after:absolute after:inset-0`
-                    // below is the "stretched link" pattern (shared/ui/table.tsx
-                    // has no built-in clickable-row convention, confirmed by
-                    // search -- this is the first one, kept local rather than
-                    // adding a new table primitive for a single caller): the
-                    // whole row becomes a real, keyboard-focusable `<a>` target
-                    // without an `onClick` on a non-interactive `<tr>` (which
-                    // would be inaccessible by keyboard). The eye-icon link in
-                    // the Actions cell stays a second, explicit action and is
-                    // raised above the overlay with `relative z-10` so it's
-                    // independently clickable/focusable.
+                    // Stretched link: the whole row opens the chart via the name link's
+                    // `after:absolute after:inset-0`, keyboard-focusable without an onClick
+                    // on a <tr>. The labeled "Open chart" button is raised above the overlay.
                     <TableRow key={patient.patientProfileId} className="relative">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <Avatar size="sm">
-                            {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.patientName} />}
-                            <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                          <PersonAvatar name={patient.patientName} src={patient.avatarUrl} size="sm" />
+                          <div className="flex min-w-0 flex-col">
+                            <span className="flex items-center gap-2 text-small font-medium text-text-primary">
                               <Link
                                 href={`/doctor/patients/${patient.patientProfileId}`}
-                                className="rounded-sm after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                className="rounded-sm after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                               >
-                                {patient.patientName}
+                                <bdi>{patient.patientName}</bdi>
                               </Link>
-                              {patient.visitCount > 1 && (
-                                <Badge variant="primary" className="text-[10px]">
-                                  {t('returning')}
-                                </Badge>
+                              {patient.visitCount > 1 && <Badge variant="neutral">{t('returning')}</Badge>}
+                            </span>
+                            <span className="truncate text-caption text-text-tertiary">
+                              <bdi>{patient.email}</bdi>
+                              {patient.phoneNumber && (
+                                <>
+                                  {' · '}
+                                  <bdi dir="ltr">{patient.phoneNumber}</bdi>
+                                </>
                               )}
                             </span>
-                            <span className="text-xs text-text-tertiary">{patient.email}</span>
-                            {patient.phoneNumber && <span className="text-xs text-text-tertiary">{patient.phoneNumber}</span>}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-text-secondary">
+                      <TableCell className="text-small text-text-secondary">
                         {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
                         {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
                       </TableCell>
-                      <TableCell className="text-sm text-text-secondary">{patient.visitCount}</TableCell>
-                      <TableCell className="text-sm text-text-secondary">
-                        {/* Completed-only now (see DoctorPatientListItem's own
-                            comment) -- when present this can only ever read
-                            "Completed", so the old per-row status badge here
-                            (Waiting doctor approval/Cancelled/Confirmed) was
-                            dropped: it was never actually describing a visit,
-                            just whatever appointment happened to be most
-                            recently scheduled. */}
+                      <TableCell className="text-small text-text-secondary">{patient.visitCount}</TableCell>
+                      <TableCell className="text-small text-text-secondary">
                         {patient.lastVisitAt
                           ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
                           : t('columns.lastVisitNone')}
                       </TableCell>
-                      <TableCell className="text-sm text-text-secondary">
+                      <TableCell className="text-small text-text-secondary">
                         {patient.nextAppointmentAt
                           ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
                           : t('noUpcoming')}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
+                        <PatientStatusChip status={status} label={tPatientStatus(status)} />
                       </TableCell>
-                      <TableCell>
-                        {/* The three placeholder actions (notes/message/more)
-                            are gone -- no clinical-notes editor or messaging
-                            feature exists yet, and a permanently-disabled
-                            "Coming soon" icon (no accessible name, unreachable
-                            by keyboard) was worse than not offering it at all.
-                            `aria-label` on the anchor itself, not just its
-                            inner icon/title, so the link has a real
-                            accessible name of its own. */}
-                        <Link
-                          href={`/doctor/patients/${patient.patientProfileId}`}
-                          aria-label={t('actions.view')}
-                          className="relative z-10 flex size-7 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary"
-                        >
-                          <Icon icon={Eye} size="sm" />
-                        </Link>
+                      <TableCell className="text-end">
+                        <Button asChild variant="ghost" size="sm" className="relative z-10">
+                          <Link href={`/doctor/patients/${patient.patientProfileId}`}>
+                            {t('actions.openChart')}
+                            <Icon icon={ChevronRight} size="sm" flipRtl />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -395,7 +348,7 @@ export function PatientsList() {
               </TableBody>
             </Table>
             <div className="flex flex-col gap-3 border-t border-border-default p-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-text-tertiary">
+              <p className="text-small text-text-tertiary">
                 {t('showingRange', {
                   from: (currentPage - 1) * PAGE_SIZE + 1,
                   to: Math.min(currentPage * PAGE_SIZE, filtered.length),
@@ -406,45 +359,32 @@ export function PatientsList() {
             </div>
           </Card>
 
-          {/* Card-list alternative, `md:hidden`. Same data as the table above
-              (name/link, status, last visit, next appointment), no side-scroll
-              -- the whole card is the "stretched link" (same pattern as the
-              table's name cell) so "View" never needs its own tap target to be
-              reachable, and the trailing chevron is a visible affordance that
-              the card is tappable. */}
           <div className="flex flex-col gap-3 md:hidden" data-testid="patients-card-list">
             {pageItems.map((patient) => {
               const status = derivePatientStatus(patient, now);
               return (
                 <Card key={patient.patientProfileId} className="relative p-4">
                   <div className="flex items-start gap-3">
-                    <Avatar size="sm">
-                      {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.patientName} />}
-                      <AvatarFallback>{initialsFor(patient.patientName)}</AvatarFallback>
-                    </Avatar>
+                    <PersonAvatar name={patient.patientName} src={patient.avatarUrl} size="md" />
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/doctor/patients/${patient.patientProfileId}`}
-                          className="truncate rounded-sm text-sm font-medium text-text-primary after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          className="truncate rounded-sm text-body font-medium text-text-primary after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
-                          {patient.patientName}
+                          <bdi>{patient.patientName}</bdi>
                         </Link>
-                        {patient.visitCount > 1 && (
-                          <Badge variant="primary" className="shrink-0 text-[10px]">
-                            {t('returning')}
-                          </Badge>
-                        )}
+                        {patient.visitCount > 1 && <Badge variant="neutral" className="shrink-0">{t('returning')}</Badge>}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-tertiary">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-caption text-text-tertiary">
                         <span>
                           {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
                           {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
                         </span>
                         <span aria-hidden="true">·</span>
-                        <span>{patient.email}</span>
+                        <bdi>{patient.email}</bdi>
                       </div>
-                      <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-small">
                         <div>
                           <dt className="text-text-tertiary">{t('columns.lastVisit')}</dt>
                           <dd className="text-text-secondary">
@@ -463,16 +403,16 @@ export function PatientsList() {
                         </div>
                       </dl>
                       <div className="mt-1">
-                        <Badge variant={patientStatusBadgeVariant[status]}>{tPatientStatus(status)}</Badge>
+                        <PatientStatusChip status={status} label={tPatientStatus(status)} />
                       </div>
                     </div>
-                    <Icon icon={Eye} size="sm" className="mt-1 shrink-0 text-text-tertiary" aria-hidden="true" />
+                    <Icon icon={ChevronRight} size="sm" flipRtl className="mt-1 shrink-0 text-text-tertiary" />
                   </div>
                 </Card>
               );
             })}
             <div className="flex flex-col gap-3 border-t border-border-default pt-4">
-              <p className="text-sm text-text-tertiary">
+              <p className="text-small text-text-tertiary">
                 {t('showingRange', {
                   from: (currentPage - 1) * PAGE_SIZE + 1,
                   to: Math.min(currentPage * PAGE_SIZE, filtered.length),

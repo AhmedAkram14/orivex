@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -180,18 +180,19 @@ describe('DoctorProfilePage', () => {
     expect(saveButton).toBeEnabled();
   });
 
-  it('asks for confirmation before removing a work-experience entry, and does nothing if the doctor cancels', async () => {
+  it('asks for confirmation (ConfirmDialog) before removing a work-experience entry, and does nothing if the doctor cancels', async () => {
     renderPage();
     await screen.findAllByText('Dr. Sarah Ahmed');
     await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
 
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const before = screen.getAllByDisplayValue('Cairo University Hospitals').length;
 
     await userEvent.click(screen.getAllByRole('button', { name: 'Remove work experience entry' })[0]);
 
-    expect(confirmSpy).toHaveBeenCalled();
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Remove this work experience entry?');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
     expect(screen.getAllByDisplayValue('Cairo University Hospitals').length).toBe(before);
-    confirmSpy.mockRestore();
   });
 });

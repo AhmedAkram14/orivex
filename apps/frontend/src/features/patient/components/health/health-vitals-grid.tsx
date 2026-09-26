@@ -5,10 +5,10 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import type { HealthVitalSummary, VitalType } from '@/features/patient/api/types';
-import { cn } from '@/shared/lib/cn';
 import { evaluateVital, VITAL_REFERENCE_BANDS } from '@/shared/lib/health/vital-reference-ranges';
 import { VitalCard } from '@/shared/ui/health/vital-card';
 import { MetricGrid } from '@/shared/ui/metric-stat';
+import { SegmentedControl } from '@/shared/ui/segmented-control';
 
 const iconByType: Record<VitalType, LucideIcon> = {
   weight: Scale,
@@ -40,22 +40,12 @@ export function HealthVitalsGrid({ vitals, loading = false }: HealthVitalsGridPr
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="group" aria-label={tDs('rangeLabel')} className="flex w-fit max-w-full flex-wrap gap-1 rounded-full border border-border-default bg-surface p-1">
-        {RANGES.map((item, index) => (
-          <button
-            key={item.key}
-            type="button"
-            aria-pressed={index === rangeIndex}
-            onClick={() => setRangeIndex(index)}
-            className={cn(
-              'h-8 rounded-full px-3.5 text-small font-medium transition-colors duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
-              index === rangeIndex ? 'bg-primary text-primary-foreground' : 'text-text-secondary hover:bg-surface-2',
-            )}
-          >
-            {tDs(item.key)}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        ariaLabel={tDs('rangeLabel')}
+        options={RANGES.map((item) => ({ value: item.key, label: tDs(item.key) }))}
+        value={range.key}
+        onChange={(key) => setRangeIndex(RANGES.findIndex((item) => item.key === key))}
+      />
 
       <MetricGrid columns={3}>
         {vitalTypes.map((type) => {

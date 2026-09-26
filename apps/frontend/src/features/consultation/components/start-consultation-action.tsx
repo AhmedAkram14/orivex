@@ -6,6 +6,8 @@ import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 
 export interface StartConsultationActionProps {
+  /** `accent` only for the ONE primary call to action on a screen. */
+  variant?: 'primary' | 'accent';
   consultationSessionId: string;
 }
 
@@ -14,7 +16,7 @@ export interface StartConsultationActionProps {
  * -- the previously-missing entry point into `POST /consultations/:id/start`.
  * Mirrors `RefundButton`'s exact mutation-button shape.
  */
-export function StartConsultationAction({ consultationSessionId }: StartConsultationActionProps) {
+export function StartConsultationAction({ consultationSessionId, variant = 'primary' }: StartConsultationActionProps) {
   const t = useTranslations('doctor.queue');
   const startConsultation = useStartConsultation();
 
@@ -22,6 +24,7 @@ export function StartConsultationAction({ consultationSessionId }: StartConsulta
     <div className="flex flex-col gap-2">
       <Button
         type="button"
+        variant={variant}
         size="sm"
         loading={startConsultation.isPending}
         onClick={() => startConsultation.mutate(consultationSessionId)}

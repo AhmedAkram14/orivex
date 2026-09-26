@@ -22,6 +22,7 @@ import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
@@ -70,6 +71,8 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
   const { data: specialties, isLoading: specialtiesLoading } = useSpecialtiesList();
   const { data: hospitals, isLoading: hospitalsLoading } = useHospitalsList();
   const [insuranceDraft, setInsuranceDraft] = useState('');
+  // Removing a row is destructive: it goes through ConfirmDialog, never window.confirm.
+  const [pendingRemove, setPendingRemove] = useState<{ kind: 'work' | 'publication' | 'award'; index: number } | null>(null);
 
   const form = useForm<DoctorProfileFormValues>({
     resolver: zodResolver(createDoctorProfileSchema(tValidation)),
@@ -486,7 +489,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                         variant="ghost"
                         size="icon"
                         aria-label={tShared('removeWorkExperience')}
-                        onClick={() => window.confirm(t('confirmRemoveWorkExperience')) && workExperience.remove(index)}
+                        onClick={() => setPendingRemove({ kind: 'work', index })}
                       >
                         <Icon icon={Trash2} size="sm" />
                       </Button>
@@ -554,7 +557,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                       variant="ghost"
                       size="icon"
                       aria-label={t('removePublication')}
-                      onClick={() => window.confirm(t('confirmRemovePublication')) && publications.remove(index)}
+                      onClick={() => setPendingRemove({ kind: 'publication', index })}
                     >
                       <Icon icon={Trash2} size="sm" />
                     </Button>
@@ -621,7 +624,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
                       variant="ghost"
                       size="icon"
                       aria-label={t('removeAward')}
-                      onClick={() => window.confirm(t('confirmRemoveAward')) && awards.remove(index)}
+                      onClick={() => setPendingRemove({ kind: 'award', index })}
                     >
                       <Icon icon={Trash2} size="sm" />
                     </Button>
@@ -648,6 +651,37 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
           </Button>
         </div>
       </form>
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        onOpenChange={(next) => !next && setPendingRemove(null)}
+        title={
+          pendingRemove?.kind === 'work'
+            ? tShared('removeWorkExperience')
+            : pendingRemove?.kind === 'publication'
+              ? t('removePublication')
+              : t('removeAward')
+        }
+        description={
+          pendingRemove?.kind === 'work'
+            ? t('confirmRemoveWorkExperience')
+            : pendingRemove?.kind === 'publication'
+              ? t('confirmRemovePublication')
+              : t('confirmRemoveAward')
+        }
+        confirmLabel={
+          pendingRemove?.kind === 'work'
+            ? tShared('removeWorkExperience')
+            : pendingRemove?.kind === 'publication'
+              ? t('removePublication')
+              : t('removeAward')
+        }
+        onConfirm={() => {
+          if (pendingRemove?.kind === 'work') workExperience.remove(pendingRemove.index);
+          if (pendingRemove?.kind === 'publication') publications.remove(pendingRemove.index);
+          if (pendingRemove?.kind === 'award') awards.remove(pendingRemove.index);
+          setPendingRemove(null);
+        }}
+      />
     </Form>
   );
 }

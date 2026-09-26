@@ -18,6 +18,8 @@ import { Input } from '@/shared/ui/input';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Switch } from '@/shared/ui/switch';
 import { toast } from '@/shared/ui/use-toast';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/shared/lib/cn';
 
 /**
  * Doctor Settings Rebuild, Phase 5: change-password + the phone-number gap
@@ -32,6 +34,7 @@ export function AccountSecuritySection() {
   const updateProfile = useUpdatePersonalProfile();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   // Seeds the local draft from the loaded account exactly once per load --
   // not derived inline on every render, which would make the input
@@ -62,8 +65,22 @@ export function AccountSecuritySection() {
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium text-text-primary">{t('changePasswordHeading')}</p>
-          <ChangePasswordForm />
+          {/* Collapsed by default: a rarely-used form should not dominate the page. */}
+          <button
+            type="button"
+            aria-expanded={passwordOpen}
+            aria-controls="account-security-password-panel"
+            onClick={() => setPasswordOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-2 rounded-md text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11"
+          >
+            <span className="text-sm font-medium text-text-primary">{t('changePasswordHeading')}</span>
+            <Icon icon={ChevronDown} size="sm" className={cn('text-text-tertiary transition-transform duration-(--duration-fast)', passwordOpen && 'rotate-180')} />
+          </button>
+          {passwordOpen && (
+            <div id="account-security-password-panel">
+              <ChangePasswordForm />
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-2 border-t border-border-default pt-6">

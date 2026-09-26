@@ -16,6 +16,7 @@ import { Card, CardContent } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { MarkdownField } from '@/features/knowledge/components/markdown-field';
 import { Textarea } from '@/shared/ui/textarea';
 
 const TITLE_MAX = 200;
@@ -187,21 +188,17 @@ export function ArticleComposer({ mode, onDone }: ArticleComposerProps) {
             <label htmlFor="knowledge-article-body" className="text-sm font-medium text-text-secondary">
               {t('bodyLabel')}
             </label>
-            <Textarea
+            <MarkdownField
               id="knowledge-article-body"
-              ref={bodyRef}
-              dir="auto"
+              textareaRef={bodyRef}
               value={body}
-              onChange={(event) => {
-                setBody(event.target.value);
+              onValueChange={(next) => {
+                setBody(next);
                 clearMessages();
               }}
               placeholder={t('bodyPlaceholder')}
-              maxLength={BODY_MAX}
+              max={BODY_MAX}
             />
-            <span className="text-xs text-text-tertiary">
-              {body.length}/{BODY_MAX}
-            </span>
           </div>
 
           <div className="flex flex-col gap-2">

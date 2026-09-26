@@ -135,6 +135,7 @@ describe('DoctorReportsPage', () => {
     renderPage();
 
     await screen.findByText('62', {}, { timeout: 10000 });
+    await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
     expect(screen.getByLabelText('From')).toHaveValue('2026-08-01');
     expect(screen.getByLabelText('To')).toHaveValue('2026-08-31');
   }, 15000);
@@ -142,6 +143,7 @@ describe('DoctorReportsPage', () => {
   it('defaults to the last 30 days when the URL has no date params', async () => {
     renderPage();
     await screen.findByText('62');
+    await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
 
     const fromInput = screen.getByLabelText('From') as HTMLInputElement;
     const toInput = screen.getByLabelText('To') as HTMLInputElement;

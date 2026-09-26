@@ -15,7 +15,8 @@ import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { ChartSkeleton } from '@/shared/ui/charts/chart-skeleton';
-import { Checkbox } from '@/shared/ui/checkbox';
+import { Switch } from '@/shared/ui/switch';
+import { ErrorState } from '@/shared/ui/error-state';
 import { ChartContainer } from '@/shared/ui/layout/chart-container';
 import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
@@ -98,10 +99,10 @@ export function ReportsSummary() {
     writeParams({ dateFrom, dateTo, comparePrevious: checked });
   }
 
-  const { data, isLoading, isError } = useDoctorReportsAnalytics({ dateFrom, dateTo, comparePrevious });
+  const { data, isLoading, isError, refetch } = useDoctorReportsAnalytics({ dateFrom, dateTo, comparePrevious });
 
   if (isError) {
-    return <Alert variant="danger">{t('loadError')}</Alert>;
+    return <ErrorState description={t('loadError')} onRetry={() => void refetch()} />;
   }
 
   const rangeLabel = `${format.dateTime(new Date(dateFrom), { month: 'short', day: 'numeric', year: 'numeric' })} – ${format.dateTime(
@@ -148,12 +149,12 @@ export function ReportsSummary() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Checkbox
+          <Switch
             id="reports-compare-previous"
             checked={comparePrevious}
             onCheckedChange={(checked) => handleCompareChange(checked === true)}
           />
-          <label htmlFor="reports-compare-previous" className="text-sm text-text-secondary">
+          <label htmlFor="reports-compare-previous" className="text-small text-text-secondary">
             {t('comparePreviousLabel')}
           </label>
         </div>

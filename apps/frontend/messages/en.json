@@ -1131,6 +1131,7 @@
       "experiencePresent": "Present",
       "experienceDateRange": "{start} – {end}",
       "publications": "Publications",
+      "credentials": "Credentials",
       "publicationsEmptyTitle": "No publications on record",
       "publicationsEmptyDescription": "Add your published research or articles from Edit Profile.",
       "addPublication": "Add Publication",
@@ -1175,6 +1176,7 @@
       "loadError": "Couldn't load your profile.",
       "hero": {
         "verified": "Verified",
+        "ratingLabel": "Rating",
         "patientsCount": "{count} Patients",
         "yearsExperience": "{years} Years Experience",
         "reviewsCount": "{count} Ratings",
@@ -1407,7 +1409,7 @@
       "loadError": "Couldn't load your appointments.",
       "retry": "Retry",
       "viewSummary": "View summary",
-      "needsResolutionExplainer": "These appointments are past their scheduled time and were never resolved. Complete/no-show can only be set automatically by the system, so Cancel is the only action available here.",
+      "needsResolutionExplainer": "These visits have passed without an outcome. You can cancel them; completion is recorded automatically.",
       "tabs": {
         "upcoming": "Upcoming ({count})",
         "past": "Past ({count})",
@@ -1511,6 +1513,7 @@
         "approve": "Approve",
         "approveError": "Couldn't approve this appointment. Please try again.",
         "decline": "Decline",
+        "declineConsequence": "The patient is told you declined this request and can book another time.",
         "declineReasonLabel": "Reason (optional)",
         "declineReasonPlaceholder": "Let the patient know why, e.g. fully booked that week",
         "cancel": "Cancel",
@@ -1722,6 +1725,7 @@
       },
       "actions": {
         "view": "View patient",
+        "openChart": "Open chart",
         "notes": "Clinical notes",
         "message": "Message patient",
         "more": "More actions",
@@ -1771,7 +1775,8 @@
         "preset30Days": "30 days",
         "preset90Days": "90 days",
         "presetThisMonth": "This month",
-        "presetAllTime": "All time"
+        "presetAllTime": "All time",
+        "custom": "Custom range"
       },
       "trend": {
         "seriesLabel": "Appointments",
@@ -1836,7 +1841,8 @@
         "preset30Days": "30 days",
         "preset90Days": "90 days",
         "presetThisMonth": "This month",
-        "presetAllTime": "All time"
+        "presetAllTime": "All time",
+        "custom": "Custom range"
       },
       "export": {
         "exportCsv": "Export CSV",
@@ -3419,6 +3425,7 @@
       "writtenReviewCount": "{count, plural, one {# written review} other {# written reviews}}",
       "ratingCount": "{count, plural, one {# rating} other {# ratings}}",
       "notEnoughRatings": "Not enough ratings yet ({count})",
+      "newWithRatings": "New — {count, plural, one {# rating} other {# ratings}}",
       "scopedNoRatings": "{range} · No ratings yet",
       "scopedRatingCount": "{range} · {count, plural, one {# rating} other {# ratings}}"
     },
@@ -3550,5 +3557,141 @@
       "title": "Help & support"
     },
     "becomeADoctor": "Become a Doctor"
+  },
+  "doctorHome": {
+    "timeline": {
+      "title": "Today",
+      "empty": "No hours or visits on your calendar today.",
+      "emptyHint": "Set your working hours in Schedule.",
+      "legendAvailable": "Available",
+      "legendBooked": "Booked",
+      "now": "Now",
+      "bookedLabel": "Booked {time}",
+      "availableLabel": "Available {from}–{to}"
+    },
+    "actionUnavailable": "Unavailable"
+  },
+  "notificationCopy": {
+    "audienceAsPatient": "As a patient: ",
+    "appointmentCancelled": {
+      "title": "Appointment cancelled",
+      "patient": "Your appointment was cancelled.",
+      "doctor": "A patient cancelled their appointment with you."
+    },
+    "appointmentApproved": {
+      "title": "Appointment approved",
+      "any": "Your doctor has approved your appointment request."
+    },
+    "appointmentDeclined": {
+      "title": "Appointment request declined",
+      "any": "Your doctor declined your appointment request."
+    },
+    "appointmentExpired": {
+      "title": "Appointment request expired",
+      "any": "Your appointment request expired unanswered. You can book a new appointment with this doctor."
+    },
+    "appointmentRescheduled": {
+      "title": "Appointment rescheduled",
+      "patient": "Your appointment was rescheduled to a new time.",
+      "doctor": "A patient rescheduled their appointment with you to a new time."
+    },
+    "appointmentReminder": {
+      "title": "Upcoming appointment reminder",
+      "any": "You have an upcoming appointment.",
+      "anyWhen": "You have an upcoming appointment scheduled for {when}."
+    },
+    "newAppointmentRequest": {
+      "title": "New appointment request",
+      "any": "A patient requested an appointment with you."
+    },
+    "patientCheckedIn": {
+      "title": "Patient checked in",
+      "any": "A patient has checked in and is waiting."
+    },
+    "newReview": {
+      "title": "New consultation review",
+      "any": "A patient left a review of a consultation."
+    },
+    "consultationCompleted": {
+      "title": "Consultation completed",
+      "patient": "Your consultation is complete. View the summary and rate your visit.",
+      "doctor": "A consultation was completed."
+    },
+    "consultationInterrupted": {
+      "title": "Consultation interrupted",
+      "any": "A consultation was interrupted before it could be completed."
+    },
+    "disputeRaised": {
+      "title": "A dispute was raised",
+      "any": "A dispute was raised on one of your appointments."
+    },
+    "disputeWithdrawn": {
+      "title": "Dispute withdrawn",
+      "any": "A dispute involving one of your appointments was withdrawn by the party who raised it."
+    },
+    "disputeDismissed": {
+      "title": "Dispute dismissed",
+      "any": "A dispute involving one of your appointments was dismissed."
+    },
+    "disputeResolved": {
+      "title": "Dispute resolved",
+      "any": "A dispute involving one of your appointments was resolved."
+    },
+    "paymentReceived": {
+      "title": "Payment received",
+      "any": "Your payment was received.",
+      "anyAmount": "Your payment of {amount} was received."
+    },
+    "refundIssued": {
+      "title": "Refund issued",
+      "any": "You were refunded.",
+      "anyAmount": "You were refunded {amount}."
+    },
+    "newPrescription": {
+      "title": "New prescription",
+      "any": "Your doctor has signed a new prescription for you."
+    },
+    "slotOpened": {
+      "title": "A slot just opened up",
+      "any": "A doctor you were waiting for now has an opening in your requested date range."
+    },
+    "welcome": {
+      "title": "Welcome to Orivex",
+      "any": "Your account was created successfully."
+    },
+    "welcomeDoctor": {
+      "title": "Welcome, Doctor",
+      "any": "Your verification is approved and your account now has Doctor Workspace access."
+    },
+    "accountLocked": {
+      "title": "Account temporarily locked",
+      "any": "Too many failed sign-in attempts. Your account is temporarily locked.",
+      "anyWhen": "Too many failed sign-in attempts. Your account is locked until {when}."
+    },
+    "passwordChanged": {
+      "title": "Password changed",
+      "any": "Your password was changed successfully. If this wasn't you, secure your account immediately."
+    },
+    "verificationApproved": {
+      "title": "Verification approved",
+      "any": "Your verification was approved."
+    },
+    "verificationSuspended": {
+      "title": "Verification suspended",
+      "any": "Your verification was suspended and related access has been revoked."
+    }
+  },
+  "knowledgeEditor": {
+    "write": "Write",
+    "preview": "Preview",
+    "previewEmpty": "Nothing to preview yet.",
+    "toolbarLabel": "Formatting",
+    "bold": "Bold",
+    "italic": "Italic",
+    "heading": "Heading",
+    "list": "Bulleted list",
+    "link": "Link",
+    "progress": "{count} of {max} characters",
+    "linkText": "link text"
   }
 }

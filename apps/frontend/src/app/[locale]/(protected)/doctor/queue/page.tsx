@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Clock, Settings, ShieldCheck, UserCheck, Video } from 'lucide-react';
+import { CheckCircle2, Clock, Settings, ShieldCheck, Video } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -21,7 +21,8 @@ import { canJoinCall } from '@/shared/lib/consultation/join-window';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card } from '@/shared/ui/card';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
+import { ErrorState } from '@/shared/ui/error-state';
 import { JoinCountdown } from '@/shared/ui/consultation/join-countdown';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { CurrentPatientCard } from '@/shared/ui/queue/current-patient-card';
@@ -57,7 +58,7 @@ export default function DoctorQueuePage() {
   const t = useTranslations('doctor.queue');
   const tStatus = useTranslations('doctor.queue.status');
   const format = useFormatter();
-  const { data: queue, isLoading, isError, dataUpdatedAt } = useDoctorQueue();
+  const { data: queue, isLoading, isError, dataUpdatedAt, refetch } = useDoctorQueue();
   const { data: pending } = usePendingApprovalAppointments();
   const router = useRouter();
   const pathname = usePathname();
@@ -101,6 +102,7 @@ export default function DoctorQueuePage() {
     completed: tStatus('completed'),
   };
 
+  const firstWaiting = entriesByTab.waiting[0];
   const pendingCount = pending?.length ?? 0;
   const waitingCount = entriesByTab.waiting.length;
   const inConsultationCount = currentPatient ? 1 : 0;
@@ -109,32 +111,24 @@ export default function DoctorQueuePage() {
   const stats = [
     {
       icon: Clock,
-      iconClassName: 'bg-primary-subtle text-primary-emphasis',
       value: pendingCount,
       label: t('stats.pendingApproval.title'),
       sublabel: pendingCount === 0 ? t('stats.pendingApproval.emptySublabel') : t('stats.pendingApproval.sublabel'),
     },
     {
       icon: Clock,
-      iconClassName: 'bg-info-subtle text-info-emphasis',
       value: waitingCount,
       label: t('stats.waiting.title'),
       sublabel: t('stats.waiting.sublabel'),
     },
     {
       icon: Video,
-      // Amber, matching QueueStatus's own 'warning' mapping for this exact
-      // status everywhere else on the page (the per-entry badge) -- not
-      // red/danger, which reads as an error state when a consultation
-      // actively in progress is the healthiest thing this page can show.
-      iconClassName: 'bg-warning-subtle text-warning-emphasis',
       value: inConsultationCount,
       label: t('stats.inConsultation.title'),
       sublabel: t('stats.inConsultation.sublabel'),
     },
     {
       icon: CheckCircle2,
-      iconClassName: 'bg-success-subtle text-success-emphasis',
       value: completedTodayCount,
       label: t('stats.completedToday.title'),
       sublabel: t('stats.completedToday.sublabel'),
@@ -154,7 +148,7 @@ export default function DoctorQueuePage() {
           <span className="flex items-center gap-1.5">
             {tabTitles[value]}
             {': '}
-            <Badge variant="primary">{entries.length}</Badge>
+            <Badge variant="neutral">{entries.length}</Badge>
           </span>
         }
         emptyTitle={t('emptyTitle')}
@@ -212,7 +206,7 @@ export default function DoctorQueuePage() {
 
         <PendingApprovalSection />
 
-        {isError && <Alert variant="danger">{t('loadError')}</Alert>}
+        {isError && <ErrorState size="sm" description={t('loadError')} onRetry={() => void refetch()} />}
 
         {isLoading ? (
           <div className="flex flex-col gap-3">
@@ -221,22 +215,18 @@ export default function DoctorQueuePage() {
           </div>
         ) : (
           <>
-            <Card className="p-6">
-              <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="flex items-center gap-3">
-                    <span className={`flex size-11 shrink-0 items-center justify-center rounded-full ${stat.iconClassName}`}>
-                      <Icon icon={stat.icon} size="md" />
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-bold text-text-primary">{stat.value}</span>
-                      <span className="text-sm font-medium text-text-primary">{stat.label}</span>
-                      <span className="text-xs text-text-tertiary">{stat.sublabel}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <MetricStrip>
+              {stats.map((stat) => (
+                <MetricStat
+                  key={stat.label}
+                  variant="inline"
+                  icon={stat.icon}
+                  label={stat.label}
+                  value={String(stat.value)}
+                  helperText={stat.sublabel}
+                />
+              ))}
+            </MetricStrip>
 
             <DashboardGrid columns={2}>
               <div className="flex flex-col gap-3">
@@ -262,21 +252,10 @@ export default function DoctorQueuePage() {
                           </div>
                         }
                       />
-                    ) : (
-                      <div className="flex flex-col items-center gap-4 py-6 text-center">
-                        <div className="relative flex size-28 items-center justify-center rounded-full bg-primary-subtle">
-                          <div className="absolute inset-2 rounded-full bg-primary/10" />
-                          <Icon icon={UserCheck} size="lg" className="relative text-primary" />
-                          <span className="absolute -bottom-1 -end-1 flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground ring-2 ring-surface">
-                            <Icon icon={Video} size="sm" />
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <p className="font-semibold text-text-primary">{t('noCurrentPatientTitle')}</p>
-                          <p className="max-w-xs text-sm text-text-secondary">{t('noCurrentPatientDescription')}</p>
-                        </div>
-                      </div>
-                    )
+                    ) : undefined
+                  }
+                  emptyAction={
+                    firstWaiting ? <StartConsultationAction consultationSessionId={firstWaiting.id} variant="accent" /> : undefined
                   }
                 />
               </div>
@@ -303,8 +282,8 @@ export default function DoctorQueuePage() {
                     {t('lastUpdated', { time: format.dateTime(new Date(dataUpdatedAt), { timeStyle: 'short' }) })}
                   </p>
                 )}
-                <div className="flex items-start gap-3 rounded-lg bg-primary-subtle p-4">
-                  <Icon icon={ShieldCheck} size="sm" className="mt-0.5 shrink-0 text-primary" />
+                <div className="flex items-start gap-3 rounded-md bg-info-subtle p-4">
+                  <Icon icon={ShieldCheck} size="sm" className="mt-0.5 shrink-0 text-info-emphasis" />
                   <div className="flex flex-col gap-0.5">
                     <p className="text-sm font-medium text-text-primary">{t('confidentialBanner.title')}</p>
                     <p className="text-sm text-text-secondary">{t('confidentialBanner.description')}</p>

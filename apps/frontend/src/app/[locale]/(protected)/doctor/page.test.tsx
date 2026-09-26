@@ -53,7 +53,7 @@ describe('DoctorDashboardPage', () => {
     // sibling text nodes and no single node's own text is the full exact
     // string anymore -- assert on the heading's combined `textContent`
     // instead of an exact-string `getByText`/accessible-name match.
-    const heading = await screen.findByRole('heading', { level: 2 });
+    const heading = await screen.findByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Welcome back, Dr. Sarah Ahmed.');
     // `doctor-store.ts`'s seeded busy-practice-day fixture (not a real
     // clinical record) -- a completed-today patient from `seedUpcomingWork()`.
@@ -77,7 +77,8 @@ describe('DoctorDashboardPage', () => {
     // seeds a few real reviews for this doctor (previously always empty) --
     // the hero's "Today's Summary" rating stat reflects that real average
     // (4.67 -> "4.7"), never a fabricated figure.
-    expect((await screen.findAllByText('4.7')).length).toBeGreaterThan(0);
+    // Three reviews is below the confidence threshold, so the rating stat reads "New — 3 ratings" instead of a number.
+    expect((await screen.findAllByText('New — 3 ratings')).length).toBeGreaterThan(0);
   });
 
   it('renders the bottom widget row: Today\'s Progress (matching the seeded completed/consultations counts), Upcoming Availability, and Recent Activity', async () => {

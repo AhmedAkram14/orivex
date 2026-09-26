@@ -1,7 +1,5 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { DashboardHero } from '@/features/doctor/components/dashboard-hero';
 import { PatientQueueMini } from '@/features/doctor/components/patient-queue-mini';
 import { RecentActivity } from '@/features/doctor/components/recent-activity';
@@ -11,42 +9,27 @@ import { TodaysSummary } from '@/features/doctor/components/todays-summary';
 import { UpcomingAvailability } from '@/features/doctor/components/upcoming-availability';
 import { RequireRole } from '@/shared/auth/require-role';
 import { DashboardGrid, Page } from '@/shared/ui/layout/page';
-import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 /**
- * The Doctor Workspace's dashboard — the doctor-specific landing page,
- * distinct from the shared `/dashboard` (every role) and reachable only by
- * the `doctor` role (`RequireRole`). Premium-dashboard redesign: hero
- * (greeting + real today/next-patient facts + Quick Actions + gender-based
- * illustration) → 4-stat row (`TodaysSummary`, now including the doctor's
- * real rating) → Today's Schedule / Patient Queue mini two-column → Today's
- * Progress / Upcoming Availability / Recent Activity three-widget row.
- * Every widget composes an existing real hook/query -- reused, not thrown
- * away, per this redesign's own "no fabrication" mandate: no trend arrows,
- * no invented figures, only honest empty/zero states where real data is
- * genuinely absent.
+ * The Doctor Workspace's dashboard -- reachable only by the `doctor` role.
+ * One doctor HeroSurface (greeting h1 + today's timeline + quick actions),
+ * one MetricStrip, then Today's Schedule / Patient Queue and Progress /
+ * Availability / Recent Activity. Every widget composes an existing real hook;
+ * no trend arrows, no invented figures, honest empty states.
  */
 export default function DoctorDashboardPage() {
-  const tNav = useTranslations('shell.nav');
-
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
-      <Page className="gap-8 lg:px-10">
-        {/* Title matches the breadcrumb's own leaf label ("Overview"), same
-            as every other doctor page (Schedule, Queue, Patients, ...) --
-            `doctor.dashboard.title` ("Doctor Workspace") is the *section*
-            name the breadcrumb's first segment already shows, so reusing it
-            here duplicated that segment instead of naming this specific page. */}
-        <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={tNav('overview')} />
+      <Page className="gap-(--section-gap)">
         <DashboardHero />
         <TodaysSummary />
 
-        <DashboardGrid columns={2} className="gap-6">
+        <DashboardGrid columns={2} className="gap-(--card-gap)">
           <TodaysSchedule />
           <PatientQueueMini />
         </DashboardGrid>
 
-        <DashboardGrid columns={3} className="gap-6">
+        <DashboardGrid columns={3} className="gap-(--card-gap)">
           <TodaysProgress />
           <UpcomingAvailability />
           <RecentActivity />

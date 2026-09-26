@@ -28,10 +28,10 @@ describe('NotificationPreferencesSection', () => {
     vi.mocked(notificationsApi.getPreferences).mockResolvedValue(PREFERENCES);
     renderWithProviders(<NotificationPreferencesSection />);
 
-    const emailAppointments = await screen.findByRole('checkbox', { name: 'Email notifications for Appointments' });
-    const inAppAppointments = screen.getByRole('checkbox', { name: 'In-app notifications for Appointments' });
-    const emailBilling = screen.getByRole('checkbox', { name: 'Email notifications for Billing' });
-    const inAppBilling = screen.getByRole('checkbox', { name: 'In-app notifications for Billing' });
+    const emailAppointments = await screen.findByRole('switch', { name: 'Email notifications for Appointments' });
+    const inAppAppointments = screen.getByRole('switch', { name: 'In-app notifications for Appointments' });
+    const emailBilling = screen.getByRole('switch', { name: 'Email notifications for Billing' });
+    const inAppBilling = screen.getByRole('switch', { name: 'In-app notifications for Billing' });
 
     expect(emailAppointments).toHaveAttribute('data-state', 'checked');
     expect(inAppAppointments).toHaveAttribute('data-state', 'checked');
@@ -45,7 +45,7 @@ describe('NotificationPreferencesSection', () => {
     const user = userEvent.setup();
     renderWithProviders(<NotificationPreferencesSection />);
 
-    const emailBilling = await screen.findByRole('checkbox', { name: 'Email notifications for Billing' });
+    const emailBilling = await screen.findByRole('switch', { name: 'Email notifications for Billing' });
     await user.click(emailBilling);
 
     await waitFor(() => expect(notificationsApi.updatePreferences).toHaveBeenCalledWith({ emailBilling: true }));
@@ -60,7 +60,7 @@ describe('NotificationPreferencesSection', () => {
     const user = userEvent.setup();
     renderWithProviders(<NotificationPreferencesSection />);
 
-    const emailBilling = await screen.findByRole('checkbox', { name: 'Email notifications for Billing' });
+    const emailBilling = await screen.findByRole('switch', { name: 'Email notifications for Billing' });
     await user.click(emailBilling);
 
     await waitFor(() =>
@@ -79,8 +79,8 @@ describe('NotificationPreferencesSection', () => {
     const user = userEvent.setup();
     renderWithProviders(<NotificationPreferencesSection />);
 
-    const emailBilling = await screen.findByRole('checkbox', { name: 'Email notifications for Billing' });
-    const emailAppointments = screen.getByRole('checkbox', { name: 'Email notifications for Appointments' });
+    const emailBilling = await screen.findByRole('switch', { name: 'Email notifications for Billing' });
+    const emailAppointments = screen.getByRole('switch', { name: 'Email notifications for Appointments' });
     await user.click(emailBilling);
 
     expect(emailBilling).toBeDisabled();

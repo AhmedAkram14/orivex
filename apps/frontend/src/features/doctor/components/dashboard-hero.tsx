@@ -1,95 +1,60 @@
 'use client';
 
-import { CalendarClock, Clock, FileText, Users, Video, type LucideIcon } from 'lucide-react';
-import Image from 'next/image';
+import { CalendarClock, FileText, Users, Video, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { StartConsultationAction } from '@/features/consultation/components/start-consultation-action';
+import { TodayTimeline } from '@/features/doctor/components/today-timeline';
+import { WelcomeHeader } from '@/features/doctor/components/welcome-header';
 import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-dashboard-summary';
 import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
 import { useDoctorUpcomingWork } from '@/features/doctor/hooks/use-doctor-upcoming-work';
-import { WelcomeHeader } from '@/features/doctor/components/welcome-header';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Card, CardContent } from '@/shared/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
-import { cn } from '@/shared/lib/cn';
+import { Button } from '@/shared/ui/button';
+import { HeroSurface } from '@/shared/ui/hero-surface';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 
-interface QuickActionTileProps {
+interface QuickActionProps {
   icon: LucideIcon;
   label: string;
-  accentClassName: string;
   href?: string;
-  /** Renders the same tile as an inert, muted panel with a title tooltip explaining why -- for an action with no real destination reachable right now, rather than a link that goes somewhere but does nothing useful. */
+  /** No reachable destination right now: rendered as a full-contrast, non-interactive tile with this reason underneath (never a washed-out disabled button). */
   disabledReason?: string;
 }
 
-/** One Quick Actions tile — a real destination link styled as a dashboard action card (icon in a soft colored circle, hover elevation), never a plain outlined button. When `disabledReason` is set instead of `href`, renders as a non-interactive, muted tile with that reason as its title -- honest about having nowhere to send the doctor right now, rather than linking to a page that can't do what the label promises. */
-function QuickActionTile({ href, icon, label, accentClassName, disabledReason }: QuickActionTileProps) {
-  if (disabledReason) {
+function QuickAction({ icon, label, href, disabledReason }: QuickActionProps) {
+  if (disabledReason || !href) {
     return (
-      // Phase 8: previously a plain `div` with only a `title` attribute --
-      // a mouse-hover-only tooltip a keyboard user tabbing through Quick
-      // Actions could never reach or read. `tabIndex={0}` + `role="button"`
-      // makes it a real stop in the tab order; Radix's `Tooltip` shows its
-      // content on both hover AND keyboard focus by design (unlike the
-      // native `title` attribute), so the disabled reason is now visible
-      // however the tile is reached. `aria-disabled="true"` (unchanged)
-      // tells assistive tech this stop does nothing, without removing it
-      // from the tab order the way a native `disabled` attribute would.
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              tabIndex={0}
-              role="button"
-              aria-disabled="true"
-              className="flex cursor-not-allowed flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed border-border-default bg-surface p-4 text-center opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-            >
-              <span className="flex size-12 items-center justify-center rounded-full bg-secondary-subtle text-text-tertiary">
-                <Icon icon={icon} size="lg" />
-              </span>
-              <span className="text-xs font-medium text-text-tertiary">{label}</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>{disabledReason}</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <div
+        aria-disabled="true"
+        className="flex min-h-11 items-center gap-2 rounded-(--r-sm) border border-dashed border-border-strong px-3.5 py-1.5 text-start"
+      >
+        <Icon icon={icon} size="sm" className="shrink-0 text-text-tertiary" />
+        <span className="flex min-w-0 flex-col leading-tight">
+          <span className="text-sm font-medium text-text-primary">{label}</span>
+          <span className="text-caption text-text-tertiary">{disabledReason}</span>
+        </span>
+      </div>
     );
   }
-
   return (
-    <Link
-      href={href ?? '#'}
-      className="group flex flex-col items-center justify-center gap-2.5 rounded-2xl border border-border-default bg-surface p-4 text-center transition-all duration-(--duration-fast) hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-    >
-      <span className={cn('flex size-12 items-center justify-center rounded-full transition-transform duration-(--duration-fast) group-hover:scale-105', accentClassName)}>
-        <Icon icon={icon} size="lg" />
-      </span>
-      <span className="text-xs font-medium text-text-secondary">{label}</span>
-    </Link>
+    <Button asChild variant="secondary" size="sm">
+      <Link href={href}>
+        <Icon icon={icon} size="sm" />
+        {label}
+      </Link>
+    </Button>
   );
 }
 
 /**
- * The redesigned Overview page's hero — the single visual focal point of
- * the page (Doctor Workspace dashboard redesign's hierarchy spec: hero >
- * KPIs > schedule/queue > bottom widgets). Folds the greeting (`WelcomeHeader`,
- * reused not rebuilt) and today's real consultation count / real
- * next-upcoming-today patient (an honest "no more patients today" when
- * none) into one card alongside a real Start Consultation entry point (only
- * live when a real waiting queue entry exists -- reuses
- * `StartConsultationAction`, never a fabricated always-on button), a Quick
- * Actions panel of real destinations redesigned as action-card tiles
- * (colored icon circles, not plain outlined links), and a doctor
- * illustration picked from the account's real `gender` field (defaulting to
- * male when unset/other -- a documented fallback, not a claim about the
- * doctor) floating over a soft brand-colored glow.
+ * The Overview's ONE hero surface (doctor variant, compact density): the
+ * greeting (the page's h1), today's real numbers, the day as a timeline strip
+ * built from the doctor's real hours and bookings, and quick actions as
+ * secondary buttons. The 3D illustration is gone; the timeline is the visual.
  */
 export function DashboardHero() {
   const t = useTranslations('doctor.dashboard');
-  const { data: account } = useMyAccount();
   const { data: summary } = useDoctorDashboardSummary();
   const { data: upcomingWork } = useDoctorUpcomingWork();
   const { data: queue } = useDoctorQueue();
@@ -98,9 +63,7 @@ export function DashboardHero() {
   const isSameCalendarDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-  // Bounded to *today* -- a patient scheduled days from now is not "next" in
-  // any useful sense here; the honest fallback for that case is the same
-  // "no more patients today" message an actually-empty day gets.
+  // Bounded to *today* -- a patient days from now is not "next" in any useful sense here.
   const nextPatient = (upcomingWork ?? [])
     .filter((item) => {
       const scheduledAt = new Date(item.scheduledAt);
@@ -118,77 +81,35 @@ export function DashboardHero() {
 
   const startableEntry = (queue ?? []).find((entry) => entry.status === 'waiting');
 
-  const illustration = account?.gender === 'female' ? '/dashboard-female.png' : '/dashboard-male.png';
-
   return (
-    <Card className="relative overflow-hidden rounded-3xl border-border-default shadow-[0_10px_30px_rgba(15,23,42,0.06)] lg:min-h-64">
-      <CardContent className="flex h-full flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
-        <div className="flex flex-1 flex-col gap-5">
-          <WelcomeHeader />
+    <HeroSurface variant="doctor" className="flex flex-col gap-5">
+      <WelcomeHeader />
 
-          <p className="text-sm text-text-secondary">
-            {t('hero.consultationsToday', { count: summary?.consultationsToday ?? 0 })}
-            {' · '}
-            {minutesUntilNext != null
-              ? minutesUntilNext >= 60
-                ? t('hero.nextPatientInHours', { hours: Math.round(minutesUntilNext / 60) })
-                : t('hero.nextPatientIn', { minutes: minutesUntilNext })
-              : t('hero.noMorePatientsToday')}
-          </p>
+      <p className="text-body text-text-secondary">
+        {t('hero.consultationsToday', { count: summary?.consultationsToday ?? 0 })}
+        {' · '}
+        {minutesUntilNext != null
+          ? minutesUntilNext >= 60
+            ? t('hero.nextPatientInHours', { hours: Math.round(minutesUntilNext / 60) })
+            : t('hero.nextPatientIn', { minutes: minutesUntilNext })
+          : t('hero.noMorePatientsToday')}
+      </p>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {startableEntry ? (
-              <StartConsultationAction consultationSessionId={startableEntry.id} />
-            ) : (
-              // A status message, not a disabled button: nothing here can
-              // become clickable this session, so button chrome would only
-              // invite a click that does nothing and dilute the real CTAs
-              // (Quick Actions) below it.
-              <div className="inline-flex items-center gap-2 rounded-md border border-border-default bg-secondary-subtle px-4 py-2.5 text-sm font-medium text-text-secondary">
-                <Icon icon={Clock} size="sm" />
-                {t('hero.noStartableConsultation')}
-              </div>
-            )}
-          </div>
+      <TodayTimeline />
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <QuickActionTile
-              icon={Video}
-              label={t('hero.quickActions.startConsultation')}
-              accentClassName="bg-primary-subtle text-primary-emphasis"
-              {...(startableEntry ? { href: '/doctor/queue' } : { disabledReason: t('hero.noStartableConsultation') })}
-            />
-            <QuickActionTile
-              href="/doctor/queue"
-              icon={Users}
-              label={t('hero.quickActions.viewQueue')}
-              accentClassName="bg-warning-subtle text-warning-emphasis"
-            />
-            <QuickActionTile
-              href="/doctor/schedule"
-              icon={CalendarClock}
-              label={t('hero.quickActions.updateSchedule')}
-              accentClassName="bg-info-subtle text-info-emphasis"
-            />
-            <QuickActionTile
-              icon={FileText}
-              label={t('hero.quickActions.writePrescription')}
-              accentClassName="bg-success-subtle text-success-emphasis"
-              disabledReason={t('hero.quickActions.writePrescriptionUnavailable')}
-            />
-          </div>
-        </div>
-
-        <div className="relative hidden shrink-0 items-center justify-center lg:flex lg:size-56">
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 rounded-full bg-[radial-gradient(circle,var(--color-primary-subtle)_0%,transparent_72%)] blur-2xl"
-          />
-          <div className="relative size-48">
-            <Image src={illustration} alt="" fill sizes="192px" className="object-contain drop-shadow-xl" priority />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex flex-wrap items-center gap-2">
+        {startableEntry && <StartConsultationAction consultationSessionId={startableEntry.id} variant="accent" />}
+        {!startableEntry && (
+          <QuickAction icon={Video} label={t('hero.quickActions.startConsultation')} disabledReason={t('hero.noStartableConsultation')} />
+        )}
+        <QuickAction icon={Users} label={t('hero.quickActions.viewQueue')} href="/doctor/queue" />
+        <QuickAction icon={CalendarClock} label={t('hero.quickActions.updateSchedule')} href="/doctor/schedule" />
+        <QuickAction
+          icon={FileText}
+          label={t('hero.quickActions.writePrescription')}
+          disabledReason={t('hero.quickActions.writePrescriptionUnavailable')}
+        />
+      </div>
+    </HeroSurface>
   );
 }

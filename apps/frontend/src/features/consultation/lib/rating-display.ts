@@ -56,7 +56,8 @@ export function getRatingDisplay(t: RatingTranslator, { averageRating, reviewCou
   }
 
   if (count < MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY) {
-    return { value, helperText: t('notEnoughRatings', { count }) };
+    // Below the confidence threshold the number is withheld: "5.0 -- Not enough ratings (2)" contradicted itself.
+    return { value: '—', helperText: t('newWithRatings', { count }) };
   }
 
   return { value, helperText: t('ratingCount', { count }) };

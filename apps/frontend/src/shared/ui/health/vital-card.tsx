@@ -40,6 +40,8 @@ export interface VitalCardProps {
   loading?: boolean;
   /** Accessible description of the trend for screen readers. */
   trendLabel: string;
+  /** Extra line under the date, e.g. a "recorded 3 months ago" staleness badge. */
+  note?: ReactNode;
   className?: string;
 }
 
@@ -69,6 +71,7 @@ export function VitalCard({
   emptyDescription,
   loading = false,
   trendLabel,
+  note,
   className,
 }: VitalCardProps) {
   const t = useTranslations('ds.vital');
@@ -109,7 +112,11 @@ export function VitalCard({
           {icon && <Icon icon={icon} size="md" />}
           {title}
         </p>
-        <EmptyState illustration="records-start" size="sm" title={emptyTitle} description={emptyDescription} />
+        {compact ? (
+          <p className="text-small font-medium text-text-primary">{emptyTitle}</p>
+        ) : (
+          <EmptyState illustration="records-start" size="sm" title={emptyTitle} description={emptyDescription} />
+        )}
       </>,
     );
   }
@@ -165,6 +172,7 @@ export function VitalCard({
           {latest.valueLabel}
         </p>
         <p className="text-caption text-text-tertiary">{format.dateTime(new Date(latest.recordedAt), { dateStyle: 'medium' })}</p>
+        {note}
       </div>
 
       {points.length >= 2 ? (

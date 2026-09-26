@@ -14,8 +14,9 @@ function renderPicker(onChange: (dateFrom: string, dateTo: string) => void) {
 }
 
 describe('ReportsDateRangePicker', () => {
-  it('renders both date inputs with the given controlled values', () => {
+  it('renders both date inputs (inside the custom-range popover) with the given controlled values', async () => {
     renderPicker(vi.fn());
+    await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
     expect(screen.getByLabelText('From')).toHaveValue('2026-08-01');
     expect(screen.getByLabelText('To')).toHaveValue('2026-08-31');
   });
@@ -44,9 +45,10 @@ describe('ReportsDateRangePicker', () => {
     expect(dateFrom).toBe('2020-01-01');
   });
 
-  it('editing the From input keeps the current To value', () => {
+  it('editing the From input keeps the current To value', async () => {
     const onChange = vi.fn();
     renderPicker(onChange);
+    await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
 
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-01-01' } });
 

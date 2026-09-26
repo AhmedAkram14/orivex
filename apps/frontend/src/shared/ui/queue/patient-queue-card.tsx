@@ -26,8 +26,8 @@ export function PatientQueueCard({
   className,
 }: PatientQueueCardProps) {
   return (
-    <div className={cn('flex items-center gap-3 rounded-lg border border-border-default bg-surface p-3', className)}>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary-subtle text-sm font-medium text-text-secondary">
+    <div className={cn('flex items-center gap-3 rounded-md border border-border-default bg-surface p-3', className)}>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-2 text-sm font-medium text-text-secondary tabular-nums">
         {position}
       </span>
       <div className="flex flex-1 flex-col gap-1">

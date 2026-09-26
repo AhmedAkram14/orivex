@@ -34,10 +34,12 @@ describe('AccountSecuritySection', () => {
     vi.mocked(identityApi.getMyAccount).mockResolvedValue(ACCOUNT);
     renderWithProviders(<AccountSecuritySection />);
 
+    await userEvent.click(await screen.findByRole('button', { name: /Change password/, expanded: false }));
     expect(await screen.findByLabelText('Current password')).toBeInTheDocument();
     expect(screen.getByLabelText('New password')).toBeInTheDocument();
     expect(screen.getByLabelText('Confirm new password')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Change password' })).toBeInTheDocument();
+    // The disclosure trigger and the form's own submit button share the name.
+    expect(screen.getAllByRole('button', { name: 'Change password' })).toHaveLength(2);
   });
 
   it('pre-fills the phone field from the current account and enables Save only once it changes', async () => {
@@ -69,6 +71,7 @@ describe('AccountSecuritySection', () => {
     const user = userEvent.setup();
     renderWithProviders(<AccountSecuritySection />);
 
+    await userEvent.click(await screen.findByRole('button', { name: /Change password/, expanded: false }));
     await screen.findByLabelText('Current password');
 
     const twoFactorSwitch = screen.getByRole('switch', { name: 'Two-factor authentication' });
@@ -88,6 +91,7 @@ describe('AccountSecuritySection', () => {
     const user = userEvent.setup();
     renderWithProviders(<AccountSecuritySection />);
 
+    await userEvent.click(await screen.findByRole('button', { name: /Change password/, expanded: false }));
     await screen.findByLabelText('Current password');
     await user.click(screen.getByRole('button', { name: 'Request account deletion' }));
 

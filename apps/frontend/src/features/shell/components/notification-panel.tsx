@@ -6,6 +6,7 @@ import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationEntityType, NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
+import { useLocalizedNotification } from '@/features/notifications/hooks/use-localized-notification';
 import { localizeIsoTimestamps, resolveNotificationHref } from '@/features/notifications/lib/notification-text';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
@@ -61,6 +62,8 @@ export function NotificationRowContent({ notification }: { notification: Notific
   // alongside the relative label always shown -- a quick "was this today or
   // last week" check without leaving the list.
   const absoluteTime = format.dateTime(createdAt, { dateStyle: 'medium', timeStyle: 'short' });
+  const localize = useLocalizedNotification();
+  const text = localize(notification);
 
   return (
     <>
@@ -81,10 +84,10 @@ export function NotificationRowContent({ notification }: { notification: Notific
           </>
         )}
         <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
-          {localizeIsoTimestamps(notification.title, format)}
+          {localizeIsoTimestamps(text.title, format)}
         </p>
       </div>
-      <p className="text-sm text-text-secondary">{localizeIsoTimestamps(notification.description, format)}</p>
+      <p className="text-sm text-text-secondary">{localizeIsoTimestamps(text.description, format)}</p>
       <p className="text-xs text-text-tertiary" title={absoluteTime}>
         {format.relativeTime(createdAt, new Date())}
       </p>

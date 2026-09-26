@@ -428,3 +428,40 @@
     padding-inline: 0.5rem;
   }
 }
+
+/* ---- Redesign layer: availability is a pulse wash, booked visits are ink,
+   days off / time outside working hours are a hatched surface. Appended after
+   the base rules so it wins by source order; tokens only (light/dark/RTL free). */
+.orivex-fc {
+  --fc-today-bg-color: var(--color-pulse-subtle);
+  --fc-now-indicator-color: var(--color-text-primary);
+}
+.orivex-fc .fc-timegrid-col {
+  background: color-mix(in srgb, var(--color-pulse) 20%, var(--color-surface));
+}
+.orivex-fc .fc-timegrid-col.fc-day-today {
+  background: color-mix(in srgb, var(--color-pulse) 28%, var(--color-surface));
+}
+.orivex-fc .fc-col-header-cell.fc-day-today {
+  border-top-color: var(--color-pulse);
+}
+.orivex-fc .fc-timegrid-now-indicator-line {
+  border-color: var(--color-text-primary);
+}
+.orivex-fc .fc-bg-off {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 6px,
+      color-mix(in srgb, var(--color-text-primary) 9%, transparent) 6px 7px
+    ),
+    var(--color-surface-2);
+}
+.orivex-fc .fc-timegrid-event.fc-appt {
+  --fc-appt-bg: var(--color-text-primary);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+}
+.orivex-fc .fc-timegrid-event.fc-appt .fc-appt-type {
+  color: color-mix(in srgb, var(--color-text-inverse) 72%, transparent);
+}

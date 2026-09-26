@@ -1131,6 +1131,7 @@
       "experiencePresent": "حتى الآن",
       "experienceDateRange": "{start} – {end}",
       "publications": "المنشورات",
+      "credentials": "الاعتمادات",
       "publicationsEmptyTitle": "لا توجد منشورات مسجلة",
       "publicationsEmptyDescription": "أضف أبحاثك أو مقالاتك المنشورة من خلال تعديل الملف الشخصي.",
       "addPublication": "إضافة منشور",
@@ -1175,6 +1176,7 @@
       "loadError": "تعذّر تحميل ملفك الشخصي.",
       "hero": {
         "verified": "موثّق",
+        "ratingLabel": "التقييم",
         "patientsCount": "{count} مريض",
         "yearsExperience": "{years} سنوات خبرة",
         "reviewsCount": "{count} تقييم",
@@ -1407,7 +1409,7 @@
       "loadError": "تعذّر تحميل مواعيدك.",
       "retry": "إعادة المحاولة",
       "viewSummary": "عرض الملخص",
-      "needsResolutionExplainer": "هذه المواعيد تجاوزت موعدها المحدد ولم تتم تسويتها. لا يمكن تعيين حالة مكتمل/لم يحضر إلا تلقائيًا بواسطة النظام، لذا الإلغاء هو الإجراء الوحيد المتاح هنا.",
+      "needsResolutionExplainer": "مرت مواعيد هذه الزيارات دون تسجيل نتيجة. يمكنك إلغاؤها، ويُسجَّل الإكمال تلقائيًا.",
       "tabs": {
         "upcoming": "القادمة ({count})",
         "past": "السابقة ({count})",
@@ -1511,6 +1513,7 @@
         "approve": "الموافقة",
         "approveError": "تعذرت الموافقة على هذا الموعد. حاول مرة أخرى.",
         "decline": "رفض",
+        "declineConsequence": "سيُبلَّغ المريض بأنك رفضت هذا الطلب ويمكنه حجز وقت آخر.",
         "declineReasonLabel": "السبب (اختياري)",
         "declineReasonPlaceholder": "أخبر المريض بالسبب، مثل عدم توفر مواعيد هذا الأسبوع",
         "cancel": "إلغاء",
@@ -1722,6 +1725,7 @@
       },
       "actions": {
         "view": "عرض المريض",
+        "openChart": "فتح الملف",
         "notes": "الملاحظات السريرية",
         "message": "مراسلة المريض",
         "more": "إجراءات أخرى",
@@ -1771,7 +1775,8 @@
         "preset30Days": "٣٠ يومًا",
         "preset90Days": "٩٠ يومًا",
         "presetThisMonth": "هذا الشهر",
-        "presetAllTime": "كل الأوقات"
+        "presetAllTime": "كل الأوقات",
+        "custom": "نطاق مخصص"
       },
       "trend": {
         "seriesLabel": "المواعيد",
@@ -1836,7 +1841,8 @@
         "preset30Days": "٣٠ يومًا",
         "preset90Days": "٩٠ يومًا",
         "presetThisMonth": "هذا الشهر",
-        "presetAllTime": "كل الأوقات"
+        "presetAllTime": "كل الأوقات",
+        "custom": "نطاق مخصص"
       },
       "export": {
         "exportCsv": "تصدير CSV",
@@ -3419,6 +3425,7 @@
       "writtenReviewCount": "{count, plural, one {# مراجعة مكتوبة} other {# مراجعات مكتوبة}}",
       "ratingCount": "{count, plural, one {# تقييم} other {# تقييمات}}",
       "notEnoughRatings": "لا توجد تقييمات كافية بعد ({count})",
+      "newWithRatings": "جديد — {count, plural, one {تقييم واحد} two {تقييمان} few {# تقييمات} many {# تقييمًا} other {# تقييم}}",
       "scopedNoRatings": "{range} · لا توجد تقييمات بعد",
       "scopedRatingCount": "{range} · {count, plural, one {# تقييم} other {# تقييمات}}"
     },
@@ -3550,5 +3557,141 @@
       "title": "المساعدة والدعم"
     },
     "becomeADoctor": "كن طبيبًا"
+  },
+  "doctorHome": {
+    "timeline": {
+      "title": "اليوم",
+      "empty": "لا توجد ساعات عمل أو زيارات في تقويمك اليوم.",
+      "emptyHint": "حدّد ساعات عملك من صفحة الجدول.",
+      "legendAvailable": "متاح",
+      "legendBooked": "محجوز",
+      "now": "الآن",
+      "bookedLabel": "محجوز {time}",
+      "availableLabel": "متاح {from}–{to}"
+    },
+    "actionUnavailable": "غير متاح"
+  },
+  "notificationCopy": {
+    "audienceAsPatient": "بصفتك مريضًا: ",
+    "appointmentCancelled": {
+      "title": "أُلغي الموعد",
+      "patient": "أُلغي موعدك.",
+      "doctor": "ألغى أحد المرضى موعده معك."
+    },
+    "appointmentApproved": {
+      "title": "تمت الموافقة على الموعد",
+      "any": "وافق طبيبك على طلب موعدك."
+    },
+    "appointmentDeclined": {
+      "title": "رُفض طلب الموعد",
+      "any": "رفض طبيبك طلب موعدك."
+    },
+    "appointmentExpired": {
+      "title": "انتهت صلاحية طلب الموعد",
+      "any": "انتهت صلاحية طلب موعدك دون رد. يمكنك حجز موعد جديد مع هذا الطبيب."
+    },
+    "appointmentRescheduled": {
+      "title": "أُعيدت جدولة الموعد",
+      "patient": "أُعيدت جدولة موعدك إلى وقت جديد.",
+      "doctor": "أعاد أحد المرضى جدولة موعده معك إلى وقت جديد."
+    },
+    "appointmentReminder": {
+      "title": "تذكير بموعد قادم",
+      "any": "لديك موعد قادم.",
+      "anyWhen": "لديك موعد قادم في {when}."
+    },
+    "newAppointmentRequest": {
+      "title": "طلب موعد جديد",
+      "any": "طلب أحد المرضى موعدًا معك."
+    },
+    "patientCheckedIn": {
+      "title": "وصل المريض",
+      "any": "وصل أحد المرضى وهو في الانتظار."
+    },
+    "newReview": {
+      "title": "تقييم جديد للاستشارة",
+      "any": "ترك أحد المرضى تقييمًا لاستشارة."
+    },
+    "consultationCompleted": {
+      "title": "اكتملت الاستشارة",
+      "patient": "اكتملت استشارتك. اطّلع على الملخص وقيّم زيارتك.",
+      "doctor": "اكتملت استشارة."
+    },
+    "consultationInterrupted": {
+      "title": "انقطعت الاستشارة",
+      "any": "انقطعت استشارة قبل أن تكتمل."
+    },
+    "disputeRaised": {
+      "title": "تم رفع نزاع",
+      "any": "تم رفع نزاع على أحد مواعيدك."
+    },
+    "disputeWithdrawn": {
+      "title": "سُحب النزاع",
+      "any": "سحب الطرف الذي رفع النزاع الخاص بأحد مواعيدك نزاعه."
+    },
+    "disputeDismissed": {
+      "title": "رُفض النزاع",
+      "any": "رُفض نزاع يخص أحد مواعيدك."
+    },
+    "disputeResolved": {
+      "title": "تم حل النزاع",
+      "any": "تم حل نزاع يخص أحد مواعيدك."
+    },
+    "paymentReceived": {
+      "title": "تم استلام الدفع",
+      "any": "تم استلام دفعتك.",
+      "anyAmount": "تم استلام دفعتك بقيمة {amount}."
+    },
+    "refundIssued": {
+      "title": "تم إصدار استرداد",
+      "any": "تم رد المبلغ إليك.",
+      "anyAmount": "تم رد {amount} إليك."
+    },
+    "newPrescription": {
+      "title": "وصفة طبية جديدة",
+      "any": "وقّع طبيبك وصفة طبية جديدة لك."
+    },
+    "slotOpened": {
+      "title": "أصبح موعد متاحًا",
+      "any": "أصبح لدى طبيب كنت تنتظره موعد متاح ضمن الفترة التي طلبتها."
+    },
+    "welcome": {
+      "title": "مرحبًا بك في أوريفكس",
+      "any": "تم إنشاء حسابك بنجاح."
+    },
+    "welcomeDoctor": {
+      "title": "مرحبًا، دكتور",
+      "any": "تمت الموافقة على توثيقك وأصبح لحسابك الآن صلاحية الوصول إلى مساحة الطبيب."
+    },
+    "accountLocked": {
+      "title": "الحساب مقفل مؤقتًا",
+      "any": "محاولات تسجيل دخول فاشلة كثيرة. حسابك مقفل مؤقتًا.",
+      "anyWhen": "محاولات تسجيل دخول فاشلة كثيرة. حسابك مقفل حتى {when}."
+    },
+    "passwordChanged": {
+      "title": "تم تغيير كلمة المرور",
+      "any": "تم تغيير كلمة مرورك بنجاح. إذا لم تكن أنت، فقم بتأمين حسابك فورًا."
+    },
+    "verificationApproved": {
+      "title": "تمت الموافقة على التوثيق",
+      "any": "تمت الموافقة على توثيقك."
+    },
+    "verificationSuspended": {
+      "title": "تم تعليق التوثيق",
+      "any": "تم تعليق توثيقك وسحب الصلاحيات المرتبطة به."
+    }
+  },
+  "knowledgeEditor": {
+    "write": "كتابة",
+    "preview": "معاينة",
+    "previewEmpty": "لا يوجد ما يُعاين بعد.",
+    "toolbarLabel": "التنسيق",
+    "bold": "غامق",
+    "italic": "مائل",
+    "heading": "عنوان",
+    "list": "قائمة نقطية",
+    "link": "رابط",
+    "progress": "{count} من {max} حرفًا",
+    "linkText": "نص الرابط"
   }
 }

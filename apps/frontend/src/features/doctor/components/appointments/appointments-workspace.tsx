@@ -11,13 +11,15 @@ import { useDoctorScheduleAppointments } from '@/features/doctor/hooks/use-docto
 import { isUpcomingAppointment, NON_TERMINAL_APPOINTMENT_STATUSES } from '@/features/doctor/lib/appointment-status';
 import type { AppointmentStatus, DoctorScheduleAppointment } from '@/features/doctor/api/types';
 import { Link } from '@/shared/i18n/navigation';
-import { Alert } from '@/shared/ui/alert';
-import { Card } from '@/shared/ui/card';
+import { PersonAvatar } from '@/shared/ui/avatar';
+import { Button } from '@/shared/ui/button';
+import { DateBlock } from '@/shared/ui/date-block';
+import { ErrorState } from '@/shared/ui/error-state';
+import { SkeletonRow } from '@/shared/ui/skeletons';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
-import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
 const ALL_STATUSES: readonly AppointmentStatus[] = [
@@ -139,28 +141,30 @@ export function AppointmentsWorkspace() {
         key={appointment.id}
         id={`appointment-${appointment.id}`}
         className={
-          'flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ' +
-          (isHighlighted ? 'border-primary ring-2 ring-primary/40' : 'border-border-default/70')
+          'flex flex-wrap items-center gap-4 rounded-(--r-card) border bg-surface p-4 shadow-xs ' +
+          (isHighlighted ? 'border-focus-ring ring-2 ring-focus-ring/40' : 'border-border-default')
         }
       >
-        <div className="flex min-w-0 flex-col gap-1">
-          <Link href={`/doctor/patients/${appointment.patientId}`} className="truncate text-sm font-medium text-text-primary hover:underline">
-            {appointment.patientName}
+        <DateBlock date={appointment.scheduledAt} />
+        <PersonAvatar name={appointment.patientName} src={appointment.avatarUrl} size="md" />
+        <div className="flex min-w-0 flex-1 basis-48 flex-col gap-0.5">
+          <Link href={`/doctor/patients/${appointment.patientId}`} className="truncate text-body font-medium text-text-primary hover:underline">
+            <bdi>{appointment.patientName}</bdi>
           </Link>
-          <p className="text-sm text-text-secondary">
-            {format.dateTime(new Date(appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}
+          <p className="text-small text-text-tertiary">
+            {format.dateTime(new Date(appointment.scheduledAt), { timeStyle: 'short' })}
           </p>
-          {appointment.reasonForVisit && <p className="text-xs text-text-tertiary">{appointment.reasonForVisit}</p>}
+          {appointment.reasonForVisit && <p className="truncate text-small text-text-secondary">{appointment.reasonForVisit}</p>}
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <AppointmentStatusBadge status={appointment.status} />
+          <AppointmentStatusBadge
+            status={appointment.status}
+            timeAware={{ scheduledAt: appointment.scheduledAt, endTime: appointment.endTime }}
+          />
           {appointment.status === 'completed' && (
-            <Link
-              href={`/doctor/patients/${appointment.patientId}?tab=consultations`}
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              {t('viewSummary')}
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href={`/doctor/patients/${appointment.patientId}?tab=consultations`}>{t('viewSummary')}</Link>
+            </Button>
           )}
           {showCancel && (
             <CancelAppointmentDialog appointmentId={appointment.id} willRefund={appointment.status === 'confirmed'} />
@@ -174,9 +178,9 @@ export function AppointmentsWorkspace() {
     if (isLoading) {
       return (
         <div className="flex flex-col gap-3">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-20 w-full" />
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
         </div>
       );
     }
@@ -188,53 +192,35 @@ export function AppointmentsWorkspace() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="flex flex-col gap-4 p-6">
+      <div className="flex flex-wrap items-center gap-2">
         <ReportsDateRangePicker dateFrom={range.dateFrom} dateTo={range.dateTo} onChange={(dateFrom, dateTo) => setRange({ dateFrom, dateTo })} />
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="appointments-status-filter" className="text-xs text-text-tertiary">
-              {t('filters.status')}
-            </label>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AppointmentStatus | 'all')}>
-              <SelectTrigger id="appointments-status-filter" className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('filters.statusAll')}</SelectItem>
-                {ALL_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {t(`status.${status}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-1 min-w-48 flex-col gap-1">
-            <label htmlFor="appointments-patient-search" className="text-xs text-text-tertiary">
-              {t('filters.patientSearchLabel')}
-            </label>
-            <div className="relative">
-              <Icon icon={Search} size="sm" className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
-              <Input
-                id="appointments-patient-search"
-                value={patientQuery}
-                onChange={(event) => setPatientQuery(event.target.value)}
-                placeholder={t('filters.patientSearchPlaceholder')}
-                className="ps-9"
-              />
-            </div>
-          </div>
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AppointmentStatus | 'all')}>
+          <SelectTrigger id="appointments-status-filter" aria-label={t('filters.status')} className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('filters.statusAll')}</SelectItem>
+            {ALL_STATUSES.map((status) => (
+              <SelectItem key={status} value={status}>
+                {t(`status.${status}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="relative min-w-48 flex-1">
+          <Icon icon={Search} size="sm" className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
+          <Input
+            id="appointments-patient-search"
+            aria-label={t('filters.patientSearchLabel')}
+            value={patientQuery}
+            onChange={(event) => setPatientQuery(event.target.value)}
+            placeholder={t('filters.patientSearchPlaceholder')}
+            className="ps-9"
+          />
         </div>
-      </Card>
+      </div>
 
-      {isError && (
-        <Alert variant="danger">
-          {t('loadError')}{' '}
-          <button type="button" className="font-medium underline" onClick={() => refetch()}>
-            {t('retry')}
-          </button>
-        </Alert>
-      )}
+      {isError && <ErrorState size="sm" description={t('loadError')} onRetry={() => void refetch()} />}
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as AppointmentTab)}>
         <TabsList>
@@ -251,7 +237,7 @@ export function AppointmentsWorkspace() {
         </TabsContent>
         <TabsContent value="needsResolution" className="flex flex-col gap-3">
           {buckets.needsResolution.length > 0 && (
-            <p className="text-sm text-text-secondary">{t('needsResolutionExplainer')}</p>
+            <p className="text-small text-text-secondary">{t('needsResolutionExplainer')}</p>
           )}
           {renderList(buckets.needsResolution, t('empty.needsResolutionTitle'), t('empty.needsResolutionDescription'), true)}
         </TabsContent>

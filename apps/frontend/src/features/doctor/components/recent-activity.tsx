@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { useLocalizedNotification } from '@/features/notifications/hooks/use-localized-notification';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationSeverity } from '@/features/notifications/api/types';
 import { Alert } from '@/shared/ui/alert';
@@ -33,6 +34,7 @@ export function RecentActivity() {
   const t = useTranslations('doctor.dashboard.activity');
   const format = useFormatter();
   const { data: notifications, isLoading, isError } = useNotifications();
+  const localize = useLocalizedNotification();
 
   const recent = (notifications ?? []).slice(0, MAX_ITEMS);
 
@@ -56,14 +58,15 @@ export function RecentActivity() {
         <ul className="flex flex-col divide-y divide-border-default">
           {recent.map((notification) => {
             const { icon, accentClassName } = iconBySeverity[notification.severity];
+            const text = localize(notification);
             return (
               <li key={notification.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
                 <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', accentClassName)}>
                   <Icon icon={icon} size="sm" />
                 </span>
                 <div className="flex flex-1 flex-col gap-0.5">
-                  <p className="text-sm font-medium text-text-primary">{notification.title}</p>
-                  <p className="text-sm text-text-secondary">{notification.description}</p>
+                  <p className="text-sm font-medium text-text-primary">{text.title}</p>
+                  <p className="text-sm text-text-secondary">{text.description}</p>
                   <p className="text-xs text-text-tertiary">
                     {format.relativeTime(new Date(notification.createdAt), new Date())}
                   </p>

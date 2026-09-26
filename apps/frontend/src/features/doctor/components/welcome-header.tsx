@@ -3,14 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { Heading } from '@/design-system/typography';
 import { useAuth } from '@/shared/auth/auth-context';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
-
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
+import { PersonAvatar } from '@/shared/ui/avatar';
 
 /** Display-only capitalization of the real account name (e.g. "ramy" -> "Ramy") -- never written back, just how the greeting renders it. */
 function toDisplayCase(fullName: string): string {
@@ -44,15 +37,12 @@ export function WelcomeHeader() {
 
   return (
     <div className="flex items-center gap-4">
-      <Avatar size="lg" className="size-14">
-        {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
-        <AvatarFallback className="text-lg">{initialsFor(user.fullName)}</AvatarFallback>
-      </Avatar>
+      <PersonAvatar name={user.fullName} src={user.avatarUrl} size="lg" />
       <div className="flex flex-col gap-1">
         {/* A real <h2>, not styled-to-look-like-one text -- Overview's own
             <h1> otherwise jumps straight to the widget cards' <h3>
             CardTitles below with nothing in between. */}
-        <Heading level={2}>
+        <Heading as="h1" level={1} className="text-display">
           {/*
            * Phase 8 AR localization fix (reported bidi-punctuation issue):
            * in the Arabic greeting ("مرحبًا بعودتك، د. {name}.") the account
@@ -76,7 +66,7 @@ export function WelcomeHeader() {
             bdi: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
           })}
         </Heading>
-        <p className="text-sm text-text-secondary">
+        <p className="text-small text-text-tertiary">
           {format.dateTime(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>

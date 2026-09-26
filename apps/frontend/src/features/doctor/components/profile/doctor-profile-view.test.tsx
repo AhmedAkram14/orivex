@@ -63,7 +63,8 @@ describe('DoctorProfileView', () => {
 
     renderWithProviders(<DoctorProfileView profile={buildProfile()} />);
 
-    expect(await screen.findByText('5.0')).toBeInTheDocument();
+    // One rating is below the confidence threshold: no number, framed as "New" (a 5.0 next to "not enough ratings" contradicted itself).
+    expect(await screen.findByText('New — 1 rating')).toBeInTheDocument();
     expect(screen.getByText('Very thorough and kind.')).toBeInTheDocument();
   });
 

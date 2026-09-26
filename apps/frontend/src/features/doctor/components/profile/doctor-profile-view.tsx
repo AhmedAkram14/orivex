@@ -29,6 +29,8 @@ import type { ReactNode } from 'react';
 import { DoctorReviewsList } from '@/features/consultation/components/doctor-reviews-list';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import { getRatingDisplay } from '@/features/consultation/lib/rating-display';
+import { InsetRow } from '@/shared/ui/inset-row';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { Heading } from '@/design-system/typography';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
@@ -268,54 +270,27 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 border-t border-border-default pt-6 sm:grid-cols-4">
+          <MetricStrip className="shadow-none">
             {isWorkspace && patients && (
-              <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-info-subtle text-info-emphasis">
-                  <Icon icon={Users} size="md" />
-                </span>
-                <div>
-                  <p className="text-lg font-semibold text-text-primary">{patients.length}</p>
-                  <p className="text-xs text-text-tertiary">{t('hero.patientsCount', { count: patients.length })}</p>
-                </div>
-              </div>
+              <MetricStat variant="inline" icon={Users} value={String(patients.length)} label={t('hero.patientsCount', { count: patients.length })} />
             )}
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-full bg-warning-subtle text-warning-emphasis">
-                <Icon icon={Star} size="md" />
-              </span>
-              <div>
-                <p className="text-lg font-semibold text-text-primary">{rating.value}</p>
-                <p className="text-xs text-text-tertiary">{rating.helperText}</p>
-              </div>
-            </div>
+            <MetricStat variant="inline" icon={Star} value={rating.value} label={t('hero.ratingLabel')} helperText={rating.helperText} />
             {profile.yearsOfExperience !== undefined && (
-              <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-success-subtle text-success-emphasis">
-                  <Icon icon={Briefcase} size="md" />
-                </span>
-                <div>
-                  <p className="text-lg font-semibold text-text-primary">{profile.yearsOfExperience}</p>
-                  <p className="text-xs text-text-tertiary">{t('hero.yearsExperience', { years: profile.yearsOfExperience })}</p>
-                </div>
-              </div>
+              <MetricStat variant="inline" icon={Briefcase} value={String(profile.yearsOfExperience)} label={t('yearsOfExperienceLabel')} />
             )}
             {profile.consultationFeeAmount !== undefined && (
-              <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
-                  <Icon icon={Wallet} size="md" />
-                </span>
-                <div>
-                  <p className={cn('text-lg font-semibold', profile.consultationFeeAmount === 0 ? 'text-success' : 'text-text-primary')}>
-                    {profile.consultationFeeAmount === 0
-                      ? t('hero.consultationFeeFree')
-                      : t('hero.consultationFee', { amount: profile.consultationFeeAmount })}
-                  </p>
-                  <p className="text-xs text-text-tertiary">{t('consultationFee')}</p>
-                </div>
-              </div>
+              <MetricStat
+                variant="inline"
+                icon={Wallet}
+                value={
+                  profile.consultationFeeAmount === 0
+                    ? t('hero.consultationFeeFree')
+                    : t('hero.consultationFee', { amount: profile.consultationFeeAmount })
+                }
+                label={t('consultationFee')}
+              />
             )}
-          </div>
+          </MetricStrip>
         </CardContent>
       </Card>
 
@@ -435,54 +410,73 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
             )}
           </ProfileSectionCard>
 
-          <ProfileSectionCard title={t('publications')} icon={Book} iconClassName="bg-warning-subtle text-warning-emphasis">
-            {(profile.publications ?? []).length > 0 ? (
-              <ul className="flex flex-col gap-3">
-                {profile.publications.map((publication) => (
-                  <li key={publication.id} className="rounded-2xl border border-border-default p-4">
-                    <p className="text-sm font-medium text-text-primary">{publication.title}</p>
-                    {publication.reference && <p className="mt-0.5 text-xs text-text-tertiary">{publication.reference}</p>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState illustration="records-start"
-                title={t('publicationsEmptyTitle')}
-                description={t('publicationsEmptyDescription')}
-                action={
-                  isWorkspace && onEdit ? (
-                    <Button variant="secondary" size="sm" onClick={onEdit}>
-                      {t('addPublication')}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            )}
-          </ProfileSectionCard>
+          {/* One Credentials card: publications and awards as quiet inset rows. */}
+          <ProfileSectionCard title={t('credentials')} icon={Award} iconClassName="bg-surface-2 text-text-secondary">
+            <div className="flex flex-col gap-6">
+              <section aria-labelledby="credentials-publications" className="flex flex-col gap-2">
+                <h3 id="credentials-publications" className="text-small font-medium text-text-tertiary">
+                  {t('publications')}
+                </h3>
+                {(profile.publications ?? []).length > 0 ? (
+                  <ul className="flex flex-col gap-2">
+                    {profile.publications.map((publication) => (
+                      <li key={publication.id}>
+                        <InsetRow className="flex-col items-start gap-0.5">
+                          <p className="text-small font-medium text-text-primary">{publication.title}</p>
+                          {publication.reference && <p className="text-caption text-text-tertiary">{publication.reference}</p>}
+                        </InsetRow>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <EmptyState
+                    size="sm"
+                    illustration="articles-none"
+                    title={t('publicationsEmptyTitle')}
+                    description={t('publicationsEmptyDescription')}
+                    action={
+                      isWorkspace && onEdit ? (
+                        <Button variant="secondary" size="sm" onClick={onEdit}>
+                          {t('addPublication')}
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                )}
+              </section>
 
-          <ProfileSectionCard title={t('awards')} icon={Award} iconClassName="bg-danger-subtle text-danger-emphasis">
-            {(profile.awards ?? []).length > 0 ? (
-              <ul className="flex flex-col gap-3">
-                {profile.awards.map((award) => (
-                  <li key={award.id} className="rounded-2xl border border-border-default p-4">
-                    <p className="text-sm font-medium text-text-primary">{award.title}</p>
-                    {award.issuingBody && <p className="mt-0.5 text-xs text-text-tertiary">{award.issuingBody}</p>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState illustration="records-start"
-                title={t('awardsEmptyTitle')}
-                description={t('awardsEmptyDescription')}
-                action={
-                  isWorkspace && onEdit ? (
-                    <Button variant="secondary" size="sm" onClick={onEdit}>
-                      {t('addAward')}
-                    </Button>
-                  ) : undefined
-                }
-              />
-            )}
+              <section aria-labelledby="credentials-awards" className="flex flex-col gap-2">
+                <h3 id="credentials-awards" className="text-small font-medium text-text-tertiary">
+                  {t('awards')}
+                </h3>
+                {(profile.awards ?? []).length > 0 ? (
+                  <ul className="flex flex-col gap-2">
+                    {profile.awards.map((award) => (
+                      <li key={award.id}>
+                        <InsetRow className="flex-col items-start gap-0.5">
+                          <p className="text-small font-medium text-text-primary">{award.title}</p>
+                          {award.issuingBody && <p className="text-caption text-text-tertiary">{award.issuingBody}</p>}
+                        </InsetRow>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <EmptyState
+                    size="sm"
+                    illustration="records-start"
+                    title={t('awardsEmptyTitle')}
+                    description={t('awardsEmptyDescription')}
+                    action={
+                      isWorkspace && onEdit ? (
+                        <Button variant="secondary" size="sm" onClick={onEdit}>
+                          {t('addAward')}
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                )}
+              </section>
+            </div>
           </ProfileSectionCard>
 
           <ProfileSectionCard title={t('reviews')} icon={Star} iconClassName="bg-warning-subtle text-warning-emphasis">

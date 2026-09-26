@@ -5,7 +5,7 @@ import { useNotificationPreferences } from '@/features/notifications/hooks/use-n
 import { useUpdateNotificationPreferences } from '@/features/notifications/hooks/use-update-notification-preferences';
 import type { NotificationPreferences } from '@/features/notifications/api/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Checkbox } from '@/shared/ui/checkbox';
+import { Switch } from '@/shared/ui/switch';
 import { Skeleton } from '@/shared/ui/skeleton';
 
 type PreferenceField = keyof NotificationPreferences;
@@ -75,7 +75,7 @@ export function NotificationPreferencesSection() {
                     {t(`categories.${row.key}`)}
                   </th>
                   <td className="py-2 text-center">
-                    <Checkbox
+                    <Switch
                       aria-label={t('toggleLabel', {
                         category: t(`categories.${row.key}`),
                         channel: t('channels.email'),
@@ -86,7 +86,7 @@ export function NotificationPreferencesSection() {
                     />
                   </td>
                   <td className="py-2 text-center">
-                    <Checkbox
+                    <Switch
                       aria-label={t('toggleLabel', {
                         category: t(`categories.${row.key}`),
                         channel: t('channels.inApp'),

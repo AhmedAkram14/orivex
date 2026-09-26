@@ -24,7 +24,8 @@ import { DoctorConsultationSummaryAction } from '@/features/consultation/compone
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage, PersonAvatar } from '@/shared/ui/avatar';
+import { HeroSurface } from '@/shared/ui/hero-surface';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Icon } from '@/shared/icons/icon';
@@ -242,21 +243,17 @@ export default function DoctorPatientChartPage() {
         return (
           <TooltipProvider>
           <Page>
-            <WorkspaceHeader
-              breadcrumbs={<AppBreadcrumbs />}
-              title={profile.fullName}
-              description={t('workspaceEyebrow')}
-              actions={
-                <PatientRecordHeaderActions
-                  patientProfileId={patientProfileId}
-                  hasUpcomingAppointment={upcomingAppointments.length > 0}
-                  canWritePrescription={eligiblePrescriptionAppointments.length > 0}
-                  onWritePrescription={openPrescriptionDialog}
-                  onAddCondition={openAddConditionDialog}
-                  onUploadDocument={() => handleTabChange('documents')}
-                />
-              }
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <AppBreadcrumbs />
+              <PatientRecordHeaderActions
+                patientProfileId={patientProfileId}
+                hasUpcomingAppointment={upcomingAppointments.length > 0}
+                canWritePrescription={eligiblePrescriptionAppointments.length > 0}
+                onWritePrescription={openPrescriptionDialog}
+                onAddCondition={openAddConditionDialog}
+                onUploadDocument={() => handleTabChange('documents')}
+              />
+            </div>
 
             {/* Patient Record Page P0 fix: appears once the real header
                 below scrolls out of view, so the doctor never loses track of
@@ -268,46 +265,32 @@ export default function DoctorPatientChartPage() {
                   through, so StickyPatientBar's IntersectionObserver has a
                   real DOM node to watch. */}
               <div ref={headerRef}>
-              <Card
-                className={cn('relative isolate overflow-hidden bg-gradient-to-br from-primary-subtle/40 to-surface', CARD_CLASSNAME)}
-              >
-                <div aria-hidden className="pointer-events-none absolute -end-14 -top-16 size-48 rounded-full bg-primary/10 blur-3xl" />
-                <CardContent className="relative z-10 flex flex-wrap items-center gap-4 px-7 py-6">
-                  <Avatar size="xl" className="shrink-0 ring-4 ring-surface/80">
-                    {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-                    <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-text-secondary">
-                      <span>{profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}</span>
-                      {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
-                      {profile.dateOfBirth && (
-                        <span>
-                          · {t('dateOfBirthLabel')}: {format.dateTime(new Date(profile.dateOfBirth), { dateStyle: 'medium' })}
-                        </span>
-                      )}
-                    </p>
-                    {/* De-emphasized (Phase 1.4): no MRN field exists in this
-                        domain -- only this UUID, kept small/tertiary and
-                        moved off its own line under the name so it reads as
-                        a minor identifier, not a primary label. */}
-                    <div className="flex items-center gap-1">
-                      <bdi dir="ltr" className="text-xs text-text-tertiary">
-                        {t('patientId', { id: shortId(profile.id) })}
-                      </bdi>
-                      <CopyButton value={profile.id} label={t('copyPatientId')} copiedLabel={t('copyPatientIdCopied')} />
-                    </div>
-                    {/* Page-level provenance (P1): the one timestamp this DTO
-                        actually returns (profile.updatedAt) -- per-vital
-                        "recorded by" would need a new recordedByDoctorId/name
-                        field on DoctorPatientChartVitalSummary that doesn't
-                        exist today; not faked here. */}
-                    <p className="text-xs text-text-tertiary">
-                      {t('lastUpdated', { relativeTime: formatRelativeTime(new Date(profile.updatedAt), locale, t('activeNow')) })}
-                    </p>
+              <HeroSurface variant="doctor" className="flex flex-wrap items-center gap-5">
+                <PersonAvatar name={profile.fullName} src={profile.avatarUrl} size="xl" className="ring-4 ring-surface/80" />
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Heading as="h1" level={1} className="text-display">
+                    <bdi>{profile.fullName}</bdi>
+                  </Heading>
+                  <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body text-text-secondary">
+                    <span>{profile.gender ? t(`genderOptions.${profile.gender}`) : t('notOnRecord')}</span>
+                    {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
+                    {profile.dateOfBirth && (
+                      <span>
+                        · {t('dateOfBirthLabel')}: {format.dateTime(new Date(profile.dateOfBirth), { dateStyle: 'medium' })}
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <bdi dir="ltr" className="text-caption text-text-tertiary">
+                      {t('patientId', { id: shortId(profile.id) })}
+                    </bdi>
+                    <CopyButton value={profile.id} label={t('copyPatientId')} copiedLabel={t('copyPatientIdCopied')} />
                   </div>
-                </CardContent>
-              </Card>
+                  <p className="text-caption text-text-tertiary">
+                    {t('lastUpdated', { relativeTime: formatRelativeTime(new Date(profile.updatedAt), locale, t('activeNow')) })}
+                  </p>
+                </div>
+              </HeroSurface>
               </div>
 
               {/* Allergy banner (P0 fix): full-width, color-coded, directly
