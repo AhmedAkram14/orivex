@@ -1,4 +1,4 @@
-import { LayoutDashboard, LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
+import { LogOut, Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 
 export type CommandGroup = 'navigation' | 'actions';
 
@@ -23,7 +23,6 @@ export interface CommandDefinition {
  * second hand-maintained list did.
  */
 export const COMMANDS: CommandDefinition[] = [
-  { id: 'nav-dashboard', labelKey: 'dashboard', icon: LayoutDashboard, group: 'navigation', href: '/dashboard' },
   { id: 'action-theme-light', labelKey: 'themeLight', icon: Sun, group: 'actions' },
   { id: 'action-theme-dark', labelKey: 'themeDark', icon: Moon, group: 'actions' },
   { id: 'action-theme-system', labelKey: 'themeSystem', icon: Monitor, group: 'actions' },

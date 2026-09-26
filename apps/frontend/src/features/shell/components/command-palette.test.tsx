@@ -118,9 +118,9 @@ describe('CommandPalette', () => {
     await userEvent.click(screen.getByRole('button', { name: /Search/ }));
     await screen.findByRole('dialog');
 
-    await userEvent.click(screen.getByText('Dashboard'));
+    await userEvent.click(screen.getByText('Security'));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/en/dashboard'));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/en/security'));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 

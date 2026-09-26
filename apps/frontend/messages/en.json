@@ -680,6 +680,9 @@
         "clinical": "Clinical",
         "administration": "Administration",
         "practice": "Practice",
+        "care": "Care",
+        "myHealth": "My health",
+        "support": "Support",
         "account": "Account",
         "more": "More"
       },
@@ -3536,5 +3539,16 @@
     "confirm": {
       "cancel": "Cancel"
     }
+  },
+  "chrome": {
+    "bottomNav": {
+      "label": "Primary",
+      "more": "More",
+      "moreLabel": "Open the full menu"
+    },
+    "help": {
+      "title": "Help & support"
+    },
+    "becomeADoctor": "Become a Doctor"
   }
 }

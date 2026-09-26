@@ -35,9 +35,11 @@ body {
    in the app, not just on the primitives someone remembered to annotate.
    `:focus-visible` only (never plain `:focus`), so a mouse click never
    shows this ring, matching every existing `focus-visible:` usage. */
-:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
 }
 
 /* Script-aware font switching by `lang`, not by component prop — so any

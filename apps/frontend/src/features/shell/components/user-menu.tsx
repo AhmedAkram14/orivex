@@ -1,13 +1,13 @@
 'use client';
 
-import { ChevronDown, Globe, LogOut, Monitor, Moon, Settings, ShieldCheck, Sun } from 'lucide-react';
+import { ChevronDown, Globe, LogOut, Monitor, Moon, Settings, ShieldCheck, Stethoscope, Sun } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useLogout } from '@/features/auth/hooks/use-logout';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { localeNativeNames, routing, type AppLocale } from '@/shared/i18n/routing';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,13 +20,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { useTheme, type Theme } from '@/shared/providers/theme-provider';
 
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
-
 export interface UserMenuProps {
   /** Additive, default false (every existing caller's rendered trigger is unchanged) -- shows the account's name and a chevron next to the avatar, for contexts outside the dashboard Topbar (e.g. the Journey screen's own minimal header) where the plain icon-only trigger would look unlabeled. */
   showName?: boolean;
@@ -37,6 +30,7 @@ export interface UserMenuProps {
 /** The Topbar's trailing avatar + dropdown — account identity, theme selection, Security Center shortcut, and sign out. Every label routes through `shell.userMenu`; nothing here assumes a specific role. */
 export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
   const t = useTranslations('shell.userMenu');
+  const tChrome = useTranslations('chrome');
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const logout = useLogout();
@@ -51,10 +45,7 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
-        <Avatar size="sm">
-          {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
-          <AvatarFallback>{initialsFor(user.fullName)}</AvatarFallback>
-        </Avatar>
+        <PersonAvatar name={user.fullName} src={user.avatarUrl} size="sm" />
         {showName && (
           <>
             {/* Responsive pass (Phase 7): this block used to be the thing that
@@ -64,8 +55,8 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
                 DropdownMenuLabel subtitle line below); the chevron alone is
                 enough affordance for "this opens a menu" next to the avatar. */}
             <span className="hidden flex-col items-start leading-tight sm:flex">
-              <span className="text-sm font-medium text-text-primary">{user.fullName}</span>
-              {subtitle && <span className="text-xs text-text-tertiary">{subtitle}</span>}
+              <span className="text-sm font-medium text-text-primary"><bdi>{user.fullName}</bdi></span>
+              {subtitle && <span className="text-caption text-text-tertiary">{subtitle}</span>}
             </span>
             <Icon icon={ChevronDown} size="sm" className="text-text-tertiary" />
           </>
@@ -97,6 +88,14 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
             <Link href="/doctor/settings" className="flex items-center gap-2">
               <Icon icon={Settings} size="sm" />
               {t('settings')}
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {user.roles.includes('patient') && (
+          <DropdownMenuItem asChild>
+            <Link href="/doctor/onboarding" className="flex items-center gap-2">
+              <Icon icon={Stethoscope} size="sm" />
+              {tChrome('becomeADoctor')}
             </Link>
           </DropdownMenuItem>
         )}

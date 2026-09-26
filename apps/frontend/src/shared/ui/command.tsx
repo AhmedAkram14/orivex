@@ -26,10 +26,10 @@ export function CommandDialog({ children, ...props }: CommandDialogProps) {
   return (
     <DialogPrimitive.Root {...props}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-(--z-overlay) bg-overlay" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-(--z-overlay) animate-fade-in bg-overlay" />
         <DialogPrimitive.Content
           className={cn(
-            'fixed start-1/2 top-24 z-(--z-dialog) w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border border-border-default bg-surface shadow-xl rtl:translate-x-1/2',
+            'fixed start-1/2 top-24 z-(--z-dialog) w-full max-w-lg -translate-x-1/2 animate-pop-in overflow-hidden rounded-(--r-card) border border-border-default bg-surface-raised shadow-md rtl:translate-x-1/2',
             'focus-visible:outline-none',
           )}
         >
@@ -47,7 +47,7 @@ export const CommandInput = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center gap-2 border-b border-border-default px-3">
+  <div className="flex items-center gap-2 border-b border-border-default px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-focus-ring">
     <Icon icon={Search} size="sm" className="shrink-0 text-text-tertiary" />
     <CommandPrimitive.Input
       ref={ref}

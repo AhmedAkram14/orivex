@@ -12,9 +12,9 @@ export interface PageHeaderProps extends HTMLAttributes<HTMLDivElement> {
 export function PageHeader({ title, description, actions, className, ...props }: PageHeaderProps) {
   return (
     <div className={cn('flex flex-wrap items-start justify-between gap-4', className)} {...props}>
-      <div className="flex flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1">
         <Heading level={1}>{title}</Heading>
-        {description && <p className="text-sm text-text-secondary">{description}</p>}
+        {description && <p className="max-w-[72ch] text-small text-text-tertiary">{description}</p>}
       </div>
       {actions && <PageActions>{actions}</PageActions>}
     </div>

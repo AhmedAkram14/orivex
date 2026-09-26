@@ -11,7 +11,7 @@ export function Breadcrumb({ className, ...props }: HTMLAttributes<HTMLElement>)
 export function BreadcrumbList({ className, ...props }: HTMLAttributes<HTMLOListElement>) {
   return (
     <ol
-      className={cn('flex flex-wrap items-center gap-1.5 text-sm text-text-secondary', className)}
+      className={cn('flex flex-wrap items-center gap-1.5 text-caption text-text-tertiary', className)}
       {...props}
     />
   );
@@ -33,7 +33,7 @@ export function BreadcrumbLink({ asChild = false, className, ...props }: Breadcr
 
 export function BreadcrumbPage({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (
-    <span aria-current="page" className={cn('font-medium text-text-primary', className)} {...props} />
+    <span aria-current="page" className={cn('font-medium text-text-secondary', className)} {...props} />
   );
 }
 

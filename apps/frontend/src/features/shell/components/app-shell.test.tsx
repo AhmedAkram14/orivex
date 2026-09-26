@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppShell } from '@/features/shell/components/app-shell';
@@ -46,8 +46,9 @@ describe('AppShell', () => {
     );
 
     expect(screen.getByText('Orivex')).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'Overview' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Security' })).toBeInTheDocument();
+    const sidebar = await screen.findByRole('navigation', { name: 'Main navigation' });
+    expect(within(sidebar).getByRole('link', { name: 'Overview' })).toBeInTheDocument();
+    expect(within(sidebar).getByRole('link', { name: 'Security' })).toBeInTheDocument();
     expect(screen.getByText('Page content')).toBeInTheDocument();
   });
 

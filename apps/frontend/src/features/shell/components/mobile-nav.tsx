@@ -11,10 +11,18 @@ import { Logo } from '@/shared/ui/logo';
 import { Drawer } from '@/shared/ui/side-panel';
 
 /** The small-viewport equivalent of the desktop `Sidebar` — the same `SidebarNav` content inside a `Drawer` (side-anchored, direction-aware) rather than a permanently-visible column. Explicitly closes itself on navigation (`onNavigate`) — App Router client-side navigation never unmounts this shell component, so without this the drawer would otherwise stay open over the newly-navigated page. */
-export function MobileNav() {
+export interface MobileNavProps {
+  /** Controlled open state -- AppShell passes it so the bottom nav's "More" opens this same drawer. Omitted = self-managed. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function MobileNav({ open: openProp, onOpenChange }: MobileNavProps = {}) {
   const t = useTranslations('shell');
   const tCommon = useTranslations('common');
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>

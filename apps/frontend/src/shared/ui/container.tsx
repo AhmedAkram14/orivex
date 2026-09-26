@@ -18,7 +18,7 @@ const sizeClass: Record<NonNullable<ContainerProps['size']>, string> = {
 export function Container({ size = 'xl', className, children, ...props }: ContainerProps) {
   return (
     <div
-      className={cn('mx-auto w-full px-4 sm:px-6 lg:px-8', sizeClass[size], className)}
+      className={cn('mx-auto w-full px-(--page-gutter)', sizeClass[size], className)}
       {...props}
     >
       {children}

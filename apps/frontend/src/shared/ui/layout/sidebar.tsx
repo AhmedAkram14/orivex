@@ -20,6 +20,6 @@ export function SidebarSection({ className, ...props }: HTMLAttributes<HTMLDivEl
 
 export function SidebarSectionLabel({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn('px-2 py-1.5 text-xs font-medium text-text-tertiary', className)} {...props} />
+    <p className={cn('px-3 py-1.5 text-caption text-text-tertiary', className)} {...props} />
   );
 }

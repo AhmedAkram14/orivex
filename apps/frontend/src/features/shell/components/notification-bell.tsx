@@ -30,7 +30,7 @@ export function NotificationBell() {
       >
         <Icon icon={Bell} size="md" />
         {unreadCount > 0 && (
-          <Badge variant="danger" className="absolute -end-1 -top-1 min-w-4 justify-center px-1 py-0 text-[10px]">
+          <Badge variant="danger" dir="ltr" className="absolute -end-1 -top-1 min-w-5 justify-center px-1 py-0">
             {unreadCount > 9 ? '9+' : unreadCount}
           </Badge>
         )}

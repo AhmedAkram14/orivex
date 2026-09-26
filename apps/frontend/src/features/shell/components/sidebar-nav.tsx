@@ -97,7 +97,7 @@ function UnreadMessagesNavBadge() {
   const count = useUnreadMessageCount();
   if (count === 0) return null;
   return (
-    <Badge variant="danger" className="min-w-4 justify-center px-1 py-0 text-[10px]">
+    <Badge variant="danger" dir="ltr" className="min-w-5 justify-center px-1 py-0">
       {count > 9 ? '9+' : count}
     </Badge>
   );

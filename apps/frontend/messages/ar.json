@@ -668,6 +668,9 @@
         "clinical": "الرعاية السريرية",
         "administration": "الإدارة",
         "practice": "العيادة",
+        "care": "الرعاية",
+        "myHealth": "صحتي",
+        "support": "الدعم",
         "account": "الحساب",
         "more": "المزيد"
       },
@@ -3536,5 +3539,16 @@
     "confirm": {
       "cancel": "إلغاء"
     }
+  },
+  "chrome": {
+    "bottomNav": {
+      "label": "التنقل الرئيسي",
+      "more": "المزيد",
+      "moreLabel": "فتح القائمة الكاملة"
+    },
+    "help": {
+      "title": "المساعدة والدعم"
+    },
+    "becomeADoctor": "كن طبيبًا"
   }
 }

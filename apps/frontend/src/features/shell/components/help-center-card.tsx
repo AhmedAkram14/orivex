@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Headphones } from 'lucide-react';
+import { ChevronRight, LifeBuoy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
@@ -14,34 +14,27 @@ const KNOWLEDGE_CENTER_HREF_BY_ROLE: Partial<Record<string, string>> = {
 };
 
 /**
- * The sidebar's bottom "get in touch" card. Every role with a real
- * Knowledge Center page (doctor/patient/super_admin) links straight there --
- * that page is the real help center this card used to only promise, not a
- * second, split destination beside the sidebar's own Knowledge Center nav
- * item one section up. A role with no dedicated Knowledge Center page
- * (hospital_admin/receptionist/nurse) falls back to the real `mailto:`,
- * same address the landing page's FAQ "Contact Support" button uses.
+ * The sidebar's bottom help row (compact, one line). Every role with a real
+ * Knowledge Center page links straight there; a role with none
+ * (hospital_admin/receptionist/nurse) falls back to the support `mailto:`.
+ * PRODUCT QUESTION (flagged in the redesign report): the Knowledge Center is
+ * the only real "help" destination today -- there is no dedicated help page.
  */
 export function HelpCenterCard() {
-  const t = useTranslations('shell.helpCenter');
+  const t = useTranslations('chrome.help');
   const { user } = useAuth();
   const knowledgeHref = user?.roles.map((role) => KNOWLEDGE_CENTER_HREF_BY_ROLE[role]).find(Boolean);
 
   const content = (
     <>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-primary">
-        <Icon icon={Headphones} size="sm" />
-      </span>
-      <span className="flex flex-1 flex-col">
-        <span className="text-sm font-medium text-text-primary">{t('title')}</span>
-        <span className="text-xs text-primary">{t('cta')}</span>
-      </span>
+      <Icon icon={LifeBuoy} size="sm" className="shrink-0 text-text-tertiary" />
+      <span className="flex-1 truncate text-small font-medium text-text-primary">{t('title')}</span>
       <Icon icon={ChevronRight} size="sm" flipRtl className="shrink-0 text-text-tertiary" />
     </>
   );
 
   const className =
-    'flex items-center gap-3 rounded-lg bg-primary-subtle p-3 transition-colors duration-(--duration-fast) hover:bg-primary-subtle/70';
+    'flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors duration-(--duration-fast) hover:bg-surface-2 pointer-coarse:min-h-11';
 
   if (knowledgeHref) {
     return (

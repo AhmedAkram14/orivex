@@ -248,9 +248,11 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
       },
     ],
   },
+  // Patient sidebar: four named groups (Care / My health / Support / Account).
+  // "Become a Doctor" is no longer a sidebar row -- it lives in the account menu.
   {
-    id: 'patient-workspace',
-    labelKey: 'patientWorkspace',
+    id: 'patient-workspace-care',
+    labelKey: 'groups.care',
     icon: HeartPulse,
     roles: ['patient'],
     children: [
@@ -263,13 +265,6 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         exactMatchOnly: true,
       },
       {
-        id: 'patient-workspace-profile',
-        labelKey: 'patientProfile',
-        icon: User,
-        href: '/patient/profile',
-        roles: ['patient'],
-      },
-      {
         id: 'patient-workspace-appointments',
         labelKey: 'patientAppointments',
         icon: CalendarDays,
@@ -277,8 +272,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         roles: ['patient'],
       },
       {
-        // Onboarding Redesign (2026-07-21 proposal, Stage O.5) -- immediately
-        // reachable, no identity-verification gate.
+        // Immediately reachable, no identity-verification gate.
         id: 'patient-workspace-doctors',
         labelKey: 'patientDoctors',
         icon: Search,
@@ -293,13 +287,6 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         roles: ['patient'],
       },
       {
-        id: 'patient-workspace-records',
-        labelKey: 'patientRecords',
-        icon: FileText,
-        href: '/patient/records',
-        roles: ['patient'],
-      },
-      {
         id: 'patient-workspace-messages',
         labelKey: 'patientMessages',
         icon: MessageCircle,
@@ -307,25 +294,26 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         roles: ['patient'],
         badge: 'unread-messages',
       },
+    ],
+  },
+  {
+    id: 'patient-workspace-my-health',
+    labelKey: 'groups.myHealth',
+    icon: HeartPulse,
+    roles: ['patient'],
+    children: [
       {
-        id: 'patient-workspace-disputes',
-        labelKey: 'patientDisputes',
-        icon: AlertTriangle,
-        href: '/patient/disputes',
+        id: 'patient-workspace-health',
+        labelKey: 'patientHealth',
+        icon: HeartPulse,
+        href: '/patient/health',
         roles: ['patient'],
       },
       {
-        id: 'patient-workspace-waitlist',
-        labelKey: 'patientWaitlist',
-        icon: Clock3,
-        href: '/patient/waitlist',
-        roles: ['patient'],
-      },
-      {
-        id: 'patient-workspace-knowledge',
-        labelKey: 'patientKnowledge',
-        icon: Newspaper,
-        href: '/patient/knowledge',
+        id: 'patient-workspace-records',
+        labelKey: 'patientRecords',
+        icon: FileText,
+        href: '/patient/records',
         roles: ['patient'],
       },
       {
@@ -335,22 +323,57 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         href: '/patient/prescriptions',
         roles: ['patient'],
       },
+    ],
+  },
+  {
+    id: 'patient-workspace-support',
+    labelKey: 'groups.support',
+    icon: Clock3,
+    roles: ['patient'],
+    children: [
       {
-        id: 'patient-workspace-health',
-        labelKey: 'patientHealth',
-        icon: HeartPulse,
-        href: '/patient/health',
+        id: 'patient-workspace-waitlist',
+        labelKey: 'patientWaitlist',
+        icon: Clock3,
+        href: '/patient/waitlist',
         roles: ['patient'],
       },
       {
-        // Doctor Onboarding (Phase 4 continuation) -- reachable by a
-        // Patient only: every account starts and stays Patient through
-        // the entire Draft/Pending/Rejected onboarding lifecycle, so an
-        // already-Doctor account has no reason to see this entry.
-        id: 'patient-workspace-become-a-doctor',
-        labelKey: 'becomeADoctor',
-        icon: Stethoscope,
-        href: '/doctor/onboarding',
+        id: 'patient-workspace-disputes',
+        labelKey: 'patientDisputes',
+        icon: AlertTriangle,
+        href: '/patient/disputes',
+        roles: ['patient'],
+      },
+      {
+        id: 'patient-workspace-knowledge',
+        labelKey: 'patientKnowledge',
+        icon: Newspaper,
+        href: '/patient/knowledge',
+        roles: ['patient'],
+      },
+    ],
+  },
+  {
+    id: 'patient-workspace-account',
+    labelKey: 'groups.account',
+    icon: User,
+    roles: ['patient'],
+    children: [
+      {
+        id: 'patient-workspace-profile',
+        labelKey: 'patientProfile',
+        icon: User,
+        href: '/patient/profile',
+        roles: ['patient'],
+      },
+      {
+        // Same shared /security destination the generic item below serves for
+        // every other role; a patient gets it here, in their own Account group.
+        id: 'patient-workspace-security',
+        labelKey: 'security',
+        icon: ShieldAlert,
+        href: '/security',
         roles: ['patient'],
       },
     ],
@@ -498,6 +521,6 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
     labelKey: 'security',
     icon: ShieldAlert,
     href: '/security',
-    roles: ['super_admin', 'hospital_admin', 'receptionist', 'nurse', 'patient'],
+    roles: ['super_admin', 'hospital_admin', 'receptionist', 'nurse'],
   },
 ];

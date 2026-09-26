@@ -7,11 +7,13 @@ import { Link } from '@/shared/i18n/navigation';
 import { SidebarSectionLabel } from '@/shared/ui/layout/sidebar';
 import { cn } from '@/shared/lib/cn';
 
+// Active item: pulse wash (16% light / 12% dark), ink text, and a 3px pulse bar on the inline-start edge.
 const itemClass = cn(
-  'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm outline-none transition-colors duration-(--duration-fast)',
-  'text-text-secondary hover:bg-secondary-subtle hover:text-text-primary',
+  'relative flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm outline-none transition-colors duration-(--duration-fast) pointer-coarse:min-h-11',
+  'text-text-secondary hover:bg-surface-2 hover:text-text-primary',
   'focus-visible:ring-2 focus-visible:ring-focus-ring',
-  'data-[active=true]:bg-primary-subtle data-[active=true]:font-medium data-[active=true]:text-primary-emphasis',
+  'data-[active=true]:bg-pulse-subtle data-[active=true]:font-medium data-[active=true]:text-text-primary',
+  'data-[active=true]:before:absolute data-[active=true]:before:inset-y-2 data-[active=true]:before:start-0 data-[active=true]:before:w-0.75 data-[active=true]:before:rounded-full data-[active=true]:before:bg-pulse data-[active=true]:before:content-[""]',
 );
 
 export interface NavItemProps {

@@ -1,9 +1,10 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CommandPalette } from '@/features/shell/components/command-palette';
 import { HelpCenterCard } from '@/features/shell/components/help-center-card';
+import { BottomNav, useHasBottomNav } from '@/features/shell/components/bottom-nav';
 import { MobileNav } from '@/features/shell/components/mobile-nav';
 import { NotificationBell } from '@/features/shell/components/notification-bell';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
@@ -35,6 +36,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useRealtimeSocket();
 
   const { user } = useAuth();
+  const [navOpen, setNavOpen] = useState(false);
+  const hasBottomNav = useHasBottomNav();
   const isDoctor = user?.roles.includes('doctor') ?? false;
   const { data: doctorProfile } = useDoctorProfile({ enabled: isDoctor });
   const { data: specialties } = useSpecialtiesList();
@@ -54,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const specialtyName = matchedSpecialty ? pickLocalizedName(matchedSpecialty.name, matchedSpecialty.nameAr, locale) : undefined;
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div className="flex h-dvh flex-col overflow-hidden" data-density={isDoctor ? 'compact' : 'comfortable'}>
       {/* Phase 8: "Skip to main content" -- the very first focusable element
           in the shell, before the topbar's own logo/nav triggers. Invisible
           until it receives keyboard focus (`sr-only focus:not-sr-only`,
@@ -70,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {tCommon('skipToMainContent')}
       </a>
       <Topbar>
-        <MobileNav />
+        <MobileNav open={navOpen} onOpenChange={setNavOpen} />
         {/* UX Reliability Pass: the logo now always goes to the public landing page, matching the established convention that a site's own logo is a "home" link to the marketing site, not the app's own /dashboard fallback route (which is no longer nav-reachable at all -- see navigation.ts). Consistent across patient/doctor/admin, desktop/mobile (MobileNav's own logo is a non-interactive drawer title, not a second link), and both locales via this same i18n-aware Link. */}
         <Link
           href="/"
@@ -111,7 +114,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               harmless no-op on a role with few enough items that nothing
               actually overflows. */}
           <div className="relative min-h-0 flex-1">
-            <div className="h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent)]">
+            <div className="h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_20px,black_calc(100%-28px),transparent)]">
               <SidebarNav />
               {/* Real spacer, not just the mask's fade -- guarantees the
                   last item's full height is scrollable past the fade zone
@@ -124,8 +127,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p className="px-2 text-xs text-text-tertiary">{t('footer', { year: new Date().getFullYear() })}</p>
           </div>
         </Sidebar>
-        <Content>{children}</Content>
+        <Content className={hasBottomNav ? 'max-md:pb-20' : undefined}>{children}</Content>
       </div>
+      {hasBottomNav && <BottomNav onMore={() => setNavOpen(true)} />}
     </div>
   );
 }
