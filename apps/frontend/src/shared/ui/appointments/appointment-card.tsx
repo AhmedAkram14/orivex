@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react';
+import { PersonAvatar } from '@/shared/ui/avatar';
+import { DateBlock } from '@/shared/ui/date-block';
+import { SpecialtyChip } from '@/shared/ui/specialty-chip';
 import { StatusBadge } from '@/shared/ui/status-badge';
 import { cn } from '@/shared/lib/cn';
 
@@ -15,32 +18,38 @@ export type AppointmentCardStatus =
   | 'awaiting_outcome';
 
 export interface AppointmentCardProps {
-  /** Pre-formatted, localized date+time text (e.g. "Jul 20, 2026, 10:00 AM") — this component never formats a date itself. */
-  scheduledAtLabel: string;
-  /** The other party's name — a doctor's name from the patient's viewpoint, a patient's name from a future doctor-facing reuse. Deliberately generic (not `doctorName`) so this component isn't patient-viewpoint-locked. */
+  /** ISO timestamp -- drives the DateBlock. */
+  scheduledAt: string;
+  /** Pre-formatted, localized time text (e.g. "10:00 AM") shown beside the name. */
+  timeLabel: string;
+  /** The other party's name -- a doctor's name from the patient's viewpoint. */
   counterpartyName: string;
+  counterpartyAvatarUrl?: string;
+  /** Localized specialty label; with `specialtyName` (canonical English) it renders as a hue-coded chip. */
   counterpartyDetail?: string;
+  specialtyName?: string;
   status: AppointmentCardStatus;
-  statusLabel: ReactNode;
-  /** Pre-formatted, localized consultation-type text (e.g. "Free consultation") — matches ConsultationType (free/paid), not an in-person/video distinction that doesn't exist on the backend. */
+  statusLabel: string;
+  /** Pre-formatted, localized consultation-type text (e.g. "Free consultation"). */
   consultationTypeLabel: ReactNode;
   actions?: ReactNode;
   className?: string;
 }
 
 /**
- * A single appointment entry — date/time, the other party's name + detail
- * (e.g. specialization), a status badge, and the consultation type.
- * Reusable across any appointment list (Patient Portal's Upcoming/History
- * views today; a future Doctor or Admin appointment list could reuse it
- * unchanged, since nothing here assumes the viewer's role) — deliberately
- * placed under `shared/ui/appointments/`, mirroring `shared/ui/queue/`'s
- * and `shared/ui/schedule/`'s existing subfolder convention.
+ * A single appointment row: DateBlock, the counterparty's avatar and name, a
+ * specialty chip, a StatusBadge and the consultation type, with the row's
+ * actions on the inline-end. Placed under `shared/ui/appointments/`
+ * (mirroring `shared/ui/queue/` and `shared/ui/schedule/`) -- nothing here
+ * assumes the viewer's role.
  */
 export function AppointmentCard({
-  scheduledAtLabel,
+  scheduledAt,
+  timeLabel,
   counterpartyName,
+  counterpartyAvatarUrl,
   counterpartyDetail,
+  specialtyName,
   status,
   statusLabel,
   consultationTypeLabel,
@@ -50,22 +59,28 @@ export function AppointmentCard({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-lg border border-border-default bg-surface p-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-wrap items-center gap-4 rounded-(--r-card) border border-border-default bg-surface p-4 shadow-xs',
         className,
       )}
     >
-      <div className="flex flex-col gap-1">
+      <DateBlock date={scheduledAt} />
+      <PersonAvatar name={counterpartyName} src={counterpartyAvatarUrl} size="md" />
+      <div className="flex min-w-0 flex-1 basis-52 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium text-text-primary">{scheduledAtLabel}</p>
-          <StatusBadge status={status} label={typeof statusLabel === 'string' ? statusLabel : undefined} />
+          <p className="text-body font-medium text-text-primary">
+            <bdi>{counterpartyName}</bdi>
+          </p>
+          <StatusBadge status={status} label={statusLabel} />
         </div>
-        <p className="text-sm text-text-secondary">
-          {counterpartyName}
-          {counterpartyDetail && <span className="text-text-tertiary"> · {counterpartyDetail}</span>}
-        </p>
-        <p className="text-xs text-text-tertiary">{consultationTypeLabel}</p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-text-tertiary">
+          <span dir="auto" className="tabular-nums">{timeLabel}</span>
+          {counterpartyDetail && (
+            <SpecialtyChip name={specialtyName ?? counterpartyDetail} label={counterpartyDetail} />
+          )}
+          <span>{consultationTypeLabel}</span>
+        </div>
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

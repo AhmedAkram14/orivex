@@ -11,12 +11,12 @@ import { cn } from '@/shared/lib/cn';
 
 const accentByStatus: Record<PrescriptionStatus, string> = {
   active: 'border-s-success',
-  expired: 'border-s-danger',
+  expired: 'border-s-border-strong',
 };
 
 const iconWrapByStatus: Record<PrescriptionStatus, string> = {
   active: 'bg-success-subtle text-success-emphasis',
-  expired: 'bg-danger-subtle text-danger-emphasis',
+  expired: 'bg-neutral-subtle text-text-secondary',
 };
 
 export interface PrescriptionCardProps {
@@ -64,13 +64,13 @@ export function PrescriptionCard({
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-lg border border-border-default border-s-4 bg-surface p-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-4 rounded-(--r-card) border border-border-default border-s-4 bg-surface p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between',
         accentByStatus[status],
         className,
       )}
     >
       <div className="flex items-start gap-3">
-        <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-full', iconWrapByStatus[status])}>
+        <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-md', iconWrapByStatus[status])}>
           <Icon icon={Pill} size="md" />
         </span>
         <div className="flex flex-col gap-1.5">

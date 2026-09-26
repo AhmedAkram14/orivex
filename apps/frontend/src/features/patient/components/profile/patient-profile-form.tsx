@@ -14,6 +14,7 @@ import {
 import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
 import { ApiError } from '@/shared/lib/api/client';
 import { Icon } from '@/shared/icons/icon';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/shared/ui/accordion';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
@@ -21,6 +22,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Section } from '@/shared/ui/layout/section';
+import { TagInput } from '@/shared/ui/tag-input';
 import { Textarea } from '@/shared/ui/textarea';
 
 const MAX_EMERGENCY_CONTACTS = 5;
@@ -50,6 +52,8 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
   const updateProfile = useUpdatePatientProfile();
 
   const form = useForm<PatientProfileFormValues>({
+    // Validate on blur (then on change), never before the field has been touched.
+    mode: 'onTouched',
     resolver: zodResolver(createPatientProfileSchema(tValidation)),
     defaultValues: {
       bloodType: profile.bloodType,
@@ -122,7 +126,13 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                 <FormItem>
                   <FormLabel>{t('allergies')}</FormLabel>
                   <FormControl>
-                    <Textarea {...field} value={field.value ?? ''} />
+                    <TagInput
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={field.value ?? ''}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -136,7 +146,13 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
                 <FormItem>
                   <FormLabel>{t('chronicConditions')}</FormLabel>
                   <FormControl>
-                    <Textarea {...field} value={field.value ?? ''} />
+                    <TagInput
+                      name={field.name}
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      value={field.value ?? ''}
+                      onValueChange={field.onChange}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -145,7 +161,16 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
           </div>
         </Section>
 
-        <Section title={t('healthPassport')} description={t('healthPassportDescription')}>
+        {/* Optional: closed by default so the required medical fields stay the focus. */}
+        <Accordion type="single" collapsible className="rounded-(--r-card) border border-border-default bg-surface px-4">
+          <AccordionItem value="health-passport" className="border-0">
+            <AccordionTrigger>
+              <span className="flex flex-col items-start gap-0.5 text-start">
+                <span className="text-h3">{t('healthPassport')}</span>
+                <span className="text-small font-normal text-text-tertiary">{t('healthPassportDescription')}</span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent>
           <div className="flex flex-col gap-4">
             <FormField
               control={form.control}
@@ -201,7 +226,9 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
               )}
             />
           </div>
-        </Section>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         <Section title={t('insurance')}>
           <FormField

@@ -8,7 +8,7 @@ import { usePatientDashboardSummary } from '@/features/patient/hooks/use-patient
 import { selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
-import { MetricStat } from '@/shared/ui/metric-stat';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
 
 /**
  * The compact summary strip (replaces the old three-tile Health Summary and
@@ -35,8 +35,9 @@ export function PatientSummaryStrip() {
   const lastVisitAt = summaryQuery.data?.lastVisitAt;
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <MetricStrip>
       <MetricStat
+        variant="inline"
         icon={CalendarClock}
         label={t('upcomingAppointmentsTitle')}
         value={String(upcoming.length)}
@@ -45,6 +46,7 @@ export function PatientSummaryStrip() {
         helperText={next ? t('nextVisitHelper', { date: format.dateTime(new Date(next.scheduledAt), { month: 'short', day: 'numeric' }) }) : undefined}
       />
       <MetricStat
+        variant="inline"
         icon={Pill}
         label={t('activePrescriptionsTitle')}
         value={String(summaryQuery.data?.activePrescriptionsCount ?? 0)}
@@ -52,6 +54,7 @@ export function PatientSummaryStrip() {
         href="/patient/prescriptions"
       />
       <MetricStat
+        variant="inline"
         icon={History}
         label={t('lastVisit')}
         value={lastVisitAt ? format.dateTime(new Date(lastVisitAt), { month: 'short', day: 'numeric' }) : '—'}
@@ -60,11 +63,12 @@ export function PatientSummaryStrip() {
         href="/patient/records"
       />
       <MetricStat
+        variant="inline"
         icon={MessageSquare}
         label={t('unreadMessagesTitle')}
         value={String(unreadMessages)}
         href="/patient/messages"
       />
-    </div>
+    </MetricStrip>
   );
 }

@@ -67,13 +67,11 @@ export function UpcomingAppointmentsWidget() {
                 className="block rounded-lg transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
               <AppointmentCard
-                scheduledAtLabel={format.dateTime(new Date(appointment.scheduledAt), {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: 'numeric',
-                })}
+                scheduledAt={appointment.scheduledAt}
+                timeLabel={format.dateTime(new Date(appointment.scheduledAt), { hour: 'numeric', minute: 'numeric' })}
                 counterpartyName={appointment.doctorName}
+                counterpartyAvatarUrl={appointment.doctorAvatarUrl}
+                specialtyName={appointment.specialization}
                 counterpartyDetail={pickLocalizedName(appointment.specialization, appointment.specializationAr, locale)}
                 status={appointment.status}
                 statusLabel={tStatus(appointment.status)}

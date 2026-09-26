@@ -9,7 +9,9 @@ import { useDeleteConsultationFeedback } from '@/features/consultation/hooks/use
 import { useDoctorById } from '@/features/doctor/hooks/use-doctor-by-id';
 import type { ConsultationFeedback } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { Badge } from '@/shared/ui/badge';
+import { PersonAvatar } from '@/shared/ui/avatar';
+import { DateBlock } from '@/shared/ui/date-block';
+import { StatusBadge } from '@/shared/ui/status-badge';
 import { Button } from '@/shared/ui/button';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
@@ -138,36 +140,32 @@ export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = fa
 
         {summary && (
           <div className="flex flex-col gap-4">
-            <Section title={t('visitDetails')}>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-text-tertiary">{t('doctor')}</p>
-                  <p className="text-text-primary">{doctor?.fullName ?? t('loadingDoctor')}</p>
-                </div>
-                <div>
-                  <p className="text-text-tertiary">{t('date')}</p>
-                  <p className="text-text-primary">
-                    {format.dateTime(new Date(summary.appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-text-tertiary">{t('status')}</p>
-                  <Badge variant="success">{t('completed')}</Badge>
-                </div>
-                {durationMinutes !== null && (
-                  <div>
-                    <p className="text-text-tertiary">{t('duration')}</p>
-                    <p className="text-text-primary">{t('durationMinutes', { minutes: durationMinutes })}</p>
-                  </div>
-                )}
+            {/* One title (the dialog's). The visit itself is a structured header: date, who, status, how long. */}
+            <div className="flex flex-wrap items-center gap-4 rounded-md bg-surface-2 p-4">
+              <DateBlock date={summary.appointment.scheduledAt} className="bg-surface" />
+              <PersonAvatar name={doctor?.fullName ?? ''} src={doctor?.avatarUrl} size="lg" />
+              <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
+                <p className="text-body font-semibold text-text-primary">
+                  <bdi>{doctor?.fullName ?? t('loadingDoctor')}</bdi>
+                </p>
+                <p className="text-small text-text-tertiary">
+                  {format.dateTime(new Date(summary.appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}
+                  {durationMinutes !== null && (
+                    <>
+                      <span aria-hidden="true"> · </span>
+                      <span>{t('durationMinutes', { minutes: durationMinutes })}</span>
+                    </>
+                  )}
+                </p>
               </div>
-            </Section>
+              <StatusBadge status="completed" label={t('completed')} />
+            </div>
 
             {summary.prescriptions.length > 0 && (
               <Section title={t('prescriptions')}>
                 <ul className="flex flex-col gap-2 text-sm">
                   {summary.prescriptions.map((prescription) => (
-                    <li key={prescription.id} className="rounded-lg border border-border-default p-3">
+                    <li key={prescription.id} className="rounded-md bg-surface-2 p-3">
                       {prescription.lineItems.map((item) => (
                         <div key={`${prescription.id}-${item.drugName ?? item.drugCatalogId}`}>
                           {item.drugName ?? item.drugCatalogId} — {item.dosage}, {item.frequency}

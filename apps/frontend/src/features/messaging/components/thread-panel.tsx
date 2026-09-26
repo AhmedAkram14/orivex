@@ -145,6 +145,13 @@ export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId,
         )}
       </div>
 
+      {/* A quiet, permanent info strip (not for urgent concerns) -- shown once a thread has messages; the composer carries the same hint for a brand-new thread. */}
+      {(messages?.length ?? 0) > 0 && (
+        <p className="border-b border-border-default bg-info-subtle px-4 py-2 text-caption text-info-emphasis">
+          {role === 'doctor' ? t('firstMessageHintDoctor') : t('firstMessageHintPatient')}
+        </p>
+      )}
+
       <div className="flex-1 overflow-y-auto p-4">
         {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 

@@ -20,7 +20,13 @@ const iconByType: Record<RecordTimelineEntryType, LucideIcon> = {
 
 const badgeVariantByType: Record<RecordTimelineEntryType, 'info' | 'warning' | 'danger' | 'neutral'> = {
   visit: 'info',
-  condition: 'neutral',
+  condition: 'warning',
+};
+
+/** The timeline node is coloured by record type (a 14% tint, never a solid disc). */
+const nodeClassByType: Record<RecordTimelineEntryType, string> = {
+  visit: 'bg-info-subtle text-info-emphasis',
+  condition: 'bg-warning-subtle text-warning-emphasis',
 };
 
 export interface RecordTimelineEntryProps {
@@ -69,13 +75,13 @@ export function RecordTimelineEntry({
   return (
     <div className={cn('flex gap-4', className)}>
       <div className="flex flex-col items-center">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
+        <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-md', nodeClassByType[type])}>
           <Icon icon={iconByType[type]} size="sm" />
         </span>
         {!isLast && <span className="mt-1 w-px flex-1 bg-border-default" aria-hidden="true" />}
       </div>
       <div className="flex-1 pb-5">
-        <div className="flex flex-col gap-1.5 rounded-lg border border-border-default bg-surface p-4 shadow-sm transition-colors duration-(--duration-fast) ease-(--ease-standard) hover:border-border-strong">
+        <div className="flex flex-col gap-1.5 rounded-(--r-card) border border-border-default bg-surface p-4 shadow-xs transition-colors duration-(--duration-fast) ease-(--ease-standard) hover:border-border-strong">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-text-primary">{title}</p>
             <Badge variant={badgeVariantByType[type]}>{typeLabel}</Badge>
@@ -92,7 +98,7 @@ export function RecordTimelineEntry({
               type="button"
               onClick={() => setExpanded((prev) => !prev)}
               aria-expanded={expanded}
-              className="inline-flex w-fit items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="inline-flex w-fit items-center gap-1 text-caption font-medium text-care-text hover:underline"
             >
               {expanded ? showLessLabel : viewDetailsLabel}
               <Icon icon={ChevronDown} size="xs" className={cn('transition-transform', expanded && 'rotate-180')} />

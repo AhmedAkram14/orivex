@@ -60,7 +60,7 @@ describe('BookAppointmentPage', () => {
 
     renderPage();
 
-    expect(await screen.findByRole('button', { name: 'Today' })).toBeInTheDocument();
+    expect(await screen.findByRole('group', { name: 'Choose a day' })).toBeInTheDocument();
     expect(screen.queryByText('No doctor selected')).not.toBeInTheDocument();
   });
 });

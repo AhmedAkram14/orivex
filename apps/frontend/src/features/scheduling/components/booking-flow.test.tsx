@@ -39,11 +39,9 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+/** A bookable slot cell: its label starts with a clock time ("12:00 AM"); the day scroller's buttons start with a weekday instead. */
 function findSlotButton() {
-  const excludedNames = ['Today', 'Previous day', 'Next day'];
-  return screen
-    .queryAllByRole('button')
-    .find((button) => !excludedNames.includes(button.getAttribute('aria-label') ?? button.textContent ?? ''));
+  return screen.queryAllByRole('button').find((button) => /^\d{1,2}:\d{2}\s?(AM|PM)/i.test(button.textContent ?? ''));
 }
 
 /** Forces every working day's default pricing to Free -- the seeded demo doctor otherwise defaults to Paid (500 EGP), which the Paid-path tests rely on. */
@@ -69,7 +67,7 @@ describe('BookingFlow', () => {
   // approval step blocks the redirect, no payment step) -- forces Free
   // pricing since the seeded demo doctor otherwise defaults to Paid, which
   // the dedicated Paid-path test below covers instead.
-  it('books a real Free slot end to end and redirects to Patient Appointments', async () => {
+  it('books a real Free slot end to end, shows the confirmation, and links on to Patient Appointments', async () => {
     makeAllDaysFree();
     addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
     setPatientVerified(true);
@@ -82,10 +80,15 @@ describe('BookingFlow', () => {
     });
     await userEvent.click(slotButton);
 
-    expect(await screen.findByText('Review')).toBeInTheDocument();
+    expect(await screen.findByText('Review your booking')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
 
-    await vi.waitFor(() => expect(pushMock).toHaveBeenCalledWith('/en/patient/appointments'));
+    // The confirmed step (not an immediate redirect): what to prepare, and a way on.
+    expect(await screen.findByText('Request sent')).toBeInTheDocument();
+    expect(screen.getByText('What to prepare')).toBeInTheDocument();
+    expect(pushMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'View my appointments' }));
+    expect(pushMock).toHaveBeenCalledWith('/en/patient/appointments');
   });
 
   // Consultation Pricing Lifecycle Completion (pay-then-confirm): a Paid
@@ -131,14 +134,20 @@ describe('BookingFlow', () => {
     expect(screen.getByRole('link', { name: 'Start verification' })).toBeInTheDocument();
   });
 
-  it('shows an honest empty state when the doctor has marked today unavailable', async () => {
+  it("marks a day the doctor has made unavailable as having no slots in the 7-day scroller", async () => {
     addDoctorException({ date: todayDateKey(), type: 'unavailable' });
     setPatientVerified(true);
     renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
 
-    expect(await screen.findByText('No slots available on this date')).toBeInTheDocument();
-    expect(screen.getByText('Try another date.')).toBeInTheDocument();
-    expect(findSlotButton()).toBeUndefined();
+    // Today (the first day in the scroller) reads "No slots"; the flow moves on to the first day that has some.
+    const days = await screen.findByRole('group', { name: 'Choose a day' });
+    const dayButtons = (await vi.waitFor(() => {
+      const found = Array.from(days.querySelectorAll('button'));
+      if (found.length !== 7) throw new Error('days not rendered');
+      return found;
+    })) as HTMLButtonElement[];
+    expect(dayButtons[0]).toHaveTextContent('No slots');
+    expect(dayButtons[0]).toHaveAttribute('aria-pressed', 'false');
   });
 
   // Consultation Pricing Redesign: the backend is the sole source of truth

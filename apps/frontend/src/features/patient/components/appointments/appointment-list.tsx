@@ -147,14 +147,11 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
           <li key={appointment.id} id={`appointment-${appointment.id}`} className="scroll-mt-24">
             <AppointmentCard
               className={appointment.id === highlightId ? 'ring-2 ring-focus-ring' : undefined}
-              scheduledAtLabel={format.dateTime(new Date(appointment.scheduledAt), {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: 'numeric',
-              })}
+              scheduledAt={appointment.scheduledAt}
+              timeLabel={format.dateTime(new Date(appointment.scheduledAt), { hour: 'numeric', minute: 'numeric' })}
               counterpartyName={appointment.doctorName}
+              counterpartyAvatarUrl={appointment.doctorAvatarUrl}
+              specialtyName={appointment.specialization}
               counterpartyDetail={pickLocalizedName(appointment.specialization, appointment.specializationAr, locale)}
               status={awaitingOutcome ? 'awaiting_outcome' : appointment.status}
               statusLabel={tStatus(awaitingOutcome ? 'awaiting_outcome' : appointment.status)}

@@ -4,45 +4,46 @@ import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { useDoctorById } from '@/features/doctor/hooks/use-doctor-by-id';
+import { DoctorBookingCard } from '@/features/doctor/components/doctor-booking-card';
 import { DoctorProfileView } from '@/features/doctor/components/profile/doctor-profile-view';
 import { RequireRole } from '@/shared/auth/require-role';
-import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
-import { Link } from '@/shared/i18n/navigation';
-import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { ErrorState } from '@/shared/ui/error-state';
 import { Page } from '@/shared/ui/layout/page';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 
 /**
- * Onboarding Redesign (2026-07-21 proposal, Stage O.5): the patient-facing
- * doctor profile view -- reuses `DoctorProfileView` verbatim (already
- * role-agnostic/read-only, no PHI), backed by DoctorProfileController's
- * public GET /doctors/:id.
+ * The patient-facing doctor profile -- reuses `DoctorProfileView` (role-agnostic,
+ * read-only, no PHI), backed by the public GET /doctors/:id, beside a sticky
+ * booking card (desktop, inline-end column) or a pinned bar (below `lg`).
+ *
+ * PRIVACY QUESTION (flagged in the redesign report, not changed here): the
+ * profile's contact block still shows the doctor's email and phone to
+ * patients. No feature flag or policy exists to hide it, and changing what
+ * data is exposed is a product decision, not a visual one.
  */
 export default function PatientDoctorProfilePage() {
   const t = useTranslations('patient.doctors');
   const params = useParams<{ id: string }>();
   const doctorProfileId = params.id;
-  const { data: profile, isLoading, error } = useDoctorById(doctorProfileId);
+  const { data: profile, isLoading, error, refetch } = useDoctorById(doctorProfileId);
 
   const notFound = error instanceof ApiError && error.status === 404;
 
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
-      <Page>
+      <Page className="max-lg:pb-28">
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('profileTitle')} />
         {isLoading && <Skeleton className="h-96 w-full" />}
         {notFound && <EmptyState illustration="search-no-results" title={t('profileNotFoundTitle')} description={t('profileNotFoundDescription')} />}
-        {!isLoading && !notFound && error && <Alert variant="danger">{t('loadError')}</Alert>}
+        {!isLoading && !notFound && error && <ErrorState description={t('loadError')} onRetry={() => void refetch()} />}
         {profile && (
-          <>
+          <div className="grid items-start gap-(--card-gap) lg:grid-cols-[minmax(0,1fr)_320px]">
             <DoctorProfileView profile={profile} variant="public" />
-            <Button asChild>
-              <Link href={`/patient/appointments/book?doctorId=${profile.id}`}>{t('bookAppointment')}</Link>
-            </Button>
-          </>
+            <DoctorBookingCard doctorProfileId={profile.id} consultationFeeAmount={profile.consultationFeeAmount} />
+          </div>
         )}
       </Page>
     </RequireRole>

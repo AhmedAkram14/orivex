@@ -14,9 +14,9 @@ export interface TimeSlotProps {
 }
 
 const statusClass: Record<TimeSlotStatus, string> = {
-  available: 'border-success-subtle bg-success-subtle text-success-emphasis',
-  booked: 'border-primary-subtle bg-primary-subtle text-primary-emphasis',
-  blocked: 'border-border-default bg-canvas text-text-tertiary',
+  available: 'border-border-strong bg-surface text-text-primary',
+  booked: 'border-text-primary bg-text-primary text-text-inverse',
+  blocked: 'border-border-default bg-surface-2 text-text-tertiary',
 };
 
 /**
@@ -30,7 +30,7 @@ export function TimeSlot({ time, status, label, priceVariant, onSelect, classNam
     <>
       <span className="font-medium">{time}</span>
       {label && priceVariant === 'free' && (
-        <span className="ms-auto shrink-0 rounded-full bg-success px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success-foreground">
+        <span className="ms-auto shrink-0 rounded-full bg-success-subtle px-2 py-0.5 text-caption font-semibold text-success-emphasis">
           {label}
         </span>
       )}
@@ -46,7 +46,7 @@ export function TimeSlot({ time, status, label, priceVariant, onSelect, classNam
         onClick={onSelect}
         className={cn(
           'flex items-center gap-2 rounded-md border px-3 py-2 text-start text-sm transition-colors duration-(--duration-fast) ease-standard',
-          'hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+          'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
           statusClass[status],
           className,
         )}

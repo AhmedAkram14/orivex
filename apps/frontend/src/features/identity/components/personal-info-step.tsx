@@ -36,6 +36,8 @@ export function PersonalInfoStep({ account, onSaved }: PersonalInfoStepProps) {
   const updatePersonalProfile = useUpdatePersonalProfile();
 
   const form = useForm<PersonalInfoFormValues>({
+    // Validate on blur (then on change), never before the field has been touched.
+    mode: 'onTouched',
     resolver: zodResolver(createPersonalInfoSchema(tValidation)),
     defaultValues: {
       dateOfBirth: account?.dateOfBirth?.slice(0, 10) ?? '',

@@ -20,6 +20,7 @@ import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { SkeletonCard } from '@/shared/ui/skeletons';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
 function ArticleAuthorName({ doctorProfileId }: { doctorProfileId: string }) {
@@ -179,13 +180,14 @@ export function KnowledgeFeed() {
         {feedLoading ? (
           <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
             {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton key={index} className="h-24 w-full" />
+              <SkeletonCard key={index} lines={3} />
             ))}
           </div>
         ) : !feedResult || feedResult.articles.length === 0 ? (
           <EmptyState illustration="articles-none" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
-          <ul className="flex flex-col gap-3">
+          // Editorial grid: two columns from md up, the first (lead) article spans both.
+          <ul className="grid items-start gap-(--card-gap) md:grid-cols-2 md:[&>li:first-child]:col-span-2">
             {feedResult.articles.map((article) => (
               <FeedArticleCard
                 key={article.id}

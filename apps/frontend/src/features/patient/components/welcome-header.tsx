@@ -1,9 +1,8 @@
 'use client';
 
-import { CalendarDays } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { Heading } from '@/design-system/typography';
 import { useAuth } from '@/shared/auth/auth-context';
-import { Icon } from '@/shared/icons/icon';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 
 function firstNameOf(fullName: string): string {
@@ -17,11 +16,10 @@ function greetingPeriod(hour: number): 'morning' | 'afternoon' | 'evening' {
 }
 
 /**
- * The Patient Portal's compact greeting bar — a time-of-day greeting, a
- * one-line subtitle, and today's date. Deliberately not a `Card` (no
- * avatar, no border, no padding box): the redesigned dashboard's hierarchy
- * reserves that visual weight for the Next Appointment hero below, so this
- * only has to establish context in as little vertical space as possible.
+ * The Patient Portal's greeting -- the page's one h1, in the display face,
+ * inside the patient HeroSurface. A time-of-day greeting (read from Cairo's
+ * wall clock, since ORIVEX is a single-market product), one line of context
+ * and today's date.
  */
 export function WelcomeHeader() {
   const t = useTranslations('patient.dashboard');
@@ -31,22 +29,18 @@ export function WelcomeHeader() {
   if (!user) return null;
 
   const now = new Date();
-  // Greeting period reads Cairo's wall-clock hour, not the viewer's browser
-  // timezone -- ORIVEX is a single-market (Egypt) product, so "good morning"
-  // must agree with Cairo's actual morning regardless of where the device is.
   const cairoNow = getCairoNow(now);
 
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-xl font-semibold text-text-primary">
+      <Heading as="h1" level={1} className="text-display">
         {t(`greeting.${greetingPeriod(cairoNow.getHours())}`, { name: firstNameOf(user.fullName) })}
         <span aria-hidden="true"> 👋</span>
-      </p>
-      <p className="text-sm text-text-secondary">{t('welcomeSubtitle')}</p>
-      <div className="mt-1 flex items-center gap-1.5 text-sm text-text-tertiary">
-        <Icon icon={CalendarDays} size="sm" />
+      </Heading>
+      <p className="text-body text-text-secondary">{t('welcomeSubtitle')}</p>
+      <p className="text-small text-text-tertiary">
         {format.dateTime(now, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-      </div>
+      </p>
     </div>
   );
 }

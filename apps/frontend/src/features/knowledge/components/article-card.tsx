@@ -51,7 +51,7 @@ export function ArticleCard({ article, footer, className }: ArticleCardProps) {
   const bodyHtml = useSanitizedBodyHtml(article.body);
 
   return (
-    <li className={`flex flex-col gap-2 rounded-2xl border border-border-default p-4 ${className ?? ''}`}>
+    <li className={`flex flex-col gap-2 rounded-(--r-card) border border-border-default bg-surface p-4 shadow-xs ${className ?? ''}`}>
       <div className="flex items-center justify-between gap-2">
         <span dir="auto" className="font-medium text-text-primary">
           {article.title}
@@ -61,7 +61,7 @@ export function ArticleCard({ article, footer, className }: ArticleCardProps) {
 
       <div
         dir="auto"
-        className="max-w-none text-sm text-text-secondary [&_a]:text-primary [&_a]:underline [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_li]:ms-4 [&_ol]:list-decimal [&_p]:my-1 [&_strong]:font-semibold [&_ul]:list-disc"
+        className="max-w-none text-sm text-text-secondary [&_a]:text-care-text [&_a]:underline [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_li]:ms-4 [&_ol]:list-decimal [&_p]:my-1 [&_strong]:font-semibold [&_ul]:list-disc"
         // Sanitized via DOMPurify in `renderArticleBody` -- see that
         // function's own comment. This is the only place its output is
         // ever consumed.

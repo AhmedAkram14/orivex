@@ -790,7 +790,7 @@
     "resolutionLabel": "Resolution",
     "raiseDialogTitle": "Raise a dispute",
     "raiseDialogDescription": "Choose the appointment this is about and explain the issue. An admin will review it.",
-    "scopeNote": "For a no-show, a payment or refund issue, a conduct concern, or a technical problem with the call -- not for disagreement with clinical judgment. An admin will review it and you'll be notified of the outcome.",
+    "scopeNote": "For a no-show, a payment or refund issue, a conduct concern, or a technical problem with the call — not for disagreement with clinical judgment. An admin will review it and you'll be notified of the outcome.",
     "appointmentLabel": "Appointment",
     "appointmentPlaceholder": "Select an appointment",
     "categoryLabel": "Category",
@@ -887,7 +887,7 @@
       },
       "sourcesLabel": "Sources / references (optional)",
       "sourcesPlaceholder": "List any sources or references this article draws on...",
-      "sourcesHint": "Optional -- shown to readers alongside the article.",
+      "sourcesHint": "Optional — shown to readers alongside the article.",
       "composerDisclaimer": "This article shares general health information and is not a diagnosis or personalized medical advice.",
       "submitError": "Couldn't save this article. Please try again.",
       "submitSuccessPending": "Submitted for review. An admin will publish it once approved.",
@@ -927,7 +927,7 @@
       "editAction": "Edit",
       "unpublishAction": "Unpublish",
       "unpublishDialogTitle": "Unpublish this article?",
-      "unpublishDialogDescription": "It will be removed from the patient feed immediately. It stays visible to you as Archived, but an archived article can't be edited -- write a new one if you need to fix it.",
+      "unpublishDialogDescription": "It will be removed from the patient feed immediately. It stays visible to you as Archived, but an archived article can't be edited — write a new one if you need to fix it.",
       "unpublishReasonPlaceholder": "Why are you unpublishing this article?",
       "unpublishError": "Couldn't unpublish this article. Please try again.",
       "confirmUnpublishAction": "Unpublish"
@@ -2114,12 +2114,12 @@
       "chronicConditions": "Chronic conditions",
       "noConditionsOnRecord": "No chronic conditions on record",
       "healthPassport": "Health Passport",
-      "healthPassportDescription": "Lifestyle, nutrition, exercise, and mental health notes -- all optional.",
+      "healthPassportDescription": "Lifestyle, nutrition, exercise, and mental health notes — all optional.",
       "lifestyleNotes": "Lifestyle",
       "nutritionNotes": "Nutrition",
       "exerciseNotes": "Exercise",
       "mentalHealthNotes": "Mental health",
-      "mentalHealthNotesHint": "Shared with a treating doctor only after you explicitly grant them access -- unlike every other field on this page.",
+      "mentalHealthNotesHint": "Shared with a treating doctor only after you explicitly grant them access — unlike every other field on this page.",
       "healthPassportEntries": {
         "title": "Vaccinations, family history, surgeries & medications",
         "loadError": "Couldn't load your health passport entries.",
@@ -3026,7 +3026,7 @@
       "telemedicine": {
         "loadError": "Could not load telemedicine analytics.",
         "title": "Telemedicine",
-        "limitationsNote": "Join delay, connection success rate, and missed calls aren't shown -- session logs don't record structured connection events yet.",
+        "limitationsNote": "Join delay, connection success rate, and missed calls aren't shown — session logs don't record structured connection events yet.",
         "totalSessions": "Total sessions",
         "completedSessions": "Completed sessions",
         "averageDuration": "Avg. duration",
@@ -3051,7 +3051,7 @@
       "notifications": {
         "loadError": "Could not load notification analytics.",
         "title": "Notifications",
-        "limitationsNote": "Reminder success/failure isn't tracked yet -- the reminder worker only logs failures today.",
+        "limitationsNote": "Reminder success/failure isn't tracked yet — the reminder worker only logs failures today.",
         "sent": "Sent",
         "read": "Read",
         "unread": "Unread"
@@ -3693,5 +3693,70 @@
     "link": "Link",
     "progress": "{count} of {max} characters",
     "linkText": "link text"
+  },
+  "patientHome": {
+    "more": "More actions",
+    "nextStep": "Your next step"
+  },
+  "patientAppointmentsUi": {
+    "clearDay": "Show all days",
+    "appointmentsOnDay": "{count, plural, one {# appointment} other {# appointments}}",
+    "dayFilterLabel": "Filter appointments by day",
+    "noAppointmentsOnDay": "No appointments"
+  },
+  "bookingCard": {
+    "title": "Book a visit",
+    "fee": "Consultation fee",
+    "feeOnRequest": "Fee on request",
+    "free": "Free",
+    "nextSlot": "Next available",
+    "thisSlotPrice": "This slot: {price}",
+    "noSlots": "No open slots in the next two weeks",
+    "book": "Book",
+    "bookWithDoctor": "Book appointment"
+  },
+  "bookingUi": {
+    "steps": {
+      "select": "Date & time",
+      "review": "Review",
+      "payment": "Payment",
+      "confirmed": "Confirmed"
+    },
+    "stepsLabel": "Booking progress",
+    "daysLabel": "Choose a day",
+    "slotsCount": "{count, plural, one {# slot} other {# slots}}",
+    "noSlotsDay": "No slots",
+    "periods": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    },
+    "reviewTitle": "Review your booking",
+    "rows": {
+      "date": "Date",
+      "time": "Time",
+      "timezone": "Time zone",
+      "duration": "Duration",
+      "type": "Visit type",
+      "price": "Price"
+    },
+    "cairoTime": "Cairo time ({offset})",
+    "standardFee": "The doctor's standard fee is {fee}; this slot is priced {price}.",
+    "confirmedTitleFree": "Request sent",
+    "confirmedTitlePaid": "Booking confirmed",
+    "confirmedDescriptionFree": "Your doctor will review the request. You will be notified as soon as it is approved.",
+    "confirmedDescriptionPaid": "Your payment was received and your appointment is confirmed.",
+    "prepareTitle": "What to prepare",
+    "prepare": {
+      "one": "Find a quiet, well-lit place with a stable internet connection.",
+      "two": "Have your questions, symptoms and any current medication ready.",
+      "three": "Join a few minutes early; the call opens 30 minutes before your slot."
+    },
+    "viewAppointments": "View my appointments",
+    "bookAnother": "Book another visit"
+  },
+  "tagInput": {
+    "remove": "Remove {tag}",
+    "hint": "Press Enter or comma to add"
   }
 }

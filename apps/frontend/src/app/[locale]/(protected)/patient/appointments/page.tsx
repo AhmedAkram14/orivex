@@ -6,15 +6,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { AppointmentList } from '@/features/patient/components/appointments/appointment-list';
 import { AppointmentsCalendar } from '@/features/patient/components/appointments/appointments-calendar';
+import type { Appointment } from '@/features/patient/api/types';
 import { usePatientAppointments } from '@/features/patient/hooks/use-patient-appointments';
 import { selectPastAppointments, selectUpcomingAppointments } from '@/features/patient/lib/upcoming-appointments';
 import { getCairoNow } from '@/shared/lib/date/timezone';
+import { isSameDay } from '@/shared/lib/date/week';
+import { ErrorState } from '@/shared/ui/error-state';
+import { SkeletonRow } from '@/shared/ui/skeletons';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { RequireRole } from '@/shared/auth/require-role';
-import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { FilterTabs } from '@/shared/ui/filter-tabs';
-import { Skeleton } from '@/shared/ui/skeleton';
 import { Page } from '@/shared/ui/layout/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
@@ -33,7 +35,9 @@ type HistoryFilter = 'all' | 'completed' | 'cancelled';
  */
 export default function PatientAppointmentsPage() {
   const t = useTranslations('patient.appointments');
-  const { data: appointments, isLoading, isError } = usePatientAppointments();
+  const tUi = useTranslations('patientAppointmentsUi');
+  const { data: appointments, isLoading, isError, refetch } = usePatientAppointments();
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -49,11 +53,18 @@ export default function PatientAppointmentsPage() {
 
   // The one shared definition (features/patient/lib/upcoming-appointments.ts) --
   // the Overview hero, summary strip and list use the same selector.
-  const upcoming = useMemo(() => selectUpcomingAppointments(appointments ?? [], getCairoNow()), [appointments]);
+  const onSelectedDay = (list: Appointment[]) =>
+    selectedDay ? list.filter((a) => isSameDay(getCairoNow(new Date(a.scheduledAt)), getCairoNow(selectedDay))) : list;
+  const upcoming = useMemo(
+    () => onSelectedDay(selectUpcomingAppointments(appointments ?? [], getCairoNow())),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [appointments, selectedDay],
+  );
   const history = useMemo(() => {
     const past = selectPastAppointments(appointments ?? [], getCairoNow());
-    return historyFilter === 'all' ? past : past.filter((a) => a.status === historyFilter);
-  }, [appointments, historyFilter]);
+    return onSelectedDay(historyFilter === 'all' ? past : past.filter((a) => a.status === historyFilter));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointments, historyFilter, selectedDay]);
 
   // A highlighted appointment lives in whichever tab holds it; open that tab.
   const highlightedIsUpcoming = highlightId ? upcoming.some((a) => a.id === highlightId) : false;
@@ -91,14 +102,19 @@ export default function PatientAppointmentsPage() {
           }
         />
 
-        {isError && <Alert variant="danger">{t('loadError')}</Alert>}
+        {isError && <ErrorState size="sm" description={t('loadError')} onRetry={() => void refetch()} />}
 
-        <AppointmentsCalendar appointments={appointments ?? []} />
+        <AppointmentsCalendar appointments={appointments ?? []} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
+        {selectedDay && (
+          <Button type="button" variant="secondary" size="sm" className="self-start" onClick={() => setSelectedDay(null)}>
+            {tUi('clearDay')}
+          </Button>
+        )}
 
         {isLoading ? (
           <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
+            <SkeletonRow />
+            <SkeletonRow />
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'upcoming' | 'history')}>

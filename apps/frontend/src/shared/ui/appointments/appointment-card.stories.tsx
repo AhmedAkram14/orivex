@@ -11,7 +11,8 @@ type Story = StoryObj<typeof AppointmentCard>;
 
 export const Confirmed: Story = {
   args: {
-    scheduledAtLabel: 'Jul 20, 2026, 10:00 AM',
+    scheduledAt: '2026-07-20T10:00:00.000Z',
+    timeLabel: '10:00 AM',
     counterpartyName: 'Dr. Sarah Ahmed',
     counterpartyDetail: 'Cardiology',
     status: 'confirmed',
@@ -22,7 +23,8 @@ export const Confirmed: Story = {
 
 export const Requested: Story = {
   args: {
-    scheduledAtLabel: 'Jul 22, 2026, 2:00 PM',
+    scheduledAt: '2026-07-22T14:00:00.000Z',
+    timeLabel: '2:00 PM',
     counterpartyName: 'Dr. Sarah Ahmed',
     counterpartyDetail: 'Cardiology',
     status: 'requested',
@@ -33,7 +35,8 @@ export const Requested: Story = {
 
 export const Completed: Story = {
   args: {
-    scheduledAtLabel: 'Jun 10, 2026, 9:00 AM',
+    scheduledAt: '2026-07-24T10:00:00.000Z',
+    timeLabel: '10:00 AM',
     counterpartyName: 'Dr. Sarah Ahmed',
     counterpartyDetail: 'Cardiology',
     status: 'completed',
@@ -44,7 +47,8 @@ export const Completed: Story = {
 
 export const Cancelled: Story = {
   args: {
-    scheduledAtLabel: 'Jun 5, 2026, 11:00 AM',
+    scheduledAt: '2026-07-24T10:00:00.000Z',
+    timeLabel: '10:00 AM',
     counterpartyName: 'Dr. Sarah Ahmed',
     counterpartyDetail: 'Cardiology',
     status: 'cancelled',

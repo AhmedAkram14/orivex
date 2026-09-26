@@ -4,10 +4,11 @@ import { renderWithProviders } from '@/shared/test/render-with-providers';
 import { AppointmentCard } from './appointment-card';
 
 describe('AppointmentCard', () => {
-  it('renders the counterparty name, detail, status, date, and consultation type', () => {
+  it('renders the counterparty name, specialty chip, status, time, and consultation type', () => {
     renderWithProviders(
       <AppointmentCard
-        scheduledAtLabel="Jul 20, 2026, 10:00 AM"
+        scheduledAt="2026-07-20T10:00:00.000Z"
+        timeLabel="10:00 AM"
         counterpartyName="Dr. Sarah Ahmed"
         counterpartyDetail="Cardiology"
         status="confirmed"
@@ -16,7 +17,7 @@ describe('AppointmentCard', () => {
       />,
     );
 
-    expect(screen.getByText('Jul 20, 2026, 10:00 AM')).toBeInTheDocument();
+    expect(screen.getByText('10:00 AM')).toBeInTheDocument();
     expect(screen.getByText('Dr. Sarah Ahmed')).toBeInTheDocument();
     expect(screen.getByText('Cardiology', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('Confirmed')).toBeInTheDocument();
@@ -26,7 +27,8 @@ describe('AppointmentCard', () => {
   it('renders optional actions', () => {
     renderWithProviders(
       <AppointmentCard
-        scheduledAtLabel="Jul 20, 2026, 10:00 AM"
+        scheduledAt="2026-07-20T10:00:00.000Z"
+        timeLabel="10:00 AM"
         counterpartyName="Dr. Sarah Ahmed"
         status="confirmed"
         statusLabel="Confirmed"
