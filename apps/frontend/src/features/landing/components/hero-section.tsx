@@ -157,7 +157,7 @@ export function HeroSection() {
             </div>
           </div>
           {/* The "priority" card is live text (translated, real link), not a flattened image. */}
-          <div className="absolute -bottom-10 -end-2 w-[46%] max-w-64 rounded-(--r-card) border border-border-default bg-surface p-4 shadow-md sm:-end-6">
+          <div className="absolute -bottom-10 end-0 w-[46%] max-w-64 rounded-(--r-card) border border-border-default bg-surface p-4 shadow-md">
             <ShieldCheck aria-hidden="true" className="mb-2 size-6 text-text-primary" />
             <p className="text-h3 text-text-primary">{tUi('cardTitle')}</p>
             <p className="mt-1 text-small text-text-secondary">
