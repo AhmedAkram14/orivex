@@ -27,3 +27,6 @@ storybook-static
 /apps/frontend/test-results
 /apps/frontend/playwright-report
 /apps/frontend/playwright/.cache
+
+# Local audit screenshots
+/apps/frontend/screenshots/
