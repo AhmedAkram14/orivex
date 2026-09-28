@@ -53,4 +53,36 @@ Blank Reports chart; session-bootstrap flake on 5xx/408/429; Browse Doctors card
 2. **Fee display:** a free slot shows "Free · normally {fee}" on the booking card, reading the doctor's profile fee. The review step already showed the standard fee. Still to confirm: what makes a slot "free" — today it is a per-slot pricing type the doctor sets.
 3. **Vital ranges:** status chips and shaded bands are off. `VITAL_RANGES` in `shared/lib/health/vital-reference-ranges.ts` holds the version, source guideline and the on/off switch. The glucose fasting/after-meal/random field is not built (data-model change).
 4. **Help card:** opens the landing FAQ (`/#faq`, ends with a support contact) for every role.
-5. **Profile-completion gate:** now only date of birth, gender and phone (name is set at registration) gate the dashboard, via a one-step intake. Nationality, address, blood type, allergies, chronic conditions, emergency contact and insurance are optional and nudged by a completion ring on the Overview. Allergies are asked in the booking review step until some are on record. **Open:** "None known" is not stored, because the backend only models a doctor-confirmed "no known allergies" (and rejects it while `allergies` has text); persisting a patient-reported "none" needs a new backend field and OpenAPI change. Until then a patient who says "None known" is asked again at their next booking.
+5. **Profile-completion gate:** now only date of birth, gender and phone (name is set at registration) gate the dashboard, via a one-step intake. Nationality, address, blood type, allergies, chronic conditions, emergency contact and insurance are optional and nudged by a completion ring on the Overview. Allergies are asked in the booking review step until some are on record. "None known" is now stored as a patient-reported status -- see *Patient-reported allergy status* below.
+
+## Patient-reported allergy status (2026-09-28)
+
+A new field on `PatientProfile`, separate from the `allergies` text and from the doctor's `allergiesConfirmedNoneAt` confirmation.
+
+**Shape** (named to match the existing `allergies*` fields; stored as a plain string like `bloodType`):
+- `allergiesStatus`: `unknown` (default) | `none_reported` | `has_allergies`
+- `allergiesStatusUpdatedAt` (nullable), `allergiesStatusUpdatedByRole` (nullable, e.g. `patient`)
+- API: `PATCH /patients/me` accepts `allergiesStatus: 'none_reported'` (the only value a client may send). Patient and doctor-chart profile responses return all three fields.
+
+**Rules** (enforced in the `PatientProfile` domain entity, so no caller can bypass them):
+- Saving any `allergies` text sets `has_allergies` on the server. Clearing the only allergy text reverts it to `unknown`.
+- `none_reported` is rejected (422, `PatientDomainError`) while allergy text is on record, including text sent in the same request. This is the same rule the doctor confirmation already has.
+- The doctor confirmation flow (`confirmNoKnownAllergies`, `PATCH /patients/{id}/allergies/confirm-none`) is untouched. Neither field reads or writes the other, so a patient's `none_reported` can never count as, or satisfy, the confirmation.
+
+**Doctor's existing confirmation when the patient later adds an allergy:** already cleared today, and unchanged. `PatientProfile.update()` nulls `allergiesConfirmedNoneAt` and `allergiesConfirmedByDoctorId` whenever `allergies` becomes non-empty, so the assumption (yes) matches the backend. The reverse is deliberately not done: a patient reporting `none_reported` does not touch a doctor's confirmation.
+
+**Doctor chart banner** (priority: present > doctor-confirmed > patient-reported > unknown):
+- Unknown: "Allergies not recorded" (warning), with the Confirm button.
+- Patient reports none: "Patient reports no known allergies · not confirmed" (neutral), with the existing Confirm button.
+- Doctor confirmed: the existing confirmed state, unchanged.
+- The sticky patient bar and the prescription dialog badges follow the same four states.
+
+**Booking gate:** asked only while `allergiesStatus === 'unknown'`. Both answers are saved, so it never asks again. The patient can change it any time in Profile (a "no known allergies" switch, or the allergy chips).
+
+**Migration** (`20260928090000_add_patient_reported_allergy_status`, applied to the local database):
+- Adds `allergiesStatus TEXT NOT NULL DEFAULT 'unknown'`, `allergiesStatusUpdatedAt` and `allergiesStatusUpdatedByRole`.
+- Backfill: every existing profile is `unknown` except those whose `allergies` already has non-blank text, which become `has_allergies` (timestamp = the row's `updatedAt`, role left null).
+- Nothing else needs migrating. Profiles with a doctor confirmation and no text stay `unknown` and still show the doctor-confirmed banner. Patients are asked once, at their next booking.
+- Additive and backward compatible: old clients ignore the new fields.
+
+**i18n** (en and ar): new `publicPatient.allergiesReportedNoneNotConfirmed`, `publicPatient.allergiesReportedNoneShort`, `patient.profile.noKnownAllergiesToggle`, `patient.profile.noKnownAllergiesReported`, and the `profileFlow.*` booking-prompt strings. `publicPatient.allergiesNotYetConfirmed` was reworded to "Allergies not recorded".

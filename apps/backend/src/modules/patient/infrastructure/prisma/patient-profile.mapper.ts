@@ -6,6 +6,7 @@ import type {
 import { EmergencyContact } from '../../domain/entities/emergency-contact.entity.js';
 import { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
 import type { BloodType } from '../../domain/enums/blood-type.enum.js';
+import type { PatientAllergyStatus } from '../../domain/enums/patient-allergy-status.enum.js';
 
 import { toDomainEmergencyRelationship } from './emergency-relationship.mapper.js';
 
@@ -37,5 +38,8 @@ export function toDomainPatientProfile(row: PersistedPatientProfileRow): Patient
     mentalHealthNotes: row.mentalHealthNotes ?? undefined,
     allergiesConfirmedNoneAt: row.allergiesConfirmedNoneAt ?? null,
     allergiesConfirmedByDoctorId: row.allergiesConfirmedByDoctorId ?? null,
+    allergiesStatus: row.allergiesStatus as PatientAllergyStatus,
+    allergiesStatusUpdatedAt: row.allergiesStatusUpdatedAt ?? null,
+    allergiesStatusUpdatedByRole: row.allergiesStatusUpdatedByRole ?? null,
   });
 }

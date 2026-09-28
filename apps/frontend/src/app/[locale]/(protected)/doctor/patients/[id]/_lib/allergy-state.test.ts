@@ -47,4 +47,24 @@ describe('getAllergyState', () => {
       expect(state.isAged).toBe(true);
     }
   });
+
+  // Patient-Reported Allergy Status (2026-09-28).
+  it('returns reported-none when the patient says they have none but no doctor has confirmed it', () => {
+    expect(getAllergyState({ allergiesStatus: 'none_reported' }, NOW)).toEqual({ kind: 'reported-none' });
+  });
+
+  it('still returns not-asked for allergiesStatus "unknown" -- reported-none is only for an explicit none_reported', () => {
+    expect(getAllergyState({ allergiesStatus: 'unknown' }, NOW)).toEqual({ kind: 'not-asked' });
+  });
+
+  it('prefers the doctor confirmation over the patient\'s own reported-none when somehow both are set', () => {
+    const confirmedAt = new Date(NOW.getTime() - 10 * DAY_MS).toISOString();
+    const state = getAllergyState({ allergiesConfirmedNoneAt: confirmedAt, allergiesStatus: 'none_reported' }, NOW);
+    expect(state.kind).toBe('confirmed-none');
+  });
+
+  it('prefers present allergy text over a patient-reported none_reported', () => {
+    const state = getAllergyState({ allergies: 'Latex', allergiesStatus: 'none_reported' }, NOW);
+    expect(state).toEqual({ kind: 'present', text: 'Latex' });
+  });
 });

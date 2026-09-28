@@ -155,7 +155,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
             icon={Flower2}
             iconClassName="bg-warning-subtle text-warning-emphasis"
             label={t('allergies')}
-            value={profile.allergies || t('noAllergiesOnRecord')}
+            value={profile.allergies || (profile.allergiesStatus === 'none_reported' ? t('noKnownAllergiesReported') : t('noAllergiesOnRecord'))}
           />
           <InfoTile
             icon={HeartPulse}

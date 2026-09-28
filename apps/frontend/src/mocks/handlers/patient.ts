@@ -70,9 +70,17 @@ export const patientHandlers = [
 
   http.patch(`${base()}${PATIENT_PATHS.profile}`, async ({ request }) => {
     const body = (await request.json()) as PatientProfileUpdateRequest;
-    const updated = updateProfile(body, resolveRequestAccountId(request));
-    if (!updated) return errorResponse(404, 'NOT_FOUND', 'Patient profile not found.');
-    return HttpResponse.json({ data: updated });
+    try {
+      const updated = updateProfile(body, resolveRequestAccountId(request));
+      if (!updated) return errorResponse(404, 'NOT_FOUND', 'Patient profile not found.');
+      return HttpResponse.json({ data: updated });
+    } catch (error) {
+      // Mirrors the backend's own rejection of allergiesStatus: 'none_reported' submitted alongside (or while) real allergy text is on record.
+      if (error instanceof MockInvalidStateError) {
+        return errorResponse(422, 'VALIDATION_FAILED', error.message);
+      }
+      throw error;
+    }
   }),
 
   // I6 -- Health Passport.

@@ -87,6 +87,9 @@ export type Gender = 'male' | 'female' | 'other';
  * `bloodType`/`allergies`/`chronicDiseases`/`insuranceProviderId` (Stage
  * O.3/O.7) are genuinely this profile's own medical-profile fields.
  */
+/** Patient-Reported Allergy Status (2026-09-28): the patient's own answer -- independent of, and never a substitute for, a doctor's `allergiesConfirmedNoneAt` attestation. `hasAllergies` is derived server-side whenever `allergies` holds real text; a client never sends it directly. */
+export type PatientAllergyStatus = 'unknown' | 'none_reported' | 'has_allergies';
+
 export interface PatientProfile {
   id: string;
   fullName: string;
@@ -101,6 +104,9 @@ export interface PatientProfile {
   bloodType?: BloodType;
   /** Plain free text (finalized product decision, §11 -- no ICD-11/SNOMED CT coding). */
   allergies?: string;
+  /** Always present; `'unknown'` for every profile that predates this field or was never asked. */
+  allergiesStatus: PatientAllergyStatus;
+  allergiesStatusUpdatedAt?: string;
   /** Plain free text, same reasoning as `allergies`. */
   chronicDiseases?: string;
   insuranceProviderId?: string;
@@ -157,6 +163,8 @@ export interface PatientProfileUpdateRequest {
   nutritionNotes?: string;
   exerciseNotes?: string;
   mentalHealthNotes?: string;
+  /** The only value the server accepts here -- `'has_allergies'` is derived automatically from `allergies` text; rejected (422) if `allergies` also holds text in this same request. */
+  allergiesStatus?: 'none_reported';
 }
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.4/O.7): matches TrustModule's real IdentityVerificationStatusResponseDto exactly -- the UX-convenience check backing the four gated actions' pre-emptive "you'll need to verify" prompt. */

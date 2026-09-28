@@ -114,6 +114,15 @@ export function WritePrescriptionDialog({
                 {t('allergiesConfirmedNone')}
               </span>
             )}
+            {allergyState.kind === 'reported-none' && (
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-subtle px-2.5 py-1 text-xs font-medium text-text-primary">
+                  <Icon icon={ShieldQuestion} size="sm" />
+                  {t('allergiesReportedNoneShort')}
+                </span>
+                <ConfirmNoKnownAllergiesDialog patientProfileId={patientProfileId} triggerLabel={t('confirmNoKnownAllergies')} />
+              </>
+            )}
             {allergyState.kind === 'not-asked' && (
               <>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-subtle px-2.5 py-1 text-xs font-medium text-warning-emphasis">

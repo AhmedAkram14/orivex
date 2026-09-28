@@ -684,6 +684,20 @@ model PatientProfile {
   // problem to paper over.
   allergiesConfirmedByDoctorId String?
   allergiesConfirmedByDoctor   DoctorProfile? @relation("PatientProfileAllergyConfirmations", fields: [allergiesConfirmedByDoctorId], references: [id], onDelete: SetNull)
+  // Patient-Reported Allergy Status (2026-09-28): the PATIENT's own answer --
+  // 'unknown' (default) | 'none_reported' | 'has_allergies' -- tracked
+  // entirely separately from the doctor's `allergiesConfirmedNoneAt`
+  // attestation above; neither ever satisfies the other. Plain string, same
+  // convention as `bloodType` (a fixed small set, not a Prisma-native enum).
+  // 'has_allergies' is derived server-side whenever `allergies` holds real
+  // text -- never set directly by a client. Existing rows default to
+  // 'unknown' unless `allergies` already had text (backfilled to
+  // 'has_allergies' by this column's own migration).
+  allergiesStatus              String    @default("unknown")
+  allergiesStatusUpdatedAt     DateTime?
+  // Which role last set allergiesStatus (e.g. "patient") -- null for every
+  // row that predates this field, a normal supported state, not backfilled.
+  allergiesStatusUpdatedByRole String?
   // I6 -- Health Passport (docs/01.1-prd-update.md §17-30): lifestyle/
   // nutrition/exercise are free text, same convention as allergies/
   // chronicDiseases above (no structured taxonomy for V1). mentalHealthNotes

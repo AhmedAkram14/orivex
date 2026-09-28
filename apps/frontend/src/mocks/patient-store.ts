@@ -101,6 +101,8 @@ function seedProfile(): PatientProfile {
     address: '12 Tahrir Street, Cairo',
     bloodType: 'A+',
     allergies: 'Penicillin',
+    allergiesStatus: 'has_allergies',
+    allergiesStatusUpdatedAt: '2026-01-10T09:00:00.000Z',
     // A real, answered value (not undefined) -- profile-completeness.ts
     // treats an unanswered field as "intake still needed", and this mock
     // patient is meant to be already-onboarded (see this file's own
@@ -204,6 +206,8 @@ function demoPatientProfile(patient: DemoPatient, index: number): PatientProfile
     address: `${index + 3} El-Nasr Street, Cairo`,
     bloodType: patient.bloodType as PatientProfile['bloodType'],
     allergies: patient.allergies,
+    // Demo data predates this field -- derive it from whatever allergies text the seed already carries, same rule the backend's migration backfill used.
+    allergiesStatus: patient.allergies ? 'has_allergies' : 'unknown',
     chronicDiseases: patient.chronicDiseases,
     insuranceProviderId: patient.hasInsurance ? (index % 2 === 0 ? 'insurance-axa' : 'insurance-allianz') : undefined,
     emergencyContacts: [
@@ -325,14 +329,40 @@ export function checkProfileExists(accountId?: string): boolean {
   return profilesByAccountId.has(resolveAccountId(accountId));
 }
 
+// Patient-Reported Allergy Status (2026-09-28): mirrors the backend domain
+// entity's own rules exactly (PatientProfile.update()) -- 'none_reported' is
+// rejected while real allergy text is on record (saved already, or in this
+// same request), 'has_allergies' is derived whenever allergy text is saved,
+// and it reverts to 'unknown' if the only recorded allergy text is cleared.
+function nextAllergiesStatus(
+  profile: PatientProfile,
+  request: PatientProfileUpdateRequest,
+  nextAllergies: string | undefined,
+): Pick<PatientProfile, 'allergiesStatus' | 'allergiesStatusUpdatedAt'> {
+  const now = new Date().toISOString();
+  if (request.allergiesStatus === 'none_reported') {
+    if (nextAllergies && nextAllergies.trim().length > 0) {
+      throw new MockInvalidStateError('Cannot report no known allergies: this patient already has a recorded allergy.');
+    }
+    return { allergiesStatus: 'none_reported', allergiesStatusUpdatedAt: now };
+  }
+  if (request.allergies !== undefined) {
+    if (nextAllergies) return { allergiesStatus: 'has_allergies', allergiesStatusUpdatedAt: now };
+    if (profile.allergiesStatus === 'has_allergies') return { allergiesStatus: 'unknown', allergiesStatusUpdatedAt: now };
+  }
+  return { allergiesStatus: profile.allergiesStatus, allergiesStatusUpdatedAt: profile.allergiesStatusUpdatedAt };
+}
+
 export function updateProfile(request: PatientProfileUpdateRequest, accountId?: string): PatientProfile | undefined {
   const owner = resolveAccountId(accountId);
   const profile = profilesByAccountId.get(owner);
   if (!profile) return undefined;
+  const nextAllergies = request.allergies ?? profile.allergies;
   const updated: PatientProfile = {
     ...profile,
     bloodType: request.bloodType ?? profile.bloodType,
-    allergies: request.allergies ?? profile.allergies,
+    allergies: nextAllergies,
+    ...nextAllergiesStatus(profile, request, nextAllergies),
     chronicDiseases: request.chronicDiseases ?? profile.chronicDiseases,
     insuranceProviderId: request.insuranceProviderId ?? profile.insuranceProviderId,
     lifestyleNotes: request.lifestyleNotes ?? profile.lifestyleNotes,

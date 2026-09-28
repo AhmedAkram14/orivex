@@ -17,6 +17,7 @@ export interface StickyPatientBarProps {
 const allergyBadgeVariant = {
   present: 'danger',
   'confirmed-none': 'success',
+  'reported-none': 'neutral',
   'not-asked': 'warning',
 } as const;
 

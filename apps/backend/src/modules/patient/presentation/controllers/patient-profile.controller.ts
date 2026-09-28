@@ -91,6 +91,11 @@ export class PatientProfileController {
           nutritionNotes: body.nutritionNotes,
           exerciseNotes: body.exerciseNotes,
           mentalHealthNotes: body.mentalHealthNotes,
+          // The caller is always Patient here (class-level @Roles above) --
+          // no extra lookup needed, unlike the doctor-facing confirm-none
+          // route's own actor resolution.
+          allergiesStatus: body.allergiesStatus,
+          allergiesStatusActorRole: body.allergiesStatus !== undefined ? 'patient' : undefined,
         }),
       );
       const account = await this.getAccountByIdUseCase.execute({ accountId: user.accountId });

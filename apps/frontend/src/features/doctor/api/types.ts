@@ -389,6 +389,8 @@ export interface DoctorPatientChartProfile {
   allergiesConfirmedByDoctorId?: string;
   /** Resolved server-side; undefined whenever allergiesConfirmedByDoctorId is unset. */
   allergiesConfirmedByName?: string;
+  /** Patient-Reported Allergy Status (2026-09-28): the patient's own answer, independent of the doctor confirmation above. `'unknown'` for every profile that predates this field. */
+  allergiesStatus?: 'unknown' | 'none_reported' | 'has_allergies';
   chronicDiseases?: string;
   insuranceProviderId?: string;
   insuranceProviderName?: string;

@@ -22,6 +22,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Section } from '@/shared/ui/layout/section';
+import { Switch } from '@/shared/ui/switch';
 import { TagInput } from '@/shared/ui/tag-input';
 import { Textarea } from '@/shared/ui/textarea';
 
@@ -70,11 +71,22 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
 
   const contacts = useFieldArray({ control: form.control, name: 'emergencyContacts' });
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  // The patient's own "no known allergies" answer -- separate from the doctor's confirmation, never sent alongside allergy text.
+  const [noAllergies, setNoAllergies] = useState(profile.allergiesStatus === 'none_reported');
 
   async function onSubmit(values: PatientProfileFormValues) {
+    // Naming allergies saves the text (the server derives `has_allergies`); the toggle saves `none_reported`
+    // with the text cleared. Only sent when it would change something, so an unchanged answer keeps its timestamp.
+    const allergyFields =
+      noAllergies && profile.allergiesStatus !== 'none_reported'
+        ? { allergies: '', allergiesStatus: 'none_reported' as const }
+        : noAllergies
+          ? {}
+          : { allergies: values.allergies ?? '' };
     try {
       await updateProfile.mutateAsync({
         ...values,
+        ...allergyFields,
         emergencyContacts: values.emergencyContacts.map(({ id: _id, ...contact }) => contact),
       });
       onSaved();
@@ -119,25 +131,40 @@ export function PatientProfileForm({ profile, onSaved, onCancel }: PatientProfil
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="allergies"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('allergies')}</FormLabel>
-                  <FormControl>
-                    <TagInput
-                      name={field.name}
-                      ref={field.ref}
-                      onBlur={field.onBlur}
-                      value={field.value ?? ''}
-                      onValueChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="no-known-allergies" className="flex items-center justify-between gap-3 text-small font-medium text-text-primary">
+                {t('noKnownAllergiesToggle')}
+                <Switch
+                  id="no-known-allergies"
+                  checked={noAllergies}
+                  onCheckedChange={(checked) => {
+                    setNoAllergies(checked);
+                    if (checked) form.setValue('allergies', '', { shouldDirty: true });
+                  }}
+                />
+              </label>
+              {!noAllergies && (
+                <FormField
+                  control={form.control}
+                  name="allergies"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('allergies')}</FormLabel>
+                      <FormControl>
+                        <TagInput
+                          name={field.name}
+                          ref={field.ref}
+                          onBlur={field.onBlur}
+                          value={field.value ?? ''}
+                          onValueChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-            />
+            </div>
 
             <FormField
               control={form.control}

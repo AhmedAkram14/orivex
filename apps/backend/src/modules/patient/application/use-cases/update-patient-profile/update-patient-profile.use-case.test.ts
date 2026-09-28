@@ -5,6 +5,8 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { PatientProfile } from '../../../domain/entities/patient-profile.entity.js';
 import { BloodType } from '../../../domain/enums/blood-type.enum.js';
 import { EmergencyRelationship } from '../../../domain/enums/emergency-relationship.enum.js';
+import { PatientAllergyStatus } from '../../../domain/enums/patient-allergy-status.enum.js';
+import { PatientDomainError } from '../../../domain/exceptions/patient-domain.error.js';
 import type { PatientProfileRepository } from '../../../domain/repositories/patient-profile.repository.js';
 
 import { UpdatePatientProfileCommand } from './update-patient-profile.command.js';
@@ -79,5 +81,44 @@ describe('UpdatePatientProfileUseCase', () => {
         ),
       NotFoundError,
     );
+  });
+
+  // Patient-Reported Allergy Status (2026-09-28).
+  it('records the patient-reported none_reported status with its actor role and persists it', async () => {
+    const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+    const repo = new FakePatientProfileRepository(profile);
+    const useCase = new UpdatePatientProfileUseCase(repo, new NoopDispatcher());
+
+    const result = await useCase.execute(
+      new UpdatePatientProfileCommand({
+        patientProfileId: profile.getId(),
+        allergiesStatus: PatientAllergyStatus.NoneReported,
+        allergiesStatusActorRole: 'patient',
+      }),
+    );
+
+    assert.equal(result.getAllergiesStatus(), PatientAllergyStatus.NoneReported);
+    assert.equal(result.getAllergiesStatusUpdatedByRole(), 'patient');
+    assert.equal(repo.saved.length, 1);
+  });
+
+  it('rejects none_reported while allergy text is on record and saves nothing', async () => {
+    const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+    profile.update({ allergies: 'Peanuts' });
+    const repo = new FakePatientProfileRepository(profile);
+    const useCase = new UpdatePatientProfileUseCase(repo, new NoopDispatcher());
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new UpdatePatientProfileCommand({
+            patientProfileId: profile.getId(),
+            allergiesStatus: PatientAllergyStatus.NoneReported,
+            allergiesStatusActorRole: 'patient',
+          }),
+        ),
+      PatientDomainError,
+    );
+    assert.equal(repo.saved.length, 0);
   });
 });

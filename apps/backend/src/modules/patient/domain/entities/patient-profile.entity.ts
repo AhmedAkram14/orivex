@@ -4,6 +4,7 @@ import type { DomainEvent } from '../../../../shared/domain/domain-event.js';
 import { PatientProfileUpdatedEvent } from '../events/patient-profile-updated.event.js';
 import { PatientDomainError } from '../exceptions/patient-domain.error.js';
 import type { BloodType } from '../enums/blood-type.enum.js';
+import { PatientAllergyStatus } from '../enums/patient-allergy-status.enum.js';
 
 import { EmergencyContact, type EmergencyContactProps } from './emergency-contact.entity.js';
 
@@ -28,6 +29,15 @@ export interface UpdatePatientProfileProps {
   nutritionNotes?: string | null;
   exerciseNotes?: string | null;
   mentalHealthNotes?: string | null;
+  // Patient-Reported Allergy Status (2026-09-28): only `NoneReported` is ever
+  // meaningful from a client -- `HasAllergies` is derived automatically
+  // below whenever `allergies` holds real text, and `Unknown` is a profile's
+  // untouched default, never something a client asks to go back to.
+  // Presentation validates this before it reaches here, but the guard below
+  // is a domain invariant, not just an input-shape check.
+  allergiesStatus?: PatientAllergyStatus | null;
+  /** Who is answering (e.g. `'patient'`) -- recorded alongside the status for audit, not interpreted here. */
+  allergiesStatusActorRole?: string | null;
 }
 
 export interface ReconstitutePatientProfileProps {
@@ -46,6 +56,9 @@ export interface ReconstitutePatientProfileProps {
   mentalHealthNotes?: string;
   allergiesConfirmedNoneAt?: Date | null;
   allergiesConfirmedByDoctorId?: string | null;
+  allergiesStatus?: PatientAllergyStatus;
+  allergiesStatusUpdatedAt?: Date | null;
+  allergiesStatusUpdatedByRole?: string | null;
 }
 
 // Aggregate root of PatientModule (docs/10-backend-architecture.md's
@@ -77,6 +90,9 @@ export class PatientProfile {
     private mentalHealthNotes: string | undefined,
     private allergiesConfirmedNoneAt: Date | null = null,
     private allergiesConfirmedByDoctorId: string | null = null,
+    private allergiesStatus: PatientAllergyStatus = PatientAllergyStatus.Unknown,
+    private allergiesStatusUpdatedAt: Date | null = null,
+    private allergiesStatusUpdatedByRole: string | null = null,
   ) {}
 
   // Created explicitly via an internal application use case for now
@@ -124,6 +140,9 @@ export class PatientProfile {
       props.mentalHealthNotes,
       props.allergiesConfirmedNoneAt ?? null,
       props.allergiesConfirmedByDoctorId ?? null,
+      props.allergiesStatus ?? PatientAllergyStatus.Unknown,
+      props.allergiesStatusUpdatedAt ?? null,
+      props.allergiesStatusUpdatedByRole ?? null,
     );
   }
 
@@ -139,10 +158,41 @@ export class PatientProfile {
       // A patient (or their care team) recording a real, positive allergy
       // supersedes any earlier "confirmed none" attestation -- the two are
       // mutually exclusive by construction (see confirmNoKnownAllergies()'s
-      // own guard).
+      // own guard). This is the DOCTOR's confirmation only; a patient's own
+      // `allergiesStatus` is a separate signal, guarded below.
       if (this.allergies) {
         this.allergiesConfirmedNoneAt = null;
         this.allergiesConfirmedByDoctorId = null;
+      }
+    }
+
+    // Patient-Reported Allergy Status (2026-09-28). `props.allergiesStatus`
+    // is evaluated AFTER the allergies text above, against this.allergies as
+    // it stands now (this same call's new value, if one was given) -- so
+    // submitting allergy text and `NoneReported` in the same request is
+    // rejected exactly like ConfirmNoKnownAllergiesUseCase already rejects
+    // that combination for the doctor's own confirmation.
+    if (props.allergiesStatus !== undefined && props.allergiesStatus !== null) {
+      if (props.allergiesStatus === PatientAllergyStatus.NoneReported && this.allergies && this.allergies.trim().length > 0) {
+        throw new PatientDomainError(
+          'Cannot report no known allergies: this patient already has a recorded allergy.',
+        );
+      }
+      this.allergiesStatus = props.allergiesStatus;
+      this.allergiesStatusUpdatedAt = new Date();
+      this.allergiesStatusUpdatedByRole = props.allergiesStatusActorRole ?? this.allergiesStatusUpdatedByRole ?? null;
+    } else if (props.allergies !== undefined) {
+      // Only the allergies text changed this call -- keep status in sync
+      // automatically, never left stale.
+      if (this.allergies) {
+        this.allergiesStatus = PatientAllergyStatus.HasAllergies;
+        this.allergiesStatusUpdatedAt = new Date();
+      } else if (this.allergiesStatus === PatientAllergyStatus.HasAllergies) {
+        // The patient's only recorded allergy text was cleared -- we
+        // genuinely no longer know, so this reverts to Unknown rather than
+        // silently keeping a stale HasAllergies.
+        this.allergiesStatus = PatientAllergyStatus.Unknown;
+        this.allergiesStatusUpdatedAt = new Date();
       }
     }
     if (props.chronicDiseases !== undefined) {
@@ -230,6 +280,19 @@ export class PatientProfile {
   // unknown," a normal supported state, not an error.
   getAllergiesConfirmedByDoctorId(): string | undefined {
     return this.allergiesConfirmedByDoctorId ?? undefined;
+  }
+
+  /** The patient's own answer -- `Unknown` for every profile that predates this field or was never asked. Independent of, and never satisfies, the doctor confirmation above. */
+  getAllergiesStatus(): PatientAllergyStatus {
+    return this.allergiesStatus;
+  }
+
+  getAllergiesStatusUpdatedAt(): Date | undefined {
+    return this.allergiesStatusUpdatedAt ?? undefined;
+  }
+
+  getAllergiesStatusUpdatedByRole(): string | undefined {
+    return this.allergiesStatusUpdatedByRole ?? undefined;
   }
 
   // Doctor Patient Chart plan, 4.3: a doctor-authored "confirmed no known

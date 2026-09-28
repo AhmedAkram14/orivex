@@ -1,8 +1,9 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
+import { IsArray, IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
 
 import { BloodType } from '../../domain/enums/blood-type.enum.js';
 import { EmergencyRelationship } from '../../domain/enums/emergency-relationship.enum.js';
+import { PatientAllergyStatus } from '../../domain/enums/patient-allergy-status.enum.js';
 
 class EmergencyContactRequestDto {
   @IsString()
@@ -70,4 +71,14 @@ export class UpdatePatientProfileRequestDto {
   @IsString()
   @MaxLength(2000)
   mentalHealthNotes?: string;
+
+  // Patient-Reported Allergy Status (2026-09-28): the only value a client
+  // may ever send here is NoneReported -- HasAllergies is derived
+  // server-side from `allergies` text, and Unknown is a profile's untouched
+  // default a client never asks to go back to. Rejected outright (422) if
+  // `allergies` also holds real text in this same request, same as the
+  // doctor-confirmation route's own rule.
+  @IsOptional()
+  @IsIn([PatientAllergyStatus.NoneReported])
+  allergiesStatus?: PatientAllergyStatus.NoneReported;
 }

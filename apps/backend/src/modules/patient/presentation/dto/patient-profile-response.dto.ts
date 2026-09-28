@@ -1,6 +1,7 @@
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
 import type { PatientProfile } from '../../domain/entities/patient-profile.entity.js';
 import type { BloodType } from '../../domain/enums/blood-type.enum.js';
+import type { PatientAllergyStatus } from '../../domain/enums/patient-allergy-status.enum.js';
 
 interface EmergencyContactView {
   id: string;
@@ -39,6 +40,11 @@ export class PatientProfileResponseDto {
   allergiesConfirmedByDoctorId?: string;
   /** Resolved by the caller (mirrors insuranceProviderName's own pattern below) -- omitted, not fabricated, whenever allergiesConfirmedByDoctorId is unset or the caller didn't resolve it. */
   allergiesConfirmedByName?: string;
+  /** Patient-Reported Allergy Status (2026-09-28): the patient's own answer -- independent of, and never a substitute for, the doctor confirmation above. Always present; 'unknown' for every profile that predates this field or was never asked. */
+  allergiesStatus!: PatientAllergyStatus;
+  allergiesStatusUpdatedAt?: string;
+  /** Who last set `allergiesStatus` (e.g. `'patient'`) -- omitted until it has ever been set. */
+  allergiesStatusUpdatedByRole?: string;
   insuranceProviderId?: string;
   /** Resolved by the caller when it already has ReferenceModule's provider list loaded (e.g. the public patient chart); omitted (not fabricated) when no resolver is passed in. */
   insuranceProviderName?: string;
@@ -86,6 +92,9 @@ export class PatientProfileResponseDto {
     dto.allergiesConfirmedNoneAt = profile.getAllergiesConfirmedNoneAt()?.toISOString();
     dto.allergiesConfirmedByDoctorId = profile.getAllergiesConfirmedByDoctorId();
     dto.allergiesConfirmedByName = allergiesConfirmedByName;
+    dto.allergiesStatus = profile.getAllergiesStatus();
+    dto.allergiesStatusUpdatedAt = profile.getAllergiesStatusUpdatedAt()?.toISOString();
+    dto.allergiesStatusUpdatedByRole = profile.getAllergiesStatusUpdatedByRole();
     dto.insuranceProviderId = profile.getInsuranceProviderId();
     dto.insuranceProviderName = insuranceProviderName;
     dto.lifestyleNotes = profile.getLifestyleNotes();

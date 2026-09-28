@@ -29,6 +29,8 @@ export class UpdatePatientProfileUseCase {
       nutritionNotes: command.nutritionNotes,
       exerciseNotes: command.exerciseNotes,
       mentalHealthNotes: command.mentalHealthNotes,
+      allergiesStatus: command.allergiesStatus,
+      allergiesStatusActorRole: command.allergiesStatusActorRole,
     });
 
     await this.patientProfileRepository.save(profile);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { PatientProfile } from '@/features/patient/api/types';
 import { getOptionalProfileGaps, isPatientProfileComplete } from './profile-completeness';
 
-const base = { id: 'p1', fullName: 'A', email: 'a@x.dev', emergencyContacts: [] } as PatientProfile;
+const base = { id: 'p1', fullName: 'A', email: 'a@x.dev', emergencyContacts: [], allergiesStatus: 'unknown' } as PatientProfile;
 
 describe('isPatientProfileComplete', () => {
   it('needs only date of birth, gender and phone', () => {
@@ -10,7 +10,7 @@ describe('isPatientProfileComplete', () => {
   });
 
   it('is incomplete when any of the three is missing, whatever else is filled in', () => {
-    const rest = { bloodType: 'A+', allergies: 'x', chronicDiseases: 'y', nationalityId: 'n', address: 'a' } as const;
+    const rest = { bloodType: 'A+', allergies: 'x', allergiesStatus: 'has_allergies', chronicDiseases: 'y', nationalityId: 'n', address: 'a' } as const;
     expect(isPatientProfileComplete({ ...base, ...rest, gender: 'female', phoneNumber: '1' })).toBe(false);
     expect(isPatientProfileComplete({ ...base, ...rest, dateOfBirth: '1990-01-01', phoneNumber: '1' })).toBe(false);
     expect(isPatientProfileComplete({ ...base, ...rest, dateOfBirth: '1990-01-01', gender: 'female' })).toBe(false);
@@ -18,6 +18,12 @@ describe('isPatientProfileComplete', () => {
 });
 
 describe('getOptionalProfileGaps', () => {
+  it('counts allergies as answered once the patient has said none, without any allergy text', () => {
+    expect(getOptionalProfileGaps({ ...base, allergiesStatus: 'none_reported' })).not.toContain('allergies');
+    expect(getOptionalProfileGaps(base)).toContain('allergies');
+  });
+
+
   it('lists every optional field for a bare profile and none for a full one', () => {
     expect(getOptionalProfileGaps(base)).toHaveLength(7);
     const full = {
@@ -26,6 +32,7 @@ describe('getOptionalProfileGaps', () => {
       address: 'a',
       bloodType: 'A+',
       allergies: 'x',
+      allergiesStatus: 'has_allergies',
       chronicDiseases: 'y',
       insuranceProviderId: 'i',
       emergencyContacts: [{ id: '1', name: 'M', relationship: 'sibling', phoneNumber: '1' }],

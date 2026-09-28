@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { EmergencyRelationship } from '../enums/emergency-relationship.enum.js';
 import { BloodType } from '../enums/blood-type.enum.js';
+import { PatientAllergyStatus } from '../enums/patient-allergy-status.enum.js';
 import { PatientDomainError } from '../exceptions/patient-domain.error.js';
 
 import { PatientProfile } from './patient-profile.entity.js';
@@ -117,6 +118,73 @@ describe('PatientProfile', () => {
 
       assert.ok(profile.getAllergiesConfirmedNoneAt() instanceof Date);
       assert.equal(profile.getAllergiesConfirmedByDoctorId(), undefined);
+    });
+  });
+
+  // Patient-Reported Allergy Status (2026-09-28).
+  describe('allergiesStatus', () => {
+    it('defaults to Unknown for a brand-new profile', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.Unknown);
+      assert.equal(profile.getAllergiesStatusUpdatedAt(), undefined);
+    });
+
+    it('records NoneReported, its timestamp and the actor role when the patient says they have none', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+
+      profile.update({ allergiesStatus: PatientAllergyStatus.NoneReported, allergiesStatusActorRole: 'patient' });
+
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.NoneReported);
+      assert.ok(profile.getAllergiesStatusUpdatedAt() instanceof Date);
+      assert.equal(profile.getAllergiesStatusUpdatedByRole(), 'patient');
+    });
+
+    it('throws PatientDomainError and changes nothing when NoneReported is requested while a real allergy is on record', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+      profile.update({ allergies: 'Penicillin' });
+
+      assert.throws(
+        () => profile.update({ allergiesStatus: PatientAllergyStatus.NoneReported, allergiesStatusActorRole: 'patient' }),
+        PatientDomainError,
+      );
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.HasAllergies);
+    });
+
+    it('rejects allergy text and NoneReported submitted together in the same request', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+
+      assert.throws(
+        () => profile.update({ allergies: 'Latex', allergiesStatus: PatientAllergyStatus.NoneReported }),
+        PatientDomainError,
+      );
+    });
+
+    it('sets HasAllergies automatically when allergy text is saved, without the client sending a status', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+
+      profile.update({ allergies: 'Latex' });
+
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.HasAllergies);
+    });
+
+    it('reverts HasAllergies to Unknown when the only recorded allergy text is cleared', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+      profile.update({ allergies: 'Latex' });
+
+      profile.update({ allergies: null });
+
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.Unknown);
+    });
+
+    it('never lets a patient-reported NoneReported satisfy the doctor confirmation, and vice versa', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+
+      profile.update({ allergiesStatus: PatientAllergyStatus.NoneReported, allergiesStatusActorRole: 'patient' });
+      assert.equal(profile.getAllergiesConfirmedNoneAt(), null);
+
+      profile.confirmNoKnownAllergies('22222222-2222-4222-8222-222222222222');
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.NoneReported);
     });
   });
 });

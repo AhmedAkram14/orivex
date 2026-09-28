@@ -19,7 +19,7 @@ export function getOptionalProfileGaps(profile: PatientProfile): OptionalProfile
     nationality: Boolean(profile.nationalityId),
     address: Boolean(profile.address),
     bloodType: Boolean(profile.bloodType),
-    allergies: Boolean(profile.allergies),
+    allergies: profile.allergiesStatus !== 'unknown',
     chronicDiseases: Boolean(profile.chronicDiseases),
     emergencyContact: (profile.emergencyContacts?.length ?? 0) > 0,
     insurance: Boolean(profile.insuranceProviderId),

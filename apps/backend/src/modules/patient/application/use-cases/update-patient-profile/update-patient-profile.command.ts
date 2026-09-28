@@ -1,4 +1,5 @@
 import type { BloodType } from '../../../domain/enums/blood-type.enum.js';
+import type { PatientAllergyStatus } from '../../../domain/enums/patient-allergy-status.enum.js';
 import type { EmergencyContactInput } from '../create-patient-profile/create-patient-profile.command.js';
 
 export interface UpdatePatientProfileCommandProps {
@@ -13,6 +14,9 @@ export interface UpdatePatientProfileCommandProps {
   nutritionNotes?: string | null;
   exerciseNotes?: string | null;
   mentalHealthNotes?: string | null;
+  // Patient-Reported Allergy Status (2026-09-28).
+  allergiesStatus?: PatientAllergyStatus | null;
+  allergiesStatusActorRole?: string | null;
 }
 
 // Commands are application messages, not structural types — immutable by
@@ -28,6 +32,8 @@ export class UpdatePatientProfileCommand {
   readonly nutritionNotes?: string | null;
   readonly exerciseNotes?: string | null;
   readonly mentalHealthNotes?: string | null;
+  readonly allergiesStatus?: PatientAllergyStatus | null;
+  readonly allergiesStatusActorRole?: string | null;
 
   constructor(props: UpdatePatientProfileCommandProps) {
     this.patientProfileId = props.patientProfileId;
@@ -40,5 +46,7 @@ export class UpdatePatientProfileCommand {
     this.nutritionNotes = props.nutritionNotes;
     this.exerciseNotes = props.exerciseNotes;
     this.mentalHealthNotes = props.mentalHealthNotes;
+    this.allergiesStatus = props.allergiesStatus;
+    this.allergiesStatusActorRole = props.allergiesStatusActorRole;
   }
 }

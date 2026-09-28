@@ -72,6 +72,28 @@ export function AllergyBanner({ profile, patientProfileId }: AllergyBannerProps)
     );
   }
 
+  if (state.kind === 'reported-none') {
+    // Neutral, not success -- the patient's own word, not yet a clinical
+    // confirmation. Independent of, and never a substitute for, the doctor
+    // confirmation above; the Confirm action still records that separately.
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-border-strong bg-neutral-subtle p-4 text-text-primary sm:flex-row sm:items-center sm:justify-between" role="status">
+        <div className="flex items-start gap-3">
+          <Icon icon={ShieldQuestion} className="mt-0.5 shrink-0" />
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-medium uppercase tracking-wide">{t('allergies')}</p>
+            <p className="text-sm font-semibold">{t('allergiesReportedNoneNotConfirmed')}</p>
+          </div>
+        </div>
+        <ConfirmNoKnownAllergiesDialog
+          patientProfileId={patientProfileId}
+          triggerLabel={t('confirmNoKnownAllergies')}
+          className="shrink-0 self-start sm:self-auto"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-warning-subtle bg-warning-subtle p-4 text-warning-emphasis sm:flex-row sm:items-center sm:justify-between" role="status">
       <div className="flex items-start gap-3">

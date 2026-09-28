@@ -78,9 +78,9 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const { data: doctor } = useDoctorById(doctorId);
   const { data: specialties } = useSpecialtiesList();
   const { data: patientProfile } = usePatientProfile();
-  const [allergyNone, setAllergyNone] = useState(false);
-  // Ask about allergies right before a booking, until some are on record or the patient says none.
-  const needsAllergyAnswer = Boolean(patientProfile) && !patientProfile?.allergies && !allergyNone;
+  // Ask about allergies right before a booking only while the patient has never answered
+  // (`unknown`). Once they name some (`has_allergies`) or say none (`none_reported`), never again.
+  const needsAllergyAnswer = patientProfile?.allergiesStatus === 'unknown';
 
   const today = useMemo(() => new Date(), []);
   const rangeStart = useMemo(() => {
@@ -334,11 +334,12 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
             </p>
           )}
 
-          {patientProfile && !patientProfile.allergies && (
-            <AllergyPrompt noneChosen={allergyNone} onChooseNone={() => setAllergyNone(true)} />
+          {needsAllergyAnswer && (
+            <>
+              <AllergyPrompt />
+              <p className="text-small text-text-tertiary">{tFlow('allergyRequired')}</p>
+            </>
           )}
-
-          {needsAllergyAnswer && <p className="text-small text-text-tertiary">{tFlow('allergyRequired')}</p>}
 
           <div className="flex flex-wrap gap-2">
             {actionsDisabled ? (
