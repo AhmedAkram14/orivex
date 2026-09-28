@@ -88,7 +88,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
         {isAccountError && <Alert variant="danger">{t('applicantLoadError')}</Alert>}
         {account && (
           <Card>
-            <CardContent className="grid grid-cols-2 gap-4 pt-6 sm:grid-cols-3">
+            <CardContent className="grid grid-cols-2 gap-4 pt-6 @xl:grid-cols-3">
               <InfoRow label={t('applicantName')} value={account.displayName} />
               <InfoRow label={t('applicantEmail')} value={account.email} />
               <InfoRow label={t('applicantPhone')} value={account.phoneNumber ?? t('notOnRecord')} />
@@ -114,7 +114,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
                 {t(`subjectType${verificationCase.subjectType === 'doctor' ? 'Doctor' : 'Patient'}`)}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 @xl:grid-cols-3">
               <InfoRow
                 label={t('submittedAt')}
                 value={format.dateTime(new Date(verificationCase.submittedAt), { dateStyle: 'medium', timeStyle: 'short' })}
@@ -140,7 +140,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
       {verificationCase.subjectType === 'doctor' && (
         <Section title={t('doctorContextSection')}>
           <Card>
-            <CardContent className="grid grid-cols-2 gap-4 pt-6 sm:grid-cols-3">
+            <CardContent className="grid grid-cols-2 gap-4 pt-6 @xl:grid-cols-3">
               <InfoRow label={t('licenseNumber')} value={verificationCase.licenseNumber ?? t('notOnRecord')} />
               <InfoRow label={t('specialty')} value={specialtyName} />
               <InfoRow
@@ -166,7 +166,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
       )}
 
       <Section title={t('documentsSection')}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 @xl:grid-cols-2">
           {verificationCase.documentAssetIds.map((mediaAssetId) => (
             <VerificationDocumentViewer key={mediaAssetId} mediaAssetId={mediaAssetId} />
           ))}

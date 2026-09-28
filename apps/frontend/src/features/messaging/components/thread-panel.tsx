@@ -114,7 +114,7 @@ export function ThreadPanel({ threadId, counterpartyName, counterpartyAccountId,
               type="button"
               onClick={onBack}
               aria-label={t('backToConversations')}
-              className="-ms-1.5 flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring md:hidden"
+              className="-ms-1.5 flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary hover:bg-secondary-subtle hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring @3xl:hidden"
             >
               <Icon icon={ArrowLeft} size="sm" flipRtl />
             </button>

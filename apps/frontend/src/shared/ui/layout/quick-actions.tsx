@@ -17,7 +17,7 @@ export interface QuickActionsProps {
 /** A grid of `QuickActionCard`s (e.g. "Security Center") — every entry a real `Link` to a real route, never a disabled placeholder button, so this component can only ever list destinations that actually exist. */
 export function QuickActions({ actions, className }: QuickActionsProps) {
   return (
-    <div className={cn('grid grid-cols-1 gap-3 sm:grid-cols-2', className)}>
+    <div className={cn('grid grid-cols-1 gap-3 @xl:grid-cols-2', className)}>
       {actions.map((action) => (
         <QuickActionCard key={action.id} label={action.label} icon={action.icon} href={action.href} />
       ))}

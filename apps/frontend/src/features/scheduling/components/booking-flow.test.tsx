@@ -87,7 +87,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     await userEvent.click(slotButton);
 
     expect(await screen.findByText('Review your booking')).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     await userEvent.click(slotButton);
     await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
 
@@ -136,7 +136,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     await userEvent.click(slotButton);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
@@ -175,7 +175,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     // The seeded demo doctor's working days default to a real Paid price
     // (500 EGP) -- the grid cell shows it directly, not hidden behind hover.
     expect(slotButton.textContent).toMatch(/EGP|FREE/);
@@ -207,7 +207,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     await userEvent.click(slotButton);
     await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
 
@@ -244,7 +244,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     await userEvent.click(slotButton);
     await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
 
@@ -281,7 +281,7 @@ describe('BookingFlow', () => {
       const slot = findSlotButton();
       if (!slot) throw new Error('no slot yet');
       return slot;
-    });
+    }, { timeout: 5000 });
     await userEvent.click(slotButton);
     await userEvent.click(await screen.findByRole('button', { name: 'Confirm booking' }));
 

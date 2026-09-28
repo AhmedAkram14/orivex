@@ -134,7 +134,7 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
           <InfoTile
             icon={CalendarDays}
             iconClassName="bg-primary-subtle text-primary-emphasis"
@@ -352,11 +352,11 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
       </TabsList>
 
       <TabsContent value="personal" className="flex flex-col gap-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[68fr_32fr]">
+        <div className="grid grid-cols-1 gap-6 @5xl:grid-cols-[68fr_32fr]">
           {personalInfoCard}
           {emergencyContactsCard}
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 @2xl:grid-cols-2">
           {insuranceCard}
           {settingsCard}
         </div>

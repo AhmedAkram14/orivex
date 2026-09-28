@@ -63,7 +63,7 @@ export function TodaysProgress() {
       contentClassName={contentClassName}
     >
       {total === 0 ? (
-        <EmptyState illustration="calendar-clear" title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="calendar-clear" size="sm" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <div className="flex flex-col items-center gap-3 py-2">
           <CircularProgress value={completed} max={total} size={176} strokeWidth={14} />

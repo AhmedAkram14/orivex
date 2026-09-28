@@ -35,7 +35,7 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
         <MetricStat icon={Users} label={t('verifiedPatients')} value={String(data?.verifiedPatients ?? 0)} loading={isLoading} />
         <MetricStat icon={Users} label={t('activePatients')} value={String(data?.activePatients ?? 0)} loading={isLoading} />
       </MetricGrid>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2">
         <ChartContainer title={t('genderTitle')}>
           {isLoading ? <ChartSkeleton /> : genderSlices.length === 0 ? <EmptyState illustration="records-start" title={t('emptyTitle')} /> : <PieChart data={genderSlices} />}
         </ChartContainer>

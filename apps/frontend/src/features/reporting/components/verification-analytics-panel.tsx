@@ -33,7 +33,7 @@ export function VerificationAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         <MetricStat icon={ShieldCheck} label={t('rejected')} value={String(data?.rejected ?? 0)} loading={isLoading} href="/admin/verification-queue" />
         <MetricStat icon={ShieldCheck} label={t('suspended')} value={String(data?.suspended ?? 0)} loading={isLoading} href="/admin/verification-queue" />
       </MetricGrid>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2">
         <ChartContainer title={t('doctorVsPatientTitle')}>
           {isLoading ? <ChartSkeleton /> : subjectSlices.every((slice) => slice.value === 0) ? <EmptyState illustration="records-start" title={t('emptyTitle')} /> : <PieChart data={subjectSlices} innerRadius={55} />}
         </ChartContainer>

@@ -83,7 +83,7 @@ export function PatientQueueMini() {
           ))}
         </ul>
       ) : (
-        <EmptyState illustration="waiting-room-empty" title={t('patientQueueMini.emptyTitle')} description={t('patientQueueMini.emptyDescription')} />
+        <EmptyState illustration="waiting-room-empty" size="sm" title={t('patientQueueMini.emptyTitle')} description={t('patientQueueMini.emptyDescription')} />
       )}
     </WidgetContainer>
   );

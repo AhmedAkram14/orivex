@@ -48,7 +48,7 @@ export function WeeklyCalendar({ days, todayAnnouncement, className }: WeeklyCal
   }, [focusDayId]);
 
   return (
-    <div ref={containerRef} className={cn('flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible sm:pb-0', className)}>
+    <div ref={containerRef} className={cn('flex gap-2 overflow-x-auto pb-1 @xl:grid @xl:grid-cols-7 @xl:overflow-visible @xl:pb-0', className)}>
       {days.map((day) => {
         const header = (
           <div className="flex flex-col items-center gap-0.5">

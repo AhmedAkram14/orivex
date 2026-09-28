@@ -431,7 +431,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
                 .map((group) => (
                   <section key={group.key} className="flex flex-col gap-2" aria-label={tUi(`periods.${group.key}`)}>
                     <h3 className="text-small font-medium text-text-tertiary">{tUi(`periods.${group.key}`)}</h3>
-                    <TimeGrid slots={group.slots.map(toGridSlot)} className="grid-cols-2 sm:grid-cols-3 md:grid-cols-4" />
+                    <TimeGrid slots={group.slots.map(toGridSlot)} className="grid-cols-2 @sm:grid-cols-3 @lg:grid-cols-4" />
                   </section>
                 ))}
               {selectedDay && selectedDay.windows.length === 0 && (

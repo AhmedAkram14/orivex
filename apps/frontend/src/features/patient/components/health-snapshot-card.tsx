@@ -77,7 +77,7 @@ export function HealthSnapshotCard() {
       titleAs="h2"
       className="rounded-3xl border-border-default shadow-sm"
     >
-      <dl className="grid gap-3 sm:grid-cols-2">
+      <dl className="grid gap-3 @xl:grid-cols-2">
         {rows.map((row) => (
           <div key={row.id} className="flex flex-col gap-0.5">
             <dt className="text-xs text-text-tertiary">{row.label}</dt>

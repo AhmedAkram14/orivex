@@ -185,7 +185,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[22rem_1fr]" style={{ minHeight: '32rem' }}>
+      <div className="grid grid-cols-1 gap-4 @3xl:grid-cols-[22rem_1fr]" style={{ minHeight: '32rem' }}>
         {/* Responsive pass (Phase 7): below `md` (768px) this grid was still
             a single column (the two-pane split only kicks in at `lg`), which
             stacked the full conversation list above the full open thread on
@@ -195,7 +195,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
             with ThreadPanel's own back button (`md:hidden`) returning to the
             list. At `md` and above this is unchanged from before -- both
             `hidden md:flex` guards are no-ops there. */}
-        <Card className={cn('flex flex-col', selectedThreadId && 'hidden md:flex')}>
+        <Card className={cn('flex flex-col', selectedThreadId && 'hidden @3xl:flex')}>
           <CardHeader className="flex flex-row items-center justify-between gap-3">
             {/* Heading hierarchy (Phase 3): mirrors the doctor patient-chart
                 page's own H1 -> H2 fix -- the workspace H1 (page title) is
@@ -245,7 +245,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
           </CardContent>
         </Card>
 
-        <Card className={cn('overflow-hidden p-0', !selectedThreadId && 'hidden md:flex')}>
+        <Card className={cn('overflow-hidden p-0', !selectedThreadId && 'hidden @3xl:flex')}>
           {selectedThread ? (
             <ThreadPanel
               threadId={selectedThread.id}

@@ -14,7 +14,7 @@ export function RouteLoadingSkeleton() {
         <Skeleton className="h-4 w-40" />
         <Skeleton className="h-8 w-64" />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 @pane:grid-cols-2 @wide:grid-cols-4">
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />

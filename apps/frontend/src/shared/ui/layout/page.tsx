@@ -14,13 +14,20 @@ export interface DashboardGridProps extends HTMLAttributes<HTMLDivElement> {
   columns?: 2 | 3 | 4;
 }
 
+// Columns follow the width the grid really has (<main> is the size container), not the viewport:
+// with the sidebar open a 1046px window leaves ~780px. In the two-column band a lone last widget
+// spans the row instead of leaving a hole.
 const columnsClass: Record<NonNullable<DashboardGridProps['columns']>, string> = {
-  2: 'sm:grid-cols-2',
-  3: 'sm:grid-cols-2 lg:grid-cols-3',
-  4: 'sm:grid-cols-2 lg:grid-cols-4',
+  2: '@pane:grid-cols-2',
+  3: '@pane:grid-cols-2 @wide:grid-cols-3 @pane:[&>*:last-child:nth-child(odd)]:col-span-2 @wide:[&>*:last-child:nth-child(odd)]:col-span-1',
+  4: '@pane:grid-cols-2 @wide:grid-cols-4',
 };
 
-/** The responsive grid every dashboard (role-specific or business-module) arranges its widgets in — 1 column on mobile, scaling up per `columns`. */
+/**
+ * The grid every dashboard arranges its widgets in -- 1 column below 640px of content, scaling up per
+ * `columns`. `items-start`: a short widget keeps its own height instead of stretching half-empty to
+ * match a tall neighbour.
+ */
 export function DashboardGrid({ columns = 3, className, ...props }: DashboardGridProps) {
-  return <div className={cn('grid grid-cols-1 gap-4', columnsClass[columns], className)} {...props} />;
+  return <div className={cn('grid grid-cols-1 items-start gap-4', columnsClass[columns], className)} {...props} />;
 }

@@ -27,7 +27,7 @@ export function SpecialtyDirectoryBrowser() {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 @pane:grid-cols-2 @wide:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={index} className="h-20 w-full" />
         ))}
@@ -40,7 +40,7 @@ export function SpecialtyDirectoryBrowser() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 @pane:grid-cols-2 @wide:grid-cols-3">
       {activeSpecialties.map((specialty) => (
         <Link key={specialty.id} href={`/patient/doctors?specialtyId=${specialty.id}`}>
           <Card className="h-full transition-shadow hover:shadow-md">

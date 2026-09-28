@@ -187,7 +187,7 @@ export function KnowledgeFeed() {
           <EmptyState illustration="articles-none" title={t('emptyTitle')} description={t('emptyDescription')} />
         ) : (
           // Editorial grid: two columns from md up, the first (lead) article spans both.
-          <ul className="grid items-start gap-(--card-gap) md:grid-cols-2 md:[&>li:first-child]:col-span-2">
+          <ul className="grid items-start gap-(--card-gap) @2xl:grid-cols-2 @2xl:[&>li:first-child]:col-span-2">
             {feedResult.articles.map((article) => (
               <FeedArticleCard
                 key={article.id}

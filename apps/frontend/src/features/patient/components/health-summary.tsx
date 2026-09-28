@@ -95,5 +95,5 @@ export function HealthSummary({ layout = 'row', className }: HealthSummaryProps)
     return <div className={cn('flex h-full flex-col gap-3', className)}>{tiles}</div>;
   }
 
-  return <div className={cn('grid grid-cols-1 gap-3 sm:grid-cols-3', className)}>{tiles}</div>;
+  return <div className={cn('grid grid-cols-1 gap-3 @xl:grid-cols-3', className)}>{tiles}</div>;
 }

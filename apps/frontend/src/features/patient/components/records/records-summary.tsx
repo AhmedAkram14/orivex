@@ -58,7 +58,7 @@ export function RecordsSummary({ entries, entriesLoading, className }: RecordsSu
   const conditionCount = entries.filter((entry) => entry.type === 'condition').length;
 
   return (
-    <div className={cn('grid grid-cols-2 gap-3 lg:grid-cols-4', className)}>
+    <div className={cn('grid grid-cols-2 gap-3 @wide:grid-cols-4', className)}>
       <SummaryTile
         icon={ClipboardList}
         iconClassName="bg-info-subtle text-info-emphasis"

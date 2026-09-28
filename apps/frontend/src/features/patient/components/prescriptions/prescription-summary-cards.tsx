@@ -59,7 +59,7 @@ export function PrescriptionSummaryCards({ prescriptions, loading, className }: 
   }, undefined);
 
   return (
-    <div className={cn('grid grid-cols-2 gap-3 lg:grid-cols-4', className)}>
+    <div className={cn('grid grid-cols-2 gap-3 @wide:grid-cols-4', className)}>
       <SummaryTile
         icon={Pill}
         iconClassName="bg-success-subtle text-success-emphasis"

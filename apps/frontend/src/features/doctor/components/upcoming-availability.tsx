@@ -54,14 +54,14 @@ export function UpcomingAvailability() {
   return (
     <WidgetContainer title={widgetTitle} className={widgetClassName} contentClassName={contentClassName}>
       {days.length === 0 ? (
-        <EmptyState illustration="calendar-clear" title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState illustration="calendar-clear" size="sm" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <ul className="flex flex-col divide-y divide-border-default">
           {days.map(({ date, day }) => {
             const today = isSameDay(date, getCairoNow());
             return (
               <li key={date.toISOString()} className="flex items-center justify-between gap-3 py-3.5 first:pt-0 last:pb-0">
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 items-center gap-3">
                   <span
                     className={cn(
                       'flex size-10 shrink-0 items-center justify-center rounded-full',
@@ -74,7 +74,7 @@ export function UpcomingAvailability() {
                     {today ? tDashboard('today') : format.dateTime(date, { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
                 </div>
-                <p className="text-sm text-text-secondary">
+                <p className="shrink-0 text-sm whitespace-nowrap text-text-secondary">
                   {format.dateTime(combineDateAndTime(new Date(0, 0, 0), day.hours.start), { hour: 'numeric' })}
                   {' – '}
                   {format.dateTime(combineDateAndTime(new Date(0, 0, 0), day.hours.end), { hour: 'numeric' })}

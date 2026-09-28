@@ -298,7 +298,7 @@ export default function DoctorPatientChartPage() {
                   Tabs sibling, so it stays visible on every tab. */}
               <AllergyBanner profile={profile} patientProfileId={patientProfileId} />
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
                 <QuickStat
                   label={t('stats.completedConsultations')}
                   value={String(completedCount)}
@@ -374,7 +374,7 @@ export default function DoctorPatientChartPage() {
                 </TabsList>
 
                 <TabsContent value="overview" className="flex flex-col gap-6">
-                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-6 @pane:grid-cols-2">
                     <Card className={CARD_CLASSNAME}>
                       <CardHeader className="px-7 py-6">
                         <CardTitle>{t('personalInformation')}</CardTitle>

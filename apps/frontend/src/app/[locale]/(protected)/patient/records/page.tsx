@@ -55,7 +55,7 @@ export default function PatientMedicalRecordsPage() {
 
         <RecordsSummary entries={allEntries} entriesLoading={isLoading} />
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 @wide:grid-cols-3">
           <div className="flex flex-col gap-6 lg:col-span-2">
             <Section title={t('timelineTitle')}>
               {isLoading ? (

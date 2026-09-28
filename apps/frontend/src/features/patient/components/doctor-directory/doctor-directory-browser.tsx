@@ -111,8 +111,9 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 lg:flex-row">
-        <div className="relative flex-1">
+      {/* Search takes the whole first line until there is room (960px) for everything in one row. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-0 basis-full @wide:basis-0 @wide:flex-1">
           <Icon icon={Search} size="sm" className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
           <Input
             value={search}
@@ -132,7 +133,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
             resetToFirstPage();
           }}
         >
-          <SelectTrigger className="lg:w-56" aria-label={t('specialtyFilterLabel')}>
+          <SelectTrigger className="min-w-0 flex-1 @wide:w-56 @wide:flex-none" aria-label={t('specialtyFilterLabel')}>
             <SelectValue placeholder={t('allSpecialties')} />
           </SelectTrigger>
           <SelectContent>
@@ -151,7 +152,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
             resetToFirstPage();
           }}
         >
-          <SelectTrigger className="lg:w-56" aria-label={t('locationFilterLabel')}>
+          <SelectTrigger className="min-w-0 flex-1 @wide:w-56 @wide:flex-none" aria-label={t('locationFilterLabel')}>
             <SelectValue placeholder={t('allLocations')} />
           </SelectTrigger>
           <SelectContent>
@@ -271,7 +272,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 @pane:grid-cols-2 @wide:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-56 w-full" />
           ))}
@@ -280,7 +281,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
         <EmptyState illustration="search-no-results" title={t('emptyTitle')} description={t('emptyDescription')} />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 @pane:grid-cols-2 @wide:grid-cols-3">
             {data.doctors.map((doctor) => (
               <DoctorCard
                 key={doctor.doctorProfileId}
