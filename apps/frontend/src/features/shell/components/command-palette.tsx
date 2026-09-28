@@ -174,6 +174,8 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
+        // The visible label is hidden below `sm`, so the button keeps its accessible name there.
+        aria-label={isDoctor ? t('triggerLabel') : t('triggerLabelPatient')}
         className="flex items-center gap-2 rounded-md border border-border-default bg-canvas px-3 py-1.5 text-sm text-text-tertiary transition-colors duration-(--duration-fast) hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
       >
         <Icon icon={Search} size="sm" />

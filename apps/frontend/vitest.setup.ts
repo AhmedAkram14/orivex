@@ -1,4 +1,12 @@
 import '@testing-library/jest-dom/vitest';
+import { configure } from '@testing-library/react';
+
+// The full suite runs ~200 jsdom files in parallel, and a first render that
+// needs MSW-backed data can take longer than Testing Library's 1s default
+// `findBy*`/`waitFor` timeout when the machine is busy -- which made a couple
+// of tests fail only under full-suite load and pass alone. A longer ceiling
+// costs nothing when the element appears quickly (it resolves immediately).
+configure({ asyncUtilTimeout: 5000 });
 
 // Vitest doesn't load .env.local the way Next.js's own dev/build server
 // does, and shared/lib/env.ts's Zod validation fails fast on a missing

@@ -2050,6 +2050,8 @@
       "searchPlaceholder": "Search by specialty...",
       "allSpecialties": "All Specialties",
       "allLocations": "All Locations",
+      "specialtyFilterLabel": "Specialty",
+      "locationFilterLabel": "Location",
       "filters": "Filters",
       "filterAny": "Any",
       "filterLanguage": "Language",

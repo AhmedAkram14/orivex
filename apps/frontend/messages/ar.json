@@ -2050,6 +2050,8 @@
       "searchPlaceholder": "ابحث حسب التخصص...",
       "allSpecialties": "جميع التخصصات",
       "allLocations": "جميع المواقع",
+      "specialtyFilterLabel": "التخصص",
+      "locationFilterLabel": "الموقع",
       "filters": "عوامل التصفية",
       "filterAny": "الكل",
       "filterLanguage": "اللغة",

@@ -23,6 +23,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
+    // ~200 jsdom files run in parallel; a heavy page test (form + MSW + Radix)
+    // can pass the 5s default only when the machine is idle. A ceiling costs
+    // nothing for tests that finish fast.
+    testTimeout: 15_000,
     // tests/e2e is Playwright's suite (playwright.config.ts), not Vitest's --
     // it has its own test.describe()/test() from @playwright/test that
     // Vitest must never try to collect.

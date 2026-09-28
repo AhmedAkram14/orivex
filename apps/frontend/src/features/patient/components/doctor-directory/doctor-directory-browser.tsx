@@ -132,7 +132,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
             resetToFirstPage();
           }}
         >
-          <SelectTrigger className="lg:w-56">
+          <SelectTrigger className="lg:w-56" aria-label={t('specialtyFilterLabel')}>
             <SelectValue placeholder={t('allSpecialties')} />
           </SelectTrigger>
           <SelectContent>
@@ -151,7 +151,7 @@ export function DoctorDirectoryBrowser({ initialSpecialtyId }: DoctorDirectoryBr
             resetToFirstPage();
           }}
         >
-          <SelectTrigger className="lg:w-56">
+          <SelectTrigger className="lg:w-56" aria-label={t('locationFilterLabel')}>
             <SelectValue placeholder={t('allLocations')} />
           </SelectTrigger>
           <SelectContent>

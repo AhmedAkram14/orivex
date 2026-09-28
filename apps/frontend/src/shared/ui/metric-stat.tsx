@@ -200,8 +200,11 @@ export function MetricGrid({ columns = 4, className, ...props }: MetricGridProps
 export function MetricStrip({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
+      // Focusable so a keyboard user can scroll the strip sideways on a phone.
+      tabIndex={0}
       className={cn(
         'scrollbar-hidden flex snap-x snap-mandatory overflow-x-auto rounded-(--r-card) border border-border-default bg-surface shadow-xs',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
         '*:not-first:border-s *:not-first:border-border-default',
         className,
       )}

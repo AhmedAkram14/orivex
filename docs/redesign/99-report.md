@@ -26,11 +26,12 @@ Blank Reports chart; session-bootstrap flake on 5xx/408/429; Browse Doctors card
 
 ## Verification
 - `tsc --noEmit`: clean. `eslint`: 0 errors (12 pre-existing warnings). `next build` (mock mode): passes.
-- `vitest`: 847/850. Failures: `booking-flow` "inline payment step for a Paid slot" (**pre-existing**, fails on untouched baseline); two others (`verification-case-detail`, `book/page`) time out only under full-suite load and pass in isolation.
+- `vitest`: 864/864 (211 files). The Paid-slot booking test was fixed (see below), and a few tests that timed out only under full-suite load now have a longer ceiling (`asyncUtilTimeout` 5s, `testTimeout` 15s), so the suite no longer flakes.
 - Overflow: no horizontal scroll at 390/768/1150/1440, EN + AR, for landing, login, register, patient and doctor routes (390/768 sweep of patient/doctor main routes).
 - Screenshots (light/dark, EN/AR, 390/768/1440): [after/](after/). Before-shots kept in the scratchpad baseline only, not committed.
 - The Paid-slot booking test is fixed: it depended on the weekday (the seeded doctor's weekend is Free); it now sets Paid pricing explicitly.
-- **Not run:** Lighthouse a11y scores (≥95 target) and a real-backend hard-reload of every authenticated route — mock mode only. Contrast was checked via the token script, not per-page axe.
+- **Accessibility (axe-core, WCAG 2.0/2.1 A + AA):** 0 violations on 9 pages (landing, login, patient overview / booking / browse doctors / health, doctor overview / queue / patients) across 7 configurations (EN light 390/768/1440, EN dark 1440, AR light 1440, AR dark 1440 and 390). An axe pass found and fixed: unnamed Browse Doctors filter selects, an icon-only search button below `sm`, a non-keyboard-scrollable KPI strip, and low-contrast white text on the dark-mode auth brand panel. Lighthouse itself is not installed, so the brief's "Lighthouse ≥95" is covered by axe only.
+- **Not run:** a real-backend hard-reload of every authenticated route (mock mode only).
 
 ## Deferred
 - Auth "Sign in required" flash could not be reproduced in mock mode; fix targets transient session errors — verify against production.

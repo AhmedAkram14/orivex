@@ -43,20 +43,20 @@ export async function AuthCard({ title, description, children, footer }: AuthCar
         </Link>
 
         <div className="relative flex flex-col gap-8">
-          <Heading level={1} className="max-w-sm text-white">
+          <Heading level={1} className="max-w-sm text-primary-foreground">
             {t('headline')}
           </Heading>
           <ul className="flex flex-col gap-4">
             {PANEL_BULLET_KEYS.map((key) => (
               <li key={key} className="flex items-start gap-3">
-                <Icon icon={CircleCheck} size="sm" className="mt-0.5 shrink-0 text-white" />
-                <Text className="text-white/90">{t(`bullets.${key}`)}</Text>
+                <Icon icon={CircleCheck} size="sm" className="mt-0.5 shrink-0 text-primary-foreground" />
+                <Text className="text-primary-foreground/90">{t(`bullets.${key}`)}</Text>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="relative flex items-center gap-2 text-sm text-white/70">
+        <div className="relative flex items-center gap-2 text-sm text-primary-foreground/80">
           <Icon icon={ShieldCheck} size="sm" />
           {t('footer')}
         </div>
