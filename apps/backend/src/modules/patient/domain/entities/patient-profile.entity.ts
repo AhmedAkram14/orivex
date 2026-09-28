@@ -147,6 +147,20 @@ export class PatientProfile {
   }
 
   update(props: UpdatePatientProfileProps): void {
+    // Validate BEFORE mutating anything, so a rejected update never leaves a
+    // half-applied aggregate behind. `none_reported` is checked against the
+    // allergies text as it will stand after this same call (this call's new
+    // value if one was given, else what is already saved) -- so submitting
+    // allergy text and `NoneReported` together is rejected exactly like
+    // ConfirmNoKnownAllergiesUseCase already rejects that combination for the
+    // doctor's own confirmation.
+    if (props.allergiesStatus === PatientAllergyStatus.NoneReported) {
+      const resultingAllergies = props.allergies !== undefined ? (props.allergies ?? undefined) : this.allergies;
+      if (resultingAllergies && resultingAllergies.trim().length > 0) {
+        throw new PatientDomainError('Cannot report no known allergies: this patient already has a recorded allergy.');
+      }
+    }
+
     if (props.emergencyContacts !== undefined) {
       this.emergencyContacts = props.emergencyContacts.map((contact) => EmergencyContact.create(contact));
     }
@@ -166,18 +180,10 @@ export class PatientProfile {
       }
     }
 
-    // Patient-Reported Allergy Status (2026-09-28). `props.allergiesStatus`
-    // is evaluated AFTER the allergies text above, against this.allergies as
-    // it stands now (this same call's new value, if one was given) -- so
-    // submitting allergy text and `NoneReported` in the same request is
-    // rejected exactly like ConfirmNoKnownAllergiesUseCase already rejects
-    // that combination for the doctor's own confirmation.
+    // Patient-Reported Allergy Status (2026-09-28). An explicit status always
+    // wins; otherwise a change to the allergies text alone keeps it in sync.
     if (props.allergiesStatus !== undefined && props.allergiesStatus !== null) {
-      if (props.allergiesStatus === PatientAllergyStatus.NoneReported && this.allergies && this.allergies.trim().length > 0) {
-        throw new PatientDomainError(
-          'Cannot report no known allergies: this patient already has a recorded allergy.',
-        );
-      }
+      // (Invariant already checked at the top of update(), before any mutation.)
       this.allergiesStatus = props.allergiesStatus;
       this.allergiesStatusUpdatedAt = new Date();
       this.allergiesStatusUpdatedByRole = props.allergiesStatusActorRole ?? this.allergiesStatusUpdatedByRole ?? null;

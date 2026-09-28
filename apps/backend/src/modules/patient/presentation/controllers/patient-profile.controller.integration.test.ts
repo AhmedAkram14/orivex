@@ -288,6 +288,80 @@ describe('PatientProfileController (integration)', () => {
     assert.equal(response.body.data.mentalHealthNotes, 'No history of anxiety or depression.');
   });
 
+  // Patient-Reported Allergy Status (2026-09-28). These run in order against the
+  // shared in-memory profile: unknown -> none_reported -> has_allergies.
+  it('GET /patients/me reports allergiesStatus "unknown" for a profile that has never answered', async () => {
+    const response = await request(app.getHttpServer()).get('/patients/me').set('Authorization', `Bearer ${VALID_TOKEN}`).expect(200);
+
+    assert.equal(response.body.data.allergiesStatus, 'unknown');
+    assert.equal(response.body.data.allergiesStatusUpdatedAt, undefined);
+  });
+
+  it('PATCH /patients/me records allergiesStatus none_reported with its timestamp and the patient role', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ allergiesStatus: 'none_reported' })
+      .expect(200);
+
+    assert.equal(response.body.data.allergiesStatus, 'none_reported');
+    assert.equal(response.body.data.allergiesStatusUpdatedByRole, 'patient');
+    assert.ok(response.body.data.allergiesStatusUpdatedAt);
+    // The doctor's own confirmation is a separate field and is never set by the patient's answer.
+    assert.equal(response.body.data.allergiesConfirmedNoneAt, undefined);
+  });
+
+  it('PATCH /patients/me rejects a client-sent allergiesStatus other than none_reported', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ allergiesStatus: 'has_allergies' })
+      .expect(400);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+  });
+
+  it('PATCH /patients/me sets allergiesStatus has_allergies on the server when allergy text is saved', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ allergies: 'Penicillin' })
+      .expect(200);
+
+    assert.equal(response.body.data.allergies, 'Penicillin');
+    assert.equal(response.body.data.allergiesStatus, 'has_allergies');
+  });
+
+  it('PATCH /patients/me rejects none_reported with 422 while allergy text is on record', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ allergiesStatus: 'none_reported' })
+      .expect(422);
+
+    assert.ok(response.body.error.code);
+    const profile = await request(app.getHttpServer()).get('/patients/me').set('Authorization', `Bearer ${VALID_TOKEN}`).expect(200);
+    assert.equal(profile.body.data.allergiesStatus, 'has_allergies');
+  });
+
+  it('PATCH /patients/me rejects allergy text and none_reported sent together with 422', async () => {
+    await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ allergies: 'Latex', allergiesStatus: 'none_reported' })
+      .expect(422);
+  });
+
+  it('PATCH /patients/me switches straight to none_reported when the allergy text is cleared in the same request', async () => {
+    const response = await request(app.getHttpServer())
+      .patch('/patients/me')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .send({ allergies: '', allergiesStatus: 'none_reported' })
+      .expect(200);
+
+    assert.equal(response.body.data.allergiesStatus, 'none_reported');
+  });
+
   it('POST /patients/me/health-passport-entries records an entry, GET lists it, DELETE removes it', async () => {
     const created = await request(app.getHttpServer())
       .post('/patients/me/health-passport-entries')

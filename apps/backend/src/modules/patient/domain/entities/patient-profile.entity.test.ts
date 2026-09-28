@@ -160,6 +160,24 @@ describe('PatientProfile', () => {
       );
     });
 
+    it('leaves the profile completely unchanged when an update is rejected', () => {
+      const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
+
+      assert.throws(
+        () =>
+          profile.update({
+            bloodType: BloodType.OPositive,
+            allergies: 'Latex',
+            allergiesStatus: PatientAllergyStatus.NoneReported,
+          }),
+        PatientDomainError,
+      );
+
+      assert.equal(profile.getAllergies(), undefined);
+      assert.equal(profile.getBloodType(), undefined);
+      assert.equal(profile.getAllergiesStatus(), PatientAllergyStatus.Unknown);
+    });
+
     it('sets HasAllergies automatically when allergy text is saved, without the client sending a status', () => {
       const profile = PatientProfile.create({ accountId: '11111111-1111-4111-8111-111111111111' });
 
