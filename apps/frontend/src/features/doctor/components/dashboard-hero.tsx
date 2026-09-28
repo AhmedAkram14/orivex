@@ -12,29 +12,42 @@ import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 import { HeroSurface } from '@/shared/ui/hero-surface';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 
 interface QuickActionProps {
   icon: LucideIcon;
   label: string;
   href?: string;
-  /** No reachable destination right now: rendered as a full-contrast, non-interactive tile with this reason underneath (never a washed-out disabled button). */
+  /** No reachable destination right now: the same secondary button, marked unavailable, with this reason in a tooltip. */
   disabledReason?: string;
 }
 
+/**
+ * Every quick action is the same `secondary` button, so the row lines up and wraps evenly. An
+ * unavailable one keeps its label and explains why in a tooltip (`aria-disabled`, not `disabled`,
+ * so it stays focusable and the reason is reachable by keyboard and screen reader).
+ */
 function QuickAction({ icon, label, href, disabledReason }: QuickActionProps) {
   if (disabledReason || !href) {
     return (
-      <div
-        aria-disabled="true"
-        className="flex min-h-11 items-center gap-2 rounded-(--r-sm) border border-dashed border-border-strong px-3.5 py-1.5 text-start"
-      >
-        <Icon icon={icon} size="sm" className="shrink-0 text-text-tertiary" />
-        <span className="flex min-w-0 flex-col leading-tight">
-          <span className="text-sm font-medium text-text-primary">{label}</span>
-          <span className="text-caption text-text-tertiary">{disabledReason}</span>
-        </span>
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            aria-disabled="true"
+            onClick={(event) => event.preventDefault()}
+            className="cursor-not-allowed text-text-tertiary"
+          >
+            <Icon icon={icon} size="sm" />
+            {label}
+            <span className="sr-only">. {disabledReason}</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{disabledReason}</TooltipContent>
+      </Tooltip>
     );
   }
   return (
@@ -61,7 +74,9 @@ export function DashboardHero() {
 
   const now = new Date();
   const isSameCalendarDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
 
   // Bounded to *today* -- a patient days from now is not "next" in any useful sense here.
   const nextPatient = (upcomingWork ?? [])
@@ -97,19 +112,31 @@ export function DashboardHero() {
 
       <TodayTimeline />
 
-      <div className="flex flex-wrap items-center gap-2">
-        {startableEntry && <StartConsultationAction consultationSessionId={startableEntry.id} variant="accent" />}
-        {!startableEntry && (
-          <QuickAction icon={Video} label={t('hero.quickActions.startConsultation')} disabledReason={t('hero.noStartableConsultation')} />
-        )}
-        <QuickAction icon={Users} label={t('hero.quickActions.viewQueue')} href="/doctor/queue" />
-        <QuickAction icon={CalendarClock} label={t('hero.quickActions.updateSchedule')} href="/doctor/schedule" />
-        <QuickAction
-          icon={FileText}
-          label={t('hero.quickActions.writePrescription')}
-          disabledReason={t('hero.quickActions.writePrescriptionUnavailable')}
-        />
-      </div>
+      <TooltipProvider>
+        <div className="flex flex-wrap items-center gap-2">
+          {startableEntry && (
+            <StartConsultationAction consultationSessionId={startableEntry.id} variant="accent" />
+          )}
+          {!startableEntry && (
+            <QuickAction
+              icon={Video}
+              label={t('hero.quickActions.startConsultation')}
+              disabledReason={t('hero.noStartableConsultation')}
+            />
+          )}
+          <QuickAction icon={Users} label={t('hero.quickActions.viewQueue')} href="/doctor/queue" />
+          <QuickAction
+            icon={CalendarClock}
+            label={t('hero.quickActions.updateSchedule')}
+            href="/doctor/schedule"
+          />
+          <QuickAction
+            icon={FileText}
+            label={t('hero.quickActions.writePrescription')}
+            disabledReason={t('hero.quickActions.writePrescriptionUnavailable')}
+          />
+        </div>
+      </TooltipProvider>
     </HeroSurface>
   );
 }

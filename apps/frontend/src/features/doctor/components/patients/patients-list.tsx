@@ -22,33 +22,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 
 type PatientType = 'all' | 'new' | 'returning';
-type PatientStatus = 'all' | 'active' | 'follow_up' | 'completed' | 'inactive';
+type PatientStatus = 'all' | 'new' | 'active' | 'inactive';
 type LastVisitSort = 'newest' | 'oldest';
 
 const PAGE_SIZE = 25;
 const INACTIVE_AFTER_DAYS = 90;
 
 /**
- * A real, non-fabricated status derived from real fields only -- never a
- * stored, separately-editable value. 'active': has a real upcoming
- * appointment. 'follow_up': the last visit finished with a real follow-up
- * recommendation on record (ClinicalModule's `FollowUpRecommendation`,
- * reused via `hasFollowUpRecommendation`) but nothing booked yet --
- * becomes 'active' again the moment that follow-up is actually scheduled.
- * 'completed': finished with no follow-up recommended and nothing booked.
- * 'inactive': no completed visit in the last 90 days (or ever) and nothing
- * booked. `lastVisitAt`/`lastVisitStatus` are Completed-only now (see
- * DoctorPatientListItemResponseDto's own comment) -- absent entirely for a
- * patient with no completed visit yet, which reads as 'inactive' here
- * rather than crashing on `new Date(undefined)`.
+ * The patient's relationship with this practice -- Active / New / Inactive --
+ * derived from real list fields only, never a stored value, and never an
+ * appointment status (a patient is not "Completed"):
+ *   New      -- no completed visit with this doctor yet (`lastVisitAt` absent),
+ *               whether or not a first appointment is booked.
+ *   Active   -- has a completed visit and either an upcoming appointment, or a
+ *               completed visit within the last 90 days.
+ *   Inactive -- the last completed visit was more than 90 days ago and nothing
+ *               is booked.
+ * `lastVisitAt` is Completed-only (see DoctorPatientListItemResponseDto).
  */
 function derivePatientStatus(patient: DoctorPatientListItem, now: Date): Exclude<PatientStatus, 'all'> {
+  if (!patient.lastVisitAt) return 'new';
   if (patient.nextAppointmentAt) return 'active';
-  if (patient.hasFollowUpRecommendation) return 'follow_up';
-  if (!patient.lastVisitAt) return 'inactive';
   const daysSinceLastVisit = (now.getTime() - new Date(patient.lastVisitAt).getTime()) / (1000 * 60 * 60 * 24);
-  if (daysSinceLastVisit <= INACTIVE_AFTER_DAYS) return 'completed';
-  return 'inactive';
+  return daysSinceLastVisit <= INACTIVE_AFTER_DAYS ? 'active' : 'inactive';
 }
 
 function calculateAge(dateOfBirth: string, now: Date): number {
@@ -60,9 +56,8 @@ function calculateAge(dateOfBirth: string, now: Date): number {
 }
 
 const patientStatusDot: Record<Exclude<PatientStatus, 'all'>, string> = {
+  new: 'bg-info',
   active: 'bg-success',
-  follow_up: 'bg-warning',
-  completed: 'bg-info',
   inactive: 'bg-text-tertiary',
 };
 
@@ -147,6 +142,13 @@ export function PatientsList() {
       });
   }, [patients, search, typeFilter, statusFilter, sort, now]);
 
+  const formatDate = (iso: string) => format.dateTime(new Date(iso), { year: 'numeric', month: 'short', day: 'numeric' });
+  const formatNext = (iso: string) => format.dateTime(new Date(iso), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+  const ageGender = (patient: DoctorPatientListItem) =>
+    [patient.dateOfBirth ? String(calculateAge(patient.dateOfBirth, now)) : '—', patient.gender ? tGender(patient.gender) : null]
+      .filter(Boolean)
+      .join(' • ');
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -227,9 +229,8 @@ export function PatientsList() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t('filterStatus.all')}</SelectItem>
+            <SelectItem value="new">{tPatientStatus('new')}</SelectItem>
             <SelectItem value="active">{tPatientStatus('active')}</SelectItem>
-            <SelectItem value="follow_up">{tPatientStatus('follow_up')}</SelectItem>
-            <SelectItem value="completed">{tPatientStatus('completed')}</SelectItem>
             <SelectItem value="inactive">{tPatientStatus('inactive')}</SelectItem>
           </SelectContent>
         </Select>
@@ -267,29 +268,26 @@ export function PatientsList() {
         </Card>
       ) : (
         <>
-          {/* Compact rows (44px) from md up; stacked tappable cards below. Both branches read the same `pageItems`/derived status. */}
-          <Card className="hidden overflow-hidden md:block" data-testid="patients-table">
+          {/*
+            Rows from a 640px-wide content area up, stacked cards below it -- chosen by the width the list
+            really has (sidebar open or not), not the viewport. No Actions column: the whole row opens the
+            chart through the name link (a stretched link), so nothing important sits off-screen.
+          */}
+          <Card className="hidden overflow-hidden @pane:block" data-testid="patients-table">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>{t('columns.name')}</TableHead>
-                  <TableHead>{t('columns.ageGender')}</TableHead>
                   <TableHead>{t('columns.visitCount')}</TableHead>
                   <TableHead>{t('columns.lastVisit')}</TableHead>
                   <TableHead>{t('columns.nextAppointment')}</TableHead>
                   <TableHead>{t('columns.patientStatus')}</TableHead>
-                  <TableHead>
-                    <span className="sr-only">{t('columns.actions')}</span>
-                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pageItems.map((patient) => {
                   const status = derivePatientStatus(patient, now);
                   return (
-                    // Stretched link: the whole row opens the chart via the name link's
-                    // `after:absolute after:inset-0`, keyboard-focusable without an onClick
-                    // on a <tr>. The labeled "Open chart" button is raised above the overlay.
                     <TableRow key={patient.patientProfileId} className="relative">
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -298,49 +296,26 @@ export function PatientsList() {
                             <span className="flex items-center gap-2 text-small font-medium text-text-primary">
                               <Link
                                 href={`/doctor/patients/${patient.patientProfileId}`}
+                                aria-label={t('actions.openChartFor', { name: patient.patientName })}
                                 className="rounded-sm after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                               >
                                 <bdi>{patient.patientName}</bdi>
                               </Link>
                               {patient.visitCount > 1 && <Badge variant="neutral">{t('returning')}</Badge>}
                             </span>
-                            <span className="truncate text-caption text-text-tertiary">
-                              <bdi>{patient.email}</bdi>
-                              {patient.phoneNumber && (
-                                <>
-                                  {' · '}
-                                  <bdi dir="ltr">{patient.phoneNumber}</bdi>
-                                </>
-                              )}
-                            </span>
+                            <span className="whitespace-nowrap text-caption text-text-tertiary">{ageGender(patient)}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-small text-text-secondary">
-                        {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
-                        {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
+                      <TableCell className="text-small text-text-secondary tabular-nums">{patient.visitCount}</TableCell>
+                      <TableCell className="whitespace-nowrap text-small text-text-secondary">
+                        {patient.lastVisitAt ? formatDate(patient.lastVisitAt) : t('columns.lastVisitNone')}
                       </TableCell>
-                      <TableCell className="text-small text-text-secondary">{patient.visitCount}</TableCell>
-                      <TableCell className="text-small text-text-secondary">
-                        {patient.lastVisitAt
-                          ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
-                          : t('columns.lastVisitNone')}
-                      </TableCell>
-                      <TableCell className="text-small text-text-secondary">
-                        {patient.nextAppointmentAt
-                          ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
-                          : t('noUpcoming')}
+                      <TableCell className="whitespace-nowrap text-small text-text-secondary">
+                        {patient.nextAppointmentAt ? formatNext(patient.nextAppointmentAt) : <span aria-label={t('noUpcoming')}>—</span>}
                       </TableCell>
                       <TableCell>
                         <PatientStatusChip status={status} label={tPatientStatus(status)} />
-                      </TableCell>
-                      <TableCell className="text-end">
-                        <Button asChild variant="ghost" size="sm" className="relative z-10">
-                          <Link href={`/doctor/patients/${patient.patientProfileId}`}>
-                            {t('actions.openChart')}
-                            <Icon icon={ChevronRight} size="sm" flipRtl />
-                          </Link>
-                        </Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -359,7 +334,7 @@ export function PatientsList() {
             </div>
           </Card>
 
-          <div className="flex flex-col gap-3 md:hidden" data-testid="patients-card-list">
+          <div className="flex flex-col gap-3 @pane:hidden" data-testid="patients-card-list">
             {pageItems.map((patient) => {
               const status = derivePatientStatus(patient, now);
               return (
@@ -370,37 +345,27 @@ export function PatientsList() {
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/doctor/patients/${patient.patientProfileId}`}
+                          aria-label={t('actions.openChartFor', { name: patient.patientName })}
                           className="truncate rounded-sm text-body font-medium text-text-primary after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
                         >
                           <bdi>{patient.patientName}</bdi>
                         </Link>
                         {patient.visitCount > 1 && <Badge variant="neutral" className="shrink-0">{t('returning')}</Badge>}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-caption text-text-tertiary">
-                        <span>
-                          {patient.dateOfBirth ? calculateAge(patient.dateOfBirth, now) : '—'}
-                          {patient.gender ? ` • ${tGender(patient.gender)}` : ''}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <bdi>{patient.email}</bdi>
-                      </div>
+                      <p className="text-caption text-text-tertiary">{ageGender(patient)}</p>
                       <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1 text-small">
                         <div>
                           <dt className="text-text-tertiary">{t('columns.lastVisit')}</dt>
-                          <dd className="text-text-secondary">
-                            {patient.lastVisitAt
-                              ? format.dateTime(new Date(patient.lastVisitAt), { year: 'numeric', month: 'short', day: 'numeric' })
-                              : t('columns.lastVisitNone')}
+                          <dd className="whitespace-nowrap text-text-secondary">
+                            {patient.lastVisitAt ? formatDate(patient.lastVisitAt) : t('columns.lastVisitNone')}
                           </dd>
                         </div>
-                        <div>
-                          <dt className="text-text-tertiary">{t('columns.nextAppointment')}</dt>
-                          <dd className="text-text-secondary">
-                            {patient.nextAppointmentAt
-                              ? format.dateTime(new Date(patient.nextAppointmentAt), { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
-                              : t('noUpcoming')}
-                          </dd>
-                        </div>
+                        {patient.nextAppointmentAt && (
+                          <div>
+                            <dt className="text-text-tertiary">{t('columns.nextAppointment')}</dt>
+                            <dd className="whitespace-nowrap text-text-secondary">{formatNext(patient.nextAppointmentAt)}</dd>
+                          </div>
+                        )}
                       </dl>
                       <div className="mt-1">
                         <PatientStatusChip status={status} label={tPatientStatus(status)} />

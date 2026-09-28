@@ -43,6 +43,17 @@ export interface MetricStatProps {
 const COUNT_UP_MS = 600;
 
 /**
+ * A figure never wraps mid-token ("EGP 969. / 00"): it stays on one line and
+ * shrinks with the width it actually has (`cqi` of its own wrapper) before it
+ * would overflow, capped at the scale's own size. Units and qualifiers
+ * ("per consultation") belong in `helperText`, not in `value`.
+ */
+const VALUE_FONT_SIZE = {
+  hero: 'clamp(1.5rem, 12cqi, 2.5rem)',
+  regular: 'clamp(1.125rem, 12cqi, 1.5rem)',
+} as const;
+
+/**
  * Counts an integer string up from 0 the first time it appears (first mount,
  * or the first time real data replaces the loading state) -- never on a
  * refetch, and not at all under `prefers-reduced-motion`.
@@ -140,18 +151,23 @@ export function MetricStat({
       {loading ? (
         <Skeleton className={cn('mt-2', isHero ? 'h-11 w-32' : 'h-8 w-16')} />
       ) : (
-        <p
-          data-numeric
-          dir="auto"
-          className={cn(
-            'mt-1 font-display tabular-nums text-text-primary wrap-break-word',
-            isHero ? 'text-metric-xl' : 'text-metric',
-          )}
-        >
-          {/* While counting up, the running number is hidden from assistive tech and the final value is announced instead. */}
-          {animating ? <span aria-hidden="true">{display}</span> : display}
-          {animating && <span className="sr-only">{value}</span>}
-        </p>
+        // The wrapper is the size container the figure measures itself against (a stretched block, so its
+        // width always comes from the stat, never from the text).
+        <div className="@container relative mt-1 min-w-0">
+          <p
+            data-numeric
+            dir="auto"
+            className={cn(
+              'overflow-hidden font-display text-ellipsis whitespace-nowrap tabular-nums text-text-primary',
+              isHero ? 'text-metric-xl' : 'text-metric',
+            )}
+            style={{ fontSize: isHero ? VALUE_FONT_SIZE.hero : VALUE_FONT_SIZE.regular }}
+          >
+            {/* While counting up, the running number is hidden from assistive tech and the final value is announced instead. */}
+            {animating ? <span aria-hidden="true">{display}</span> : display}
+            {animating && <span className="sr-only">{value}</span>}
+          </p>
+        </div>
       )}
       {!loading && (delta || sparkline || helperText) && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -186,29 +202,48 @@ export function MetricStat({
 }
 
 export interface MetricGridProps extends HTMLAttributes<HTMLDivElement> {
-  /** Column count at `lg` and up; fewer columns below. */
+  /** Column count once the grid is at least 960px wide; two columns from 640px, one below. */
   columns?: 2 | 3 | 4;
 }
 
-/** Equal-height grid for `tile` stats (`grid-auto-rows: 1fr`, `minmax(0, 1fr)` columns so long values never overflow). */
+/**
+ * Equal-height grid for `tile` stats (`grid-auto-rows: 1fr`, `minmax(0, 1fr)` columns so long values
+ * never overflow). Columns follow the width the grid actually has (its own size container), not the
+ * viewport: 1 below 640px, 2 from 640px, `columns` from 960px.
+ */
 export function MetricGrid({ columns = 4, className, ...props }: MetricGridProps) {
-  const cols = { 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4' }[columns];
-  return <div className={cn('grid auto-rows-fr grid-cols-1 gap-(--card-gap) sm:grid-cols-2', cols, className)} {...props} />;
+  const cols = { 2: '', 3: '@wide:grid-cols-3', 4: '@wide:grid-cols-4' }[columns];
+  return (
+    <div className="@container">
+      <div className={cn('grid auto-rows-fr grid-cols-1 gap-(--card-gap) @pane:grid-cols-2', cols, className)} {...props} />
+    </div>
+  );
 }
 
-/** One horizontal band of 3-4 `inline` stats; snap-scrolls sideways on a phone. */
+/**
+ * One band of 2-4 `inline` stats, laid out by the width it actually has: below 640px a sideways
+ * snap-scroll strip, from 640px a two-column grid, from 960px one row. A lone last item in the
+ * two-column grid spans the row instead of leaving a hole.
+ */
 export function MetricStrip({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      // Focusable so a keyboard user can scroll the strip sideways on a phone.
-      tabIndex={0}
-      className={cn(
-        'scrollbar-hidden flex snap-x snap-mandatory overflow-x-auto rounded-(--r-card) border border-border-default bg-surface shadow-xs',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-        '*:not-first:border-s *:not-first:border-border-default',
-        className,
-      )}
-      {...props}
-    />
+    <div className="@container">
+      <div
+        // Focusable so a keyboard user can scroll the strip sideways on a phone.
+        tabIndex={0}
+        className={cn(
+          'scrollbar-hidden flex snap-x snap-mandatory overflow-x-auto rounded-(--r-card) border border-border-default bg-surface shadow-xs',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
+          // Strip: hairlines between items.
+          '@max-pane:*:not-first:border-s @max-pane:*:not-first:border-border-default',
+          // Grid: 1px gaps over a border-coloured backing draw the dividers; each cell keeps the surface fill.
+          '@pane:grid @pane:grid-cols-2 @pane:gap-px @pane:overflow-hidden @pane:bg-border-default @pane:*:bg-surface',
+          '@pane:[&>*:last-child:nth-child(odd)]:col-span-2',
+          '@wide:grid-cols-[repeat(auto-fit,minmax(0,1fr))] @wide:[&>*:last-child:nth-child(odd)]:col-span-1',
+          className,
+        )}
+        {...props}
+      />
+    </div>
   );
 }

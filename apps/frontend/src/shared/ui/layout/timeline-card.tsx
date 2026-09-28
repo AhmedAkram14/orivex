@@ -44,17 +44,18 @@ export function TimelineCard({
   action,
 }: TimelineCardProps) {
   return (
-    <div className={cn('flex items-start gap-3', className)}>
+    // Wraps instead of overflowing: on a narrow card the action drops below the text rather than being pushed out of view.
+    <div className={cn('flex flex-wrap items-start gap-3', className)}>
       {leading}
-      <p className="w-16 shrink-0 pt-0.5 text-sm font-medium text-text-secondary">{time}</p>
-      <div className="flex flex-1 flex-col gap-0.5">
-        <div className="flex items-center gap-2">
+      <p className="w-16 shrink-0 pt-0.5 text-sm font-medium whitespace-nowrap text-text-secondary">{time}</p>
+      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-0.5">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="text-sm font-medium text-text-primary">{title}</p>
           {status && statusLabel && <Badge variant={badgeVariantByStatus[status]}>{statusLabel}</Badge>}
         </div>
         {description && <p className="text-sm text-text-secondary">{description}</p>}
       </div>
-      {action}
+      {action && <div className="ms-auto shrink-0">{action}</div>}
     </div>
   );
 }

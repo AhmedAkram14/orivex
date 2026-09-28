@@ -2,11 +2,13 @@
 
 import { AlertOctagon, AlertTriangle, Calendar, CheckCircle2, Info, Pill, Video, XCircle } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-mark-all-notifications-read';
 import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark-notification-read';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationEntityType, NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
-import { useLocalizedNotification } from '@/features/notifications/hooks/use-localized-notification';
+import { useLocalizedNotification, useViewerIsDoctor } from '@/features/notifications/hooks/use-localized-notification';
+import { isPersonalNotification } from '@/features/notifications/lib/notification-copy';
 import { localizeIsoTimestamps, resolveNotificationHref } from '@/features/notifications/lib/notification-text';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
@@ -14,6 +16,7 @@ import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { PopoverClose } from '@/shared/ui/popover';
+import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
 
@@ -64,6 +67,7 @@ export function NotificationRowContent({ notification }: { notification: Notific
   const absoluteTime = format.dateTime(createdAt, { dateStyle: 'medium', timeStyle: 'short' });
   const localize = useLocalizedNotification();
   const text = localize(notification);
+  const personal = isPersonalNotification(notification, useViewerIsDoctor());
 
   return (
     <>
@@ -86,6 +90,10 @@ export function NotificationRowContent({ notification }: { notification: Notific
         <p className={cn('flex-1 text-sm', notification.read ? 'text-text-secondary' : 'font-medium text-text-primary')}>
           {localizeIsoTimestamps(text.title, format)}
         </p>
+        {/* About the account's own care (it also books as a patient), not the practice. */}
+        {personal && (
+          <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-caption font-medium text-text-secondary">{t('personalTag')}</span>
+        )}
       </div>
       <p className="text-sm text-text-secondary">{localizeIsoTimestamps(text.description, format)}</p>
       <p className="text-xs text-text-tertiary" title={absoluteTime}>
@@ -152,6 +160,13 @@ export function NotificationPanel() {
   const { data: notifications, isLoading, isError } = useNotifications();
   const markAllAsRead = useMarkAllNotificationsRead();
   const unreadCount = notifications?.filter((notification) => !notification.read).length ?? 0;
+  // A doctor who also books as a patient: their own-care notifications stay out of the clinical list.
+  const viewerIsDoctor = useViewerIsDoctor();
+  const [audience, setAudience] = useState<'clinical' | 'personal'>('clinical');
+  const personal = notifications?.filter((notification) => isPersonalNotification(notification, viewerIsDoctor)) ?? [];
+  const clinical = notifications?.filter((notification) => !isPersonalNotification(notification, viewerIsDoctor)) ?? [];
+  const showSplit = personal.length > 0;
+  const visible = showSplit && audience === 'personal' ? personal : clinical;
 
   return (
     <div className="flex flex-col gap-3">
@@ -179,13 +194,25 @@ export function NotificationPanel() {
 
       {isError && <Alert variant="danger">{t('loadError')}</Alert>}
 
-      {!isLoading && !isError && notifications && notifications.length === 0 && (
+      {showSplit && (
+        <SegmentedControl
+          ariaLabel={t('audienceFilter')}
+          value={audience}
+          onChange={setAudience}
+          options={[
+            { value: 'clinical', label: `${t('audienceClinical')} (${clinical.length})` },
+            { value: 'personal', label: `${t('audiencePersonal')} (${personal.length})` },
+          ]}
+        />
+      )}
+
+      {!isLoading && !isError && notifications && visible.length === 0 && (
         <EmptyState illustration="inbox-quiet" title={t('emptyTitle')} description={t('emptyDescription')} />
       )}
 
-      {!isLoading && !isError && notifications && notifications.length > 0 && (
+      {!isLoading && !isError && visible.length > 0 && (
         <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto">
-          {notifications.map((notification) => (
+          {visible.map((notification) => (
             <NotificationRow key={notification.id} notification={notification} closeOnNavigate />
           ))}
         </ul>

@@ -54,7 +54,7 @@ export function TodaysSchedule() {
   return (
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('upcomingWorkTitle')}</span>}
-      className="rounded-3xl border-border-default shadow-sm"
+      className="rounded-(--r-card) border-border-default shadow-sm"
     >
       {isError ? (
         <Alert variant="danger">{t('upcomingWorkLoadError')}</Alert>

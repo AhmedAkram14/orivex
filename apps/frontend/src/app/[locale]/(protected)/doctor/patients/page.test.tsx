@@ -74,8 +74,7 @@ describe('DoctorPatientsPage', () => {
               patientProfileId: 'patient-1',
               patientName: 'Amina Youssef',
               visitCount: 3,
-              // Recent enough to fall inside derivePatientStatus's 90-day
-              // "still Completed, not yet Inactive" window.
+              // A completed visit inside derivePatientStatus's 90-day window: Active.
               lastVisitAt: new Date(Date.now() - 10 * 24 * 60 * 60_000).toISOString(),
               lastVisitStatus: 'completed',
             },
@@ -89,7 +88,7 @@ describe('DoctorPatientsPage', () => {
     const table = await screen.findByTestId('patients-table');
     expect(await within(table).findByText('Amina Youssef')).toBeInTheDocument();
     expect(within(table).getByText('3')).toBeInTheDocument();
-    expect(within(table).getByText('Completed')).toBeInTheDocument();
+    expect(within(table).getByText('Active')).toBeInTheDocument();
   });
 
   it('shows an honest "None yet" for a patient with no completed visit -- regression: lastVisitAt used to be the most recently *scheduled* appointment regardless of status, so a Cancelled or still-pending one rendered its date labelled as a "visit"', async () => {
@@ -115,6 +114,7 @@ describe('DoctorPatientsPage', () => {
     expect(await within(table).findByText('Iman Rashad')).toBeInTheDocument();
     expect(within(table).getByText('None yet')).toBeInTheDocument();
     expect(within(table).queryByText('Invalid Date')).not.toBeInTheDocument();
-    expect(within(table).getByText('Inactive')).toBeInTheDocument();
+    // No completed visit yet: a New patient (not Inactive, and never an appointment status).
+    expect(within(table).getByText('New')).toBeInTheDocument();
   });
 });

@@ -36,7 +36,7 @@ export function ReportsTrendChart({ data }: ReportsTrendChartProps) {
 
   return (
     // `w-full`: ChartContainer centres its child in a flex row, so without an explicit width this wrapper shrinks to 0 and ResponsiveContainer measures 0px -- the chart rendered as a blank card.
-    <div className="w-full min-w-0">
+    <div className="relative w-full min-w-0">
       {/*
        * Phase 8: `type="linear"` (not the shared `AreaChart` default
        * `"monotone"`) -- each point here is one discrete day's real

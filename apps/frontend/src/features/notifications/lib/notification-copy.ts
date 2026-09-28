@@ -1,5 +1,6 @@
 import type { useFormatter, useTranslations } from 'next-intl';
 import type { NotificationEntry } from '@/features/notifications/api/types';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 
 type Formatter = ReturnType<typeof useFormatter>;
 type Translator = ReturnType<typeof useTranslations>;
@@ -41,9 +42,15 @@ const TITLE_TO_KEY: Record<string, string> = {
 const ISO = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/;
 const AMOUNT = /(\d+(?:\.\d+)?)\s+([A-Z]{3})\b/;
 
-type Audience = 'patient' | 'doctor' | 'shared';
+export type NotificationAudience = 'patient' | 'doctor' | 'shared';
 
-function audienceOf(entry: NotificationEntry): Audience {
+/**
+ * Who a notification is written for, read from its role-scoped `actionUrl`
+ * (the backend links patient-side events under /patient and doctor-side
+ * events under /doctor). The API has no recipient-role field, so this is the
+ * real signal available without an API change.
+ */
+export function notificationAudience(entry: NotificationEntry): NotificationAudience {
   const url = entry.actionUrl ?? '';
   if (url.startsWith('/patient')) return 'patient';
   if (url.startsWith('/doctor')) return 'doctor';
@@ -56,28 +63,34 @@ export interface LocalizedNotificationText {
 }
 
 /**
+ * A notification about the viewer's OWN care, reaching an account that also
+ * practises as a doctor (a doctor who books as a patient). Those are kept out
+ * of the clinical feed and shown under a separate "Personal" filter instead.
+ */
+export function isPersonalNotification(entry: NotificationEntry, viewerIsDoctor: boolean): boolean {
+  return viewerIsDoctor && notificationAudience(entry) === 'patient';
+}
+
+/**
  * Localized, audience-appropriate title and body. `t` is
- * `useTranslations('notificationCopy')`. A patient-flavoured notification
- * reaching a doctor's account (a doctor who also books as a patient) is
- * prefixed "As a patient:" so a doctor never reads "your appointment
- * request expired" as if it were about their practice.
+ * `useTranslations('notificationCopy')`. Money is formatted with the active
+ * locale's currency formatter, so it reads the same as every other amount.
  */
 export function localizeNotification(
   entry: NotificationEntry,
   t: Translator,
   format: Formatter,
-  viewerIsDoctor: boolean,
 ): LocalizedNotificationText {
   const key = TITLE_TO_KEY[entry.title];
   if (!key) return { title: entry.title, description: entry.description };
 
-  const audience = audienceOf(entry);
+  const audience = notificationAudience(entry);
   const has = (path: string) => t.has(path);
 
   const iso = ISO.exec(entry.description)?.[0];
   const when = iso && !Number.isNaN(new Date(iso).getTime()) ? format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' }) : undefined;
   const money = AMOUNT.exec(entry.description);
-  const amount = money ? `${money[1]} ${money[2]}` : undefined;
+  const amount = money ? formatCurrency(format, Number(money[1]), money[2]) : undefined;
 
   let body: string;
   if (audience === 'doctor' && has(`${key}.doctor`)) body = t(`${key}.doctor`);
@@ -88,8 +101,5 @@ export function localizeNotification(
   else if (has(`${key}.patient`)) body = t(`${key}.patient`);
   else body = t(`${key}.doctor`);
 
-  const patientFlavoured = audience === 'patient' || (audience === 'shared' && !has(`${key}.doctor`) && has(`${key}.patient`));
-  const prefix = viewerIsDoctor && patientFlavoured ? t('audienceAsPatient') : '';
-
-  return { title: t(`${key}.title`), description: `${prefix}${body}` };
+  return { title: t(`${key}.title`), description: body };
 }

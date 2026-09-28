@@ -707,6 +707,10 @@
     "notifications": {
       "title": "الإشعارات",
       "markAllRead": "تعليم الكل كمقروء",
+      "audienceClinical": "العيادة",
+      "audiencePersonal": "شخصي",
+      "personalTag": "شخصي",
+      "audienceFilter": "عرض",
       "loadError": "تعذّر تحميل إشعاراتك.",
       "emptyTitle": "لا توجد إشعارات جديدة",
       "emptyDescription": "ستظهر الإشعارات الجديدة هنا.",
@@ -1104,6 +1108,7 @@
       },
       "activity": {
         "title": "النشاط الأخير",
+        "viewAll": "عرض الكل",
         "emptyTitle": "لا يوجد نشاط حديث",
         "emptyDescription": "ستظهر هنا إشعاراتك الأخيرة، مثل التأكيدات والوصفات الطبية.",
         "loadError": "تعذّر تحميل النشاط الأخير."
@@ -1188,7 +1193,8 @@
         "availableNow": "متاح الآن",
         "currentlyUnavailable": "غير متاح حاليًا",
         "consultationFee": "{amount} جنيه / استشارة",
-        "consultationFeeFree": "مجانًا"
+        "consultationFeeFree": "مجانًا",
+        "perConsultation": "لكل استشارة"
       },
       "sidebar": {
         "doctorSummary": "ملخص الطبيب",
@@ -1724,12 +1730,14 @@
       },
       "patientStatus": {
         "active": "نشط",
+        "new": "جديد",
         "follow_up": "متابعة",
         "completed": "مكتمل",
         "inactive": "غير نشط"
       },
       "actions": {
         "view": "عرض المريض",
+        "openChartFor": "فتح ملف {name}",
         "openChart": "فتح الملف",
         "notes": "الملاحظات السريرية",
         "message": "مراسلة المريض",

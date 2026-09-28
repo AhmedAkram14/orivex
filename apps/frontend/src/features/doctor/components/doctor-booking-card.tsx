@@ -63,7 +63,7 @@ export function DoctorBookingCard({ doctorProfileId, consultationFeeAmount, curr
     <>
       <aside
         aria-label={t('title')}
-        className="hidden flex-col gap-4 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-sm lg:sticky lg:top-6 lg:flex"
+        className="hidden flex-col gap-4 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-sm @2xl:sticky @2xl:top-6 @2xl:flex"
       >
         <h2 className="text-h3 text-text-primary">{t('title')}</h2>
         <div className="flex flex-col gap-0.5">
@@ -91,7 +91,7 @@ export function DoctorBookingCard({ doctorProfileId, consultationFeeAmount, curr
         </Button>
       </aside>
 
-      <div className="fixed inset-x-0 bottom-14 z-(--z-sticky) flex items-center gap-3 border-t border-border-default bg-surface px-4 py-3 md:bottom-0 lg:hidden print-hidden">
+      <div className="fixed inset-x-0 bottom-14 z-(--z-sticky) flex items-center gap-3 border-t border-border-default bg-surface px-4 py-3 md:bottom-0 @2xl:hidden print-hidden">
         <div className="flex min-w-0 flex-1 flex-col">
           <span data-numeric className="font-display text-h3 text-text-primary">{feeLabel}</span>
           <span className="truncate text-caption text-text-tertiary">{isLoading ? '…' : nextSlot ? `${t('nextSlot')}: ${slotWhen}` : t('noSlots')}</span>

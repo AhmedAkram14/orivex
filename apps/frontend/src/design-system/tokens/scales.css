@@ -15,6 +15,17 @@
 
 @theme {
   /*
+   * Container sizes for in-app layout. Content grids choose their columns by
+   * the width they actually get (the <main> scroll area is the container),
+   * not the viewport -- with the sidebar open a 1046px window leaves ~780px.
+   *   @pane  640px content: two columns
+   *   @wide  960px content: three-four columns
+   * Tailwind's own @xl/@2xl/@3xl/@5xl container sizes cover the rest.
+   */
+  --container-pane: 40rem;
+  --container-wide: 60rem;
+
+  /*
    * Radius -- five values, and only five. The Tailwind scale is collapsed onto
    * them so every existing `rounded-*` utility lands on a token:
    *   10px  --r-sm       compact controls, small inset elements

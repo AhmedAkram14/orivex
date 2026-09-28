@@ -33,13 +33,13 @@ export default function PatientDoctorProfilePage() {
 
   return (
     <RequireRole roles={['patient']} redirectTo="/forbidden">
-      <Page className="max-lg:pb-28">
+      <Page className="@max-2xl:pb-28">
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('profileTitle')} />
         {isLoading && <Skeleton className="h-96 w-full" />}
         {notFound && <EmptyState illustration="search-no-results" title={t('profileNotFoundTitle')} description={t('profileNotFoundDescription')} />}
         {!isLoading && !notFound && error && <ErrorState description={t('loadError')} onRetry={() => void refetch()} />}
         {profile && (
-          <div className="grid items-start gap-(--card-gap) lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid items-start gap-(--card-gap) @2xl:grid-cols-[minmax(0,1fr)_320px]">
             <DoctorProfileView profile={profile} variant="public" />
             <DoctorBookingCard doctorProfileId={profile.id} consultationFeeAmount={profile.consultationFeeAmount} />
           </div>

@@ -53,8 +53,9 @@ import { CircularProgress } from '@/shared/ui/charts/circular-progress';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 
-const CARD_CLASS = 'rounded-3xl border-border-default shadow-sm';
+const CARD_CLASS = 'rounded-(--r-card) border-border-default shadow-sm';
 
 function initialsFor(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -285,21 +286,27 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                 value={
                   profile.consultationFeeAmount === 0
                     ? t('hero.consultationFeeFree')
-                    : t('hero.consultationFee', { amount: profile.consultationFeeAmount })
+                    : formatCurrency(format, profile.consultationFeeAmount, 'EGP')
                 }
                 label={t('consultationFee')}
+                // The qualifier lives on the caption line, so the figure itself never wraps.
+                helperText={profile.consultationFeeAmount === 0 ? undefined : t('hero.perConsultation')}
               />
             )}
           </MetricStrip>
         </CardContent>
       </Card>
 
-      {/* Two-column body */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Left column (~65%) */}
-        <div className="flex flex-col gap-6">
+      {/*
+        Body. The doctor's own workspace gets a side column only when the content area is wide
+        enough (>=1024px); the patient-facing view never has one -- it already sits beside the
+        page's own sticky booking card, and two side columns nested in ~780px left the main
+        column at 0px. There the contact card simply flows below.
+      */}
+      <div className={cn('grid grid-cols-1 gap-6', isWorkspace && '@5xl:grid-cols-[minmax(0,1fr)_320px]')}>
+        <div className="@container flex min-w-0 flex-col gap-6">
           <ProfileSectionCard title={t('professionalInformation')} icon={Stethoscope}>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 @pane:grid-cols-2">
               <InfoRow icon={Stethoscope} label={t('specialty')} value={specialtyName} />
               <InfoRow icon={ScrollText} label={t('licenseNumber')} value={profile.licenseNumber} />
               <InfoRow
@@ -311,7 +318,13 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
               <InfoRow
                 icon={Wallet}
                 label={t('consultationFee')}
-                value={profile.consultationFeeAmount !== undefined ? t('hero.consultationFee', { amount: profile.consultationFeeAmount }) : t('notOnRecord')}
+                value={
+                  profile.consultationFeeAmount === undefined
+                    ? t('notOnRecord')
+                    : profile.consultationFeeAmount === 0
+                      ? t('hero.consultationFeeFree')
+                      : formatCurrency(format, profile.consultationFeeAmount, 'EGP')
+                }
               />
               {hospital?.address && <InfoRow icon={MapPin} label={t('clinicAddress')} value={hospital.address} />}
               <InfoRow
@@ -488,8 +501,8 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
           </ProfileSectionCard>
         </div>
 
-        {/* Right sidebar (~35%, sticky on desktop) */}
-        <div className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+        {/* Workspace: a sticky side column once there is room. Public: just the contact card, below. */}
+        <div className={cn('flex min-w-0 flex-col gap-6', isWorkspace && '@5xl:sticky @5xl:top-6 @5xl:self-start')}>
           {isWorkspace && (
             <Card className={CARD_CLASS}>
               <CardContent className="flex flex-col gap-4 p-6">

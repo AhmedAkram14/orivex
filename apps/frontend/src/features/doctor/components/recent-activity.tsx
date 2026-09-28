@@ -2,7 +2,10 @@
 
 import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useLocalizedNotification } from '@/features/notifications/hooks/use-localized-notification';
+import { useLocalizedNotification, useViewerIsDoctor } from '@/features/notifications/hooks/use-localized-notification';
+import { isPersonalNotification } from '@/features/notifications/lib/notification-copy';
+import { Link } from '@/shared/i18n/navigation';
+import { Button } from '@/shared/ui/button';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationSeverity } from '@/features/notifications/api/types';
 import { Alert } from '@/shared/ui/alert';
@@ -12,7 +15,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { cn } from '@/shared/lib/cn';
 
-const MAX_ITEMS = 4;
+const MAX_ITEMS = 5;
 
 /** Maps a real `NotificationEntry.severity` to an icon + accent color — the same field the notification bell's own unread dot/text weight already keys off of, just extended to a colored icon here instead of a new fabricated "activity type" field. */
 const iconBySeverity: Record<NotificationSeverity, { icon: LucideIcon; accentClassName: string }> = {
@@ -36,16 +39,20 @@ export function RecentActivity() {
   const { data: notifications, isLoading, isError } = useNotifications();
   const localize = useLocalizedNotification();
 
-  const recent = (notifications ?? []).slice(0, MAX_ITEMS);
+  const viewerIsDoctor = useViewerIsDoctor();
+  // The clinical feed only: this account's own-care (patient-side) notifications live under "Personal" in the bell.
+  const recent = (notifications ?? []).filter((entry) => !isPersonalNotification(entry, viewerIsDoctor)).slice(0, MAX_ITEMS);
 
   return (
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('title')}</span>}
-      // Fixed height shared with `TodaysProgress`/`UpcomingAvailability`,
-      // with the list scrolling internally -- see `TodaysProgress`'s own
-      // comment for why this row no longer stretches to the tallest sibling.
-      className="h-[380px] rounded-(--r-card) border-border-default shadow-sm"
-      contentClassName="overflow-y-auto"
+      // Sizes to its content (at most 5 rows) -- no fixed height, no inner scroll.
+      className="rounded-(--r-card) border-border-default shadow-sm"
+      actions={
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/notifications">{t('viewAll')}</Link>
+        </Button>
+      }
     >
       {isError ? (
         <Alert variant="danger">{t('loadError')}</Alert>
@@ -64,7 +71,7 @@ export function RecentActivity() {
                 <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', accentClassName)}>
                   <Icon icon={icon} size="sm" />
                 </span>
-                <div className="flex flex-1 flex-col gap-0.5">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <p className="text-sm font-medium text-text-primary">{text.title}</p>
                   <p className="text-sm text-text-secondary">{text.description}</p>
                   <p className="text-xs text-text-tertiary">

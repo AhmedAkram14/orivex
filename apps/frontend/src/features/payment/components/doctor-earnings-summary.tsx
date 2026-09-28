@@ -119,7 +119,7 @@ export function DoctorEarningsSummary() {
       </Link>
 
       {/* Net earnings lead (hero); the monthly net chart sits beside it; every disclaimer lives in ONE note under the chart. Lifetime tiles are NOT scoped to the date range below, and each says so. */}
-      <div className="grid gap-(--card-gap) lg:grid-cols-3">
+      <div className="grid gap-(--card-gap) @wide:grid-cols-3">
         <MetricStat
           variant="hero"
           icon={Wallet}
@@ -128,7 +128,7 @@ export function DoctorEarningsSummary() {
           helperText={t('stats.lifetimeHelper')}
           loading={isLoading}
         />
-        <div className="flex min-w-0 flex-col gap-3 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs lg:col-span-2">
+        <div className="flex min-w-0 flex-col gap-3 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs @wide:col-span-2">
           <h2 className="text-h3 text-text-primary">{t('cyclesTitle')}</h2>
           {isLoading ? (
             <ChartSkeleton height={220} />

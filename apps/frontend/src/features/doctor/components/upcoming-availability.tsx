@@ -28,12 +28,9 @@ export function UpcomingAvailability() {
   const format = useFormatter();
   const { data: availability, isLoading, isError } = useDoctorAvailability();
 
-  // Fixed height shared with `TodaysProgress`/`RecentActivity`, with the
-  // list itself (not the whole card) scrolling internally -- see
-  // `TodaysProgress`'s own comment for why the row no longer stretches to
-  // whichever sibling widget is naturally tallest.
-  const widgetClassName = 'h-[380px] rounded-(--r-card) border-border-default shadow-sm';
-  const contentClassName = 'overflow-y-auto';
+  // Sizes to its own content, like the rest of the bottom row (no fixed height, no inner scroll).
+  const widgetClassName = 'rounded-(--r-card) border-border-default shadow-sm';
+  const contentClassName = '';
   const widgetTitle = <span className="text-xl font-semibold">{t('title')}</span>;
 
   if (isError) {

@@ -38,7 +38,7 @@ export function PatientQueueMini() {
   return (
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('patientQueueMini.title')}</span>}
-      className="rounded-3xl border-border-default shadow-sm"
+      className="rounded-(--r-card) border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">
           <Link href="/doctor/queue">{t('patientQueueMini.viewFullQueue')}</Link>

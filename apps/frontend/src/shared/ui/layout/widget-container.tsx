@@ -31,12 +31,13 @@ export function WidgetContainer({
   return (
     <Card className={cn('flex flex-col', className)} {...props}>
       {(title || actions) && (
-        <CardHeader className="flex-row items-start justify-between gap-4 space-y-0">
-          <div className="flex flex-col gap-1">
-            {title && <CardTitle as={titleAs} className="text-base">{title}</CardTitle>}
+        // Title and action never squeeze each other: the title may balance onto two lines, the action never wraps.
+        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+          <div className="flex min-w-0 flex-col gap-1">
+            {title && <CardTitle as={titleAs} className="text-base text-balance">{title}</CardTitle>}
             {description && <CardDescription>{description}</CardDescription>}
           </div>
-          {actions && <div className="flex items-center gap-2">{actions}</div>}
+          {actions && <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">{actions}</div>}
         </CardHeader>
       )}
       {/* A scrolling content slot must be keyboard-reachable (WCAG 2.1.1 / axe scrollable-region-focusable): without a tab stop a keyboard user can't scroll it. */}

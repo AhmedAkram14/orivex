@@ -22,7 +22,7 @@ export function DateBlock({ date, className }: DateBlockProps) {
   return (
     <div
       className={cn(
-        'flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-surface-2 text-center',
+        'relative flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-surface-2 text-center',
         className,
       )}
     >

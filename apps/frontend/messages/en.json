@@ -707,6 +707,10 @@
     "notifications": {
       "title": "Notifications",
       "markAllRead": "Mark all as read",
+      "audienceClinical": "Clinical",
+      "audiencePersonal": "Personal",
+      "personalTag": "Personal",
+      "audienceFilter": "Show",
       "loadError": "Couldn't load your notifications.",
       "emptyTitle": "You're all caught up",
       "emptyDescription": "New notifications will appear here.",
@@ -1104,6 +1108,7 @@
       },
       "activity": {
         "title": "Recent Activity",
+        "viewAll": "View all",
         "emptyTitle": "No recent activity",
         "emptyDescription": "Your recent notifications, like confirmations and prescriptions, will appear here.",
         "loadError": "Couldn't load recent activity."
@@ -1188,7 +1193,8 @@
         "availableNow": "Available now",
         "currentlyUnavailable": "Not available right now",
         "consultationFee": "{amount} EGP / consultation",
-        "consultationFeeFree": "Free"
+        "consultationFeeFree": "Free",
+        "perConsultation": "per consultation"
       },
       "sidebar": {
         "doctorSummary": "Doctor Summary",
@@ -1724,12 +1730,14 @@
       },
       "patientStatus": {
         "active": "Active",
+        "new": "New",
         "follow_up": "Follow up",
         "completed": "Completed",
         "inactive": "Inactive"
       },
       "actions": {
         "view": "View patient",
+        "openChartFor": "Open chart for {name}",
         "openChart": "Open chart",
         "notes": "Clinical notes",
         "message": "Message patient",

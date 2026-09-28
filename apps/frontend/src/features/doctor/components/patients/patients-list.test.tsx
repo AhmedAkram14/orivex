@@ -95,20 +95,14 @@ describe('PatientsList', () => {
     expect(within(row as HTMLElement).getByText('Returning')).toBeInTheDocument();
   });
 
-  it('shows a real "Follow up" status for a patient with a recorded follow-up recommendation and nothing booked yet', async () => {
+  it('labels every patient Active, New or Inactive -- never with an appointment status', async () => {
     renderList();
     await screen.findByText('Total Patients');
 
     const table = await screen.findByTestId('patients-table');
-    // Seeded in mocks/doctor-store.ts with hasFollowUpRecommendation: true
-    // and no nextAppointmentAt -- reuses ClinicalModule's real
-    // FollowUpRecommendation signal, never a guessed status. Searched into
-    // view rather than assumed to be on page 1 (sorted by most recent
-    // visit, and this patient's isn't among the 5 most recent).
-    await userEvent.type(screen.getByPlaceholderText('Search patients...'), 'Nourhan');
-
-    const row = (await within(table).findByText('Nourhan Abdel Aziz')).closest('tr');
-    expect(row).not.toBeNull();
-    expect(within(row as HTMLElement).getByText('Follow up')).toBeInTheDocument();
+    const chips = within(table).getAllByText(/^(Active|New|Inactive)$/);
+    expect(chips.length).toBeGreaterThan(0);
+    expect(within(table).queryByText('Completed')).not.toBeInTheDocument();
+    expect(within(table).queryByText('Follow up')).not.toBeInTheDocument();
   });
 });
