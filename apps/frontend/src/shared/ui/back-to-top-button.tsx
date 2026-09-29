@@ -34,7 +34,8 @@ export function BackToTopButton() {
       }}
       aria-label={t('backToTop')}
       className={cn(
-        'fixed bottom-6 end-6 z-(--z-dropdown) flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 ease-out hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2',
+        // A surface chip with a border and shadow, so it stays visible over light sections and the ink band alike.
+        'fixed bottom-6 end-6 z-(--z-dropdown) flex size-11 items-center justify-center rounded-full border border-border-default bg-surface text-text-primary shadow-md transition-all duration-300 ease-out hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2',
         visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0',
       )}
     >

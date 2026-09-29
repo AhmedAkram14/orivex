@@ -31,9 +31,10 @@ function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
         <Text size="sm" tone="secondary" className="grow">
           {t(`categories.${style.key}`)}
         </Text>
-        <div className="flex items-center justify-between gap-2 border-t border-border-default pt-3">
-          <span className="text-small text-text-tertiary">{t('doctorCount', { count: specialty.doctorCount })}</span>
-          <span className="inline-flex items-center gap-1 text-small font-semibold text-care-text">
+        {/* Stacked on every card (count, then the link), so no card wraps into a cramped two-line row. */}
+        <div className="flex flex-col items-start gap-1 border-t border-border-default pt-3">
+          <span className="text-small whitespace-nowrap text-text-tertiary">{t('doctorCount', { count: specialty.doctorCount })}</span>
+          <span className="inline-flex items-center gap-1 text-small font-semibold whitespace-nowrap text-care-text">
             {t('viewDoctors')}
             <Icon icon={ArrowRight} size="sm" flipRtl />
           </span>

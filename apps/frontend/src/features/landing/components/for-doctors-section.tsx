@@ -65,7 +65,7 @@ export function ForDoctorsSection() {
           </div>
 
           <div className="flex flex-col items-center gap-3 rounded-(--r-hero) bg-surface/10 p-8 lg:order-1">
-            <Illustration name="verified-seal" className="size-48 text-text-inverse" />
+            <Illustration name="verified-seal" context="inverse" className="size-48" />
             <p className="text-h3 text-text-inverse">{tUi('doctorPanelTitle')}</p>
           </div>
         </div>

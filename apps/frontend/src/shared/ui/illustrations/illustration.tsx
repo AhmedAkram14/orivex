@@ -42,10 +42,25 @@ export interface IllustrationProps {
   /** 120px by default; the inline (`sm`) size is 72px. */
   size?: 72 | 120;
   className?: string;
+  /**
+   * `inverse`: the scene sits on an ink band (`bg-text-primary`) -- lines take the inverse text colour
+   * and cards take the band's own colour, so the drawing reads as an outline on the band instead of
+   * a solid white badge. Works in both themes because it follows the same tokens as the band.
+   */
+  context?: 'default' | 'inverse';
 }
 
 /** A decorative scene (always `aria-hidden`); the surrounding title/description carry the meaning. */
-export function Illustration({ name, size = 120, className }: IllustrationProps) {
+export function Illustration({ name, size = 120, className, context = 'default' }: IllustrationProps) {
   const Scene = SCENES[name];
-  return <Scene className={cn('shrink-0 text-text-primary', size === 72 ? 'size-18' : 'size-30', className)} />;
+  return (
+    <Scene
+      className={cn(
+        'shrink-0 text-text-primary',
+        size === 72 ? 'size-18' : 'size-30',
+        context === 'inverse' && 'text-text-inverse [--scene-surface:var(--color-text-primary)]',
+        className,
+      )}
+    />
+  );
 }

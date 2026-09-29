@@ -2,7 +2,8 @@
 
 import { ArrowRight, BadgeCheck, Briefcase, CalendarCheck, Flame, MapPin, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
@@ -60,6 +61,7 @@ export function DoctorCard({
   className,
 }: DoctorCardProps) {
   const t = useTranslations('doctor.card');
+  const format = useFormatter();
   const { status, user } = useAuth();
   // A signed-in visitor who isn't a patient (doctor, admin, staff) has no
   // reachable destination behind these links -- /patient/doctors/:id and
@@ -136,22 +138,23 @@ export function DoctorCard({
             ? t('consultationFeeOnRequest')
             : consultationFeeAmount === 0
               ? t('consultationFeeFree')
-              : t('consultationFee', { amount: consultationFeeAmount })}
+              : formatCurrency(format, consultationFeeAmount, 'EGP')}
         </span>
       </div>
 
       {canBookAsPatient ? (
-        <div className="mt-auto grid grid-cols-2 gap-2">
-          <Button asChild variant="ghost" size="sm" className="min-w-0 gap-1">
+        // Two equal actions that wrap onto two lines when the card is narrow -- never a truncated label.
+        <div className="mt-auto flex flex-wrap gap-2">
+          <Button asChild variant="ghost" size="sm" className="min-w-0 flex-1 basis-28 gap-1">
             <Link href={`/patient/doctors/${doctorProfileId}`}>
-              <span className="truncate">{t('viewProfile')}</span>
+              {t('viewProfile')}
               <Icon icon={ArrowRight} size="sm" flipRtl />
             </Link>
           </Button>
-          <Button asChild size="sm" className="min-w-0 gap-1.5">
+          <Button asChild size="sm" className="min-w-0 flex-1 basis-28 gap-1.5">
             <Link href={`/patient/appointments/book?doctorId=${doctorProfileId}`}>
               <Icon icon={CalendarCheck} size="sm" />
-              <span className="truncate">{t('book')}</span>
+              {t('book')}
             </Link>
           </Button>
         </div>

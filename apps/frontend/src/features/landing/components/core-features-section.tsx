@@ -1,8 +1,15 @@
-import { ArrowRight, CalendarCheck, Check, CreditCard, FileText, HeartPulse, ShieldCheck, Stethoscope, Video } from 'lucide-react';
+import {
+  CalendarCheck,
+  Check,
+  CreditCard,
+  FileText,
+  ShieldCheck,
+  Stethoscope,
+  Video,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
-import { Badge } from '@/shared/ui/badge';
 import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 
@@ -14,66 +21,61 @@ import { Container } from '@/shared/ui/container';
 // shorter form -- never a new claim, no stat, nothing the description
 // above it doesn't already say.
 const FEATURES = [
-  { key: 'doctorDirectory', icon: Stethoscope, accentBadge: false },
-  { key: 'onlineBooking', icon: CalendarCheck, accentBadge: false },
-  { key: 'videoConsultations', icon: Video, accentBadge: false },
-  { key: 'digitalPrescriptions', icon: FileText, accentBadge: false },
-  { key: 'securePayments', icon: CreditCard, accentBadge: true },
-  { key: 'identityVerification', icon: ShieldCheck, accentBadge: false },
+  { key: 'doctorDirectory', icon: Stethoscope, tint: 'info' },
+  { key: 'onlineBooking', icon: CalendarCheck, tint: 'warm' },
+  { key: 'videoConsultations', icon: Video, tint: 'success' },
+  { key: 'digitalPrescriptions', icon: FileText, tint: 'info' },
+  { key: 'securePayments', icon: CreditCard, tint: 'warm' },
+  { key: 'identityVerification', icon: ShieldCheck, tint: 'success' },
 ] as const;
 
+/** Tinted icon discs from the semantic palette (care blue, warm peach, success green) -- never the muddy neutral. */
+const TINT: Record<(typeof FEATURES)[number]['tint'], string> = {
+  info: 'bg-info-subtle text-info-emphasis',
+  warm: 'bg-warm-1 text-text-primary',
+  success: 'bg-success-subtle text-success-emphasis',
+};
+
+/**
+ * A split composition, not the centred "eyebrow + title + grid" used elsewhere on the page: the
+ * start-aligned header stays in view beside the cards on wide screens.
+ */
 export function CoreFeaturesSection() {
   const t = useTranslations('landing.coreFeatures');
 
   return (
-    <Container size="lg" className="flex flex-col gap-8 py-16">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
-          <Icon icon={HeartPulse} size="xs" />
-          {t('eyebrow')}
-        </Badge>
-        <Heading as="h2" level={2}>{t('title')}</Heading>
-        <Text tone="secondary" className="max-w-xl">
-          {t('description')}
-        </Text>
-      </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {FEATURES.map(({ key, icon, accentBadge }) => (
-          <Card
-            key={key}
-            className="relative flex flex-col gap-4 rounded-2xl border-border-default p-8 shadow-md transition-all duration-(--duration-base) ease-standard hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div
-              className="pointer-events-none absolute end-6 top-6 size-16 opacity-40"
-              style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '10px 10px' }}
-              aria-hidden="true"
-            />
-
-            <div className="relative flex size-20 items-center justify-center rounded-full bg-primary-subtle">
-              <Icon icon={icon} size="lg" className="text-primary" />
-              {accentBadge && (
-                <span className="absolute -bottom-1 -end-1 flex size-6 items-center justify-center rounded-full bg-success ring-2 ring-surface">
-                  <Icon icon={Check} size="xs" className="text-success-foreground" />
-                </span>
-              )}
-            </div>
-
-            <Heading level={3}>{t(`items.${key}.title`)}</Heading>
-            <Text tone="secondary">{t(`items.${key}.description`)}</Text>
-
-            <span className="mt-auto h-px w-full bg-border-default" aria-hidden="true" />
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="flex items-center gap-2 text-sm text-text-secondary">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <Icon icon={Check} size="xs" />
-                </span>
+    <Container size="lg" className="py-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+        <div className="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
+          <p className="text-caption font-semibold tracking-wide text-text-tertiary uppercase">
+            {t('eyebrow')}
+          </p>
+          <Heading as="h2" level={2} className="text-balance">
+            {t('title')}
+          </Heading>
+          <Text tone="secondary" className="max-w-md">
+            {t('description')}
+          </Text>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {FEATURES.map(({ key, icon, tint }) => (
+            <Card key={key} className="flex flex-col gap-3 bg-surface p-6 shadow-sm">
+              <span
+                className={`flex size-12 items-center justify-center rounded-full ${TINT[tint]}`}
+              >
+                <Icon icon={icon} size="md" />
+              </span>
+              <Heading level={3}>{t(`items.${key}.title`)}</Heading>
+              <Text size="sm" tone="secondary" className="grow">
+                {t(`items.${key}.description`)}
+              </Text>
+              <span className="flex items-center gap-2 border-t border-border-default pt-3 text-small text-text-secondary">
+                <Icon icon={Check} size="xs" className="shrink-0 text-success-emphasis" />
                 {t(`items.${key}.tagline`)}
               </span>
-              <Icon icon={ArrowRight} size="sm" className="text-primary" flipRtl />
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
+        </div>
       </div>
     </Container>
   );

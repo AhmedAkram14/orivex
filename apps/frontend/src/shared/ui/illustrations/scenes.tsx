@@ -1,10 +1,15 @@
 import type { ReactNode } from 'react';
+import { cn } from '@/shared/lib/cn';
 
 /**
  * Duotone scenes for empty/error/success states. House style: 1.5px
  * `currentColor` (ink) linework, ONE flat disc in `pulse` or `warm-1`, cards
  * filled with `surface`, no gradients and no faces (hands and objects only).
- * Everything is token-driven, so the lines invert in dark mode for free.
+ * Everything is token-driven, so the lines invert in dark mode for free. The
+ * card fill is the `--scene-surface` variable (the page surface by default), so a
+ * scene placed on a dark band can cut its cards out of that band instead of
+ * showing solid white shapes with invisible lines (see `Illustration`'s
+ * `context="inverse"`).
  */
 export type SceneProps = { className?: string };
 
@@ -23,14 +28,14 @@ function Scene({ children, className }: SceneProps & { children: ReactNode }) {
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
-      className={className}
+      className={cn('[--scene-surface:var(--color-surface)]', className)}
     >
       {children}
     </svg>
   );
 }
 
-const S = 'fill-surface';
+const S = 'fill-(--scene-surface)';
 
 export const CalendarClear = (p: SceneProps) => (
   <Scene {...p}>

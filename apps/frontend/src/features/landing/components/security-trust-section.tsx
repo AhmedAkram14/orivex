@@ -1,9 +1,7 @@
-import { ArrowRight, FileCheck, Lock, ShieldCheck, UserCheck } from 'lucide-react';
+import { FileCheck, Lock, ShieldCheck, UserCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
-import { Badge, type BadgeProps } from '@/shared/ui/badge';
-import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 
 // Every item names a real, working mechanism in this codebase -- doctor
@@ -11,20 +9,11 @@ import { Container } from '@/shared/ui/container';
 // upload-intent/confirm MediaAsset pipeline used for both clinical
 // documents and verification documents. Nothing here is aspirational.
 const ITEMS = [
-  { key: 'verifiedDoctors', icon: UserCheck, accent: 'primary' },
-  { key: 'identityVerification', icon: FileCheck, accent: 'success' },
-  { key: 'roleBasedAccess', icon: ShieldCheck, accent: 'warning' },
-  { key: 'secureUploads', icon: Lock, accent: 'primary' },
-] as const satisfies readonly { key: string; icon: typeof UserCheck; accent: BadgeProps['variant'] }[];
-
-const ACCENT_CLASSES: Record<NonNullable<BadgeProps['variant']>, { iconBg: string; icon: string; underline: string }> = {
-  primary: { iconBg: 'bg-primary-subtle', icon: 'text-primary-emphasis', underline: 'bg-primary' },
-  success: { iconBg: 'bg-success-subtle', icon: 'text-success-emphasis', underline: 'bg-success' },
-  warning: { iconBg: 'bg-warning-subtle', icon: 'text-warning-emphasis', underline: 'bg-warning' },
-  danger: { iconBg: 'bg-danger-subtle', icon: 'text-danger', underline: 'bg-danger' },
-  neutral: { iconBg: 'bg-neutral-subtle', icon: 'text-neutral', underline: 'bg-neutral' },
-  info: { iconBg: 'bg-info-subtle', icon: 'text-info-emphasis', underline: 'bg-info' },
-};
+  { key: 'verifiedDoctors', icon: UserCheck },
+  { key: 'identityVerification', icon: FileCheck },
+  { key: 'roleBasedAccess', icon: ShieldCheck },
+  { key: 'secureUploads', icon: Lock },
+] as const;
 
 // Real mechanisms only -- restates the four cards above in short form, same
 // honesty rule as the rest of this page. Deliberately excludes "HIPAA
@@ -35,74 +24,48 @@ const ACCENT_CLASSES: Record<NonNullable<BadgeProps['variant']>, { iconBg: strin
 // anywhere) -- none of those three are backed by anything in this codebase.
 const BANNER_ITEM_KEYS = ['roleBasedAccess', 'verifiedIdentities', 'secureCloudStorage'] as const;
 
+/**
+ * A second composition off the page's usual centred grid: a start-aligned header beside a quiet,
+ * borderless list of four real mechanisms, separated by hairlines, then one summary line.
+ */
 export function SecurityTrustSection() {
   const t = useTranslations('landing.securityTrust');
 
   return (
-    <Container size="lg" className="flex flex-col gap-8 py-16">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
-          <Icon icon={ShieldCheck} size="xs" />
-          {t('eyebrow')}
-        </Badge>
-        <Heading as="h2" level={2}>{t('title')}</Heading>
+    <Container size="lg" className="flex flex-col gap-10 py-16">
+      <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-2">
+        <Heading as="h2" level={2} className="text-balance">
+          {t('title')}
+        </Heading>
         <Text tone="secondary" className="max-w-xl">
           {t('description')}
         </Text>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {ITEMS.map(({ key, icon, accent }) => {
-          const palette = ACCENT_CLASSES[accent];
-          return (
-            <Card
-              key={key}
-              className="relative flex flex-col items-center gap-3 rounded-2xl border-border-default p-6 text-center shadow-md transition-all duration-(--duration-base) ease-standard hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div
-                className="pointer-events-none absolute end-6 top-6 size-16 opacity-40"
-                style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '10px 10px' }}
-                aria-hidden="true"
-              />
-
-              <div className={`relative flex size-20 items-center justify-center rounded-full ${palette.iconBg}`}>
-                <Icon icon={icon} size="lg" className={palette.icon} />
-                <span className={`absolute -bottom-1 -end-1 flex size-6 items-center justify-center rounded-full ${palette.underline} ring-2 ring-surface`}>
-                  <Icon icon={ShieldCheck} size="xs" className="text-primary-foreground" />
-                </span>
-              </div>
-
-              <Heading level={3}>{t(`items.${key}.title`)}</Heading>
-              <span className={`h-1 w-10 rounded-full ${palette.underline}`} aria-hidden="true" />
-              <Text size="sm" tone="secondary">
-                {t(`items.${key}.description`)}
-              </Text>
-
-              <div className={`mt-auto flex w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium ${palette.iconBg} ${palette.icon}`}>
-                <Icon icon={ShieldCheck} size="xs" />
-                {t(`items.${key}.tagline`)}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center justify-between gap-4 rounded-2xl bg-primary-subtle px-6 py-4">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface">
-            <Icon icon={ShieldCheck} size="md" className="text-primary" />
-          </span>
-          <div className="flex flex-col">
-            <Text className="font-bold">{t('banner.title')}</Text>
+      {/* 1px gaps over a border-coloured backing draw the hairlines between items at every column count. */}
+      <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-(--r-card) border border-border-default bg-border-default sm:grid-cols-2 lg:grid-cols-4">
+        {ITEMS.map(({ key, icon }) => (
+          <li
+            key={key}
+            className="flex flex-col gap-2 bg-canvas p-6"
+          >
+            <Icon icon={icon} size="md" className="text-care-text" />
+            <Heading level={3}>{t(`items.${key}.title`)}</Heading>
             <Text size="sm" tone="secondary">
-              {BANNER_ITEM_KEYS.map((key) => t(`banner.items.${key}`)).join('  •  ')}
+              {t(`items.${key}.description`)}
             </Text>
-          </div>
-        </div>
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface shadow-sm">
-          <Icon icon={ArrowRight} size="sm" className="text-primary" flipRtl />
-        </span>
-      </div>
+            <span className="mt-auto pt-1 text-small font-medium text-text-primary">
+              {t(`items.${key}.tagline`)}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-small text-text-secondary">
+        <Icon icon={ShieldCheck} size="sm" className="text-success-emphasis" />
+        <span className="font-semibold text-text-primary">{t('banner.title')}</span>
+        <span>{BANNER_ITEM_KEYS.map((key) => t(`banner.items.${key}`)).join('  •  ')}</span>
+      </p>
     </Container>
   );
 }
