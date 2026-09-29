@@ -153,7 +153,7 @@ export function TodayTimeline({ className }: { className?: string }) {
             <span
               key={ms}
               dir="ltr"
-              className="absolute -translate-x-1/2 text-caption text-text-tertiary tabular-nums rtl:translate-x-1/2"
+              className="absolute -translate-x-1/2 text-caption whitespace-nowrap text-text-tertiary tabular-nums rtl:translate-x-1/2"
               style={{ insetInlineStart: `${pct(ms)}%` }}
             >
               {format.dateTime(new Date(ms), { hour: 'numeric' })}

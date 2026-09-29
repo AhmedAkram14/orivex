@@ -45,7 +45,7 @@ import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-av
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage, initialsOf } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
@@ -56,13 +56,6 @@ import { cn } from '@/shared/lib/cn';
 import { formatCurrency } from '@/shared/lib/currency/format-currency';
 
 const CARD_CLASS = 'rounded-(--r-card) border-border-default shadow-sm';
-
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 export interface DoctorProfileViewProps {
   profile: DoctorProfile;
@@ -208,7 +201,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
             <div className="flex items-center gap-4">
               <Avatar size="xl">
                 {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-                <AvatarFallback>{initialsFor(profile.fullName)}</AvatarFallback>
+                <AvatarFallback>{initialsOf(profile.fullName)}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
