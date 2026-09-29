@@ -39,7 +39,12 @@ import { SpecialtyChip } from '@/shared/ui/specialty-chip';
 import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
 import { TimeGrid, type TimeGridSlot } from '@/shared/ui/schedule/time-grid';
 
-const APPOINTMENT_TYPES: readonly AppointmentType[] = ['consultation', 'follow_up', 'new_patient', 'procedure'];
+const APPOINTMENT_TYPES: readonly AppointmentType[] = [
+  'consultation',
+  'follow_up',
+  'new_patient',
+  'procedure',
+];
 const DAYS_AHEAD = 7;
 
 export interface BookingFlowProps {
@@ -53,6 +58,13 @@ function period(hour: number): 'morning' | 'afternoon' | 'evening' {
   if (hour < 12) return 'morning';
   if (hour < 17) return 'afternoon';
   return 'evening';
+}
+
+/** The value that occurs most often (first one wins a tie). */
+function mostCommon(values: string[]): string {
+  const counts = new Map<string, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts.entries()].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0];
 }
 
 /**
@@ -70,6 +82,7 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const t = useTranslations('scheduling.booking');
   const tUi = useTranslations('bookingUi');
   const tFlow = useTranslations('profileFlow');
+  const tCard = useTranslations('bookingCard');
   const format = useFormatter();
   const locale = useLocale();
   const pathname = usePathname();
@@ -96,7 +109,12 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const [bookedAppointment, setBookedAppointment] = useState<BookedAppointment | null>(null);
   const [step, setStep] = useState<Step>('select');
 
-  const { data: windows, isLoading, isError, refetch } = useAvailabilityWindows(doctorId, rangeStart.toISOString(), rangeEnd.toISOString());
+  const {
+    data: windows,
+    isLoading,
+    isError,
+    refetch,
+  } = useAvailabilityWindows(doctorId, rangeStart.toISOString(), rangeEnd.toISOString());
 
   const days = useMemo(
     () =>
@@ -121,13 +139,17 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const timezoneLabel = getTimezoneOffsetLabel(DEFAULT_TIME_ZONE, locale, today);
 
   const isFreeTierMonthlyCapError =
-    bookAppointment.error instanceof ApiError && bookAppointment.error.code === SHARED_ERROR_CODES.freeTierMonthlyCapExceeded;
+    bookAppointment.error instanceof ApiError &&
+    bookAppointment.error.code === SHARED_ERROR_CODES.freeTierMonthlyCapExceeded;
   const isNoShowRestrictedError =
-    bookAppointment.error instanceof ApiError && bookAppointment.error.code === SHARED_ERROR_CODES.noShowBookingRestricted;
-  const isConflictError = bookAppointment.error instanceof ApiError && bookAppointment.error.status === 409;
+    bookAppointment.error instanceof ApiError &&
+    bookAppointment.error.code === SHARED_ERROR_CODES.noShowBookingRestricted;
+  const isConflictError =
+    bookAppointment.error instanceof ApiError && bookAppointment.error.status === 409;
 
   const gateError =
-    bookAppointment.error instanceof ApiError && bookAppointment.error.code === SHARED_ERROR_CODES.identityVerificationRequired
+    bookAppointment.error instanceof ApiError &&
+    bookAppointment.error.code === SHARED_ERROR_CODES.identityVerificationRequired
       ? bookAppointment.error
       : undefined;
 
@@ -143,7 +165,11 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
         appointmentType,
       });
       setBookedAppointment(appointment);
-      if (appointment.consultationType === 'paid' && appointment.feeAmount !== null && appointment.feeCurrency !== null) {
+      if (
+        appointment.consultationType === 'paid' &&
+        appointment.feeAmount !== null &&
+        appointment.feeCurrency !== null
+      ) {
         setStep('payment');
       } else {
         setStep('confirmed');
@@ -154,11 +180,17 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   }
 
   if (gateError) {
-    return <IdentityVerificationGate action="booking" returnTo={`${pathname}?doctorId=${doctorId}`} />;
+    return (
+      <IdentityVerificationGate action="booking" returnTo={`${pathname}?doctorId=${doctorId}`} />
+    );
   }
 
-  const specialtyRecord = doctor ? specialties?.find((specialty) => specialty.id === doctor.specialtyId) : undefined;
-  const specialtyLabel = specialtyRecord ? pickLocalizedName(specialtyRecord.name, specialtyRecord.nameAr, locale) : undefined;
+  const specialtyRecord = doctor
+    ? specialties?.find((specialty) => specialty.id === doctor.specialtyId)
+    : undefined;
+  const specialtyLabel = specialtyRecord
+    ? pickLocalizedName(specialtyRecord.name, specialtyRecord.nameAr, locale)
+    : undefined;
 
   function timeRange(window: AvailabilityWindowData) {
     const start = new Date(window.startTime);
@@ -166,47 +198,79 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     return `${format.dateTime(start, { hour: 'numeric', minute: 'numeric' })} – ${format.dateTime(end, { hour: 'numeric', minute: 'numeric' })}`;
   }
 
-  const currentStepKey = step === 'select' ? 'select' : step === 'confirmed' ? 'confirmed' : 'review';
+  const currentStepKey =
+    step === 'select' ? 'select' : step === 'confirmed' ? 'confirmed' : 'review';
   const stepIndex = STEP_ORDER.indexOf(currentStepKey);
 
+  // Who is being booked, on every step (compact: avatar, name, specialty).
+  const doctorChip = doctor ? (
+    <div className="flex items-center gap-3">
+      <PersonAvatar name={doctor.fullName} src={doctor.avatarUrl} size="md" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="truncate text-body font-semibold text-text-primary">
+          <bdi>{doctor.fullName}</bdi>
+        </p>
+        {specialtyRecord && specialtyLabel && (
+          <SpecialtyChip name={specialtyRecord.name} label={specialtyLabel} />
+        )}
+      </div>
+    </div>
+  ) : null;
+
   const progress = (
-    <div className="flex flex-col gap-2" role="group" aria-label={tUi('stepsLabel')}>
-      <ol className="flex items-center justify-between gap-2 text-small">
-        {STEP_ORDER.map((key, index) => (
-          <li
-            key={key}
-            aria-current={index === stepIndex ? 'step' : undefined}
-            className={cn('flex items-center gap-2', index <= stepIndex ? 'font-semibold text-text-primary' : 'text-text-tertiary')}
-          >
-            <span
+    <div className="flex flex-col gap-4">
+      {doctorChip}
+      <div className="flex flex-col gap-2" role="group" aria-label={tUi('stepsLabel')}>
+        <ol className="flex items-center justify-between gap-2 text-small">
+          {STEP_ORDER.map((key, index) => (
+            <li
+              key={key}
+              aria-current={index === stepIndex ? 'step' : undefined}
               className={cn(
-                'flex size-6 items-center justify-center rounded-full text-caption tabular-nums',
-                index < stepIndex && 'bg-text-primary text-text-inverse',
-                index === stepIndex && 'bg-pulse text-pulse-foreground',
-                index > stepIndex && 'bg-surface-2',
+                'flex items-center gap-2',
+                index <= stepIndex ? 'font-semibold text-text-primary' : 'text-text-tertiary',
               )}
             >
-              {index + 1}
-            </span>
-            {key === 'review' && step === 'payment' ? tUi('steps.payment') : tUi(`steps.${key}`)}
-          </li>
-        ))}
-      </ol>
-      <PulseLine variant="progress" progress={stepIndex / (STEP_ORDER.length - 1)} />
+              <span
+                className={cn(
+                  'flex size-6 items-center justify-center rounded-full text-caption tabular-nums',
+                  index < stepIndex && 'bg-text-primary text-text-inverse',
+                  index === stepIndex && 'bg-pulse text-pulse-foreground',
+                  index > stepIndex && 'bg-surface-2',
+                )}
+              >
+                {index + 1}
+              </span>
+              {key === 'review' && step === 'payment' ? tUi('steps.payment') : tUi(`steps.${key}`)}
+            </li>
+          ))}
+        </ol>
+        <PulseLine variant="progress" progress={stepIndex / (STEP_ORDER.length - 1)} />
+      </div>
     </div>
   );
 
   // ---- Payment
-  if (step === 'payment' && bookedAppointment && bookedAppointment.feeAmount !== null && bookedAppointment.feeCurrency !== null) {
+  if (
+    step === 'payment' &&
+    bookedAppointment &&
+    bookedAppointment.feeAmount !== null &&
+    bookedAppointment.feeCurrency !== null
+  ) {
     return (
       <div className="flex flex-col gap-6">
         {progress}
         <div className="flex flex-col gap-3">
-          <Heading as="h2" level={3}>{t('paymentStepTitle')}</Heading>
+          <Heading as="h2" level={3}>
+            {t('paymentStepTitle')}
+          </Heading>
           <p className="text-body text-text-secondary">{t('paymentStepDescription')}</p>
           <PayNowForm
             appointmentId={bookedAppointment.id}
-            amount={{ amount: bookedAppointment.feeAmount, currency: bookedAppointment.feeCurrency }}
+            amount={{
+              amount: bookedAppointment.feeAmount,
+              currency: bookedAppointment.feeCurrency,
+            }}
             onPaid={() => setStep('confirmed')}
           />
         </div>
@@ -223,8 +287,12 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
         <div className="flex flex-col items-center gap-4 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) text-center shadow-xs">
           <Illustration name="booking-confirmed" />
           <div className="flex max-w-prose flex-col gap-1">
-            <Heading as="h2" level={2}>{paid ? tUi('confirmedTitlePaid') : tUi('confirmedTitleFree')}</Heading>
-            <p className="text-body text-text-secondary">{paid ? tUi('confirmedDescriptionPaid') : tUi('confirmedDescriptionFree')}</p>
+            <Heading as="h2" level={2}>
+              {paid ? tUi('confirmedTitlePaid') : tUi('confirmedTitleFree')}
+            </Heading>
+            <p className="text-body text-text-secondary">
+              {paid ? tUi('confirmedDescriptionPaid') : tUi('confirmedDescriptionFree')}
+            </p>
           </div>
           <div className="flex w-full max-w-md flex-col gap-2 text-start">
             <h3 className="text-h3 text-text-primary">{tUi('prepareTitle')}</h3>
@@ -236,7 +304,9 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
             ))}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button onClick={() => router.push('/patient/appointments')}>{tUi('viewAppointments')}</Button>
+            <Button onClick={() => router.push('/patient/appointments')}>
+              {tUi('viewAppointments')}
+            </Button>
             <AddToCalendarAction appointmentId={bookedAppointment.id} />
             <Button asChild variant="ghost">
               <Link href="/patient/doctors">{tUi('bookAnother')}</Link>
@@ -247,20 +317,29 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     );
   }
 
-  // ---- Review
+  // ---- Review (confirm only: everything was chosen in step 1)
   if (step === 'summary' && selectedWindow) {
-    const priceLabel = formatConsultationPrice(selectedWindow, format, t('priceFree'));
     const start = new Date(selectedWindow.startTime);
-    const durationMinutes = Math.round((new Date(selectedWindow.endTime).getTime() - start.getTime()) / 60_000);
+    const durationMinutes = Math.round(
+      (new Date(selectedWindow.endTime).getTime() - start.getTime()) / 60_000,
+    );
     const profileFee = doctor?.consultationFeeAmount;
-    const feeDiffers =
-      profileFee !== undefined && profileFee > 0 && (selectedWindow.consultationType === 'free' || selectedWindow.feeAmount !== profileFee);
-    const rows: { label: string; value: string }[] = [
-      { label: tUi('rows.date'), value: format.dateTime(start, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) },
-      { label: tUi('rows.time'), value: timeRange(selectedWindow) },
-      { label: tUi('rows.timezone'), value: tUi('cairoTime', { offset: timezoneLabel }) },
+    // One price line. A free slot names the normal fee ("Free · normally 320 EGP"); a paid slot priced
+    // differently from the doctor's list fee says so underneath.
+    const priceLine = formatConsultationPrice(selectedWindow, format, t('priceFree'), {
+      amount: profileFee,
+      currency: 'EGP',
+      label: (price) => tCard('normally', { price }),
+    });
+    const paidAtOtherFee =
+      selectedWindow.consultationType === 'paid' &&
+      profileFee !== undefined &&
+      profileFee > 0 &&
+      selectedWindow.feeAmount !== profileFee;
+    const details: { label: string; value: string }[] = [
       { label: tUi('rows.duration'), value: t('durationMinutes', { minutes: durationMinutes }) },
-      { label: tUi('rows.price'), value: t(`consultationType.${selectedWindow.consultationType}`) },
+      { label: tUi('rows.timezone'), value: tUi('cairoTime', { offset: timezoneLabel }) },
+      { label: tUi('rows.type'), value: t(`appointmentType.${appointmentType}`) },
     ];
     const actionsDisabled = isConflictError || isFreeTierMonthlyCapError || isNoShowRestrictedError;
 
@@ -268,7 +347,9 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
       <div className="flex flex-col gap-6">
         {progress}
         <div className="flex flex-col gap-4 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs">
-          <Heading as="h2" level={3}>{tUi('reviewTitle')}</Heading>
+          <Heading as="h2" level={3}>
+            {tUi('reviewTitle')}
+          </Heading>
 
           {bookAppointment.isError && !gateError && (
             <Alert variant="danger" role="alert">
@@ -284,55 +365,43 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
             </Alert>
           )}
 
-          {doctor && (
-            <div className="flex items-center gap-3">
-              <PersonAvatar name={doctor.fullName} src={doctor.avatarUrl} size="lg" />
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="text-body font-semibold text-text-primary">
-                  <bdi>{doctor.fullName}</bdi>
-                </p>
-                {specialtyRecord && specialtyLabel && <SpecialtyChip name={specialtyRecord.name} label={specialtyLabel} />}
-              </div>
-            </div>
-          )}
-
-          <dl className="flex flex-col gap-2">
-            {rows.map((row) => (
-              <InsetRow key={row.label} className="justify-between">
-                <dt className="text-small text-text-tertiary">{row.label}</dt>
-                <dd className="text-small font-medium text-text-primary" dir="auto">{row.value}</dd>
-              </InsetRow>
-            ))}
-            <InsetRow className="justify-between">
-              <dt className="text-small text-text-tertiary">{tUi('rows.type')}</dt>
-              <dd className="w-52 max-w-full">
-                <Select value={appointmentType} onValueChange={(value) => setAppointmentType(value as AppointmentType)}>
-                  <SelectTrigger aria-label={t('appointmentType.label')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {APPOINTMENT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {t(`appointmentType.${type}`)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* One summary: when, then the quiet details, then the price. */}
+          <div className="flex flex-col gap-3">
+            <h3 className="text-h3 text-text-primary" dir="auto">
+              {format.dateTime(start, { weekday: 'long', month: 'long', day: 'numeric' })} ·{' '}
+              {timeRange(selectedWindow)}
+            </h3>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-1.5 text-small">
+              {details.map((row) => (
+                <div key={row.label} className="contents">
+                  <dt className="text-text-tertiary">{row.label}</dt>
+                  <dd className="text-text-primary" dir="auto">
+                    {row.value}
+                  </dd>
+                </div>
+              ))}
+              <dt className="text-text-tertiary">{tUi('rows.price')}</dt>
+              <dd
+                data-numeric
+                className={cn(
+                  'font-semibold',
+                  selectedWindow.consultationType === 'free'
+                    ? 'text-success-emphasis'
+                    : 'text-text-primary',
+                )}
+              >
+                {priceLine}
               </dd>
-            </InsetRow>
-            <InsetRow className="justify-between">
-              <dt className="text-small text-text-tertiary">{t('total')}</dt>
-              <dd className={cn('font-display text-h3', selectedWindow.consultationType === 'free' ? 'text-success-emphasis' : 'text-text-primary')} data-numeric>
-                {priceLabel}
-              </dd>
-            </InsetRow>
-          </dl>
-
-          {feeDiffers && profileFee !== undefined && (
-            <p className="text-small text-text-tertiary">
-              {tUi('standardFee', { fee: formatCurrency(format, profileFee, 'EGP'), price: priceLabel })}
-            </p>
-          )}
+            </dl>
+            {paidAtOtherFee && profileFee !== undefined && (
+              <p className="text-small text-text-tertiary">
+                {tUi('standardFee', {
+                  fee: formatCurrency(format, profileFee, 'EGP'),
+                  price: formatConsultationPrice(selectedWindow, format, t('priceFree')),
+                })}
+              </p>
+            )}
+          </div>
 
           {needsAllergyAnswer && (
             <>
@@ -354,7 +423,11 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
               </Button>
             ) : (
               <>
-                <Button loading={bookAppointment.isPending} disabled={needsAllergyAnswer} onClick={handleConfirm}>
+                <Button
+                  loading={bookAppointment.isPending}
+                  disabled={needsAllergyAnswer}
+                  onClick={handleConfirm}
+                >
                   {t('confirm')}
                 </Button>
                 <Button variant="secondary" onClick={() => setStep('select')}>
@@ -372,15 +445,28 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const selectedDay = selectedDayIndex !== null ? days[selectedDayIndex] : undefined;
   const groups = (['morning', 'afternoon', 'evening'] as const).map((key) => ({
     key,
-    slots: (selectedDay?.windows ?? []).filter((window) => period(getCairoNow(new Date(window.startTime)).getHours()) === key),
+    slots: (selectedDay?.windows ?? []).filter(
+      (window) => period(getCairoNow(new Date(window.startTime)).getHours()) === key,
+    ),
   }));
+
+  // The selected day's usual price is stated once above the slots; only a slot priced differently
+  // carries its own price label.
+  const priceOf = (window: AvailabilityWindowData) =>
+    formatConsultationPrice(window, format, t('priceFree'));
+  const dayPrices = (selectedDay?.windows ?? []).map(priceOf);
+  const dayPrice = dayPrices.length > 0 ? mostCommon(dayPrices) : undefined;
 
   const toGridSlot = (window: AvailabilityWindowData): TimeGridSlot => ({
     id: window.id,
     timeLabel: format.dateTime(new Date(window.startTime), { hour: 'numeric', minute: 'numeric' }),
     status: 'available',
-    label: formatConsultationPrice(window, format, t('priceFree')),
-    priceVariant: window.consultationType === 'free' ? 'free' : 'paid',
+    ...(priceOf(window) !== dayPrice
+      ? {
+          label: priceOf(window),
+          priceVariant: window.consultationType === 'free' ? ('free' as const) : ('paid' as const),
+        }
+      : {}),
     onSelect: () => {
       setSelectedWindow(window);
       setStep('summary');
@@ -396,8 +482,38 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
 
       {!isLoading && !isError && (
         <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-small text-text-secondary">{t('appointmentType.label')}</span>
+              <Select
+                value={appointmentType}
+                onValueChange={(value) => setAppointmentType(value as AppointmentType)}
+              >
+                <SelectTrigger aria-label={t('appointmentType.label')} className="w-52 max-w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {APPOINTMENT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {t(`appointmentType.${type}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {dayPrice && (
+              <p className="text-small text-text-secondary" data-numeric>
+                {tUi('slotPrice', { price: dayPrice })}
+              </p>
+            )}
+          </div>
+
           {/* 7-day scroller: each day shows its real slot count. */}
-          <div role="group" aria-label={tUi('daysLabel')} className="scrollbar-hidden -mx-1 flex snap-x gap-2 overflow-x-auto px-1 py-1">
+          <div
+            role="group"
+            aria-label={tUi('daysLabel')}
+            className="scrollbar-hidden -mx-1 flex snap-x gap-2 overflow-x-auto px-1 py-1"
+          >
             {days.map((day, index) => {
               const selected = index === selectedDayIndex;
               return (
@@ -408,14 +524,22 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
                   onClick={() => setSelectedDayIndex(index)}
                   className={cn(
                     'flex min-h-20 w-20 shrink-0 snap-start flex-col items-center justify-center gap-0.5 rounded-md border px-2 py-2 transition-colors duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring',
-                    selected ? 'border-text-primary bg-text-primary text-text-inverse' : 'border-border-strong bg-surface hover:bg-surface-2',
+                    selected
+                      ? 'border-text-primary bg-text-primary text-text-inverse'
+                      : 'border-border-strong bg-surface hover:bg-surface-2',
                     day.windows.length === 0 && !selected && 'text-text-tertiary',
                   )}
                 >
-                  <span className="text-caption">{format.dateTime(day.date, { weekday: 'short' })}</span>
-                  <span dir="ltr" className="font-display text-h3 tabular-nums">{format.dateTime(day.date, { day: 'numeric' })}</span>
                   <span className="text-caption">
-                    {day.windows.length > 0 ? tUi('slotsCount', { count: day.windows.length }) : tUi('noSlotsDay')}
+                    {format.dateTime(day.date, { weekday: 'short' })}
+                  </span>
+                  <span dir="ltr" className="font-display text-h3 tabular-nums">
+                    {format.dateTime(day.date, { day: 'numeric' })}
+                  </span>
+                  <span className="text-caption">
+                    {day.windows.length > 0
+                      ? tUi('slotsCount', { count: day.windows.length })
+                      : tUi('noSlotsDay')}
                   </span>
                 </button>
               );
@@ -423,19 +547,37 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
           </div>
 
           {(windows ?? []).length === 0 ? (
-            <EmptyState illustration="calendar-clear" title={t('noSlotsTitle')} description={t('noSlotsDescription')} />
+            <EmptyState
+              illustration="calendar-clear"
+              title={t('noSlotsTitle')}
+              description={t('noSlotsDescription')}
+            />
           ) : (
             <div className="flex flex-col gap-5">
               {groups
                 .filter((group) => group.slots.length > 0)
                 .map((group) => (
-                  <section key={group.key} className="flex flex-col gap-2" aria-label={tUi(`periods.${group.key}`)}>
-                    <h3 className="text-small font-medium text-text-tertiary">{tUi(`periods.${group.key}`)}</h3>
-                    <TimeGrid slots={group.slots.map(toGridSlot)} className="grid-cols-2 @sm:grid-cols-3 @lg:grid-cols-4" />
+                  <section
+                    key={group.key}
+                    className="flex flex-col gap-2"
+                    aria-label={tUi(`periods.${group.key}`)}
+                  >
+                    <h3 className="text-small font-medium text-text-tertiary">
+                      {tUi(`periods.${group.key}`)}
+                    </h3>
+                    <TimeGrid
+                      slots={group.slots.map(toGridSlot)}
+                      className="grid-cols-2 @sm:grid-cols-3 @lg:grid-cols-4"
+                    />
                   </section>
                 ))}
               {selectedDay && selectedDay.windows.length === 0 && (
-                <EmptyState size="sm" illustration="calendar-clear" title={t('noSlotsTitle')} description={t('noSlotsDescription')} />
+                <EmptyState
+                  size="sm"
+                  illustration="calendar-clear"
+                  title={t('noSlotsTitle')}
+                  description={t('noSlotsDescription')}
+                />
               )}
             </div>
           )}

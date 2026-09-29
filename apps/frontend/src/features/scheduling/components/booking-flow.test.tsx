@@ -166,7 +166,7 @@ describe('BookingFlow', () => {
   // type the backend returned actually reaches the screen, both on the slot
   // grid itself and again on the confirmation summary, never a
   // frontend-computed guess.
-  it("shows the slot's real backend-supplied price on the grid and again on the confirmation summary", async () => {
+  it("states the day's real price once above the slots, and again as the one price line on the review", async () => {
     addDoctorException({ date: todayDateKey(), type: 'extra-hours', hours: { start: '00:00', end: '23:30' } });
     setPatientVerified(true);
     renderWithProviders(<BookingFlow doctorId={DOCTOR_ID} />);
@@ -176,13 +176,15 @@ describe('BookingFlow', () => {
       if (!slot) throw new Error('no slot yet');
       return slot;
     }, { timeout: 5000 });
-    // The seeded demo doctor's working days default to a real Paid price
-    // (500 EGP) -- the grid cell shows it directly, not hidden behind hover.
-    expect(slotButton.textContent).toMatch(/EGP|FREE/);
+    // Every slot today shares one price, so it is stated once, not repeated on each slot.
+    expect(screen.getByText(/^Price per visit: /)).toHaveTextContent(/EGP|Free|FREE/);
+    expect(slotButton.textContent).not.toMatch(/EGP/);
     await userEvent.click(slotButton);
 
-    expect(await screen.findByText('Total')).toBeInTheDocument();
-    expect(screen.getByText(/Paid consultation|Free consultation/)).toBeInTheDocument();
+    // Review: a single price line with the amount (no separate "Total" row, no "Paid consultation" label).
+    expect(await screen.findByText('Price')).toBeInTheDocument();
+    expect(screen.queryByText('Total')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Paid consultation|Free consultation/)).not.toBeInTheDocument();
   });
 
   // Requirement: a slot that became unavailable between the patient viewing
