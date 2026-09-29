@@ -49,12 +49,12 @@ describe('PatientMedicalRecordsPage', () => {
     expect(screen.getByText('Imaging records will appear here when available.')).toBeInTheDocument();
   });
 
-  it('renders the type filter tabs', async () => {
+  it('renders the type filter chips', async () => {
     renderPage();
     await screen.findByText('No medical records yet');
 
-    expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Visits' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Conditions' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Visits' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Conditions' })).toBeInTheDocument();
   });
 });
