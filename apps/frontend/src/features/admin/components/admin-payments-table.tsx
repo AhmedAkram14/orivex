@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { Heading } from '@/design-system/typography';
 import { useAdminPayments } from '@/features/admin/hooks/use-admin-payments';
 import { useAdminRefundPayment } from '@/features/admin/hooks/use-admin-refund-payment';
@@ -41,6 +42,7 @@ const PAGE_SIZE = 20;
  */
 export function AdminPaymentsTable() {
   const t = useTranslations('admin.analytics.payments');
+  const format = useFormatter();
   const [page, setPage] = useState(1);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const { data, isLoading, isError } = useAdminPayments({ page, limit: PAGE_SIZE });
@@ -103,7 +105,7 @@ export function AdminPaymentsTable() {
                 <TableCell>{transaction.patientName}</TableCell>
                 <TableCell>{transaction.doctorName}</TableCell>
                 <TableCell className="text-end tabular-nums">
-                  {transaction.amount.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {transaction.amount.currency}
+                  {formatCurrency(format, transaction.amount.amount, transaction.amount.currency)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={transaction.status} label={t(`status.${transaction.status}`)} />

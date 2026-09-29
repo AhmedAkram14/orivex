@@ -122,7 +122,8 @@ export function NeedsAttentionCard() {
 
   return (
     <section
-      className="flex flex-col gap-3 rounded-(--r-card) border border-warning/30 border-s-4 border-s-warning bg-warning/10 p-(--card-pad)"
+      // A 10% warning tint with a 3px inline-start rule only -- no full amber outline (it read as olive in dark mode).
+      className="flex flex-col gap-3 rounded-(--r-card) border-s-[3px] border-s-warning bg-warning/10 p-(--card-pad)"
       aria-labelledby="needs-attention-title"
     >
       <h2 id="needs-attention-title" className="flex items-center gap-2 text-h3 text-text-primary">

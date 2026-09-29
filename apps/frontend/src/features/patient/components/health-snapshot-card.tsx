@@ -83,7 +83,7 @@ export function HealthSnapshotCard() {
             <dt className="text-xs text-text-tertiary">{row.label}</dt>
             <dd className="text-sm font-medium text-text-primary">
               <Link href={row.href} className="rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
-                {row.value}
+                <bdi>{row.value}</bdi>
               </Link>
               {row.detail && <span className="block text-xs font-normal text-text-tertiary">{row.detail}</span>}
             </dd>

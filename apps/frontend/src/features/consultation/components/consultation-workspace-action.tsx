@@ -335,7 +335,7 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                           key={reading.id}
                           className="rounded-full border border-border-default bg-surface-subtle px-3 py-1 text-sm text-text-secondary"
                         >
-                          {reading.valueLabel}
+                          <bdi dir="ltr">{reading.valueLabel}</bdi>
                         </li>
                       ))}
                     </ul>

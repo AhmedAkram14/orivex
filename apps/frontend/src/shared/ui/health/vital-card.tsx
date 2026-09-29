@@ -169,8 +169,9 @@ export function VitalCard({
       </div>
 
       <div className="flex flex-col gap-0.5">
-        <p dir="ltr" data-numeric className={cn('font-display text-text-primary tabular-nums', compact ? 'text-h2' : 'text-metric')}>
-          {latest.valueLabel}
+        {/* A value and its unit ("78.5 kg", "132/87 mmHg") are one isolated run, so Arabic never reorders them. */}
+        <p data-numeric className={cn('font-display text-text-primary tabular-nums', compact ? 'text-h2' : 'text-metric')}>
+          <bdi dir="ltr">{latest.valueLabel}</bdi>
         </p>
         <p className="text-caption text-text-tertiary">{format.dateTime(new Date(latest.recordedAt), { dateStyle: 'medium' })}</p>
         {note}
@@ -217,7 +218,7 @@ export function VitalCard({
               </TooltipTrigger>
               <TooltipContent>
                 <span className="flex flex-col gap-0.5" dir="auto">
-                  <span className="font-semibold">{point.valueLabel}</span>
+                  <bdi dir="ltr" className="font-semibold">{point.valueLabel}</bdi>
                   <span>{format.dateTime(new Date(point.recordedAt), { dateStyle: 'medium', timeStyle: 'short' })}</span>
                   {point.recordedBy && <span>{t('recordedBy', { name: point.recordedBy })}</span>}
                 </span>

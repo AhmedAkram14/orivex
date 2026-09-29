@@ -167,7 +167,7 @@ export function DoctorConsultationSummaryAction({ consultationSessionId, trigger
                 <ul className="flex flex-wrap gap-2 text-sm">
                   {summary.vitalReadings.map((vital) => (
                     <li key={vital.id} className="rounded-lg border border-border-default px-3 py-2">
-                      {vital.valueLabel}
+                      <bdi dir="ltr">{vital.valueLabel}</bdi>
                     </li>
                   ))}
                 </ul>
