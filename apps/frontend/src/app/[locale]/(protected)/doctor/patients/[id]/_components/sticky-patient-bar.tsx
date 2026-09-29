@@ -57,7 +57,8 @@ export function StickyPatientBar({ profile, headerRef }: StickyPatientBarProps) 
 
   return (
     <div
-      className="print-hidden sticky top-0 z-(--z-sticky) flex items-center gap-3 rounded-xl border border-border-default bg-surface/95 px-4 py-2.5 shadow-md backdrop-blur"
+      // Fixed height (h-15): the chart tabs stick directly below it at top-16 (page.tsx).
+      className="print-hidden sticky top-0 z-(--z-sticky) flex h-15 items-center gap-3 rounded-(--r-card) border border-border-default bg-surface/95 px-4 shadow-md backdrop-blur"
     >
       <Avatar size="sm" className="shrink-0">
         {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}

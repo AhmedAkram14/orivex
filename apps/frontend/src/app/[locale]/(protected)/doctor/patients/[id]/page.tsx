@@ -352,6 +352,8 @@ export default function DoctorPatientChartPage() {
               </Heading>
 
               <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as TabValue)}>
+                {/* Sticks directly under the sticky patient bar (h-15 + a 4px gap), so the tabs stay in reach while a long tab scrolls. */}
+                <div className="sticky top-16 z-(--z-sticky) -mx-1 bg-canvas/95 px-1 py-1 backdrop-blur">
                 <TabsList
                   ref={tabsListRef}
                   className="max-w-full overflow-x-auto rounded-xl p-1.5 mask-[linear-gradient(to_right,transparent,black_12px,black_calc(100%-12px),transparent)]"
@@ -372,6 +374,7 @@ export default function DoctorPatientChartPage() {
                     {documents ? t('tabs.documentsCount', { count: documents.length }) : t('tabs.documents')}
                   </TabsTrigger>
                 </TabsList>
+                </div>
 
                 <TabsContent value="overview" className="flex flex-col gap-6">
                   <div className="grid grid-cols-1 gap-6 @pane:grid-cols-2">

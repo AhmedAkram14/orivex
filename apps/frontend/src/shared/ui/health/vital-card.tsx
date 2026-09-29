@@ -147,7 +147,8 @@ export function VitalCard({
       <div className="flex items-start justify-between gap-2">
         <p className="flex min-w-0 items-center gap-2 text-small text-text-tertiary">
           {icon && <Icon icon={icon} size="md" className="shrink-0" />}
-          <span className="truncate">{title}</span>
+          {/* Wraps to two lines rather than cutting a label like "Latest blood pressure" short. */}
+          <span className="line-clamp-2 text-balance">{title}</span>
         </p>
         {statusChip && (
           <Tooltip>
@@ -224,9 +225,7 @@ export function VitalCard({
             </Tooltip>
           ))}
         </svg>
-      ) : (
-        <p className="text-small text-text-tertiary">{trendLabel}</p>
-      )}
+      ) : null}
     </>,
   );
 }
