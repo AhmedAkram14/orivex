@@ -188,3 +188,16 @@ Supersedes the color, type, radius and component notes above where they differ. 
 - **Density variables:** `--page-gutter`, `--section-gap`, `--card-pad`, `--card-gap`, `--row-h`. Radius collapsed to five values (10/12/20/28/full); control heights: 3 button sizes.
 - **Motion:** 200ms fades on popover/dropdown, bell tilt, toast slide-in, PulseLine (one per screen). All honor `prefers-reduced-motion`.
 - **Primitives:** Button, StatusBadge (single status→tone map), Card/HeroSurface/InsetRow, MetricStat, VitalCard, EmptyState (+illustrations), ErrorState, ConfirmDialog, skeleton set, DateBlock, Avatar, PulseLine, Toast, SegmentedControl, TagInput, SpecialtyChip.
+
+### Layout rules (round 2)
+
+Full record: [redesign/round-2-report.md](redesign/round-2-report.md).
+
+- **Columns follow the content width, not the viewport.** `<main>` is the size container. In-app grids use container variants: `@pane` (640px of content, two columns) and `@wide` (960px, three or four), plus Tailwind's own `@xl`/`@2xl`/`@3xl`/`@5xl`. Viewport breakpoints (`sm:`/`lg:`) stay for the public pages and for chrome only. With the sidebar open, a 1046px window leaves about 780px.
+- **Figures never wrap.** `MetricStat` values are one line and shrink with their own width (`clamp()` over `cqi`). Units and qualifiers ("per consultation") go in `helperText`. The `hero` size needs a column of about 300px or more.
+- **`sr-only` needs a positioned ancestor inside the scroll area.** `<main>` provides one. A new scroll container must be `relative` too, or visually hidden text adds page height.
+- **One label per status.** `StatusBadge` always reads `ds.status.<status>`. Don't pass per-feature copy.
+- **Filters are chips, tabs switch panels.** `FilterTabs` renders chips (`aria-pressed`). Use `Tabs` only to switch what is shown.
+- **One date-range toolbar.** Use `DateRangePicker` (presets, then a custom-range popover), with Export as a `secondary` button.
+- **Card headers.** The title may balance onto two lines. The action is a small ghost button that never wraps (`WidgetContainer` does this).
+- **Illustrations on an ink band** use `context="inverse"`, so card fills follow the band instead of staying white.
