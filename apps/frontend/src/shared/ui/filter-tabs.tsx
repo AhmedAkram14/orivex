@@ -1,4 +1,4 @@
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { cn } from '@/shared/lib/cn';
 
 export interface FilterTabsOption<T extends string> {
   value: T;
@@ -10,26 +10,39 @@ export interface FilterTabsProps<T extends string> {
   onChange: (value: T) => void;
   options: FilterTabsOption<T>[];
   className?: string;
+  /** Names the group for assistive tech ("Filter by status"). */
+  ariaLabel?: string;
 }
 
 /**
- * A generic status-filter control — a thin `Tabs` composition, so filtering
- * is a controlled value the page owns, not state hidden inside this
- * component. Extracted from `QueueFilters` (which had no queue-specific
- * logic of its own beyond its narrower type) so any list needing the same
- * "All / X / Y / Z" filter shape — the Patient Portal's Appointment filters
- * included — reuses this instead of duplicating the Tabs-wrapping markup.
+ * A status filter -- "All / X / Y / Z" -- rendered as a row of filter chips, never as a second tab
+ * row: tabs switch which panel is shown, a filter narrows the list that is already there, and a
+ * tab row nested under another tab row read as navigation. Controlled: the page owns the value.
+ * Single choice, exposed as toggle buttons (`aria-pressed`) inside a labelled group.
  */
-export function FilterTabs<T extends string>({ value, onChange, options, className }: FilterTabsProps<T>) {
+export function FilterTabs<T extends string>({ value, onChange, options, className, ariaLabel }: FilterTabsProps<T>) {
   return (
-    <Tabs value={value} onValueChange={(next) => onChange(next as T)} className={className}>
-      <TabsList>
-        {options.map((option) => (
-          <TabsTrigger key={option.value} value={option.value}>
+    <div role="group" aria-label={ariaLabel} className={cn('flex flex-wrap items-center gap-2', className)}>
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'h-8 rounded-full border px-3.5 text-small font-medium whitespace-nowrap transition-colors duration-(--duration-fast)',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
+              selected
+                ? 'border-transparent bg-primary text-primary-foreground'
+                : 'border-border-default bg-surface text-text-secondary hover:bg-surface-2 hover:text-text-primary',
+            )}
+          >
             {option.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+          </button>
+        );
+      })}
+    </div>
   );
 }

@@ -3498,6 +3498,16 @@
     }
   },
   "ds": {
+    "dateRange": {
+      "from": "From",
+      "to": "To",
+      "preset7Days": "7 days",
+      "preset30Days": "30 days",
+      "preset90Days": "90 days",
+      "presetThisMonth": "This month",
+      "presetAllTime": "All time",
+      "custom": "Custom range"
+    },
     "status": {
       "pending": "Pending",
       "requested": "Awaiting approval",

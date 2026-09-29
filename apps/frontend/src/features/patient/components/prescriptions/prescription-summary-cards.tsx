@@ -1,44 +1,14 @@
 'use client';
 
-import { CalendarClock, Pill, Stethoscope, type LucideIcon } from 'lucide-react';
+import { CalendarClock, Files, Pill, Stethoscope } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { Prescription } from '@/features/patient/api/types';
-import { Icon } from '@/shared/icons/icon';
-import { Skeleton } from '@/shared/ui/skeleton';
-import { cn } from '@/shared/lib/cn';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
 
 export interface PrescriptionSummaryCardsProps {
   prescriptions: Prescription[];
   loading: boolean;
   className?: string;
-}
-
-interface SummaryTileProps {
-  icon: LucideIcon;
-  iconClassName: string;
-  label: string;
-  value: string;
-  sublabel: string;
-  loading: boolean;
-}
-
-function SummaryTile({ icon, iconClassName, label, value, sublabel, loading }: SummaryTileProps) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border-default bg-surface p-4">
-      <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', iconClassName)}>
-        <Icon icon={icon} size="md" />
-      </span>
-      <div className="flex flex-col gap-0.5">
-        <p className="text-xs text-text-tertiary">{label}</p>
-        {loading ? (
-          <Skeleton className="h-6 w-16" />
-        ) : (
-          <p className="text-xl font-semibold text-text-primary">{value}</p>
-        )}
-        <p className="text-xs text-text-tertiary">{sublabel}</p>
-      </div>
-    </div>
-  );
 }
 
 /**
@@ -59,43 +29,23 @@ export function PrescriptionSummaryCards({ prescriptions, loading, className }: 
   }, undefined);
 
   return (
-    <div className={cn('grid grid-cols-2 gap-3 @wide:grid-cols-4', className)}>
-      <SummaryTile
-        icon={Pill}
-        iconClassName="bg-success-subtle text-success-emphasis"
-        label={t('activePrescriptions')}
-        value={String(activeCount)}
-        sublabel={t('currentlyTaking')}
-        loading={loading}
-      />
-      <SummaryTile
+    // The shared stat strip: one band, sideways snap-scroll on a phone, 2 then 4 columns as it widens.
+    <MetricStrip className={className}>
+      <MetricStat variant="inline" icon={Pill} label={t('activePrescriptions')} value={String(activeCount)} helperText={t('currentlyTaking')} loading={loading} />
+      <MetricStat
+        variant="inline"
         icon={CalendarClock}
-        iconClassName="bg-info-subtle text-info-emphasis"
         label={t('lastPrescribed')}
         value={
           lastPrescribedAt
             ? format.dateTime(new Date(lastPrescribedAt), { year: 'numeric', month: 'short', day: 'numeric' })
             : t('none')
         }
-        sublabel={t('lastPrescribedSublabel')}
+        helperText={t('lastPrescribedSublabel')}
         loading={loading}
       />
-      <SummaryTile
-        icon={Stethoscope}
-        iconClassName="bg-primary-subtle text-primary-emphasis"
-        label={t('prescribedBy')}
-        value={String(distinctDoctorCount)}
-        sublabel={t('differentDoctors')}
-        loading={loading}
-      />
-      <SummaryTile
-        icon={Pill}
-        iconClassName="bg-warning-subtle text-warning-emphasis"
-        label={t('totalPrescriptions')}
-        value={String(prescriptions.length)}
-        sublabel={t('allTime')}
-        loading={loading}
-      />
-    </div>
+      <MetricStat variant="inline" icon={Stethoscope} label={t('prescribedBy')} value={String(distinctDoctorCount)} helperText={t('differentDoctors')} loading={loading} />
+      <MetricStat variant="inline" icon={Files} label={t('totalPrescriptions')} value={String(prescriptions.length)} helperText={t('allTime')} loading={loading} />
+    </MetricStrip>
   );
 }

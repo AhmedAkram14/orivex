@@ -90,7 +90,11 @@ const DOT_CLASS: Record<StatusTone, string> = {
 
 export interface StatusBadgeProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   status: StatusKey;
-  /** Overrides the default (i18n `ds.status.<status>`) label -- pass a domain-specific string where the copy differs ("Waiting doctor approval"). */
+  /**
+   * Fallback text for a status with no shared label. Every status in the shared vocabulary always
+   * reads from i18n `ds.status.<status>`, so one status has ONE label everywhere ("Awaiting approval",
+   * never a per-feature variant) -- a caller's label is ignored for those.
+   */
   label?: ReactNode;
   /** Shows the 6px dot. Always on for `live` statuses. */
   dot?: boolean;
@@ -112,7 +116,7 @@ export function StatusBadge({ status, label, dot = false, timeAware, className, 
   const effective: StatusKey =
     timeAware && status === 'confirmed' && isAwaitingOutcome({ status, ...timeAware }) ? 'awaiting_outcome' : status;
   const tone = STATUS_TONE[effective];
-  const text = label && effective === status ? label : t(effective);
+  const text = t.has(effective) ? t(effective) : (label ?? effective);
 
   // A one-shot soft ring when the status *changes* (not on first mount).
   const previous = useRef(effective);

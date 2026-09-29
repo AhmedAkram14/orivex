@@ -54,6 +54,11 @@ const CATEGORIES: { pattern: RegExp; key: string; icon: LucideIcon; hue: Special
   { pattern: /psychiat|mental/i, key: 'psychiatry', icon: Brain, hue: 4 },
   { pattern: /ophthalmol|\beye/i, key: 'ophthalmology', icon: Eye, hue: 7 },
   { pattern: /\bent\b|\bear\b|nose|throat/i, key: 'ent', icon: Ear, hue: 9 },
+  // Common specialties with no category copy of their own still get a fixed hue, so the seeded set
+  // (cardiology, dermatology, dentistry, psychiatry, orthopedics, pediatrics, ophthalmology,
+  // internal medicine, ENT) lands on nine different hues instead of hash collisions.
+  { pattern: /internal|family medicine|general medicine/i, key: 'generic', icon: Stethoscope, hue: 8 },
+  { pattern: /dermat|skin/i, key: 'generic', icon: Stethoscope, hue: 2 },
 ];
 
 function hashHue(value: string): SpecialtyHue {

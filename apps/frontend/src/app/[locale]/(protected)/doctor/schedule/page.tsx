@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, Info, MoreHorizontal, Pencil, Plus, Users, X } from 'lucide-react';
+import { ArrowRight, Ban, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, Info, MoreHorizontal, Pencil, Plus, Users, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -47,16 +47,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Sheet } from '@/shared/ui/side-panel';
 import { EmptyState } from '@/shared/ui/empty-state';
+import { MetricStat } from '@/shared/ui/metric-stat';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { EmptyCalendar } from '@/shared/ui/schedule/empty-calendar';
 import { LoadingCalendar } from '@/shared/ui/schedule/loading-calendar';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/shared/ui/breadcrumb';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Badge } from '@/shared/ui/badge';
 import { Page } from '@/shared/ui/layout/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
+import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
 import { cn } from '@/shared/lib/cn';
 import type { Holiday, RecurringWeeklySchedule, ScheduleException } from '@/features/scheduling/types';
 
@@ -417,21 +418,8 @@ export default function DoctorSchedulePage() {
         <div className="grid grid-cols-1 gap-6 @5xl:grid-cols-[minmax(0,1fr)_18.5rem]">
           <div className="flex min-w-0 flex-col gap-6">
             <WorkspaceHeader
-              breadcrumbs={
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    <BreadcrumbItem>
-                      <BreadcrumbLink asChild>
-                        <Link href="/doctor">{t('breadcrumb.workspace')}</Link>
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{t('breadcrumb.current')}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-              }
+              // Derived from the sidebar config like every other page (Practice > Schedule), never hand-authored.
+              breadcrumbs={<AppBreadcrumbs />}
               title={t('title')}
               description={t('subtitle')}
               actions={
@@ -636,11 +624,12 @@ export default function DoctorSchedulePage() {
                     <Icon icon={ArrowRight} size="xs" flipRtl />
                   </Link>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <ThisWeekStat icon={CalendarDays} accent="success" label={t('thisWeek.workingDays')} value={String(workingDaysCount)} loading={isLoading} />
-                  <ThisWeekStat icon={Clock} accent="info" label={t('thisWeek.availableHours')} value={String(availableHoursThisWeek)} loading={isLoading} />
-                  <ThisWeekStat icon={Users} accent="purple" label={t('thisWeek.appointments')} value={String(appointmentsThisWeekCount)} loading={isLoadingScheduleAppointments} />
-                  <ThisWeekStat icon={Clock} accent="warning" label={t('thisWeek.hoursBlocked')} value={String(hoursBlockedThisWeek)} loading={isLoading || isLoadingExceptions} />
+                {/* The shared MetricStat, as a 2x2 block with hairline dividers (no pastel fills). */}
+                <div className="grid grid-cols-2 gap-px overflow-hidden rounded-(--r-sm) border border-border-default bg-border-default *:bg-surface">
+                  <MetricStat variant="inline" className="min-w-0 px-3 py-3" icon={CalendarDays} label={t('thisWeek.workingDays')} value={String(workingDaysCount)} loading={isLoading} />
+                  <MetricStat variant="inline" className="min-w-0 px-3 py-3" icon={Clock} label={t('thisWeek.availableHours')} value={String(availableHoursThisWeek)} loading={isLoading} />
+                  <MetricStat variant="inline" className="min-w-0 px-3 py-3" icon={Users} label={t('thisWeek.appointments')} value={String(appointmentsThisWeekCount)} loading={isLoadingScheduleAppointments} />
+                  <MetricStat variant="inline" className="min-w-0 px-3 py-3" icon={Ban} label={t('thisWeek.hoursBlocked')} value={String(hoursBlockedThisWeek)} loading={isLoading || isLoadingExceptions} />
                 </div>
               </CardContent>
             </Card>
@@ -820,32 +809,6 @@ export default function DoctorSchedulePage() {
         </Dialog>
       </Page>
     </RequireRole>
-  );
-}
-
-interface ThisWeekStatProps {
-  icon: typeof Clock;
-  accent: 'success' | 'info' | 'purple' | 'warning';
-  label: string;
-  value: string;
-  loading?: boolean;
-}
-
-const THIS_WEEK_ACCENT_CLASSES: Record<ThisWeekStatProps['accent'], string> = {
-  success: 'bg-success-subtle text-success-emphasis',
-  info: 'bg-info-subtle text-info-emphasis',
-  purple: 'bg-[var(--color-accent-purple-subtle)] text-[var(--color-accent-purple)]',
-  warning: 'bg-warning-subtle text-warning-emphasis',
-};
-
-/** One tile: icon in the top-start corner, a large number, a small label. */
-function ThisWeekStat({ icon, accent, label, value, loading }: ThisWeekStatProps) {
-  return (
-    <div className={cn('flex flex-col items-start gap-1 rounded-lg p-3', THIS_WEEK_ACCENT_CLASSES[accent])}>
-      <Icon icon={icon} size="sm" />
-      {loading ? <Skeleton className="h-7 w-10" /> : <span className="text-2xl font-semibold text-text-primary">{value}</span>}
-      <span className="text-xs text-text-secondary">{label}</span>
-    </div>
   );
 }
 

@@ -1,39 +1,15 @@
 'use client';
 
-import { CalendarClock, ClipboardList, HeartPulse, Pill, type LucideIcon } from 'lucide-react';
+import { CalendarClock, ClipboardList, HeartPulse, Pill } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import type { MedicalRecordEntry } from '@/features/patient/api/types';
 import { usePatientDashboardSummary } from '@/features/patient/hooks/use-patient-dashboard-summary';
-import { Icon } from '@/shared/icons/icon';
-import { Skeleton } from '@/shared/ui/skeleton';
-import { cn } from '@/shared/lib/cn';
+import { MetricStat, MetricStrip } from '@/shared/ui/metric-stat';
 
 export interface RecordsSummaryProps {
   entries: MedicalRecordEntry[];
   entriesLoading: boolean;
   className?: string;
-}
-
-interface SummaryTileProps {
-  icon: LucideIcon;
-  iconClassName: string;
-  label: string;
-  value: string;
-  loading: boolean;
-}
-
-function SummaryTile({ icon, iconClassName, label, value, loading }: SummaryTileProps) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border-default bg-surface p-4">
-      <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', iconClassName)}>
-        <Icon icon={icon} size="md" />
-      </span>
-      <div className="flex flex-col gap-0.5">
-        <p className="text-xs text-text-tertiary">{label}</p>
-        {loading ? <Skeleton className="h-6 w-14" /> : <p className="text-xl font-semibold text-text-primary">{value}</p>}
-      </div>
-    </div>
-  );
 }
 
 /**
@@ -58,24 +34,13 @@ export function RecordsSummary({ entries, entriesLoading, className }: RecordsSu
   const conditionCount = entries.filter((entry) => entry.type === 'condition').length;
 
   return (
-    <div className={cn('grid grid-cols-2 gap-3 @wide:grid-cols-4', className)}>
-      <SummaryTile
-        icon={ClipboardList}
-        iconClassName="bg-info-subtle text-info-emphasis"
-        label={t('totalVisits')}
-        value={String(visitCount)}
-        loading={entriesLoading}
-      />
-      <SummaryTile
-        icon={HeartPulse}
-        iconClassName="bg-primary-subtle text-primary-emphasis"
-        label={t('conditions')}
-        value={String(conditionCount)}
-        loading={entriesLoading}
-      />
-      <SummaryTile
+    // The shared stat strip: one band, sideways snap-scroll on a phone, 2 then 4 columns as it widens.
+    <MetricStrip className={className}>
+      <MetricStat variant="inline" icon={ClipboardList} label={t('totalVisits')} value={String(visitCount)} loading={entriesLoading} />
+      <MetricStat variant="inline" icon={HeartPulse} label={t('conditions')} value={String(conditionCount)} loading={entriesLoading} />
+      <MetricStat
+        variant="inline"
         icon={CalendarClock}
-        iconClassName="bg-warning-subtle text-warning-emphasis"
         label={tDashboard('lastVisit')}
         value={
           dashboardSummary?.lastVisitAt
@@ -84,13 +49,13 @@ export function RecordsSummary({ entries, entriesLoading, className }: RecordsSu
         }
         loading={dashboardLoading}
       />
-      <SummaryTile
+      <MetricStat
+        variant="inline"
         icon={Pill}
-        iconClassName="bg-success-subtle text-success-emphasis"
         label={tDashboard('activePrescriptionsTitle')}
         value={String(dashboardSummary?.activePrescriptionsCount ?? 0)}
         loading={dashboardLoading}
       />
-    </div>
+    </MetricStrip>
   );
 }

@@ -19,6 +19,7 @@ import { Accordion } from '@/shared/ui/accordion';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
 import { Container } from '@/shared/ui/container';
 import { Icon } from '@/shared/icons/icon';
+import { Button } from '@/shared/ui/button';
 import { cn } from '@/shared/lib/cn';
 import { env } from '@/shared/lib/env';
 
@@ -119,12 +120,10 @@ export function FaqSection() {
             </Text>
           </div>
         </div>
-        <a
-          href={`mailto:${env.supportEmail}`}
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
-        >
-          {t('support.cta')}
-        </a>
+        {/* The shared primary button, never a one-off fill. */}
+        <Button asChild className="shrink-0">
+          <a href={`mailto:${env.supportEmail}`}>{t('support.cta')}</a>
+        </Button>
       </div>
     </Container>
   );

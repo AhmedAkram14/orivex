@@ -9,6 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/di
 export interface RescheduleActionProps {
   appointmentId: string;
   doctorId: string;
+  /**
+   * Controlled mode, for opening the dialog from somewhere else (an overflow-menu item): pass
+   * `open`/`onOpenChange` and `showTrigger={false}`. Uncontrolled with its own button otherwise.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }
 
 /**
@@ -20,9 +27,11 @@ export interface RescheduleActionProps {
  * appointment list itself refetches via `useRescheduleAppointment`'s own
  * cache invalidation, not a prop this component threads through.
  */
-export function RescheduleAction({ appointmentId, doctorId }: RescheduleActionProps) {
+export function RescheduleAction({ appointmentId, doctorId, open: openProp, onOpenChange, showTrigger = true }: RescheduleActionProps) {
   const t = useTranslations('patient.appointments.reschedule');
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (next: boolean) => (onOpenChange ? onOpenChange(next) : setOwnOpen(next));
 
   return (
     <Dialog
@@ -31,9 +40,11 @@ export function RescheduleAction({ appointmentId, doctorId }: RescheduleActionPr
         setOpen(next);
       }}
     >
-      <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        {t('button')}
-      </Button>
+      {showTrigger && (
+        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(true)}>
+          {t('button')}
+        </Button>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('dialogTitle')}</DialogTitle>

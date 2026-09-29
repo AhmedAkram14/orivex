@@ -55,8 +55,9 @@ describe('DoctorEarningsPage', () => {
   it('renders the date-range picker and export button (detailed behavior covered by doctor-earnings-summary.test.tsx)', async () => {
     renderPage();
 
-    await screen.findByLabelText('From');
-    expect(screen.getByLabelText('To')).toBeInTheDocument();
+    // The shared range toolbar: presets first, the From/To inputs inside the custom-range popover.
+    await screen.findByRole('button', { name: '30 days' });
+    expect(screen.getByRole('button', { name: 'Custom range' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Export CSV/ })).toBeInTheDocument();
   });
 

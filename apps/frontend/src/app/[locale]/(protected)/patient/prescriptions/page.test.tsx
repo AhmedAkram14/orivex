@@ -102,8 +102,8 @@ describe('PatientPrescriptionsPage', () => {
     expect(screen.getByText('Take with food')).toBeInTheDocument();
 
     // KPI row: 1 active prescription, 2 total (sublabels are unique to each tile, unlike the labels which are shared with the section headings below).
-    const activeTile = screen.getByText('Currently taking').closest('div');
-    const totalTile = screen.getByText('All time').closest('div');
+    const activeTile = screen.getByText('Currently taking').closest('.snap-start');
+    const totalTile = screen.getByText('All time').closest('.snap-start');
     expect(activeTile).toHaveTextContent('1');
     expect(totalTile).toHaveTextContent('2');
 

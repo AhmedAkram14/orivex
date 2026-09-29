@@ -14,7 +14,7 @@ describe('FilterTabs', () => {
     const onChange = vi.fn();
     renderWithProviders(<FilterTabs value="all" onChange={onChange} options={options} />);
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Upcoming' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Upcoming' }));
 
     expect(onChange).toHaveBeenCalledWith('upcoming');
   });

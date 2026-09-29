@@ -4,9 +4,7 @@ import type { ReactNode } from 'react';
 import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { ConsultationOutcomeAction } from '@/features/consultation/components/consultation-outcome-action';
 import { PayNowAction } from '@/features/payment/components/pay-now-action';
-import { AddToCalendarAction } from '@/features/patient/components/appointments/add-to-calendar-action';
-import { CancelAction } from '@/features/patient/components/appointments/cancel-action';
-import { RescheduleAction } from '@/features/patient/components/appointments/reschedule-action';
+import { AppointmentOverflowMenu } from '@/features/patient/components/appointments/appointment-overflow-menu';
 import type { Appointment } from '@/features/patient/api/types';
 import { canJoinCall, isAppointmentStillUpcoming } from '@/features/patient/lib/appointment-time';
 import { JoinCallAction } from '@/features/telemedicine/components/join-call-action';
@@ -129,17 +127,20 @@ export function AppointmentList({ appointments, emptyTitle, emptyDescription, au
 
         const awaitingOutcome = isAwaitingOutcome(appointment);
 
+        // One primary action at most, everything else (calendar, reschedule, cancel) in the ⋯ menu.
+        const hasSecondary = canAddToCalendar(appointment) || canReschedule(appointment) || canCancel(appointment);
         const actions =
-          primaryAction || canAddToCalendar(appointment) || canReschedule(appointment) || canCancel(appointment) ? (
+          primaryAction || hasSecondary ? (
             <>
               {primaryAction}
-              {canAddToCalendar(appointment) && <AddToCalendarAction appointmentId={appointment.id} />}
-              {canReschedule(appointment) && (
-                <RescheduleAction appointmentId={appointment.id} doctorId={appointment.doctorId} />
-              )}
-              {canCancel(appointment) && (
-                <CancelAction appointmentId={appointment.id} willRefund={cancelWillRefund(appointment)} />
-              )}
+              <AppointmentOverflowMenu
+                appointmentId={appointment.id}
+                doctorId={appointment.doctorId}
+                canAddToCalendar={canAddToCalendar(appointment)}
+                canReschedule={canReschedule(appointment)}
+                canCancel={canCancel(appointment)}
+                willRefund={cancelWillRefund(appointment)}
+              />
             </>
           ) : undefined;
 

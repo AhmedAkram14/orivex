@@ -105,9 +105,9 @@ describe('PatientAppointmentsPage', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'History' }));
 
     expect(await screen.findByText('No appointment history yet')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Completed' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Cancelled' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Completed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelled' })).toBeInTheDocument();
   });
 
   // Patient-Facing Reschedule (Phase 3 Step 2): end-to-end through the real
@@ -122,7 +122,9 @@ describe('PatientAppointmentsPage', () => {
     bookAppointment({ doctorId: DOCTOR_ID, availabilityWindowId: `${DOCTOR_ID}::${futureWindowStart}` });
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Reschedule' }));
+    // Reschedule sits in the row's overflow menu, beside the one primary action.
+    await userEvent.click((await screen.findAllByRole('button', { name: 'More actions' }))[0]);
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Reschedule' }));
 
     expect(await screen.findByText('Reschedule appointment')).toBeInTheDocument();
   });

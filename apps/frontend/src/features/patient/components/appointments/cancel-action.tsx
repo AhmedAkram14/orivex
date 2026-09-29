@@ -20,6 +20,13 @@ export interface CancelActionProps {
    * backend exactly, and any refund is fully automatic and unconditional).
    */
   willRefund: boolean;
+  /**
+   * Controlled mode, for opening the dialog from somewhere else (an overflow-menu item): pass
+   * `open`/`onOpenChange` and `showTrigger={false}`. Uncontrolled with its own button otherwise.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }
 
 /**
@@ -32,9 +39,11 @@ export interface CancelActionProps {
  * (`AutoRefundOnAppointmentCancellationHandler`), and refund notification
  * all fire server-side, nothing left for this component to orchestrate.
  */
-export function CancelAction({ appointmentId, willRefund }: CancelActionProps) {
+export function CancelAction({ appointmentId, willRefund, open: openProp, onOpenChange, showTrigger = true }: CancelActionProps) {
   const t = useTranslations('patient.appointments.cancel');
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  const open = openProp ?? ownOpen;
+  const setOpen = (next: boolean) => (onOpenChange ? onOpenChange(next) : setOwnOpen(next));
   const cancelAppointment = useCancelAppointment();
 
   // Real, distinct error states (never a single generic message): a 404/422
@@ -65,9 +74,11 @@ export function CancelAction({ appointmentId, willRefund }: CancelActionProps) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : closeDialog())}>
-      <Button type="button" variant="destructive" size="sm" onClick={() => setOpen(true)}>
-        {t('button')}
-      </Button>
+      {showTrigger && (
+        <Button type="button" variant="destructive" size="sm" onClick={() => setOpen(true)}>
+          {t('button')}
+        </Button>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('dialogTitle')}</DialogTitle>

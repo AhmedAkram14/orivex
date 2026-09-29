@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { renderWithProviders } from '@/shared/test/render-with-providers';
 import type { Appointment } from '@/features/patient/api/types';
@@ -24,6 +25,14 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     feeAmount: null,
     ...overrides,
   };
+}
+
+/** Secondary actions (calendar, reschedule, cancel) live in the row's ⋯ menu: opens it when present. */
+async function openRowMenu(): Promise<boolean> {
+  const trigger = screen.queryByRole('button', { name: 'More actions' });
+  if (!trigger) return false;
+  await userEvent.click(trigger);
+  return true;
 }
 
 describe('AppointmentList', () => {
@@ -73,15 +82,16 @@ describe('AppointmentList', () => {
   // for either status, and additive alongside whatever else that status
   // already shows (a Paid-and-unpaid Requested appointment shows both
   // "Pay now" and "Reschedule").
-  it('renders a reachable "Reschedule" action for a Requested appointment', () => {
+  it('renders a reachable "Reschedule" action for a Requested appointment (in the row ⋯ menu)', async () => {
     const appointment = buildAppointment({ status: 'requested' });
 
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
-    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
-  it('renders "Reschedule" alongside "Pay now" for a Paid, unconfirmed appointment', () => {
+  it('keeps "Pay now" as the one visible action and offers "Reschedule" in the ⋯ menu', async () => {
     const appointment = buildAppointment({
       status: 'requested',
       consultationType: 'paid',
@@ -92,18 +102,20 @@ describe('AppointmentList', () => {
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
     expect(screen.getByRole('button', { name: 'Pay now' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
-  it('renders a reachable "Reschedule" action for a Confirmed appointment', () => {
+  it('renders a reachable "Reschedule" action for a Confirmed appointment (in the row ⋯ menu)', async () => {
     const appointment = buildAppointment({ status: 'confirmed' });
 
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
-    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
-  it('never renders "Reschedule" for a Rescheduled, Cancelled, or Completed appointment', () => {
+  it('never renders "Reschedule" for a Rescheduled, Cancelled, or Completed appointment', async () => {
     const appointments = [
       buildAppointment({ id: 'a1', status: 'rescheduled' }),
       buildAppointment({ id: 'a2', status: 'cancelled' }),
@@ -116,40 +128,45 @@ describe('AppointmentList', () => {
 
     renderWithProviders(<AppointmentList appointments={appointments} emptyTitle="" emptyDescription="" />);
 
+    await openRowMenu();
+    expect(screen.queryByRole('menuitem', { name: 'Reschedule' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reschedule' })).not.toBeInTheDocument();
   });
 
   // Join-Window Enforcement feature: a missed appointment shouldn't
   // dead-end the patient -- markRescheduled()'s backend guard was extended
   // to allow a No-show appointment through, so the UI offers it too.
-  it('renders a reachable "Reschedule" action for a No-show appointment', () => {
+  it('renders a reachable "Reschedule" action for a No-show appointment (in the row ⋯ menu)', async () => {
     const appointment = buildAppointment({ status: 'no_show' });
 
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
-    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
   // Demo Readiness P0: the previously-missing patient-facing cancel action --
   // eligible for the exact same statuses reschedule is (matches the real
   // backend's own cancel guard), so both actions always appear together.
-  it('renders a reachable "Cancel" action for a Requested appointment', () => {
+  it('renders a reachable "Cancel" action for a Requested appointment (in the row ⋯ menu)', async () => {
     const appointment = buildAppointment({ status: 'requested' });
 
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Cancel' })).toBeInTheDocument();
   });
 
-  it('renders a reachable "Cancel" action for a Confirmed appointment', () => {
+  it('renders a reachable "Cancel" action for a Confirmed appointment (in the row ⋯ menu)', async () => {
     const appointment = buildAppointment({ status: 'confirmed' });
 
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Cancel' })).toBeInTheDocument();
   });
 
-  it('never renders "Cancel" for a Rescheduled, Cancelled, or Completed appointment', () => {
+  it('never renders "Cancel" for a Rescheduled, Cancelled, or Completed appointment', async () => {
     const appointments = [
       buildAppointment({ id: 'a1', status: 'rescheduled' }),
       buildAppointment({ id: 'a2', status: 'cancelled' }),
@@ -162,17 +179,20 @@ describe('AppointmentList', () => {
 
     renderWithProviders(<AppointmentList appointments={appointments} emptyTitle="" emptyDescription="" />);
 
+    await openRowMenu();
+    expect(screen.queryByRole('menuitem', { name: 'Cancel' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
   });
 
   // Join-Window Enforcement feature: cancel()'s backend guard was extended
   // to allow a No-show appointment through too (both actions appear
   // together for it, same as Requested/Confirmed).
-  it('renders a reachable "Cancel" action for a No-show appointment', () => {
+  it('renders a reachable "Cancel" action for a No-show appointment (in the row ⋯ menu)', async () => {
     const appointment = buildAppointment({ status: 'no_show' });
 
     renderWithProviders(<AppointmentList appointments={[appointment]} emptyTitle="" emptyDescription="" />);
 
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
+    expect(await openRowMenu()).toBe(true);
+    expect(await screen.findByRole('menuitem', { name: 'Cancel' })).toBeInTheDocument();
   });
 });

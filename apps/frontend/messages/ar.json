@@ -3498,6 +3498,16 @@
     }
   },
   "ds": {
+    "dateRange": {
+      "from": "من",
+      "to": "إلى",
+      "preset7Days": "٧ أيام",
+      "preset30Days": "٣٠ يومًا",
+      "preset90Days": "٩٠ يومًا",
+      "presetThisMonth": "هذا الشهر",
+      "presetAllTime": "كل الأوقات",
+      "custom": "نطاق مخصص"
+    },
     "status": {
       "pending": "قيد الانتظار",
       "requested": "بانتظار الموافقة",

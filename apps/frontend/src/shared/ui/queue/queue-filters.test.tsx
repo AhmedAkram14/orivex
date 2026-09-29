@@ -17,7 +17,7 @@ describe('QueueFilters', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('tab', { name: 'Waiting' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Waiting' }));
     expect(onChange).toHaveBeenCalledWith('waiting');
   });
 });

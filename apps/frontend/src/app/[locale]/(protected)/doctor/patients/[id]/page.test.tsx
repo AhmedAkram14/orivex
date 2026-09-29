@@ -279,7 +279,7 @@ describe('DoctorPatientChartPage', () => {
 
     const upcomingSection = (await screen.findByRole('heading', { name: 'Upcoming appointments' })).closest('.rounded-2xl');
     expect(upcomingSection).not.toBeNull();
-    expect(within(upcomingSection as HTMLElement).queryByText('Waiting doctor approval')).not.toBeInTheDocument();
+    expect(within(upcomingSection as HTMLElement).queryByText('Awaiting approval')).not.toBeInTheDocument();
     expect(within(upcomingSection as HTMLElement).queryByText('Expired')).not.toBeInTheDocument();
 
     // Phase 2 (Appointment Visibility & Consultation History): a past-dated
@@ -289,11 +289,11 @@ describe('DoctorPatientChartPage', () => {
     // only ever holds terminal statuses (Expired here).
     const needsResolutionSection = screen.getByRole('heading', { name: 'Needs resolution' }).closest('.rounded-2xl');
     expect(needsResolutionSection).not.toBeNull();
-    expect(within(needsResolutionSection as HTMLElement).getByText('Waiting doctor approval')).toBeInTheDocument();
+    expect(within(needsResolutionSection as HTMLElement).getByText('Awaiting approval')).toBeInTheDocument();
 
     const previousSection = screen.getByRole('heading', { name: 'Previous visits' }).closest('.rounded-2xl');
     expect(previousSection).not.toBeNull();
-    expect(within(previousSection as HTMLElement).queryByText('Waiting doctor approval')).not.toBeInTheDocument();
+    expect(within(previousSection as HTMLElement).queryByText('Awaiting approval')).not.toBeInTheDocument();
     expect(within(previousSection as HTMLElement).getByText('Expired')).toBeInTheDocument();
   });
 

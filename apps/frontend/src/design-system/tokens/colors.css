@@ -110,7 +110,9 @@
    * Specialty palette: nine fixed categorical hues (tint + glyph), keyed by
    * specialty in `shared/lib/specialty-palette.ts`. Chips and icon tiles ONLY,
    * identical on the landing page, the doctor directory and the specialties
-   * page. Each glyph holds >= 4.5:1 on its own tint.
+   * page. Each glyph holds >= 4.5:1 on its own tint. The nine hues are all
+   * distinct (red, blue, teal, violet, orange, pink, green, cyan, fuchsia) and none is
+   * lime or amber: lime is `--pulse` (reserved for live and now), amber is `warning`.
    */
   --color-spec-1: #b4231f;
   --color-spec-1-tint: #fde7e4;
@@ -124,12 +126,12 @@
   --color-spec-5-tint: #fdebd3;
   --color-spec-6: #be185d;
   --color-spec-6-tint: #fce4ee;
-  --color-spec-7: #3f6212;
-  --color-spec-7-tint: #e6f2c9;
+  --color-spec-7: #15803d;
+  --color-spec-7-tint: #dcfce7;
   --color-spec-8: #0e6a8f;
   --color-spec-8-tint: #dcf0f8;
-  --color-spec-9: #5b4a1a;
-  --color-spec-9-tint: #f2ead0;
+  --color-spec-9: #a21caf;
+  --color-spec-9-tint: #fae8ff;
 }
 
 /* The canvas is a flat warm neutral now (the old radial blue wash is gone).
