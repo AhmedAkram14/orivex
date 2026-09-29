@@ -9,17 +9,23 @@ export interface BarChartProps {
   xKey: string;
   series: ChartSeries[];
   height?: number;
+  /** Formats a value in the hover tooltip (money, counts) -- raw numbers otherwise. */
+  formatValue?: (value: number) => string;
 }
 
 /** Generic themed bar chart -- rounded data-ends, a 2px surface gap between adjacent bars via `barGap`. */
-export function BarChart({ data, xKey, series, height = 260 }: BarChartProps) {
+export function BarChart({ data, xKey, series, height = 260, formatValue }: BarChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>
       <RechartsBarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
         <CartesianGrid stroke={CHART_GRID_COLOR} strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey={xKey} stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} />
         <YAxis stroke={CHART_AXIS_COLOR} fontSize={12} tickLine={false} axisLine={false} width={40} allowDecimals={false} />
-        <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
+        <Tooltip
+          contentStyle={CHART_TOOLTIP_STYLE}
+          cursor={{ fill: CHART_GRID_COLOR, opacity: 0.4 }}
+          formatter={formatValue ? (value) => formatValue(Number(value)) : undefined}
+        />
         {series.length > 1 && <Legend />}
         {series.map((item, index) => (
           <Bar

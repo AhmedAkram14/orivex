@@ -1815,6 +1815,10 @@
         "lifetimeHelper": "All-time figure — not affected by the date range below"
       },
       "payoutHonesty": "These figures reflect earnings recorded on this platform, not confirmation that funds have been transferred to your account.",
+      "chartNote": "Recorded earnings, not payouts. Net is after the {rate}% platform commission and before tax.",
+      "chartNoteNoRate": "Recorded earnings, not payouts. Net is after platform commission and before tax.",
+      "learnMore": "Learn more",
+      "detailsToggle": "Details",
       "commissionFootnote": "Platform commission: {rate}%.",
       "taxFootnote": "Net is before tax — it does not account for any tax or withholding.",
       "cyclesTitle": "Monthly breakdown",

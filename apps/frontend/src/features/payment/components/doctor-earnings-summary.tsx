@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Banknote, PiggyBank, Wallet } from 'lucide-react';
+import { ArrowRight, Banknote, ChevronDown, Info, PiggyBank, Wallet } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -8,7 +8,10 @@ import { useState } from 'react';
 import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { useDoctorEarningsSummary } from '@/features/payment/hooks/use-doctor-earnings-summary';
 import { useDoctorEarningsTransactions } from '@/features/payment/hooks/use-doctor-earnings-transactions';
-import { EarningsDateRangePicker, getLast30DaysRange } from '@/features/payment/components/earnings-date-range-picker';
+import {
+  EarningsDateRangePicker,
+  getLast30DaysRange,
+} from '@/features/payment/components/earnings-date-range-picker';
 import { ExportEarningsButton } from '@/features/payment/components/export-earnings-button';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
@@ -26,13 +29,39 @@ const BarChart = dynamic(() => import('@/shared/ui/charts/bar-chart').then((mod)
 });
 import type { PaymentStatus } from '@/features/payment/api/types';
 
+type Cycle = { cycleLabel: string; netAmount: number };
 
-// Same positive/neutral/negative badge convention as `AdminPaymentsTable`'s
-// own `STATUS_BADGE_VARIANT` -- `refunded` gets a visibly distinct, negative
-// treatment (`danger`) here rather than that table's neutral one: on this
-// doctor-facing drill-down a refund is money the doctor no longer has,
-// which reads as a "problem/reversed" state worth flagging, not a plain
-// resolved-and-inactive one.
+function monthKey(date: Date): string {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * The chart's month axis: every month of the selected range (never fewer than the last six, so one
+ * month of data is never a single full-width bar), with months that had no earnings shown as real
+ * zeros. An open-ended range ("All time") starts at the first month with data instead of years of
+ * empty bars. Values are the backend's own per-cycle figures; nothing is computed here but the axis.
+ */
+function chartMonths(cycles: Cycle[], dateFrom: string, dateTo: string): Cycle[] {
+  const byMonth = new Map(cycles.map((cycle) => [cycle.cycleLabel, cycle]));
+  const end = new Date(`${dateTo.slice(0, 7)}-01T00:00:00Z`);
+  const sixBack = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - 5, 1));
+  const rangeStart = new Date(`${dateFrom.slice(0, 7)}-01T00:00:00Z`);
+  const firstData =
+    cycles.length > 0 ? new Date(`${[...byMonth.keys()].sort()[0]}-01T00:00:00Z`) : end;
+  let start = rangeStart > firstData ? rangeStart : firstData;
+  if (start > sixBack) start = sixBack;
+  const months: Cycle[] = [];
+  for (
+    let cursor = start;
+    cursor <= end;
+    cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1))
+  ) {
+    const key = monthKey(cursor);
+    months.push(byMonth.get(key) ?? { cycleLabel: key, netAmount: 0 });
+  }
+  return months;
+}
+
 /**
  * I2 -- Doctor earnings dashboard (docs/01-prd.md L15 "earnings dashboard",
  * L94 §2.10, L189 "commission taken transparently and disclosed to doctors
@@ -55,7 +84,9 @@ export function DoctorEarningsSummary() {
   const searchParams = useSearchParams();
 
   const defaultRange = getLast30DaysRange();
-  const [dateFrom, setDateFrom] = useState(() => searchParams.get('dateFrom') || defaultRange.dateFrom);
+  const [dateFrom, setDateFrom] = useState(
+    () => searchParams.get('dateFrom') || defaultRange.dateFrom,
+  );
   const [dateTo, setDateTo] = useState(() => searchParams.get('dateTo') || defaultRange.dateTo);
 
   function handleDateRangeChange(nextFrom: string, nextTo: string) {
@@ -78,7 +109,11 @@ export function DoctorEarningsSummary() {
   // never change as the date range picker moves; see the regression test in
   // doctor-earnings-summary.test.tsx.
   const { data, isLoading, isError } = useDoctorEarningsSummary({ dateFrom, dateTo });
-  const { data: transactions, isLoading: transactionsLoading, isError: transactionsError } = useDoctorEarningsTransactions({
+  const {
+    data: transactions,
+    isLoading: transactionsLoading,
+    isError: transactionsError,
+  } = useDoctorEarningsTransactions({
     dateFrom,
     dateTo,
   });
@@ -98,14 +133,23 @@ export function DoctorEarningsSummary() {
   // parts directly (rather than `new Date(cycleLabel)`, which is prone to
   // timezone-shifting the parsed date a day either way) and format via UTC
   // so the displayed month/year can never drift with the viewer's timezone.
-  function formatCycleLabel(cycleLabel: string): string {
+  function formatCycleLabel(cycleLabel: string, monthStyle: 'long' | 'short' = 'long'): string {
     const [year, month] = cycleLabel.split('-').map(Number);
     const cycleDate = new Date(Date.UTC(year, month - 1, 1));
-    return format.dateTime(cycleDate, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    return format.dateTime(cycleDate, {
+      month: monthStyle,
+      year: monthStyle === 'long' ? 'numeric' : '2-digit',
+      timeZone: 'UTC',
+    });
   }
 
   function formatTransactionDate(createdAt: string): string {
-    return format.dateTime(new Date(createdAt), { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    return format.dateTime(new Date(createdAt), {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
   }
 
   return (
@@ -113,12 +157,25 @@ export function DoctorEarningsSummary() {
       {/* Doctor Reports page rebuild (Phase 3): the reverse of Reports' own
           "see your earnings" cross-link -- same `Link` + `ArrowRight` idiom
           the Schedule page already established for its own cross-page link. */}
-      <Link href="/doctor/reports" className="flex items-center gap-1 self-end text-sm font-medium text-primary hover:underline">
+      <Link
+        href="/doctor/reports"
+        className="flex items-center gap-1 self-end text-sm font-medium text-primary hover:underline"
+      >
         {t('seeReports')}
         <Icon icon={ArrowRight} size="sm" flipRtl />
       </Link>
 
-      {/* Net earnings lead (hero); the monthly net chart sits beside it; every disclaimer lives in ONE note under the chart. Lifetime tiles are NOT scoped to the date range below, and each says so. */}
+      {/* Order: the range toolbar, then the hero figure, then the chart that follows the range. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <EarningsDateRangePicker
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onChange={handleDateRangeChange}
+        />
+        <ExportEarningsButton filter={{ dateFrom, dateTo }} />
+      </div>
+
+      {/* Net earnings lead (hero); the monthly net chart sits beside it; the disclaimers are ONE short note under the chart. Lifetime tiles are NOT scoped to the date range, and each says so. */}
       <div className="grid gap-(--card-gap) @wide:grid-cols-3">
         <MetricStat
           variant="hero"
@@ -133,26 +190,42 @@ export function DoctorEarningsSummary() {
           {isLoading ? (
             <ChartSkeleton height={220} />
           ) : !data || data.cycles.length === 0 ? (
-            <EmptyState size="sm" illustration="records-start" title={t('cyclesEmptyTitle')} description={t('cyclesEmptyDescription')} />
+            <EmptyState
+              size="sm"
+              illustration="records-start"
+              title={t('cyclesEmptyTitle')}
+              description={t('cyclesEmptyDescription')}
+            />
           ) : (
             <BarChart
               height={220}
               xKey="month"
               series={[{ key: 'net', label: t('table.net') }]}
-              data={[...data.cycles]
-                .sort((left, right) => left.cycleLabel.localeCompare(right.cycleLabel))
-                .map((cycle) => ({ month: formatCycleLabel(cycle.cycleLabel), net: cycle.netAmount }))}
+              formatValue={formatMoney}
+              data={chartMonths(data.cycles, dateFrom, dateTo).map((cycle) => ({
+                month: formatCycleLabel(cycle.cycleLabel, 'short'),
+                net: cycle.netAmount,
+              }))}
             />
           )}
-          <Alert variant="info" className="text-small">
-            <span className="block">{t('payoutHonesty')}</span>
-            {data && (
-              <span className="block">
-                {t('commissionFootnote', { rate: Math.round(data.commissionRate * 100) })} {t('taxFootnote')}
+          <details className="group text-small text-text-secondary">
+            <summary className="flex cursor-pointer list-none items-start gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring [&::-webkit-details-marker]:hidden">
+              <Icon icon={Info} size="sm" className="mt-0.5 shrink-0 text-care-text" />
+              <span className="line-clamp-2">
+                {data
+                  ? t('chartNote', { rate: Math.round(data.commissionRate * 100) })
+                  : t('chartNoteNoRate')}{' '}
+                <span className="font-semibold text-care-text group-open:hidden">
+                  {t('learnMore')}
+                </span>
               </span>
-            )}
-            <span className="block">{t('recognitionBasis')}</span>
-          </Alert>
+            </summary>
+            <div className="mt-2 flex flex-col gap-1 ps-6">
+              <p>{t('payoutHonesty')}</p>
+              <p>{t('taxFootnote')}</p>
+              <p>{t('recognitionBasis')}</p>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -175,47 +248,60 @@ export function DoctorEarningsSummary() {
         />
       </MetricStrip>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <EarningsDateRangePicker dateFrom={dateFrom} dateTo={dateTo} onChange={handleDateRangeChange} />
-        <ExportEarningsButton filter={{ dateFrom, dateTo }} />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-medium text-text-primary">{t('cyclesTitle')}</h2>
-          {/* Cycles are range-scoped (Phase 0 fix); this qualifier keeps
-              that explicit next to the always-lifetime tiles above. */}
-          <span className="text-xs text-text-tertiary">{t('cyclesPeriodQualifier')}</span>
-        </div>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full" />
-        ) : !data || data.cycles.length === 0 ? null : (
-          <div className="overflow-x-auto rounded-2xl border border-border-default">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border-default text-start text-xs text-text-tertiary">
-                  <th className="px-4 py-2 text-start font-medium">{t('table.cycle')}</th>
-                  <th className="px-4 py-2 text-start font-medium">{t('table.gross')}</th>
-                  <th className="px-4 py-2 text-start font-medium">{t('table.commission')}</th>
-                  <th className="px-4 py-2 text-start font-medium">{t('table.net')}</th>
-                  <th className="px-4 py-2 text-start font-medium">{t('table.transactions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.cycles.map((cycle) => (
-                  <tr key={cycle.cycleLabel} className="border-b border-border-default last:border-0">
-                    <td className="px-4 py-2 font-medium text-text-primary">{formatCycleLabel(cycle.cycleLabel)}</td>
-                    <td className="px-4 py-2 tabular-nums text-text-secondary">{formatMoney(cycle.grossAmount)}</td>
-                    <td className="px-4 py-2 tabular-nums text-text-secondary">{formatMoney(cycle.commissionAmount)}</td>
-                    <td className="px-4 py-2 tabular-nums font-medium text-text-primary">{formatMoney(cycle.netAmount)}</td>
-                    <td className="px-4 py-2 tabular-nums text-text-secondary">{cycle.transactionCount}</td>
+      {/* The month-by-month figures behind the chart, collapsed by default (the chart already says it). */}
+      {!isLoading && data && data.cycles.length > 0 && (
+        <details className="group flex flex-col gap-3">
+          <summary className="flex cursor-pointer list-none items-baseline gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring [&::-webkit-details-marker]:hidden">
+            <Icon
+              icon={ChevronDown}
+              size="sm"
+              className="self-center text-text-tertiary transition-transform duration-(--duration-fast) group-open:rotate-180"
+            />
+            <span className="text-sm font-medium text-text-primary">{t('detailsToggle')}</span>
+            {/* Cycles are range-scoped; this qualifier keeps that explicit next to the always-lifetime tiles. */}
+            <span className="text-xs text-text-tertiary">{t('cyclesPeriodQualifier')}</span>
+          </summary>
+          {
+            <div className="mt-3 overflow-x-auto rounded-(--r-card) border border-border-default">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border-default text-start text-xs text-text-tertiary">
+                    <th className="px-4 py-2 text-start font-medium">{t('table.cycle')}</th>
+                    <th className="px-4 py-2 text-start font-medium">{t('table.gross')}</th>
+                    <th className="px-4 py-2 text-start font-medium">{t('table.commission')}</th>
+                    <th className="px-4 py-2 text-start font-medium">{t('table.net')}</th>
+                    <th className="px-4 py-2 text-start font-medium">{t('table.transactions')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {data.cycles.map((cycle) => (
+                    <tr
+                      key={cycle.cycleLabel}
+                      className="border-b border-border-default last:border-0"
+                    >
+                      <td className="px-4 py-2 font-medium text-text-primary">
+                        {formatCycleLabel(cycle.cycleLabel)}
+                      </td>
+                      <td className="px-4 py-2 tabular-nums text-text-secondary">
+                        {formatMoney(cycle.grossAmount)}
+                      </td>
+                      <td className="px-4 py-2 tabular-nums text-text-secondary">
+                        {formatMoney(cycle.commissionAmount)}
+                      </td>
+                      <td className="px-4 py-2 tabular-nums font-medium text-text-primary">
+                        {formatMoney(cycle.netAmount)}
+                      </td>
+                      <td className="px-4 py-2 tabular-nums text-text-secondary">
+                        {cycle.transactionCount}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        </details>
+      )}
 
       {/*
        * Drill-down table (Doctor Earnings page rebuild, Phase 3, plan
@@ -250,7 +336,11 @@ export function DoctorEarningsSummary() {
         ) : transactionsLoading ? (
           <Skeleton className="h-32 w-full" />
         ) : !transactions || transactions.length === 0 ? (
-          <EmptyState illustration="records-start" title={t('transactionsEmptyTitle')} description={t('transactionsEmptyDescription')} />
+          <EmptyState
+            illustration="records-start"
+            title={t('transactionsEmptyTitle')}
+            description={t('transactionsEmptyDescription')}
+          />
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-border-default">
             <table className="w-full text-sm">
@@ -268,13 +358,23 @@ export function DoctorEarningsSummary() {
               <tbody>
                 {transactions.map((transaction) => (
                   <tr key={transaction.id} className="border-b border-border-default last:border-0">
-                    <td className="px-4 py-2 font-medium text-text-primary">{transaction.patientName}</td>
-                    <td className="px-4 py-2 text-text-secondary">{formatTransactionDate(transaction.createdAt)}</td>
+                    <td className="px-4 py-2 font-medium text-text-primary">
+                      {transaction.patientName}
+                    </td>
+                    <td className="px-4 py-2 text-text-secondary">
+                      {formatTransactionDate(transaction.createdAt)}
+                    </td>
                     <td className="px-4 py-2 tabular-nums text-text-secondary">
-                      {format.number(transaction.amount.amount, { style: 'currency', currency: transaction.amount.currency })}
+                      {format.number(transaction.amount.amount, {
+                        style: 'currency',
+                        currency: transaction.amount.currency,
+                      })}
                     </td>
                     <td className="px-4 py-2">
-                      <StatusBadge status={transaction.status} label={t(`status.${transaction.status}`)} />
+                      <StatusBadge
+                        status={transaction.status}
+                        label={t(`status.${transaction.status}`)}
+                      />
                     </td>
                     <td className="px-4 py-2 text-end">
                       {/*
