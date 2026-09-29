@@ -38,11 +38,12 @@ export function WelcomeHeader() {
   return (
     <div className="flex items-center gap-4">
       <PersonAvatar name={user.fullName} src={user.avatarUrl} size="lg" />
-      <div className="flex flex-col gap-1">
+      {/* The text column is its own size container: the greeting shrinks with the width it gets (clamped) and balances its lines, instead of breaking one word onto a second line. */}
+      <div className="@container flex min-w-0 flex-1 flex-col gap-1">
         {/* A real <h2>, not styled-to-look-like-one text -- Overview's own
             <h1> otherwise jumps straight to the widget cards' <h3>
             CardTitles below with nothing in between. */}
-        <Heading as="h1" level={1} className="text-display">
+        <Heading as="h1" level={1} className="text-display text-balance" style={{ fontSize: 'clamp(1.5rem, 6.5cqi, var(--text-display))' }}>
           {/*
            * Phase 8 AR localization fix (reported bidi-punctuation issue):
            * in the Arabic greeting ("مرحبًا بعودتك، د. {name}.") the account

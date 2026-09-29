@@ -1,9 +1,11 @@
-import type { ElementType, ReactNode } from 'react';
+import type { CSSProperties, ElementType, ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 interface PolymorphicProps {
   as?: ElementType;
   className?: string;
+  /** Inline style -- for a value no utility can express, e.g. a container-relative clamp() font size. */
+  style?: CSSProperties;
   children: ReactNode;
 }
 
@@ -28,10 +30,10 @@ const headingSizeByLevel: Record<NonNullable<HeadingProps['level']>, string> = {
 };
 
 /** Section/page headings. `level` controls visual size; `as` controls the semantic tag — they are independent so visual hierarchy never forces an incorrect heading nesting order. */
-export function Heading({ as, level = 2, className, children }: HeadingProps) {
+export function Heading({ as, level = 2, className, style, children }: HeadingProps) {
   const Component = as ?? (`h${level}` as ElementType);
   return (
-    <Component className={cn(headingSizeByLevel[level], 'text-text-primary', className)}>
+    <Component className={cn(headingSizeByLevel[level], 'text-text-primary', className)} style={style}>
       {children}
     </Component>
   );
