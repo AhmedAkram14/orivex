@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useDoctorPatients } from '@/features/doctor/hooks/use-doctor-patients';
 import type { DoctorPatientListItem } from '@/features/doctor/api/types';
+import { PATIENT_ACTIVE_WINDOW_DAYS } from '@/features/doctor/config/patient-status';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
@@ -22,11 +23,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 
 type PatientType = 'all' | 'new' | 'returning';
-type PatientStatus = 'all' | 'new' | 'active' | 'inactive';
+type PatientStatus = 'all' | 'new' | 'active' | 'inactive' | 'follow_up_due';
 type LastVisitSort = 'newest' | 'oldest';
 
 const PAGE_SIZE = 25;
-const INACTIVE_AFTER_DAYS = 90;
 
 /**
  * The patient's relationship with this practice -- Active / New / Inactive --
@@ -35,16 +35,24 @@ const INACTIVE_AFTER_DAYS = 90;
  *   New      -- no completed visit with this doctor yet (`lastVisitAt` absent),
  *               whether or not a first appointment is booked.
  *   Active   -- has a completed visit and either an upcoming appointment, or a
- *               completed visit within the last 90 days.
- *   Inactive -- the last completed visit was more than 90 days ago and nothing
- *               is booked.
+ *               completed visit within PATIENT_ACTIVE_WINDOW_DAYS (a product
+ *               setting awaiting clinical sign-off, see config/patient-status.ts).
+ *   Inactive -- the last completed visit is older than that and nothing is booked.
+ * Separately from the status, a real follow-up recommendation from the last visit
+ * (ClinicalModule, `hasFollowUpRecommendation`) with nothing booked yet is flagged
+ * "Follow-up due" -- backend data, never dropped.
  * `lastVisitAt` is Completed-only (see DoctorPatientListItemResponseDto).
  */
-function derivePatientStatus(patient: DoctorPatientListItem, now: Date): Exclude<PatientStatus, 'all'> {
+function derivePatientStatus(patient: DoctorPatientListItem, now: Date): Exclude<PatientStatus, 'all' | 'follow_up_due'> {
   if (!patient.lastVisitAt) return 'new';
   if (patient.nextAppointmentAt) return 'active';
   const daysSinceLastVisit = (now.getTime() - new Date(patient.lastVisitAt).getTime()) / (1000 * 60 * 60 * 24);
-  return daysSinceLastVisit <= INACTIVE_AFTER_DAYS ? 'active' : 'inactive';
+  return daysSinceLastVisit <= PATIENT_ACTIVE_WINDOW_DAYS ? 'active' : 'inactive';
+}
+
+/** A follow-up the doctor recommended at the last visit that nobody has booked yet. */
+function isFollowUpDue(patient: DoctorPatientListItem): boolean {
+  return Boolean(patient.hasFollowUpRecommendation) && !patient.nextAppointmentAt;
 }
 
 function calculateAge(dateOfBirth: string, now: Date): number {
@@ -55,17 +63,26 @@ function calculateAge(dateOfBirth: string, now: Date): number {
   return age;
 }
 
-const patientStatusDot: Record<Exclude<PatientStatus, 'all'>, string> = {
+const patientStatusDot: Record<Exclude<PatientStatus, 'all' | 'follow_up_due'>, string> = {
   new: 'bg-info',
   active: 'bg-success',
   inactive: 'bg-text-tertiary',
 };
 
 /** A patient's relationship status -- deliberately a different visual from an appointment's StatusBadge (outlined with a dot, not a tinted fill), so the two vocabularies are never confused. */
-function PatientStatusChip({ status, label }: { status: Exclude<PatientStatus, 'all'>; label: string }) {
+function PatientStatusChip({ status, label }: { status: Exclude<PatientStatus, 'all' | 'follow_up_due'>; label: string }) {
   return (
     <span className="inline-flex h-5.5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border-default bg-surface px-2.5 text-caption font-semibold tracking-normal text-text-secondary">
       <span aria-hidden="true" className={`size-1.5 rounded-full ${patientStatusDot[status]}`} />
+      {label}
+    </span>
+  );
+}
+
+/** A recommended follow-up with nothing booked: a warning-toned tag beside the status, never a status of its own. */
+function FollowUpDueTag({ label }: { label: string }) {
+  return (
+    <span className="inline-flex h-5.5 shrink-0 items-center whitespace-nowrap rounded-full bg-warning-subtle px-2.5 text-caption font-semibold tracking-normal text-warning-emphasis">
       {label}
     </span>
   );
@@ -102,7 +119,7 @@ export function PatientsList() {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     return {
       total: patients.length,
-      active: patients.filter((patient) => Boolean(patient.nextAppointmentAt)).length,
+      active: patients.filter((patient) => derivePatientStatus(patient, now) === 'active').length,
       thisMonth: patients.filter((patient) => {
         if (!patient.lastVisitAt) return false;
         // Cairo-anchored: "this month" must agree with Egypt's calendar,
@@ -127,7 +144,9 @@ export function PatientsList() {
         }
         if (typeFilter === 'new' && patient.visitCount > 1) return false;
         if (typeFilter === 'returning' && patient.visitCount <= 1) return false;
-        if (statusFilter !== 'all' && derivePatientStatus(patient, now) !== statusFilter) return false;
+        if (statusFilter === 'follow_up_due') {
+          if (!isFollowUpDue(patient)) return false;
+        } else if (statusFilter !== 'all' && derivePatientStatus(patient, now) !== statusFilter) return false;
         return true;
       })
       .sort((a, b) => {
@@ -182,7 +201,7 @@ export function PatientsList() {
           real data, just a vanity metric out of place. */}
       <MetricStrip>
         <MetricStat variant="inline" icon={Users} label={t('kpis.totalPatients')} value={String(kpis.total)} helperText={t('kpis.totalPatientsHelper')} />
-        <MetricStat variant="inline" icon={UserCheck} label={t('kpis.activePatients')} value={String(kpis.active)} helperText={t('kpis.activePatientsHelper')} />
+        <MetricStat variant="inline" icon={UserCheck} label={t('kpis.activePatients')} value={String(kpis.active)} helperText={t('kpis.activePatientsHelper', { days: PATIENT_ACTIVE_WINDOW_DAYS })} />
         <MetricStat variant="inline" icon={Calendar} label={t('kpis.thisMonth')} value={String(kpis.thisMonth)} helperText={t('kpis.thisMonthHelper')} />
         <MetricStat variant="inline" icon={TrendingUp} label={t('kpis.thisWeek')} value={String(kpis.thisWeek)} helperText={t('kpis.thisWeekHelper')} />
       </MetricStrip>
@@ -232,6 +251,7 @@ export function PatientsList() {
             <SelectItem value="new">{tPatientStatus('new')}</SelectItem>
             <SelectItem value="active">{tPatientStatus('active')}</SelectItem>
             <SelectItem value="inactive">{tPatientStatus('inactive')}</SelectItem>
+            <SelectItem value="follow_up_due">{t('followUpDue')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={(value) => setSort(value as LastVisitSort)}>
@@ -315,7 +335,10 @@ export function PatientsList() {
                         {patient.nextAppointmentAt ? formatNext(patient.nextAppointmentAt) : <span aria-label={t('noUpcoming')}>—</span>}
                       </TableCell>
                       <TableCell>
-                        <PatientStatusChip status={status} label={tPatientStatus(status)} />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <PatientStatusChip status={status} label={tPatientStatus(status)} />
+                          {isFollowUpDue(patient) && <FollowUpDueTag label={t('followUpDue')} />}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -367,8 +390,9 @@ export function PatientsList() {
                           </div>
                         )}
                       </dl>
-                      <div className="mt-1">
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
                         <PatientStatusChip status={status} label={tPatientStatus(status)} />
+                        {isFollowUpDue(patient) && <FollowUpDueTag label={t('followUpDue')} />}
                       </div>
                     </div>
                     <Icon icon={ChevronRight} size="sm" flipRtl className="mt-1 shrink-0 text-text-tertiary" />

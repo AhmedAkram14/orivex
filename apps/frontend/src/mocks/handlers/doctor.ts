@@ -224,9 +224,11 @@ export const doctorHandlers = [
     const listed = myPatients.find((patient) => patient.patientProfileId === patientId);
     if (!listed) return notFound('Patient not found.');
 
-    // The doctor's seeded patient list and the patient store use different ids in this mock layer, so a
-    // listed patient with no stored profile gets a minimal chart built from the list entry itself (the
-    // real backend always has the profile) -- otherwise every link in the demo list opened "not found".
+    // DEMO DATA ONLY. src/mocks is loaded only when NEXT_PUBLIC_ENABLE_API_MOCKS=true (never in
+    // production). The seeded patient list and the patient store use different ids here, so a patient
+    // that IS in this doctor's list but has no stored profile gets a minimal chart from the list entry
+    // itself. An id that is not in the list still returns 404 above, exactly like the real API
+    // (DoctorPatientChartController: ParseUUIDPipe, then requireRelationship -> 404).
     const profile: PatientProfile = getPatientProfileById(patientId) ?? {
       id: patientId,
       fullName: listed.patientName,

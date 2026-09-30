@@ -3,7 +3,7 @@
 import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useLocalizedNotification, useViewerIsDoctor } from '@/features/notifications/hooks/use-localized-notification';
-import { isPersonalNotification } from '@/features/notifications/lib/notification-copy';
+import { isPersonalNotification } from '@/features/notifications/lib/notification-audience';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';

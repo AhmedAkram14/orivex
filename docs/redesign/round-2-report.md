@@ -27,16 +27,24 @@ Reviewed size: 1046×612 with the sidebar open (~780px of content). All work is 
 
 - **Patient status (Doctor › Patients)**, derived from existing list fields only:
   - **New**: no completed visit with this doctor yet (`lastVisitAt` absent), whether or not an appointment is booked.
-  - **Active**: a completed visit, plus an upcoming appointment or a completed visit within the last 90 days.
-  - **Inactive**: last completed visit more than 90 days ago and nothing booked.
-  The old "Follow up" and "Completed" chips are gone. A follow-up recommendation is still on the chart, just not a status here.
-- **Patient-side notifications on a doctor account**: the API has no recipient-role field, but every notification's `actionUrl` is role-scoped (`/patient/...` or `/doctor/...`). Those under `/patient` are "Personal":
+  - **Active**: a completed visit, plus an upcoming appointment or a completed visit within `PATIENT_ACTIVE_WINDOW_DAYS`.
+  - **Inactive**: last completed visit older than that, and nothing booked.
+  - The window is one named setting, `features/doctor/config/patient-status.ts`, currently 90 days. **It needs clinical sign-off** (psychiatry follow-ups often run longer, and it may need to vary by specialty). The status chip, the status filter and the "Active patients" count all read it. The count now matches the chips; before, it only counted patients with an upcoming visit.
+  - **"Follow-up due" is kept.** It is real backend data (`hasFollowUpRecommendation`, from ClinicalModule's follow-up recommendation). A patient with a recommendation and nothing booked shows a "Follow-up due" tag beside the status, and "Follow-up due" is an option in the status filter. The old "Completed" chip is gone: it was an appointment status, not a patient status.
+- **Patient-side notifications on a doctor account** are "Personal":
   - kept out of the doctor's Recent Activity;
   - shown under a Clinical / Personal filter in the bell (only when any exist);
   - tagged "Personal" on the full Notifications page.
-  The "As a patient:" prefix is removed. No API change was needed.
+  - Decided **by notification type** in one file, `features/notifications/lib/notification-audience.ts`. Each type the backend sends is marked clinical, personal, account or "either", checked against the backend's own senders. The table is typed, so a type missing from it fails to compile.
+  - The link (`/patient/…` vs `/doctor/…`) is only a fallback, for the seven types the backend sends to both sides under the same title (cancelled, rescheduled, interrupted, dispute ×4) and for a title the app doesn't know yet.
+  - The "As a patient:" prefix is removed. No API change was needed.
 - **Status labels**: `StatusBadge` now always reads `ds.status.<status>` (every status has a shared label in both locales); a caller's `label` is only a fallback for an unknown status. So "Awaiting approval" is the one label everywhere.
 - **Hero card (landing)**: sits fully inside the photo, bottom-right, from `sm`. It uses physical `right` on purpose: the photo is not mirrored in Arabic and its call controls sit bottom-left, so `end` would cover them in RTL. Below `sm` it follows the photo.
+- **Book on a doctor card, by viewer**:
+  - **Signed out**: Book and View profile are live and go to sign-in, which returns the visitor to that doctor (booking, or the profile).
+  - **Patient**: straight to booking.
+  - **Doctor or admin**: Book shows as unavailable, with a one-line tooltip ("Only patient accounts can book appointments."). It stays focusable, and there is no dead-end link.
+  - This needed a fix: sign-in never honored `?returnTo=`, because the guest layout redirected every signed-in user to `/dashboard` first. Both now read one `safeReturnTo` helper (same-site relative paths only). This also repairs the existing "Sign in required → sign in → back where you were" flow.
 - **Appointment rows**: one primary action plus a ⋯ menu (Add to calendar, Reschedule, Cancel). Cancel still opens its confirmation. There is no separate "View": the list row is already the full appointment (no detail page exists).
 - **Specialty hues**: 7 is now green and 9 is fuchsia. Lime is reserved for `--pulse` and amber means `warning`. Internal Medicine and Dermatology have fixed hues, so the nine seeded specialties get nine different hues (tested).
 - **Earnings chart**: at least the last six months, with zero months shown. "All time" starts at the first month with data instead of years of empty bars.
@@ -46,7 +54,7 @@ Reviewed size: 1046×612 with the sidebar open (~780px of content). All work is 
 
 - Doctor overview quick actions still wrap onto a second line at ~780px (four equal secondary buttons). They wrap evenly, but they are not a single line at that width.
 - The Doctor Patients filter row wraps its sort select to a second line at ~780px.
-- AR "احجز" at reduced opacity: no reveal animation leaves anything below full opacity (checked by computed opacity after scrolling, EN/AR, light/dark). The only dimmed Book button is the intentionally disabled one shown to a visitor who is not signed in as a patient.
+- **AR "احجز" at reduced opacity: not reproduced.** An earlier version of this report said the dimmed button was the one disabled for signed-out visitors. That was wrong: signed-out visitors have always had the active Book. On the current build, EN and AR are identical after scrolling: full opacity and the same ink fill. The live site renders no doctor cards on the landing (its API returns none), so there's no Book there in either language. If it recurs, the page URL and viewport are needed to trace it. The new viewer rules leave only one unavailable state (a signed-in non-patient), and it looks the same in both languages.
 
 ## Verification
 
@@ -64,4 +72,7 @@ Reviewed size: 1046×612 with the sidebar open (~780px of content). All work is 
   - Timeline hour labels wrapping.
   - The profile hero initials counting "Dr.".
   - The doctor-overview Patients list overflowing at 390px in Arabic (`TimelineCard` could not shrink).
-- **Mock data:** in mock mode every link in the doctor's seeded patient list opened "Patient not found", because the list and the patient store use different ids. The mock now builds a minimal chart from the list entry, and it returns `allergiesStatus` like the real API. The real backend was never affected.
+- **Mock data:** in mock mode every link in the doctor's seeded patient list opened "Patient not found", because the list and the patient store use different ids. The mock now builds a minimal chart **only for a patient in that doctor's list**. Any other id still returns 404 in the mock, as with the real API. It also returns `allergiesStatus` like the real API.
+  - **Real backend, unchanged:** `src/mocks` loads only when `NEXT_PUBLIC_ENABLE_API_MOCKS=true`, and production doesn't set it. The profile route rejects a non-UUID id (400) and returns 404 for no relationship or no profile. The chart page shows "Patient not found" on 404 and an error message on anything else, never a chart.
+  - Tests now assert that no chart tabs or medical profile render on 404, and that a 400 shows the error message.
+  - Not checked live against production: that needs a doctor account there.

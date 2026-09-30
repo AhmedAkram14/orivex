@@ -11,7 +11,7 @@ type Translator = ReturnType<typeof useTranslations>;
  * viewer's language and with audience-appropriate wording, without touching
  * the backend. Unknown titles fall back to the raw server text (never hidden).
  */
-const TITLE_TO_KEY: Record<string, string> = {
+const TITLE_TO_KEY = {
   'Appointment cancelled': 'appointmentCancelled',
   'Appointment approved': 'appointmentApproved',
   'Appointment request declined': 'appointmentDeclined',
@@ -37,7 +37,14 @@ const TITLE_TO_KEY: Record<string, string> = {
   'Password changed': 'passwordChanged',
   'Verification approved': 'verificationApproved',
   'Verification suspended': 'verificationSuspended',
-};
+} as const satisfies Record<string, string>;
+
+export type NotificationTypeKey = (typeof TITLE_TO_KEY)[keyof typeof TITLE_TO_KEY];
+
+/** The notification's type, from the backend's fixed English title (the API has no separate type field). Undefined for a title this app doesn't know yet. */
+export function notificationTypeKey(entry: NotificationEntry): NotificationTypeKey | undefined {
+  return (TITLE_TO_KEY as Record<string, NotificationTypeKey>)[entry.title];
+}
 
 const ISO = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?/;
 const AMOUNT = /(\d+(?:\.\d+)?)\s+([A-Z]{3})\b/;
@@ -45,10 +52,9 @@ const AMOUNT = /(\d+(?:\.\d+)?)\s+([A-Z]{3})\b/;
 export type NotificationAudience = 'patient' | 'doctor' | 'shared';
 
 /**
- * Who a notification is written for, read from its role-scoped `actionUrl`
- * (the backend links patient-side events under /patient and doctor-side
- * events under /doctor). The API has no recipient-role field, so this is the
- * real signal available without an API change.
+ * Which workspace a notification's link points into (/patient or /doctor). Used to pick the
+ * patient- or doctor-worded copy, and -- only as a fallback -- by `notification-audience.ts` for a
+ * type the backend sends to both sides.
  */
 export function notificationAudience(entry: NotificationEntry): NotificationAudience {
   const url = entry.actionUrl ?? '';
@@ -63,15 +69,6 @@ export interface LocalizedNotificationText {
 }
 
 /**
- * A notification about the viewer's OWN care, reaching an account that also
- * practises as a doctor (a doctor who books as a patient). Those are kept out
- * of the clinical feed and shown under a separate "Personal" filter instead.
- */
-export function isPersonalNotification(entry: NotificationEntry, viewerIsDoctor: boolean): boolean {
-  return viewerIsDoctor && notificationAudience(entry) === 'patient';
-}
-
-/**
  * Localized, audience-appropriate title and body. `t` is
  * `useTranslations('notificationCopy')`. Money is formatted with the active
  * locale's currency formatter, so it reads the same as every other amount.
@@ -81,7 +78,7 @@ export function localizeNotification(
   t: Translator,
   format: Formatter,
 ): LocalizedNotificationText {
-  const key = TITLE_TO_KEY[entry.title];
+  const key = notificationTypeKey(entry);
   if (!key) return { title: entry.title, description: entry.description };
 
   const audience = notificationAudience(entry);

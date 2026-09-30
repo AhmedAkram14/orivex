@@ -8,7 +8,7 @@ import { useMarkNotificationRead } from '@/features/notifications/hooks/use-mark
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationEntityType, NotificationEntry, NotificationSeverity } from '@/features/notifications/api/types';
 import { useLocalizedNotification, useViewerIsDoctor } from '@/features/notifications/hooks/use-localized-notification';
-import { isPersonalNotification } from '@/features/notifications/lib/notification-copy';
+import { isPersonalNotification } from '@/features/notifications/lib/notification-audience';
 import { localizeIsoTimestamps, resolveNotificationHref } from '@/features/notifications/lib/notification-text';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';

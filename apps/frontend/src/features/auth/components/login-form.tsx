@@ -10,6 +10,7 @@ import { useLogin } from '@/features/auth/hooks/use-login';
 import { useResendVerification } from '@/features/auth/hooks/use-resend-verification';
 import { createLoginSchema, type LoginFormValues } from '@/features/auth/schemas/login.schema';
 import { Link, useRouter } from '@/shared/i18n/navigation';
+import { safeReturnTo } from '@/shared/auth/return-to';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
@@ -39,8 +40,7 @@ export function LoginForm() {
   // specialty picked on the landing page) -- honored only when it's a
   // same-site relative path, never followed blindly (an open-redirect guard,
   // not just a UX nicety).
-  const returnTo = searchParams.get('returnTo');
-  const safeReturnTo = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : null;
+  const returnPath = safeReturnTo(searchParams.get('returnTo'));
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(createLoginSchema(tValidation)),
@@ -51,7 +51,7 @@ export function LoginForm() {
     setUnverifiedEmail(null);
     try {
       await login.mutateAsync(values);
-      router.push(safeReturnTo ?? '/dashboard');
+      router.push(returnPath ?? '/dashboard');
     } catch (error) {
       if (error instanceof ApiError && error.code === AUTH_ERROR_CODES.accountLocked) {
         router.push('/account-locked');

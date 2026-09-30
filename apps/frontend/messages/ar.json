@@ -1036,6 +1036,7 @@
       "consultationFeeFree": "مجانًا",
       "consultationFeeOnRequest": "الرسوم عند الطلب",
       "book": "احجز",
+      "bookPatientsOnly": "حجز المواعيد متاح لحسابات المرضى فقط.",
       "viewProfile": "عرض الملف الشخصي",
       "bookAppointment": "حجز موعد",
       "topRated": "الأعلى تقييمًا",
@@ -1685,7 +1686,7 @@
         "totalPatients": "إجمالي المرضى",
         "totalPatientsHelper": "منذ البداية",
         "activePatients": "المرضى النشطون",
-        "activePatientsHelper": "لديهم موعد قادم",
+        "activePatientsHelper": "لديهم زيارة قادمة أو زاروا خلال آخر {days} يومًا",
         "thisMonth": "هذا الشهر",
         "thisMonthHelper": "تمت رؤيتهم هذا الشهر",
         "thisWeek": "هذا الأسبوع",
@@ -1728,6 +1729,7 @@
         "female": "أنثى",
         "other": "آخر"
       },
+      "followUpDue": "متابعة مستحقة",
       "patientStatus": {
         "active": "نشط",
         "new": "جديد",

@@ -31,11 +31,14 @@ describe('PopularDoctorsSection', () => {
     expect(screen.queryByText('Top Rated')).not.toBeInTheDocument();
     expect(screen.queryByText('Most Booked')).not.toBeInTheDocument();
 
+    // Signed out: both actions are live and go to sign-in, which returns the visitor to this doctor.
     const viewProfileLink = screen.getByRole('link', { name: 'View Profile' });
-    expect(viewProfileLink).toHaveAttribute('href', expect.stringContaining('/patient/doctors/doctor-profile-1'));
+    expect(viewProfileLink.getAttribute('href')).toContain('/login?returnTo=');
+    expect(decodeURIComponent(viewProfileLink.getAttribute('href') ?? '')).toContain('/patient/doctors/doctor-profile-1');
 
     const bookLink = screen.getByRole('link', { name: /^Book$/ });
-    expect(bookLink).toHaveAttribute('href', expect.stringContaining('doctorId=doctor-profile-1'));
+    expect(bookLink.getAttribute('href')).toContain('/login?returnTo=');
+    expect(decodeURIComponent(bookLink.getAttribute('href') ?? '')).toContain('/patient/appointments/book?doctorId=doctor-profile-1');
 
     const viewAllLink = screen.getByRole('link', { name: /View All Doctors/ });
     expect(viewAllLink).toHaveAttribute('href', expect.stringContaining('/patient/doctors'));

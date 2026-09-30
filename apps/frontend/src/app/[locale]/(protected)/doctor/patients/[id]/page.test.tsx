@@ -933,5 +933,27 @@ describe('DoctorPatientChartPage', () => {
     renderPage();
 
     expect(await screen.findByText('Patient not found')).toBeInTheDocument();
+    // Never a chart built from nothing: no patient header, no chart tabs, no medical profile.
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText('Medical profile')).not.toBeInTheDocument();
+  });
+
+  it('shows an error state, not an empty chart, when the profile request fails for any other reason', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/profile`, () =>
+        HttpResponse.json(
+          { error: { code: 'VALIDATION_FAILED', message: 'Validation failed (uuid is expected)', requestId: 'mock', timestamp: new Date().toISOString() } },
+          { status: 400 },
+        ),
+      ),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/appointments`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/medical-records`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/prescriptions`, () => HttpResponse.json({ data: [] })),
+      http.get(`${env.apiBaseUrl}/doctor/patients/:id/documents`, () => HttpResponse.json({ data: [] })),
+    );
+    renderPage();
+
+    await waitFor(() => expect(screen.queryByRole('tablist')).not.toBeInTheDocument());
+    expect(await screen.findByText("Couldn't load this patient's profile.")).toBeInTheDocument();
   });
 });

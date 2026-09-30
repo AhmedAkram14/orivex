@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, type ReactNode } from 'react';
+import { safeReturnTo } from '@/shared/auth/return-to';
 import { useAuth } from '@/shared/auth/auth-context';
 import { useRouter } from '@/shared/i18n/navigation';
 import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
@@ -16,10 +17,12 @@ import { AppLoadingScreen } from '@/shared/ui/app-loading-screen';
 export default function GuestLayout({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   const router = useRouter();
-
   useEffect(() => {
     if (status === 'authenticated') {
-      router.replace('/dashboard');
+      // Signing in flips the session to authenticated while still on /login -- honor the same safe
+      // ?returnTo= the login form does, or this redirect would win and drop the visitor on /dashboard.
+      const returnPath = safeReturnTo(new URLSearchParams(window.location.search).get('returnTo'));
+      router.replace(returnPath ?? '/dashboard');
     }
   }, [status, router]);
 

@@ -12,6 +12,7 @@ import { Badge } from '@/shared/ui/badge';
 import { SpecialtyChip } from '@/shared/ui/specialty-chip';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 import { cn } from '@/shared/lib/cn';
 
 export type DoctorCardProfessionalRank = 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
@@ -63,11 +64,18 @@ export function DoctorCard({
   const t = useTranslations('doctor.card');
   const format = useFormatter();
   const { status, user } = useAuth();
-  // A signed-in visitor who isn't a patient (doctor, admin, staff) has no
-  // reachable destination behind these links -- /patient/doctors/:id and
-  // /patient/appointments/book are both RequireRole(['patient'])-gated, so
-  // routing them there is a dead end, not a real action.
-  const canBookAsPatient = status !== 'authenticated' || (user?.roles.includes('patient') ?? false);
+  const profileHref = `/patient/doctors/${doctorProfileId}`;
+  const bookHref = `/patient/appointments/book?doctorId=${doctorProfileId}`;
+  // Who is looking decides what the two actions do:
+  //   signed out  -> both are live and go to sign-in, which returns them to this doctor afterwards;
+  //   a patient   -> straight to the profile / booking;
+  //   anyone else (doctor, admin, staff) -> booking is for patient accounts only, so Book is shown
+  //     unavailable with a one-line reason (the patient-only routes behind it would be a dead end).
+  // While the session is still resolving, the patient routes are used: they send a signed-out
+  // visitor to sign-in themselves.
+  const viewer: 'signedOut' | 'patient' | 'other' =
+    status === 'unauthenticated' ? 'signedOut' : status !== 'authenticated' || user?.roles.includes('patient') ? 'patient' : 'other';
+  const viaSignIn = (href: string) => `/login?returnTo=${encodeURIComponent(href)}`;
 
   return (
     <Card className={cn('relative flex h-full min-w-0 flex-col gap-4 p-(--card-pad) transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md', className)}>
@@ -142,27 +150,40 @@ export function DoctorCard({
         </span>
       </div>
 
-      {canBookAsPatient ? (
+      {viewer === 'other' ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* aria-disabled (not disabled) keeps it focusable, so the reason is reachable by keyboard too. */}
+              <Button
+                type="button"
+                size="sm"
+                aria-disabled="true"
+                onClick={(event) => event.preventDefault()}
+                className="mt-auto w-full cursor-not-allowed gap-1.5 bg-surface-2 text-text-tertiary hover:bg-surface-2"
+              >
+                <Icon icon={CalendarCheck} size="sm" />
+                {t('book')}
+                <span className="sr-only">. {t('bookPatientsOnly')}</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('bookPatientsOnly')}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
         // Two equal actions that wrap onto two lines when the card is narrow -- never a truncated label.
         <div className="mt-auto flex flex-wrap gap-2">
           <Button asChild variant="ghost" size="sm" className="min-w-0 flex-1 basis-28 gap-1">
-            <Link href={`/patient/doctors/${doctorProfileId}`}>
+            <Link href={viewer === 'signedOut' ? viaSignIn(profileHref) : profileHref}>
               {t('viewProfile')}
               <Icon icon={ArrowRight} size="sm" flipRtl />
             </Link>
           </Button>
           <Button asChild size="sm" className="min-w-0 flex-1 basis-28 gap-1.5">
-            <Link href={`/patient/appointments/book?doctorId=${doctorProfileId}`}>
+            <Link href={viewer === 'signedOut' ? viaSignIn(bookHref) : bookHref}>
               <Icon icon={CalendarCheck} size="sm" />
               {t('book')}
             </Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-auto flex items-center justify-center">
-          <Button size="sm" className="w-full gap-1.5" disabled title={t('patientAccountRequired')}>
-            <Icon icon={CalendarCheck} size="sm" />
-            {t('patientAccountRequired')}
           </Button>
         </div>
       )}

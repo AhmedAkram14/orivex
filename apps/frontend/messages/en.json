@@ -1036,6 +1036,7 @@
       "consultationFeeFree": "Free",
       "consultationFeeOnRequest": "Fee on request",
       "book": "Book",
+      "bookPatientsOnly": "Only patient accounts can book appointments.",
       "viewProfile": "View Profile",
       "bookAppointment": "Book Appointment",
       "topRated": "Top Rated",
@@ -1685,7 +1686,7 @@
         "totalPatients": "Total Patients",
         "totalPatientsHelper": "All time",
         "activePatients": "Active Patients",
-        "activePatientsHelper": "Have an upcoming visit",
+        "activePatientsHelper": "Upcoming visit, or seen in the last {days} days",
         "thisMonth": "This Month",
         "thisMonthHelper": "Seen this month",
         "thisWeek": "This Week",
@@ -1728,6 +1729,7 @@
         "female": "Female",
         "other": "Other"
       },
+      "followUpDue": "Follow-up due",
       "patientStatus": {
         "active": "Active",
         "new": "New",

@@ -105,4 +105,18 @@ describe('PatientsList', () => {
     expect(within(table).queryByText('Completed')).not.toBeInTheDocument();
     expect(within(table).queryByText('Follow up')).not.toBeInTheDocument();
   });
+it('flags a recorded follow-up recommendation with nothing booked as "Follow-up due" -- real backend data, kept beside the status', async () => {
+    renderList();
+    await screen.findByText('Total Patients');
+
+    const table = await screen.findByTestId('patients-table');
+    // Seeded in mocks/doctor-store.ts with hasFollowUpRecommendation: true and no nextAppointmentAt.
+    await userEvent.type(screen.getByPlaceholderText('Search patients...'), 'Nourhan');
+
+    const row = (await within(table).findByText('Nourhan Abdel Aziz')).closest('tr');
+    expect(row).not.toBeNull();
+    expect(within(row as HTMLElement).getByText('Follow-up due')).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByText(/^(Active|Inactive)$/)).toBeInTheDocument();
+  });
 });
+
