@@ -150,9 +150,10 @@ export function TodayTimeline({ className }: { className?: string }) {
         </div>
         <div className="relative h-4" aria-hidden="true">
           {hourMarks.map((ms) => (
+            // No `dir` override: the label must resolve inline-start the same way as the bars above it, or in
+            // Arabic the hours run left-to-right under a right-to-left day.
             <span
               key={ms}
-              dir="ltr"
               className="absolute -translate-x-1/2 text-caption whitespace-nowrap text-text-tertiary tabular-nums rtl:translate-x-1/2"
               style={{ insetInlineStart: `${pct(ms)}%` }}
             >

@@ -1,8 +1,17 @@
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import { forwardRef } from 'react';
+import { useDirection } from '@/shared/i18n/use-direction';
 import { cn } from '@/shared/lib/cn';
 
-export const RadioGroup = RadioGroupPrimitive.Root;
+/** The Radix root, reading direction defaulted to the active locale's (Radix otherwise assumes LTR). */
+export const RadioGroup = forwardRef<
+  React.ElementRef<typeof RadioGroupPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
+>(({ dir, ...props }, ref) => {
+  const direction = useDirection();
+  return <RadioGroupPrimitive.Root ref={ref} dir={dir ?? direction} {...props} />;
+});
+RadioGroup.displayName = 'RadioGroup';
 
 export const RadioGroupItem = forwardRef<
   React.ElementRef<typeof RadioGroupPrimitive.Item>,

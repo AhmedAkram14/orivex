@@ -281,7 +281,7 @@ export default function DoctorPatientChartPage() {
                     )}
                   </p>
                   <div className="flex items-center gap-1">
-                    <bdi dir="ltr" className="text-caption text-text-tertiary">
+                    <bdi className="text-caption text-text-tertiary">
                       {t('patientId', { id: shortId(profile.id) })}
                     </bdi>
                     <CopyButton value={profile.id} label={t('copyPatientId')} copiedLabel={t('copyPatientIdCopied')} />

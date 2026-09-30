@@ -1800,9 +1800,9 @@
       "dateRange": {
         "from": "من",
         "to": "إلى",
-        "preset7Days": "٧ أيام",
-        "preset30Days": "٣٠ يومًا",
-        "preset90Days": "٩٠ يومًا",
+        "preset7Days": "7 أيام",
+        "preset30Days": "30 يومًا",
+        "preset90Days": "90 يومًا",
         "presetThisMonth": "هذا الشهر",
         "presetAllTime": "كل الأوقات",
         "custom": "نطاق مخصص"
@@ -1871,9 +1871,9 @@
       "dateRange": {
         "from": "من",
         "to": "إلى",
-        "preset7Days": "٧ أيام",
-        "preset30Days": "٣٠ يومًا",
-        "preset90Days": "٩٠ يومًا",
+        "preset7Days": "7 أيام",
+        "preset30Days": "30 يومًا",
+        "preset90Days": "90 يومًا",
         "presetThisMonth": "هذا الشهر",
         "presetAllTime": "كل الأوقات",
         "custom": "نطاق مخصص"
@@ -3523,9 +3523,9 @@
     "dateRange": {
       "from": "من",
       "to": "إلى",
-      "preset7Days": "٧ أيام",
-      "preset30Days": "٣٠ يومًا",
-      "preset90Days": "٩٠ يومًا",
+      "preset7Days": "7 أيام",
+      "preset30Days": "30 يومًا",
+      "preset90Days": "90 يومًا",
       "presetThisMonth": "هذا الشهر",
       "presetAllTime": "كل الأوقات",
       "custom": "نطاق مخصص"

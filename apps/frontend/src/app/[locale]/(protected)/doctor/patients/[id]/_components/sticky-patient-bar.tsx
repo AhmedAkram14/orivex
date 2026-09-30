@@ -69,7 +69,7 @@ export function StickyPatientBar({ profile, headerRef }: StickyPatientBarProps) 
         <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-text-tertiary">
           {profile.gender && <span>{t(`genderOptions.${profile.gender}`)}</span>}
           {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
-          <bdi dir="ltr">· {t('patientId', { id: shortId(profile.id) })}</bdi>
+          <bdi>· {t('patientId', { id: shortId(profile.id) })}</bdi>
         </p>
       </div>
       <Badge variant={allergyBadgeVariant[allergyState.kind]} className="ms-auto shrink-0">

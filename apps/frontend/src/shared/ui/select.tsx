@@ -2,9 +2,14 @@ import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown } from 'lucide-react';
 import { forwardRef } from 'react';
 import { Icon } from '@/shared/icons/icon';
+import { useDirection } from '@/shared/i18n/use-direction';
 import { cn } from '@/shared/lib/cn';
 
-export const Select = SelectPrimitive.Root;
+/** The Radix root, reading direction defaulted to the active locale's (Radix otherwise assumes LTR). */
+export function Select({ dir, ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  const direction = useDirection();
+  return <SelectPrimitive.Root dir={dir ?? direction} {...props} />;
+}
 export const SelectGroup = SelectPrimitive.Group;
 export const SelectValue = SelectPrimitive.Value;
 

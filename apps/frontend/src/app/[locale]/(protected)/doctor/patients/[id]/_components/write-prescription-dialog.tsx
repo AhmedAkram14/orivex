@@ -98,7 +98,7 @@ export function WritePrescriptionDialog({
             {profile.gender && (
               <span className="font-normal text-text-secondary"> · {t(`genderOptions.${profile.gender}`)}</span>
             )}
-            <bdi dir="ltr" className="font-normal text-text-tertiary"> · {t('patientId', { id: shortId(profile.id) })}</bdi>
+            <bdi className="font-normal text-text-tertiary"> · {t('patientId', { id: shortId(profile.id) })}</bdi>
           </p>
 
           <div className="flex flex-wrap items-center gap-2">

@@ -2,9 +2,14 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Check, ChevronRight, Circle } from 'lucide-react';
 import { forwardRef } from 'react';
 import { Icon } from '@/shared/icons/icon';
+import { useDirection } from '@/shared/i18n/use-direction';
 import { cn } from '@/shared/lib/cn';
 
-export const DropdownMenu = DropdownMenuPrimitive.Root;
+/** The Radix root, reading direction defaulted to the active locale's (Radix otherwise assumes LTR). */
+export function DropdownMenu({ dir, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
+  const direction = useDirection();
+  return <DropdownMenuPrimitive.Root dir={dir ?? direction} {...props} />;
+}
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 export const DropdownMenuGroup = DropdownMenuPrimitive.Group;
 export const DropdownMenuSub = DropdownMenuPrimitive.Sub;
