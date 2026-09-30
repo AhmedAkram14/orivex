@@ -3771,6 +3771,7 @@
     "bookWithDoctor": "Book appointment"
   },
   "bookingUi": {
+    "slotPriceWithStandardFee": "Price per visit: {price} (standard fee {fee})",
     "steps": {
       "select": "Date & time",
       "review": "Review",
@@ -3797,7 +3798,7 @@
       "price": "Price"
     },
     "cairoTime": "Cairo time ({offset})",
-    "standardFee": "The doctor's standard fee is {fee}; this slot is priced {price}.",
+    "standardFee": "This slot: {price} (standard fee {fee})",
     "confirmedTitleFree": "Request sent",
     "confirmedTitlePaid": "Booking confirmed",
     "confirmedDescriptionFree": "Your doctor will review the request. You will be notified as soon as it is approved.",

@@ -456,6 +456,13 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
     formatConsultationPrice(window, format, t('priceFree'));
   const dayPrices = (selectedDay?.windows ?? []).map(priceOf);
   const dayPrice = dayPrices.length > 0 ? mostCommon(dayPrices) : undefined;
+  // The doctor's profile shows their list fee; when this day's slots are priced differently, the header names both,
+  // so the two numbers across the flow never read as a contradiction. The API gives a slot's price but no reason for
+  // it (no "evening rate" field), so only the fact is stated.
+  const listFee = doctor?.consultationFeeAmount;
+  const dayWindow = (selectedDay?.windows ?? []).find((window) => priceOf(window) === dayPrice);
+  const dayPriceDiffersFromListFee =
+    dayWindow?.consultationType === 'paid' && listFee !== undefined && listFee > 0 && dayWindow.feeAmount !== listFee;
 
   const toGridSlot = (window: AvailabilityWindowData): TimeGridSlot => ({
     id: window.id,
@@ -503,7 +510,9 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
             </div>
             {dayPrice && (
               <p className="text-small text-text-secondary" data-numeric>
-                {tUi('slotPrice', { price: dayPrice })}
+                {dayPriceDiffersFromListFee && listFee !== undefined
+                  ? tUi('slotPriceWithStandardFee', { price: dayPrice, fee: formatCurrency(format, listFee, 'EGP') })
+                  : tUi('slotPrice', { price: dayPrice })}
               </p>
             )}
           </div>

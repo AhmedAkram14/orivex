@@ -3771,6 +3771,7 @@
     "bookWithDoctor": "حجز موعد"
   },
   "bookingUi": {
+    "slotPriceWithStandardFee": "سعر الزيارة: {price} (الرسوم المعتادة {fee})",
     "steps": {
       "select": "التاريخ والوقت",
       "review": "المراجعة",
@@ -3797,7 +3798,7 @@
       "price": "السعر"
     },
     "cairoTime": "توقيت القاهرة ({offset})",
-    "standardFee": "رسوم الطبيب المعتادة {fee}؛ سعر هذا الموعد {price}.",
+    "standardFee": "هذا الموعد: {price} (الرسوم المعتادة {fee})",
     "confirmedTitleFree": "تم إرسال الطلب",
     "confirmedTitlePaid": "تم تأكيد الحجز",
     "confirmedDescriptionFree": "سيراجع طبيبك الطلب. سيصلك إشعار بمجرد الموافقة عليه.",

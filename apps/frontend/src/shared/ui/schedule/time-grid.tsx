@@ -41,6 +41,8 @@ export function TimeGrid({ slots, className }: TimeGridProps) {
             label={slot.label}
             priceVariant={slot.priceVariant}
             onSelect={slot.onSelect}
+            // A button sizes to its label; the slot fills its whole (equal-width) cell instead.
+            className="size-full"
           />
         );
 
