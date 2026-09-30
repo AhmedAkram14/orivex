@@ -1,7 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/shared/test/render-with-providers';
 import { PATIENT_PATHS } from '@/features/patient/api/paths';
 import { env } from '@/shared/lib/env';
@@ -64,7 +64,15 @@ function seedReschedulableAppointment() {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+// These tests book a slot today inside a 00:00-23:30 extra-hours window, which has no bookable slot left late at
+// night (they failed every evening from ~22:30). Only Date is pinned, to 10:00 today; timers stay real.
+beforeEach(() => {
+  const tenAm = new Date();
+  tenAm.setHours(10, 0, 0, 0);
+  vi.useFakeTimers({ toFake: ['Date'], now: tenAm });
+});
 afterEach(() => {
+  vi.useRealTimers();
   server.resetHandlers();
   resetSchedulingStore();
   resetPatientStore();
