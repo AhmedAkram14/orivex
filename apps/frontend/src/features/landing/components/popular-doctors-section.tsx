@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { usePublicDoctors } from '@/features/landing/hooks/use-public-doctors';
 import type { PublicDoctor } from '@/features/landing/api/types';
 import { RatingLine } from '@/features/consultation/components/doctor-rating-summary';
+import { MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY } from '@/features/consultation/lib/rating-display';
 import { DoctorCard } from '@/features/doctor/components/doctor-card';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
@@ -56,7 +57,15 @@ function LandingDoctorCard({ doctor }: { doctor: PublicDoctor }) {
       availability={doctor.availability}
       consultationFeeAmount={doctor.consultationFeeAmount}
       ratingSlot={<PopularDoctorRating doctor={doctor} />}
-      rankBadge={doctor.isTopRated ? 'topRated' : doctor.isMostBooked ? 'mostBooked' : null}
+      // "Top Rated" only for a score the card actually shows (the same MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY rule):
+      // the backend picks it among doctors with any rating, which could crown a "New — 2 ratings" doctor.
+      rankBadge={
+        doctor.isTopRated && doctor.reviewCount >= MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY
+          ? 'topRated'
+          : doctor.isMostBooked
+            ? 'mostBooked'
+            : null
+      }
     />
   );
 }

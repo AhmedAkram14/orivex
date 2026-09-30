@@ -32,7 +32,7 @@ describe('DoctorRatingSummary', () => {
     expect(await screen.findByText('No ratings yet')).toBeInTheDocument();
   });
 
-  it('renders the real average rating and rating count once ratings exist', async () => {
+  it('withholds the score below the confidence threshold, exactly like the doctor profile ("New — 2 ratings")', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
         HttpResponse.json({
@@ -43,9 +43,24 @@ describe('DoctorRatingSummary', () => {
 
     renderWithProviders(<DoctorRatingSummary doctorProfileId={DOCTOR_PROFILE_ID} />);
 
+    expect(await screen.findByText('New — 2 ratings')).toBeInTheDocument();
+    expect(screen.queryByText('4.5')).not.toBeInTheDocument();
+  });
+
+  it('shows the score once there are enough ratings (the shared MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY rule)', async () => {
+    server.use(
+      http.get(`${env.apiBaseUrl}/doctors/:id/reviews`, () =>
+        HttpResponse.json({
+          data: { reviews: [], total: 5, page: 1, limit: 20, averageRating: 4.5, reviewCount: 5 },
+        }),
+      ),
+    );
+
+    renderWithProviders(<DoctorRatingSummary doctorProfileId={DOCTOR_PROFILE_ID} />);
+
+    // One line on the doctor card: "★ 4.5 · 5 ratings" (written reviews only when there are any).
     await waitFor(() => expect(screen.getByText('4.5')).toBeInTheDocument());
-    // One line on the doctor card: "★ 4.5 · 2 ratings" (written reviews only when there are any).
-    expect(screen.getByText('2 ratings')).toBeInTheDocument();
+    expect(screen.getByText('5 ratings')).toBeInTheDocument();
     expect(screen.queryByText(/reviews?$/)).not.toBeInTheDocument();
   });
 });

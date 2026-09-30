@@ -4,6 +4,7 @@ import { MessageSquareText, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-reviews';
 import { Icon } from '@/shared/icons/icon';
+import { getRatingDisplay } from '@/features/consultation/lib/rating-display';
 import { cn } from '@/shared/lib/cn';
 
 export interface DoctorRatingSummaryProps {
@@ -21,6 +22,9 @@ export interface RatingLineProps {
 /**
  * The doctor card's rating, as ONE line: "★ 4.9 · 10 ratings · 10 reviews" (written reviews only when there are any).
  * One line keeps the card's text block at three lines -- name, specialty, rating -- beside a top-aligned photo.
+ * Whether the score shows follows the one rule every page uses (`getRatingDisplay`): below
+ * MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY ratings it reads "New — 3 ratings" with an unfilled star, exactly like
+ * the doctor's profile, never "4.7" on the card and "—" on the profile.
  * A size container: in the narrowest cards (a three-column grid just past its breakpoint leaves ~170px) the
  * written-review count shows as a comment icon and its number instead of wrapping to a fourth line; its full
  * wording stays available as the tooltip and to screen readers.
@@ -28,13 +32,21 @@ export interface RatingLineProps {
 export function RatingLine({ averageRating, ratingCount, writtenReviewCount, className }: RatingLineProps) {
   const t = useTranslations('consultation.rating');
   const reviews = t('reviewsCount', { count: writtenReviewCount });
+  const display = getRatingDisplay(t, { averageRating, reviewCount: ratingCount });
+  const scored = display.value !== '—';
   return (
     <div className={cn('@container min-w-0', className)}>
       <p className="flex items-center gap-x-1 whitespace-nowrap text-small text-text-tertiary">
-        <Icon icon={Star} size="sm" className="shrink-0 fill-warning text-warning" />
-        <span className="font-semibold text-text-primary tabular-nums">{averageRating?.toFixed(1)}</span>
-        <span aria-hidden="true">·</span>
-        <span>{t('ratingsCount', { count: ratingCount })}</span>
+        <Icon icon={Star} size="sm" className={cn('shrink-0', scored ? 'fill-warning text-warning' : 'text-text-tertiary')} />
+        {scored ? (
+          <>
+            <span className="font-semibold text-text-primary tabular-nums">{display.value}</span>
+            <span aria-hidden="true">·</span>
+            <span>{t('ratingsCount', { count: ratingCount })}</span>
+          </>
+        ) : (
+          <span>{display.helperText}</span>
+        )}
         {writtenReviewCount > 0 && (
           <>
             <span aria-hidden="true">·</span>
