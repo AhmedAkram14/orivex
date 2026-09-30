@@ -128,6 +128,12 @@ export function DoctorEarningsSummary() {
   // pricing.ts`) instead of a local `format.number(...)` call, so every
   // money value in the app is guaranteed to format the same way.
   const formatMoney = (amount: number) => formatCurrency(format, amount, currency);
+  // The selected range's net: the backend's own per-month figures for exactly this range (its
+  // `cycles` hold every earned transaction in dateFrom..dateTo), added up the way the backend adds up
+  // the lifetime total. Lifetime itself is never derived from this -- it stays the backend's figure.
+  const rangeNetAmount = data
+    ? Math.round(data.cycles.reduce((sum, cycle) => sum + cycle.netAmount, 0) * 100) / 100
+    : 0;
 
   // `cycleLabel` is a plain "YYYY-MM" string from the backend -- parse the
   // parts directly (rather than `new Date(cycleLabel)`, which is prone to
@@ -175,14 +181,14 @@ export function DoctorEarningsSummary() {
         <ExportEarningsButton filter={{ dateFrom, dateTo }} />
       </div>
 
-      {/* Net earnings lead (hero); the monthly net chart sits beside it; the disclaimers are ONE short note under the chart. Lifetime tiles are NOT scoped to the date range, and each says so. */}
+      {/* The hero is the selected range's net, like the chart beside it; lifetime net is its caption. The disclaimers are ONE short note under the chart. The tiles below are lifetime, and each says so. */}
       <div className="grid gap-(--card-gap) @wide:grid-cols-3">
         <MetricStat
           variant="hero"
           icon={Wallet}
-          label={t('stats.lifetimeNet')}
-          value={data ? formatMoney(data.lifetimeNetAmount) : '—'}
-          helperText={t('stats.lifetimeHelper')}
+          label={t('stats.rangeNet')}
+          value={data ? formatMoney(rangeNetAmount) : '—'}
+          helperText={data ? t('stats.lifetimeNetCaption', { amount: formatMoney(data.lifetimeNetAmount) }) : undefined}
           loading={isLoading}
         />
         <div className="flex min-w-0 flex-col gap-3 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs @wide:col-span-2">

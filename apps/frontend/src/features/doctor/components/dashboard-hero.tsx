@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, FileText, Users, Video, type LucideIcon } from 'lucide-react';
+import { CalendarClock, FileText, MoreHorizontal, Users, Video, type LucideIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { StartConsultationAction } from '@/features/consultation/components/start-consultation-action';
 import { TodayTimeline } from '@/features/doctor/components/today-timeline';
@@ -11,6 +11,7 @@ import { useDoctorUpcomingWork } from '@/features/doctor/hooks/use-doctor-upcomi
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { HeroSurface } from '@/shared/ui/hero-surface';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 import { getCairoNow } from '@/shared/lib/date/timezone';
@@ -61,10 +62,52 @@ function QuickAction({ icon, label, href, disabledReason }: QuickActionProps) {
 }
 
 /**
+ * The less frequent quick actions, behind one ⋯ menu (the same pattern as an appointment row's
+ * overflow menu) so the row never wraps. An unavailable item stays focusable (`aria-disabled`,
+ * never Radix `disabled`, which would skip it) and keeps its reason in a tooltip, plus as text for
+ * screen readers.
+ */
+function MoreQuickActions() {
+  const t = useTranslations('doctor.dashboard.hero.quickActions');
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="secondary" size="sm" aria-label={t('more')}>
+          <Icon icon={MoreHorizontal} size="sm" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem asChild>
+          <Link href="/doctor/schedule">
+            <Icon icon={CalendarClock} size="sm" />
+            {t('updateSchedule')}
+          </Link>
+        </DropdownMenuItem>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuItem
+              aria-disabled="true"
+              onSelect={(event) => event.preventDefault()}
+              className="cursor-not-allowed text-text-tertiary"
+            >
+              <Icon icon={FileText} size="sm" />
+              {t('writePrescription')}
+              <span className="sr-only">. {t('writePrescriptionUnavailable')}</span>
+            </DropdownMenuItem>
+          </TooltipTrigger>
+          {/* Below the last item, so the reason never covers the other menu item. */}
+          <TooltipContent side="bottom">{t('writePrescriptionUnavailable')}</TooltipContent>
+        </Tooltip>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
  * The Overview's ONE hero surface (doctor variant, compact density): the
  * greeting (the page's h1), today's real numbers, the day as a timeline strip
- * built from the doctor's real hours and bookings, and quick actions as
- * secondary buttons. The 3D illustration is gone; the timeline is the visual.
+ * built from the doctor's real hours and bookings, and quick actions: the two
+ * everyday ones as buttons, the rest in a ⋯ menu. The timeline is the visual.
  */
 export function DashboardHero() {
   const t = useTranslations('doctor.dashboard');
@@ -125,16 +168,7 @@ export function DashboardHero() {
             />
           )}
           <QuickAction icon={Users} label={t('hero.quickActions.viewQueue')} href="/doctor/queue" />
-          <QuickAction
-            icon={CalendarClock}
-            label={t('hero.quickActions.updateSchedule')}
-            href="/doctor/schedule"
-          />
-          <QuickAction
-            icon={FileText}
-            label={t('hero.quickActions.writePrescription')}
-            disabledReason={t('hero.quickActions.writePrescriptionUnavailable')}
-          />
+          <MoreQuickActions />
         </div>
       </TooltipProvider>
     </HeroSurface>

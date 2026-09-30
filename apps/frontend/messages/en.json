@@ -1077,6 +1077,7 @@
         "noMorePatientsToday": "No more patients today",
         "noStartableConsultation": "No patient waiting to start",
         "quickActions": {
+          "more": "More actions",
           "startConsultation": "Start Consultation",
           "viewQueue": "View Patient Queue",
           "updateSchedule": "Update Schedule",
@@ -1108,7 +1109,20 @@
         "loadError": "Couldn't load your upcoming availability."
       },
       "activity": {
+        "groupedFallback": "{title} ({count})",
         "title": "Recent Activity",
+        "grouped": {
+          "newAppointmentRequest": "{count, plural, one {# new appointment request} other {# new appointment requests}}",
+          "patientCheckedIn": "{count, plural, one {# patient checked in} other {# patients checked in}}",
+          "newReview": "{count, plural, one {# new review} other {# new reviews}}",
+          "appointmentCancelled": "{count, plural, one {# appointment cancelled} other {# appointments cancelled}}",
+          "appointmentRescheduled": "{count, plural, one {# appointment rescheduled} other {# appointments rescheduled}}",
+          "consultationInterrupted": "{count, plural, one {# consultation interrupted} other {# consultations interrupted}}",
+          "disputeRaised": "{count, plural, one {# dispute raised} other {# disputes raised}}",
+          "disputeWithdrawn": "{count, plural, one {# dispute withdrawn} other {# disputes withdrawn}}",
+          "disputeDismissed": "{count, plural, one {# dispute dismissed} other {# disputes dismissed}}",
+          "disputeResolved": "{count, plural, one {# dispute resolved} other {# disputes resolved}}"
+        },
         "viewAll": "View all",
         "emptyTitle": "No recent activity",
         "emptyDescription": "Your recent notifications, like confirmations and prescriptions, will appear here.",
@@ -1186,9 +1200,9 @@
       "confirmRemoveAward": "Remove this award?",
       "loadError": "Couldn't load your profile.",
       "hero": {
+        "patientsLabel": "Patients",
         "verified": "Verified",
         "ratingLabel": "Rating",
-        "patientsCount": "{count} Patients",
         "yearsExperience": "{years} Years Experience",
         "reviewsCount": "{count} Ratings",
         "availableNow": "Available now",
@@ -1811,10 +1825,11 @@
       "loadError": "Couldn't load your earnings.",
       "seeReports": "See your reports for this period",
       "stats": {
-        "lifetimeNet": "Lifetime net earnings",
+        "lifetimeNetCaption": "Lifetime: {amount}",
+        "rangeNet": "Net earnings this period",
         "lifetimeGross": "Lifetime gross",
         "transactionCount": "Paid consultations",
-        "lifetimeHelper": "All-time figure — not affected by the date range below"
+        "lifetimeHelper": "All time — not affected by the date range"
       },
       "payoutHonesty": "These figures reflect earnings recorded on this platform, not confirmation that funds have been transferred to your account.",
       "chartNote": "Recorded earnings, not payouts. Net is after the {rate}% platform commission and before tax.",

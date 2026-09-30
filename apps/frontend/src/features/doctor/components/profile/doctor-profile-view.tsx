@@ -208,8 +208,15 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
                   {/* The largest text on the page -- a real <h2> under the
                       page's own <h1> ("Profile"), not a <p> styled to look
                       like a heading. Sized to the card (22px-32px), so a
-                      two-word name stays on one line beside the booking card. */}
-                  <Heading as="h2" level={2} className="text-[length:clamp(1.375rem,6cqi,2rem)] text-balance">
+                      two-word name stays on one line beside the booking card.
+                      Inline, not a text-size class: a class would replace the
+                      h2 token and drop its weight with it. */}
+                  <Heading
+                    as="h2"
+                    level={2}
+                    className="leading-tight text-balance"
+                    style={{ fontSize: 'clamp(1.375rem, 6cqi, 2rem)' }}
+                  >
                     {profile.fullName}
                   </Heading>
                   {isWorkspace && isVerified && (
@@ -267,7 +274,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
 
           <MetricStrip className="shadow-none">
             {isWorkspace && patients && (
-              <MetricStat variant="inline" icon={Users} value={String(patients.length)} label={t('hero.patientsCount', { count: patients.length })} />
+              <MetricStat variant="inline" icon={Users} value={String(patients.length)} label={t('hero.patientsLabel')} />
             )}
             <MetricStat variant="inline" icon={Star} value={rating.value} label={t('hero.ratingLabel')} helperText={rating.helperText} />
             {profile.yearsOfExperience !== undefined && (

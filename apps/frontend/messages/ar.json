@@ -1077,6 +1077,7 @@
         "noMorePatientsToday": "لا مزيد من المرضى اليوم",
         "noStartableConsultation": "لا يوجد مريض بانتظار البدء",
         "quickActions": {
+          "more": "المزيد من الإجراءات",
           "startConsultation": "بدء الاستشارة",
           "viewQueue": "عرض قائمة انتظار المرضى",
           "updateSchedule": "تحديث الجدول الزمني",
@@ -1108,7 +1109,20 @@
         "loadError": "تعذّر تحميل أوقات توفرك القادمة."
       },
       "activity": {
+        "groupedFallback": "{title} ({count})",
         "title": "النشاط الأخير",
+        "grouped": {
+          "newAppointmentRequest": "{count, plural, two {طلبا موعد جديدان} few {# طلبات مواعيد جديدة} many {# طلبًا لمواعيد جديدة} other {# طلب لمواعيد جديدة}}",
+          "patientCheckedIn": "{count, plural, two {تسجيل حضور مريضين} few {تسجيل حضور # مرضى} many {تسجيل حضور # مريضًا} other {تسجيل حضور # مريض}}",
+          "newReview": "{count, plural, two {تقييمان جديدان} few {# تقييمات جديدة} many {# تقييمًا جديدًا} other {# تقييم جديد}}",
+          "appointmentCancelled": "{count, plural, two {إلغاء موعدين} few {إلغاء # مواعيد} many {إلغاء # موعدًا} other {إلغاء # موعد}}",
+          "appointmentRescheduled": "{count, plural, two {إعادة جدولة موعدين} few {إعادة جدولة # مواعيد} many {إعادة جدولة # موعدًا} other {إعادة جدولة # موعد}}",
+          "consultationInterrupted": "{count, plural, two {انقطاع استشارتين} few {انقطاع # استشارات} many {انقطاع # استشارة} other {انقطاع # استشارة}}",
+          "disputeRaised": "{count, plural, two {فتح نزاعين} few {فتح # نزاعات} many {فتح # نزاعًا} other {فتح # نزاع}}",
+          "disputeWithdrawn": "{count, plural, two {سحب نزاعين} few {سحب # نزاعات} many {سحب # نزاعًا} other {سحب # نزاع}}",
+          "disputeDismissed": "{count, plural, two {رفض نزاعين} few {رفض # نزاعات} many {رفض # نزاعًا} other {رفض # نزاع}}",
+          "disputeResolved": "{count, plural, two {حل نزاعين} few {حل # نزاعات} many {حل # نزاعًا} other {حل # نزاع}}"
+        },
         "viewAll": "عرض الكل",
         "emptyTitle": "لا يوجد نشاط حديث",
         "emptyDescription": "ستظهر هنا إشعاراتك الأخيرة، مثل التأكيدات والوصفات الطبية.",
@@ -1186,9 +1200,9 @@
       "confirmRemoveAward": "هل تريد حذف هذه الجائزة؟",
       "loadError": "تعذّر تحميل ملفك الشخصي.",
       "hero": {
+        "patientsLabel": "المرضى",
         "verified": "موثّق",
         "ratingLabel": "التقييم",
-        "patientsCount": "{count} مريض",
         "yearsExperience": "{years} سنوات خبرة",
         "reviewsCount": "{count} تقييم",
         "availableNow": "متاح الآن",
@@ -1811,10 +1825,11 @@
       "loadError": "تعذّر تحميل أرباحك.",
       "seeReports": "اطّلع على تقاريرك لهذه الفترة",
       "stats": {
-        "lifetimeNet": "صافي الأرباح الإجمالي",
+        "lifetimeNetCaption": "منذ البداية: {amount}",
+        "rangeNet": "صافي الأرباح لهذه الفترة",
         "lifetimeGross": "إجمالي الدخل",
         "transactionCount": "الاستشارات المدفوعة",
-        "lifetimeHelper": "الإجمالي منذ البداية — لا يتأثر بنطاق التاريخ أدناه"
+        "lifetimeHelper": "منذ البداية — لا يتأثر بنطاق التاريخ"
       },
       "payoutHonesty": "تعكس هذه الأرقام الأرباح المسجَّلة على هذه المنصة، ولا تُعد تأكيدًا بأن الأموال قد تم تحويلها إلى حسابك.",
       "chartNote": "أرباح مسجّلة وليست تحويلات. الصافي بعد عمولة المنصة {rate}% وقبل الضرائب.",

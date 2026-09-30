@@ -77,13 +77,19 @@ function renderComponent() {
 }
 
 describe('DoctorEarningsSummary', () => {
-  it('renders the lifetime tiles from the single shared summary call', async () => {
+  it('leads with the net for the selected range, with lifetime net as its caption, and the lifetime tiles from the same call', async () => {
     server.use(summaryHandler(), transactionsHandler());
     renderComponent();
 
-    expect(await screen.findByText('EGP 8,499.00')).toBeInTheDocument();
+    await screen.findByText('Lifetime: EGP 8,499.00');
+    const hero = screen.getByText('Net earnings this period').parentElement!;
+    // The range's own cycles (2026-08: net 170), not the lifetime figure.
+    await waitFor(() => expect(hero).toHaveTextContent('EGP 170.00'));
+    expect(hero).toHaveTextContent('Lifetime: EGP 8,499.00');
     expect(screen.getByText('EGP 9,999.00')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
+    // The range picker sits above these figures now: no caption points "below".
+    expect(screen.queryByText(/below/)).not.toBeInTheDocument();
   });
 
   // Critical regression test (plan decision 7 / Phase 0 bug fix): the
@@ -95,10 +101,12 @@ describe('DoctorEarningsSummary', () => {
     const user = userEvent.setup();
     renderComponent();
 
-    expect(await screen.findByText('EGP 8,499.00')).toBeInTheDocument();
+    expect(await screen.findByText('Lifetime: EGP 8,499.00')).toBeInTheDocument();
     expect(screen.getByText('EGP 9,999.00')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument(); // 2026-08 cycle's transactionCount
+    const hero = screen.getByText('Net earnings this period').parentElement!;
+    expect(hero).toHaveTextContent('EGP 170.00');
 
     await user.click(screen.getByRole('button', { name: 'All time' }));
 
@@ -106,8 +114,10 @@ describe('DoctorEarningsSummary', () => {
     // distinct fixture (its own transactionCount of 9)...
     await waitFor(() => expect(screen.getByText('9')).toBeInTheDocument());
 
-    // ...while the lifetime tiles above stay exactly as they were.
-    expect(screen.getByText('EGP 8,499.00')).toBeInTheDocument();
+    // ...the hero follows the range (the 2020-01 cycle's net)...
+    await waitFor(() => expect(hero).toHaveTextContent('EGP 425.00'));
+    // ...while every lifetime figure stays exactly as it was.
+    expect(screen.getByText('Lifetime: EGP 8,499.00')).toBeInTheDocument();
     expect(screen.getByText('EGP 9,999.00')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
   });
@@ -159,7 +169,7 @@ describe('DoctorEarningsSummary', () => {
     const user = userEvent.setup();
     renderComponent();
 
-    await screen.findByText('EGP 8,499.00');
+    await screen.findByText('Lifetime: EGP 8,499.00');
     expect(screen.getByRole('button', { name: /Export CSV/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '7 days' }));
@@ -172,7 +182,7 @@ describe('DoctorEarningsSummary', () => {
     server.use(summaryHandler(), transactionsHandler());
     renderComponent();
 
-    await screen.findByText('EGP 8,499.00');
+    await screen.findByText('Lifetime: EGP 8,499.00');
     expect(
       screen.getByText(
         'These figures reflect earnings recorded on this platform, not confirmation that funds have been transferred to your account.',

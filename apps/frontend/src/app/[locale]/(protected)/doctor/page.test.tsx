@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { http, HttpResponse } from 'msw';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -72,7 +73,15 @@ describe('DoctorDashboardPage', () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View Patient Queue/ })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Update Schedule/ })).toBeInTheDocument();
+    // The two everyday actions are buttons; the rest sit in one ⋯ menu so the row never wraps.
+    expect(screen.queryByRole('link', { name: /Update Schedule/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByRole('menuitem', { name: /Update Schedule/ })).toHaveAttribute('href', '/en/doctor/schedule');
+    // Unavailable, but still focusable, with its reason for screen readers (and a tooltip on hover/focus).
+    const writePrescription = within(menu).getByRole('menuitem', { name: /Write Prescription/ });
+    expect(writePrescription).toHaveAttribute('aria-disabled', 'true');
+    expect(writePrescription).toHaveTextContent('Prescriptions are written during a consultation');
     // Doctor Profile Redesign (2026-08-02): `consultation-store.ts` now
     // seeds a few real reviews for this doctor (previously always empty) --
     // the hero's "Today's Summary" rating stat reflects that real average
