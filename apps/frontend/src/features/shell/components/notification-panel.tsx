@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertOctagon, AlertTriangle, Calendar, CheckCircle2, Info, Pill, Video, XCircle } from 'lucide-react';
+import { AlertOctagon, AlertTriangle, Calendar, CheckCircle2, Info, Pill, Video, XCircle, type LucideIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useMarkAllNotificationsRead } from '@/features/notifications/hooks/use-mark-all-notifications-read';
@@ -44,18 +44,27 @@ const severityIconClassName: Record<NotificationSeverity, string> = {
   danger: 'text-danger',
 };
 
-// Doctor UX audit remediation (Phase 5 backend proposal, now implemented):
 // entityType is a distinct signal from severity -- most entity-referencing
-// notifications are severity "info", so without this every one of them
-// still looked identical. Purely decorative (aria-hidden): the title/
-// description text already names what happened, this just gives a
-// same-glance visual category next to it.
-const entityTypeIcon: Record<NotificationEntityType, typeof Calendar> = {
+// notifications are severity "info", so without it every one of them looked
+// identical. Purely decorative (aria-hidden): the title/description text
+// already names what happened.
+const entityTypeIcon: Record<NotificationEntityType, LucideIcon> = {
   appointment: Calendar,
   consultation: Video,
   dispute: AlertOctagon,
   prescription: Pill,
 };
+
+/**
+ * ONE icon per notification: what it is about (appointment, consultation,
+ * dispute, prescription), or its severity icon when it isn't about any entity
+ * (account notices). The severity survives as the icon's color, so a row never
+ * stacks a severity icon and a type icon side by side. Shared by the bell,
+ * the Notifications page and both roles' Recent Activity.
+ */
+export function notificationTypeIcon(notification: Pick<NotificationEntry, 'entityType' | 'severity'>): LucideIcon {
+  return notification.entityType ? entityTypeIcon[notification.entityType] : severityIcon[notification.severity];
+}
 
 export function NotificationRowContent({ notification }: { notification: NotificationEntry }) {
   const t = useTranslations('shell.notifications');
@@ -72,14 +81,7 @@ export function NotificationRowContent({ notification }: { notification: Notific
   return (
     <>
       <div className="flex items-center gap-2">
-        <Icon
-          icon={severityIcon[notification.severity]}
-          size="sm"
-          className={cn('shrink-0', severityIconClassName[notification.severity])}
-        />
-        {notification.entityType && (
-          <Icon icon={entityTypeIcon[notification.entityType]} size="sm" className="shrink-0 text-text-tertiary" />
-        )}
+        <Icon icon={notificationTypeIcon(notification)} size="sm" className={cn('shrink-0', severityIconClassName[notification.severity])} />
         {!notification.read && (
           <>
             {/* The dot is a visual-only cue -- `Unread` below is the text alternative assistive tech and anyone zoomed past the dot's size can rely on instead. */}

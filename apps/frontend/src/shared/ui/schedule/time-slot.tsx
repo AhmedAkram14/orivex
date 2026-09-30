@@ -45,7 +45,7 @@ export function TimeSlot({ time, status, label, priceVariant, onSelect, classNam
         type="button"
         onClick={onSelect}
         className={cn(
-          'flex items-center gap-2 rounded-md border px-3 py-2 text-start text-sm transition-colors duration-(--duration-fast) ease-standard',
+          'flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border px-3 py-2 text-start text-sm transition-colors duration-(--duration-fast) ease-standard',
           'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
           statusClass[status],
           className,
@@ -57,7 +57,7 @@ export function TimeSlot({ time, status, label, priceVariant, onSelect, classNam
   }
 
   return (
-    <div className={cn('flex items-center gap-2 rounded-md border px-3 py-2 text-sm', statusClass[status], className)}>
+    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border px-3 py-2 text-sm', statusClass[status], className)}>
       {content}
     </div>
   );

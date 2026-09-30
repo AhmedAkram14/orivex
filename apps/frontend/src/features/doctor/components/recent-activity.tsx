@@ -1,9 +1,9 @@
 'use client';
 
-import { AlertTriangle, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useLocalizedNotification, useViewerIsDoctor } from '@/features/notifications/hooks/use-localized-notification';
 import { isPersonalNotification } from '@/features/notifications/lib/notification-audience';
+import { notificationTypeIcon } from '@/features/shell/components/notification-panel';
 import { Link } from '@/shared/i18n/navigation';
 import { Button } from '@/shared/ui/button';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
@@ -17,12 +17,12 @@ import { cn } from '@/shared/lib/cn';
 
 const MAX_ITEMS = 5;
 
-/** Maps a real `NotificationEntry.severity` to an icon + accent color — the same field the notification bell's own unread dot/text weight already keys off of, just extended to a colored icon here instead of a new fabricated "activity type" field. */
-const iconBySeverity: Record<NotificationSeverity, { icon: LucideIcon; accentClassName: string }> = {
-  success: { icon: CheckCircle2, accentClassName: 'bg-success-subtle text-success-emphasis' },
-  warning: { icon: AlertTriangle, accentClassName: 'bg-warning-subtle text-warning-emphasis' },
-  danger: { icon: XCircle, accentClassName: 'bg-danger-subtle text-danger-emphasis' },
-  info: { icon: Info, accentClassName: 'bg-info-subtle text-info-emphasis' },
+/** The row's one icon is the shared type icon (`notificationTypeIcon`); its tint is the real `severity`. */
+const accentBySeverity: Record<NotificationSeverity, string> = {
+  success: 'bg-success-subtle text-success-emphasis',
+  warning: 'bg-warning-subtle text-warning-emphasis',
+  danger: 'bg-danger-subtle text-danger-emphasis',
+  info: 'bg-info-subtle text-info-emphasis',
 };
 
 /**
@@ -35,6 +35,7 @@ const iconBySeverity: Record<NotificationSeverity, { icon: LucideIcon; accentCla
  */
 export function RecentActivity() {
   const t = useTranslations('doctor.dashboard.activity');
+  const tNotifications = useTranslations('shell.notifications');
   const format = useFormatter();
   const { data: notifications, isLoading, isError } = useNotifications();
   const localize = useLocalizedNotification();
@@ -64,15 +65,23 @@ export function RecentActivity() {
       ) : recent.length > 0 ? (
         <ul className="flex flex-col divide-y divide-border-default">
           {recent.map((notification) => {
-            const { icon, accentClassName } = iconBySeverity[notification.severity];
             const text = localize(notification);
             return (
               <li key={notification.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', accentClassName)}>
-                  <Icon icon={icon} size="sm" />
+                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', accentBySeverity[notification.severity])}>
+                  <Icon icon={notificationTypeIcon(notification)} size="sm" />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="text-sm font-medium text-text-primary">{text.title}</p>
+                  <p className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                    {!notification.read && (
+                      <>
+                        {/* Visual-only cue, as in the bell; "Unread" is its text alternative. */}
+                        <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                        <span className="sr-only">{tNotifications('unread')}</span>
+                      </>
+                    )}
+                    <span className="min-w-0">{text.title}</span>
+                  </p>
                   <p className="text-sm text-text-secondary">{text.description}</p>
                   <p className="text-xs text-text-tertiary">
                     {format.relativeTime(new Date(notification.createdAt), new Date())}

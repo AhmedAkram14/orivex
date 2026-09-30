@@ -75,7 +75,7 @@ describe('NotificationPanel severity icons', () => {
     expect(icon).not.toBeNull();
   });
 
-  it('renders a distinct entity-type icon alongside the severity icon when the notification references a specific record', async () => {
+  it('renders ONE icon for a notification about a specific record -- the entity-type icon, tinted by severity -- never a severity icon beside it', async () => {
     server.use(
       http.get(`${env.apiBaseUrl}${NOTIFICATIONS_PATHS.list}`, () =>
         HttpResponse.json({
@@ -99,8 +99,9 @@ describe('NotificationPanel severity icons', () => {
 
     const row = (await screen.findByText('Appointment confirmed')).closest('li');
     expect(row).not.toBeNull();
-    // Two decorative icons now render on the row: severity (info) + entity type (appointment/Calendar).
-    expect(row!.querySelectorAll('svg').length).toBeGreaterThanOrEqual(2);
+    // One decorative icon: the appointment's Calendar, in the info severity's color.
+    expect(row!.querySelectorAll('svg')).toHaveLength(1);
+    expect(row!.querySelector('svg.lucide-calendar.text-info')).not.toBeNull();
   });
 
   it('links an appointment notification to that appointment row for its role, not a generic list page', async () => {

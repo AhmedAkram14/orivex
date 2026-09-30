@@ -34,6 +34,10 @@ export function UpcomingAppointmentsWidget() {
   // strip and the Appointments page's Upcoming tab.
   const upcoming = selectUpcomingAppointments(appointments ?? [], getCairoNow()).slice(0, MAX_ITEMS);
 
+  // Nothing upcoming: the hero above already says so (same definition) and offers Book, so a second
+  // empty card here would only repeat it.
+  if (!isLoading && !isError && upcoming.length === 0) return null;
+
   return (
     <WidgetContainer
       title={<span className="text-lg font-semibold">{t('upcomingAppointmentsTitle')}</span>}
@@ -41,7 +45,11 @@ export function UpcomingAppointmentsWidget() {
       className="rounded-3xl border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">
-          <Link href="/patient/appointments">{t('viewAllAppointments')}</Link>
+          {/* A short visible label keeps the card title on one line; the sr-only title keeps the link's purpose. */}
+          <Link href="/patient/appointments">
+            {t('viewAll')}
+            <span className="sr-only"> {t('upcomingAppointmentsTitle')}</span>
+          </Link>
         </Button>
       }
     >

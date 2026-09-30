@@ -187,10 +187,11 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
 
   const emergencyContactsCard = (
     <Card className={cn('flex h-full flex-col', CARD_CLASSNAME)}>
-      <CardHeader className="flex-row items-center justify-between px-7 py-6">
-        <CardTitle>{t('emergencyContacts')}</CardTitle>
-        <Button variant="secondary" size="sm" onClick={onEdit}>
-          <Icon icon={Plus} size="sm" className="me-2" />
+      <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 px-7 py-6">
+        <CardTitle className="min-w-0 text-balance">{t('emergencyContacts')}</CardTitle>
+        {/* The card-header action rule: a ghost sm button that never wraps (the Button already spaces its icon). */}
+        <Button variant="ghost" size="sm" onClick={onEdit} className="shrink-0 whitespace-nowrap">
+          <Icon icon={Plus} size="sm" />
           {t('addContact')}
         </Button>
       </CardHeader>

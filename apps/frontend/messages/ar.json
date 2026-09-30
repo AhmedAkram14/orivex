@@ -1959,6 +1959,7 @@
   },
   "patient": {
     "dashboard": {
+      "viewAll": "عرض الكل",
       "title": "صحتي",
       "welcome": "مرحبًا بعودتك، {name}.",
       "greeting": {

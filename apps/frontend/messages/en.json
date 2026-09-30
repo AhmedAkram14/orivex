@@ -1959,6 +1959,7 @@
   },
   "patient": {
     "dashboard": {
+      "viewAll": "View all",
       "title": "My Health",
       "welcome": "Welcome back, {name}.",
       "greeting": {

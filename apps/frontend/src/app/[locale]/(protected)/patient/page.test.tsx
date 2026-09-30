@@ -76,8 +76,10 @@ describe('PatientDashboardPage', () => {
     expect(await screen.findByText(/Amina/)).toBeInTheDocument();
     expect(await screen.findByText("Here's what's happening with your health today.")).toBeInTheDocument();
     expect(await screen.findByText('No upcoming appointments')).toBeInTheDocument();
-    expect(await screen.findByText('No appointments scheduled yet')).toBeInTheDocument();
     expect(await screen.findByText('No active prescriptions right now.')).toBeInTheDocument();
+    // The hero's empty state is the only one: no second, empty "Upcoming appointments" card below it.
+    expect(screen.queryByText('No appointments scheduled yet')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Upcoming appointments' })).not.toBeInTheDocument();
   });
 
   it('highlights the real soonest upcoming appointment as the Next Appointment hero, with a real join action', async () => {

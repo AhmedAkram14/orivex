@@ -9,7 +9,6 @@ import {
   CalendarClock,
   Eye,
   History,
-  Languages as LanguagesIcon,
   Mail,
   MapPin,
   Pencil,
@@ -196,19 +195,21 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
     <div className="flex flex-col gap-6">
       {/* Hero */}
       <Card className={cn(CARD_CLASS, 'overflow-hidden')}>
-        <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
+        {/* A size container: the name below scales with the card, not the viewport. */}
+        <CardContent className="@container flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <Avatar size="xl">
                 {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
                 <AvatarFallback>{initialsOf(profile.fullName)}</AvatarFallback>
               </Avatar>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   {/* The largest text on the page -- a real <h2> under the
                       page's own <h1> ("Profile"), not a <p> styled to look
-                      like a heading. */}
-                  <Heading as="h2" level={2} className="text-2xl sm:text-[2rem]">
+                      like a heading. Sized to the card (22px-32px), so a
+                      two-word name stays on one line beside the booking card. */}
+                  <Heading as="h2" level={2} className="text-[length:clamp(1.375rem,6cqi,2rem)] text-balance">
                     {profile.fullName}
                   </Heading>
                   {isWorkspace && isVerified && (
@@ -299,44 +300,12 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
       <div className={cn('grid grid-cols-1 gap-6', isWorkspace && '@5xl:grid-cols-[minmax(0,1fr)_320px]')}>
         <div className="@container flex min-w-0 flex-col gap-6">
           <ProfileSectionCard title={t('professionalInformation')} icon={Stethoscope}>
+            {/* Years of experience, the fee and languages are left out: the hero above already shows them. */}
             <div className="grid grid-cols-1 gap-5 @pane:grid-cols-2">
               <InfoRow icon={Stethoscope} label={t('specialty')} value={specialtyName} />
               <InfoRow icon={ScrollText} label={t('licenseNumber')} value={profile.licenseNumber} />
-              <InfoRow
-                icon={Briefcase}
-                label={t('yearsOfExperienceLabel')}
-                value={profile.yearsOfExperience !== undefined ? t('yearsOfExperience', { years: profile.yearsOfExperience }) : t('notOnRecord')}
-              />
               <InfoRow icon={Building2} label={t('hospitalAffiliation')} value={hospital?.name ?? t('notOnRecord')} />
-              <InfoRow
-                icon={Wallet}
-                label={t('consultationFee')}
-                value={
-                  profile.consultationFeeAmount === undefined
-                    ? t('notOnRecord')
-                    : profile.consultationFeeAmount === 0
-                      ? t('hero.consultationFeeFree')
-                      : formatCurrency(format, profile.consultationFeeAmount, 'EGP')
-                }
-              />
               {hospital?.address && <InfoRow icon={MapPin} label={t('clinicAddress')} value={hospital.address} />}
-              <InfoRow
-                icon={LanguagesIcon}
-                label={t('languages')}
-                value={
-                  (profile.languages ?? []).length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {profile.languages.map((language) => (
-                        <Badge key={language} variant="info">
-                          {languageLabel(language)}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    t('notOnRecord')
-                  )
-                }
-              />
               <InfoRow
                 icon={ShieldCheck}
                 label={t('insurance')}

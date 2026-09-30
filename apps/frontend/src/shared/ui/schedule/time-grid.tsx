@@ -27,11 +27,12 @@ export interface TimeGridProps {
  * hour-row list: this component is for a day whose slots are worth
  * browsing at a glance (many short slots), not annotating hour-by-hour.
  * A slot only gets a hover/focus tooltip when it carries real `detail` —
- * never a fabricated explanation.
+ * never a fabricated explanation. Columns are equal-width and as many as fit
+ * at 112px (7rem) each, so a slot never shrinks below a readable time.
  */
 export function TimeGrid({ slots, className }: TimeGridProps) {
   return (
-    <div className={cn('grid grid-cols-2 gap-2 @sm:grid-cols-3 @lg:grid-cols-4', className)}>
+    <div className={cn('grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-2', className)}>
       {slots.map((slot) => {
         const cell = (
           <TimeSlot

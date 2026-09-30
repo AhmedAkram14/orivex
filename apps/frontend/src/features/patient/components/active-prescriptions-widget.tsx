@@ -36,7 +36,11 @@ export function ActivePrescriptionsWidget() {
       className="rounded-3xl border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">
-          <Link href="/patient/prescriptions">{t('viewPrescriptionsAction')}</Link>
+          {/* A short visible label keeps the card title on one line; the sr-only title keeps the link's purpose. */}
+          <Link href="/patient/prescriptions">
+            {t('viewAll')}
+            <span className="sr-only"> {t('activePrescriptionsTitle')}</span>
+          </Link>
         </Button>
       }
     >

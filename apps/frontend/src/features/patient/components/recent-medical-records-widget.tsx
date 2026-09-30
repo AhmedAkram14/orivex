@@ -36,7 +36,11 @@ export function RecentMedicalRecordsWidget() {
       className="rounded-3xl border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">
-          <Link href="/patient/records">{t('viewAllRecords')}</Link>
+          {/* A short visible label keeps the card title on one line; the sr-only title keeps the link's purpose. */}
+          <Link href="/patient/records">
+            {t('viewAll')}
+            <span className="sr-only"> {t('recentMedicalRecordsTitle')}</span>
+          </Link>
         </Button>
       }
     >
