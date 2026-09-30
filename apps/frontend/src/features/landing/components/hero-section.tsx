@@ -133,12 +133,11 @@ export function HeroSection() {
           )}
         </div>
 
-        <div className="relative flex flex-col items-center justify-center overflow-x-clip">
-          {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. Less blur/spread than before, closer to the reference's tighter glow. */}
-          <div
-            className="absolute -end-8 top-6 -z-10 size-80 rounded-full bg-primary/15 blur-2xl"
-            aria-hidden="true"
-          />
+        <div className="relative flex flex-col items-center justify-center">
+          {/* Decorative blurred shape behind the illustration -- existing token color only, no new hue. Clipped sideways on its own layer (not the whole column), so the card below can overhang the photo's edge. */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-x-clip">
+            <div className="absolute -end-8 top-6 size-80 rounded-full bg-primary/15 blur-2xl" />
+          </div>
           <div className="relative w-full overflow-hidden rounded-(--r-hero) border border-border-default shadow-md">
             <Image
               src="/hero-1.png"
@@ -149,23 +148,27 @@ export function HeroSection() {
               sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-auto w-full"
             />
-            {/* The photo has English labels baked in at its top-left. A blurred pad hides them and the labels below are live, translated text. */}
+            {/* The photo has English labels baked in at its top-left. A blurred pad hides them and the labels below are live, translated text -- pinned to the physical left over that pad (the photo isn't mirrored), so in Arabic they don't land on the photo's top-right buttons. */}
             <div aria-hidden="true" className="absolute left-0 top-0 h-[14%] w-[24%] backdrop-blur-2xl" />
-            <div className="absolute start-3 top-3 flex items-center gap-2 rounded-full bg-text-primary/70 px-3 py-1 text-caption font-semibold text-text-inverse backdrop-blur-sm">
+            <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-text-primary/70 px-3 py-1 text-caption font-semibold text-text-inverse backdrop-blur-sm">
               <span aria-hidden="true" className="size-2 rounded-full bg-pulse" />
               {tUi('videoLabel')} · {tUi('live')}
             </div>
           </div>
           {/*
-            The "priority" card is live text (translated, real link), not a flattened image. From `sm` it sits
-            fully inside the photo frame, bottom-right -- physical `right`, not `end`, on purpose: the photo is
-            not mirrored in Arabic, and its call controls sit bottom-left, so the card must stay on the
-            photo's right in both directions to never cover them. Below `sm` the photo is too short to
-            overlay, so the card follows it instead.
+            The "priority" card is live text (translated, real link), not a flattened image. From `sm` it
+            hangs off the photo's bottom-right corner, 24px below the frame (and, from `lg`, 24px past its
+            right edge), in the one free patch of the photo: right of the call controls (which end at 64%
+            of its width) and below the patient's picture-in-picture (which ends at 44% of its height). Its
+            width is a share of the photo's so it stays clear of the controls at every size. Physical
+            `right`, not `end`, on purpose: the photo is not mirrored in Arabic. Below `sm` the photo is too
+            short to overlay, so the card follows it instead.
           */}
-          <div className="relative mt-3 w-full rounded-(--r-card) border border-border-default bg-surface p-4 shadow-md sm:absolute sm:right-4 sm:bottom-4 sm:mt-0 sm:w-[40%] sm:max-w-64">
-            <ShieldCheck aria-hidden="true" className="mb-2 size-6 text-text-primary" />
-            <p className="text-h3 text-text-primary">{tUi('cardTitle')}</p>
+          <div className="relative mt-3 w-full rounded-(--r-card) border border-border-default bg-surface p-4 shadow-md sm:absolute sm:right-3 sm:-bottom-6 sm:mt-0 sm:w-[calc(35%-1rem)] sm:max-w-[13.75rem] sm:p-3.5 lg:-right-6 lg:w-[calc(35%+1rem)]">
+            <div className="flex items-start gap-2">
+              <ShieldCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-text-primary" />
+              <p className="text-h3 text-text-primary">{tUi('cardTitle')}</p>
+            </div>
             <p className="mt-1 text-small text-text-secondary">
               {tUi('cardLineOne')} {tUi('cardLineTwo')} {tUi('cardLineThree')}
             </p>
