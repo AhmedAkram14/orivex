@@ -50,4 +50,18 @@ Reviewed size: 1046×612 with the sidebar open (~780px of content). All work is 
 
 ## Verification
 
-See the matrix results below (filled in after the browser run).
+- **Checks:** `tsc` clean; `eslint` 0 errors (12 pre-existing warnings); `vitest` all green; `next build` passes.
+- **New Playwright regression spec** (`tests/e2e/shell-layout-integrity.spec.ts`): on every patient and doctor route, the document is never taller than the viewport and `<main>` never scrolls sideways. It runs at 1046×612 and 390×844, in EN and AR. All 8 cases pass (3.2 min, one worker).
+- **Browser matrix** (production build, mock API): 1046×612, 390×844, 768×1024 and 1440×900 × EN/AR × light/dark.
+  - Landing.
+  - Patient: Overview, Appointments (both tabs), Browse Doctors, Doctor profile, Booking up to Review (not confirmed), Records, Health.
+  - Doctor: Overview, Appointments, Patients, Patient chart, Schedule, Earnings, Reports, Profile.
+  - Each route asserts: document height equals the viewport, no horizontal overflow in `main` (or the page), no wrapped or clipped `[data-numeric]` value, no enabled control left below full opacity (after scrolling the landing through), and no page errors.
+  - **272 of 272 checks pass.**
+- **Found and fixed during verification:**
+  - A sentence used as a stat value (Records "Last visit" in Arabic at 390px).
+  - The blood-pressure value wrapping in narrow vital tiles.
+  - Timeline hour labels wrapping.
+  - The profile hero initials counting "Dr.".
+  - The doctor-overview Patients list overflowing at 390px in Arabic (`TimelineCard` could not shrink).
+- **Mock data:** in mock mode every link in the doctor's seeded patient list opened "Patient not found", because the list and the patient store use different ids. The mock now builds a minimal chart from the list entry, and it returns `allergiesStatus` like the real API. The real backend was never affected.
