@@ -3655,14 +3655,18 @@
       "anyWhen": "You have an upcoming appointment scheduled for {when}."
     },
     "newAppointmentRequest": {
+      "named": "{name} requested an appointment with you.",
       "title": "New appointment request",
       "any": "A patient requested an appointment with you."
     },
     "patientCheckedIn": {
+      "named": "{name} has checked in and is waiting.",
       "title": "Patient checked in",
       "any": "A patient has checked in and is waiting."
     },
     "newReview": {
+      "namedWithComment": "{name} rated the consultation {rating}/5: “{comment}”",
+      "named": "{name} rated the consultation {rating}/5.",
       "title": "New consultation review",
       "any": "A patient left a review of a consultation."
     },
@@ -3729,6 +3733,20 @@
     "verificationApproved": {
       "title": "Verification approved",
       "any": "Your verification was approved."
+    },
+    "verificationRejected": {
+      "title": "Verification rejected",
+      "any": "Your verification application was rejected.",
+      "withReason": "Your verification application was rejected. Reason: {reason}"
+    },
+    "verificationMoreInfo": {
+      "title": "More information needed",
+      "any": "Your verification application needs more information before it can be reviewed.",
+      "withReason": "Your verification application needs more information before it can be reviewed. {reason}"
+    },
+    "verificationSubmitted": {
+      "title": "New verification application submitted",
+      "any": "A new verification application is waiting for review."
     },
     "verificationSuspended": {
       "title": "Verification suspended",

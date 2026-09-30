@@ -34,6 +34,7 @@ describe('isPersonalNotification', () => {
   });
 
   it('classifies every known notification type', () => {
-    expect(Object.keys(NOTIFICATION_AUDIENCE)).toHaveLength(25);
+    // 25 + Verification rejected, More information needed, New verification application submitted (round 4).
+    expect(Object.keys(NOTIFICATION_AUDIENCE)).toHaveLength(28);
   });
 });

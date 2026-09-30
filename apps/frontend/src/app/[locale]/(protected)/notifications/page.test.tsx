@@ -44,9 +44,9 @@ describe('NotificationCenterList', () => {
 
     // Page 1 (limit 5) of the 12 seeded mock notifications.
     expect(await screen.findByText('Welcome to Orivex')).toBeInTheDocument();
-    expect(screen.getByText('New device signed in')).toBeInTheDocument();
+    expect(screen.getByText('Verification approved')).toBeInTheDocument();
     expect(screen.getByText('Password changed')).toBeInTheDocument();
-    expect(screen.getByText('Appointment confirmed')).toBeInTheDocument();
+    expect(screen.getByText('Appointment approved')).toBeInTheDocument();
     expect(screen.getByText('Payment received')).toBeInTheDocument();
     expect(screen.getByText('Page 1 of 3')).toBeInTheDocument();
   });
@@ -57,8 +57,8 @@ describe('NotificationCenterList', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Next page' }));
 
-    expect(await screen.findByText('Verification under review')).toBeInTheDocument();
-    expect(screen.getByText('Reminder: upcoming appointment')).toBeInTheDocument();
+    expect(await screen.findByText('More information needed')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming appointment reminder')).toBeInTheDocument();
     expect(screen.queryByText('Welcome to Orivex')).not.toBeInTheDocument();
     expect(screen.getByText('Page 2 of 3')).toBeInTheDocument();
   });

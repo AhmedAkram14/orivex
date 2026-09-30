@@ -42,7 +42,10 @@ export const NOTIFICATION_AUDIENCE: Record<NotificationTypeKey, 'clinical' | 'pe
   accountLocked: 'account',
   passwordChanged: 'account',
   verificationApproved: 'account',
+  verificationRejected: 'account',
+  verificationMoreInfo: 'account',
   verificationSuspended: 'account',
+  verificationSubmitted: 'account',
 };
 
 /**

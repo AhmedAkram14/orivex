@@ -7,7 +7,9 @@ import type { NotificationEntry } from '@/features/notifications/api/types';
  * endpoint (NotificationModule); this mock now exists purely to keep the
  * frontend test suite deterministic, matching `patient-store.ts`'s
  * `seedProfile()` precedent. No application code outside `src/mocks/` may
- * import this directly; go through `notificationsApi`.
+ * import this directly; go through `notificationsApi`. Every title and body
+ * below is one the backend really sends (its NotificationModule handlers), so
+ * the demo renders through the same translated copy as production.
  */
 function seedNotifications(): NotificationEntry[] {
   return [
@@ -21,8 +23,8 @@ function seedNotifications(): NotificationEntry[] {
     },
     {
       id: 'notification-2',
-      title: 'New device signed in',
-      description: 'A new device signed in to your account. Review it in the Security Center if this wasn’t you.',
+      title: 'Verification approved',
+      description: 'Your identity verification application was approved.',
       severity: 'info',
       createdAt: new Date(Date.now() - 26 * 3_600_000).toISOString(),
       read: false,
@@ -40,8 +42,8 @@ function seedNotifications(): NotificationEntry[] {
     // meaningfully testable instead of always fitting on page 1.
     {
       id: 'notification-4',
-      title: 'Appointment confirmed',
-      description: 'Your appointment with Dr. Amina Hassan was confirmed for tomorrow at 10:00 AM.',
+      title: 'Appointment approved',
+      description: 'Your doctor has approved your appointment request.',
       severity: 'success',
       createdAt: new Date(Date.now() - 6 * 86_400_000).toISOString(),
       read: true,
@@ -49,23 +51,23 @@ function seedNotifications(): NotificationEntry[] {
     {
       id: 'notification-5',
       title: 'Payment received',
-      description: 'Your payment of 500 EGP was processed successfully.',
+      description: 'Your payment of 500 EGP was received.',
       severity: 'success',
       createdAt: new Date(Date.now() - 7 * 86_400_000).toISOString(),
       read: true,
     },
     {
       id: 'notification-6',
-      title: 'Verification under review',
-      description: 'Your professional verification application is being reviewed.',
+      title: 'More information needed',
+      description: 'Your identity verification application needs more information before it can be reviewed. Please upload a clearer photo of your ID.',
       severity: 'info',
       createdAt: new Date(Date.now() - 8 * 86_400_000).toISOString(),
       read: true,
     },
     {
       id: 'notification-7',
-      title: 'Reminder: upcoming appointment',
-      description: 'You have an appointment with Dr. Karim Mostafa in 2 hours.',
+      title: 'Upcoming appointment reminder',
+      description: 'You have an upcoming appointment scheduled for tomorrow.',
       severity: 'warning',
       createdAt: new Date(Date.now() - 9 * 86_400_000).toISOString(),
       read: true,
@@ -80,16 +82,16 @@ function seedNotifications(): NotificationEntry[] {
     },
     {
       id: 'notification-9',
-      title: 'Prescription ready',
-      description: 'A new prescription was issued and is ready to view.',
+      title: 'New prescription',
+      description: 'Your doctor has signed a new prescription for you.',
       severity: 'info',
       createdAt: new Date(Date.now() - 11 * 86_400_000).toISOString(),
       read: true,
     },
     {
       id: 'notification-10',
-      title: 'Profile verified',
-      description: 'Your identity verification was approved.',
+      title: 'Verification rejected',
+      description: 'Your identity verification application was rejected. Reason: The ID photo was too blurry to read.',
       severity: 'success',
       createdAt: new Date(Date.now() - 12 * 86_400_000).toISOString(),
       read: true,
@@ -104,8 +106,8 @@ function seedNotifications(): NotificationEntry[] {
     },
     {
       id: 'notification-12',
-      title: 'Security alert',
-      description: 'We noticed a login attempt from an unrecognized location.',
+      title: 'Account temporarily locked',
+      description: 'Too many failed sign-in attempts. Your account is temporarily locked.',
       severity: 'danger',
       createdAt: new Date(Date.now() - 14 * 86_400_000).toISOString(),
       read: true,

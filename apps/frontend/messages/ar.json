@@ -3655,14 +3655,18 @@
       "anyWhen": "لديك موعد قادم في {when}."
     },
     "newAppointmentRequest": {
+      "named": "طلب {name} موعدًا معك.",
       "title": "طلب موعد جديد",
       "any": "طلب أحد المرضى موعدًا معك."
     },
     "patientCheckedIn": {
+      "named": "وصل {name} وهو في الانتظار.",
       "title": "وصل المريض",
       "any": "وصل أحد المرضى وهو في الانتظار."
     },
     "newReview": {
+      "namedWithComment": "قيّم {name} الاستشارة بـ {rating}/5: «{comment}»",
+      "named": "قيّم {name} الاستشارة بـ {rating}/5.",
       "title": "تقييم جديد للاستشارة",
       "any": "ترك أحد المرضى تقييمًا لاستشارة."
     },
@@ -3729,6 +3733,20 @@
     "verificationApproved": {
       "title": "تمت الموافقة على التوثيق",
       "any": "تمت الموافقة على توثيقك."
+    },
+    "verificationRejected": {
+      "title": "تم رفض التوثيق",
+      "any": "تم رفض طلب التوثيق الخاص بك.",
+      "withReason": "تم رفض طلب التوثيق الخاص بك. السبب: {reason}"
+    },
+    "verificationMoreInfo": {
+      "title": "مطلوب مزيد من المعلومات",
+      "any": "يحتاج طلب التوثيق الخاص بك إلى مزيد من المعلومات قبل مراجعته.",
+      "withReason": "يحتاج طلب التوثيق الخاص بك إلى مزيد من المعلومات قبل مراجعته. {reason}"
+    },
+    "verificationSubmitted": {
+      "title": "طلب توثيق جديد",
+      "any": "طلب توثيق جديد بانتظار المراجعة."
     },
     "verificationSuspended": {
       "title": "تم تعليق التوثيق",

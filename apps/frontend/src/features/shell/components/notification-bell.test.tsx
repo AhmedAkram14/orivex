@@ -43,7 +43,7 @@ describe('NotificationBell + NotificationPanel', () => {
     await userEvent.click(screen.getByRole('button', { name: /Notifications/ }));
 
     expect(await screen.findByText('Welcome to Orivex')).toBeInTheDocument();
-    expect(screen.getByText('New device signed in')).toBeInTheDocument();
+    expect(screen.getByText('Verification approved')).toBeInTheDocument();
 
     await waitFor(() => expect(screen.queryByText('2')).not.toBeInTheDocument());
     expect(screen.queryByText('1')).not.toBeInTheDocument();

@@ -456,8 +456,8 @@ function patientNotifications(accountId: string, appointments: Appointment[], se
   if (confirmed) {
     entries.push({
       id: `notification-${accountId}-confirmed`,
-      title: 'Appointment confirmed',
-      description: `Your appointment with ${confirmed.doctorName} is confirmed.`,
+      title: 'Appointment approved',
+      description: 'Your doctor has approved your appointment request.',
       severity: 'success',
       createdAt: hoursAgo(3),
       read: false,
@@ -474,8 +474,8 @@ function patientNotifications(accountId: string, appointments: Appointment[], se
     });
     entries.push({
       id: `notification-${accountId}-payment`,
-      title: 'Payment successful',
-      description: `Your payment for the consultation with ${completed.doctorName} was processed successfully.`,
+      title: 'Payment received',
+      description: 'Your payment was received.',
       severity: 'success',
       createdAt: hoursAgo(27),
       read: true,
@@ -493,8 +493,8 @@ function patientNotifications(accountId: string, appointments: Appointment[], se
   }
   entries.push({
     id: `notification-${accountId}-verification`,
-    title: 'Identity verification approved',
-    description: 'Your identity verification was approved. You can now book consultations.',
+    title: 'Verification approved',
+    description: 'Your identity verification application was approved.',
     severity: 'success',
     createdAt: hoursAgo(24 * 9),
     read: true,
@@ -515,17 +515,18 @@ function doctorNotifications(
     entries.push({
       id: `notification-${doctorProfileId}-request`,
       title: 'New appointment request',
-      description: `${requested.patientProfile.fullName} requested a consultation. Review it in your queue.`,
+      description: `${requested.patientProfile.fullName} has requested an appointment. Approve it to add them to your queue.`,
       severity: 'info',
       createdAt: hoursAgo(2),
       read: false,
+      actionUrl: `/doctor/appointments?highlight=${requested.appointment.id}`,
     });
   }
   if (completed) {
     entries.push({
       id: `notification-${doctorProfileId}-rated`,
-      title: 'A patient rated your consultation',
-      description: `${completed.patientProfile.fullName} left feedback on a recent consultation.`,
+      title: 'New consultation review',
+      description: `${completed.patientProfile.fullName} rated their consultation 5/5.`,
       severity: 'success',
       createdAt: hoursAgo(20),
       read: false,
@@ -534,34 +535,26 @@ function doctorNotifications(
       actionUrl: `/doctor/patients/${completed.patientProfile.id}`,
     });
   }
-  entries.push(
-    verification === 'approved'
-      ? {
-          id: `notification-${doctorProfileId}-verification`,
-          title: 'Verification approved',
-          description: 'Your professional verification was approved. Your profile is now visible to patients.',
-          severity: 'success',
-          createdAt: hoursAgo(24 * 12),
-          read: true,
-        }
-      : verification === 'pending'
-        ? {
-            id: `notification-${doctorProfileId}-verification`,
-            title: 'Verification under review',
-            description: 'Your professional verification application is being reviewed.',
-            severity: 'info',
-            createdAt: hoursAgo(24 * 3),
-            read: false,
-          }
-        : {
-            id: `notification-${doctorProfileId}-verification`,
-            title: 'Verification rejected',
-            description: 'Your verification was rejected. Re-upload a clearer copy of your licence to resubmit.',
-            severity: 'danger',
-            createdAt: hoursAgo(24 * 4),
-            read: false,
-          },
-  );
+  // The backend notifies on a decision, never on submission, so a pending doctor has no verification notification yet.
+  if (verification === 'approved') {
+    entries.push({
+      id: `notification-${doctorProfileId}-verification`,
+      title: 'Verification approved',
+      description: 'Your professional verification application was approved.',
+      severity: 'success',
+      createdAt: hoursAgo(24 * 12),
+      read: true,
+    });
+  } else if (verification === 'rejected') {
+    entries.push({
+      id: `notification-${doctorProfileId}-verification`,
+      title: 'Verification rejected',
+      description: 'Your professional verification application was rejected. Reason: Re-upload a clearer copy of your licence to resubmit.',
+      severity: 'danger',
+      createdAt: hoursAgo(24 * 4),
+      read: false,
+    });
+  }
   return entries;
 }
 
@@ -569,8 +562,8 @@ function adminNotifications(): NotificationEntry[] {
   return [
     {
       id: 'notification-admin-queue',
-      title: 'Verification cases awaiting review',
-      description: 'New doctor and patient verification cases are pending review in the queue.',
+      title: 'New verification application submitted',
+      description: 'A doctor has submitted their professional verification for review.',
       severity: 'warning',
       createdAt: hoursAgo(1),
       read: false,
