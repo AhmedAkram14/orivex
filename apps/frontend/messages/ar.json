@@ -2118,6 +2118,7 @@
       "emptyTitle": "لا توجد تخصصات متاحة بعد"
     },
     "profile": {
+      "addContactShort": "إضافة",
       "title": "الملف الشخصي",
       "subtitle": "إدارة معلوماتك الشخصية وتفاصيلك الصحية.",
       "editProfile": "تعديل الملف الشخصي",
@@ -2176,7 +2177,7 @@
           "medication": "دواء حالي"
         }
       },
-      "emergencyContacts": "جهات الاتصال في حالات الطوارئ",
+      "emergencyContacts": "جهات اتصال الطوارئ",
       "emergencyContactsEmptyTitle": "لا توجد جهات اتصال طوارئ بعد",
       "emergencyContactsEmptyDescription": "أضف شخصًا يمكننا التواصل معه في حالة الطوارئ.",
       "addContact": "إضافة جهة اتصال",

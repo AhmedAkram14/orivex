@@ -2118,6 +2118,7 @@
       "emptyTitle": "No specialties available yet"
     },
     "profile": {
+      "addContactShort": "Add",
       "title": "Profile",
       "subtitle": "Manage your personal information and health details.",
       "editProfile": "Edit profile",

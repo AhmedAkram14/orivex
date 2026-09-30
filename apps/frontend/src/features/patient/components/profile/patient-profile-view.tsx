@@ -189,10 +189,14 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
     <Card className={cn('flex h-full flex-col', CARD_CLASSNAME)}>
       <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 px-7 py-6">
         <CardTitle className="min-w-0 text-balance">{t('emergencyContacts')}</CardTitle>
-        {/* The card-header action rule: a ghost sm button that never wraps (the Button already spaces its icon). */}
-        <Button variant="ghost" size="sm" onClick={onEdit} className="shrink-0 whitespace-nowrap">
+        {/*
+          The card-header action rule: a ghost sm button that never wraps (the Button already spaces its icon).
+          The short visible verb keeps the title on one line in this narrow card; the full name ("Add contact")
+          starts with it, so the spoken label still matches what is on screen.
+        */}
+        <Button variant="ghost" size="sm" onClick={onEdit} aria-label={t('addContact')} className="shrink-0 whitespace-nowrap">
           <Icon icon={Plus} size="sm" />
-          {t('addContact')}
+          {t('addContactShort')}
         </Button>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col px-7 pt-0 pb-7">
