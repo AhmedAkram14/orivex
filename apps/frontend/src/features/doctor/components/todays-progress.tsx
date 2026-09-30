@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl';
 import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-dashboard-summary';
 import { Alert } from '@/shared/ui/alert';
 import { CircularProgress } from '@/shared/ui/charts/circular-progress';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
@@ -63,7 +62,8 @@ export function TodaysProgress() {
       contentClassName={contentClassName}
     >
       {total === 0 ? (
-        <EmptyState illustration="calendar-clear" size="sm" title={t('emptyTitle')} description={t('emptyDescription')} />
+        // One quiet line: the greeting's day strip is the Overview's one illustrated empty state.
+        <p className="self-stretch text-sm text-text-secondary">{t('emptyLine')}</p>
       ) : (
         <div className="flex flex-col items-center gap-3 py-2">
           <CircularProgress value={completed} max={total} size={176} strokeWidth={14} />

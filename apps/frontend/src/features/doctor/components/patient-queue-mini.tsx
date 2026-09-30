@@ -7,7 +7,6 @@ import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { PersonAvatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { QueueStatus, type QueueStatusValue } from '@/shared/ui/queue/queue-status';
@@ -74,7 +73,8 @@ export function PatientQueueMini() {
           ))}
         </ul>
       ) : (
-        <EmptyState illustration="waiting-room-empty" size="sm" title={t('patientQueueMini.emptyTitle')} description={t('patientQueueMini.emptyDescription')} />
+        // One quiet line: the greeting's day strip is the Overview's one illustrated empty state.
+        <p className="text-sm text-text-secondary">{t('patientQueueMini.emptyLine')}</p>
       )}
     </WidgetContainer>
   );

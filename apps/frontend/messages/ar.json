@@ -1044,6 +1044,7 @@
       "patientAccountRequired": "الحجز متاح لحسابات المرضى فقط"
     },
     "dashboard": {
+      "upcomingWorkEmptyLine": "لا يوجد شيء محجوز اليوم.",
       "title": "مساحة عمل الطبيب",
       "welcome": "مرحبًا بعودتك، د. <bdi>{name}</bdi>.",
       "consultationsToday": "الاستشارات اليوم",
@@ -1086,29 +1087,27 @@
         }
       },
       "patientQueueMini": {
+        "emptyLine": "لا يوجد أحد في الانتظار.",
         "title": "قائمة انتظار المرضى",
         "viewFullQueue": "عرض القائمة الكاملة",
         "loadError": "تعذّر تحميل قائمة انتظار المرضى.",
-        "emptyTitle": "لا يوجد أحد في الانتظار",
-        "emptyDescription": "سيظهر هنا المرضى الذين ينتظرون استشارة عند تسجيل وصولهم.",
         "waitingMinutes": "الانتظار منذ {minutes, plural, one {دقيقة واحدة} two {دقيقتين} few {# دقائق} many {# دقيقة} other {# دقيقة}}",
         "moreOptions": "خيارات إضافية"
       },
       "progress": {
+        "emptyLine": "لا توجد مواعيد لمتابعتها اليوم.",
         "title": "تقدّم اليوم",
         "completedOfTotal": "{completed} من {total} مكتملة",
         "remaining": "{count, plural, =0 {لا توجد استشارات متبقية اليوم} one {استشارة واحدة متبقية} two {استشارتان متبقيتان} few {# استشارات متبقية} many {# استشارة متبقية} other {# استشارة متبقية}}",
-        "loadError": "تعذّر تحميل تقدّم اليوم.",
-        "emptyTitle": "لا يوجد شيء مجدول بعد",
-        "emptyDescription": "ستمتلئ حلقة التقدم عندما يتضمن اليوم مواعيد لإكمالها."
+        "loadError": "تعذّر تحميل تقدّم اليوم."
       },
       "availability": {
+        "emptyLine": "لم تُحدَّد ساعات العمل بعد.",
         "title": "أوقات التوفر القادمة",
-        "emptyTitle": "لم يتم تحديد أوقات توفر",
-        "emptyDescription": "حدّد ساعات عملك حتى يتمكن المرضى من الحجز معك.",
         "loadError": "تعذّر تحميل أوقات توفرك القادمة."
       },
       "activity": {
+        "emptyLine": "لا يوجد نشاط حديث.",
         "groupedFallback": "{title} ({count})",
         "title": "النشاط الأخير",
         "grouped": {
@@ -1124,8 +1123,6 @@
           "disputeResolved": "{count, plural, two {حل نزاعين} few {حل # نزاعات} many {حل # نزاعًا} other {حل # نزاع}}"
         },
         "viewAll": "عرض الكل",
-        "emptyTitle": "لا يوجد نشاط حديث",
-        "emptyDescription": "ستظهر هنا إشعاراتك الأخيرة، مثل التأكيدات والوصفات الطبية.",
         "loadError": "تعذّر تحميل النشاط الأخير."
       }
     },
@@ -3614,6 +3611,11 @@
   },
   "doctorHome": {
     "timeline": {
+      "nothingUpcoming": "لا توجد مواعيد متاحة قادمة. راجع ساعات عملك من صفحة الجدول.",
+      "next": "التالي: {when}",
+      "noSlotsLeft": "لم تتبقَّ مواعيد متاحة اليوم",
+      "noHoursToday": "لا توجد ساعات عمل اليوم",
+      "hoursEnded": "انتهت ساعات العمل اليوم",
       "title": "اليوم",
       "empty": "لا توجد ساعات عمل أو زيارات في تقويمك اليوم.",
       "emptyHint": "حدّد ساعات عملك من صفحة الجدول.",

@@ -1044,6 +1044,7 @@
       "patientAccountRequired": "Booking is available for patient accounts"
     },
     "dashboard": {
+      "upcomingWorkEmptyLine": "Nothing booked for today.",
       "title": "Doctor Workspace",
       "welcome": "Welcome back, Dr. <bdi>{name}</bdi>.",
       "consultationsToday": "Consultations today",
@@ -1086,29 +1087,27 @@
         }
       },
       "patientQueueMini": {
+        "emptyLine": "No one is waiting.",
         "title": "Patient Queue",
         "viewFullQueue": "View Full Queue",
         "loadError": "Couldn't load the patient queue.",
-        "emptyTitle": "No one waiting",
-        "emptyDescription": "Patients waiting for a consultation will appear here as they check in.",
         "waitingMinutes": "Waiting {minutes, plural, one {# minute} other {# minutes}}",
         "moreOptions": "More options"
       },
       "progress": {
+        "emptyLine": "No appointments to track today.",
         "title": "Today's Progress",
         "completedOfTotal": "{completed} of {total} done",
         "remaining": "{count, plural, =0 {No consultations remaining today} one {# consultation remaining} other {# consultations remaining}}",
-        "loadError": "Couldn't load today's progress.",
-        "emptyTitle": "Nothing scheduled yet",
-        "emptyDescription": "Your progress ring will fill in once today has appointments to complete."
+        "loadError": "Couldn't load today's progress."
       },
       "availability": {
+        "emptyLine": "No working hours set yet.",
         "title": "Upcoming Availability",
-        "emptyTitle": "No availability configured",
-        "emptyDescription": "Set your working hours so patients can book with you.",
         "loadError": "Couldn't load your upcoming availability."
       },
       "activity": {
+        "emptyLine": "No recent activity.",
         "groupedFallback": "{title} ({count})",
         "title": "Recent Activity",
         "grouped": {
@@ -1124,8 +1123,6 @@
           "disputeResolved": "{count, plural, one {# dispute resolved} other {# disputes resolved}}"
         },
         "viewAll": "View all",
-        "emptyTitle": "No recent activity",
-        "emptyDescription": "Your recent notifications, like confirmations and prescriptions, will appear here.",
         "loadError": "Couldn't load recent activity."
       }
     },
@@ -3614,6 +3611,11 @@
   },
   "doctorHome": {
     "timeline": {
+      "nothingUpcoming": "No open slots coming up. Check your hours in Schedule.",
+      "next": "Next: {when}",
+      "noSlotsLeft": "No open slots left today",
+      "noHoursToday": "No working hours today",
+      "hoursEnded": "Today's hours have ended",
       "title": "Today",
       "empty": "No hours or visits on your calendar today.",
       "emptyHint": "Set your working hours in Schedule.",

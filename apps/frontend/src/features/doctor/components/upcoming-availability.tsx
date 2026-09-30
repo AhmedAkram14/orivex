@@ -7,7 +7,6 @@ import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-av
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
@@ -54,7 +53,8 @@ export function UpcomingAvailability() {
   return (
     <WidgetContainer title={widgetTitle} className={widgetClassName} contentClassName={contentClassName}>
       {days.length === 0 ? (
-        <EmptyState illustration="calendar-clear" size="sm" title={t('emptyTitle')} description={t('emptyDescription')} />
+        // One quiet line: the greeting's day strip is the Overview's one illustrated empty state.
+        <p className="text-sm text-text-secondary">{t('emptyLine')}</p>
       ) : (
         <ul className="flex flex-col divide-y divide-border-default">
           {days.map(({ date, day }) => {

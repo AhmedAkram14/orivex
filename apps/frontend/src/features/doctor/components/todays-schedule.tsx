@@ -9,7 +9,6 @@ import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { PersonAvatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { TimelineCard } from '@/shared/ui/layout/timeline-card';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
@@ -81,7 +80,8 @@ export function TodaysSchedule() {
           ))}
         </ul>
       ) : (
-        <EmptyState illustration="calendar-clear" title={t('upcomingWorkEmptyTitle')} description={t('upcomingWorkEmptyDescription')} />
+        // One quiet line: the greeting's day strip is the Overview's one illustrated empty state.
+        <p className="text-sm text-text-secondary">{t('upcomingWorkEmptyLine')}</p>
       )}
     </WidgetContainer>
   );

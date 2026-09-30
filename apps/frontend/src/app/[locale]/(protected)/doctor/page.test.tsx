@@ -118,9 +118,8 @@ describe('DoctorDashboardPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Nothing scheduled yet')).toBeInTheDocument();
-    expect(
-      screen.getByText('No appointments scheduled today. Enjoy your free time or update your availability.'),
-    ).toBeInTheDocument();
+    // A quiet line, not a second illustrated empty card: the greeting's day strip is the Overview's only one.
+    expect(await screen.findByText('Nothing booked for today.')).toBeInTheDocument();
+    expect(screen.queryByText('No appointments scheduled today. Enjoy your free time or update your availability.')).not.toBeInTheDocument();
   });
 });

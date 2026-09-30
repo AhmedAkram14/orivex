@@ -3,9 +3,12 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { useDoctorUpcomingWork } from '@/features/doctor/hooks/use-doctor-upcoming-work';
+import { todayHoursState } from '@/features/doctor/lib/today-hours';
+import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-availability';
+import { useDoctorExceptions } from '@/features/scheduling/hooks/use-doctor-exceptions';
 import { useUpcomingSlots } from '@/features/scheduling/hooks/use-upcoming-slots';
 import { cn } from '@/shared/lib/cn';
-import { isSameCairoDay } from '@/shared/lib/date/timezone';
+import { getCairoNow, isSameCairoDay } from '@/shared/lib/date/timezone';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -29,14 +32,18 @@ const TICK_MS = 10 * 60_000;
  * The doctor's day as one horizontal strip, built only from real data: the
  * hours they are available today (their open/held generated slots) form the
  * track, booked appointments are ink capsules on it, and a pulse marker shows
- * "now". No fabricated hours -- with nothing on the calendar it renders an
- * honest empty state.
+ * "now". No fabricated hours -- with nothing left to draw it says why, from
+ * the doctor's real schedule: today's hours have ended, there are no hours
+ * today, nothing is left in today's hours, or no hours are set at all -- with
+ * the next real open slot when there is one ("Next: Thu, Oct 1, 9 AM").
  */
 export function TodayTimeline({ className }: { className?: string }) {
   const t = useTranslations('doctorHome.timeline');
   const format = useFormatter();
   const { data: slots, isLoading: slotsLoading } = useUpcomingSlots();
   const { data: work, isLoading: workLoading } = useDoctorUpcomingWork();
+  const { data: schedule, isLoading: scheduleLoading } = useDoctorAvailability();
+  const { data: exceptions, isLoading: exceptionsLoading } = useDoctorExceptions();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -44,7 +51,7 @@ export function TodayTimeline({ className }: { className?: string }) {
     return () => window.clearInterval(timer);
   }, []);
 
-  if (slotsLoading || workLoading) return <Skeleton className={cn('h-24 w-full', className)} />;
+  if (slotsLoading || workLoading || scheduleLoading || exceptionsLoading) return <Skeleton className={cn('h-24 w-full', className)} />;
 
   const today = new Date(now);
   const available: Range[] = (slots ?? [])
@@ -69,14 +76,29 @@ export function TodayTimeline({ className }: { className?: string }) {
   const all = [...available, ...booked];
 
   if (all.length === 0) {
+    // Upcoming slots only hold what is still ahead, so an empty strip at 10 PM means today's hours are over,
+    // not that there were none: the schedule says which.
+    const state = todayHoursState(schedule, exceptions, getCairoNow(today));
+    const next = (slots ?? [])
+      .map((slot) => new Date(slot.startTime))
+      .filter((start) => start.getTime() > now)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    const nextLabel = next
+      ? t('next', {
+          when: format.dateTime(next, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            ...(getCairoNow(next).getMinutes() !== 0 ? { minute: '2-digit' as const } : {}),
+          }),
+        })
+      : undefined;
+    const title = { ended: t('hoursEnded'), noneLeft: t('noSlotsLeft'), off: t('noHoursToday'), unset: t('empty') }[state];
+    const description = nextLabel ?? (state === 'unset' ? t('emptyHint') : t('nothingUpcoming'));
     return (
       <div className={className}>
-        <EmptyState
-          size="sm"
-          illustration="calendar-clear"
-          title={t('empty')}
-          description={t('emptyHint')}
-        />
+        <EmptyState size="sm" illustration="calendar-clear" title={title} description={description} />
       </div>
     );
   }

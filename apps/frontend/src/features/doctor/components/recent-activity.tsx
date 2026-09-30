@@ -11,7 +11,6 @@ import { Button } from '@/shared/ui/button';
 import { useNotifications } from '@/features/notifications/hooks/use-notifications';
 import type { NotificationSeverity } from '@/features/notifications/api/types';
 import { Alert } from '@/shared/ui/alert';
-import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
@@ -113,7 +112,8 @@ export function RecentActivity() {
           })}
         </ul>
       ) : (
-        <EmptyState illustration="inbox-quiet" size="sm" title={t('emptyTitle')} description={t('emptyDescription')} />
+        // One quiet line: the greeting's day strip is the Overview's one illustrated empty state.
+        <p className="text-sm text-text-secondary">{t('emptyLine')}</p>
       )}
     </WidgetContainer>
   );
