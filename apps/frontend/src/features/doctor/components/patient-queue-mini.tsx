@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useDoctorQueue } from '@/features/doctor/hooks/use-doctor-queue';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
@@ -14,13 +14,6 @@ import { QueueStatus, type QueueStatusValue } from '@/shared/ui/queue/queue-stat
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
 const MAX_ENTRIES = 4;
-
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 /**
  * The redesigned Overview page's compact Patient Queue widget — the same
@@ -59,10 +52,8 @@ export function PatientQueueMini() {
               key={entry.id}
               className="flex items-center gap-3 rounded-xl p-3 -mx-3 transition-colors duration-(--duration-fast) hover:bg-secondary-subtle"
             >
-              <Avatar size="sm">
-                {entry.avatarUrl && <AvatarImage src={entry.avatarUrl} alt={entry.label} />}
-                <AvatarFallback>{initialsFor(entry.label)}</AvatarFallback>
-              </Avatar>
+              {/* 14px name + 12px wait: sm. */}
+              <PersonAvatar name={entry.label} src={entry.avatarUrl} size="sm" />
               <div className="flex flex-1 flex-col gap-0.5">
                 <span className="text-sm font-medium text-text-primary">{entry.label}</span>
                 {entry.estimatedWaitMinutes != null && (

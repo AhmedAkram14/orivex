@@ -132,7 +132,8 @@ export function NextAppointmentCard() {
           <p className="text-small text-text-tertiary">{format.relativeTime(scheduledAt, new Date())}</p>
         </div>
         <div className="flex items-center gap-3">
-          <PersonAvatar name={next.doctorName} src={next.doctorAvatarUrl} size="lg" />
+          {/* Two lines beside it (name, specialty): md, centred. */}
+          <PersonAvatar name={next.doctorName} src={next.doctorAvatarUrl} size="md" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <p className="text-body font-semibold text-text-primary">
               <bdi>{next.doctorName}</bdi>

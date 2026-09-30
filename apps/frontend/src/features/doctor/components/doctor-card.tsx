@@ -79,10 +79,13 @@ export function DoctorCard({
 
   return (
     <Card className={cn('relative flex h-full min-w-0 flex-col gap-4 p-(--card-pad) transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md', className)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <PersonAvatar name={fullName} src={avatarUrl} size="lg" />
-          <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex items-start gap-2">
+        {/* Three lines beside the photo (name, specialty, rating), so the photo is top-aligned: mt-1.5 puts its top on
+            the name's cap height (a 16px name in a 24px line). flex-1 on both: the text column takes the card's
+            remaining width, which the rating line measures. */}
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <PersonAvatar name={fullName} src={avatarUrl} size="lg" className="mt-1.5" />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <span className="flex items-center gap-1 text-base font-bold text-text-primary">
               <bdi className="min-w-0 wrap-break-word">{fullName}</bdi>
               <Icon icon={BadgeCheck} size="sm" className="shrink-0 text-care-text" label={t('verified')} />
@@ -96,15 +99,6 @@ export function DoctorCard({
           </div>
         </div>
 
-        {rankBadge && (
-          <Badge
-            variant={rankBadge === 'topRated' ? 'success' : 'warning'}
-            className="absolute top-3 end-3 shrink-0 gap-1"
-          >
-            <Icon icon={rankBadge === 'topRated' ? Trophy : Flame} size="xs" />
-            {rankBadge === 'topRated' ? t('topRated') : t('mostBooked')}
-          </Badge>
-        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-tertiary">
@@ -128,26 +122,35 @@ export function DoctorCard({
 
       <span className="h-px w-full bg-border-default" aria-hidden="true" />
 
-      {/* Always rendered so every card in a grid keeps the same footer position; a doctor with no fee on record reads "Fee on request" instead of dropping the row. */}
-      <div className="flex flex-col">
-        <span className="text-caption text-text-tertiary">{t('consultationFeeLabel')}</span>
-        <span
-          data-numeric
-          className={cn(
-            'font-display text-h2',
-            consultationFeeAmount === undefined
-              ? 'text-text-secondary'
+      {/* Always rendered so every card in a grid keeps the same footer position; a doctor with no fee on record reads "Fee on request" instead of dropping the row.
+          The rank badge sits at this row's end: pinned to the card's corner it ran over longer names. */}
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div className="flex flex-col">
+          <span className="text-caption text-text-tertiary">{t('consultationFeeLabel')}</span>
+          <span
+            data-numeric
+            className={cn(
+              'font-display text-h2',
+              consultationFeeAmount === undefined
+                ? 'text-text-secondary'
+                : consultationFeeAmount === 0
+                  ? 'text-success'
+                  : 'text-text-primary',
+            )}
+          >
+            {consultationFeeAmount === undefined
+              ? t('consultationFeeOnRequest')
               : consultationFeeAmount === 0
-                ? 'text-success'
-                : 'text-text-primary',
-          )}
-        >
-          {consultationFeeAmount === undefined
-            ? t('consultationFeeOnRequest')
-            : consultationFeeAmount === 0
-              ? t('consultationFeeFree')
-              : formatCurrency(format, consultationFeeAmount, 'EGP')}
-        </span>
+                ? t('consultationFeeFree')
+                : formatCurrency(format, consultationFeeAmount, 'EGP')}
+          </span>
+        </div>
+        {rankBadge && (
+          <Badge variant={rankBadge === 'topRated' ? 'success' : 'warning'} className="mb-1 shrink-0 gap-1">
+            <Icon icon={rankBadge === 'topRated' ? Trophy : Flame} size="xs" />
+            {rankBadge === 'topRated' ? t('topRated') : t('mostBooked')}
+          </Badge>
+        )}
       </div>
 
       {viewer === 'other' ? (

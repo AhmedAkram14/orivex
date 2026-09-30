@@ -9,7 +9,7 @@ import { useApproveAppointment } from '@/features/doctor/hooks/use-approve-appoi
 import { useDeclineAppointment } from '@/features/doctor/hooks/use-decline-appointment';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/popover';
@@ -21,11 +21,6 @@ export interface AppointmentPopoverProps {
   /** The clicked calendar block's on-screen rectangle -- the popover opens beside it. */
   anchorRect: { top: number; left: number; width: number; height: number } | null;
   onClose: () => void;
-}
-
-function initialsOf(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '')).toUpperCase();
 }
 
 /**
@@ -81,10 +76,7 @@ export function AppointmentPopover({ appointment, anchorRect, onClose }: Appoint
         {appointment && start && (
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <Avatar size="lg">
-                {appointment.avatarUrl && <AvatarImage src={appointment.avatarUrl} alt="" />}
-                <AvatarFallback>{initialsOf(appointment.patientName)}</AvatarFallback>
-              </Avatar>
+              <PersonAvatar name={appointment.patientName} src={appointment.avatarUrl} size="lg" />
               <div className="flex min-w-0 flex-col">
                 <p className="truncate text-lg font-semibold text-text-primary">{appointment.patientName}</p>
                 <p className="text-sm text-text-secondary">{appointment.appointmentType ? tType(appointment.appointmentType) : t('noVisitType')}</p>

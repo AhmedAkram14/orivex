@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormatter, useTranslations } from 'next-intl';
-import { Avatar, AvatarFallback } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 
 export interface NewConversationItemProps {
@@ -21,9 +21,7 @@ export function NewConversationItem({ counterpartyProfileId, counterpartyName, s
 
   return (
     <li className="flex items-center gap-3 rounded-md px-3 py-2.5">
-      <Avatar size="md">
-        <AvatarFallback>{counterpartyName.charAt(0).toUpperCase()}</AvatarFallback>
-      </Avatar>
+      <PersonAvatar name={counterpartyName} size="md" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-text-primary">{counterpartyName}</p>
         <p className="truncate text-xs text-text-tertiary">

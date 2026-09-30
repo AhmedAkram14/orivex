@@ -24,7 +24,7 @@ import { DoctorConsultationSummaryAction } from '@/features/consultation/compone
 import { RequireRole } from '@/shared/auth/require-role';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
-import { Avatar, AvatarFallback, AvatarImage, PersonAvatar } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { HeroSurface } from '@/shared/ui/hero-surface';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
@@ -60,7 +60,7 @@ import { QuickStat } from './_components/quick-stat';
 import { StickyPatientBar } from './_components/sticky-patient-bar';
 import { VitalTile } from './_components/vital-tile';
 import { WritePrescriptionDialog } from './_components/write-prescription-dialog';
-import { ageFrom, initialsFor, shortId } from './_lib/patient-display';
+import { ageFrom, shortId } from './_lib/patient-display';
 
 // Sized to StickyPatientBar's own rendered height (compact avatar + two text
 // lines + padding) -- applied as scroll-margin-top on anchorable/focusable
@@ -188,6 +188,7 @@ export default function DoctorPatientChartPage() {
 
       {!profileLoading && profile && (() => {
         const age = profile.dateOfBirth ? ageFrom(profile.dateOfBirth) : undefined;
+        const patientShortId = shortId(profile.id);
         const now = new Date();
         // Shared "upcoming" definition (Phase 1 UX remediation) --
         // see `isUpcomingAppointment`'s own doc comment for why this
@@ -266,7 +267,7 @@ export default function DoctorPatientChartPage() {
                   real DOM node to watch. */}
               <div ref={headerRef}>
               <HeroSurface variant="doctor" className="flex flex-wrap items-center gap-5">
-                <PersonAvatar name={profile.fullName} src={profile.avatarUrl} size="xl" className="ring-4 ring-surface/80" />
+                <PersonAvatar name={profile.fullName} src={profile.avatarUrl} size="xl" />
                 <div className="flex min-w-0 flex-col gap-1">
                   <Heading as="h1" level={1} className="text-display">
                     <bdi>{profile.fullName}</bdi>
@@ -280,12 +281,14 @@ export default function DoctorPatientChartPage() {
                       </span>
                     )}
                   </p>
-                  <div className="flex items-center gap-1">
-                    <bdi className="text-caption text-text-tertiary">
-                      {t('patientId', { id: shortId(profile.id) })}
-                    </bdi>
-                    <CopyButton value={profile.id} label={t('copyPatientId')} copiedLabel={t('copyPatientIdCopied')} />
-                  </div>
+                  {patientShortId && (
+                    <div className="flex items-center gap-1">
+                      <bdi className="text-caption text-text-tertiary">
+                        {t('patientId', { id: patientShortId })}
+                      </bdi>
+                      <CopyButton value={profile.id} label={t('copyPatientId')} copiedLabel={t('copyPatientIdCopied')} />
+                    </div>
+                  )}
                   <p className="text-caption text-text-tertiary">
                     {t('lastUpdated', { relativeTime: formatRelativeTime(new Date(profile.updatedAt), locale, t('activeNow')) })}
                   </p>

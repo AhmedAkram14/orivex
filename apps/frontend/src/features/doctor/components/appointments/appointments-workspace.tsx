@@ -145,11 +145,15 @@ export function AppointmentsWorkspace() {
           (isHighlighted ? 'border-focus-ring ring-2 ring-focus-ring/40' : 'border-border-default')
         }
       >
+        {/* The appointment-row pattern (shared/ui/appointments/appointment-card.tsx): DateBlock leads, the avatar rides inline with the name. */}
         <DateBlock date={appointment.scheduledAt} />
-        <PersonAvatar name={appointment.patientName} src={appointment.avatarUrl} size="md" />
         <div className="flex min-w-0 flex-1 basis-48 flex-col gap-0.5">
-          <Link href={`/doctor/patients/${appointment.patientId}`} className="truncate text-body font-medium text-text-primary hover:underline">
-            <bdi>{appointment.patientName}</bdi>
+          <Link
+            href={`/doctor/patients/${appointment.patientId}`}
+            className="flex min-w-0 items-center gap-2 text-body font-medium text-text-primary hover:underline"
+          >
+            <PersonAvatar name={appointment.patientName} src={appointment.avatarUrl} size="xs" />
+            <bdi className="min-w-0 truncate">{appointment.patientName}</bdi>
           </Link>
           <p className="text-small text-text-tertiary">
             {format.dateTime(new Date(appointment.scheduledAt), { timeStyle: 'short' })}

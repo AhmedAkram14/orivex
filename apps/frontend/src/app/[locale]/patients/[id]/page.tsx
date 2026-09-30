@@ -8,7 +8,7 @@ import { usePublicPatient } from '@/features/landing/hooks/use-public-patient';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
 import { ApiError } from '@/shared/lib/api/client';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Card, CardContent } from '@/shared/ui/card';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Icon } from '@/shared/icons/icon';
@@ -16,13 +16,6 @@ import { Page } from '@/shared/ui/layout/page';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 import { cn } from '@/shared/lib/cn';
-
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 /**
  * A minimal, chrome-only top bar -- this page lives OUTSIDE the `(protected)`
@@ -80,10 +73,7 @@ export default function PublicPatientProfilePage() {
           <div className="flex flex-col gap-6">
             <Card>
               <CardContent className="flex items-center gap-4 p-6">
-                <Avatar size="xl">
-                  {patient.avatarUrl && <AvatarImage src={patient.avatarUrl} alt={patient.fullName} />}
-                  <AvatarFallback>{initialsFor(patient.fullName)}</AvatarFallback>
-                </Avatar>
+                <PersonAvatar name={patient.fullName} src={patient.avatarUrl} size="xl" />
                 <p className="text-2xl font-semibold text-text-primary">{patient.fullName}</p>
               </CardContent>
             </Card>

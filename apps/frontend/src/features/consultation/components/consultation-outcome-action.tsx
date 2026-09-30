@@ -142,11 +142,12 @@ export function ConsultationOutcomeAction({ consultationSessionId, autoOpen = fa
           <div className="flex flex-col gap-4">
             {/* One title (the dialog's). The visit itself is a structured header: date, who, status, how long. */}
             <div className="flex flex-wrap items-center gap-4 rounded-md bg-surface-2 p-4">
+              {/* The appointment-row pattern: DateBlock leads, the avatar rides inline with the name. */}
               <DateBlock date={summary.appointment.scheduledAt} className="bg-surface" />
-              <PersonAvatar name={doctor?.fullName ?? ''} src={doctor?.avatarUrl} size="lg" />
               <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
-                <p className="text-body font-semibold text-text-primary">
-                  <bdi>{doctor?.fullName ?? t('loadingDoctor')}</bdi>
+                <p className="flex min-w-0 items-center gap-2 text-body font-semibold text-text-primary">
+                  {doctor && <PersonAvatar name={doctor.fullName} src={doctor.avatarUrl} size="xs" />}
+                  <bdi className="min-w-0">{doctor?.fullName ?? t('loadingDoctor')}</bdi>
                 </p>
                 <p className="text-small text-text-tertiary">
                   {format.dateTime(new Date(summary.appointment.scheduledAt), { dateStyle: 'medium', timeStyle: 'short' })}

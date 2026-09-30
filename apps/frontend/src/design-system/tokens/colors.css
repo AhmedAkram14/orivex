@@ -40,6 +40,8 @@
   --color-border-default: #e1e4de;
   --color-border-strong: #878f8b;
   --color-border-focus: #1466f5;
+  /* A hairline just inside every avatar, so a light photo never dissolves into a white card. */
+  --color-avatar-ring: rgb(0 0 0 / 0.05);
 
   /* Ink is the primary action colour. Hover is a touch lighter (a near-black
      can't get "darker" in any way the eye reads). */

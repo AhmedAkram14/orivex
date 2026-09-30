@@ -75,12 +75,13 @@ export function PendingApprovalSection() {
               key={appointment.id}
               className="flex flex-wrap items-center gap-4 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs"
             >
+              {/* The appointment-row pattern: DateBlock leads, the avatar rides inline with the name. */}
               <DateBlock date={appointment.scheduledAt} />
-              <PersonAvatar name={appointment.patientName} size="md" />
               <div className="flex min-w-0 flex-1 basis-56 flex-col gap-0.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-body font-medium text-text-primary">
-                    <bdi>{appointment.patientName}</bdi>
+                  <p className="flex min-w-0 items-center gap-2 text-body font-medium text-text-primary">
+                    <PersonAvatar name={appointment.patientName} size="xs" />
+                    <bdi className="min-w-0">{appointment.patientName}</bdi>
                   </p>
                   <Badge variant={appointment.consultationType === 'paid' ? 'warning' : 'neutral'}>
                     {t(`consultationType.${appointment.consultationType}`)}

@@ -44,7 +44,7 @@ import { useDoctorAvailability } from '@/features/scheduling/hooks/use-doctor-av
 import { combineDateAndTime } from '@/features/scheduling/utils/time';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
-import { Avatar, AvatarFallback, AvatarImage, initialsOf } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
@@ -199,10 +199,7 @@ export function DoctorProfileView({ profile, variant = 'workspace', onEdit, onPr
         <CardContent className="@container flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <Avatar size="xl">
-                {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-                <AvatarFallback>{initialsOf(profile.fullName)}</AvatarFallback>
-              </Avatar>
+              <PersonAvatar name={profile.fullName} src={profile.avatarUrl} size="xl" />
               <div className="flex min-w-0 flex-col gap-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   {/* The largest text on the page -- a real <h2> under the

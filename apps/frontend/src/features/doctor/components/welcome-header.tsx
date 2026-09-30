@@ -3,7 +3,6 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { Heading } from '@/design-system/typography';
 import { useAuth } from '@/shared/auth/auth-context';
-import { PersonAvatar } from '@/shared/ui/avatar';
 
 /** Display-only capitalization of the real account name (e.g. "ramy" -> "Ramy") -- never written back, just how the greeting renders it. */
 function toDisplayCase(fullName: string): string {
@@ -20,7 +19,10 @@ function stripExistingTitle(fullName: string): string {
 }
 
 /**
- * The Doctor Workspace's greeting — avatar, name, and today's date. Reads
+ * The Doctor Workspace's greeting — name and today's date. No avatar: the
+ * same photo is already in the header, and next to a display-size greeting a
+ * list-size photo read as undersized; the greeting and the timeline are the
+ * hero. Reads
  * the session directly (`useAuth`) rather than accepting a `user` prop,
  * since it only ever renders inside the authenticated Doctor Workspace.
  * Dashboard redesign (2026-08): no longer its own `Card` — it's now the top
@@ -36,8 +38,7 @@ export function WelcomeHeader() {
   if (!user) return null;
 
   return (
-    <div className="flex items-center gap-4">
-      <PersonAvatar name={user.fullName} src={user.avatarUrl} size="lg" />
+    <div className="flex">
       {/* The text column is its own size container: the greeting shrinks with the width it gets (clamped) and balances its lines, instead of breaking one word onto a second line. */}
       <div className="@container flex min-w-0 flex-1 flex-col gap-1">
         {/* A real <h2>, not styled-to-look-like-one text -- Overview's own

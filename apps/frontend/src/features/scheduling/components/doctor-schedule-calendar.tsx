@@ -8,6 +8,7 @@ import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { getCairoNow } from '@/shared/lib/date/timezone';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { cn } from '@/shared/lib/cn';
 import './doctor-schedule-calendar.css';
 
@@ -68,7 +69,6 @@ export interface CalendarAppointment {
   typeLabel?: string;
   visitType: VisitTypeKey;
   status: CalendarStatus;
-  initials: string;
   avatarUrl?: string;
 }
 
@@ -259,7 +259,6 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
           kind: 'appointment',
           timeLabel: appointment.timeLabel,
           typeLabel: appointment.typeLabel,
-          initials: appointment.initials,
           avatarUrl: appointment.avatarUrl,
         },
       })),
@@ -351,10 +350,9 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
           </div>
         );
       }
-      const { timeLabel = '', typeLabel, initials = '', avatarUrl } = arg.event.extendedProps as {
+      const { timeLabel = '', typeLabel, avatarUrl } = arg.event.extendedProps as {
         timeLabel?: string;
         typeLabel?: string;
-        initials?: string;
         avatarUrl?: string;
       };
       const a11y = {
@@ -376,10 +374,8 @@ export const DoctorScheduleCalendar = forwardRef<ScheduleCalendarHandle, DoctorS
               <span className="fc-appt-name">{arg.event.title}</span>
               <span className="fc-appt-type">{[timeLabel, typeLabel].filter(Boolean).join(' · ')}</span>
             </span>
-            <span className="fc-chip-avatar" aria-hidden="true">
-              {/* eslint-disable-next-line @next/next/no-img-element -- a 20px avatar from an already-resolved URL; next/image adds nothing here */}
-              {avatarUrl ? <img src={avatarUrl} alt="" /> : initials}
-            </span>
+            {/* The shared avatar at xs (24px); `fc-chip-avatar` only hides it in narrow day cells. */}
+            <PersonAvatar name={arg.event.title} src={avatarUrl} size="xs" className="fc-chip-avatar" />
           </div>
         );
       }

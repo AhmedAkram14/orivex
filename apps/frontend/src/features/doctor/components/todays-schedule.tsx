@@ -7,19 +7,12 @@ import type { UpcomingWorkItem } from '@/features/doctor/api/types';
 import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { TimelineCard } from '@/shared/ui/layout/timeline-card';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
-
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 function StatusLabel({ status }: { status: UpcomingWorkItem['status'] }) {
   const t = useTranslations('doctor.dashboard.upcomingWork.status');
@@ -74,12 +67,8 @@ export function TodaysSchedule() {
                 status={item.status}
                 statusLabel={<StatusLabel status={item.status} />}
                 className="rounded-xl p-3 -mx-3 transition-colors duration-(--duration-fast) hover:bg-secondary-subtle"
-                leading={
-                  <Avatar size="sm">
-                    {item.avatarUrl && <AvatarImage src={item.avatarUrl} alt={item.title} />}
-                    <AvatarFallback>{initialsFor(item.title)}</AvatarFallback>
-                  </Avatar>
-                }
+                // Two lines beside it (name + badge, reason): md.
+                leading={<PersonAvatar name={item.title} src={item.avatarUrl} size="md" />}
                 action={
                   item.id === currentOrNextId ? (
                     <Button asChild size="sm">

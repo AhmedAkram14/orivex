@@ -2,7 +2,7 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 import type { MessageThread } from '@/features/messaging/api/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { cn } from '@/shared/lib/cn';
 
 export interface ThreadListItemProps {
@@ -25,7 +25,6 @@ export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemPro
   const t = useTranslations('messaging.inbox');
   const format = useFormatter();
   const displayName = thread.counterpartyDisplayName ?? t('unknownCounterparty');
-  const initial = displayName.charAt(0).toUpperCase();
   const hasUnread = (thread.unreadCount ?? 0) > 0;
   // `null` (not `undefined`) is the server's explicit "no messages yet" --
   // such a thread has no meaningful last-activity time to show.
@@ -48,10 +47,7 @@ export function ThreadListItem({ thread, selected, onSelect }: ThreadListItemPro
             fallback's single-letter text node concatenates into the
             button's own accessible name (e.g. "A, Ahmed Hassan") -- the
             avatar is purely decorative next to the adjacent name text. */}
-        <Avatar size="md" aria-hidden="true">
-          {thread.counterpartyAvatarUrl && <AvatarImage src={thread.counterpartyAvatarUrl} alt="" />}
-          <AvatarFallback>{initial}</AvatarFallback>
-        </Avatar>
+        <PersonAvatar name={displayName} src={thread.counterpartyAvatarUrl} size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className={cn('truncate text-sm', hasUnread ? 'font-semibold text-text-primary' : 'font-medium text-text-primary')}>

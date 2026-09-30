@@ -37,9 +37,10 @@ export interface AppointmentCardProps {
 }
 
 /**
- * A single appointment row: DateBlock, the counterparty's avatar and name, a
- * specialty chip, a StatusBadge and the consultation type, with the row's
- * actions on the inline-end. Placed under `shared/ui/appointments/`
+ * A single appointment row: the DateBlock as its one leading anchor, the
+ * counterparty's name with a 24px avatar inline before it, a specialty chip,
+ * a StatusBadge and the consultation type, with the row's actions on the
+ * inline-end. Every appointment row in both roles follows this pattern. Placed under `shared/ui/appointments/`
  * (mirroring `shared/ui/queue/` and `shared/ui/schedule/`) -- nothing here
  * assumes the viewer's role.
  */
@@ -63,12 +64,13 @@ export function AppointmentCard({
         className,
       )}
     >
+      {/* The DateBlock is the row's one leading anchor; the person rides inline with their name (xs). */}
       <DateBlock date={scheduledAt} />
-      <PersonAvatar name={counterpartyName} src={counterpartyAvatarUrl} size="md" />
       <div className="flex min-w-0 flex-1 basis-52 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-body font-medium text-text-primary">
-            <bdi>{counterpartyName}</bdi>
+          <p className="flex min-w-0 items-center gap-2 text-body font-medium text-text-primary">
+            <PersonAvatar name={counterpartyName} src={counterpartyAvatarUrl} size="xs" />
+            <bdi className="min-w-0">{counterpartyName}</bdi>
           </p>
           <StatusBadge status={status} label={statusLabel} />
         </div>

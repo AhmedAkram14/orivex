@@ -23,7 +23,7 @@ import type { PatientProfile } from '@/features/patient/api/types';
 import { HealthPassportEntriesPanel } from '@/features/patient/components/profile/health-passport-entries-panel';
 import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
 import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -34,13 +34,6 @@ import { cn } from '@/shared/lib/cn';
 // Health" dashboard (same radius + soft elevated shadow), so the profile
 // and dashboard read as one product.
 const CARD_CLASSNAME = 'rounded-2xl border-border-default/60 shadow-[0_10px_30px_rgba(15,23,42,0.05)]';
-
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 function ageFrom(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
@@ -110,11 +103,9 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
         </Button>
       </CardHeader>
       <CardContent className="relative z-10 flex flex-col gap-5 px-7 pt-0 pb-7">
-        <div className="flex items-center gap-3.5">
-          <Avatar size="xl" className="shrink-0 ring-4 ring-surface/80">
-            {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-            <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
-          </Avatar>
+        {/* A 16px name and three short lines under it: lg, top-aligned (xl is for an h1/display name). */}
+        <div className="flex items-start gap-3.5">
+          <PersonAvatar name={profile.fullName} src={profile.avatarUrl} size="lg" className="mt-1.5" />
           <div className="flex min-w-0 flex-col gap-0.5">
             <p className="text-base font-semibold text-text-primary">{profile.fullName}</p>
             <p className="text-sm text-text-secondary">

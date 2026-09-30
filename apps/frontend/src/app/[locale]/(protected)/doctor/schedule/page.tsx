@@ -270,7 +270,6 @@ export default function DoctorSchedulePage() {
           typeLabel: appointment.appointmentType ? tAppointmentType(appointment.appointmentType) : undefined,
           visitType,
           status: appointment.status,
-          initials: ((appointment.patientName.trim().split(/\s+/)[0]?.[0] ?? '') + (appointment.patientName.trim().split(/\s+/)[1]?.[0] ?? '')).toUpperCase(),
           avatarUrl: appointment.avatarUrl,
         };
       }),

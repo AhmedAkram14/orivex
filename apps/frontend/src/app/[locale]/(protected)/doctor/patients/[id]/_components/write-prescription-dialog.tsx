@@ -80,6 +80,7 @@ export function WritePrescriptionDialog({
 
   const selectedAppointment = eligibleAppointments.find((appointment) => appointment.id === selectedAppointmentId);
   const age = profile.dateOfBirth ? ageFrom(profile.dateOfBirth) : undefined;
+  const patientShortId = shortId(profile.id);
   const allergyState = getAllergyState(profile);
 
   return (
@@ -98,7 +99,9 @@ export function WritePrescriptionDialog({
             {profile.gender && (
               <span className="font-normal text-text-secondary"> · {t(`genderOptions.${profile.gender}`)}</span>
             )}
-            <bdi className="font-normal text-text-tertiary"> · {t('patientId', { id: shortId(profile.id) })}</bdi>
+            {patientShortId && (
+              <bdi className="font-normal text-text-tertiary"> · {t('patientId', { id: patientShortId })}</bdi>
+            )}
           </p>
 
           <div className="flex flex-wrap items-center gap-2">

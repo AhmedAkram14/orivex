@@ -1,9 +1,10 @@
 'use client';
 
-import { ArrowRight, CalendarCheck, Headphones, Lock, ShieldCheck, Star } from 'lucide-react';
+import { ArrowRight, CalendarCheck, Headphones, Lock, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { usePublicDoctors } from '@/features/landing/hooks/use-public-doctors';
 import type { PublicDoctor } from '@/features/landing/api/types';
+import { RatingLine } from '@/features/consultation/components/doctor-rating-summary';
 import { DoctorCard } from '@/features/doctor/components/doctor-card';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
@@ -34,16 +35,7 @@ function PopularDoctorRating({ doctor }: { doctor: PublicDoctor }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-      <span className="flex items-center gap-1.5">
-        <Icon icon={Star} size="sm" className="fill-warning text-warning" />
-        <span className="text-sm font-bold text-text-primary">{doctor.averageRating?.toFixed(1)}</span>
-        <span className="text-sm text-text-tertiary">{t('reviewCount', { count: doctor.reviewCount })}</span>
-      </span>
-      {doctor.writtenReviewCount > 0 && (
-        <span className="text-sm text-text-tertiary">· {t('writtenReviewCount', { count: doctor.writtenReviewCount })}</span>
-      )}
-    </div>
+    <RatingLine averageRating={doctor.averageRating} ratingCount={doctor.reviewCount} writtenReviewCount={doctor.writtenReviewCount} />
   );
 }
 

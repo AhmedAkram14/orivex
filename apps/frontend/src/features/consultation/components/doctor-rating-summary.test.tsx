@@ -44,6 +44,8 @@ describe('DoctorRatingSummary', () => {
     renderWithProviders(<DoctorRatingSummary doctorProfileId={DOCTOR_PROFILE_ID} />);
 
     await waitFor(() => expect(screen.getByText('4.5')).toBeInTheDocument());
-    expect(screen.getByText('(2 ratings)')).toBeInTheDocument();
+    // One line on the doctor card: "★ 4.5 · 2 ratings" (written reviews only when there are any).
+    expect(screen.getByText('2 ratings')).toBeInTheDocument();
+    expect(screen.queryByText(/reviews?$/)).not.toBeInTheDocument();
   });
 });

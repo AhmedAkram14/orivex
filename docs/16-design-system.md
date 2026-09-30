@@ -201,3 +201,23 @@ Full record: [redesign/round-2-report.md](redesign/round-2-report.md).
 - **One date-range toolbar.** Use `DateRangePicker` (presets, then a custom-range popover), with Export as a `secondary` button.
 - **Card headers.** The title may balance onto two lines. The action is a small ghost button that never wraps (`WidgetContainer` does this).
 - **Illustrations on an ink band** use `context="inverse"`, so card fills follow the band instead of staying white.
+
+### Avatars (round 4)
+
+Full record: [redesign/round-4-report.md](redesign/round-4-report.md).
+
+- **One primitive.** Every person photo is `PersonAvatar` (`shared/ui/avatar.tsx`): the photo, or initials on a tint from the name hash. It is decorative (`aria-hidden`), because the name is always beside it. Don't compose `Avatar` + `AvatarImage` + `AvatarFallback` by hand.
+- **One size scale, paired to the text beside it.** The avatar is about as tall as the text block next to it.
+
+  | Size | Pairs with | Used for |
+  |---|---|---|
+  | `xs` 24 | one 13–14px line | inline before a name (appointment rows), calendar chips |
+  | `sm` 32 | one 15px line, or 13px + 12px | table rows (Patients), sticky patient header, reviews, header menu |
+  | `md` 40 | two lines, 15px + 13px | booking doctor chip, needs-attention rows, conversations, Overview's Upcoming work |
+  | `lg` 56 | a name plus one or two short meta lines | doctor cards, schedule popover, profile card |
+  | `xl` 96 | a hero name at `h1`/display size | patient chart hero, doctor profile hero (both views) |
+
+- **Alignment.** Beside one or two lines, centre it (`items-center`). Beside more than two, top-align it (`items-start`) and nudge it so its top meets the first line's cap height (`mt-1.5` beside a 16px name in a 24px line).
+- **Framing.** Photos use `object-cover` with `object-position: 50% 22%`, a face-biased crop for portrait sources. A 1px hairline sits just inside every avatar (`--color-avatar-ring`: black 5% light, white 10% dark), drawn as an overlay above the photo. Initials are 40% of the diameter, weight 600.
+- **Appointment rows.** The `DateBlock` is the row's one leading anchor. The person rides inline before their name at `xs`, in both roles (patient Upcoming/History, doctor Appointments, pending approvals, the visit summary).
+- **No avatar in the doctor's Overview hero.** The header already shows it; the greeting and the timeline are the hero.

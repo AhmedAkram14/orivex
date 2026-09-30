@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
 import type { DoctorPatientChartProfile } from '@/features/doctor/api/types';
 import { getAllergyState } from '../_lib/allergy-state';
-import { ageFrom, initialsFor, shortId } from '../_lib/patient-display';
+import { ageFrom, shortId } from '../_lib/patient-display';
 
 export interface StickyPatientBarProps {
   profile: DoctorPatientChartProfile;
@@ -47,6 +47,7 @@ export function StickyPatientBar({ profile, headerRef }: StickyPatientBarProps) 
   }, [headerRef]);
 
   const age = profile.dateOfBirth ? ageFrom(profile.dateOfBirth) : undefined;
+  const patientShortId = shortId(profile.id);
   const allergyState = getAllergyState(profile);
 
   // Mounted only once actually visible -- not always-rendered-but-hidden --
@@ -60,16 +61,13 @@ export function StickyPatientBar({ profile, headerRef }: StickyPatientBarProps) 
       // Fixed height (h-15): the chart tabs stick directly below it at top-16 (page.tsx).
       className="print-hidden sticky top-0 z-(--z-sticky) flex h-15 items-center gap-3 rounded-(--r-card) border border-border-default bg-surface/95 px-4 shadow-md backdrop-blur"
     >
-      <Avatar size="sm" className="shrink-0">
-        {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-        <AvatarFallback className="bg-primary text-primary-foreground">{initialsFor(profile.fullName)}</AvatarFallback>
-      </Avatar>
+      <PersonAvatar name={profile.fullName} src={profile.avatarUrl} size="sm" />
       <div className="flex min-w-0 flex-col">
         <p className="truncate text-sm font-medium text-text-primary">{profile.fullName}</p>
         <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-text-tertiary">
           {profile.gender && <span>{t(`genderOptions.${profile.gender}`)}</span>}
           {age !== undefined && <span>· {t('ageYearsOld', { age })}</span>}
-          <bdi>· {t('patientId', { id: shortId(profile.id) })}</bdi>
+          {patientShortId && <bdi>· {t('patientId', { id: patientShortId })}</bdi>}
         </p>
       </div>
       <Badge variant={allergyBadgeVariant[allergyState.kind]} className="ms-auto shrink-0">

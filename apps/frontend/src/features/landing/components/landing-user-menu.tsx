@@ -6,7 +6,7 @@ import { useLogout } from '@/features/auth/hooks/use-logout';
 import type { AuthenticatedUser } from '@/shared/auth/types';
 import { Icon } from '@/shared/icons/icon';
 import { Link, useRouter } from '@/shared/i18n/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,13 +18,6 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { useTheme, type Theme } from '@/shared/providers/theme-provider';
-
-function initialsFor(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
-}
 
 /**
  * The landing navbar's signed-in state -- replaces the Sign in/Register
@@ -45,10 +38,7 @@ export function LandingUserMenu({ user }: { user: AuthenticatedUser }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
-        <Avatar size="sm">
-          {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.fullName} />}
-          <AvatarFallback>{initialsFor(user.fullName)}</AvatarFallback>
-        </Avatar>
+        <PersonAvatar name={user.fullName} src={user.avatarUrl} size="sm" />
         <span className="hidden text-sm font-medium text-text-primary sm:inline">{user.fullName}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

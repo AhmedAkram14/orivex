@@ -6,7 +6,7 @@ import { useDoctorReviews } from '@/features/consultation/hooks/use-doctor-revie
 import { FlagReviewAction } from '@/features/consultation/components/flag-review-action';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
+import { PersonAvatar } from '@/shared/ui/avatar';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/cn';
@@ -24,13 +24,6 @@ export interface DoctorReviewsListProps {
    * changes with who's actually looking.
    */
   variant?: 'workspace' | 'public';
-}
-
-function initialsFor(fullName: string): string {
-  const parts = (fullName || '').trim().split(/\s+/);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
 }
 
 /**
@@ -86,16 +79,13 @@ export function DoctorReviewsList({ doctorProfileId, variant = 'public' }: Docto
         </li>
       )}
       {reviews.map((review) => (
-        <li key={review.id} className="flex gap-3 rounded-2xl border border-border-default p-4">
+        <li key={review.id} className="flex items-start gap-3 rounded-2xl border border-border-default p-4">
           {/* Same destination as the name link right beside it -- an
               adjacent duplicate, not two different actions, so it's an
               `aria-hidden` decorative link rather than a second
               screen-reader stop announcing nothing. */}
           <Link href={hrefFor(review.patientProfileId)} className="shrink-0" aria-hidden="true" tabIndex={-1}>
-            <Avatar size="sm">
-              {review.patientAvatarUrl && <AvatarImage src={review.patientAvatarUrl} alt="" />}
-              <AvatarFallback>{initialsFor(review.patientName)}</AvatarFallback>
-            </Avatar>
+            <PersonAvatar name={review.patientName} src={review.patientAvatarUrl} size="sm" />
           </Link>
           <div className="flex flex-1 flex-col gap-1">
             <div className="flex items-center justify-between gap-2">

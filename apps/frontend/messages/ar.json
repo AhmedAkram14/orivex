@@ -3450,6 +3450,8 @@
       }
     },
     "rating": {
+      "reviewsCount": "{count, plural, one {مراجعة واحدة} two {مراجعتان} few {# مراجعات} many {# مراجعة} other {# مراجعة}}",
+      "ratingsCount": "{count, plural, one {تقييم واحد} two {تقييمان} few {# تقييمات} many {# تقييمًا} other {# تقييم}}",
       "prompt": "قيّم استشارتك",
       "starLabel": "{count} من 5 نجوم",
       "ratedOutOf5": "تقييم {rating} من 5",

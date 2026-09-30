@@ -31,6 +31,7 @@
     --color-border-default: #26312f;
     --color-border-strong: #5d6a66;
     --color-border-focus: #5b95ff;
+    --color-avatar-ring: rgb(255 255 255 / 0.1);
     --color-primary: #eef2ef;
     --color-primary-hover: #ffffff;
     --color-primary-active: #d5dbd7;
@@ -114,6 +115,7 @@
   --color-border-default: #26312f;
   --color-border-strong: #5d6a66;
   --color-border-focus: #5b95ff;
+  --color-avatar-ring: rgb(255 255 255 / 0.1);
   --color-primary: #eef2ef;
   --color-primary-hover: #ffffff;
   --color-primary-active: #d5dbd7;

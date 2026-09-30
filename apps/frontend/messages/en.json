@@ -3450,6 +3450,8 @@
       }
     },
     "rating": {
+      "reviewsCount": "{count, plural, one {# review} other {# reviews}}",
+      "ratingsCount": "{count, plural, one {# rating} other {# ratings}}",
       "prompt": "Rate your consultation",
       "starLabel": "{count} of 5 stars",
       "ratedOutOf5": "Rated {rating} out of 5",
