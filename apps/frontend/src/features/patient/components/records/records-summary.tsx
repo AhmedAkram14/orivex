@@ -42,11 +42,13 @@ export function RecordsSummary({ entries, entriesLoading, className }: RecordsSu
         variant="inline"
         icon={CalendarClock}
         label={tDashboard('lastVisit')}
+        // A figure, never a sentence: with no visit yet the value is a dash and the sentence is the caption.
         value={
           dashboardSummary?.lastVisitAt
             ? format.dateTime(new Date(dashboardSummary.lastVisitAt), { month: 'short', day: 'numeric' })
-            : tDashboard('noVisitsYet')
+            : '—'
         }
+        helperText={dashboardSummary?.lastVisitAt ? undefined : tDashboard('noVisitsYet')}
         loading={dashboardLoading}
       />
       <MetricStat

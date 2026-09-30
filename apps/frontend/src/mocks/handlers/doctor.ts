@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
+import type { PatientProfile } from '@/features/patient/api/types';
 import { DOCTOR_PATHS } from '@/features/doctor/api/paths';
 import type {
   DoctorProfileUpdateRequest,
@@ -220,11 +221,23 @@ export const doctorHandlers = [
     const callingAccountId = resolveRequestAccountId(request);
     const patientId = params.id as string;
     const myPatients = getPatients(callingAccountId);
-    const isOwnPatient = myPatients.some((patient) => patient.patientProfileId === patientId);
-    if (!isOwnPatient) return notFound('Patient not found.');
+    const listed = myPatients.find((patient) => patient.patientProfileId === patientId);
+    if (!listed) return notFound('Patient not found.');
 
-    const profile = getPatientProfileById(patientId);
-    if (!profile) return notFound('Patient not found.');
+    // The doctor's seeded patient list and the patient store use different ids in this mock layer, so a
+    // listed patient with no stored profile gets a minimal chart built from the list entry itself (the
+    // real backend always has the profile) -- otherwise every link in the demo list opened "not found".
+    const profile: PatientProfile = getPatientProfileById(patientId) ?? {
+      id: patientId,
+      fullName: listed.patientName,
+      email: listed.email,
+      phoneNumber: listed.phoneNumber,
+      avatarUrl: listed.avatarUrl,
+      dateOfBirth: listed.dateOfBirth,
+      gender: listed.gender as PatientProfile['gender'],
+      allergiesStatus: 'unknown',
+      emergencyContacts: [],
+    };
 
     const insuranceProviderName = listInsuranceProviders().find((provider) => provider.id === profile.insuranceProviderId)?.name;
     return HttpResponse.json({
@@ -241,6 +254,7 @@ export const doctorHandlers = [
         address: profile.address,
         bloodType: profile.bloodType,
         allergies: profile.allergies,
+        allergiesStatus: profile.allergiesStatus,
         chronicDiseases: profile.chronicDiseases,
         insuranceProviderId: profile.insuranceProviderId,
         insuranceProviderName,

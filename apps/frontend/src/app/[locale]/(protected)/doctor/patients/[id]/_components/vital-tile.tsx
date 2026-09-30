@@ -51,7 +51,7 @@ export function VitalTile({ icon, label, summary, notOnRecordLabel }: VitalTileP
       emptyDescription=""
       note={
         latest && stale ? (
-          <Badge variant="warning" className="mt-1 w-fit">
+          <Badge variant="warning" className="mt-1 h-auto w-fit rounded-(--r-sm) py-0.5 whitespace-normal">
             {t('vitalOutdated', { relativeTime: formatRelativeTime(new Date(latest.recordedAt), locale, t('activeNow')) })}
           </Badge>
         ) : undefined

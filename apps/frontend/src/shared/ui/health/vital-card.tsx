@@ -169,10 +169,19 @@ export function VitalCard({
       </div>
 
       <div className="flex flex-col gap-0.5">
-        {/* A value and its unit ("78.5 kg", "132/87 mmHg") are one isolated run, so Arabic never reorders them. */}
-        <p data-numeric className={cn('font-display text-text-primary tabular-nums', compact ? 'text-h2' : 'text-metric')}>
-          <bdi dir="ltr">{latest.valueLabel}</bdi>
-        </p>
+        {/*
+          A value and its unit ("78.5 kg", "132/87 mmHg") are one isolated run, so Arabic never reorders them,
+          and one line that shrinks with the tile's own width (cqi of this wrapper) instead of wrapping.
+        */}
+        <div className="@container min-w-0">
+          <p
+            data-numeric
+            className={cn('font-display whitespace-nowrap text-text-primary tabular-nums', compact ? 'text-h2' : 'text-metric')}
+            style={{ fontSize: compact ? 'clamp(1rem, 15cqi, var(--text-h2))' : 'clamp(1.125rem, 13cqi, var(--text-metric))' }}
+          >
+            <bdi dir="ltr">{latest.valueLabel}</bdi>
+          </p>
+        </div>
         <p className="text-caption text-text-tertiary">{format.dateTime(new Date(latest.recordedAt), { dateStyle: 'medium' })}</p>
         {note}
       </div>
