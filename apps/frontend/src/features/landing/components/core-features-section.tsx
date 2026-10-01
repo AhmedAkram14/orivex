@@ -8,6 +8,7 @@ import {
   Video,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
 import { Card } from '@/shared/ui/card';
@@ -44,39 +45,42 @@ export function CoreFeaturesSection() {
   const t = useTranslations('landing.coreFeatures');
 
   return (
-    <Container size="lg" className="py-16">
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-        <div className="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
-          <p className="text-caption font-semibold tracking-wide text-text-tertiary uppercase">
-            {t('eyebrow')}
-          </p>
-          <Heading as="h2" level={2} className="text-balance">
-            {t('title')}
-          </Heading>
-          <Text tone="secondary" className="max-w-md">
-            {t('description')}
-          </Text>
+    <LandingSection>
+      <Container size="lg">
+        {/* The heading block sits one head-gap from the cards: below them on a phone, beside them on wide screens. */}
+        <div className="grid grid-cols-1 gap-(--section-head-gap) lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <div className="flex flex-col gap-3 lg:sticky lg:top-24 lg:self-start">
+            <p className="text-caption font-semibold tracking-wide text-text-tertiary uppercase">
+              {t('eyebrow')}
+            </p>
+            <Heading as="h2" level={2} className="text-balance">
+              {t('title')}
+            </Heading>
+            <Text tone="secondary" className="max-w-md">
+              {t('description')}
+            </Text>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {FEATURES.map(({ key, icon, tint }) => (
+              <Card key={key} className="flex flex-col gap-3 bg-surface p-6 shadow-sm">
+                <span
+                  className={`flex size-12 items-center justify-center rounded-full ${TINT[tint]}`}
+                >
+                  <Icon icon={icon} size="md" />
+                </span>
+                <Heading level={3}>{t(`items.${key}.title`)}</Heading>
+                <Text size="sm" tone="secondary" className="grow">
+                  {t(`items.${key}.description`)}
+                </Text>
+                <span className="flex items-center gap-2 border-t border-border-default pt-3 text-small text-text-secondary">
+                  <Icon icon={Check} size="xs" className="shrink-0 text-success-emphasis" />
+                  {t(`items.${key}.tagline`)}
+                </span>
+              </Card>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {FEATURES.map(({ key, icon, tint }) => (
-            <Card key={key} className="flex flex-col gap-3 bg-surface p-6 shadow-sm">
-              <span
-                className={`flex size-12 items-center justify-center rounded-full ${TINT[tint]}`}
-              >
-                <Icon icon={icon} size="md" />
-              </span>
-              <Heading level={3}>{t(`items.${key}.title`)}</Heading>
-              <Text size="sm" tone="secondary" className="grow">
-                {t(`items.${key}.description`)}
-              </Text>
-              <span className="flex items-center gap-2 border-t border-border-default pt-3 text-small text-text-secondary">
-                <Icon icon={Check} size="xs" className="shrink-0 text-success-emphasis" />
-                {t(`items.${key}.tagline`)}
-              </span>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </Container>
+      </Container>
+    </LandingSection>
   );
 }

@@ -7,6 +7,7 @@ import type { PublicDoctor } from '@/features/landing/api/types';
 import { RatingLine } from '@/features/consultation/components/doctor-rating-summary';
 import { MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY } from '@/features/consultation/lib/rating-display';
 import { DoctorCard } from '@/features/doctor/components/doctor-card';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
@@ -109,71 +110,75 @@ export function PopularDoctorsSection() {
   ];
 
   return (
-    <Container size="lg" className="flex flex-col gap-8 py-16">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
-          <Icon icon={ShieldCheck} size="xs" />
-          {t('eyebrow')}
-        </Badge>
-        <Heading as="h2" level={2}>{t('title')}</Heading>
-        <Text tone="secondary" className="max-w-xl">
-          {t('description')}
-        </Text>
-      </div>
-
-      {!isLoading && doctors.length > 0 && (
-        <div className="flex justify-center sm:justify-end">
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="rounded-xl border-border-default px-5.5 py-4.5 text-primary"
-          >
-            <Link href="/patient/doctors">
-              {t('viewAllDoctors')}
-              <Icon icon={ArrowRight} size="sm" flipRtl />
-            </Link>
-          </Button>
+    <LandingSection>
+      <Container size="lg" className="flex flex-col gap-(--section-head-gap)">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
+            <Icon icon={ShieldCheck} size="xs" />
+            {t('eyebrow')}
+          </Badge>
+          <Heading as="h2" level={2}>{t('title')}</Heading>
+          <Text tone="secondary" className="max-w-xl">
+            {t('description')}
+          </Text>
         </div>
-      )}
 
-      {isLoading && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-56 w-full" />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && doctors.length === 0 && (
-        <EmptyState illustration="search-no-results" title={t('emptyTitle')} description={t('emptyDescription')} />
-      )}
-
-      {!isLoading && doctors.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {doctors.map((doctor) => (
-            <LandingDoctorCard key={doctor.doctorProfileId} doctor={doctor} />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && doctors.length > 0 && (
-        <Card className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 rounded-2xl px-8 py-6">
-          {trustItems.map((item) => (
-            <div key={item.title} className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
-                <Icon icon={item.icon} size="md" className="text-primary" />
-              </span>
-              <div className="flex flex-col text-start">
-                <span className="text-sm font-semibold text-text-primary">{item.title}</span>
-                <Text size="sm" tone="tertiary">
-                  {item.description}
-                </Text>
-              </div>
+        <div className="flex flex-col gap-8">
+          {!isLoading && doctors.length > 0 && (
+            <div className="flex justify-center sm:justify-end">
+              <Button
+                asChild
+                variant="secondary"
+                size="sm"
+                className="rounded-xl border-border-default px-5.5 py-4.5 text-primary"
+              >
+                <Link href="/patient/doctors">
+                  {t('viewAllDoctors')}
+                  <Icon icon={ArrowRight} size="sm" flipRtl />
+                </Link>
+              </Button>
             </div>
-          ))}
-        </Card>
-      )}
-    </Container>
+          )}
+
+          {isLoading && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton key={index} className="h-56 w-full" />
+              ))}
+            </div>
+          )}
+
+          {!isLoading && doctors.length === 0 && (
+            <EmptyState illustration="search-no-results" title={t('emptyTitle')} description={t('emptyDescription')} />
+          )}
+
+          {!isLoading && doctors.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {doctors.map((doctor) => (
+                <LandingDoctorCard key={doctor.doctorProfileId} doctor={doctor} />
+              ))}
+            </div>
+          )}
+
+          {!isLoading && doctors.length > 0 && (
+            <Card className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6 rounded-2xl px-8 py-6">
+              {trustItems.map((item) => (
+                <div key={item.title} className="flex items-center gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-subtle">
+                    <Icon icon={item.icon} size="md" className="text-primary" />
+                  </span>
+                  <div className="flex flex-col text-start">
+                    <span className="text-sm font-semibold text-text-primary">{item.title}</span>
+                    <Text size="sm" tone="tertiary">
+                      {item.description}
+                    </Text>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+        </div>
+      </Container>
+    </LandingSection>
   );
 }

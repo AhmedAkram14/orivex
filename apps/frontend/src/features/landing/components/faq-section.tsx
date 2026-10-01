@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { Heading, Text } from '@/design-system/typography';
 import { Accordion } from '@/shared/ui/accordion';
 import { Badge, type BadgeProps } from '@/shared/ui/badge';
@@ -48,83 +49,88 @@ export function FaqSection() {
   const t = useTranslations('landing.faq');
 
   return (
-    <Container id="faq" size="md" className="relative flex flex-col gap-8 py-16 scroll-mt-16">
-      <div
-        className="pointer-events-none absolute -start-4 top-0 hidden size-24 opacity-40 sm:block"
-        style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '12px 12px' }}
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute end-0 top-0 hidden size-24 opacity-40 sm:block"
-        style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '12px 12px' }}
-        aria-hidden="true"
-      />
+    <LandingSection id="faq" className="scroll-mt-16">
+      <Container size="md" className="relative flex flex-col gap-(--section-head-gap)">
+        {/* Decorations: out of the flow, raised into the section's top padding beside the heading. */}
+        <div
+          className="pointer-events-none absolute -start-4 -top-[calc(var(--section-y)/2)] hidden size-24 opacity-40 sm:block"
+          style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '12px 12px' }}
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute end-0 -top-[calc(var(--section-y)/2)] hidden size-24 opacity-40 sm:block"
+          style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '12px 12px' }}
+          aria-hidden="true"
+        />
 
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
-          <Icon icon={CircleHelp} size="xs" />
-          {t('eyebrow')}
-        </Badge>
-        <Heading as="h2" level={2}>{t('title')}</Heading>
-        <Text tone="secondary">
-          {t.rich('description', { brand: (chunks) => <span className="font-semibold text-primary">{chunks}</span> })}
-        </Text>
-      </div>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
+            <Icon icon={CircleHelp} size="xs" />
+            {t('eyebrow')}
+          </Badge>
+          <Heading as="h2" level={2}>{t('title')}</Heading>
+          <Text tone="secondary">
+            {t.rich('description', { brand: (chunks) => <span className="font-semibold text-primary">{chunks}</span> })}
+          </Text>
+        </div>
 
-      <Accordion type="single" collapsible className="flex flex-col gap-3">
-        {FAQ_ITEMS.map(({ key, icon, accent }) => (
-          <AccordionPrimitive.Item
-            key={key}
-            value={key}
-            className={cn(
-              'rounded-2xl border border-border-default bg-surface px-5 transition-colors',
-              'data-[state=open]:border-primary/30 data-[state=open]:bg-primary-subtle/40',
-            )}
-          >
-            <AccordionPrimitive.Header className="flex">
-              <AccordionPrimitive.Trigger className="flex flex-1 items-center gap-3 py-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
-                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', ACCENT_CLASSES[accent])}>
-                  <Icon icon={icon} size="sm" />
-                </span>
-                <span className="flex-1 font-semibold text-text-primary">{t(`items.${key}.question`)}</span>
-                <span className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis in-data-[state=open]:flex">
-                  <Icon icon={Minus} size="sm" />
-                </span>
-                <Icon
-                  icon={ChevronDown}
-                  size="sm"
-                  className="shrink-0 text-text-tertiary transition-transform duration-(--duration-fast) in-data-[state=open]:hidden"
-                />
-              </AccordionPrimitive.Trigger>
-            </AccordionPrimitive.Header>
-            <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-none">
-              <div className="ms-4 border-s-2 border-primary/30 ps-4 pb-4">
+        <div className="flex flex-col gap-8">
+          <Accordion type="single" collapsible className="flex flex-col gap-3">
+            {FAQ_ITEMS.map(({ key, icon, accent }) => (
+              <AccordionPrimitive.Item
+                key={key}
+                value={key}
+                className={cn(
+                  'rounded-2xl border border-border-default bg-surface px-5 transition-colors',
+                  'data-[state=open]:border-primary/30 data-[state=open]:bg-primary-subtle/40',
+                )}
+              >
+                <AccordionPrimitive.Header className="flex">
+                  <AccordionPrimitive.Trigger className="flex flex-1 items-center gap-3 py-4 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
+                    <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', ACCENT_CLASSES[accent])}>
+                      <Icon icon={icon} size="sm" />
+                    </span>
+                    <span className="flex-1 font-semibold text-text-primary">{t(`items.${key}.question`)}</span>
+                    <span className="hidden size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis in-data-[state=open]:flex">
+                      <Icon icon={Minus} size="sm" />
+                    </span>
+                    <Icon
+                      icon={ChevronDown}
+                      size="sm"
+                      className="shrink-0 text-text-tertiary transition-transform duration-(--duration-fast) in-data-[state=open]:hidden"
+                    />
+                  </AccordionPrimitive.Trigger>
+                </AccordionPrimitive.Header>
+                <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-none">
+                  <div className="ms-4 border-s-2 border-primary/30 ps-4 pb-4">
+                    <Text size="sm" tone="secondary">
+                      {t(`items.${key}.answer`)}
+                    </Text>
+                  </div>
+                </AccordionPrimitive.Content>
+              </AccordionPrimitive.Item>
+            ))}
+          </Accordion>
+
+          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-primary-subtle px-6 py-5 sm:flex-row sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface">
+                <Icon icon={Headphones} size="md" className="text-primary" />
+              </span>
+              <div className="flex flex-col text-center sm:text-start">
+                <Text className="font-bold">{t('support.title')}</Text>
                 <Text size="sm" tone="secondary">
-                  {t(`items.${key}.answer`)}
+                  {t('support.description')}
                 </Text>
               </div>
-            </AccordionPrimitive.Content>
-          </AccordionPrimitive.Item>
-        ))}
-      </Accordion>
-
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl bg-primary-subtle px-6 py-5 sm:flex-row sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface">
-            <Icon icon={Headphones} size="md" className="text-primary" />
-          </span>
-          <div className="flex flex-col text-center sm:text-start">
-            <Text className="font-bold">{t('support.title')}</Text>
-            <Text size="sm" tone="secondary">
-              {t('support.description')}
-            </Text>
-          </div>
+            </div>
+            {/* The shared primary button, never a one-off fill. */}
+            <Button asChild className="shrink-0">
+              <a href={`mailto:${env.supportEmail}`}>{t('support.cta')}</a>
+            </Button>
         </div>
-        {/* The shared primary button, never a one-off fill. */}
-        <Button asChild className="shrink-0">
-          <a href={`mailto:${env.supportEmail}`}>{t('support.cta')}</a>
-        </Button>
-      </div>
-    </Container>
+        </div>
+      </Container>
+    </LandingSection>
   );
 }

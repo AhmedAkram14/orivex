@@ -2,6 +2,7 @@
 
 import { ArrowRight, LayoutDashboard, Stethoscope, UserPlus, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { Heading, Text } from '@/design-system/typography';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
@@ -24,98 +25,102 @@ export function CtaSection() {
   const isAuthenticated = status === 'authenticated';
 
   return (
-    <Container size="lg" className="py-16">
-      <div className="relative overflow-hidden rounded-2xl border border-border-default bg-cta-surface p-8 sm:p-12">
-        <div
-          className="pointer-events-none absolute start-6 top-6 size-16 opacity-40"
-          style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '10px 10px' }}
-          aria-hidden="true"
-        />
+    // The last section before the footer (the full step below it). Its panel is the page's closing band: padded
+    // inside by the full step, like the ink band.
+    <LandingSection fullBottom>
+      <Container size="lg">
+        <div data-landing-panel="" className="relative overflow-hidden rounded-2xl border border-border-default bg-cta-surface px-8 py-(--section-y) sm:px-12">
+          <div
+            className="pointer-events-none absolute start-6 top-6 size-16 opacity-40"
+            style={{ backgroundImage: 'radial-gradient(var(--color-border-strong) 1px, transparent 1px)', backgroundSize: '10px 10px' }}
+            aria-hidden="true"
+          />
 
-        <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
-          <div className="flex flex-col items-start gap-5">
-            <Badge variant="primary" className="gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
-              <Icon icon={Users} size="xs" />
-              {t('eyebrow')}
-            </Badge>
+          <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+            <div className="flex flex-col items-start gap-5">
+              <Badge variant="primary" className="gap-1.5 rounded-full px-3 py-1 text-xs font-medium">
+                <Icon icon={Users} size="xs" />
+                {t('eyebrow')}
+              </Badge>
 
-            {/* No size override here -- every other section header on this
-                page is a plain Heading level=1, and this closing CTA
-                shouldn't out-scale them; the section's own weight comes
-                from being last and from the tinted banner around it, not
-                from oversized type. */}
-            <Heading as="h2" level={2}>{t('title')}</Heading>
+              {/* No size override here -- every other section header on this
+                  page is a plain Heading level=1, and this closing CTA
+                  shouldn't out-scale them; the section's own weight comes
+                  from being last and from the tinted banner around it, not
+                  from oversized type. */}
+              <Heading as="h2" level={2}>{t('title')}</Heading>
 
-            <Text size="lg" tone="secondary" className="max-w-md">
-              {t('description')}
-            </Text>
+              <Text size="lg" tone="secondary" className="max-w-md">
+                {t('description')}
+              </Text>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {isAuthenticated ? (
-                <Button asChild size="lg">
-                  <Link href="/dashboard">
-                    <Icon icon={LayoutDashboard} size="sm" />
-                    {tNav('goToDashboard')}
-                  </Link>
-                </Button>
-              ) : (
-                <>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                {isAuthenticated ? (
                   <Button asChild size="lg">
-                    <Link href="/register">
-                      <Icon icon={UserPlus} size="sm" />
-                      {t('primaryCta')}
+                    <Link href="/dashboard">
+                      <Icon icon={LayoutDashboard} size="sm" />
+                      {tNav('goToDashboard')}
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="secondary">
-                    <Link href="/login">
-                      {t('secondaryCta')}
-                      <Icon icon={ArrowRight} size="sm" flipRtl />
-                    </Link>
-                  </Button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <Button asChild size="lg">
+                      <Link href="/register">
+                        <Icon icon={UserPlus} size="sm" />
+                        {t('primaryCta')}
+                      </Link>
+                    </Button>
+                    <Button asChild size="lg" variant="secondary">
+                      <Link href="/login">
+                        {t('secondaryCta')}
+                        <Icon icon={ArrowRight} size="sm" flipRtl />
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Only 2 cards -- a carousel would be overkill; stacking to one column on mobile (same "recompose, don't squeeze" rule as the specialty carousel) is enough. */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
+                <span className="flex size-14 items-center justify-center rounded-full bg-primary-subtle">
+                  <Icon icon={Stethoscope} size="lg" className="text-primary" />
+                </span>
+                <Heading level={3}>{t('patientsCard.title')}</Heading>
+                <Text size="sm" tone="secondary">
+                  {t('patientsCard.description')}
+                </Text>
+                <svg
+                  className="pointer-events-none absolute inset-x-0 bottom-0 text-primary/10"
+                  viewBox="0 0 200 40"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path d="M0 20 Q50 0 100 20 T200 20 V40 H0 Z" fill="currentColor" />
+                </svg>
+              </Card>
+              <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
+                <span className="flex size-14 items-center justify-center rounded-full bg-success-subtle">
+                  <Icon icon={UserPlus} size="lg" className="text-success" />
+                </span>
+                <Heading level={3}>{t('doctorsCard.title')}</Heading>
+                <Text size="sm" tone="secondary">
+                  {t('doctorsCard.description')}
+                </Text>
+                <svg
+                  className="pointer-events-none absolute inset-x-0 bottom-0 text-success/10"
+                  viewBox="0 0 200 40"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path d="M0 20 Q50 0 100 20 T200 20 V40 H0 Z" fill="currentColor" />
+                </svg>
+              </Card>
             </div>
           </div>
-
-          {/* Only 2 cards -- a carousel would be overkill; stacking to one column on mobile (same "recompose, don't squeeze" rule as the specialty carousel) is enough. */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-primary-subtle">
-                <Icon icon={Stethoscope} size="lg" className="text-primary" />
-              </span>
-              <Heading level={3}>{t('patientsCard.title')}</Heading>
-              <Text size="sm" tone="secondary">
-                {t('patientsCard.description')}
-              </Text>
-              <svg
-                className="pointer-events-none absolute inset-x-0 bottom-0 text-primary/10"
-                viewBox="0 0 200 40"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path d="M0 20 Q50 0 100 20 T200 20 V40 H0 Z" fill="currentColor" />
-              </svg>
-            </Card>
-            <Card className="relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl p-6 text-center">
-              <span className="flex size-14 items-center justify-center rounded-full bg-success-subtle">
-                <Icon icon={UserPlus} size="lg" className="text-success" />
-              </span>
-              <Heading level={3}>{t('doctorsCard.title')}</Heading>
-              <Text size="sm" tone="secondary">
-                {t('doctorsCard.description')}
-              </Text>
-              <svg
-                className="pointer-events-none absolute inset-x-0 bottom-0 text-success/10"
-                viewBox="0 0 200 40"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <path d="M0 20 Q50 0 100 20 T200 20 V40 H0 Z" fill="currentColor" />
-              </svg>
-            </Card>
-          </div>
         </div>
-      </div>
-    </Container>
+      </Container>
+    </LandingSection>
   );
 }

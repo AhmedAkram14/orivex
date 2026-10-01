@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { Heading, Text } from '@/design-system/typography';
 import { Badge } from '@/shared/ui/badge';
 import { Container } from '@/shared/ui/container';
@@ -142,36 +143,38 @@ export function HowItWorksSection() {
   const t = useTranslations('landing.howItWorks');
 
   return (
-    <Container id="how-it-works" size="lg" className="flex flex-col gap-8 py-16 scroll-mt-16">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
-          <Icon icon={ShieldCheck} size="xs" />
-          {t('eyebrow')}
-        </Badge>
-        <Heading as="h2" level={2}>{t('title')}</Heading>
-        <Text tone="secondary" className="max-w-xl">
-          {t('description')}
-        </Text>
-        {/* The one PulseLine on the page: the divider under the section title. */}
-        <PulseLine variant="divider" animated className="max-w-xs pt-2" />
-      </div>
+    <LandingSection id="how-it-works" className="scroll-mt-16">
+      <Container size="lg" className="flex flex-col gap-(--section-head-gap)">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Badge variant="primary" className="gap-1.5 px-3 py-1 text-xs uppercase tracking-wide">
+            <Icon icon={ShieldCheck} size="xs" />
+            {t('eyebrow')}
+          </Badge>
+          <Heading as="h2" level={2}>{t('title')}</Heading>
+          <Text tone="secondary" className="max-w-xl">
+            {t('description')}
+          </Text>
+          {/* The one PulseLine on the page: the divider under the section title. */}
+          <PulseLine variant="divider" animated className="max-w-xs pt-2" />
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <StepPanel
-          headerIcon={User}
-          titleKey="patientTitle"
-          descriptionKey="patientDescription"
-          steps={PATIENT_STEPS}
-          theme="primary"
-        />
-        <StepPanel
-          headerIcon={Stethoscope}
-          titleKey="doctorTitle"
-          descriptionKey="doctorDescription"
-          steps={DOCTOR_STEPS}
-          theme="success"
-        />
-      </div>
-    </Container>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <StepPanel
+            headerIcon={User}
+            titleKey="patientTitle"
+            descriptionKey="patientDescription"
+            steps={PATIENT_STEPS}
+            theme="primary"
+          />
+          <StepPanel
+            headerIcon={Stethoscope}
+            titleKey="doctorTitle"
+            descriptionKey="doctorDescription"
+            steps={DOCTOR_STEPS}
+            theme="success"
+          />
+        </div>
+      </Container>
+    </LandingSection>
   );
 }

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { AudienceCopy } from '@/features/landing/components/audience-copy';
 import { AudienceShowcase } from '@/features/landing/components/audience-showcase';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
@@ -47,7 +48,7 @@ export function ForDoctorsSection() {
     );
 
   return (
-    <section id="for-doctors" className="scroll-mt-16 bg-ink-band py-20 text-on-ink-band">
+    <LandingSection id="for-doctors" variant="band" className="scroll-mt-16 bg-ink-band text-on-ink-band">
       <Container size="lg">
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
           {/* Copy first in the reading order (it comes first on a phone); on wide screens the stage takes the start. */}
@@ -55,6 +56,6 @@ export function ForDoctorsSection() {
           <AudienceShowcase audience="doctor" className="min-w-0 rounded-(--r-card) bg-ink-band-raised p-4 sm:p-6 lg:col-span-7" />
         </div>
       </Container>
-    </section>
+    </LandingSection>
   );
 }

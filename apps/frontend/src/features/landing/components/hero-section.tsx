@@ -42,7 +42,10 @@ export function HeroSection() {
   const isPatient = user?.roles.includes('patient') ?? false;
 
   return (
-    <Container size="lg" className="pb-20 pt-24 lg:pb-28 lg:pt-28">
+    // The hero keeps its own top offset (under the fixed navbar). Its bottom adds nothing: the section below supplies
+    // the whole step -- except, while the photo is the last thing in the column (sm to lg), room for the priority
+    // card hanging 24px below it, so the step is measured from the card.
+    <Container size="lg" className="pt-24 sm:pb-6 lg:pb-0 lg:pt-28">
       <div className="grid grid-cols-1 items-center gap-10 pt-10 lg:grid-cols-2 lg:gap-14">
         <div className="flex flex-col items-center gap-7 text-center lg:items-start lg:text-start">
           <div className="flex items-center gap-2">

@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { AudienceCopy } from '@/features/landing/components/audience-copy';
 import { AudienceShowcase } from '@/features/landing/components/audience-showcase';
+import { LandingSection } from '@/features/landing/components/landing-section';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
@@ -54,7 +55,8 @@ export function ForPatientsSection() {
   );
 
   return (
-    <section id="for-patients" className="scroll-mt-16 py-20">
+    // Faces the ink band below: the full step on that edge.
+    <LandingSection id="for-patients" fullBottom className="scroll-mt-16">
       <Container size="lg">
         {/* Warm in light (peach to canvas); a ~10% warm tint on surface in dark (tokens). */}
         <div className="grid grid-cols-1 items-center gap-10 rounded-(--r-hero) bg-linear-to-br from-warm-1 to-warm-band-end p-6 sm:p-10 lg:grid-cols-12 lg:gap-12 lg:p-12">
@@ -62,6 +64,6 @@ export function ForPatientsSection() {
           <AudienceShowcase audience="patient" className="min-w-0 lg:col-span-7" />
         </div>
       </Container>
-    </section>
+    </LandingSection>
   );
 }
