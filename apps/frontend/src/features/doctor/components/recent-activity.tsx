@@ -16,7 +16,7 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 import { cn } from '@/shared/lib/cn';
 
-const MAX_ITEMS = 5;
+const MAX_ITEMS = 3;
 
 /** The row's one icon is the shared type icon (`notificationTypeIcon`); its tint is the real `severity`. */
 const accentBySeverity: Record<NotificationSeverity, string> = {
@@ -62,7 +62,7 @@ export function RecentActivity() {
   return (
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('title')}</span>}
-      // Sizes to its content (at most 5 rows) -- no fixed height, no inner scroll.
+      // Sizes to its content (at most 3 rows, "View all" for the rest) -- no fixed height, no inner scroll.
       className="rounded-(--r-card) border-border-default shadow-sm"
       actions={
         <Button asChild variant="ghost" size="sm">

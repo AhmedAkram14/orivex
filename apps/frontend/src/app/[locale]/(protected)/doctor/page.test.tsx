@@ -57,8 +57,16 @@ describe('DoctorDashboardPage', () => {
     const heading = await screen.findByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('Welcome back, Dr. Sarah Ahmed.');
     // `doctor-store.ts`'s seeded busy-practice-day fixture (not a real
-    // clinical record) -- a completed-today patient from `seedUpcomingWork()`.
-    expect(await screen.findByText('Mona Farouk')).toBeInTheDocument();
+    // clinical record). Upcoming work shows at most three rows -- the visit in
+    // progress (Nourhan, "Go to queue") and what follows -- and links to the
+    // rest; the morning's completed visits (e.g. Mona Farouk) are behind
+    // "View all".
+    const goToQueue = await screen.findByRole('link', { name: 'Go to queue' });
+    const upcomingWork = goToQueue.closest('ul')!;
+    expect(within(upcomingWork).getAllByRole('listitem').length).toBeLessThanOrEqual(3);
+    expect(within(upcomingWork).getByText('Nourhan Abdel Aziz')).toBeInTheDocument();
+    expect(screen.queryByText('Mona Farouk')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^View all \(\d+\)$/ })).toHaveAttribute('href', '/en/doctor/appointments');
   });
 
   it('renders the redesigned hero, quick actions, and a real startable consultation', async () => {

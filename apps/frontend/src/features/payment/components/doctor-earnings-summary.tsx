@@ -159,7 +159,7 @@ export function DoctorEarningsSummary() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-(--group-gap)">
       {/* Doctor Reports page rebuild (Phase 3): the reverse of Reports' own
           "see your earnings" cross-link -- same `Link` + `ArrowRight` idiom
           the Schedule page already established for its own cross-page link. */}

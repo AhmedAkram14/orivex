@@ -67,8 +67,8 @@ export default function PatientPrescriptionsPage() {
 
             <PrescriptionSummaryCards prescriptions={all} loading={isLoading} className="mt-4" />
 
-            <div className="mt-6 grid grid-cols-1 gap-6 @wide:grid-cols-3">
-              <div className="lg:col-span-2">
+            <div className="mt-(--group-gap) grid grid-cols-1 gap-(--group-gap) @wide:grid-cols-3">
+              <div className="@wide:col-span-2">
                 <TabsContent value="active" className="mt-0">
                   <Section title={t('activeHeading')}>
                     <PrescriptionList

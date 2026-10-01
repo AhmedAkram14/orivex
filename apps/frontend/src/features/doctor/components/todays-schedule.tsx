@@ -13,6 +13,9 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { TimelineCard } from '@/shared/ui/layout/timeline-card';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
+/** The Overview shows a few rows and links to the rest, so it ends near its neighbour (the Patient Queue). */
+const MAX_ITEMS = 3;
+
 function StatusLabel({ status }: { status: UpcomingWorkItem['status'] }) {
   const t = useTranslations('doctor.dashboard.upcomingWork.status');
   return <>{t(status)}</>;
@@ -28,6 +31,9 @@ function StatusLabel({ status }: { status: UpcomingWorkItem['status'] }) {
  * entry rather than fabricating a direct-mutation button this widget can't
  * safely wire up (an upcoming-work item and a queue session are distinct
  * backend resources with no guaranteed shared id).
+ *
+ * At most three rows: the visit in progress (or the next one) and what follows;
+ * once the day is done, its last three. "View all" opens Appointments.
  */
 export function TodaysSchedule() {
   const t = useTranslations('doctor.dashboard');
@@ -42,11 +48,22 @@ export function TodaysSchedule() {
   const currentOrNextId =
     todaysItems.find((item) => item.status === 'in-progress')?.id ??
     todaysItems.find((item) => item.status === 'upcoming')?.id;
+  const currentIndex = todaysItems.findIndex((item) => item.id === currentOrNextId);
+  const lastWindowStart = Math.max(0, todaysItems.length - MAX_ITEMS);
+  const windowStart = currentIndex === -1 ? lastWindowStart : Math.min(currentIndex, lastWindowStart);
+  const visibleItems = todaysItems.slice(windowStart, windowStart + MAX_ITEMS);
 
   return (
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('upcomingWorkTitle')}</span>}
       className="rounded-(--r-card) border-border-default shadow-sm"
+      actions={
+        todaysItems.length > MAX_ITEMS ? (
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/doctor/appointments">{t('upcomingWorkViewAll', { count: todaysItems.length })}</Link>
+          </Button>
+        ) : undefined
+      }
     >
       {isError ? (
         <Alert variant="danger">{t('upcomingWorkLoadError')}</Alert>
@@ -57,7 +74,7 @@ export function TodaysSchedule() {
         </div>
       ) : todaysItems.length > 0 ? (
         <ul className="flex flex-col gap-1">
-          {todaysItems.map((item) => (
+          {visibleItems.map((item) => (
             <li key={item.id}>
               <TimelineCard
                 time={format.dateTime(new Date(item.scheduledAt), { hour: 'numeric', minute: 'numeric' })}

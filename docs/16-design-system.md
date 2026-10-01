@@ -185,7 +185,7 @@ Supersedes the color, type, radius and component notes above where they differ. 
 
 - **Color:** warm-neutral canvas; ink (`--color-primary`) for primary actions; vital-lime `pulse` accent for fills only (never text on light surfaces); care blue (`care`, `care-text`) for links, focus and info; warm peach→blush for patient surfaces, lime for doctor surfaces. Existing token names were re-pointed, not renamed. Added: `pulse*`, `care*`, `warm-1/2`, `surface-2`, `spec-1..9(-tint)`.
 - **Type:** Outfit for English headings/metrics, IBM Plex elsewhere (Arabic unchanged). Scale utilities `text-h1…`, `text-body`, `text-small`, `text-caption`; `cn()` knows them.
-- **Density variables:** `--page-gutter`, `--section-gap`, `--card-pad`, `--card-gap`, `--row-h`. Radius collapsed to five values (10/12/20/28/full); control heights: 3 button sizes.
+- **Density variables:** `--page-gutter`, `--group-gap`, `--card-pad`, `--card-gap`, `--row-h` (two-level rhythm: `--group-gap` between a page's groups, `--card-gap` between the cards in one group, on both axes). Public pages: `--section-y` (96 / 72 / 56px by width), `--section-head-gap` (40px). Radius collapsed to five values (10/12/20/28/full); control heights: 3 button sizes.
 - **Motion:** 200ms fades on popover/dropdown, bell tilt, toast slide-in, PulseLine (one per screen). All honor `prefers-reduced-motion`.
 - **Primitives:** Button, StatusBadge (single status→tone map), Card/HeroSurface/InsetRow, MetricStat, VitalCard, EmptyState (+illustrations), ErrorState, ConfirmDialog, skeleton set, DateBlock, Avatar, PulseLine, Toast, SegmentedControl, TagInput, SpecialtyChip.
 

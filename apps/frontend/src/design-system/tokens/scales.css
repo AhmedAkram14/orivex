@@ -267,19 +267,37 @@
    * public); the doctor shell sets `data-density="compact"` on its root.
    * Components read these variables instead of hard-coding spacing:
    * `p-(--card-pad)`, `gap-(--card-gap)`, `min-h-(--row-h)`.
+   *
+   * A page has a two-level rhythm: `--group-gap` between its groups (the
+   * page's top-level blocks), `--card-gap` between the cards inside one
+   * group -- on both axes, so a grid's rows sit as far apart as its columns.
    */
   --page-gutter: 32px;
-  --section-gap: 40px;
+  --group-gap: 32px;
   --card-pad: 24px;
   --card-gap: 20px;
   --field-gap: 20px;
   --label-gap: 8px;
   --row-h: 56px;
+
+  /*
+   * Public (landing) page rhythm. Every section pads its block edges by
+   * half of `--section-y`, so two neighbours add up to one full step; a
+   * coloured band pads its inside by the full step. `--section-y` is the
+   * live value: 96px from 1024px, `--section-y-md` below it, `--section-y-sm`
+   * on phones. A section's heading block sits `--section-head-gap` above its
+   * content.
+   */
+  --section-y: 96px;
+  --section-y-md: 72px;
+  --section-y-sm: 56px;
+  --section-head-gap: 40px;
 }
 
 @media (max-width: 1023px) {
   :root {
     --page-gutter: 24px;
+    --section-y: var(--section-y-md);
   }
 }
 @media (max-width: 767px) {
@@ -287,10 +305,15 @@
     --page-gutter: 16px;
   }
 }
+@media (max-width: 639px) {
+  :root {
+    --section-y: var(--section-y-sm);
+  }
+}
 
 [data-density='compact'] {
   --page-gutter: 24px;
-  --section-gap: 28px;
+  --group-gap: 24px;
   --card-pad: 20px;
   --card-gap: 16px;
   --field-gap: 16px;

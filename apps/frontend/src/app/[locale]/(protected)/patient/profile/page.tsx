@@ -45,7 +45,7 @@ export default function PatientProfilePage() {
 
         {profile && mode === 'view' && <PatientProfileView profile={profile} onEdit={() => setMode('edit')} />}
         {profile && mode === 'edit' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-(--card-gap)">
             <PersonalInfoStep account={account} onSaved={() => {}} />
             <PatientProfileForm profile={profile} onSaved={() => setMode('view')} onCancel={() => setMode('view')} />
           </div>

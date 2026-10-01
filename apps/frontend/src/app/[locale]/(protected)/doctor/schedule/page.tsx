@@ -414,8 +414,8 @@ export default function DoctorSchedulePage() {
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
       <Page size="full">
         {/* xl and up: the calendar column and the summary column sit side by side, level with the breadcrumb. Below xl everything stacks: header, toolbar, calendar, the two cards, then the bottom row. */}
-        <div className="grid grid-cols-1 gap-6 @5xl:grid-cols-[minmax(0,1fr)_18.5rem]">
-          <div className="flex min-w-0 flex-col gap-6">
+        <div className="grid grid-cols-1 gap-(--group-gap) @5xl:grid-cols-[minmax(0,1fr)_18.5rem]">
+          <div className="flex min-w-0 flex-col gap-(--group-gap)">
             <WorkspaceHeader
               // Derived from the sidebar config like every other page (Practice > Schedule), never hand-authored.
               breadcrumbs={<AppBreadcrumbs />}
@@ -613,7 +613,7 @@ export default function DoctorSchedulePage() {
           </div>
 
           {/* Summary column: This Week, then Next Available Slot. */}
-          <div className="grid min-w-0 grid-cols-1 content-start gap-4 @2xl:grid-cols-2 @5xl:grid-cols-1">
+          <div className="grid min-w-0 grid-cols-1 content-start gap-(--card-gap) @2xl:grid-cols-2 @5xl:grid-cols-1">
             <Card className={cardClassName}>
               <CardContent className="flex flex-col gap-3 p-4">
                 <div className="flex items-center justify-between gap-2">
@@ -665,7 +665,7 @@ export default function DoctorSchedulePage() {
         </div>
 
         {/* Weekly availability + time off: full width, two equal columns from md. */}
-        <div className="grid grid-cols-1 gap-6 @2xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-(--card-gap) @2xl:grid-cols-2">
           <Card className={cardClassName}>
             <CardContent className="flex flex-col gap-3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">

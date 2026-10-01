@@ -141,7 +141,7 @@ export function ReportsSummary() {
   // one of its three underlying statuses arbitrarily.
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-(--group-gap)">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <ReportsDateRangePicker dateFrom={dateFrom} dateTo={dateTo} onChange={handleDateRangeChange} />
         <ExportReportsButton filter={{ dateFrom, dateTo, comparePrevious }} />

@@ -1073,6 +1073,7 @@
       "patientAccountRequired": "Booking is available for patient accounts"
     },
     "dashboard": {
+      "upcomingWorkViewAll": "View all ({count, number})",
       "upcomingWorkEmptyLine": "Nothing booked for today.",
       "title": "Doctor Workspace",
       "welcome": "Welcome back, Dr. <bdi>{name}</bdi>.",

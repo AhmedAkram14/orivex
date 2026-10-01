@@ -8,7 +8,7 @@ import { TodaysSchedule } from '@/features/doctor/components/todays-schedule';
 import { TodaysSummary } from '@/features/doctor/components/todays-summary';
 import { UpcomingAvailability } from '@/features/doctor/components/upcoming-availability';
 import { RequireRole } from '@/shared/auth/require-role';
-import { DashboardGrid, Page } from '@/shared/ui/layout/page';
+import { DashboardGrid, DashboardGroup, Page } from '@/shared/ui/layout/page';
 
 /**
  * The Doctor Workspace's dashboard -- reachable only by the `doctor` role.
@@ -16,24 +16,30 @@ import { DashboardGrid, Page } from '@/shared/ui/layout/page';
  * one MetricStrip, then Today's Schedule / Patient Queue and Progress /
  * Availability / Recent Activity. Every widget composes an existing real hook;
  * no trend arrows, no invented figures, honest empty states.
+ *
+ * The widgets are one group: one `--card-gap` between them on both axes (and
+ * `--group-gap` between the page's groups). The lists stop at three rows with
+ * a link to the rest, so cards side by side end near the same line.
  */
 export default function DoctorDashboardPage() {
   return (
     <RequireRole roles={['doctor']} redirectTo="/forbidden">
-      <Page className="gap-(--section-gap)">
+      <Page>
         <DashboardHero />
         <TodaysSummary />
 
-        <DashboardGrid columns={2} className="gap-(--card-gap)">
-          <TodaysSchedule />
-          <PatientQueueMini />
-        </DashboardGrid>
+        <DashboardGroup>
+          <DashboardGrid columns={2}>
+            <TodaysSchedule />
+            <PatientQueueMini />
+          </DashboardGrid>
 
-        <DashboardGrid columns={3} className="gap-(--card-gap)">
-          <TodaysProgress />
-          <UpcomingAvailability />
-          <RecentActivity />
-        </DashboardGrid>
+          <DashboardGrid columns={3}>
+            <TodaysProgress />
+            <UpcomingAvailability />
+            <RecentActivity />
+          </DashboardGrid>
+        </DashboardGroup>
       </Page>
     </RequireRole>
   );

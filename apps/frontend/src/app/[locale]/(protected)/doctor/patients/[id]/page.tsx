@@ -261,7 +261,7 @@ export default function DoctorPatientChartPage() {
                 whose chart they're in while deep in a tab. */}
             <StickyPatientBar profile={profile} headerRef={headerRef} />
 
-            <div className={cn('flex flex-col gap-6', STICKY_BAR_SCROLL_MARGIN)}>
+            <div className={cn('flex flex-col gap-(--group-gap)', STICKY_BAR_SCROLL_MARGIN)}>
               {/* Card isn't forwardRef -- wrap it instead of passing ref
                   through, so StickyPatientBar's IntersectionObserver has a
                   real DOM node to watch. */}
@@ -301,7 +301,7 @@ export default function DoctorPatientChartPage() {
                   Tabs sibling, so it stays visible on every tab. */}
               <AllergyBanner profile={profile} patientProfileId={patientProfileId} />
 
-              <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-(--card-gap) @2xl:grid-cols-4">
                 <QuickStat
                   label={t('stats.completedConsultations')}
                   value={String(completedCount)}
@@ -379,8 +379,8 @@ export default function DoctorPatientChartPage() {
                 </TabsList>
                 </div>
 
-                <TabsContent value="overview" className="flex flex-col gap-6">
-                  <div className="grid grid-cols-1 gap-6 @pane:grid-cols-2">
+                <TabsContent value="overview" className="flex flex-col gap-(--card-gap)">
+                  <div className="grid grid-cols-1 items-start gap-(--card-gap) @pane:grid-cols-2">
                     <Card className={CARD_CLASSNAME}>
                       <CardHeader className="px-7 py-6">
                         <CardTitle>{t('personalInformation')}</CardTitle>
@@ -551,7 +551,7 @@ export default function DoctorPatientChartPage() {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="consultations" className="flex flex-col gap-6">
+                <TabsContent value="consultations" className="flex flex-col gap-(--card-gap)">
                   <Card className={CARD_CLASSNAME}>
                     <CardHeader className="px-7 py-6">
                       <CardTitle>{t('upcomingAppointments')}</CardTitle>

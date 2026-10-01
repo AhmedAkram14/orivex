@@ -55,8 +55,8 @@ export default function PatientMedicalRecordsPage() {
 
         <RecordsSummary entries={allEntries} entriesLoading={isLoading} />
 
-        <div className="grid grid-cols-1 gap-6 @wide:grid-cols-3">
-          <div className="flex flex-col gap-6 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-(--group-gap) @wide:grid-cols-3">
+          <div className="flex flex-col gap-(--group-gap) @wide:col-span-2">
             <Section title={t('timelineTitle')}>
               {isLoading ? (
                 <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
@@ -81,7 +81,7 @@ export default function PatientMedicalRecordsPage() {
             </Section>
           </div>
 
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-(--group-gap)">
             <Section title={t('conditionsTitle')}>
               {isLoading ? (
                 <Skeleton className="h-24 w-full" />

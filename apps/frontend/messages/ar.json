@@ -1073,6 +1073,7 @@
       "patientAccountRequired": "الحجز متاح لحسابات المرضى فقط"
     },
     "dashboard": {
+      "upcomingWorkViewAll": "عرض الكل ({count, number})",
       "upcomingWorkEmptyLine": "لا يوجد شيء محجوز اليوم.",
       "title": "مساحة عمل الطبيب",
       "welcome": "مرحبًا بعودتك، د. <bdi>{name}</bdi>.",

@@ -26,8 +26,17 @@ const columnsClass: Record<NonNullable<DashboardGridProps['columns']>, string> =
 /**
  * The grid every dashboard arranges its widgets in -- 1 column below 640px of content, scaling up per
  * `columns`. `items-start`: a short widget keeps its own height instead of stretching half-empty to
- * match a tall neighbour.
+ * match a tall neighbour. One `--card-gap` on both axes, so its rows sit as far apart as its columns.
  */
 export function DashboardGrid({ columns = 3, className, ...props }: DashboardGridProps) {
-  return <div className={cn('grid grid-cols-1 items-start gap-4', columnsClass[columns], className)} {...props} />;
+  return <div data-slot="dashboard-grid" className={cn('grid grid-cols-1 items-start gap-(--card-gap)', columnsClass[columns], className)} {...props} />;
+}
+
+/**
+ * Cards that belong together, stacked one `--card-gap` apart -- the same gap a `DashboardGrid` has between
+ * its cells, so a group of full-width cards and grids keeps one rhythm. The `Page` puts `--group-gap`
+ * between groups. Also a grid cell's column of cards (cards of different heights stay one gap apart).
+ */
+export function DashboardGroup({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div data-slot="dashboard-group" className={cn('flex min-w-0 flex-col gap-(--card-gap)', className)} {...props} />;
 }
