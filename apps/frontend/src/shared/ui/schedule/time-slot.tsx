@@ -10,6 +10,8 @@ export interface TimeSlotProps {
   /** Only set when `label` is a real consultation price — distinguishes a FREE slot (bold success pill, not just smaller text next to the time) from a Paid one (emphasized price text) so the two never read as visually equivalent. Omitted entirely for callers with no pricing fact to show (e.g. the doctor's own Day view, which never renders `label`). */
   priceVariant?: 'free' | 'paid';
   onSelect?: () => void;
+  /** The chosen slot: the pulse (lime) fill, the one accent a picker uses for its selection. */
+  selected?: boolean;
   className?: string;
 }
 
@@ -25,7 +27,8 @@ const statusClass: Record<TimeSlotStatus, string> = {
  * only wired up for an `available` slot; a `booked`/`blocked` slot
  * renders as a static, non-interactive cell.
  */
-export function TimeSlot({ time, status, label, priceVariant, onSelect, className }: TimeSlotProps) {
+export function TimeSlot({ time, status, label, priceVariant, onSelect, selected = false, className }: TimeSlotProps) {
+  const selectedClass = selected && 'border-pulse bg-pulse text-pulse-foreground hover:bg-pulse';
   const content = (
     <>
       <span className="font-medium">{time}</span>
@@ -44,10 +47,12 @@ export function TimeSlot({ time, status, label, priceVariant, onSelect, classNam
       <button
         type="button"
         onClick={onSelect}
+        aria-pressed={selected ? true : undefined}
         className={cn(
           'flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border px-3 py-2 text-start text-sm transition-colors duration-(--duration-fast) ease-standard',
           'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
           statusClass[status],
+          selectedClass,
           className,
         )}
       >
@@ -57,7 +62,7 @@ export function TimeSlot({ time, status, label, priceVariant, onSelect, classNam
   }
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border px-3 py-2 text-sm', statusClass[status], className)}>
+    <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md border px-3 py-2 text-sm', statusClass[status], selectedClass, className)}>
       {content}
     </div>
   );

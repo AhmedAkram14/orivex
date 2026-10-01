@@ -11,16 +11,15 @@ interface RevealOnScrollProps {
 }
 
 /**
- * Fades + slides a section in the first time it scrolls into view. Progressive
- * enhancement: the server render and the first client paint are FULLY VISIBLE,
- * so content never depends on JavaScript (and never leaves a viewport-tall
- * blank gap). Only after mount, and only for a section that starts below the
- * fold, is it hidden and then revealed `once` at a 10% threshold. Reduced
- * motion skips all of it.
+ * The reveal-once logic behind `RevealOnScroll`, for a component that animates its own parts (e.g. a staggered
+ * stage whose final details land after the reveal). Progressive enhancement: `revealed` starts TRUE, so the server
+ * render and the first client paint show the final state and nothing depends on JavaScript. Only after mount, and
+ * only for an element that starts below the fold, does it flip to false (`animate` true) and back to true the
+ * first time 10% of it is in view. Reduced motion skips all of it.
  */
-export function RevealOnScroll({ children, className, delayMs = 0 }: RevealOnScrollProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<'visible' | 'hidden'>('visible');
+export function useRevealOnce<T extends HTMLElement = HTMLDivElement>() {
+  const ref = useRef<T>(null);
+  const [revealed, setRevealed] = useState(true);
   const [animate, setAnimate] = useState(false);
 
   useEffect(() => {
@@ -33,11 +32,11 @@ export function RevealOnScroll({ children, className, delayMs = 0 }: RevealOnScr
     if (rect.top < window.innerHeight * 0.9) return;
 
     setAnimate(true);
-    setState('hidden');
+    setRevealed(false);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setState('visible');
+          setRevealed(true);
           observer.disconnect();
         }
       },
@@ -47,12 +46,26 @@ export function RevealOnScroll({ children, className, delayMs = 0 }: RevealOnScr
     return () => observer.disconnect();
   }, []);
 
+  return { ref, revealed, animate };
+}
+
+/**
+ * Fades + slides a section in the first time it scrolls into view. Progressive
+ * enhancement: the server render and the first client paint are FULLY VISIBLE,
+ * so content never depends on JavaScript (and never leaves a viewport-tall
+ * blank gap). Only after mount, and only for a section that starts below the
+ * fold, is it hidden and then revealed `once` at a 10% threshold. Reduced
+ * motion skips all of it.
+ */
+export function RevealOnScroll({ children, className, delayMs = 0 }: RevealOnScrollProps) {
+  const { ref, revealed, animate } = useRevealOnce();
+
   return (
     <div
       ref={ref}
       className={cn(
         animate && 'transition-[opacity,transform] duration-700 ease-out',
-        state === 'hidden' ? 'translate-y-6 opacity-0' : 'translate-y-0 opacity-100',
+        revealed ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
         className,
       )}
       style={delayMs && animate ? { transitionDelay: `${delayMs}ms` } : undefined}

@@ -14,7 +14,9 @@ const LOCALES = ['en', 'ar'] as const;
 
 async function measureAvatars(page: Page) {
   return page.evaluate(() =>
+    // The landing's product previews draw the app at 0.9 scale on purpose (illustrations, not avatars), so they're out.
     [...document.querySelectorAll<HTMLElement>('[data-slot="avatar"]')]
+      .filter((avatar) => !avatar.closest('[data-showcase-stage]'))
       .map((avatar) => {
         const box = avatar.getBoundingClientRect();
         const images = [...avatar.querySelectorAll('img')].map((image) => getComputedStyle(image).objectPosition);

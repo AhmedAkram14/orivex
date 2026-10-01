@@ -69,6 +69,8 @@
     --color-care-subtle: #1c2b3c;
     --color-warm-1: #2e2c29;
     --color-warm-2: #2e282d;
+    --color-warm-band-end: #121a1c;
+    --color-ink-band-raised: #24322f;
     --color-accent-pink: #f472b6;
     --color-accent-pink-subtle: #322632;
     --color-accent-purple: #a78bfa;
@@ -153,6 +155,8 @@
   --color-care-subtle: #1c2b3c;
   --color-warm-1: #2e2c29;
   --color-warm-2: #2e282d;
+  --color-warm-band-end: #121a1c;
+  --color-ink-band-raised: #24322f;
   --color-accent-pink: #f472b6;
   --color-accent-pink-subtle: #322632;
   --color-accent-purple: #a78bfa;

@@ -96,6 +96,13 @@
   /* Patient-surface warmth -- the HeroSurface gradient only. */
   --color-warm-1: #ffe3d3;
   --color-warm-2: #ffd1dc;
+  /* The patient audience surface on the landing: warm-1 fading to this (canvas here, surface in dark). */
+  --color-warm-band-end: #eff1ec;
+  /* The doctor audience band: ink in BOTH themes (it does not invert), with its own text colour and a raised
+     stage step for the product vignettes. Dark mode raises the stage one more step (theme-dark.css). */
+  --color-ink-band: #0f1c1b;
+  --color-ink-band-raised: #1a2826;
+  --color-on-ink-band: #f4f6f3;
 
   /* Categorical accents (no status meaning): the Schedule calendar colours
      appointments by visit type. */

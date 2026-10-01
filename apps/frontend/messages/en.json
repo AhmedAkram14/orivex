@@ -224,30 +224,59 @@
       }
     },
     "forPatients": {
-      "title": "For Patients",
-      "description": "Getting the care you need has never been easier.",
-      "imageAlt": "A patient checking her appointment details on her phone",
-      "bullets": {
-        "findVerifiedDoctors": "Find verified doctors across a range of specialties.",
-        "bookInMinutes": "Book an appointment in minutes.",
-        "consultFromHome": "Consult with your doctor from home over secure video.",
-        "secureRecords": "Keep your medical records and prescriptions in one secure place.",
-        "digitalPrescriptions": "Receive digital prescriptions you can view and print anytime."
+      "eyebrow": "For patients",
+      "title": "Care that fits your day",
+      "description": "Find a verified doctor, book a time that works for you, and keep your care in one place.",
+      "benefits": {
+        "book": {
+          "lead": "Book in minutes",
+          "text": "pick a verified doctor and a time that suits you."
+        },
+        "visit": {
+          "lead": "See your doctor from home",
+          "text": "secure video visits, no waiting room."
+        },
+        "records": {
+          "lead": "Your care in one place",
+          "text": "prescriptions and visit notes, always at hand."
+        }
       },
-      "cta": "Find a Doctor"
+      "cta": "Find a doctor",
+      "ctaPatientsOnly": "Finding and booking doctors is for patient accounts.",
+      "stageDescription": "A preview of the patient app: your next visit, choosing a time, and an active prescription."
     },
     "forDoctors": {
-      "title": "For Doctors",
-      "description": "Grow your practice and reach more patients online.",
-      "imageAlt": "A doctor reviewing his dashboard on a laptop",
-      "bullets": {
-        "flexibleSchedule": "Set your own availability and working hours.",
-        "videoConsultations": "Consult with patients over secure video, from anywhere.",
-        "digitalPrescriptions": "Issue digital prescriptions during your consultations.",
-        "securePayments": "Get paid securely for your consultations through Stripe.",
-        "growPractice": "Reach new patients searching for your specialty."
+      "eyebrow": "For doctors",
+      "title": "Your practice, online.",
+      "description": "Run your schedule, your consultations and your earnings from one workspace.",
+      "benefits": {
+        "hours": {
+          "lead": "Set your own hours",
+          "text": "patients book only the times you open."
+        },
+        "video": {
+          "lead": "Consult by video",
+          "text": "with notes and prescriptions in the same place."
+        },
+        "earnings": {
+          "lead": "Clear earnings",
+          "text": "every payment and the platform fee, shown openly."
+        }
       },
-      "cta": "Become a Doctor"
+      "ctaApply": "Apply as a doctor",
+      "ctaWorkspace": "Go to your workspace",
+      "stageDescription": "A preview of the doctor workspace: today's schedule, a new appointment request, and monthly earnings."
+    },
+    "showcase": {
+      "yourDoctor": "Your doctor",
+      "tomorrow": "Tomorrow",
+      "tomorrowAt": "Tomorrow · {time}",
+      "onceDaily": "Once daily",
+      "newRequest": "New request",
+      "newPatient": "New patient",
+      "netThisMonth": "Net this month",
+      "hoursBefore": "−{count}h",
+      "hoursAfter": "+{count}h"
     },
     "securityTrust": {
       "eyebrow": "Your Safety Is Our Priority",
@@ -3843,9 +3872,7 @@
     "cardLineOne": "Safe consultations.",
     "cardLineTwo": "Trusted doctors.",
     "cardLineThree": "Better care.",
-    "cardCta": "Learn more",
-    "patientPanelTitle": "Care that fits your day",
-    "doctorPanelTitle": "Your practice, simplified"
+    "cardCta": "Learn more"
   },
   "profileFlow": {
     "intakeDescription": "Three quick details are all we need to get you booking. You can add the rest any time.",

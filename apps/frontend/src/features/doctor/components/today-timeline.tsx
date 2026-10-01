@@ -13,12 +13,12 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 
-interface Range {
+export interface DayStripRange {
   start: number;
   end: number;
 }
 
-interface BookedRange extends Range {
+export interface DayStripBooking extends DayStripRange {
   id: string;
   /** The patient (the appointment's own title). */
   who: string;
@@ -54,13 +54,13 @@ export function TodayTimeline({ className }: { className?: string }) {
   if (slotsLoading || workLoading || scheduleLoading || exceptionsLoading) return <Skeleton className={cn('h-24 w-full', className)} />;
 
   const today = new Date(now);
-  const available: Range[] = (slots ?? [])
+  const available: DayStripRange[] = (slots ?? [])
     .filter((slot) => isSameCairoDay(new Date(slot.startTime), today))
     .map((slot) => ({
       start: new Date(slot.startTime).getTime(),
       end: new Date(slot.endTime).getTime(),
     }));
-  const booked: BookedRange[] = (work ?? [])
+  const booked: DayStripBooking[] = (work ?? [])
     .filter(
       (item) => item.status !== 'cancelled' && isSameCairoDay(new Date(item.scheduledAt), today),
     )
@@ -103,6 +103,45 @@ export function TodayTimeline({ className }: { className?: string }) {
     );
   }
 
+  return (
+    <DayStrip
+      available={available}
+      booked={booked}
+      now={now}
+      hourLabel={(ms) => format.dateTime(new Date(ms), { hour: 'numeric' })}
+      timeLabel={(ms) => format.dateTime(new Date(ms), { hour: 'numeric', minute: '2-digit' })}
+      className={className}
+    />
+  );
+}
+
+export interface DayStripProps {
+  available: DayStripRange[];
+  booked: DayStripBooking[];
+  /** The instant the pulse "now" marker stands at. */
+  now: number;
+  /** The label under each hour mark (a clock hour on the Overview, a relative offset in the landing preview). */
+  hourLabel: (ms: number) => string;
+  /** A time for the available bands' titles and the booked capsules' labels. */
+  timeLabel: (ms: number) => string;
+  /**
+   * An illustrative strip (the landing page's product preview): booked capsules are plain shapes -- no tooltip,
+   * no button, nothing to focus -- since they stand for no real appointment.
+   */
+  preview?: boolean;
+  /** Extra classes on the now marker's line (e.g. a draw-in transition). */
+  nowMarkerClassName?: string;
+  className?: string;
+}
+
+/**
+ * The day strip itself, pure: an available track, booked ink capsules and the pulse now marker on one horizontal
+ * line, hour marks under it, a two-item legend. `TodayTimeline` feeds it the doctor's real day; the landing page's
+ * doctor showcase feeds it illustrative ranges in `preview` mode -- one strip, never a copy of it.
+ */
+export function DayStrip({ available, booked, now, hourLabel, timeLabel, preview = false, nowMarkerClassName, className }: DayStripProps) {
+  const t = useTranslations('doctorHome.timeline');
+  const all = [...available, ...booked];
   const min = Math.floor(Math.min(...all.map((range) => range.start)) / HOUR) * HOUR;
   const max = Math.ceil(Math.max(...all.map((range) => range.end)) / HOUR) * HOUR;
   const span = Math.max(HOUR, max - min);
@@ -112,9 +151,6 @@ export function TodayTimeline({ className }: { className?: string }) {
   const hourMarks: number[] = [];
   const stepHours = span / HOUR > 10 ? 2 : 1;
   for (let ms = min; ms <= max; ms += stepHours * HOUR) hourMarks.push(ms);
-
-  const time = (ms: number) =>
-    format.dateTime(new Date(ms), { hour: 'numeric', minute: '2-digit' });
 
   return (
     <TooltipProvider>
@@ -126,7 +162,7 @@ export function TodayTimeline({ className }: { className?: string }) {
           {available.map((range) => (
             <div
               key={`a-${range.start}`}
-              title={t('availableLabel', { from: time(range.start), to: time(range.end) })}
+              title={t('availableLabel', { from: timeLabel(range.start), to: timeLabel(range.end) })}
               className="absolute top-1/2 h-3 -translate-y-1/2 rounded-sm bg-pulse/20"
               style={{
                 insetInlineStart: `${pct(range.start)}%`,
@@ -135,35 +171,46 @@ export function TodayTimeline({ className }: { className?: string }) {
             />
           ))}
           {/* booked slots: ink capsules, each naming the patient and time on hover or focus */}
-          {booked.map((range) => (
-            <Tooltip key={`b-${range.id}`}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`${range.who} · ${time(range.start)} – ${time(range.end)}`}
-                  className="absolute top-1/2 h-4 min-w-1.5 -translate-y-1/2 rounded-full bg-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2"
-                  style={{
-                    insetInlineStart: `${pct(range.start)}%`,
-                    width: `${Math.max(0.6, pct(range.end) - pct(range.start))}%`,
-                  }}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <span className="block font-semibold">
-                  <bdi>{range.who}</bdi>
-                </span>
-                <span className="block" dir="auto">
-                  {time(range.start)} – {time(range.end)}
-                </span>
-              </TooltipContent>
-            </Tooltip>
-          ))}
+          {booked.map((range) =>
+            preview ? (
+              <span
+                key={`b-${range.id}`}
+                className="absolute top-1/2 h-4 min-w-1.5 -translate-y-1/2 rounded-full bg-text-primary"
+                style={{
+                  insetInlineStart: `${pct(range.start)}%`,
+                  width: `${Math.max(0.6, pct(range.end) - pct(range.start))}%`,
+                }}
+              />
+            ) : (
+              <Tooltip key={`b-${range.id}`}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={`${range.who} · ${timeLabel(range.start)} – ${timeLabel(range.end)}`}
+                    className="absolute top-1/2 h-4 min-w-1.5 -translate-y-1/2 rounded-full bg-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2"
+                    style={{
+                      insetInlineStart: `${pct(range.start)}%`,
+                      width: `${Math.max(0.6, pct(range.end) - pct(range.start))}%`,
+                    }}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span className="block font-semibold">
+                    <bdi>{range.who}</bdi>
+                  </span>
+                  <span className="block" dir="auto">
+                    {timeLabel(range.start)} – {timeLabel(range.end)}
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            ),
+          )}
           {nowVisible && (
             <div
               className="absolute inset-y-0 -translate-x-1/2 rtl:translate-x-1/2"
               style={{ insetInlineStart: `${pct(now)}%` }}
             >
-              <span className="absolute inset-y-0 start-1/2 w-0.5 -translate-x-1/2 rounded-full bg-pulse ring-1 ring-text-primary/20 rtl:translate-x-1/2" />
+              <span className={cn('absolute inset-y-0 start-1/2 w-0.5 -translate-x-1/2 rounded-full bg-pulse ring-1 ring-text-primary/20 rtl:translate-x-1/2', nowMarkerClassName)} />
               <span className="absolute -top-1 start-1/2 -translate-x-1/2 rounded-full bg-pulse px-1.5 text-caption font-semibold text-pulse-foreground rtl:translate-x-1/2">
                 {t('now')}
               </span>
@@ -179,7 +226,7 @@ export function TodayTimeline({ className }: { className?: string }) {
               className="absolute -translate-x-1/2 text-caption whitespace-nowrap text-text-tertiary tabular-nums rtl:translate-x-1/2"
               style={{ insetInlineStart: `${pct(ms)}%` }}
             >
-              {format.dateTime(new Date(ms), { hour: 'numeric' })}
+              {hourLabel(ms)}
             </span>
           ))}
         </div>

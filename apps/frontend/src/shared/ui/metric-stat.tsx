@@ -30,8 +30,15 @@ export interface MetricStatProps {
   /** Real supporting text under the value (a rating's review count, a range) -- never a fabricated trend. */
   helperText?: ReactNode;
   delta?: MetricDelta;
-  /** Real readings, oldest to newest. Rendered as a quiet 1.5px line. */
+  /** Real readings, oldest to newest. Rendered as a quiet 1.5px line (or bars). */
   sparkline?: number[];
+  /** `line` (default) or `bars` -- a short series of discrete periods (e.g. months) reads better as bars. */
+  sparklineStyle?: 'line' | 'bars';
+  /**
+   * An illustrative stat (e.g. a product preview on the landing page): the value is a skeleton bar -- never an
+   * invented figure -- while the label, icon and sparkline render as usual. Unlike `loading`, nothing is pending.
+   */
+  preview?: boolean;
   /**
    * `hero` (metric-xl, ONE per page), `tile` (default), or `inline` -- a
    * chrome-less segment for a horizontal strip of 3-4 stats (see MetricStrip).
@@ -87,8 +94,21 @@ function useCountUpOnce(value: string, enabled: boolean): { text: string; animat
   return { text: shown === null ? value : String(shown), animating: shown !== null };
 }
 
-function Sparkline({ points }: { points: number[] }) {
+// Time runs oldest -> newest in the reading direction, so the plot mirrors under RTL (as VitalCard does).
+function Sparkline({ points, style = 'line' }: { points: number[]; style?: 'line' | 'bars' }) {
   if (points.length < 2) return null;
+  if (style === 'bars') {
+    const top = Math.max(...points) || 1;
+    const width = 80 / points.length;
+    return (
+      <svg viewBox="0 0 80 24" aria-hidden="true" focusable="false" className="h-6 w-20 shrink-0 text-text-tertiary rtl:-scale-x-100">
+        {points.map((point, index) => {
+          const height = Math.max(2, (point / top) * 22);
+          return <rect key={index} x={index * width + width * 0.2} y={24 - height} width={width * 0.6} height={height} rx={1.5} fill="currentColor" />;
+        })}
+      </svg>
+    );
+  }
   const min = Math.min(...points);
   const max = Math.max(...points);
   const span = max - min || 1;
@@ -96,7 +116,7 @@ function Sparkline({ points }: { points: number[] }) {
     .map((point, index) => `${index === 0 ? 'M' : 'L'}${(index / (points.length - 1)) * 80} ${22 - ((point - min) / span) * 20}`)
     .join(' ');
   return (
-    <svg viewBox="0 0 80 24" aria-hidden="true" focusable="false" className="h-6 w-20 shrink-0 overflow-visible text-text-tertiary">
+    <svg viewBox="0 0 80 24" aria-hidden="true" focusable="false" className="h-6 w-20 shrink-0 overflow-visible text-text-tertiary rtl:-scale-x-100">
       <path d={path} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -138,18 +158,20 @@ export function MetricStat({
   helperText,
   delta,
   sparkline,
+  sparklineStyle,
+  preview = false,
   variant = 'tile',
   className,
 }: MetricStatProps) {
-  const { text: display, animating } = useCountUpOnce(value, !loading);
+  const { text: display, animating } = useCountUpOnce(value, !loading && !preview);
   const isHero = variant === 'hero';
 
   const body = (
     <>
       {icon && <Icon icon={icon} size="md" className="absolute end-4 top-4 text-text-tertiary" />}
       <p className={cn('min-w-0 text-small text-text-tertiary', icon && 'pe-8')}>{label}</p>
-      {loading ? (
-        <Skeleton className={cn('mt-2', isHero ? 'h-11 w-32' : 'h-8 w-16')} />
+      {loading || preview ? (
+        <Skeleton className={cn('mt-2', isHero ? 'h-11 w-32' : 'h-8 w-16', preview && 'animate-none! bg-none!')} />
       ) : (
         // The wrapper is the size container the figure measures itself against (a stretched block, so its
         // width always comes from the stat, never from the text).
@@ -175,7 +197,7 @@ export function MetricStat({
             {delta && <DeltaChip delta={delta} />}
             {helperText && <span className="min-w-0 text-small text-text-tertiary">{helperText}</span>}
           </div>
-          {sparkline && <Sparkline points={sparkline} />}
+          {sparkline && <Sparkline points={sparkline} style={sparklineStyle} />}
         </div>
       )}
     </>
