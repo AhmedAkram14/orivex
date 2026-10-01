@@ -640,7 +640,7 @@ export default function DoctorSchedulePage() {
                   <Skeleton className="h-14 w-full" />
                 ) : nextAvailableSlot ? (
                   <div className="flex items-center gap-4">
-                    <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-pulse text-pulse-foreground">
+                    <span className="flex size-14 shrink-0 items-center justify-center rounded-full border-[1.5px] border-avail-stroke bg-avail-fill text-text-primary">
                       <Icon icon={CalendarClock} size="lg" />
                     </span>
                     <div className="flex min-w-0 flex-col">

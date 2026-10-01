@@ -60,12 +60,14 @@
 .orivex-fc .fc-day-today .fc-dayheader-number {
   color: var(--color-primary);
 }
+/* The day's open hours, in the availability tokens: lime fill, 1.5px olive stroke, ink text. */
 .orivex-fc .fc-dayheader-chip {
   max-width: 100%;
   padding: 0.125rem 0.375rem;
   border-radius: 0.375rem;
-  background: var(--color-success-subtle);
-  color: var(--color-success-emphasis);
+  border: 1.5px solid var(--color-avail-stroke);
+  background: var(--color-avail-fill);
+  color: var(--color-text-primary);
   font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1rem;
@@ -410,33 +412,28 @@
   }
 }
 
-/* ---- Redesign layer: availability is a pulse wash, booked visits are ink,
-   days off / time outside working hours are a hatched surface. Appended after
-   the base rules so it wins by source order; tokens only (light/dark/RTL free). */
+/* ---- Redesign layer: open hours are the plain surface (the appointments -- the data -- sit there, and data never
+   sits on a lime tint); each day's hours are named by its header chip in the availability tokens (lime fill, olive
+   stroke); booked visits are ink; days off / time outside working hours carry the "unavailable" hatch, the same
+   pattern as the Overview's day strip. Today is marked in its header (an olive top rule), not by a column wash.
+   Appended after the base rules so it wins by source order; tokens only (light/dark/RTL free). */
 .orivex-fc {
-  --fc-today-bg-color: var(--color-pulse-subtle);
+  --fc-today-bg-color: transparent;
   --fc-now-indicator-color: var(--color-text-primary);
 }
-.orivex-fc .fc-timegrid-col {
-  background: color-mix(in srgb, var(--color-pulse) 20%, var(--color-surface));
-}
+.orivex-fc .fc-timegrid-col,
 .orivex-fc .fc-timegrid-col.fc-day-today {
-  background: color-mix(in srgb, var(--color-pulse) 28%, var(--color-surface));
+  background: var(--color-surface);
 }
 .orivex-fc .fc-col-header-cell.fc-day-today {
-  border-top-color: var(--color-pulse);
+  border-top-color: var(--color-avail-stroke);
 }
 .orivex-fc .fc-timegrid-now-indicator-line {
   border-color: var(--color-text-primary);
 }
 .orivex-fc .fc-bg-off {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent 0 6px,
-      color-mix(in srgb, var(--color-text-primary) 9%, transparent) 6px 7px
-    ),
-    var(--color-surface-2);
+  background-color: var(--color-surface-2);
+  background-image: var(--pattern-unavailable);
 }
 .orivex-fc .fc-timegrid-event.fc-appt {
   --fc-appt-bg: var(--color-text-primary);

@@ -1073,6 +1073,9 @@
       "patientAccountRequired": "Booking is available for patient accounts"
     },
     "dashboard": {
+      "kpiCaptionPatientsInQueue": "Waiting now",
+      "kpiCaptionConsultationsToday": "Still ahead today",
+      "kpiCaptionPendingApproval": "Need your approval",
       "upcomingWorkViewAll": "View all ({count, number})",
       "upcomingWorkEmptyLine": "Nothing booked for today.",
       "title": "Doctor Workspace",
@@ -1106,7 +1109,7 @@
         "nextPatientIn": "Next patient in {minutes, plural, one {# minute} other {# minutes}}",
         "nextPatientInHours": "Next patient in about {hours, plural, one {# hour} other {# hours}}",
         "noMorePatientsToday": "No more patients today",
-        "noStartableConsultation": "No patient waiting to start",
+        "noStartableConsultation": "No patient waiting",
         "quickActions": {
           "more": "More actions",
           "startConsultation": "Start Consultation",
@@ -1125,6 +1128,8 @@
         "moreOptions": "More options"
       },
       "progress": {
+        "nothingBooked": "Nothing booked",
+        "nextOpening": "Next opening: {date} · {time}",
         "emptyLine": "No appointments to track today.",
         "title": "Today's Progress",
         "completedOfTotal": "{completed} of {total} done",
@@ -1132,6 +1137,9 @@
         "loadError": "Couldn't load today's progress."
       },
       "availability": {
+        "ended": "Ended",
+        "until": "until {time}",
+        "viewSchedule": "View schedule",
         "emptyLine": "No working hours set yet.",
         "title": "Upcoming Availability",
         "loadError": "Couldn't load your upcoming availability."
@@ -3641,6 +3649,7 @@
   },
   "doctorHome": {
     "timeline": {
+      "legendUnavailable": "Unavailable",
       "nothingUpcoming": "No open slots coming up. Check your hours in Schedule.",
       "next": "Next: {when}",
       "noSlotsLeft": "No open slots left today",

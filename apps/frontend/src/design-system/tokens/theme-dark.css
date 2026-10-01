@@ -64,6 +64,8 @@
     --color-pulse: #c8e85a;
     --color-pulse-foreground: #0f1c1b;
     --color-pulse-subtle: #283323;
+    --color-avail-fill: rgb(200 232 90 / 0.28);
+    --color-avail-stroke: #c8e85a;
     --color-care: #5b95ff;
     --color-care-text: #7aa8ff;
     --color-care-subtle: #1c2b3c;
@@ -150,6 +152,8 @@
   --color-pulse: #c8e85a;
   --color-pulse-foreground: #0f1c1b;
   --color-pulse-subtle: #283323;
+  --color-avail-fill: rgb(200 232 90 / 0.28);
+  --color-avail-stroke: #c8e85a;
   --color-care: #5b95ff;
   --color-care-text: #7aa8ff;
   --color-care-subtle: #1c2b3c;

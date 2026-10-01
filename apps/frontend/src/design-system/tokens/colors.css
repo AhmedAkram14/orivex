@@ -87,6 +87,13 @@
   --color-pulse-foreground: #0f1c1b;
   --color-pulse-subtle: #ebf1d7;
 
+  /* Availability: a doctor's open time wherever it is drawn (the day strip, the Schedule's day chips, the next open
+     slot, a picked booking slot). The lime FILL alone is 1.24:1 on white, so every free shape also carries a 1.5px
+     STROKE: 6.1:1 on surface, 5.0:1 on the fill (WCAG 1.4.11). Data never sits on a lime-tinted surface; booked
+     time is solid ink (`text-primary`), and nothing-open is `--pattern-unavailable` below. */
+  --color-avail-fill: #d8f36a;
+  --color-avail-stroke: #4d6b0f;
+
   /* Care blue: links, the focus ring, the video CTA. `care-text` is the
      slightly deeper step that holds 4.5:1 on canvas. */
   --color-care: #1466f5;
@@ -148,4 +155,11 @@
    layers its own gradient over it. */
 :root {
   --gradient-canvas: none;
+  /* Unavailable (no open time, or time already past): a hairline hatch in the border colour, so "nothing" still
+     reads differently from free. A texture, not data: free and booked carry the contrast. */
+  --pattern-unavailable: repeating-linear-gradient(
+    135deg,
+    var(--color-border-default) 0 1.5px,
+    transparent 1.5px 6px
+  );
 }

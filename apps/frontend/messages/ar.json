@@ -1073,6 +1073,9 @@
       "patientAccountRequired": "الحجز متاح لحسابات المرضى فقط"
     },
     "dashboard": {
+      "kpiCaptionPatientsInQueue": "ينتظرون الآن",
+      "kpiCaptionConsultationsToday": "المتبقية اليوم",
+      "kpiCaptionPendingApproval": "بانتظار موافقتك",
       "upcomingWorkViewAll": "عرض الكل ({count, number})",
       "upcomingWorkEmptyLine": "لا يوجد شيء محجوز اليوم.",
       "title": "مساحة عمل الطبيب",
@@ -1106,7 +1109,7 @@
         "nextPatientIn": "المريض التالي خلال {minutes, plural, one {دقيقة واحدة} two {دقيقتين} few {# دقائق} many {# دقيقة} other {# دقيقة}}",
         "nextPatientInHours": "المريض التالي خلال {hours, plural, one {ساعة واحدة تقريبًا} two {ساعتين تقريبًا} few {# ساعات تقريبًا} many {# ساعة تقريبًا} other {# ساعة تقريبًا}}",
         "noMorePatientsToday": "لا مزيد من المرضى اليوم",
-        "noStartableConsultation": "لا يوجد مريض بانتظار البدء",
+        "noStartableConsultation": "لا يوجد مريض في الانتظار",
         "quickActions": {
           "more": "المزيد من الإجراءات",
           "startConsultation": "بدء الاستشارة",
@@ -1125,6 +1128,8 @@
         "moreOptions": "خيارات إضافية"
       },
       "progress": {
+        "nothingBooked": "لا توجد حجوزات",
+        "nextOpening": "أقرب موعد متاح: {date} · {time}",
         "emptyLine": "لا توجد مواعيد لمتابعتها اليوم.",
         "title": "تقدّم اليوم",
         "completedOfTotal": "{completed} من {total} مكتملة",
@@ -1132,6 +1137,9 @@
         "loadError": "تعذّر تحميل تقدّم اليوم."
       },
       "availability": {
+        "ended": "انتهت",
+        "until": "حتى {time}",
+        "viewSchedule": "عرض الجدول",
         "emptyLine": "لم تُحدَّد ساعات العمل بعد.",
         "title": "أوقات التوفر القادمة",
         "loadError": "تعذّر تحميل أوقات توفرك القادمة."
@@ -3641,6 +3649,7 @@
   },
   "doctorHome": {
     "timeline": {
+      "legendUnavailable": "غير متاح",
       "nothingUpcoming": "لا توجد مواعيد متاحة قادمة. راجع ساعات عملك من صفحة الجدول.",
       "next": "التالي: {when}",
       "noSlotsLeft": "لم تتبقَّ مواعيد متاحة اليوم",

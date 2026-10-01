@@ -10,7 +10,7 @@ export interface TimeSlotProps {
   /** Only set when `label` is a real consultation price — distinguishes a FREE slot (bold success pill, not just smaller text next to the time) from a Paid one (emphasized price text) so the two never read as visually equivalent. Omitted entirely for callers with no pricing fact to show (e.g. the doctor's own Day view, which never renders `label`). */
   priceVariant?: 'free' | 'paid';
   onSelect?: () => void;
-  /** The chosen slot: the pulse (lime) fill, the one accent a picker uses for its selection. */
+  /** The chosen slot: the availability fill with its 1.5px stroke (`avail-fill` / `avail-stroke`), ink text. */
   selected?: boolean;
   className?: string;
 }
@@ -28,7 +28,10 @@ const statusClass: Record<TimeSlotStatus, string> = {
  * renders as a static, non-interactive cell.
  */
 export function TimeSlot({ time, status, label, priceVariant, onSelect, selected = false, className }: TimeSlotProps) {
-  const selectedClass = selected && 'border-pulse bg-pulse text-pulse-foreground hover:bg-pulse';
+  // 1px border + 0.5px inset = the 1.5px availability stroke, without changing the slot's size on selection.
+  const selectedClass =
+    selected &&
+    'border-avail-stroke bg-avail-fill text-text-primary shadow-[inset_0_0_0_0.5px_var(--color-avail-stroke)] hover:bg-avail-fill';
   const content = (
     <>
       <span className="font-medium">{time}</span>
