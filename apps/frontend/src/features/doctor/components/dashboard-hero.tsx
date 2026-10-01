@@ -40,7 +40,7 @@ function QuickAction({ icon, label, href, disabledReason }: QuickActionProps) {
             size="sm"
             aria-disabled="true"
             onClick={(event) => event.preventDefault()}
-            className="cursor-not-allowed text-text-tertiary"
+            className="cursor-not-allowed opacity-(--opacity-disabled) motion-safe:hover:translate-y-0 motion-safe:active:scale-100"
           >
             <Icon icon={icon} size="sm" />
             {label}

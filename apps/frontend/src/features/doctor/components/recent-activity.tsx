@@ -62,9 +62,11 @@ export function RecentActivity() {
   return (
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('title')}</span>}
-      // Sizes to its content (at most 3 rows, "View all" for the rest) -- no fixed height, no inner scroll.
+      // At most 3 rows, "View all" for the rest -- no fixed height, no inner scroll.
       className="rounded-(--r-card) border-border-default shadow-sm"
-      actions={
+      data-empty={!isLoading && !isError && recent.length === 0 ? '' : undefined}
+      contentClassName={!isLoading && !isError && recent.length === 0 ? 'flex flex-col justify-center' : undefined}
+      footer={
         <Button asChild variant="ghost" size="sm">
           <Link href="/notifications">{t('viewAll')}</Link>
         </Button>
@@ -85,23 +87,29 @@ export function RecentActivity() {
             const folded = group.length > 1;
             const unread = group.some((entry) => !entry.read);
             return (
-              <li key={notification.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', accentBySeverity[notification.severity])}>
+              <li key={notification.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
+                <span className={cn('relative flex size-9 shrink-0 items-center justify-center rounded-full', accentBySeverity[notification.severity])}>
                   <Icon icon={notificationTypeIcon(notification)} size="sm" />
+                  {/* Visual-only unread cue on the icon's corner (titles all start at the same x); "Unread" is its text alternative. */}
+                  {unread && (
+                    <span
+                      data-unread-dot=""
+                      className="absolute -end-0.5 -top-0.5 size-1.5 rounded-full bg-primary ring-2 ring-surface"
+                      aria-hidden="true"
+                    />
+                  )}
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                    {unread && (
-                      <>
-                        {/* Visual-only cue, as in the bell; "Unread" is its text alternative. */}
-                        <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-                        <span className="sr-only">{tNotifications('unread')}</span>
-                      </>
-                    )}
-                    <span className="min-w-0">{folded ? groupTitle(group, text.title) : text.title}</span>
+                  <p className="text-sm font-medium text-text-primary">
+                    {unread && <span className="sr-only">{tNotifications('unread')} </span>}
+                    {folded ? groupTitle(group, text.title) : text.title}
                   </p>
                   {/* A folded row's members share one generic body; it would only repeat the title. */}
-                  {!folded && <p className="text-sm text-text-secondary">{text.description}</p>}
+                  {!folded && (
+                    <p className="line-clamp-1 text-sm text-text-secondary" title={text.description}>
+                      {text.description}
+                    </p>
+                  )}
                   <p className="text-xs text-text-tertiary">
                     {/* A folded row is timed by its newest member. */}
                     {format.relativeTime(new Date(notification.createdAt), new Date())}

@@ -57,7 +57,9 @@ export function TodaysSchedule() {
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('upcomingWorkTitle')}</span>}
       className="rounded-(--r-card) border-border-default shadow-sm"
-      actions={
+      data-empty={!isLoading && !isError && todaysItems.length === 0 ? '' : undefined}
+      contentClassName={!isLoading && !isError && todaysItems.length === 0 ? 'flex flex-col justify-center' : undefined}
+      footer={
         todaysItems.length > MAX_ITEMS ? (
           <Button asChild variant="ghost" size="sm">
             <Link href="/doctor/appointments">{t('upcomingWorkViewAll', { count: todaysItems.length })}</Link>

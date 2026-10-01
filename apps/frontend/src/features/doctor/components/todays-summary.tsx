@@ -41,6 +41,7 @@ export function TodaysSummary() {
         icon={ClipboardCheck}
         label={tQueue('stats.pendingApproval.title')}
         value={String(pending?.length ?? 0)}
+        helperText={t('kpiCaptionPendingApproval')}
         loading={pendingLoading}
         href="/doctor/queue"
       />
@@ -49,6 +50,7 @@ export function TodaysSummary() {
         icon={CalendarCheck}
         label={t('consultationsToday')}
         value={String(data?.consultationsToday ?? 0)}
+        helperText={t('kpiCaptionConsultationsToday')}
         loading={isLoading}
         href="/doctor/schedule"
       />
@@ -57,6 +59,7 @@ export function TodaysSummary() {
         icon={Users}
         label={t('patientsInQueue')}
         value={String(data?.patientsInQueue ?? 0)}
+        helperText={t('kpiCaptionPatientsInQueue')}
         loading={isLoading}
         href="/doctor/queue"
       />

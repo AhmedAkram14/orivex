@@ -12,7 +12,8 @@ import { Skeleton } from '@/shared/ui/skeleton';
 import { QueueStatus, type QueueStatusValue } from '@/shared/ui/queue/queue-status';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
-const MAX_ENTRIES = 4;
+/** Three rows like the Overview's other lists, so the row's cards end level; "View Full Queue" has the rest. */
+const MAX_ENTRIES = 3;
 
 /**
  * The redesigned Overview page's compact Patient Queue widget — the same
@@ -31,7 +32,10 @@ export function PatientQueueMini() {
     <WidgetContainer
       title={<span className="text-xl font-semibold">{t('patientQueueMini.title')}</span>}
       className="rounded-(--r-card) border-border-default shadow-sm"
-      actions={
+      // In a row stretched to its neighbour's height, an empty queue's one line sits in the middle, not at the top.
+      data-empty={!isLoading && !isError && entries.length === 0 ? '' : undefined}
+      contentClassName={!isLoading && !isError && entries.length === 0 ? 'flex flex-col justify-center' : undefined}
+      footer={
         <Button asChild variant="ghost" size="sm">
           <Link href="/doctor/queue">{t('patientQueueMini.viewFullQueue')}</Link>
         </Button>

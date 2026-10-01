@@ -126,8 +126,12 @@ describe('DoctorDashboardPage', () => {
 
     renderPage();
 
-    // A quiet line, not a second illustrated empty card: the greeting's day strip is the Overview's only one.
-    expect(await screen.findByText('Nothing booked for today.')).toBeInTheDocument();
+    // Nothing booked is said once, in one "Today" card that stands in for Upcoming work and Today's Progress -- not
+    // as a line in each card, and never as a second illustrated empty state.
+    expect(await screen.findByText('Nothing booked')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Today$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Upcoming work' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Nothing booked for today.')).not.toBeInTheDocument();
     expect(screen.queryByText('No appointments scheduled today. Enjoy your free time or update your availability.')).not.toBeInTheDocument();
   });
 });

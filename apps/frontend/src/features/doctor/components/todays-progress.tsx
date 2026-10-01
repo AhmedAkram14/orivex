@@ -1,35 +1,46 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useDoctorDashboardSummary } from '@/features/doctor/hooks/use-doctor-dashboard-summary';
+import { useUpcomingSlots } from '@/features/scheduling/hooks/use-upcoming-slots';
+import { getCairoNow } from '@/shared/lib/date/timezone';
 import { Alert } from '@/shared/ui/alert';
 import { CircularProgress } from '@/shared/ui/charts/circular-progress';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
-/**
- * The redesigned Overview page's "Today's Progress" widget — a real ratio
- * (`completedToday / consultationsToday`, both from the same real
- * `useDoctorDashboardSummary()` the stats row already uses), rendered as a
- * plain-SVG circular-progress ring. A 0/0 day renders the same empty state
- * as every other "nothing today" widget on this page instead of a ring that
- * can only ever read 0% -- there is nothing to divide.
- */
-export function TodaysProgress() {
-  const t = useTranslations('doctor.dashboard.progress');
-  const { data, isLoading, isError } = useDoctorDashboardSummary();
+export interface TodaysProgressProps {
+  /**
+   * `progress` (default): the booked day's "Today's Progress". `today`: an empty day's one "Today" card, standing in
+   * for both Upcoming work and Today's Progress -- the ring at 0 of 0, "Nothing booked", the next opening.
+   */
+  variant?: 'progress' | 'today';
+}
 
-  // Sizes to its own content, like the rest of the bottom row (no fixed height, no inner scroll).
+/**
+ * The Overview's "Today's Progress" widget — a real ratio (`completedToday / (completedToday + consultationsToday)`,
+ * both from the same `useDoctorDashboardSummary()` the stats row already uses) as a plain-SVG ring, with the next
+ * open slot under it ("Next opening: Sat, Oct 3 · 9 AM") from the upcoming slots the greeting's day strip has already
+ * loaded (the same query, no new request). A day with nothing booked still shows the ring, at 0 of 0; with no open
+ * slot ahead the line is left out.
+ */
+export function TodaysProgress({ variant = 'progress' }: TodaysProgressProps) {
+  const t = useTranslations('doctor.dashboard.progress');
+  const tDashboard = useTranslations('doctor.dashboard');
+  const format = useFormatter();
+  const { data, isLoading, isError } = useDoctorDashboardSummary();
+  const { data: slots } = useUpcomingSlots();
+
+  const title = (
+    <span className="text-xl font-semibold">
+      {variant === 'today' ? tDashboard('today') : t('title')}
+    </span>
+  );
   const widgetClassName = 'rounded-(--r-card) border-border-default shadow-sm';
-  const contentClassName = 'flex flex-col items-center justify-center';
 
   if (isError) {
     return (
-      <WidgetContainer
-        title={<span className="text-xl font-semibold">{t('title')}</span>}
-        className={widgetClassName}
-        contentClassName={contentClassName}
-      >
+      <WidgetContainer title={title} className={widgetClassName}>
         <Alert variant="danger">{t('loadError')}</Alert>
       </WidgetContainer>
     );
@@ -38,11 +49,11 @@ export function TodaysProgress() {
   if (isLoading) {
     return (
       <WidgetContainer
-        title={<span className="text-xl font-semibold">{t('title')}</span>}
+        title={title}
         className={widgetClassName}
-        contentClassName={contentClassName}
+        contentClassName="flex items-center justify-center"
       >
-        <Skeleton className="mx-auto h-44 w-44 rounded-full" />
+        <Skeleton className="size-32 rounded-full" />
       </WidgetContainer>
     );
   }
@@ -55,24 +66,61 @@ export function TodaysProgress() {
   const remaining = data?.consultationsToday ?? 0;
   const total = completed + remaining;
 
-  return (
-    <WidgetContainer
-      title={<span className="text-xl font-semibold">{t('title')}</span>}
-      className={widgetClassName}
-      contentClassName={contentClassName}
-    >
-      {total === 0 ? (
-        // One quiet line: the greeting's day strip is the Overview's one illustrated empty state.
-        <p className="self-stretch text-sm text-text-secondary">{t('emptyLine')}</p>
-      ) : (
-        <div className="flex flex-col items-center gap-3 py-2">
-          <CircularProgress value={completed} max={total} size={176} strokeWidth={14} />
-          <div className="flex flex-col items-center gap-1 text-center">
-            <p className="text-sm font-medium text-text-primary">{t('completedOfTotal', { completed, total })}</p>
-            <p className="text-xs text-text-tertiary">{t('remaining', { count: remaining })}</p>
+  const now = Date.now();
+  const next = (slots ?? [])
+    .map((slot) => new Date(slot.startTime))
+    .filter((start) => start.getTime() > now)
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+  const nextOpening = next
+    ? t('nextOpening', {
+        date: format.dateTime(next, { weekday: 'short', month: 'short', day: 'numeric' }),
+        time: format.dateTime(next, {
+          hour: 'numeric',
+          ...(getCairoNow(next).getMinutes() !== 0 ? { minute: '2-digit' as const } : {}),
+        }),
+      })
+    : null;
+  const ringLabel = t('completedOfTotal', { completed, total });
+
+  if (variant === 'today') {
+    return (
+      <WidgetContainer
+        title={title}
+        className={widgetClassName}
+        contentClassName="flex items-center"
+      >
+        <div className="flex items-center gap-5">
+          <CircularProgress
+            value={completed}
+            max={total}
+            size={112}
+            strokeWidth={10}
+            label={ringLabel}
+            className="shrink-0"
+          />
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="text-body font-medium text-text-primary">{t('nothingBooked')}</p>
+            {nextOpening && <p className="text-sm text-text-secondary">{nextOpening}</p>}
           </div>
         </div>
-      )}
+      </WidgetContainer>
+    );
+  }
+
+  return (
+    <WidgetContainer
+      title={title}
+      className={widgetClassName}
+      contentClassName="flex flex-col items-center justify-center"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <CircularProgress value={completed} max={total} size={128} strokeWidth={12} />
+        <div className="flex flex-col items-center gap-1 text-center">
+          <p className="text-sm font-medium text-text-primary">{ringLabel}</p>
+          <p className="text-xs text-text-tertiary">{t('remaining', { count: remaining })}</p>
+          {nextOpening && <p className="text-xs text-text-secondary">{nextOpening}</p>}
+        </div>
+      </div>
     </WidgetContainer>
   );
 }
