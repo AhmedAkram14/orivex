@@ -225,7 +225,9 @@ describe('DoctorSchedulePage', () => {
     await screen.findByRole('button', { name: 'Today' });
 
     await userEvent.click(screen.getByRole('button', { name: 'Edit availability' }));
-    expect(await screen.findByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Weekly availability' })).toBeInTheDocument();
+    // Nothing changed yet, so there is nothing to save.
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
   });
 
   it('saves a working-hours change, reflects it in the read-only list, and closes the dialog', async () => {
@@ -233,11 +235,11 @@ describe('DoctorSchedulePage', () => {
     await screen.findByRole('button', { name: 'Today' });
 
     await userEvent.click(screen.getByRole('button', { name: 'Edit availability' }));
-    await userEvent.click(screen.getByRole('switch', { name: 'Monday working day' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.click(await screen.findByRole('switch', { name: 'Monday working day' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     // The dialog closes on save.
-    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument());
 
     // Back in the read-only list, Monday now shows as not working. The
     // "Monday" label and its status text are sibling groups within the same

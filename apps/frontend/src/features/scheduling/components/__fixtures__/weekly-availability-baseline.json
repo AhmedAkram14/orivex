@@ -1,0 +1,109 @@
+{
+  "fixture": [
+    {
+      "dayOfWeek": "sunday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [
+        {
+          "start": "13:00",
+          "end": "14:00"
+        }
+      ],
+      "pricing": {
+        "pricingType": "paid",
+        "feeAmount": 320,
+        "feeCurrency": "EGP"
+      }
+    },
+    {
+      "dayOfWeek": "monday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [],
+      "pricing": {
+        "pricingType": "paid",
+        "feeAmount": 320,
+        "feeCurrency": "EGP"
+      }
+    },
+    {
+      "dayOfWeek": "tuesday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [],
+      "pricing": {
+        "pricingType": "paid",
+        "feeAmount": 320,
+        "feeCurrency": "EGP"
+      }
+    },
+    {
+      "dayOfWeek": "wednesday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [],
+      "pricing": {
+        "pricingType": "paid",
+        "feeAmount": 320,
+        "feeCurrency": "EGP"
+      }
+    },
+    {
+      "dayOfWeek": "thursday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [],
+      "pricing": {
+        "pricingType": "paid",
+        "feeAmount": 320,
+        "feeCurrency": "EGP"
+      }
+    },
+    {
+      "dayOfWeek": "friday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [],
+      "pricing": {
+        "pricingType": "free",
+        "feeAmount": null,
+        "feeCurrency": null
+      }
+    },
+    {
+      "dayOfWeek": "saturday",
+      "isWorkingDay": true,
+      "hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "breaks": [],
+      "pricing": {
+        "pricingType": "paid",
+        "feeAmount": 320,
+        "feeCurrency": "EGP"
+      }
+    }
+  ],
+  "unchanged": "[{\"dayOfWeek\":\"sunday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[{\"start\":\"13:00\",\"end\":\"14:00\"}],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"monday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"tuesday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"wednesday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"thursday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"friday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"free\",\"feeAmount\":null,\"feeCurrency\":null}},{\"dayOfWeek\":\"saturday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}}]",
+  "edited": "[{\"dayOfWeek\":\"sunday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[{\"start\":\"13:00\",\"end\":\"14:00\"}],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"monday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[{\"start\":\"13:00\",\"end\":\"14:00\"}],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"tuesday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"wednesday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"thursday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"friday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":450,\"feeCurrency\":\"EGP\"}},{\"dayOfWeek\":\"saturday\",\"isWorkingDay\":true,\"hours\":{\"start\":\"09:00\",\"end\":\"17:00\"},\"breaks\":[],\"pricing\":{\"pricingType\":\"paid\",\"feeAmount\":320,\"feeCurrency\":\"EGP\"}}]"
+}

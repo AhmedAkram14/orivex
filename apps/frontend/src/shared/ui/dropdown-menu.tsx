@@ -24,7 +24,8 @@ export const DropdownMenuContent = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-(--z-dropdown) min-w-40 animate-fade-in overflow-hidden rounded-md border border-border-default bg-surface p-1 shadow-lg',
+        // A floating layer like a popover: above drawers and dialogs, so a menu opened inside one shows.
+        'z-(--z-popover) min-w-40 animate-fade-in overflow-hidden rounded-md border border-border-default bg-surface p-1 shadow-lg',
         className,
       )}
       {...props}
@@ -145,7 +146,7 @@ export const DropdownMenuSubContent = forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      'z-(--z-dropdown) min-w-40 animate-fade-in overflow-hidden rounded-md border border-border-default bg-surface p-1 shadow-lg',
+      'z-(--z-popover) min-w-40 animate-fade-in overflow-hidden rounded-md border border-border-default bg-surface p-1 shadow-lg',
       className,
     )}
     {...props}

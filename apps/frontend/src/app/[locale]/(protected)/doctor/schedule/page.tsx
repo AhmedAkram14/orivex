@@ -17,7 +17,7 @@ import {
 import { AppointmentPopover } from '@/features/scheduling/components/appointment-popover';
 import { ScheduleAgenda } from '@/features/scheduling/components/schedule-agenda';
 import { UpcomingSlotsPanel } from '@/features/scheduling/components/upcoming-slots-panel';
-import { WorkingHoursForm } from '@/features/scheduling/components/working-hours-form';
+import { WeeklyAvailabilityDialog } from '@/features/scheduling/components/weekly-availability-dialog';
 import {
   ScheduleExceptionForm,
   ScheduleExceptionsEmptyState,
@@ -45,7 +45,6 @@ import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
-import { Sheet } from '@/shared/ui/side-panel';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { MetricStat } from '@/shared/ui/metric-stat';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -137,7 +136,6 @@ export default function DoctorSchedulePage() {
   const t = useTranslations('doctor.schedule');
   const tAppointmentType = useTranslations('doctor.schedule.appointmentType');
   const tStatusFilterStatuses = useTranslations('doctor.schedule.statusFilter.statuses');
-  const tAvailability = useTranslations('scheduling.availability');
   const tTimeOff = useTranslations('scheduling.timeOff');
   const tTimeOffType = useTranslations('scheduling.timeOff.type');
   const format = useFormatter();
@@ -177,14 +175,11 @@ export default function DoctorSchedulePage() {
   // A time slot picked in the Week/Day grid (Cairo wall-clock encoded as UTC).
   const [selection, setSelection] = useState<{ start: Date; end: Date } | null>(null);
   const [isEditingHours, setIsEditingHours] = useState(false);
-  // Unsaved-changes guard for the working-hours editor's own close paths.
-  const [isHoursFormDirty, setIsHoursFormDirty] = useState(false);
   const [isTimeOffDialogOpen, setIsTimeOffDialogOpen] = useState(false);
   const [timeOffDate, setTimeOffDate] = useState<string | undefined>(undefined);
   const [editingException, setEditingException] = useState<ScheduleException | undefined>(undefined);
   // The appointment whose details card is open, and where on screen it opens.
   const [openAppointment, setOpenAppointment] = useState<{ id: string; rect: { top: number; left: number; width: number; height: number } } | null>(null);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
   // Below `md` the default view is Day (a single column that reads at any
   // width); a one-time default so a doctor's manual switch is never fought.
   const isMobileViewport = useMediaQuery('(max-width: 767px)');
@@ -394,17 +389,6 @@ export default function DoctorSchedulePage() {
       setTimeOffDate(undefined);
     }
     setIsTimeOffDialogOpen(true);
-  }
-
-  function handleHoursEditorOpenChange(nextOpen: boolean) {
-    if (!nextOpen && isHoursFormDirty && !window.confirm(tAvailability('unsavedChangesWarning'))) return;
-    setIsEditingHours(nextOpen);
-    setIsHoursFormDirty(false);
-  }
-
-  function closeHoursEditor() {
-    setIsEditingHours(false);
-    setIsHoursFormDirty(false);
   }
 
   const hasNoWorkingDays = !!schedule && !schedule.some((day) => day.isWorkingDay);
@@ -766,30 +750,8 @@ export default function DoctorSchedulePage() {
 
         <AppointmentPopover appointment={openedAppointment} anchorRect={openAppointment?.rect ?? null} onClose={() => setOpenAppointment(null)} />
 
-        {schedule &&
-          (isDesktop ? (
-            <Dialog open={isEditingHours} onOpenChange={handleHoursEditorOpenChange}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{t('workingHoursTitle')}</DialogTitle>
-                </DialogHeader>
-                <div className="mt-2">
-                  <WorkingHoursForm schedule={schedule} onSaved={closeHoursEditor} onCancel={closeHoursEditor} onDirtyChange={setIsHoursFormDirty} />
-                </div>
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <Sheet open={isEditingHours} onOpenChange={handleHoursEditorOpenChange}>
-              <Sheet.Content>
-                <Sheet.Header>
-                  <Sheet.Title>{t('workingHoursTitle')}</Sheet.Title>
-                </Sheet.Header>
-                <div className="mt-4 max-h-[65vh] overflow-y-auto">
-                  <WorkingHoursForm schedule={schedule} onSaved={closeHoursEditor} onCancel={closeHoursEditor} onDirtyChange={setIsHoursFormDirty} />
-                </div>
-              </Sheet.Content>
-            </Sheet>
-          ))}
+        {/* One dialog at every width: a centred dialog from 640px, a full-height bottom sheet below. */}
+        {schedule && <WeeklyAvailabilityDialog open={isEditingHours} onOpenChange={setIsEditingHours} schedule={schedule} />}
 
         <Dialog open={isTimeOffDialogOpen} onOpenChange={setIsTimeOffDialogOpen}>
           <DialogContent>
