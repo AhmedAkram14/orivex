@@ -1858,65 +1858,50 @@
       "title": "Earnings",
       "description": "Your per-consultation earnings and platform commission, at a glance.",
       "loadError": "Couldn't load your earnings.",
-      "seeReports": "See your reports for this period",
-      "stats": {
-        "lifetimeNetCaption": "Lifetime: {amount}",
-        "rangeNet": "Net earnings this period",
-        "lifetimeGross": "Lifetime gross",
-        "transactionCount": "Paid consultations",
-        "lifetimeHelper": "All time — not affected by the date range"
-      },
       "payoutHonesty": "These figures reflect earnings recorded on this platform, not confirmation that funds have been transferred to your account.",
-      "chartNote": "Recorded earnings, not payouts. Net is after the {rate}% platform commission and before tax.",
-      "chartNoteNoRate": "Recorded earnings, not payouts. Net is after platform commission and before tax.",
       "learnMore": "Learn more",
-      "detailsToggle": "Details",
-      "commissionFootnote": "Platform commission: {rate}%.",
       "taxFootnote": "Net is before tax — it does not account for any tax or withholding.",
-      "cyclesTitle": "Monthly breakdown",
-      "cyclesPeriodQualifier": "For the selected period",
-      "cyclesEmptyTitle": "No earnings yet",
-      "cyclesEmptyDescription": "Completed paid consultations will appear here, broken down by month.",
-      "transactionsTitle": "Transactions",
       "recognitionBasis": "Recorded when payment succeeds, not when the consultation is completed — and dated/filtered by that payment date, not the appointment date.",
-      "transactionsLoadError": "Couldn't load your transactions.",
-      "transactionsEmptyTitle": "No transactions yet",
-      "transactionsEmptyDescription": "Per-consultation transactions for the selected period will appear here.",
-      "viewAppointment": "View appointment",
       "table": {
-        "cycle": "Month",
         "gross": "Gross",
         "commission": "Commission",
         "net": "Net",
-        "transactions": "Consultations",
         "patient": "Patient",
         "date": "Date",
-        "fee": "Fee",
-        "status": "Status",
-        "appointment": "Appointment"
-      },
-      "status": {
-        "initiated": "Initiated",
-        "succeeded": "Payment received",
-        "failed": "Failed",
-        "settled": "Settled",
-        "refunded": "Refunded",
-        "disputed": "Disputed"
-      },
-      "dateRange": {
-        "from": "From",
-        "to": "To",
-        "preset7Days": "7 days",
-        "preset30Days": "30 days",
-        "preset90Days": "90 days",
-        "presetThisMonth": "This month",
-        "presetAllTime": "All time",
-        "custom": "Custom range"
+        "status": "Status"
       },
       "export": {
         "exportCsv": "Export CSV",
         "exporting": "Exporting…",
         "exportError": "Export failed. Try again."
+      },
+      "viewReports": "View reports",
+      "summary": {
+        "net": "Net earnings",
+        "gross": "Gross",
+        "commission": "Platform commission",
+        "commissionRate": "{rate}% of gross",
+        "paidConsultations": "Paid consultations",
+        "vsPrevious": "vs prev. {days, plural, one {# day} other {# days}}",
+        "allTimeNoComparison": "All time",
+        "whereItWentLabel": "Of {gross} gross: {net} net, {commission} platform commission",
+        "caption": "Recorded earnings, not payouts · Net is after commission and before tax ·",
+        "lifetimeNet": "Lifetime net:"
+      },
+      "chart": {
+        "title": "Earnings over time",
+        "emptyTitle": "No earnings in this period",
+        "barsLabel": "Net earnings by {granularity, select, day {day} week {week} other {month}}",
+        "consultations": "{count, plural, =0 {No consultations} one {# consultation} other {# consultations}}"
+      },
+      "transactions": {
+        "title": "Transactions",
+        "loadError": "Couldn't load your transactions.",
+        "emptyTitle": "No paid consultations in this period",
+        "emptyDescription": "Payments for consultations in the selected range will show here.",
+        "emptyAction": "Open your schedule",
+        "monthHeader": "{month} · {amount} net",
+        "showMore": "Show {count} more"
       }
     },
     "settingsPage": {

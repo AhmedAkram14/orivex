@@ -1858,65 +1858,50 @@
       "title": "الأرباح",
       "description": "أرباحك لكل استشارة وعمولة المنصة، في لمحة واحدة.",
       "loadError": "تعذّر تحميل أرباحك.",
-      "seeReports": "اطّلع على تقاريرك لهذه الفترة",
-      "stats": {
-        "lifetimeNetCaption": "منذ البداية: {amount}",
-        "rangeNet": "صافي الأرباح لهذه الفترة",
-        "lifetimeGross": "إجمالي الدخل",
-        "transactionCount": "الاستشارات المدفوعة",
-        "lifetimeHelper": "منذ البداية — لا يتأثر بنطاق التاريخ"
-      },
       "payoutHonesty": "تعكس هذه الأرقام الأرباح المسجَّلة على هذه المنصة، ولا تُعد تأكيدًا بأن الأموال قد تم تحويلها إلى حسابك.",
-      "chartNote": "أرباح مسجّلة وليست تحويلات. الصافي بعد عمولة المنصة {rate}% وقبل الضرائب.",
-      "chartNoteNoRate": "أرباح مسجّلة وليست تحويلات. الصافي بعد عمولة المنصة وقبل الضرائب.",
       "learnMore": "اعرف المزيد",
-      "detailsToggle": "التفاصيل",
-      "commissionFootnote": "عمولة المنصة: {rate}%.",
       "taxFootnote": "الصافي قبل خصم الضرائب — لا يشمل أي ضريبة أو استقطاع.",
-      "cyclesTitle": "التفصيل الشهري",
-      "cyclesPeriodQualifier": "للفترة المحددة",
-      "cyclesEmptyTitle": "لا توجد أرباح بعد",
-      "cyclesEmptyDescription": "ستظهر هنا الاستشارات المدفوعة المكتملة، مقسّمة حسب الشهر.",
-      "transactionsTitle": "المعاملات",
       "recognitionBasis": "تُسجَّل المعاملة عند نجاح الدفع، وليس عند اكتمال الاستشارة — ويُحدَّد تاريخها وتصفيتها بحسب تاريخ الدفع، لا تاريخ الموعد.",
-      "transactionsLoadError": "تعذّر تحميل معاملاتك.",
-      "transactionsEmptyTitle": "لا توجد معاملات بعد",
-      "transactionsEmptyDescription": "ستظهر هنا معاملات كل استشارة للفترة المحددة.",
-      "viewAppointment": "عرض الموعد",
       "table": {
-        "cycle": "الشهر",
         "gross": "الإجمالي",
         "commission": "العمولة",
         "net": "الصافي",
-        "transactions": "الاستشارات",
         "patient": "المريض",
         "date": "التاريخ",
-        "fee": "الرسوم",
-        "status": "الحالة",
-        "appointment": "الموعد"
-      },
-      "status": {
-        "initiated": "بدأت",
-        "succeeded": "تم استلام الدفعة",
-        "failed": "فشلت",
-        "settled": "تمت التسوية",
-        "refunded": "مستردة",
-        "disputed": "محل نزاع"
-      },
-      "dateRange": {
-        "from": "من",
-        "to": "إلى",
-        "preset7Days": "7 أيام",
-        "preset30Days": "30 يومًا",
-        "preset90Days": "90 يومًا",
-        "presetThisMonth": "هذا الشهر",
-        "presetAllTime": "كل الأوقات",
-        "custom": "نطاق مخصص"
+        "status": "الحالة"
       },
       "export": {
         "exportCsv": "تصدير CSV",
         "exporting": "جارٍ التصدير…",
         "exportError": "فشل التصدير. حاول مرة أخرى."
+      },
+      "viewReports": "عرض التقارير",
+      "summary": {
+        "net": "صافي الأرباح",
+        "gross": "الإجمالي",
+        "commission": "عمولة المنصة",
+        "commissionRate": "{rate}٪ من الإجمالي",
+        "paidConsultations": "الاستشارات المدفوعة",
+        "vsPrevious": "مقارنة بـ{days, plural, one {اليوم السابق} two {اليومين السابقين} few {# أيام سابقة} many {# يومًا سابقًا} other {# يوم سابق}}",
+        "allTimeNoComparison": "كل الوقت",
+        "whereItWentLabel": "من إجمالي {gross}: صافي {net}، وعمولة المنصة {commission}",
+        "caption": "أرباح مسجَّلة، وليست مدفوعات محوَّلة · الصافي بعد العمولة وقبل الضريبة ·",
+        "lifetimeNet": "صافي الأرباح منذ البداية:"
+      },
+      "chart": {
+        "title": "الأرباح عبر الوقت",
+        "emptyTitle": "لا أرباح في هذه الفترة",
+        "barsLabel": "صافي الأرباح حسب {granularity, select, day {اليوم} week {الأسبوع} other {الشهر}}",
+        "consultations": "{count, plural, =0 {لا استشارات} one {استشارة واحدة} two {استشارتان} few {# استشارات} many {# استشارة} other {# استشارة}}"
+      },
+      "transactions": {
+        "title": "المعاملات",
+        "loadError": "تعذّر تحميل معاملاتك.",
+        "emptyTitle": "لا استشارات مدفوعة في هذه الفترة",
+        "emptyDescription": "ستظهر هنا مدفوعات الاستشارات خلال الفترة المحددة.",
+        "emptyAction": "افتح جدولك",
+        "monthHeader": "{month} · صافي {amount}",
+        "showMore": "عرض {count} أخرى"
       }
     },
     "settingsPage": {

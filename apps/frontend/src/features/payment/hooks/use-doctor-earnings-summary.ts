@@ -15,9 +15,13 @@ import type { DoctorEarningsFilterParams } from '@/features/payment/api/types';
  * call. `filter` is part of the query key so changing the date range
  * refetches instead of showing stale cycles.
  */
-export function useDoctorEarningsSummary(filter?: DoctorEarningsFilterParams) {
+export function useDoctorEarningsSummary(
+  filter?: DoctorEarningsFilterParams,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: doctorEarningsSummaryKeys.list(filter ?? {}),
     queryFn: () => paymentApi.getDoctorEarningsSummary(filter),
+    enabled: options.enabled ?? true,
   });
 }

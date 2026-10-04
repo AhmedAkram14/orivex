@@ -30,6 +30,7 @@ const doctorState: AuthState = {
 };
 
 const SUMMARY_URL = `${env.apiBaseUrl}/payments/doctor/earnings-summary`;
+const TRANSACTIONS_URL = `${env.apiBaseUrl}/payments/doctor/earnings-transactions`;
 
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -45,10 +46,10 @@ function renderPage() {
 }
 
 describe('DoctorEarningsPage', () => {
-  it('shows the reverse cross-link back to Reports, matching the Reports->Earnings idiom', async () => {
+  it('carries the cross-link to Reports as a header action', async () => {
     renderPage();
 
-    const link = await screen.findByRole('link', { name: /See your reports for this period/ });
+    const link = await screen.findByRole('link', { name: /View reports/ });
     expect(link).toHaveAttribute('href', '/en/doctor/reports');
   });
 
@@ -77,9 +78,11 @@ describe('DoctorEarningsPage', () => {
         }),
       ),
     );
+    server.use(http.get(TRANSACTIONS_URL, () => HttpResponse.json({ data: [] })));
     renderPage();
 
-    expect(await screen.findByText('No earnings yet')).toBeInTheDocument();
-    expect(screen.getByText('No transactions yet')).toBeInTheDocument();
+    expect(await screen.findByText('No earnings in this period')).toBeInTheDocument();
+    expect(await screen.findByText('No paid consultations in this period')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open your schedule' })).toHaveAttribute('href', '/en/doctor/schedule');
   });
 });
