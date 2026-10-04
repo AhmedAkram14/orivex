@@ -7,12 +7,12 @@ import {
   createCharge,
   getByConsultationSessionId,
   getById,
-  getDoctorEarningsSummaryMock,
   refundTransaction,
 } from '@/mocks/payment-store';
 import { confirmAppointmentAfterPayment, getAppointmentById } from '@/mocks/patient-store';
 import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
 import { resolveRequestAccountId } from '@/mocks/request-account';
+import { earningsWindow, getDoctorEarningsSummaryForMock, getDoctorEarningsTransactionsMock } from '@/mocks/earnings-store';
 
 const base = () => env.apiBaseUrl;
 
@@ -65,14 +65,20 @@ export const paymentHandlers = [
   // builds a full `?dateFrom=&dateTo=` query string), mirroring
   // `mocks/handlers/doctor.ts`'s own literal-path precedent for its
   // date-ranged reports routes.
-  http.get(`${base()}/payments/doctor/earnings-summary`, () => HttpResponse.json({ data: getDoctorEarningsSummaryMock() })),
+  // Both computed from the signed-in doctor's seeded ledger (mocks/earnings-store.ts) the way the real backend
+  // computes them: the same window, the same earned statuses, the same commission rounding.
+  http.get(`${base()}/payments/doctor/earnings-summary`, ({ request }) =>
+    HttpResponse.json({
+      data: getDoctorEarningsSummaryForMock(resolveRequestAccountId(request), earningsWindow(new URL(request.url).searchParams)),
+    }),
+  ),
 
-  // Doctor Earnings page rebuild (Phase 3) -- backs the drill-down table.
-  // This mock store has no doctorId on its flat transaction list (see
-  // `getDoctorEarningsSummaryMock`'s own comment), so an honest empty list
-  // is returned here too; the real backend's transaction resolution is
-  // exercised in backend integration tests, not here.
-  http.get(`${base()}/payments/doctor/earnings-transactions`, () => HttpResponse.json({ data: [] })),
+  // Doctor Earnings page rebuild (Phase 3) -- backs the drill-down table: every status in the window, newest first.
+  http.get(`${base()}/payments/doctor/earnings-transactions`, ({ request }) =>
+    HttpResponse.json({
+      data: getDoctorEarningsTransactionsMock(resolveRequestAccountId(request), earningsWindow(new URL(request.url).searchParams)),
+    }),
+  ),
 
   // Doctor Earnings page rebuild (Phase 3) -- `useExportDoctorEarnings`
   // fetches this directly (a raw CSV body, not the `{ data, meta }`
