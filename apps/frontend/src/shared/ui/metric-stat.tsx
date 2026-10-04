@@ -44,6 +44,8 @@ export interface MetricStatProps {
    * chrome-less segment for a horizontal strip of 3-4 stats (see MetricStrip).
    */
   variant?: MetricStatVariant;
+  /** The figure's scale -- `xl` (metric-xl) by default only for `hero`; an `inline` segment that leads a card can take it too. */
+  size?: 'regular' | 'xl';
   className?: string;
 }
 
@@ -161,10 +163,11 @@ export function MetricStat({
   sparklineStyle,
   preview = false,
   variant = 'tile',
+  size,
   className,
 }: MetricStatProps) {
   const { text: display, animating } = useCountUpOnce(value, !loading && !preview);
-  const isHero = variant === 'hero';
+  const isHero = size ? size === 'xl' : variant === 'hero';
 
   const body = (
     <>
@@ -178,7 +181,6 @@ export function MetricStat({
         <div className="@container relative mt-1 min-w-0">
           <p
             data-numeric
-            dir="auto"
             className={cn(
               'overflow-hidden font-display text-ellipsis whitespace-nowrap tabular-nums text-text-primary',
               isHero ? 'text-metric-xl' : 'text-metric',
@@ -186,7 +188,11 @@ export function MetricStat({
             style={{ fontSize: isHero ? VALUE_FONT_SIZE.hero : VALUE_FONT_SIZE.regular }}
           >
             {/* While counting up, the running number is hidden from assistive tech and the final value is announced instead. */}
-            {animating ? <span aria-hidden="true">{display}</span> : display}
+            {animating ? (
+              <bdi aria-hidden="true">{display}</bdi>
+            ) : (
+              <bdi>{display}</bdi>
+            )}
             {animating && <span className="sr-only">{value}</span>}
           </p>
         </div>

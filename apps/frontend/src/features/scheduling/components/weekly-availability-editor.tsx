@@ -2,15 +2,7 @@
 
 import { MoreHorizontal, Plus, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { useUpdateDoctorAvailability } from '@/features/scheduling/hooks/use-update-doctor-availability';
 import {
   applyDefaultHoursToWorkingDays,
@@ -33,6 +25,7 @@ import type {
   TimeRange,
   WeekDay,
 } from '@/features/scheduling/types';
+import { useElementWidth } from '@/shared/hooks/use-element-width';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { Icon } from '@/shared/icons/icon';
 import { ApiError } from '@/shared/lib/api/client';
@@ -686,21 +679,6 @@ function CompactRow({ labels, draft, index, errors, onChange }: RowProps) {
   );
 }
 
-/** The editor's own width (the dialog's), so the layout follows the space it really has. */
-function useWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [width, setWidth] = useState(0);
-  useLayoutEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    setWidth(node.getBoundingClientRect().width);
-    const observer = new ResizeObserver(([entry]) => entry && setWidth(entry.contentRect.width));
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-  return { ref, width };
-}
-
 export interface WeeklyAvailabilityEditorProps {
   schedule: RecurringWeeklySchedule;
   onSaved: () => void;
@@ -728,7 +706,7 @@ export function WeeklyAvailabilityEditor({
   const { t, tEditor, tValidation } = labels;
   const updateAvailability = useUpdateDoctorAvailability();
   const [draft, setDraft] = useState<WeeklyDraft>(() => toDraft(schedule));
-  const { ref, width } = useWidth<HTMLDivElement>();
+  const { ref, width } = useElementWidth<HTMLDivElement>();
   const compact = layout ? layout === 'rows' : width > 0 && width < TABLE_MIN_WIDTH;
 
   const dirty = useMemo(() => isDraftDirty(draft, schedule), [draft, schedule]);

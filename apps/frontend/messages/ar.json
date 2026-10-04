@@ -3604,6 +3604,7 @@
       "scheduled": "مجدول",
       "confirmed": "مؤكد",
       "initiated": "بدأ",
+      "processing": "قيد المعالجة",
       "waiting": "في الانتظار",
       "notified": "تم الإشعار",
       "upcoming": "قادم",

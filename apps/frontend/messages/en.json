@@ -3604,6 +3604,7 @@
       "scheduled": "Scheduled",
       "confirmed": "Confirmed",
       "initiated": "Initiated",
+      "processing": "Processing",
       "waiting": "Waiting",
       "notified": "Notified",
       "upcoming": "Upcoming",

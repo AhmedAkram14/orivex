@@ -26,6 +26,7 @@ const STATUS_TONE = {
   scheduled: 'info',
   confirmed: 'info',
   initiated: 'info',
+  processing: 'info',
   waiting: 'info',
   notified: 'info',
   upcoming: 'info',
