@@ -256,7 +256,7 @@ export function MessagingWorkspace({ role }: MessagingWorkspaceProps) {
               onBack={clearSelectedThread}
             />
           ) : (
-            <div className="flex h-full items-center justify-center p-8">
+            <div className="flex h-full w-full items-center justify-center p-8">
               <EmptyState illustration="inbox-quiet" title={t('selectConversationTitle')} description={t('selectConversationDescription')} />
             </div>
           )}
