@@ -37,7 +37,11 @@ export function TelemedicineAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         <MetricStat
           icon={Video}
           label={t('averageDuration')}
-          value={data?.averageDurationMinutes == null ? t('notAvailable') : `${data.averageDurationMinutes.toFixed(1)} ${t('minutes')}`}
+          value={
+            data?.averageDurationMinutes == null
+              ? t('notAvailable')
+              : `${Number(data.averageDurationMinutes).toFixed(1)} ${t('minutes')}`
+          }
           loading={isLoading}
         />
       </MetricGrid>

@@ -52,6 +52,13 @@ export class PrismaTelemedicineAnalyticsQueryService implements TelemedicineAnal
       ${joinSql}
       WHERE ${Prisma.join(conditions, ' AND ')}
     `;
-    return rows[0]?.avgMinutes ?? null;
+    // Postgres AVG() over this raw SQL expression can come back as something
+    // that isn't a plain JS number (e.g. a Decimal-like value) -- mirrors the
+    // Number() coercion prisma-doctor-analytics-query.service.ts already
+    // applies to the exact same AVG(...) shape, which the frontend's
+    // `.toFixed(1)` call requires (this is the fix for a production crash:
+    // "averageDurationMinutes.toFixed is not a function").
+    const raw = rows[0]?.avgMinutes;
+    return raw == null ? null : Number(raw);
   }
 }

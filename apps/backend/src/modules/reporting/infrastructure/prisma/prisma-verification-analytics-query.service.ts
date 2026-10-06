@@ -53,6 +53,11 @@ export class PrismaVerificationAnalyticsQueryService implements VerificationAnal
       FROM "VerificationCase"
       WHERE ${Prisma.join(conditions, ' AND ')}
     `;
-    return rows[0]?.avgHours ?? null;
+    // Same Number() coercion as prisma-telemedicine-analytics-query.service.ts
+    // and prisma-doctor-analytics-query.service.ts -- Postgres AVG() over this
+    // raw SQL expression doesn't reliably come back as a plain JS number, and
+    // the frontend calls `.toFixed(1)` on this value directly.
+    const raw = rows[0]?.avgHours;
+    return raw == null ? null : Number(raw);
   }
 }

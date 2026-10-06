@@ -39,7 +39,9 @@ export function VerificationAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         </ChartContainer>
         <ChartContainer title={t('averageReviewTimeTitle')}>
           <div className="flex h-full items-center justify-center text-2xl font-semibold text-text-primary">
-            {data?.averageReviewTimeHours == null ? t('notAvailable') : `${data.averageReviewTimeHours.toFixed(1)} ${t('hours')}`}
+            {data?.averageReviewTimeHours == null
+              ? t('notAvailable')
+              : `${Number(data.averageReviewTimeHours).toFixed(1)} ${t('hours')}`}
           </div>
         </ChartContainer>
       </div>
