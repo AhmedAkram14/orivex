@@ -724,8 +724,9 @@ export default function DoctorSchedulePage() {
             </CardContent>
           </Card>
 
-          <Card className={cardClassName}>
-            <CardContent className="flex flex-col gap-3 p-4">
+          {/* Stretches to Weekly Availability's height; the empty state sits in the middle of what's left. */}
+          <Card className={cn(cardClassName, 'flex flex-col')}>
+            <CardContent className="flex flex-1 flex-col gap-3 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="text-base font-semibold text-text-primary">{t('timeOffTitle')}</h2>
@@ -741,7 +742,9 @@ export default function DoctorSchedulePage() {
               ) : (
                 <>
                   <ScheduleExceptionsTable exceptions={exceptions ?? []} onEdit={(exception) => openTimeOff({ exception })} />
-                  <ScheduleExceptionsEmptyState hasEntries={(exceptions ?? []).length > 0} />
+                  <div className="flex flex-1 flex-col justify-center">
+                    <ScheduleExceptionsEmptyState hasEntries={(exceptions ?? []).length > 0} />
+                  </div>
                 </>
               )}
             </CardContent>
