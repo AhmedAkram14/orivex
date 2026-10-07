@@ -5,6 +5,7 @@ import { GetDoctorBookingCountsUseCase } from '../consultation/application/use-c
 import { GetDoctorRatingAggregatesUseCase } from '../consultation/application/use-cases/get-doctor-rating-aggregate/get-doctor-rating-aggregates.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { PatientModule } from '../patient/patient.module.js';
+import { PaymentModule } from '../payment/payment.module.js';
 import { ReferenceModule } from '../reference/reference.module.js';
 import { ListMedicalSpecialtiesUseCase } from '../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { SchedulingModule } from '../scheduling/scheduling.module.js';
@@ -17,6 +18,7 @@ import { ListPublicSpecialtiesUseCase } from './application/use-cases/list-publi
 import { PrismaPublicDirectoryQueryService } from './infrastructure/prisma/prisma-public-directory-query.service.js';
 import { PublicDoctorsController } from './presentation/controllers/public-doctors.controller.js';
 import { PublicPatientsController } from './presentation/controllers/public-patients.controller.js';
+import { PublicPlatformFeesController } from './presentation/controllers/public-platform-fees.controller.js';
 import { PublicSpecialtiesController } from './presentation/controllers/public-specialties.controller.js';
 
 // Public Landing Page (2026-07-29): a thin, unauthenticated read-only
@@ -29,11 +31,13 @@ import { PublicSpecialtiesController } from './presentation/controllers/public-s
 // directly: DoctorModule cannot safely import ConsultationModule (a real ESM
 // circular-module-reference error, confirmed by an actual boot attempt --
 // see DoctorProfileController's own comment), but the reverse already holds.
+// PaymentModule (2026-10-06, GET /public/platform-fees) imports neither
+// this module nor anything that does, so it is safe as well.
 // SchedulingModule is safe too -- it only imports DoctorModule and
 // AuthenticationGuardsModule, never this module or ConsultationModule.
 @Module({
-  imports: [ReferenceModule, ConsultationModule, SchedulingModule, PatientModule, IdentityModule],
-  controllers: [PublicSpecialtiesController, PublicDoctorsController, PublicPatientsController],
+  imports: [ReferenceModule, ConsultationModule, SchedulingModule, PatientModule, IdentityModule, PaymentModule],
+  controllers: [PublicSpecialtiesController, PublicDoctorsController, PublicPatientsController, PublicPlatformFeesController],
   providers: [
     { provide: PUBLIC_DIRECTORY_QUERY_PORT, useClass: PrismaPublicDirectoryQueryService },
     {

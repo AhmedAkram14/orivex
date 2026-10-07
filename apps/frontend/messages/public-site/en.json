@@ -1,0 +1,792 @@
+{
+  "common": {
+    "home": "Home",
+    "breadcrumbLabel": "Breadcrumb",
+    "learnMore": "Learn more",
+    "doctorCount": "{count, plural, one {# doctor} other {# doctors}}",
+    "noDoctorsYet": "No doctors yet",
+    "viewDoctors": "View doctors",
+    "linkToQuestion": "Link to this question",
+    "notMedicalAdvice": "This information is general guidance, not medical advice. In an emergency, call 123 or go to the nearest emergency department."
+  },
+  "specialtiesPage": {
+    "meta": {
+      "title": "Medical Specialties | ORIVEX",
+      "description": "Browse every medical specialty on ORIVEX, see how many verified doctors practice each one, and book an online video consultation."
+    },
+    "breadcrumb": "Specialties",
+    "hero": {
+      "label": "Specialties",
+      "title": "Find the Right Medical Specialist",
+      "subtitle": "Every specialty on ORIVEX is practiced by doctors whose licenses and credentials we have verified. Pick one to see its doctors.",
+      "searchLabel": "Search specialties",
+      "searchPlaceholder": "Search a specialty, e.g. Cardiology",
+      "specialtiesStat": "Specialties",
+      "doctorsStat": "Verified doctors"
+    },
+    "grid": {
+      "title": "All specialties",
+      "subtitle": "Sorted by how many verified doctors practice each one.",
+      "resultsAll": "{count, plural, one {# specialty} other {# specialties}}",
+      "resultsFor": "{count, plural, =0 {No specialties match} one {# specialty matches} other {# specialties match}} “{query}”",
+      "noMatchTitle": "No specialty matches your search",
+      "noMatchDescription": "Try a shorter word, or browse the full list.",
+      "clearSearch": "Clear search",
+      "errorTitle": "We couldn't load the specialties",
+      "errorDescription": "Please refresh the page in a moment."
+    },
+    "symptoms": {
+      "label": "Not sure who to see?",
+      "title": "Start from what you feel",
+      "subtitle": "Common complaints and the specialty patients usually start with.",
+      "seeSpecialty": "Usually: {specialty}",
+      "disclaimer": "This guide is for orientation only and is not medical advice. A doctor can refer you to another specialty after your consultation. In an emergency, call 123 or go to the nearest emergency department.",
+      "items": {
+        "chestPain": "Chest pain or palpitations",
+        "skinRash": "Skin rash, acne or itching",
+        "anxiety": "Anxiety, low mood or poor sleep",
+        "childFever": "A child with fever or cough",
+        "toothache": "Toothache or bleeding gums",
+        "jointPain": "Joint, back or knee pain",
+        "blurredVision": "Blurred vision or red eyes",
+        "soreThroat": "Sore throat, earache or sinus pain",
+        "fatigue": "Ongoing tiredness or a general check-up"
+      }
+    },
+    "cta": {
+      "title": "Ready to see a specialist?",
+      "description": "Compare verified doctors by rating, fee and experience, then request a video consultation.",
+      "primary": "Find a doctor",
+      "secondary": "Create a free account"
+    }
+  },
+  "specialtyPage": {
+    "meta": {
+      "title": "{specialty} Doctors Online | ORIVEX",
+      "description": "{count, plural, =0 {Learn about {specialty} on ORIVEX: conditions treated and when to see a specialist.} one {Book an online video consultation with # verified {specialty} doctor. Compare rating, fee and experience.} other {Book an online video consultation with one of # verified {specialty} doctors. Compare rating, fee and experience.}}"
+    },
+    "label": "Specialty",
+    "verifiedDoctors": "{count, plural, one {# verified doctor} other {# verified doctors}}",
+    "seeDoctors": "See doctors",
+    "conditionsTitle": "Conditions we treat",
+    "whenToSeeTitle": "When to see a {specialty} doctor",
+    "doctorsTitle": "{specialty} doctors",
+    "doctorsSubtitle": "Every doctor below is verified. Free consultations are confirmed when the doctor approves your request; paid ones as soon as you pay.",
+    "emptyTitle": "No {specialty} doctors yet",
+    "emptyDescription": "Verified doctors are joining every week. Meanwhile, browse doctors in other specialties.",
+    "browseAllDoctors": "Browse all doctors",
+    "otherSpecialties": "Other specialties",
+    "faqLabel": "FAQ",
+    "faqTitle": "{specialty}: common questions",
+    "relatedLabel": "Related",
+    "relatedTitle": "Other specialties",
+    "cta": {
+      "title": "Not the right specialty?",
+      "description": "Search every verified doctor on ORIVEX, or see how a video consultation works first.",
+      "primary": "Find a doctor",
+      "secondary": "How it works"
+    },
+    "notFound": {
+      "title": "We couldn't find that specialty",
+      "description": "It may have been renamed or isn't offered yet. Browse the full list instead.",
+      "allSpecialties": "All specialties",
+      "findDoctor": "Find a doctor"
+    }
+  },
+  "doctorSearch": {
+    "nameSearchLabel": "Search doctors by name",
+    "nameSearchPlaceholder": "Search by doctor name",
+    "sortLabel": "Sort doctors",
+    "sorts": {
+      "top_rated": "Top rated",
+      "lowest_fee": "Lowest fee",
+      "most_experienced": "Most experienced",
+      "most_booked": "Most booked"
+    },
+    "resultsCount": "{count, plural, =0 {No doctors found} one {# doctor found} other {# doctors found}}",
+    "noMatchTitle": "No doctors match these filters",
+    "noMatchDescription": "Try removing a filter or widening the fee range.",
+    "errorTitle": "We couldn't load doctors",
+    "errorDescription": "Check your connection and try again.",
+    "filters": {
+      "title": "Filters",
+      "clearAll": "Clear filters",
+      "showResults": "Show results",
+      "activeCount": "{count, plural, one {# filter active} other {# filters active}}",
+      "specialty": "Specialty",
+      "allSpecialties": "All specialties",
+      "availability": "Availability",
+      "anyTime": "Any time",
+      "availableToday": "Available today",
+      "availableThisWeek": "Available this week",
+      "fee": "Consultation fee",
+      "feeMin": "Minimum fee",
+      "feeMax": "Maximum fee",
+      "feeAnyMax": "{amount}+",
+      "experience": "Years of experience",
+      "anyExperience": "Any experience",
+      "yearsPlus": "{years}+ years",
+      "rank": "Title",
+      "ranks": {
+        "registrar": "Registrar",
+        "specialist": "Specialist",
+        "consultant": "Consultant",
+        "professor": "Professor"
+      },
+      "rating": "Minimum rating",
+      "anyRating": "Any rating",
+      "ratingPlus": "{rating}+ stars",
+      "practice": "Practice",
+      "anyPractice": "Any",
+      "hospital": "Hospital-affiliated",
+      "independent": "Independent practice"
+    }
+  },
+  "doctorsPage": {
+    "meta": {
+      "title": "Find a Doctor Online in Egypt | ORIVEX",
+      "description": "Search verified doctors by specialty, availability, fee, experience and rating, then book a secure video consultation."
+    },
+    "breadcrumb": "Find a Doctor",
+    "resultsLabel": "Doctor search results",
+    "hero": {
+      "label": "Find a doctor",
+      "title": "Find a verified doctor",
+      "subtitle": "Filter by specialty, availability, fee and experience, then request a video consultation.",
+      "subtitleWithCount": "{count, plural, one {# verified doctor} other {# verified doctors}} across {specialties, plural, one {# specialty} other {# specialties}}. Filter by availability, fee and experience, then request a video consultation."
+    },
+    "cta": {
+      "title": "Not sure which specialty you need?",
+      "description": "Start from the specialty list, or use our symptom guide to see where patients usually begin.",
+      "primary": "Browse specialties",
+      "secondary": "Are you a doctor? Join us"
+    }
+  },
+  "forDoctorsPage": {
+    "meta": {
+      "title": "For Doctors: Your Practice, Online | ORIVEX",
+      "description": "Consult verified patients over secure video, set your own hours, issue digital prescriptions and see transparent earnings. Apply to join ORIVEX."
+    },
+    "breadcrumb": "For Doctors",
+    "hero": {
+      "label": "For doctors",
+      "title": "Your practice, online.",
+      "subtitle": "See patients over secure video on your own schedule, keep notes and prescriptions in one place, and know exactly what you earn from every consultation.",
+      "secondaryCta": "See how verification works"
+    },
+    "benefits": {
+      "label": "Why ORIVEX",
+      "title": "Built around how you already practice",
+      "subtitle": "Everything a consultation needs, without the paperwork around it.",
+      "items": {
+        "hours": {
+          "title": "Set your own hours",
+          "description": "Choose your working days and hours, block time off, and add extra hours when you want them. Patients only see the times you open."
+        },
+        "video": {
+          "title": "Video consults with notes and prescriptions",
+          "description": "Run the consultation in the browser, write your notes and issue a signed digital prescription without leaving the call."
+        },
+        "earnings": {
+          "title": "Transparent earnings",
+          "description": "Every paid consultation shows the fee, the platform fee and your net, month by month, with a CSV export."
+        },
+        "patients": {
+          "title": "Verified patients",
+          "description": "Patients verify their identity, so you know who you're treating before the visit starts."
+        },
+        "documents": {
+          "title": "Secure document storage",
+          "description": "Lab results and reports patients share are stored privately and opened through short-lived, signed links."
+        }
+      }
+    },
+    "workspace": {
+      "label": "Your workspace",
+      "title": "One place for your day",
+      "subtitle": "These previews are drawn with the same components as the real doctor workspace.",
+      "previewDescription": "Illustrative previews of the doctor workspace: a day schedule, an appointment request, and an earnings summary.",
+      "schedule": {
+        "title": "Your schedule at a glance",
+        "points": [
+          "Today's consultations on one timeline",
+          "Working hours, time off and extra hours",
+          "Join the video room from the schedule when it's time"
+        ]
+      },
+      "requests": {
+        "title": "Requests, on your terms",
+        "points": [
+          "Free consultation requests wait in your queue for your approval",
+          "Prefer not to review free requests? Turn on auto-approve in settings",
+          "Paid bookings confirm as soon as the patient pays for a time you opened"
+        ]
+      },
+      "earnings": {
+        "title": "Earnings you can check",
+        "points": [
+          "Gross, platform fee and net per month",
+          "Every transaction listed",
+          "Export to CSV for your records"
+        ]
+      }
+    },
+    "fees": {
+      "label": "Fees & earnings",
+      "title": "How fees work",
+      "subtitle": "You set your consultation fee. ORIVEX keeps a fixed platform fee from each paid consultation, and the rest is yours.",
+      "calculatorTitle": "Try it with your fee",
+      "feeInputLabel": "Your consultation fee (EGP)",
+      "feeInputHint": "Pre-filled with the median fee of doctors on ORIVEX today.",
+      "consultationFee": "Consultation fee",
+      "platformFee": "Platform fee ({rate})",
+      "youReceive": "You receive",
+      "points": [
+        "Patients pay when they book, by card through Stripe. ORIVEX never stores card details.",
+        "The platform fee is the same for every doctor and every paid consultation.",
+        "You can change your fee at any time; the new fee applies to new bookings.",
+        "Your earnings dashboard records every paid consultation with its fee, platform fee and net."
+      ],
+      "unavailable": "Fee details are temporarily unavailable. Please check back shortly."
+    },
+    "verification": {
+      "label": "Verification",
+      "title": "How verification works",
+      "subtitle": "Every doctor on ORIVEX is checked by our team before they can see patients. It protects your patients, and your reputation.",
+      "steps": {
+        "account": {
+          "title": "Create your account",
+          "description": "Register with your email and confirm it."
+        },
+        "profile": {
+          "title": "Add your professional details",
+          "description": "Specialty, title, license number and expiry, experience and your consultation fee."
+        },
+        "documents": {
+          "title": "Upload your documents",
+          "description": "Clear photos or scans of the documents listed below."
+        },
+        "review": {
+          "title": "Our team reviews your application",
+          "description": "Every application is checked manually against your documents. You'll get an email as soon as there's a decision."
+        },
+        "live": {
+          "title": "Start seeing patients",
+          "description": "Once approved, set your availability and your profile appears in search."
+        }
+      },
+      "documentsTitle": "Documents you'll need",
+      "documents": {
+        "medicalLicense": "Medical license",
+        "membershipCard": "Professional (syndicate) membership card",
+        "graduationCertificate": "Graduation certificate",
+        "boardCertificate": "Board certificate",
+        "nationalId": "National ID (front and back)",
+        "selfie": "A selfie holding your ID"
+      },
+      "rejectedTitle": "If your application isn't approved",
+      "rejectedDescription": "We email you the reason. You can update your details or documents and resubmit, and if we just need more information, we'll tell you exactly what's missing."
+    },
+    "requirements": {
+      "label": "Requirements",
+      "title": "Before you apply",
+      "items": [
+        "A valid medical license",
+        "Active professional (syndicate) membership",
+        "Your graduation and board certificates",
+        "A national ID for identity verification",
+        "A device with a camera, a microphone and a stable internet connection"
+      ]
+    },
+    "faq": {
+      "label": "FAQ",
+      "title": "Questions doctors ask",
+      "items": {
+        "whoCanApply": {
+          "question": "Who can apply?",
+          "answer": "Licensed doctors with an active professional membership. You'll upload your license and certificates during onboarding."
+        },
+        "reviewTime": {
+          "question": "How long does verification take?",
+          "answer": "Every application is reviewed manually by our team, so timing depends on how complete your documents are. You'll get an email as soon as there's a decision."
+        },
+        "commission": {
+          "question": "How much does ORIVEX charge?",
+          "answer": "A fixed platform fee of {rate} of each paid consultation. There is no sign-up or monthly fee."
+        },
+        "approval": {
+          "question": "Do I have to accept every booking?",
+          "answer": "Free consultation requests wait for your approval, and you can decline them (or choose to auto-approve them). Paid bookings are confirmed automatically once the patient pays, and only ever for times you have opened."
+        },
+        "alongsideClinic": {
+          "question": "Can I keep my clinic or hospital work?",
+          "answer": "You set your own hours, so you can consult on ORIVEX alongside your existing practice."
+        },
+        "payments": {
+          "question": "How do patients pay?",
+          "answer": "By card when they book, processed by Stripe. ORIVEX never stores card details."
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready to bring your practice online?",
+      "description": "Create your account, add your details and documents, and our team will review your application.",
+      "secondary": "Already applied? Sign in"
+    }
+  },
+  "howItWorksPage": {
+    "meta": {
+      "title": "How ORIVEX Works for Patients and Doctors | ORIVEX",
+      "description": "From finding a verified doctor to your video consultation and digital prescription: how booking, payment and consultations work on ORIVEX."
+    },
+    "breadcrumb": "How It Works",
+    "hero": {
+      "label": "How it works",
+      "title": "How ORIVEX works",
+      "subtitle": "A clear path from \"I need a doctor\" to a consultation and a prescription, and from \"I'm a doctor\" to seeing patients online."
+    },
+    "toggle": {
+      "label": "Show steps for",
+      "patients": "Patients",
+      "doctors": "Doctors"
+    },
+    "patients": {
+      "title": "For patients",
+      "steps": {
+        "findDoctor": {
+          "title": "Find a doctor",
+          "description": "Browse by specialty or search by name. Compare verified doctors by rating, fee, experience and availability, or start from what you feel with our symptom guide."
+        },
+        "bookAppointment": {
+          "title": "Book a time",
+          "description": "Pick a free slot from the doctor's real calendar. Your request holds that time for you while it's confirmed, so nobody else can book it."
+        },
+        "identityVerification": {
+          "title": "Verify your identity",
+          "description": "A one-time check with your national ID keeps your medical record yours, and lets your doctor know who they're treating."
+        },
+        "videoConsultation": {
+          "title": "Meet your doctor on video",
+          "description": "Join from your appointments page, in the browser, with no app to install. The room opens {minutes} minutes before your appointment."
+        },
+        "medicalRecords": {
+          "title": "Keep your records",
+          "description": "After the visit, your prescription and the documents from your care stay in your records, ready to view, download or print."
+        }
+      }
+    },
+    "doctors": {
+      "title": "For doctors",
+      "steps": {
+        "register": {
+          "title": "Create your account",
+          "description": "Register with your email, then choose the doctor path to start your application."
+        },
+        "verification": {
+          "title": "Submit your credentials",
+          "description": "Add your specialty, license and experience, and upload your license, certificates and ID. Our team reviews every application manually."
+        },
+        "manageSchedule": {
+          "title": "Set your availability",
+          "description": "Open the days and hours you want to work, block time off and set your consultation fee."
+        },
+        "meetPatients": {
+          "title": "Review requests",
+          "description": "Free consultation requests wait for your approval (or are auto-approved, if you choose). Paid bookings confirm once the patient pays."
+        },
+        "consult": {
+          "title": "Consult on video",
+          "description": "Run the visit in the browser, take notes and issue a signed digital prescription."
+        },
+        "managePractice": {
+          "title": "Run your practice from one dashboard",
+          "description": "Your schedule, patients, messages and earnings, in one workspace."
+        }
+      }
+    },
+    "afterBooking": {
+      "label": "After you book",
+      "title": "What happens after you book",
+      "subtitle": "Here's exactly what happens between sending a request and your prescription.",
+      "items": {
+        "request": {
+          "title": "Your request holds the time",
+          "description": "The slot you chose is reserved for you while your booking is confirmed."
+        },
+        "confirm": {
+          "title": "Free or paid, then confirmed",
+          "description": "A free consultation is confirmed when the doctor approves your request. A paid one is confirmed as soon as you pay."
+        },
+        "payment": {
+          "title": "Secure payment with Stripe",
+          "description": "You pay by card through Stripe. ORIVEX never stores your card details, and if a paid booking can't be confirmed after payment, the charge is refunded automatically."
+        },
+        "video": {
+          "title": "A private video room",
+          "description": "Your consultation runs in a secure video room powered by LiveKit. Only you and your doctor can join, from {minutes} minutes before the start."
+        },
+        "prescription": {
+          "title": "Your prescription, after the visit",
+          "description": "If your doctor prescribes something, the prescription appears in your records after the consultation, with a code a pharmacy can use to verify it."
+        }
+      }
+    },
+    "faq": {
+      "label": "FAQ",
+      "title": "Common questions",
+      "items": {
+        "install": {
+          "question": "Do I need to install an app?",
+          "answer": "No. Consultations run in your browser on a phone, tablet or computer with a camera and microphone."
+        },
+        "late": {
+          "question": "What if I'm late?",
+          "answer": "The video room stays open for {minutes} minutes after the scheduled start. After that, the appointment is marked as missed."
+        },
+        "free": {
+          "question": "Are there free consultations?",
+          "answer": "Some doctors offer free consultations. These are confirmed when the doctor approves your request."
+        },
+        "records": {
+          "question": "Who can see my records?",
+          "answer": "You and the doctors treating you. Your records are never shown publicly, and ORIVEX's admin tools give staff no access to them."
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready when you are",
+      "description": "Find a verified doctor and book a video consultation, or bring your practice online.",
+      "primary": "Find a doctor"
+    }
+  },
+  "specialtyContent": {
+    "cardiology": {
+      "summary": "Heart and blood-vessel care from verified cardiologists.",
+      "description": "Cardiologists diagnose and treat conditions of the heart and blood vessels, from high blood pressure to heart rhythm problems. An online consultation is a good first step to review symptoms, test results and medication.",
+      "conditions": [
+        "High blood pressure",
+        "Palpitations",
+        "Chest pain",
+        "High cholesterol",
+        "Heart failure follow-up",
+        "Arrhythmia"
+      ],
+      "whenToSee": [
+        "Your blood pressure readings stay high at home.",
+        "You feel your heart racing, skipping or fluttering.",
+        "You get short of breath with activity you used to manage.",
+        "You need a review of an ECG, echo or lab results.",
+        "You have a family history of heart disease and want a risk check."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Can a cardiologist help me online?",
+          "answer": "Yes, for reviewing symptoms, test results and medication, and for follow-up. If you need an examination or a test, the doctor will tell you what to do next."
+        },
+        "q2": {
+          "question": "What should I prepare before the visit?",
+          "answer": "Recent blood pressure readings, any ECG or echo reports, lab results and a list of the medicines you take. You can upload documents to your records before the consultation."
+        },
+        "q3": {
+          "question": "Is chest pain an emergency?",
+          "answer": "Sudden, severe or crushing chest pain, especially with sweating or shortness of breath, is an emergency. Call 123 or go to the nearest emergency department; do not wait for an online visit."
+        }
+      }
+    },
+    "dermatology": {
+      "summary": "Skin, hair and nail care from verified dermatologists.",
+      "description": "Dermatologists treat conditions of the skin, hair and nails. Many skin concerns can be assessed well over video, especially with clear photos.",
+      "conditions": [
+        "Acne",
+        "Eczema",
+        "Psoriasis",
+        "Hair loss",
+        "Fungal infections",
+        "Pigmentation"
+      ],
+      "whenToSee": [
+        "A rash or itching hasn't settled after a week or two.",
+        "Acne is leaving marks or affecting your confidence.",
+        "You notice unusual hair or nail changes.",
+        "A mole changes shape, colour or size.",
+        "Over-the-counter creams haven't helped."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Can skin problems be checked over video?",
+          "answer": "Often, yes. Good lighting and clear photos help a lot. If the doctor needs to examine you in person, they will tell you."
+        },
+        "q2": {
+          "question": "Should I stop my current creams before the visit?",
+          "answer": "Don't stop prescribed treatment on your own. Bring a list of everything you use so the doctor can review it."
+        },
+        "q3": {
+          "question": "Can I get a prescription?",
+          "answer": "If the doctor decides a treatment is appropriate, they can issue a digital prescription that appears in your records after the visit."
+        }
+      }
+    },
+    "dentistry": {
+      "summary": "Advice on teeth and gum health from verified dentists.",
+      "description": "Dentists care for your teeth, gums and mouth. An online consultation helps you understand a problem, get advice on pain, and plan the in-clinic treatment you may need.",
+      "conditions": [
+        "Toothache",
+        "Gum bleeding",
+        "Tooth sensitivity",
+        "Bad breath",
+        "Wisdom teeth",
+        "Orthodontic advice"
+      ],
+      "whenToSee": [
+        "A toothache keeps coming back.",
+        "Your gums bleed when you brush.",
+        "Your teeth are sensitive to hot or cold.",
+        "You want a second opinion on a treatment plan.",
+        "You need advice before a procedure."
+      ],
+      "faq": {
+        "q1": {
+          "question": "What can a dentist do over video?",
+          "answer": "Assess symptoms, look at your teeth on camera or in photos, review X-rays and advise on next steps. Procedures themselves happen in a clinic."
+        },
+        "q2": {
+          "question": "Can I share my X-rays?",
+          "answer": "Yes. Upload them to your records before the visit so the dentist can review them."
+        },
+        "q3": {
+          "question": "What if my face is swollen?",
+          "answer": "Facial swelling with fever or difficulty swallowing needs urgent in-person care. Go to the nearest emergency department."
+        }
+      }
+    },
+    "psychiatry": {
+      "summary": "Confidential mental-health care from verified psychiatrists.",
+      "description": "Psychiatrists diagnose and treat mental-health conditions, including with medication when needed. Video consultations let you talk from a place where you feel comfortable.",
+      "conditions": [
+        "Anxiety",
+        "Depression",
+        "Sleep problems",
+        "Panic attacks",
+        "OCD",
+        "ADHD"
+      ],
+      "whenToSee": [
+        "Worry or low mood has lasted more than two weeks.",
+        "Sleep problems are affecting your day.",
+        "You have panic attacks or intense fear.",
+        "You want a review of psychiatric medication.",
+        "Daily life, work or study feels hard to manage."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Is my consultation confidential?",
+          "answer": "Yes. Your consultation notes are visible to you and your doctor, and ORIVEX's admin tools give staff no access to your medical record."
+        },
+        "q2": {
+          "question": "Will I be prescribed medication?",
+          "answer": "Only if your psychiatrist thinks it will help, after discussing it with you. Many plans start with talking and follow-up."
+        },
+        "q3": {
+          "question": "What if I'm in crisis?",
+          "answer": "If you are thinking about harming yourself, go to the nearest emergency department or call 123 now. Online consultations are not for emergencies."
+        }
+      }
+    },
+    "orthopedics": {
+      "summary": "Bone, joint and spine care from verified orthopedists.",
+      "description": "Orthopedic surgeons treat conditions of the bones, joints, muscles and spine. Online, they can assess pain, review scans and guide your recovery.",
+      "conditions": [
+        "Back pain",
+        "Knee pain",
+        "Sports injuries",
+        "Arthritis",
+        "Neck pain",
+        "Fracture follow-up"
+      ],
+      "whenToSee": [
+        "Joint or back pain has lasted more than a few weeks.",
+        "An injury still hurts or limits your movement.",
+        "You need an X-ray or MRI explained.",
+        "You want advice on recovery after a fracture or surgery.",
+        "Stiffness makes everyday tasks hard."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Can an orthopedist examine me online?",
+          "answer": "They can watch you move, check how your pain behaves and review scans. If a hands-on exam or imaging is needed, they will advise you."
+        },
+        "q2": {
+          "question": "Should I upload my scans?",
+          "answer": "Yes. Add X-ray or MRI reports to your records before the visit."
+        },
+        "q3": {
+          "question": "When is an injury urgent?",
+          "answer": "A visibly deformed limb, inability to bear weight, or numbness after an injury needs urgent in-person care."
+        }
+      }
+    },
+    "pediatrics": {
+      "summary": "Care for babies, children and teenagers from verified pediatricians.",
+      "description": "Pediatricians look after children's health from birth to adolescence: common illnesses, growth, development, nutrition and vaccinations.",
+      "conditions": [
+        "Fever",
+        "Cough and colds",
+        "Feeding concerns",
+        "Growth and development",
+        "Allergies",
+        "Skin rashes"
+      ],
+      "whenToSee": [
+        "Your child has a fever and you want advice.",
+        "A cough or cold isn't improving.",
+        "You have questions about feeding, growth or sleep.",
+        "You want guidance on the vaccination schedule.",
+        "Your child has a rash or allergy symptoms."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Who joins the video call?",
+          "answer": "A parent or guardian books and joins with the child, so the pediatrician can see them and talk to you both."
+        },
+        "q2": {
+          "question": "When is a child's fever an emergency?",
+          "answer": "Any fever in a baby under 3 months, a child who is hard to wake, has trouble breathing or a rash that doesn't fade under pressure needs emergency care now."
+        },
+        "q3": {
+          "question": "Can the pediatrician prescribe medicine?",
+          "answer": "Yes, when appropriate, with the correct dose for your child's weight. The prescription appears in your records after the visit."
+        }
+      }
+    },
+    "ophthalmology": {
+      "summary": "Eye and vision care from verified ophthalmologists.",
+      "description": "Ophthalmologists diagnose and treat eye conditions. Online, they can assess symptoms such as redness, irritation and vision changes and tell you whether you need an exam.",
+      "conditions": [
+        "Red eyes",
+        "Dry eyes",
+        "Blurred vision",
+        "Eye allergies",
+        "Glaucoma follow-up",
+        "Diabetic eye checks"
+      ],
+      "whenToSee": [
+        "Your eyes are red, itchy or watery.",
+        "Your vision has become blurry.",
+        "You need a follow-up for a known eye condition.",
+        "Screens cause eye strain or headaches.",
+        "You have diabetes and need advice on eye checks."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Can eyes be checked over video?",
+          "answer": "Many symptoms can be assessed on camera. Measuring eye pressure or examining the retina needs an in-clinic exam, and your doctor will tell you if that's needed."
+        },
+        "q2": {
+          "question": "Do I need to remove contact lenses?",
+          "answer": "If your eyes are red or painful, remove your lenses and wear glasses until you have spoken with the doctor."
+        },
+        "q3": {
+          "question": "When is an eye problem urgent?",
+          "answer": "Sudden loss of vision, a curtain over your sight, severe eye pain or an eye injury needs emergency care now."
+        }
+      }
+    },
+    "internalMedicine": {
+      "summary": "Adult general medicine and long-term care from verified internists.",
+      "description": "Internal medicine doctors care for adults across many conditions, especially long-term ones like diabetes and high blood pressure. They're a good first stop when you don't know where to start.",
+      "conditions": [
+        "Diabetes",
+        "High blood pressure",
+        "Thyroid problems",
+        "Fatigue",
+        "Stomach complaints",
+        "Check-ups"
+      ],
+      "whenToSee": [
+        "You feel unwell and aren't sure which specialist to see.",
+        "You need follow-up for diabetes or blood pressure.",
+        "You want your lab results explained.",
+        "You've been tired for weeks without a clear reason.",
+        "You want a general health check."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Is internal medicine the same as a GP?",
+          "answer": "Internists focus on adults and long-term conditions, and can refer you to another specialty when needed."
+        },
+        "q2": {
+          "question": "Can they read my lab tests?",
+          "answer": "Yes. Upload your results before the visit and the doctor will go through them with you."
+        },
+        "q3": {
+          "question": "Do I need a referral?",
+          "answer": "No. You can book an internal medicine doctor directly."
+        }
+      }
+    },
+    "ent": {
+      "summary": "Ear, nose and throat care from verified ENT specialists.",
+      "description": "ENT specialists treat conditions of the ear, nose, throat and sinuses, from infections to hearing and voice problems.",
+      "conditions": [
+        "Sore throat",
+        "Sinusitis",
+        "Ear pain",
+        "Hearing loss",
+        "Tonsillitis",
+        "Snoring"
+      ],
+      "whenToSee": [
+        "A sore throat or sinus pain keeps coming back.",
+        "You have ear pain, ringing or reduced hearing.",
+        "Your nose is constantly blocked.",
+        "Your voice has been hoarse for more than two weeks.",
+        "Snoring is affecting your sleep."
+      ],
+      "faq": {
+        "q1": {
+          "question": "Can an ENT examine me online?",
+          "answer": "They can assess your symptoms and look at your throat on camera. Some exams need special instruments, and the doctor will tell you if you need an in-clinic visit."
+        },
+        "q2": {
+          "question": "Do I need antibiotics for a sore throat?",
+          "answer": "Not always; many are viral. Your doctor will decide based on your symptoms."
+        },
+        "q3": {
+          "question": "When is it urgent?",
+          "answer": "Difficulty breathing or swallowing, or severe swelling in the neck, needs emergency care now."
+        }
+      }
+    },
+    "generic": {
+      "summary": "Expert care from verified specialists.",
+      "description": "Doctors in this specialty are verified by ORIVEX: we check their medical license and professional credentials before they can see patients.",
+      "conditions": [
+        "Diagnosis",
+        "Treatment plans",
+        "Follow-up visits",
+        "Second opinions",
+        "Test-result reviews"
+      ],
+      "whenToSee": [
+        "You have symptoms related to this specialty.",
+        "You need follow-up for a known condition.",
+        "You want a second opinion on a diagnosis or plan.",
+        "You need test results explained."
+      ],
+      "faq": {
+        "q1": {
+          "question": "How do I book?",
+          "answer": "Choose a doctor, pick an available time and send your request. A free consultation is confirmed when the doctor approves it; a paid one as soon as you pay."
+        },
+        "q2": {
+          "question": "Are the doctors verified?",
+          "answer": "Yes. Every doctor's license and credentials are reviewed by our team before they can accept patients."
+        },
+        "q3": {
+          "question": "Can I get a prescription?",
+          "answer": "If the doctor decides it's appropriate, they issue a digital prescription you can view in your records after the visit."
+        }
+      }
+    }
+  }
+}

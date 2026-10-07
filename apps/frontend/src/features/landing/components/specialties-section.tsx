@@ -16,6 +16,8 @@ import { Container } from '@/shared/ui/container';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { getSpecialtyStyle } from '@/shared/lib/specialty-palette';
+import { toSpecialtySlug } from '@/features/public-site/lib/specialty-slug';
+import { Button } from '@/shared/ui/button';
 import { SpecialtyIconTile } from '@/shared/ui/specialty-chip';
 
 function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
@@ -25,7 +27,7 @@ function SpecialtyCard({ specialty }: { specialty: PublicSpecialty }) {
   const style = getSpecialtyStyle(specialty.name);
 
   return (
-    <Link href={`/patient/doctors?specialtyId=${specialty.id}`} className="block h-full">
+    <Link href={`/specialties/${toSpecialtySlug(specialty.name)}`} className="block h-full">
       <Card className="flex h-full flex-col gap-3 p-5 transition-shadow duration-(--duration-fast) ease-standard hover:shadow-md">
         <SpecialtyIconTile name={specialty.name} size="lg" />
         <Heading as="h3" level={4}>{pickLocalizedName(specialty.name, specialty.nameAr, locale)}</Heading>
@@ -153,6 +155,13 @@ export function SpecialtiesSection() {
               </div>
             </>
           )}
+
+          <Button asChild variant="secondary">
+            <Link href="/specialties">
+              {t('learnMore')}
+              <Icon icon={ArrowRight} size="sm" flipRtl />
+            </Link>
+          </Button>
         </div>
       </Container>
     </LandingSection>

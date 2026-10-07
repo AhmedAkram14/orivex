@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   CalendarDays,
   CalendarCheck,
   ClipboardList,
@@ -14,6 +15,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/shared/i18n/navigation';
+import { Button } from '@/shared/ui/button';
 import { LandingSection } from '@/features/landing/components/landing-section';
 import { Heading, Text } from '@/design-system/typography';
 import { Badge } from '@/shared/ui/badge';
@@ -173,6 +176,15 @@ export function HowItWorksSection() {
             steps={DOCTOR_STEPS}
             theme="success"
           />
+        </div>
+
+        <div className="flex justify-center">
+          <Button asChild variant="secondary">
+            <Link href="/how-it-works">
+              {t('learnMore')}
+              <Icon icon={ArrowRight} size="sm" flipRtl />
+            </Link>
+          </Button>
         </div>
       </Container>
     </LandingSection>

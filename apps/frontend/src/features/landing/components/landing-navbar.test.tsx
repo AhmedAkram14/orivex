@@ -12,9 +12,11 @@ import { LandingNavbar } from './landing-navbar';
 // hooks, which throw outside a real Next.js App Router tree -- needed here
 // since the signed-in state renders LandingUserMenu, which calls useRouter()
 // to redirect after sign-out.
+let currentPathname = '/en';
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
-  usePathname: () => '/',
+  usePathname: () => currentPathname,
   useParams: () => ({ locale: 'en' }),
   useSearchParams: () => new URLSearchParams(),
   redirect: vi.fn(),
@@ -39,18 +41,27 @@ function renderNavbar(state: AuthState = unauthenticatedState) {
 }
 
 describe('LandingNavbar', () => {
-  it('links each section anchor and the sign-in/register CTAs to their real destinations when signed out', () => {
+  it('links each public page and the sign-in/register CTAs to their real routes when signed out', () => {
+    currentPathname = '/en';
     renderNavbar();
 
-    expect(screen.getByRole('link', { name: 'Specialties' })).toHaveAttribute('href', '#specialties');
-    expect(screen.getByRole('link', { name: 'How It Works' })).toHaveAttribute('href', '#how-it-works');
-    expect(screen.getByRole('link', { name: 'For Doctors' })).toHaveAttribute('href', '#for-doctors');
-    expect(screen.getByRole('link', { name: 'FAQ' })).toHaveAttribute('href', '#faq');
+    expect(screen.getByRole('link', { name: 'Specialties' })).toHaveAttribute('href', '/en/specialties');
+    expect(screen.getByRole('link', { name: 'Find a Doctor' })).toHaveAttribute('href', '/en/doctors');
+    expect(screen.getByRole('link', { name: 'How It Works' })).toHaveAttribute('href', '/en/how-it-works');
+    expect(screen.getByRole('link', { name: 'For Doctors' })).toHaveAttribute('href', '/en/for-doctors');
 
     const signInLinks = screen.getAllByRole('link', { name: 'Sign In' });
     expect(signInLinks[0]).toHaveAttribute('href', expect.stringContaining('/login'));
     const registerLinks = screen.getAllByRole('link', { name: 'Register' });
     expect(registerLinks[0]).toHaveAttribute('href', expect.stringContaining('/register'));
+  });
+
+  it('marks the current section as the active page, including on nested routes', () => {
+    currentPathname = '/en/specialties/cardiology';
+    renderNavbar();
+
+    expect(screen.getByRole('link', { name: 'Specialties' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Find a Doctor' })).not.toHaveAttribute('aria-current');
   });
 
   it('opens the mobile menu with the same links when the menu button is clicked', async () => {

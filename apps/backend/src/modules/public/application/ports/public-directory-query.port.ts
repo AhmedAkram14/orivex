@@ -25,10 +25,28 @@ export interface PublicDoctorEntry {
   avatarUrl?: string;
 }
 
+/** The orderings this port can apply in SQL -- every column lives on DoctorProfile itself. */
+export type PublicDoctorSqlSort = 'newest' | 'lowest_fee' | 'most_experienced';
+
+// Public Find-a-Doctor page (2026-10-06): every filter here is a column of
+// DoctorProfile (or its Account's displayName), so it is applied in SQL.
+// Rating- and booking-based filters/sorts are NOT here: those aggregates are
+// owned by ConsultationModule and are applied by ListPublicDoctorsUseCase.
 export interface PublicDoctorFilter {
   specialtyId?: string;
-  limit: number;
-  offset: number;
+  /** Case-insensitive substring of the doctor's display name. */
+  nameQuery?: string;
+  ranks?: ProfessionalRank[];
+  /** `hospital`: affiliated with a hospital; `independent`: no hospital. */
+  practice?: 'hospital' | 'independent';
+  minFeeAmount?: number;
+  maxFeeAmount?: number;
+  minYearsOfExperience?: number;
+  /** Defaults to `newest`. */
+  sort?: PublicDoctorSqlSort;
+  /** Both omitted: every matching doctor, for a use case that must post-filter on another module's aggregate. */
+  limit?: number;
+  offset?: number;
 }
 
 export interface PublicDoctorResult {

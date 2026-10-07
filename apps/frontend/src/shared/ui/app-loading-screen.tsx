@@ -1,3 +1,10 @@
+'use client';
+
+// A client component on purpose: `[locale]/loading.tsx` renders this as the
+// Suspense fallback before a page's `setRequestLocale` has run, and as a
+// server component its `useTranslations` fell back to reading request
+// headers -- silently turning every page without its own loading.tsx
+// dynamic. As a client component it reads the provider's messages instead.
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/shared/ui/logo';
 

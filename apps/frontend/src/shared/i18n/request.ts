@@ -14,9 +14,18 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const requested = await requestLocale;
   const locale = hasLocale(routing.locales, requested) ? requested : routing.defaultLocale;
 
+  // The public marketing site (specialties, help center, legal pages...) is
+  // the first feature with enough copy to earn its own file; it is mounted
+  // under one `publicSite` namespace so its keys can never collide with the
+  // app's.
+  const [appMessages, publicSiteMessages] = await Promise.all([
+    import(`../../../messages/${locale}.json`),
+    import(`../../../messages/public-site/${locale}.json`),
+  ]);
+
   return {
     locale,
-    messages: (await import(`../../../messages/${locale}.json`)).default,
+    messages: { ...appMessages.default, publicSite: publicSiteMessages.default },
     // Orivex Egypt V1 has one operating timezone. Without this, every
     // `useFormatter().dateTime()` call (welcome banners, schedule/queue
     // timestamps) throws next-intl's ENVIRONMENT_FALLBACK warning and

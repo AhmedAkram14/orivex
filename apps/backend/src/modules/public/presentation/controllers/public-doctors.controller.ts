@@ -21,7 +21,20 @@ export class PublicDoctorsController {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const result = await this.listPublicDoctorsUseCase.execute(
-      new ListPublicDoctorsQuery({ page, limit, specialtyId: query.specialtyId }),
+      new ListPublicDoctorsQuery({
+        page,
+        limit,
+        specialtyId: query.specialtyId,
+        nameQuery: query.q?.trim() || undefined,
+        ranks: query.ranks?.length ? query.ranks : undefined,
+        practice: query.practice,
+        minFeeAmount: query.minFeeAmount,
+        maxFeeAmount: query.maxFeeAmount,
+        minYearsOfExperience: query.minYearsOfExperience,
+        minRating: query.minRating,
+        availability: query.availability,
+        sort: query.sort,
+      }),
     );
     return envelope(PublicDoctorListResponseDto.fromResult(result, page, limit));
   }

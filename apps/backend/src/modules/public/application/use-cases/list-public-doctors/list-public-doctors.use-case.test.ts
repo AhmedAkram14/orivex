@@ -31,6 +31,20 @@ class FakePublicDirectoryQueryPort implements PublicDirectoryQueryPort {
   }
 }
 
+/** Stands in for SchedulingModule's use case when a test needs specific doctors open on specific days. */
+function fakeOpenOnDates(openDatesByDoctor: Record<string, (dates: string[]) => string[]>): GetDoctorsOpenOnDatesUseCase {
+  return {
+    execute: async ({ doctorIds, dates }: { doctorIds: string[]; dates: string[] }) => {
+      const result = new Map<string, Set<string>>();
+      for (const id of doctorIds) {
+        const open = openDatesByDoctor[id]?.(dates) ?? [];
+        if (open.length) result.set(id, new Set(open));
+      }
+      return result;
+    },
+  } as unknown as GetDoctorsOpenOnDatesUseCase;
+}
+
 class FakeConsultationFeedbackRepository implements ConsultationFeedbackRepository {
   async findById(): Promise<ConsultationFeedback | null> {
     return null;
@@ -108,16 +122,18 @@ function buildUseCase(
   queryPort: PublicDirectoryQueryPort,
   aggregates: Map<string, DoctorRatingAggregate> = new Map(),
   bookingCounts: Map<string, number> = new Map(),
+  openOnDates?: GetDoctorsOpenOnDatesUseCase,
 ): ListPublicDoctorsUseCase {
   return new ListPublicDoctorsUseCase(
     queryPort,
     new GetDoctorRatingAggregatesUseCase(new FakeConsultationFeedbackRepository(aggregates)),
     new GetDoctorBookingCountsUseCase(new FakeAppointmentRepository(bookingCounts) as unknown as AppointmentRepository),
-    new GetDoctorsOpenOnDatesUseCase(
-      new FakeWorkingHoursRepository() as unknown as WorkingHoursRepository,
-      new FakeScheduleExceptionRepository() as unknown as ScheduleExceptionRepository,
-      new FakeHolidayRepository() as unknown as HolidayRepository,
-    ),
+    openOnDates ??
+      new GetDoctorsOpenOnDatesUseCase(
+        new FakeWorkingHoursRepository() as unknown as WorkingHoursRepository,
+        new FakeScheduleExceptionRepository() as unknown as ScheduleExceptionRepository,
+        new FakeHolidayRepository() as unknown as HolidayRepository,
+      ),
   );
 }
 
@@ -128,7 +144,10 @@ describe('ListPublicDoctorsUseCase', () => {
 
     await useCase.execute(new ListPublicDoctorsQuery({ page: 3, limit: 10, specialtyId: 'spec-1' }));
 
-    assert.deepEqual(queryPort.lastFilter, { specialtyId: 'spec-1', limit: 10, offset: 20 });
+    assert.equal(queryPort.lastFilter?.specialtyId, 'spec-1');
+    assert.equal(queryPort.lastFilter?.limit, 10);
+    assert.equal(queryPort.lastFilter?.offset, 20);
+    assert.equal(queryPort.lastFilter?.sort, 'newest');
   });
 
   it('joins real rating aggregates onto each doctor and sorts highest-rated first', async () => {
@@ -221,5 +240,114 @@ describe('ListPublicDoctorsUseCase', () => {
     const result = await useCase.execute(new ListPublicDoctorsQuery({ page: 1, limit: 20 }));
 
     assert.equal(result.doctors[0].availability, null);
+  });
+  it('pushes column filters and the fee/experience sorts down to the port, still paginated in SQL', async () => {
+    const queryPort = new FakePublicDirectoryQueryPort({ entries: [], total: 0 });
+    const useCase = buildUseCase(queryPort);
+
+    await useCase.execute(
+      new ListPublicDoctorsQuery({
+        page: 2,
+        limit: 12,
+        nameQuery: 'ada',
+        ranks: [ProfessionalRank.Specialist, ProfessionalRank.Consultant],
+        practice: 'independent',
+        minFeeAmount: 100,
+        maxFeeAmount: 500,
+        minYearsOfExperience: 5,
+        sort: 'lowest_fee',
+      }),
+    );
+
+    assert.deepEqual(queryPort.lastFilter, {
+      specialtyId: undefined,
+      nameQuery: 'ada',
+      ranks: [ProfessionalRank.Specialist, ProfessionalRank.Consultant],
+      practice: 'independent',
+      minFeeAmount: 100,
+      maxFeeAmount: 500,
+      minYearsOfExperience: 5,
+      sort: 'lowest_fee',
+      limit: 12,
+      offset: 12,
+    });
+  });
+
+  it('keeps the port order for an explicit SQL sort instead of re-sorting the page by rating', async () => {
+    const cheap = buildEntry({ doctorProfileId: 'cheap', consultationFeeAmount: 100 });
+    const pricey = buildEntry({ doctorProfileId: 'pricey', consultationFeeAmount: 900 });
+    const queryPort = new FakePublicDirectoryQueryPort({ entries: [cheap, pricey], total: 2 });
+    const aggregates = new Map<string, DoctorRatingAggregate>([['pricey', { averageRating: 5, reviewCount: 4, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }]]);
+
+    const result = await buildUseCase(queryPort, aggregates).execute(new ListPublicDoctorsQuery({ page: 1, limit: 20, sort: 'lowest_fee' }));
+
+    assert.deepEqual(result.doctors.map((d) => d.doctorProfileId), ['cheap', 'pricey']);
+  });
+
+  it('applies minRating across every matching doctor, then paginates, with total counting only the matches', async () => {
+    const entries = ['a', 'b', 'c', 'd'].map((id) => buildEntry({ doctorProfileId: id }));
+    const queryPort = new FakePublicDirectoryQueryPort({ entries, total: entries.length });
+    const aggregates = new Map<string, DoctorRatingAggregate>([
+      ['a', { averageRating: 4.6, reviewCount: 5, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }],
+      ['b', { averageRating: 3.9, reviewCount: 5, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }],
+      ['c', { averageRating: 4.5, reviewCount: 2, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }],
+      // d has no reviews: never matches a rating filter.
+    ]);
+
+    const result = await buildUseCase(queryPort, aggregates).execute(new ListPublicDoctorsQuery({ page: 2, limit: 1, minRating: 4.5 }));
+
+    assert.equal(queryPort.lastFilter?.limit, undefined, 'the port must return every match for the in-memory stage');
+    assert.equal(result.total, 2);
+    assert.deepEqual(result.doctors.map((d) => d.doctorProfileId), ['c']);
+  });
+
+  it('sorts top rated globally (rating, then review count), unreviewed doctors last', async () => {
+    const entries = ['none', 'few', 'many', 'best'].map((id) => buildEntry({ doctorProfileId: id }));
+    const queryPort = new FakePublicDirectoryQueryPort({ entries, total: entries.length });
+    const aggregates = new Map<string, DoctorRatingAggregate>([
+      ['few', { averageRating: 4.5, reviewCount: 2, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }],
+      ['many', { averageRating: 4.5, reviewCount: 30, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }],
+      ['best', { averageRating: 4.9, reviewCount: 3, writtenReviewCount: 0, averageCommunicationRating: null, averagePunctualityRating: null, averageThoroughnessRating: null }],
+    ]);
+
+    const result = await buildUseCase(queryPort, aggregates).execute(new ListPublicDoctorsQuery({ page: 1, limit: 10, sort: 'top_rated' }));
+
+    assert.deepEqual(result.doctors.map((d) => d.doctorProfileId), ['best', 'many', 'few', 'none']);
+  });
+
+  it('sorts most booked by real booking counts across the whole result set', async () => {
+    const entries = ['a', 'b', 'c'].map((id) => buildEntry({ doctorProfileId: id }));
+    const queryPort = new FakePublicDirectoryQueryPort({ entries, total: entries.length });
+    const bookingCounts = new Map<string, number>([
+      ['a', 2],
+      ['c', 40],
+    ]);
+
+    const result = await buildUseCase(queryPort, new Map(), bookingCounts).execute(
+      new ListPublicDoctorsQuery({ page: 1, limit: 2, sort: 'most_booked' }),
+    );
+
+    assert.equal(result.total, 3);
+    assert.deepEqual(result.doctors.map((d) => d.doctorProfileId), ['c', 'a']);
+  });
+
+  it('filters availability=today to doctors open today, and availability=week to doctors open on any of the next 7 days', async () => {
+    const entries = ['today', 'friday', 'never'].map((id) => buildEntry({ doctorProfileId: id }));
+    const openOnDates = fakeOpenOnDates({
+      today: (dates) => [dates[0]],
+      friday: (dates) => (dates.length === 7 ? [dates[5]] : []),
+    });
+
+    const todayResult = await buildUseCase(new FakePublicDirectoryQueryPort({ entries, total: 3 }), new Map(), new Map(), openOnDates).execute(
+      new ListPublicDoctorsQuery({ page: 1, limit: 10, availability: 'today' }),
+    );
+    assert.deepEqual(todayResult.doctors.map((d) => d.doctorProfileId), ['today']);
+    assert.equal(todayResult.doctors[0].availability, 'today');
+
+    const weekResult = await buildUseCase(new FakePublicDirectoryQueryPort({ entries, total: 3 }), new Map(), new Map(), openOnDates).execute(
+      new ListPublicDoctorsQuery({ page: 1, limit: 10, availability: 'week' }),
+    );
+    assert.deepEqual(weekResult.doctors.map((d) => d.doctorProfileId).sort(), ['friday', 'today']);
+    assert.equal(weekResult.total, 2);
   });
 });

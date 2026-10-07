@@ -35,6 +35,7 @@ import { InitiateChargeUseCase } from './application/use-cases/initiate-charge/i
 import { ListPaymentTransactionsUseCase } from './application/use-cases/list-payment-transactions/list-payment-transactions.use-case.js';
 import { ReconcileStripeWebhookEventUseCase } from './application/use-cases/reconcile-stripe-webhook-event/reconcile-stripe-webhook-event.use-case.js';
 import { RefundPaymentUseCase } from './application/use-cases/refund-payment/refund-payment.use-case.js';
+import { GetPlatformFeeScheduleUseCase } from './application/use-cases/get-platform-fee-schedule/get-platform-fee-schedule.use-case.js';
 import type { PaymentTransactionRepository } from './domain/repositories/payment-transaction.repository.js';
 import { NotConfiguredPaymentGatewayAdapter } from './infrastructure/gateway/not-configured-payment-gateway.adapter.js';
 import { StripePaymentGatewayAdapter } from './infrastructure/gateway/stripe-payment-gateway.adapter.js';
@@ -69,6 +70,8 @@ import { PaymentController } from './presentation/controllers/payment.controller
   imports: [ConsultationModule, DoctorModule, PatientModule, IdentityModule, AuthenticationGuardsModule, TrustGuardsModule],
   controllers: [PaymentController, PaymentWebhookController],
   providers: [
+    // Stateless: discloses PLATFORM_COMMISSION_RATE to PublicModule (GET /public/platform-fees).
+    { provide: GetPlatformFeeScheduleUseCase, useFactory: () => new GetPlatformFeeScheduleUseCase() },
     { provide: PAYMENT_TRANSACTION_REPOSITORY, useClass: PrismaPaymentTransactionRepository },
     {
       provide: PAYMENT_GATEWAY,
@@ -174,6 +177,6 @@ import { PaymentController } from './presentation/controllers/payment.controller
       inject: [PAYMENT_TRANSACTION_REPOSITORY, RefundPaymentUseCase, PinoLoggerService, DOMAIN_EVENT_DISPATCHER],
     },
   ],
-  exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase, RefundPaymentUseCase, ListPaymentTransactionsUseCase],
+  exports: [GetPaymentTransactionByIdUseCase, InitiateChargeUseCase, RefundPaymentUseCase, ListPaymentTransactionsUseCase, GetPlatformFeeScheduleUseCase],
 })
 export class PaymentModule {}

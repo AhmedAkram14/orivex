@@ -49,6 +49,12 @@ export interface ApiRequestOptions {
   // src/main.ts) -- path is exactly the controller route, e.g. '/doctors/123'.
   path: string;
   signal?: AbortSignal;
+  /**
+   * Next.js data-cache hint, only meaningful when called from a Server
+   * Component (the public marketing pages read `/public/*` there with ISR).
+   * The browser's own fetch ignores it.
+   */
+  next?: { revalidate?: number | false; tags?: string[] };
 }
 
 /**
@@ -98,7 +104,7 @@ function resolveUrl(path: string): string {
   return path;
 }
 
-async function performRequest({ method = 'GET', body, path, signal }: ApiRequestOptions): Promise<unknown> {
+async function performRequest({ method = 'GET', body, path, signal, next }: ApiRequestOptions): Promise<unknown> {
   const response = await fetch(resolveUrl(path), {
     method,
     headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
@@ -111,6 +117,7 @@ async function performRequest({ method = 'GET', body, path, signal }: ApiRequest
     // `credentials: true`.
     credentials: 'include',
     signal,
+    ...(next ? { next } : {}),
   });
 
   const json: unknown = await response.json().catch(() => undefined);

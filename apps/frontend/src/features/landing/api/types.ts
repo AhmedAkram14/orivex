@@ -7,11 +7,32 @@ export interface PublicSpecialty {
   doctorCount: number;
 }
 
+export type ProfessionalRank = 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
+export type PublicDoctorSort = 'top_rated' | 'lowest_fee' | 'most_experienced' | 'most_booked';
+
+/** Matches ListPublicDoctorsQueryDto exactly -- every field optional. */
+export interface PublicDoctorQuery {
+  specialtyId?: string;
+  /** Doctor-name search. */
+  q?: string;
+  ranks?: ProfessionalRank[];
+  practice?: 'hospital' | 'independent';
+  minFeeAmount?: number;
+  maxFeeAmount?: number;
+  minYearsOfExperience?: number;
+  minRating?: number;
+  availability?: 'today' | 'week';
+  /** Omitted: newest first, re-sorted by rating within the page (the homepage's ordering). */
+  sort?: PublicDoctorSort;
+  page?: number;
+  limit?: number;
+}
+
 /** Matches PublicDoctorResponseDto exactly. */
 export interface PublicDoctor {
   doctorProfileId: string;
   fullName: string;
-  professionalRank?: 'resident' | 'registrar' | 'specialist' | 'consultant' | 'professor';
+  professionalRank?: ProfessionalRank;
   specialtyName: string;
   /** The Arabic specialty name -- null until an admin has translated it. */
   specialtyNameAr: string | null;
@@ -41,4 +62,10 @@ export interface PublicDoctorListResult {
   total: number;
   page: number;
   limit: number;
+}
+
+/** Matches PublicPlatformFeesResponseDto exactly. */
+export interface PublicPlatformFees {
+  /** 0-1, e.g. 0.15 = 15% of each paid consultation fee. */
+  commissionRate: number;
 }

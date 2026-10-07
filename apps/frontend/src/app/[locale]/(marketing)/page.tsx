@@ -8,15 +8,12 @@ import { ForDoctorsSection } from '@/features/landing/components/for-doctors-sec
 import { ForPatientsSection } from '@/features/landing/components/for-patients-section';
 import { HeroSection } from '@/features/landing/components/hero-section';
 import { HowItWorksSection } from '@/features/landing/components/how-it-works-section';
-import { LandingFooter } from '@/features/landing/components/landing-footer';
-import { LandingNavbar } from '@/features/landing/components/landing-navbar';
 import { PopularDoctorsSection } from '@/features/landing/components/popular-doctors-section';
 import { SecurityTrustSection } from '@/features/landing/components/security-trust-section';
 import { SpecialtiesSection } from '@/features/landing/components/specialties-section';
 import { env } from '@/shared/lib/env';
 import { buildPageMetadata } from '@/shared/lib/seo';
 import type { AppLocale } from '@/shared/i18n/routing';
-import { BackToTopButton } from '@/shared/ui/back-to-top-button';
 import { RevealOnScroll } from '@/shared/ui/reveal-on-scroll';
 
 export async function generateMetadata({
@@ -70,7 +67,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
-      <LandingNavbar />
       <HeroSection />
       <RevealOnScroll>
         <SpecialtiesSection />
@@ -99,8 +95,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <RevealOnScroll>
         <CtaSection />
       </RevealOnScroll>
-      <LandingFooter />
-      <BackToTopButton />
     </main>
   );
 }

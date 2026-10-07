@@ -34,10 +34,27 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
   }
 
   async searchDoctors(filter: PublicDoctorFilter): Promise<PublicDoctorResult> {
+    const hasFeeRange = filter.minFeeAmount !== undefined || filter.maxFeeAmount !== undefined;
     const where: Prisma.DoctorProfileWhereInput = {
-      account: { role: AccountRole.Doctor },
+      account: {
+        role: AccountRole.Doctor,
+        ...(filter.nameQuery ? { displayName: { contains: filter.nameQuery, mode: 'insensitive' } } : {}),
+      },
       ...(filter.specialtyId ? { specialtyId: filter.specialtyId } : {}),
+      ...(filter.ranks?.length ? { professionalRank: { in: filter.ranks } } : {}),
+      ...(filter.practice === 'hospital' ? { hospitalId: { not: null } } : {}),
+      ...(filter.practice === 'independent' ? { hospitalId: null } : {}),
+      ...(hasFeeRange ? { consultationFeeAmount: { gte: filter.minFeeAmount, lte: filter.maxFeeAmount } } : {}),
+      ...(filter.minYearsOfExperience !== undefined ? { yearsOfExperience: { gte: filter.minYearsOfExperience } } : {}),
     };
+
+    // Newest first stays the final tie-breaker, so equal fees/experience keep a stable page order.
+    const orderBy: Prisma.DoctorProfileOrderByWithRelationInput[] =
+      filter.sort === 'lowest_fee'
+        ? [{ consultationFeeAmount: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }]
+        : filter.sort === 'most_experienced'
+          ? [{ yearsOfExperience: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }]
+          : [{ createdAt: 'desc' }];
 
     const [rows, total] = await Promise.all([
       this.prisma.doctorProfile.findMany({
@@ -47,7 +64,7 @@ export class PrismaPublicDirectoryQueryService implements PublicDirectoryQueryPo
           medicalSpecialty: { select: { name: true, nameAr: true } },
           hospital: { select: { name: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         take: filter.limit,
         skip: filter.offset,
       }),

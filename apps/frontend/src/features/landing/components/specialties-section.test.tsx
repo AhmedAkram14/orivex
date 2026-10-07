@@ -14,7 +14,7 @@ afterAll(() => server.close());
 // applies no such layout, so both trees exist at once) -- assertions use
 // `getAllByText` and take the first match rather than assuming exactly one.
 describe('SpecialtiesSection', () => {
-  it('shows only specialties with a real doctor count, each linking to the filtered directory', async () => {
+  it('shows only specialties with a real doctor count, each linking to its specialty page', async () => {
     renderWithProviders(<SpecialtiesSection />);
 
     expect((await screen.findAllByText('Cardiology'))[0]).toBeInTheDocument();
@@ -25,7 +25,8 @@ describe('SpecialtiesSection', () => {
     expect(screen.queryByText('Pediatrics')).not.toBeInTheDocument();
 
     const link = screen.getAllByText('Cardiology')[0].closest('a');
-    expect(link).toHaveAttribute('href', expect.stringContaining('/patient/doctors?specialtyId='));
+    expect(link).toHaveAttribute('href', '/en/specialties/cardiology');
+    expect(screen.getByRole('link', { name: /Browse all specialties/ })).toHaveAttribute('href', '/en/specialties');
   });
 
   it('shows the real specialty/doctor counts in the stats bar, never a fabricated satisfaction metric', async () => {

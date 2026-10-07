@@ -41,6 +41,6 @@ describe('PopularDoctorsSection', () => {
     expect(decodeURIComponent(bookLink.getAttribute('href') ?? '')).toContain('/patient/appointments/book?doctorId=doctor-profile-1');
 
     const viewAllLink = screen.getByRole('link', { name: /View All Doctors/ });
-    expect(viewAllLink).toHaveAttribute('href', expect.stringContaining('/patient/doctors'));
+    expect(viewAllLink).toHaveAttribute('href', '/en/doctors');
   });
 });

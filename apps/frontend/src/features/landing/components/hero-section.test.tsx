@@ -15,7 +15,7 @@ describe('HeroSection', () => {
 
     expect(screen.getByRole('link', { name: /Find a Doctor/ })).toHaveAttribute(
       'href',
-      expect.stringContaining('/patient/doctors'),
+      '/en/doctors',
     );
     expect(screen.getByRole('link', { name: /Apply as Doctor/ })).toHaveAttribute(
       'href',

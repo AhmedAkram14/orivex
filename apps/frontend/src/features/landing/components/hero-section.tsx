@@ -84,7 +84,7 @@ export function HeroSection() {
             ) : (
               <>
                 <Button asChild size="lg">
-                  <Link href="/patient/doctors">
+                  <Link href="/doctors">
                     <Icon icon={Search} size="sm" />
                     {t('primaryCta')}
                   </Link>
@@ -175,7 +175,7 @@ export function HeroSection() {
             <p className="mt-1 text-small text-text-secondary">
               {tUi('cardLineOne')} {tUi('cardLineTwo')} {tUi('cardLineThree')}
             </p>
-            <Link href="#how-it-works" className="mt-2 inline-flex items-center gap-1 text-small font-semibold text-care-text hover:underline">
+            <Link href="/how-it-works" className="mt-2 inline-flex items-center gap-1 text-small font-semibold text-care-text hover:underline">
               {tUi('cardCta')}
               <Icon icon={ArrowRight} size="sm" flipRtl />
             </Link>

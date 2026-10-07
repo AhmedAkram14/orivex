@@ -1,14 +1,10 @@
 'use client';
 
 import { ArrowRight, CalendarCheck, Headphones, Lock, ShieldCheck } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { usePublicDoctors } from '@/features/landing/hooks/use-public-doctors';
-import type { PublicDoctor } from '@/features/landing/api/types';
-import { RatingLine } from '@/features/consultation/components/doctor-rating-summary';
-import { MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY } from '@/features/consultation/lib/rating-display';
-import { DoctorCard } from '@/features/doctor/components/doctor-card';
+import { PublicDoctorCard } from '@/features/landing/components/public-doctor-card';
 import { LandingSection } from '@/features/landing/components/landing-section';
-import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Heading, Text } from '@/design-system/typography';
 import { Icon } from '@/shared/icons/icon';
 import { Link } from '@/shared/i18n/navigation';
@@ -18,58 +14,6 @@ import { Card } from '@/shared/ui/card';
 import { Container } from '@/shared/ui/container';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Skeleton } from '@/shared/ui/skeleton';
-
-// Purely cosmetic pill color per specialty -- unlike Browse Specialties'
-// hand-picked category mapping, this card only needs neighbors in a 3-column
-// grid to not all match, so a name-hash over the same 4 distinct hues this
-// design system actually has (see specialties-section.tsx's own comment on
-// the info/primary token duplicate) is enough.
-/** Landing already has the rating aggregate inline in its own bulk `/public/doctors` payload -- built here and passed into the shared card's `ratingSlot`, rather than the card re-fetching it per doctor. */
-function PopularDoctorRating({ doctor }: { doctor: PublicDoctor }) {
-  const t = useTranslations('landing.popularDoctors');
-
-  if (doctor.reviewCount === 0) {
-    return (
-      <Text size="sm" tone="tertiary">
-        {t('noReviewsYet')}
-      </Text>
-    );
-  }
-
-  return (
-    <RatingLine averageRating={doctor.averageRating} ratingCount={doctor.reviewCount} writtenReviewCount={doctor.writtenReviewCount} />
-  );
-}
-
-function LandingDoctorCard({ doctor }: { doctor: PublicDoctor }) {
-  const locale = useLocale();
-  const specialtyName = pickLocalizedName(doctor.specialtyName, doctor.specialtyNameAr, locale);
-
-  return (
-    <DoctorCard
-      doctorProfileId={doctor.doctorProfileId}
-      fullName={doctor.fullName}
-      avatarUrl={doctor.avatarUrl}
-      specialtyLabel={specialtyName}
-      specialtyName={doctor.specialtyName}
-      professionalRank={doctor.professionalRank}
-      yearsOfExperience={doctor.yearsOfExperience}
-      hospitalName={doctor.hospitalName}
-      availability={doctor.availability}
-      consultationFeeAmount={doctor.consultationFeeAmount}
-      ratingSlot={<PopularDoctorRating doctor={doctor} />}
-      // "Top Rated" only for a score the card actually shows (the same MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY rule):
-      // the backend picks it among doctors with any rating, which could crown a "New — 2 ratings" doctor.
-      rankBadge={
-        doctor.isTopRated && doctor.reviewCount >= MIN_RATING_COUNT_FOR_CONFIDENT_DISPLAY
-          ? 'topRated'
-          : doctor.isMostBooked
-            ? 'mostBooked'
-            : null
-      }
-    />
-  );
-}
 
 /**
  * Real doctors only, from `GET /public/doctors` -- never hardcoded. Ranked
@@ -132,7 +76,7 @@ export function PopularDoctorsSection() {
                 size="sm"
                 className="rounded-xl border-border-default px-5.5 py-4.5 text-primary"
               >
-                <Link href="/patient/doctors">
+                <Link href="/doctors">
                   {t('viewAllDoctors')}
                   <Icon icon={ArrowRight} size="sm" flipRtl />
                 </Link>
@@ -155,7 +99,7 @@ export function PopularDoctorsSection() {
           {!isLoading && doctors.length > 0 && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {doctors.map((doctor) => (
-                <LandingDoctorCard key={doctor.doctorProfileId} doctor={doctor} />
+                <PublicDoctorCard key={doctor.doctorProfileId} doctor={doctor} />
               ))}
             </div>
           )}

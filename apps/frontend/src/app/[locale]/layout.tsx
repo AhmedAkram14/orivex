@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
+import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { SessionProvider } from '@/features/auth/providers/session-provider';
 import { AppProviders } from '@/shared/providers/app-providers';
@@ -41,6 +42,9 @@ export default async function LocaleLayout({
   if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
+  // Lets a page that also opts in (the public marketing pages) render
+  // statically instead of reading the locale from request headers.
+  setRequestLocale(locale);
 
   return (
     <html

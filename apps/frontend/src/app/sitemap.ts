@@ -5,7 +5,7 @@ import { routing } from '@/shared/i18n/routing';
 // Only genuinely public, unauthenticated pages -- everything under
 // (protected) requires a session and has nothing for an anonymous crawler
 // to index (see robots.ts).
-const PUBLIC_PATHS = ['', '/login', '/register', '/forgot-password'] as const;
+const PUBLIC_PATHS = ['', '/specialties', '/doctors', '/how-it-works', '/for-doctors', '/login', '/register', '/forgot-password'] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return routing.locales.flatMap((locale) =>

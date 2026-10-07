@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import { getWeekDayName } from '@/features/doctor/lib/week';
 import { getDoctorReviews } from '@/mocks/consultation-store';
-import { listDoctors } from '@/mocks/doctor-store';
+import { listAllDoctorProfiles, listDoctors } from '@/mocks/doctor-store';
 import { getPatientProfileById } from '@/mocks/patient-store';
 import { listSpecialties } from '@/mocks/reference-store';
 import { getAvailabilityForDoctorId, getExceptionsForDoctorId, getHolidays } from '@/mocks/scheduling-store';
@@ -46,6 +46,16 @@ function availabilityFor(doctorProfileId: string): 'today' | 'tomorrow' | null {
   return null;
 }
 
+/** The `availability=week` filter: open on at least one of the next `days` days, today included. */
+function isDoctorOpenWithinDays(doctorProfileId: string, days: number): boolean {
+  const day = new Date();
+  for (let index = 0; index < days; index += 1) {
+    if (isDoctorOpenOn(doctorProfileId, day)) return true;
+    day.setDate(day.getDate() + 1);
+  }
+  return false;
+}
+
 /**
  * Real backend endpoints (PublicModule's PublicSpecialtiesController/
  * PublicDoctorsController -- the landing page's own public data source).
@@ -76,52 +86,90 @@ export const publicHandlers = [
     return HttpResponse.json({ data });
   }),
 
+  // Mirrors ListPublicDoctorsUseCase: column filters (specialty, name, rank,
+  // hospital/independent, fee, experience), then the cross-aggregate ones
+  // (rating, availability) and sorts, then pagination. No booking-count mock
+  // exists, so `most_booked` keeps the store's order rather than inventing counts.
   http.get(`${base()}/public/doctors`, ({ request }) => {
     const url = new URL(request.url);
-    const specialtyId = url.searchParams.get('specialtyId') ?? undefined;
-    const page = Number(url.searchParams.get('page') ?? '1');
-    const limit = Number(url.searchParams.get('limit') ?? '20');
+    const params = url.searchParams;
+    const page = Number(params.get('page') ?? '1');
+    const limit = Number(params.get('limit') ?? '20');
+    const numberParam = (key: string) => (params.get(key) === null ? undefined : Number(params.get(key)));
+    const q = params.get('q')?.trim().toLowerCase();
+    const ranks = params.get('ranks')?.split(',').filter(Boolean);
+    const practice = params.get('practice');
+    const minRating = numberParam('minRating');
+    const availabilityFilter = params.get('availability');
+    const sort = params.get('sort');
 
-    const { doctors, total } = listDoctors({ specialtyId, page, limit });
-    const specialtiesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty]));
-
-    const mapped = doctors.map((doctor) => {
-      const { averageRating, reviewCount, reviews } = getDoctorReviews(doctor.doctorProfileId, 1, 100);
-      const writtenReviewCount = reviews.filter((review) => review.comment).length;
-      return {
-        doctorProfileId: doctor.doctorProfileId,
-        fullName: doctor.displayName,
-        avatarUrl: doctor.avatarUrl,
-        specialtyName: specialtiesById.get(doctor.specialtyId)?.name ?? '',
-        specialtyNameAr: specialtiesById.get(doctor.specialtyId)?.nameAr ?? null,
-        hospitalId: doctor.hospitalId,
-        // No hospital-name mock store exists -- an unaffiliated doctor stays
-        // unaffiliated here too, same "Independent Practice" fallback the
-        // real API produces for a null hospitalId, never an invented name.
-        hospitalName: undefined as string | undefined,
-        yearsOfExperience: doctor.yearsOfExperience,
-        consultationFeeAmount: doctor.consultationFeeAmount,
-        averageRating,
-        reviewCount,
-        writtenReviewCount,
-        availability: availabilityFor(doctor.doctorProfileId),
-        isTopRated: false,
-        isMostBooked: false,
-      };
+    const { doctors } = listDoctors({
+      specialtyId: params.get('specialtyId') ?? undefined,
+      minFeeAmount: numberParam('minFeeAmount'),
+      maxFeeAmount: numberParam('maxFeeAmount'),
+      minYearsOfExperience: numberParam('minYearsOfExperience'),
+      page: 1,
+      limit: 10_000,
     });
+    const specialtiesById = new Map(listSpecialties().map((specialty) => [specialty.id, specialty]));
+    const rankById = new Map(listAllDoctorProfiles().map((profile) => [profile.id, profile.professionalRank]));
+
+    let mapped = doctors
+      .filter((doctor) => !q || doctor.displayName.toLowerCase().includes(q))
+      .filter((doctor) => !ranks?.length || ranks.includes(rankById.get(doctor.doctorProfileId) ?? ''))
+      .filter((doctor) => (practice === 'hospital' ? Boolean(doctor.hospitalId) : practice === 'independent' ? !doctor.hospitalId : true))
+      .map((doctor) => {
+        const { averageRating, reviewCount, reviews } = getDoctorReviews(doctor.doctorProfileId, 1, 100);
+        const writtenReviewCount = reviews.filter((review) => review.comment).length;
+        return {
+          doctorProfileId: doctor.doctorProfileId,
+          fullName: doctor.displayName,
+          avatarUrl: doctor.avatarUrl,
+          professionalRank: rankById.get(doctor.doctorProfileId),
+          specialtyName: specialtiesById.get(doctor.specialtyId)?.name ?? '',
+          specialtyNameAr: specialtiesById.get(doctor.specialtyId)?.nameAr ?? null,
+          hospitalId: doctor.hospitalId,
+          // No hospital-name mock store exists -- an unaffiliated doctor stays
+          // unaffiliated here too, same "Independent Practice" fallback the
+          // real API produces for a null hospitalId, never an invented name.
+          hospitalName: undefined as string | undefined,
+          yearsOfExperience: doctor.yearsOfExperience,
+          consultationFeeAmount: doctor.consultationFeeAmount,
+          averageRating,
+          reviewCount,
+          writtenReviewCount,
+          availability: availabilityFor(doctor.doctorProfileId),
+          isTopRated: false,
+          isMostBooked: false,
+        };
+      });
+
+    if (minRating !== undefined) mapped = mapped.filter((doctor) => doctor.averageRating !== null && doctor.averageRating >= minRating);
+    if (availabilityFilter === 'today') mapped = mapped.filter((doctor) => doctor.availability === 'today');
+    if (availabilityFilter === 'week') mapped = mapped.filter((doctor) => isDoctorOpenWithinDays(doctor.doctorProfileId, 7));
+
+    if (sort === 'top_rated') mapped.sort((a, b) => (b.averageRating ?? -1) - (a.averageRating ?? -1) || b.reviewCount - a.reviewCount);
+    if (sort === 'lowest_fee') mapped.sort((a, b) => (a.consultationFeeAmount ?? Infinity) - (b.consultationFeeAmount ?? Infinity));
+    if (sort === 'most_experienced') mapped.sort((a, b) => (b.yearsOfExperience ?? -1) - (a.yearsOfExperience ?? -1));
+
+    const total = mapped.length;
+    const offset = (page - 1) * limit;
+    const pageDoctors = mapped.slice(offset, offset + limit);
+    if (!sort) pageDoctors.sort((a, b) => (b.averageRating ?? -1) - (a.averageRating ?? -1));
 
     // Page-local tags, same rule as the real ListPublicDoctorsUseCase: only
     // a reviewed doctor can be "top rated"; "most booked" has no seeded
     // booking-count mock yet, so it's never fabricated true here.
-    const topRated = [...mapped].sort((a, b) => (b.averageRating ?? -1) - (a.averageRating ?? -1)).find((d) => d.reviewCount > 0);
+    const topRated = [...pageDoctors].sort((a, b) => (b.averageRating ?? -1) - (a.averageRating ?? -1)).find((d) => d.reviewCount > 0);
     if (topRated) {
       topRated.isTopRated = true;
     }
 
-    const data = { doctors: mapped, total, page, limit };
-
-    return HttpResponse.json({ data });
+    return HttpResponse.json({ data: { doctors: pageDoctors, total, page, limit } });
   }),
+
+  // Mirrors PaymentModule's PLATFORM_COMMISSION_RATE (GET /public/platform-fees).
+  http.get(`${base()}/public/platform-fees`, () => HttpResponse.json({ data: { commissionRate: 0.15 } })),
 
   // Deliberately minimal, no auth -- backs the public patient-profile page
   // a review links to. Same "only what's safe to show a stranger"

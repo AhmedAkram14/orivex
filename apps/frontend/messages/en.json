@@ -29,11 +29,13 @@
   },
   "landing": {
     "nav": {
-      "sectionsLabel": "Page sections",
+      "primaryLabel": "Main",
+      "homeLabel": "ORIVEX home",
       "specialties": "Specialties",
+      "findDoctor": "Find a Doctor",
       "howItWorks": "How It Works",
       "forDoctors": "For Doctors",
-      "faq": "FAQ",
+      "help": "Help",
       "signIn": "Sign In",
       "register": "Register",
       "openMenu": "Open menu",
@@ -60,6 +62,7 @@
       "submit": "Search"
     },
     "specialties": {
+      "learnMore": "Browse all specialties",
       "verifiedBadge": "Verified Specialists",
       "title": "Find the Right Medical Specialist",
       "description": "Browse verified doctors across multiple specialties and book an appointment in minutes.",
@@ -132,6 +135,7 @@
       }
     },
     "howItWorks": {
+      "learnMore": "See the full step-by-step",
       "eyebrow": "Simple • Secure • Seamless",
       "title": "How ORIVEX Works",
       "description": "A clear path for patients and doctors alike.",
@@ -265,6 +269,7 @@
       },
       "ctaApply": "Apply as a doctor",
       "ctaWorkspace": "Go to your workspace",
+      "learnMore": "Learn more about practicing on ORIVEX",
       "stageDescription": "A preview of the doctor workspace: today's schedule, a new appointment request, and monthly earnings."
     },
     "showcase": {
@@ -320,7 +325,7 @@
       "items": {
         "booking": {
           "question": "How do I book an appointment?",
-          "answer": "Find a doctor by specialty or name, choose an available time, and submit your request. Your doctor reviews and approves every booking before it's confirmed."
+          "answer": "Find a doctor by specialty or name, choose an available time, and send your request. A free consultation is confirmed once the doctor approves it; a paid consultation is confirmed as soon as you pay."
         },
         "becomeDoctor": {
           "question": "How do I become a doctor on ORIVEX?",
@@ -365,19 +370,28 @@
       "patients": {
         "heading": "Patients",
         "findDoctor": "Find a Doctor",
-        "bookAppointment": "Book Appointment",
+        "specialties": "Specialties",
         "howItWorks": "How It Works",
         "signIn": "Sign In"
       },
       "doctors": {
         "heading": "Doctors",
-        "becomeDoctor": "Become a Doctor",
-        "howItWorks": "How It Works",
+        "forDoctors": "Why ORIVEX",
+        "becomeDoctor": "Apply as a Doctor",
+        "verification": "How Verification Works",
         "signIn": "Sign In"
       },
       "company": {
         "heading": "Company",
+        "about": "About",
+        "help": "Help Center",
+        "trust": "Security & Trust",
         "contactUs": "Contact Us"
+      },
+      "legal": {
+        "label": "Legal",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service"
       },
       "secureNotice": "Your data is secure and protected",
       "copyright": "© {year} ORIVEX. All rights reserved."

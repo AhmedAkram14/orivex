@@ -48,7 +48,7 @@ function RoleAvatar() {
 }
 
 /** The next visit, as the app's appointment row draws it: the DateBlock leads, the person rides inline (xs). */
-function NextVisitVignette() {
+export function NextVisitVignette() {
   const t = useTranslations('landing.showcase');
   const format = useFormatter();
   const visit = tomorrowAt(10);
@@ -70,7 +70,7 @@ function NextVisitVignette() {
 }
 
 /** The booking slot strip: five of tomorrow's times, the middle one selected (lime). */
-function SlotStripVignette({ limeOn }: { limeOn: boolean }) {
+export function SlotStripVignette({ limeOn }: { limeOn: boolean }) {
   const t = useTranslations('landing.showcase');
   const format = useFormatter();
   const times = [
@@ -100,7 +100,7 @@ function SlotStripVignette({ limeOn }: { limeOn: boolean }) {
 }
 
 /** A prescription: the pill glyph, the dose, "Active". The medicine's name is a placeholder bar, never an invented drug. */
-function PrescriptionVignette() {
+export function PrescriptionVignette() {
   const t = useTranslations('landing.showcase');
   const tStatus = useTranslations('patient.dashboard.activePrescriptions.status');
   return (
@@ -118,7 +118,7 @@ function PrescriptionVignette() {
 }
 
 /** The doctor's day: the Overview's own strip with illustrative, relative hours ("−2h", "+2h"), no clock times. */
-function TimelineVignette({ markerClassName }: { markerClassName?: string }) {
+export function TimelineVignette({ markerClassName }: { markerClassName?: string }) {
   const t = useTranslations('landing.showcase');
   const tTimeline = useTranslations('doctorHome.timeline');
   const now = 4 * HOUR;
@@ -150,7 +150,7 @@ function TimelineVignette({ markerClassName }: { markerClassName?: string }) {
 }
 
 /** A new appointment request, as the Queue's pending card: a role, never a name; the actions are inert. */
-function RequestVignette() {
+export function RequestVignette() {
   const t = useTranslations('landing.showcase');
   const tQueue = useTranslations('doctor.queue.pendingApproval');
   const format = useFormatter();
@@ -176,7 +176,7 @@ function RequestVignette() {
 }
 
 /** Earnings: the shape of six months as bars, and no figure -- the value is a placeholder, never an invented amount. */
-function EarningsVignette() {
+export function EarningsVignette() {
   const t = useTranslations('landing.showcase');
   return <MetricStat preview icon={Wallet} label={t('netThisMonth')} value="" sparkline={[3, 5, 4, 6, 5, 7]} sparklineStyle="bars" />;
 }
