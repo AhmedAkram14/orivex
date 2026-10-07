@@ -11,6 +11,8 @@ import {
   LabsNone,
   PrescriptionNone,
   RecordsStart,
+  RoleDoctor,
+  RolePatient,
   SearchNoResults,
   VerifiedSeal,
   WaitingRoomEmpty,
@@ -33,6 +35,8 @@ const SCENES = {
   'verified-seal': VerifiedSeal,
   'booking-confirmed': BookingConfirmed,
   'consultation-ended': ConsultationEnded,
+  'role-patient': RolePatient,
+  'role-doctor': RoleDoctor,
 } as const satisfies Record<string, ComponentType<SceneProps>>;
 
 export type IllustrationKey = keyof typeof SCENES;

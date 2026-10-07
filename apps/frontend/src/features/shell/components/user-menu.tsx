@@ -6,6 +6,7 @@ import { useLogout } from '@/features/auth/hooks/use-logout';
 import { useAuth } from '@/shared/auth/auth-context';
 import { Icon } from '@/shared/icons/icon';
 import { Link, usePathname, useRouter } from '@/shared/i18n/navigation';
+import { cn } from '@/shared/lib/cn';
 import { localeNativeNames, routing, type AppLocale } from '@/shared/i18n/routing';
 import { PersonAvatar } from '@/shared/ui/avatar';
 import {
@@ -46,6 +47,10 @@ export function UserMenu({ showName = false, subtitle }: UserMenuProps = {}) {
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring">
         <PersonAvatar name={user.fullName} src={user.avatarUrl} size="sm" />
+        {/* The trigger's accessible name wherever the visible name is hidden (always without `showName`, below `sm` with it). */}
+        <span className={cn('sr-only', showName && 'sm:hidden')}>
+          <bdi>{user.fullName}</bdi>
+        </span>
         {showName && (
           <>
             {/* Responsive pass (Phase 7): this block used to be the thing that

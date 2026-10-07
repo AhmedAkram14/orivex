@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 /**
- * Duotone scenes for empty/error/success states. House style: 1.5px
+ * Duotone scenes for empty/error/success states (and the role choice). House style: 1.5px
  * `currentColor` (ink) linework, ONE flat disc in `pulse` or `warm-1`, cards
  * filled with `surface`, no gradients and no faces (hands and objects only).
  * Everything is token-driven, so the lines invert in dark mode for free. The
@@ -165,6 +165,32 @@ export const BookingConfirmed = (p: SceneProps) => (
     <circle cx="60" cy="70" r="14" className="fill-pulse" />
     <path d="M53 70l5 5 9-10" strokeWidth="2.5" />
     <path d="M100 30v8M96 34h8M18 84v6M15 87h6" />
+  </Scene>
+);
+
+/** Role choice: a phone with a booked calendar beside it (peach, the patient audience colour). */
+export const RolePatient = (p: SceneProps) => (
+  <Scene {...p}>
+    {disc('warm')}
+    <rect x="28" y="24" width="34" height="64" rx="7" className={S} />
+    <path d="M40 31h10M36 42h18M36 49h12M41 80h8" />
+    <rect x="52" y="50" width="42" height="38" rx="6" className={S} />
+    <path d="M52 60h42M62 46v8M84 46v8" />
+    <path d="M64 74l6 6 12-12" strokeWidth="2.5" />
+  </Scene>
+);
+
+/** Role choice: a clipboard with a stethoscope over it (lime, the doctor audience colour). */
+export const RoleDoctor = (p: SceneProps) => (
+  <Scene {...p}>
+    {disc('pulse')}
+    <rect x="26" y="30" width="46" height="60" rx="6" className={S} />
+    <rect x="38" y="25" width="22" height="10" rx="3" className={S} />
+    <path d="M34 48h30M34 58h30M34 68h18" />
+    <path d="M80 28v18a12 12 0 0 0 24 0V28" />
+    <path d="M77 28h6M101 28h6" strokeWidth="2.5" />
+    <path d="M92 58v14a10 10 0 0 1-10 10h-2" />
+    <circle cx="73" cy="82" r="7" className={S} />
   </Scene>
 );
 
