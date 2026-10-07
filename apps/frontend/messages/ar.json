@@ -2866,44 +2866,39 @@
     }
   },
   "journey": {
-    "eyebrow": "مرحبًا بك في أوريفكس",
-    "title": "كيف تريد استخدام أوريفكس؟",
-    "description": "نخصص تجربتك بناءً على دورك. يمكنك تغيير دورك في أي وقت من إعدادات حسابك.",
+    "eyebrow": "مرحبًا، {name}",
+    "eyebrowNoName": "مرحبًا",
+    "title": "كيف ستستخدم أوريفكس؟",
+    "description": "اختر التجربة التي تناسبك. يمكنك التقديم كطبيب لاحقًا من قائمة حسابك.",
     "needHelp": "تحتاج مساعدة؟",
     "contactSupport": "تواصل مع الدعم",
-    "patientCardTitle": "أنا مريض",
-    "patientCardDescription": "ابحث عن أطباء موثوقين واحجز المواعيد وأدر صحتك بسهولة.",
-    "patientCardAction": "المتابعة كمريض",
-    "doctorCardTitle": "أنا طبيب",
-    "doctorCardDescription": "أنشئ ملفك المهني وابدأ بتنمية ممارستك الطبية عبر الإنترنت.",
-    "doctorCardAction": "التقديم كطبيب",
+    "rolesLabel": "اختر طريقة استخدامك لأوريفكس",
+    "patient": {
+      "title": "أنا مريض",
+      "description": "ابحث عن طبيب واحجز زيارتك واجمع صحتك في مكان واحد.",
+      "benefits": {
+        "book": "احجز مع أطباء موثّقين",
+        "video": "زيارات فيديو من منزلك",
+        "records": "سجلاتك في مكان واحد"
+      },
+      "summary": "حجز · فيديو · سجلات",
+      "continue": "المتابعة كمريض"
+    },
+    "doctor": {
+      "title": "أنا طبيب",
+      "description": "جهّز عيادتك واستشر مرضاك عبر الإنترنت.",
+      "benefits": {
+        "hours": "حدّد مواعيدك وأسعارك",
+        "video": "استشارات عبر فيديو آمن",
+        "payments": "رسوم تُعالَج بأمان عبر Stripe"
+      },
+      "summary": "مواعيد · فيديو · مدفوعات",
+      "verification": "يتطلب التحقق من الترخيص: {count, plural, one {خطوة واحدة} two {خطوتان} few {# خطوات} many {# خطوة} other {# خطوة}}، ثم مراجعة من فريقنا.",
+      "continue": "المتابعة كطبيب"
+    },
+    "continue": "متابعة",
     "choosePatientError": "حدث خطأ أثناء إعداد حسابك. يرجى المحاولة مرة أخرى.",
-    "features": {
-      "browseDoctors": "تصفح أطباء موثقين",
-      "bookAppointments": "حجز المواعيد",
-      "videoConsultations": "استشارات فيديو",
-      "digitalPrescriptions": "روشتات إلكترونية",
-      "healthRecords": "السجلات الصحية",
-      "labResults": "نتائج التحاليل والتقارير",
-      "manageAppointments": "إدارة المواعيد",
-      "patientManagement": "إدارة المرضى",
-      "reportsInsights": "التقارير والإحصائيات",
-      "growPractice": "نمِّ ممارستك الطبية"
-    },
-    "trust": {
-      "dataSecurity": {
-        "title": "بياناتك محمية دائمًا",
-        "description": "مشفّرة أثناء النقل والتخزين"
-      },
-      "accessControl": {
-        "title": "صلاحيات وصول محددة",
-        "description": "الموظفون المخوّلون فقط يمكنهم رؤية السجلات"
-      },
-      "builtForHealthcare": {
-        "title": "مصمم للمرضى والأطباء",
-        "description": "انضم إلى أوريفكس اليوم"
-      }
-    },
+    "trustLine": "بياناتك مشفّرة، والموظفون المخوّلون فقط يمكنهم رؤيتها.",
     "intake": {
       "title": "أكمل ملفك الشخصي",
       "description": "قبل أن تصل إلى لوحتك، نحتاج بعض المعلومات الأساسية والطبية عنك.",

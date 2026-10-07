@@ -1,29 +1,22 @@
 'use client';
 
-import {
-  Calendar,
-  CheckCircle2,
-  Headphones,
-  Lock,
-  ShieldCheck,
-  Stethoscope,
-  Users,
-} from 'lucide-react';
+import { Check, Headphones, Info, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
+import { useId, useRef, useState, type KeyboardEvent } from 'react';
 
-import { Heading } from '@/design-system/typography';
 import { useChoosePatientJourney } from '@/features/journey/hooks/use-choose-patient-journey';
 import { UserMenu } from '@/features/shell/components/user-menu';
+import { useAuth } from '@/shared/auth/auth-context';
 import { useRouter } from '@/shared/i18n/navigation';
+import { useDirection } from '@/shared/i18n/use-direction';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
 import { env } from '@/shared/lib/env';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent } from '@/shared/ui/card';
+import { Illustration, type IllustrationKey } from '@/shared/ui/illustrations/illustration';
 import { Logo } from '@/shared/ui/logo';
 
 type JourneyIntent = 'patient' | 'doctor';
@@ -32,212 +25,218 @@ function readIntent(value: string | null): JourneyIntent | undefined {
   return value === 'patient' || value === 'doctor' ? value : undefined;
 }
 
-// Every bullet names a real, already-implemented feature (browse/book via
-// DoctorProfileController + AppointmentController, video consultations via
-// the Telemedicine module, digital prescriptions via PrescriptionController,
-// health records via the Health Graph, doctor Patients/Reports pages) --
-// nothing aspirational, same honesty rule the landing page's own feature
-// lists already follow.
-const PATIENT_FEATURE_KEYS = [
-  'browseDoctors',
-  'bookAppointments',
-  'videoConsultations',
-  'digitalPrescriptions',
-  'healthRecords',
-  'labResults',
-] as const;
-const DOCTOR_FEATURE_KEYS = [
-  'manageAppointments',
-  'videoConsultations',
-  'digitalPrescriptions',
-  'patientManagement',
-  'reportsInsights',
-  'growPractice',
-] as const;
+function firstNameOf(fullName: string | undefined): string | undefined {
+  return fullName?.trim().split(/\s+/)[0] || undefined;
+}
 
-// Real mechanisms only, same honesty rule `SecurityTrustSection` documents
-// on the landing page -- deliberately excludes "HIPAA Compliant" (a US
-// regulation this Egypt-based platform has no certification for) and any
-// "trusted by N users" claim (no real, publicly-exposed user-count metric
-// exists to back one).
-const TRUST_ITEMS = [
-  { key: 'dataSecurity', icon: ShieldCheck },
-  { key: 'accessControl', icon: Lock },
-  { key: 'builtForHealthcare', icon: Users },
-] as const;
+// The doctor onboarding wizard's own steps (features/doctor/components/onboarding/onboarding-flow.tsx: Personal
+// info, Professional info, Documents, Review & submit), after which an admin reviews the license. No duration is
+// defined anywhere, so the card states the steps rather than a time estimate.
+const DOCTOR_ONBOARDING_STEPS = 4;
+
+// Three benefits a side, each a real, shipped feature: verified doctors (admin verification), video visits
+// (Telemedicine), health records; weekly hours with per-day fees (Scheduling), secure video, and Stripe as the
+// bound payment gateway (PaymentModule). Doctors have no payout feature yet (Earnings: "recorded earnings, not
+// payouts"), so the doctor side says fees are processed through Stripe, not that doctors get paid through it.
+const ROLES: Record<JourneyIntent, { illustration: IllustrationKey; benefits: readonly string[]; selectedBand: string }> = {
+  patient: { illustration: 'role-patient', benefits: ['book', 'video', 'records'], selectedBand: 'bg-warm-1/60' },
+  doctor: { illustration: 'role-doctor', benefits: ['hours', 'video', 'payments'], selectedBand: 'bg-pulse/16' },
+};
+const ORDER: JourneyIntent[] = ['patient', 'doctor'];
 
 /**
- * "Choose Your Journey" (Onboarding Redesign, 2026-07-21 proposal, §1/§2;
- * visually redesigned 2026-08-02 to match a premium two-card reference
- * layout) -- two large illustrated cards, not a form, shown exactly once
- * (the shared `/dashboard` page redirects here only while the account has
- * neither a DoctorProfile nor a PatientProfile row, per §3's gating rule).
- * Owns its own full-page chrome (logo, help link, account menu) -- this
- * screen deliberately renders outside the dashboard `AppShell` (see
- * `app/[locale]/journey/layout.tsx`), since there is nothing to navigate to
- * in a sidebar yet. Pre-selects a card when arriving with
- * `?intent=patient|doctor` (§1a, a future landing page's CTA query param) --
- * highlighted only, never auto-submitted, since intent can change between
- * click and signup.
+ * "Choose Your Journey" -- shown once, after sign-up, while the account has neither a DoctorProfile nor a
+ * PatientProfile (the shared `/dashboard` page is the only thing that redirects here). Owns its own chrome
+ * (logo, help link, account menu) outside the dashboard `AppShell`, since there is nothing to navigate to yet.
  *
- * Choosing "book appointments" creates a bare PatientProfile immediately
- * (useChoosePatientJourney's explicit GET /patients/me call), then routes
- * into the mandatory Personal Info + Medical Information intake
- * (`/patient/intake`). Choosing "practice as a Doctor" routes straight into
- * the existing Doctor Onboarding wizard (`/doctor/onboarding`), which
- * creates the DoctorProfile itself; nothing needs to happen here first.
+ * One radio group of two equal cards and one Continue button that follows the selection, so the choice is
+ * never biased by button weight. Nothing is pre-selected unless the visitor arrived with `?intent=patient|doctor`
+ * (highlighted only, never auto-submitted, since intent can change between click and sign-up).
+ *
+ * Continue keeps the two existing actions exactly: as a patient it creates the bare PatientProfile
+ * (useChoosePatientJourney's explicit GET /patients/me) and goes to the intake (`/patient/intake`); as a doctor it
+ * goes straight to the Doctor Onboarding wizard (`/doctor/onboarding`), which creates the DoctorProfile itself.
  */
 export function JourneyScreen() {
   const t = useTranslations('journey');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const direction = useDirection();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
-  const preselected = readIntent(searchParams.get('intent'));
+  const [selected, setSelected] = useState<JourneyIntent | undefined>(() => readIntent(searchParams.get('intent')));
+  const [focusable, setFocusable] = useState<JourneyIntent>(selected ?? 'patient');
+  const cardRefs = useRef<Record<JourneyIntent, HTMLDivElement | null>>({ patient: null, doctor: null });
   const choosePatientJourney = useChoosePatientJourney();
+  const titleId = useId();
+  const firstName = firstNameOf(user?.fullName);
 
-  async function handleChoosePatient() {
-    await choosePatientJourney.mutateAsync();
-    router.push('/patient/intake');
+  async function handleContinue() {
+    if (selected === 'patient') {
+      await choosePatientJourney.mutateAsync();
+      router.push('/patient/intake');
+    } else if (selected === 'doctor') {
+      router.push('/doctor/onboarding');
+    }
   }
 
-  function handleChooseDoctor() {
-    router.push('/doctor/onboarding');
+  function moveFocus(to: JourneyIntent) {
+    setFocusable(to);
+    cardRefs.current[to]?.focus();
+  }
+
+  // Arrows move between the two cards (in reading direction), Space/Enter selects the focused one.
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>, role: JourneyIntent) {
+    const index = ORDER.indexOf(role);
+    const forward = direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+    const backward = direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+    if (event.key === forward || event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveFocus(ORDER[(index + 1) % ORDER.length]!);
+    } else if (event.key === backward || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveFocus(ORDER[(index + ORDER.length - 1) % ORDER.length]!);
+    } else if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      setSelected(role);
+    }
   }
 
   return (
-    <div className="min-h-dvh bg-surface-subtle">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+    <div className="flex min-h-dvh flex-col bg-surface-subtle">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center gap-2 text-lg font-semibold text-text-primary">
           <Logo size="sm" />
           {tCommon('appName')}
         </div>
         <div className="flex items-center gap-6">
           <a href={`mailto:${env.supportEmail}`} className="hidden items-center gap-2 sm:flex">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary-emphasis">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-subtle text-text-secondary">
               <Icon icon={Headphones} size="sm" />
             </span>
             <span className="flex flex-col text-sm">
               <span className="text-text-secondary">{t('needHelp')}</span>
-              <span className="font-medium text-primary">{t('contactSupport')}</span>
+              <span className="font-medium text-text-primary">{t('contactSupport')}</span>
             </span>
           </a>
           <UserMenu showName />
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 pb-16 pt-4">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <Badge variant="primary" className="px-3 py-1 text-sm">
-            {t('eyebrow')}
+      <main className="mx-auto flex w-full max-w-220 flex-1 flex-col items-center gap-5 px-4 pt-2 sm:justify-center sm:gap-6 sm:px-6 sm:pb-10">
+        <div className="flex flex-col items-center gap-2 text-center sm:gap-3">
+          <Badge variant="neutral" className="px-3 py-1 text-sm">
+            {firstName ? t('eyebrow', { name: firstName }) : t('eyebrowNoName')}
           </Badge>
-          <h1 className="max-w-2xl text-3xl font-bold text-text-primary sm:text-4xl">
+          <h1 id={titleId} className="font-display text-[1.75rem]/9 font-bold text-text-primary sm:text-[2.5rem]/12">
             {t('title')}
           </h1>
-          <p className="max-w-xl text-text-secondary">{t('description')}</p>
+          <p className="max-w-xl text-sm text-text-secondary sm:text-base">{t('description')}</p>
         </div>
 
-        {choosePatientJourney.isError && <Alert variant="danger">{t('choosePatientError')}</Alert>}
+        {choosePatientJourney.isError && (
+          <Alert variant="danger" className="w-full">
+            {t('choosePatientError')}
+          </Alert>
+        )}
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card
-            className={cn(
-              'flex flex-col overflow-hidden rounded-3xl border-border-default shadow-sm',
-              preselected === 'patient' && 'ring-2 ring-primary',
-            )}
-          >
-            <div className="relative flex h-64 items-center justify-center overflow-hidden bg-primary-subtle/40 ">
-              <span className="absolute start-6 top-6 flex size-11 items-center justify-center rounded-2xl bg-surface text-primary shadow-sm">
-                <Icon icon={Calendar} size="md" />
-              </span>
-              <div className="relative h-full w-full">
-                <Image
-                  src="/patient-onboarding.png"
-                  alt=""
-                  fill
-                  sizes="480px"
-                  className="object-contain"
-                  priority
-                />
-              </div>
-            </div>
-            <CardContent className="flex flex-1 flex-col gap-4 p-6 sm:p-8">
-              <div className="flex flex-col gap-1.5">
-                <Heading as="h2" level={3}>{t('patientCardTitle')}</Heading>
-                <p className="text-sm text-text-secondary">{t('patientCardDescription')}</p>
-              </div>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {PATIENT_FEATURE_KEYS.map((key) => (
-                  <span key={key} className="flex items-center gap-2 text-sm text-text-secondary">
-                    <Icon icon={CheckCircle2} size="sm" className="shrink-0 text-primary" />
-                    {t(`features.${key}`)}
-                  </span>
-                ))}
-              </div>
-              <Button
-                className="mt-auto w-full"
-                loading={choosePatientJourney.isPending}
-                onClick={handleChoosePatient}
+        <div role="radiogroup" aria-labelledby={titleId} className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6">
+          {ORDER.map((role) => {
+            const { illustration, benefits, selectedBand } = ROLES[role];
+            const checked = selected === role;
+            return (
+              <div
+                key={role}
+                ref={(element) => {
+                  cardRefs.current[role] = element;
+                }}
+                role="radio"
+                aria-checked={checked}
+                aria-labelledby={`${titleId}-${role}`}
+                aria-describedby={`${titleId}-${role}-description`}
+                tabIndex={focusable === role ? 0 : -1}
+                data-journey-role={role}
+                onClick={() => {
+                  setSelected(role);
+                  setFocusable(role);
+                }}
+                onKeyDown={(event) => handleKeyDown(event, role)}
+                className={cn(
+                  'group relative flex cursor-pointer overflow-hidden rounded-2xl border bg-surface text-start transition-[border-color,box-shadow,translate] duration-(--duration-fast) motion-reduce:transition-none',
+                  'max-sm:items-center max-sm:gap-3 max-sm:p-3 sm:flex-col',
+                  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring',
+                  checked
+                    ? 'border-text-primary ring-1 ring-text-primary'
+                    : 'border-border-default hover:-translate-y-px hover:border-text-primary/30',
+                )}
               >
-                {t('patientCardAction')}
-              </Button>
-            </CardContent>
-          </Card>
+                {/* The radio indicator, top-end: an empty ring, or filled ink with a check once chosen. */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'absolute end-3 top-3 flex size-5 items-center justify-center rounded-full border sm:end-4 sm:top-4 sm:size-6',
+                    checked ? 'border-text-primary bg-text-primary text-text-inverse' : 'border-border-strong bg-surface',
+                  )}
+                >
+                  {checked && <Icon icon={Check} size="xs" className="stroke-3" />}
+                </span>
 
-          <Card
-            className={cn(
-              'flex flex-col overflow-hidden rounded-3xl border-border-default shadow-sm',
-              preselected === 'doctor' && 'ring-2 ring-success',
-            )}
-          >
-            <div className="relative flex h-64 items-center justify-center overflow-hidden bg-success-subtle/40 ">
-              <span className="absolute start-6 top-6 flex size-11 items-center justify-center rounded-2xl bg-surface text-success shadow-sm">
-                <Icon icon={Stethoscope} size="md" />
-              </span>
-              <div className="relative h-full w-full">
-                <Image
-                  src="/doctor-onboarding.png"
-                  alt=""
-                  fill
-                  sizes="480px"
-                  className="object-contain"
-                  priority
-                />
+                <div
+                  className={cn(
+                    'flex shrink-0 items-center justify-center transition-colors duration-(--duration-fast)',
+                    'max-sm:size-14 max-sm:rounded-xl sm:h-24 sm:w-full lg:h-30',
+                    checked ? selectedBand : 'bg-surface-2',
+                  )}
+                >
+                  <Illustration name={illustration} className="size-14 sm:size-24 lg:size-30" />
+                </div>
+
+                <div className="flex min-w-0 flex-1 flex-col gap-1 max-sm:pe-7 sm:gap-3 sm:p-5">
+                  <div className="flex flex-col gap-0.5 sm:gap-1">
+                    <h2 id={`${titleId}-${role}`} className="text-base font-semibold text-text-primary sm:text-lg">
+                      {t(`${role}.title`)}
+                    </h2>
+                    <p id={`${titleId}-${role}-description`} className="text-sm text-text-secondary">
+                      {t(`${role}.description`)}
+                    </p>
+                  </div>
+                  <ul className="hidden flex-col gap-1.5 sm:flex">
+                    {benefits.map((benefit) => (
+                      <li key={benefit} className="flex items-start gap-2 text-sm text-text-primary">
+                        <Icon icon={Check} size="sm" className="mt-0.5 shrink-0 text-text-primary" />
+                        <span className="line-clamp-2">{t(`${role}.benefits.${benefit}`)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="truncate text-xs font-medium text-text-primary sm:hidden">{t(`${role}.summary`)}</p>
+                  {role === 'doctor' && (
+                    <p className="flex items-start gap-1.5 text-xs text-text-tertiary">
+                      <Icon icon={Info} size="xs" className="mt-px shrink-0" />
+                      {t('doctor.verification', { count: DOCTOR_ONBOARDING_STEPS })}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-            <CardContent className="flex flex-1 flex-col gap-4 p-6 sm:p-8">
-              <div className="flex flex-col gap-1.5">
-                <Heading as="h2" level={3}>{t('doctorCardTitle')}</Heading>
-                <p className="text-sm text-text-secondary">{t('doctorCardDescription')}</p>
-              </div>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {DOCTOR_FEATURE_KEYS.map((key) => (
-                  <span key={key} className="flex items-center gap-2 text-sm text-text-secondary">
-                    <Icon icon={CheckCircle2} size="sm" className="shrink-0 text-success" />
-                    {t(`features.${key}`)}
-                  </span>
-                ))}
-              </div>
-              <Button className="mt-auto w-full" variant="secondary" onClick={handleChooseDoctor}>
-                {t('doctorCardAction')}
-              </Button>
-            </CardContent>
-          </Card>
+            );
+          })}
         </div>
 
-        <div className="flex flex-col items-center gap-6 border-t border-border-default pt-8 sm:flex-row sm:justify-center sm:gap-10">
-          {TRUST_ITEMS.map(({ key, icon }) => (
-            <div key={key} className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary-subtle text-text-secondary">
-                <Icon icon={icon} size="md" />
-              </span>
-              <div className="flex flex-col text-start">
-                <span className="text-sm font-medium text-text-primary">
-                  {t(`trust.${key}.title`)}
-                </span>
-                <span className="text-xs text-text-tertiary">{t(`trust.${key}.description`)}</span>
-              </div>
-            </div>
-          ))}
+        {/* Continue: below the cards on desktop, pinned to the bottom of the screen on a phone. */}
+        <div className="flex w-full flex-col items-center gap-3 max-sm:sticky max-sm:bottom-0 max-sm:-mx-4 max-sm:mt-auto max-sm:w-[calc(100%+2rem)] max-sm:border-t max-sm:border-border-default max-sm:bg-surface-subtle max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <Button
+            size="lg"
+            data-journey-continue=""
+            className="w-full sm:w-80"
+            disabled={!selected}
+            loading={choosePatientJourney.isPending}
+            onClick={handleContinue}
+          >
+            {selected ? t(`${selected}.continue`) : t('continue')}
+          </Button>
+          <p className="flex items-center gap-1.5 text-xs text-text-tertiary">
+            <Icon icon={ShieldCheck} size="xs" className="shrink-0" />
+            {t('trustLine')}
+          </p>
         </div>
       </main>
     </div>

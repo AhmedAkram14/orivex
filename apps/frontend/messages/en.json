@@ -2866,44 +2866,39 @@
     }
   },
   "journey": {
-    "eyebrow": "Welcome to ORIVEX",
-    "title": "How would you like to use ORIVEX?",
-    "description": "We personalize your experience based on your role. You can switch roles anytime from your account settings.",
+    "eyebrow": "Welcome, {name}",
+    "eyebrowNoName": "Welcome",
+    "title": "How will you use ORIVEX?",
+    "description": "Pick the experience that fits you. You can apply as a doctor later from your account menu.",
     "needHelp": "Need help?",
     "contactSupport": "Contact support",
-    "patientCardTitle": "I'm a Patient",
-    "patientCardDescription": "Find trusted doctors, book appointments, and manage your health with ease.",
-    "patientCardAction": "Continue as a Patient",
-    "doctorCardTitle": "I'm a Doctor",
-    "doctorCardDescription": "Set up your professional profile and start growing your practice online.",
-    "doctorCardAction": "Apply as a Doctor",
+    "rolesLabel": "Choose how you'll use ORIVEX",
+    "patient": {
+      "title": "I'm a patient",
+      "description": "Find a doctor, book a visit and keep your health in one place.",
+      "benefits": {
+        "book": "Book verified doctors",
+        "video": "Video visits from home",
+        "records": "Your records in one place"
+      },
+      "summary": "Book · Video · Records",
+      "continue": "Continue as a patient"
+    },
+    "doctor": {
+      "title": "I'm a doctor",
+      "description": "Set up your practice and consult with patients online.",
+      "benefits": {
+        "hours": "Set your hours and fees",
+        "video": "Consult over secure video",
+        "payments": "Fees processed securely through Stripe"
+      },
+      "summary": "Hours · Video · Payments",
+      "verification": "Requires license verification: {count, plural, one {# step} other {# steps}}, then a review by our team.",
+      "continue": "Continue as a doctor"
+    },
+    "continue": "Continue",
     "choosePatientError": "Something went wrong setting up your account. Please try again.",
-    "features": {
-      "browseDoctors": "Browse verified doctors",
-      "bookAppointments": "Book appointments",
-      "videoConsultations": "Video consultations",
-      "digitalPrescriptions": "Digital prescriptions",
-      "healthRecords": "Health records",
-      "labResults": "Lab results & reports",
-      "manageAppointments": "Manage appointments",
-      "patientManagement": "Patient management",
-      "reportsInsights": "Reports & insights",
-      "growPractice": "Grow your practice"
-    },
-    "trust": {
-      "dataSecurity": {
-        "title": "Your data stays protected",
-        "description": "Encrypted in transit and at rest"
-      },
-      "accessControl": {
-        "title": "Role-based access",
-        "description": "Only authorized staff can view records"
-      },
-      "builtForHealthcare": {
-        "title": "Built for patients and doctors",
-        "description": "Join ORIVEX today"
-      }
-    },
+    "trustLine": "Your data is encrypted, and only authorized staff can see it.",
     "intake": {
       "title": "Complete your profile",
       "description": "Before you reach your dashboard, we need some basic and medical information about you.",
