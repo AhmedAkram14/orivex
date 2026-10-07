@@ -139,7 +139,7 @@ describe('ResetPasswordUseCase', () => {
 
     await useCase.execute(new ResetPasswordCommand({ token: 'reset-token', password: 'NewStr0ngPassword' }));
 
-    assert.equal(credentialRepository.saved[0].getPasswordHash().toString(), 'hashed:NewStr0ngPassword');
+    assert.equal(credentialRepository.saved[0].getPasswordHash()?.toString(), 'hashed:NewStr0ngPassword');
     assert.equal(authTokenRepository.saved[0].getStatus(), 'used');
     assert.deepEqual(sessionRepository.revokeAllCalledFor, [credential.getId()]);
     assert.equal(securityEventRepository.recorded[0].getEventType(), 'password_reset_completed');

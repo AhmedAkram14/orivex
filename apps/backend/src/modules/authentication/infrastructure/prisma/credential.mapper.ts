@@ -21,7 +21,7 @@ const PRISMA_TO_DOMAIN_STATUS: Record<PrismaCredentialStatus, CredentialStatus> 
 export interface PersistedCredential {
   id: string;
   accountId: string;
-  passwordHash: string;
+  passwordHash: string | null;
   status: PrismaCredentialStatus;
   failedLoginAttempts: number;
   lockedUntil: Date | null;
@@ -36,7 +36,7 @@ export function toDomainCredential(row: PrismaCredentialRow): Credential {
   return Credential.reconstitute({
     id: row.id,
     accountId: row.accountId,
-    passwordHash: PasswordHash.create(row.passwordHash),
+    passwordHash: row.passwordHash === null ? undefined : PasswordHash.create(row.passwordHash),
     status: PRISMA_TO_DOMAIN_STATUS[row.status],
     failedLoginAttempts: row.failedLoginAttempts,
     lockedUntil: row.lockedUntil ?? undefined,
@@ -50,7 +50,7 @@ export function toPersistedCredential(credential: Credential): PersistedCredenti
   return {
     id: credential.getId(),
     accountId: credential.getAccountId(),
-    passwordHash: credential.getPasswordHash().toString(),
+    passwordHash: credential.getPasswordHash()?.toString() ?? null,
     status: DOMAIN_TO_PRISMA_STATUS[credential.getStatus()],
     failedLoginAttempts: credential.getFailedLoginAttempts(),
     lockedUntil: credential.getLockedUntil() ?? null,

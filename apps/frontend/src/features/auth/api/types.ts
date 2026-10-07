@@ -200,3 +200,30 @@ export const AUTH_ERROR_CODES = {
   tokenExpired: 'TOKEN_EXPIRED',
   tokenInvalid: 'TOKEN_INVALID',
 } as const;
+
+/** Social Sign-In providers (docs/14-adrs.md ADR-008). */
+export type OAuthProvider = 'google' | 'facebook';
+
+/** `GET /auth/oauth/providers` -- only the providers this deployment has configured. */
+export interface OAuthProvidersResponse {
+  providers: OAuthProvider[];
+}
+
+/**
+ * The `?error=` values the backend's OAuth callback redirects to
+ * /oauth-callback with (apps/backend oauth.controller.ts OAUTH_ERROR plus
+ * OAuthSignInFailureReason) -- kept identical on both sides.
+ */
+export const OAUTH_ERROR_CODES = {
+  cancelled: 'cancelled',
+  invalidState: 'invalid_state',
+  providerUnavailable: 'provider_unavailable',
+  providerRejected: 'provider_rejected',
+  emailMissing: 'email_missing',
+  accountExists: 'account_exists',
+  emailNotVerified: 'email_not_verified',
+  accountLocked: 'account_locked',
+  failed: 'failed',
+} as const;
+
+export type OAuthErrorCode = (typeof OAUTH_ERROR_CODES)[keyof typeof OAUTH_ERROR_CODES];

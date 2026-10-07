@@ -20,7 +20,9 @@ import {
   AUTH_TOKEN_REPOSITORY,
   CREDENTIAL_REPOSITORY,
   EMAIL_SENDER,
+  EXTERNAL_IDENTITY_REPOSITORY,
   JWT_SIGNER,
+  OAUTH_PROVIDER_REGISTRY,
   PASSWORD_HASHER,
   SESSION_REPOSITORY,
   TOKEN_GENERATOR,
@@ -28,17 +30,22 @@ import {
 import type { AuthTokenRepository } from './domain/repositories/auth-token.repository.js';
 import type { CredentialRepository } from './domain/repositories/credential.repository.js';
 import type { SessionRepository } from './domain/repositories/session.repository.js';
+import type { ExternalIdentityRepository } from './domain/repositories/external-identity.repository.js';
 import type { EmailSenderPort } from './application/ports/email-sender.port.js';
 import type { JwtSignerPort } from './application/ports/jwt-signer.port.js';
+import type { OAuthProviderClientPort, OAuthProviderRegistryPort } from './application/ports/oauth-provider.port.js';
 import type { PasswordHasherPort } from './application/ports/password-hasher.port.js';
 import type { TokenGeneratorPort } from './application/ports/token-generator.port.js';
+import { BeginOAuthSignInUseCase } from './application/use-cases/begin-oauth-sign-in/begin-oauth-sign-in.use-case.js';
 import { ChangePasswordUseCase } from './application/use-cases/change-password/change-password.use-case.js';
+import { CompleteOAuthSignInUseCase } from './application/use-cases/complete-oauth-sign-in/complete-oauth-sign-in.use-case.js';
 import { ForgotPasswordUseCase } from './application/use-cases/forgot-password/forgot-password.use-case.js';
 import { ResendVerificationUseCase } from './application/use-cases/resend-verification/resend-verification.use-case.js';
 import { GetCurrentSessionUseCase } from './application/use-cases/get-current-session/get-current-session.use-case.js';
 import { GetSecuritySummaryUseCase } from './application/use-cases/get-security-summary/get-security-summary.use-case.js';
 import { ListDeviceSessionsUseCase } from './application/use-cases/list-device-sessions/list-device-sessions.use-case.js';
 import { ListLoginHistoryForAccountUseCase } from './application/use-cases/list-login-history-for-account/list-login-history-for-account.use-case.js';
+import { ListOAuthProvidersUseCase } from './application/use-cases/list-oauth-providers/list-oauth-providers.use-case.js';
 import { LoginUseCase } from './application/use-cases/login/login.use-case.js';
 import { LogoutAllSessionsUseCase } from './application/use-cases/logout-all-sessions/logout-all-sessions.use-case.js';
 import { LogoutUseCase } from './application/use-cases/logout/logout.use-case.js';
@@ -53,12 +60,17 @@ import { NodeTokenGenerator } from './infrastructure/crypto/node-token-generator
 import { LoggingEmailSender } from './infrastructure/email/logging-email-sender.js';
 import { SendGridEmailSender } from './infrastructure/email/sendgrid-email-sender.js';
 import { SmtpEmailSender } from './infrastructure/email/smtp-email-sender.js';
+import { FacebookOAuthClient } from './infrastructure/oauth/facebook-oauth-client.js';
+import { GoogleOAuthClient } from './infrastructure/oauth/google-oauth-client.js';
+import { OAuthProviderRegistry } from './infrastructure/oauth/oauth-provider-registry.js';
 import { PrismaAuthTokenRepository } from './infrastructure/prisma/prisma-auth-token.repository.js';
 import { PrismaCredentialRepository } from './infrastructure/prisma/prisma-credential.repository.js';
+import { PrismaExternalIdentityRepository } from './infrastructure/prisma/prisma-external-identity.repository.js';
 import { PrismaSessionRepository } from './infrastructure/prisma/prisma-session.repository.js';
 import { AuthenticationController } from './presentation/controllers/authentication.controller.js';
 import { DeviceSessionsController } from './presentation/controllers/device-sessions.controller.js';
 import { LoginHistoryController } from './presentation/controllers/login-history.controller.js';
+import { OAuthController } from './presentation/controllers/oauth.controller.js';
 
 // Imports IdentityModule (RegisterAccountUseCase, GetAccountByIdUseCase,
 // GetAccountByEmailUseCase) and TrustModule (RecordSecurityEventUseCase) to
@@ -75,11 +87,48 @@ import { LoginHistoryController } from './presentation/controllers/login-history
 // policy evaluation) will eventually build on top of.
 @Module({
   imports: [IdentityModule, TrustModule, AuthenticationGuardsModule],
-  controllers: [AuthenticationController, DeviceSessionsController, LoginHistoryController],
+  controllers: [AuthenticationController, DeviceSessionsController, LoginHistoryController, OAuthController],
   providers: [
     { provide: CREDENTIAL_REPOSITORY, useClass: PrismaCredentialRepository },
     { provide: SESSION_REPOSITORY, useClass: PrismaSessionRepository },
     { provide: AUTH_TOKEN_REPOSITORY, useClass: PrismaAuthTokenRepository },
+    { provide: EXTERNAL_IDENTITY_REPOSITORY, useClass: PrismaExternalIdentityRepository },
+    // Social Sign-In (docs/14-adrs.md ADR-008): each provider is built only
+    // when its own id+secret AND both public origins are configured -- an
+    // unconfigured provider is simply absent (GET /auth/oauth/providers
+    // won't list it, /start redirects back with provider_unavailable).
+    {
+      provide: OAUTH_PROVIDER_REGISTRY,
+      useFactory: (configService: ConfigService<EnvConfig, true>): OAuthProviderRegistryPort => {
+        const backendUrl = configService.get('BACKEND_PUBLIC_URL', { infer: true });
+        const frontendUrl = configService.get('FRONTEND_URL', { infer: true });
+        const clients: OAuthProviderClientPort[] = [];
+        if (backendUrl && frontendUrl) {
+          const redirectUri = (provider: string) => new URL(`/auth/oauth/${provider}/callback`, backendUrl).toString();
+          const googleClientId = configService.get('GOOGLE_OAUTH_CLIENT_ID', { infer: true });
+          const googleClientSecret = configService.get('GOOGLE_OAUTH_CLIENT_SECRET', { infer: true });
+          if (googleClientId && googleClientSecret) {
+            clients.push(
+              new GoogleOAuthClient({ clientId: googleClientId, clientSecret: googleClientSecret, redirectUri: redirectUri('google') }),
+            );
+          }
+          const facebookAppId = configService.get('FACEBOOK_APP_ID', { infer: true });
+          const facebookAppSecret = configService.get('FACEBOOK_APP_SECRET', { infer: true });
+          if (facebookAppId && facebookAppSecret) {
+            clients.push(
+              new FacebookOAuthClient({
+                appId: facebookAppId,
+                appSecret: facebookAppSecret,
+                redirectUri: redirectUri('facebook'),
+                graphApiVersion: configService.get('FACEBOOK_GRAPH_API_VERSION', { infer: true }),
+              }),
+            );
+          }
+        }
+        return new OAuthProviderRegistry(clients);
+      },
+      inject: [ConfigService],
+    },
     { provide: PASSWORD_HASHER, useClass: Argon2PasswordHasher },
     { provide: TOKEN_GENERATOR, useClass: NodeTokenGenerator },
     {
@@ -167,6 +216,68 @@ import { LoginHistoryController } from './presentation/controllers/login-history
         PASSWORD_HASHER,
         TOKEN_GENERATOR,
         JWT_SIGNER,
+        RecordSecurityEventUseCase,
+        DOMAIN_EVENT_DISPATCHER,
+        ConfigService,
+      ],
+    },
+    {
+      provide: BeginOAuthSignInUseCase,
+      useFactory: (providerRegistry: OAuthProviderRegistryPort, tokenGenerator: TokenGeneratorPort) =>
+        new BeginOAuthSignInUseCase(providerRegistry, tokenGenerator),
+      inject: [OAUTH_PROVIDER_REGISTRY, TOKEN_GENERATOR],
+    },
+    {
+      provide: ListOAuthProvidersUseCase,
+      useFactory: (providerRegistry: OAuthProviderRegistryPort) => new ListOAuthProvidersUseCase(providerRegistry),
+      inject: [OAUTH_PROVIDER_REGISTRY],
+    },
+    {
+      provide: CompleteOAuthSignInUseCase,
+      useFactory: (
+        providerRegistry: OAuthProviderRegistryPort,
+        externalIdentityRepository: ExternalIdentityRepository,
+        credentialRepository: CredentialRepository,
+        sessionRepository: SessionRepository,
+        authTokenRepository: AuthTokenRepository,
+        getAccountByIdUseCase: GetAccountByIdUseCase,
+        getAccountByEmailUseCase: GetAccountByEmailUseCase,
+        registerAccountUseCase: RegisterAccountUseCase,
+        tokenGenerator: TokenGeneratorPort,
+        jwtSigner: JwtSignerPort,
+        emailSender: EmailSenderPort,
+        recordSecurityEventUseCase: RecordSecurityEventUseCase,
+        eventDispatcher: DomainEventDispatcher,
+        configService: ConfigService<EnvConfig, true>,
+      ) =>
+        new CompleteOAuthSignInUseCase(
+          providerRegistry,
+          externalIdentityRepository,
+          credentialRepository,
+          sessionRepository,
+          authTokenRepository,
+          getAccountByIdUseCase,
+          getAccountByEmailUseCase,
+          registerAccountUseCase,
+          tokenGenerator,
+          jwtSigner,
+          emailSender,
+          recordSecurityEventUseCase,
+          eventDispatcher,
+          configService.get('SKIP_EMAIL_VERIFICATION', { infer: true }),
+        ),
+      inject: [
+        OAUTH_PROVIDER_REGISTRY,
+        EXTERNAL_IDENTITY_REPOSITORY,
+        CREDENTIAL_REPOSITORY,
+        SESSION_REPOSITORY,
+        AUTH_TOKEN_REPOSITORY,
+        GetAccountByIdUseCase,
+        GetAccountByEmailUseCase,
+        RegisterAccountUseCase,
+        TOKEN_GENERATOR,
+        JWT_SIGNER,
+        EMAIL_SENDER,
         RecordSecurityEventUseCase,
         DOMAIN_EVENT_DISPATCHER,
         ConfigService,

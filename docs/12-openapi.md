@@ -941,6 +941,54 @@ properties:
 data:
 oneOf: - { type: object, properties: { user: { $ref: '#/components/schemas/AuthenticatedUser' } } } - { type: 'null' }
 
+Note (Social Sign-In, docs/14-adrs.md ADR-008): /start and /callback below
+are browser-navigation endpoints, not JSON APIs — both always answer 302,
+never an envelope, and are reached by a full-page navigation (never fetch).
+On success the session is handed over exactly like /auth/login does it (the
+httpOnly refresh-token cookie); the frontend then obtains its access token
+through /auth/refresh. No token ever appears in a URL.
+
+/auth/oauth/providers:
+get:
+tags: [Authentication]
+operationId: listOAuthProviders
+summary: Social Sign-In providers configured in this deployment
+description: Public. A provider is listed only when its client id + secret, BACKEND_PUBLIC_URL and FRONTEND_URL are all configured; an empty list means Social Sign-In is off.
+responses:
+'200':
+description: Configured providers.
+content:
+application/json:
+schema:
+type: object
+properties:
+data: { type: object, properties: { providers: { type: array, items: { type: string, enum: [google, facebook] } } } }
+meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+/auth/oauth/{provider}/start:
+get:
+tags: [Authentication]
+operationId: startOAuthSignIn
+summary: Begin Google/Facebook sign-in (browser navigation)
+description: Rate-limited to 10 requests/minute. Sets a short-lived (10 min) httpOnly, SameSite=Lax attempt cookie scoped to /auth/oauth (state + PKCE verifier + returnTo + locale) and redirects to the provider. An unknown/unconfigured provider redirects to the frontend's /{locale}/oauth-callback?error=provider_unavailable instead.
+parameters: - { name: provider, in: path, required: true, schema: { type: string, enum: [google, facebook] } } - { name: returnTo, in: query, required: false, schema: { type: string }, description: 'Same-site relative path to land on after sign-in; anything else is dropped (open-redirect guard).' } - { name: locale, in: query, required: false, schema: { type: string, enum: [en, ar], default: en } }
+responses:
+'302': { description: 'To the provider consent screen, or to /{locale}/oauth-callback?error=provider_unavailable.' }
+
+/auth/oauth/{provider}/callback:
+get:
+tags: [Authentication]
+operationId: completeOAuthSignIn
+summary: Provider redirect target — finish Google/Facebook sign-in (browser navigation)
+description: Rate-limited to 10 requests/minute. The provider redirects here; the attempt cookie must match (state + provider) or the attempt is refused (invalid_state). Matches an existing linked identity by the provider's subject id; otherwise links to an existing account with the same email only when the provider asserts the email is verified (Google — never Facebook); otherwise creates a Patient account. Same lockout and email-verification gates as /auth/login. Records a login_succeeded security event with metadata { method }.
+parameters: - { name: provider, in: path, required: true, schema: { type: string, enum: [google, facebook] } } - { name: code, in: query, required: false, schema: { type: string } } - { name: state, in: query, required: false, schema: { type: string } } - { name: error, in: query, required: false, schema: { type: string }, description: 'Set by the provider when the person cancels.' }
+responses:
+'302':
+description: >-
+Signed in: refresh-token cookie set, redirect to /{locale}/oauth-callback[?returnTo=...].
+New account whose email the provider doesn't vouch for (Facebook): verification email sent, redirect to /{locale}/check-email?email=...&reason=register.
+Refused: redirect to /{locale}/oauth-callback?error=<code>, code one of cancelled, invalid_state, provider_unavailable, provider_rejected, email_missing, account_exists, email_not_verified, account_locked, failed.
+
 # ============================================================
 
 # DOCTORS / DISCOVERY

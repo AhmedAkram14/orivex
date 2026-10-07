@@ -15,10 +15,18 @@ export interface RegisterCredentialProps {
   passwordHash: PasswordHash;
 }
 
+// Social Sign-In (docs/14-adrs.md ADR-008): a Credential created through
+// Google/Facebook rather than /auth/register -- no password yet. The email
+// counts as verified only when the provider itself asserts it is.
+export interface RegisterExternalCredentialProps {
+  accountId: string;
+  emailVerified: boolean;
+}
+
 export interface ReconstituteCredentialProps {
   id: string;
   accountId: string;
-  passwordHash: PasswordHash;
+  passwordHash?: PasswordHash;
   status: CredentialStatus;
   failedLoginAttempts: number;
   lockedUntil?: Date;
@@ -37,7 +45,7 @@ export class Credential {
   private constructor(
     private readonly id: string,
     private readonly accountId: string,
-    private passwordHash: PasswordHash,
+    private passwordHash: PasswordHash | undefined,
     private status: CredentialStatus,
     private failedLoginAttempts: number,
     private lockedUntil: Date | undefined,
@@ -56,6 +64,24 @@ export class Credential {
       0,
       undefined,
       undefined,
+      now,
+      now,
+    );
+
+    credential.record(new CredentialCreatedEvent(credential.accountId));
+    return credential;
+  }
+
+  static registerExternal(props: RegisterExternalCredentialProps): Credential {
+    const now = new Date();
+    const credential = new Credential(
+      randomUUID(),
+      props.accountId,
+      undefined,
+      CredentialStatus.Active,
+      0,
+      undefined,
+      props.emailVerified ? now : undefined,
       now,
       now,
     );
@@ -89,8 +115,12 @@ export class Credential {
     return this.emailVerifiedAt !== undefined;
   }
 
+  hasPassword(): boolean {
+    return this.passwordHash !== undefined;
+  }
+
   matchesPasswordHash(hash: PasswordHash): boolean {
-    return this.passwordHash.toString() === hash.toString();
+    return this.passwordHash !== undefined && this.passwordHash.toString() === hash.toString();
   }
 
   // Increments the failure counter and locks the credential once the
@@ -122,6 +152,24 @@ export class Credential {
     this.record(new PasswordChangedEvent(this.accountId));
   }
 
+  // Social Sign-In linking (docs/14-adrs.md ADR-008): a provider has just
+  // proven ownership of this account's email. If the email was never
+  // verified here, whoever set the existing password never proved they own
+  // the address -- it could be someone who pre-registered a victim's email
+  // ahead of them -- so that password is discarded rather than inherited
+  // (the owner can set a new one through forgot-password). Returns whether
+  // it was discarded, so the caller also revokes any sessions it opened.
+  confirmEmailOwnershipThroughProvider(): boolean {
+    if (this.emailVerifiedAt !== undefined) {
+      return false;
+    }
+    const discardedPassword = this.passwordHash !== undefined;
+    this.passwordHash = undefined;
+    this.emailVerifiedAt = new Date();
+    this.updatedAt = new Date();
+    return discardedPassword;
+  }
+
   verifyEmail(): void {
     if (this.emailVerifiedAt !== undefined) {
       return;
@@ -138,7 +186,7 @@ export class Credential {
     return this.accountId;
   }
 
-  getPasswordHash(): PasswordHash {
+  getPasswordHash(): PasswordHash | undefined {
     return this.passwordHash;
   }
 

@@ -143,6 +143,27 @@ export const envSchema = z.object({
   // only production path.
   SMTP_HOST: z.string().min(1).optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  // Social Sign-In (docs/14-adrs.md ADR-008). This backend's own public
+  // origin (e.g. https://orivex-backend.onrender.com) -- the OAuth
+  // redirect URIs registered with Google/Facebook are
+  // `${BACKEND_PUBLIC_URL}/auth/oauth/<provider>/callback` and must match
+  // exactly, so it isn't inferred from request headers. Social Sign-In
+  // needs this AND FRONTEND_URL (where the callback sends the browser
+  // back); with either unset no provider is offered at all.
+  BACKEND_PUBLIC_URL: z.string().url().optional(),
+  // Each provider is optional and independent, same not-configured idiom
+  // as every other provider in this schema: a provider is offered only
+  // when both its id and secret are set (GET /auth/oauth/providers).
+  GOOGLE_OAUTH_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1).optional(),
+  FACEBOOK_APP_ID: z.string().min(1).optional(),
+  FACEBOOK_APP_SECRET: z.string().min(1).optional(),
+  // Meta retires Graph API versions about two years after release --
+  // env-overridable so a version bump never needs a code change.
+  FACEBOOK_GRAPH_API_VERSION: z
+    .string()
+    .regex(/^v\d+\.\d+$/)
+    .default('v25.0'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

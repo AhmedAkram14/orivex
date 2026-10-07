@@ -78,7 +78,11 @@ model Credential {
   id                  String           @id @default(uuid())
   accountId           String           @unique
   account             Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  passwordHash        String
+  // Nullable since Social Sign-In (docs/14-adrs.md ADR-008): an account
+  // created through Google/Facebook has no password until it sets one via
+  // forgot-password/reset-password. LoginUseCase treats a null hash exactly
+  // like a wrong password.
+  passwordHash        String?
   status              CredentialStatus @default(ACTIVE)
   failedLoginAttempts Int              @default(0)
   lockedUntil         DateTime?
@@ -87,6 +91,27 @@ model Credential {
   updatedAt           DateTime         @updatedAt
   sessions            Session[]
   tokens              AuthToken[]
+  externalIdentities  ExternalIdentity[]
+}
+
+// Social Sign-In (docs/14-adrs.md ADR-008): one row per (provider, provider
+// user id) linked to a Credential. The provider's stable subject id -- never
+// the email -- is the lookup key, so a later email change on the provider
+// side can't re-point a login at a different account. email is a snapshot
+// taken at link time, for display/audit only.
+model ExternalIdentity {
+  id              String     @id @default(uuid())
+  credentialId    String
+  credential      Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  provider        String
+  providerSubject String
+  email           String?
+  createdAt       DateTime   @default(now())
+  lastUsedAt      DateTime   @default(now())
+
+  @@unique([provider, providerSubject])
+  @@unique([credentialId, provider])
+  @@index([credentialId])
 }
 
 // One row = one logical login session AND its current refresh-token

@@ -1,5 +1,6 @@
 import { apiFetch } from '@/shared/lib/api/client';
-import { AUTH_PATHS } from '@/features/auth/api/paths';
+import { AUTH_PATHS, oauthStartPath } from '@/features/auth/api/paths';
+import { env } from '@/shared/lib/env';
 import { withCrossTabRefreshLock } from '@/shared/auth/cross-tab-refresh-lock';
 import type {
   ForgotPasswordRequest,
@@ -22,6 +23,8 @@ import type {
   LoginHistoryPage,
   LoginHistoryQuery,
   SecuritySummary,
+  OAuthProvider,
+  OAuthProvidersResponse,
 } from '@/features/auth/api/types';
 
 // The refresh-token endpoint rotates the token on every real use (Sprint
@@ -118,4 +121,13 @@ export const authApi = {
     apiFetch<LoginHistoryPage>({ path: buildLoginHistoryQuery(params) }),
 
   getSecuritySummary: () => apiFetch<SecuritySummary>({ path: AUTH_PATHS.securitySummary }),
+
+  getOAuthProviders: () => apiFetch<OAuthProvidersResponse>({ path: AUTH_PATHS.oauthProviders }),
+
+  /** Absolute URL a Social Sign-In button navigates the whole page to (not fetched). */
+  oauthStartUrl: (provider: OAuthProvider, options: { locale: string; returnTo?: string | null }) => {
+    const query = new URLSearchParams({ locale: options.locale });
+    if (options.returnTo) query.set('returnTo', options.returnTo);
+    return `${env.apiBaseUrl}${oauthStartPath(provider)}?${query.toString()}`;
+  },
 };

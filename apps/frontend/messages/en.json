@@ -511,6 +511,31 @@
     "unauthorized": {
       "title": "Sign in required",
       "description": "You need to sign in to access this page.",
+    "social": {
+      "continueWith": {
+        "google": "Continue with Google",
+        "facebook": "Continue with Facebook"
+      },
+      "divider": "or use your email"
+    },
+    "oauthCallback": {
+      "title": "Signing you in",
+      "signingIn": "Signing you in…",
+      "errorTitle": "We couldn't sign you in",
+      "backToLogin": "Back to sign in",
+      "errors": {
+        "cancelled": "Sign-in was cancelled. You can try again or use your email and password.",
+        "invalid_state": "This sign-in attempt expired or was started in another browser. Please try again.",
+        "provider_unavailable": "This sign-in option is not available right now. Please use your email and password.",
+        "provider_rejected": "We couldn't confirm your identity with the provider. Please try again.",
+        "email_missing": "Your account didn't share an email address with us, which we need to sign you in. Please sign up with your email instead.",
+        "account_exists": "An account with this email already exists. Sign in with your email and password instead.",
+        "email_not_verified": "Please verify your email address first. Check your inbox for the verification link.",
+        "account_locked": "Your account is locked.",
+        "failed": "Something went wrong while signing you in. Please try again.",
+        "session_failed": "We couldn't start your session. Make sure cookies are allowed for this site, then try again."
+      }
+    },
       "signIn": "Sign in",
       "trust": {
         "secureTitle": "Secure & Private",

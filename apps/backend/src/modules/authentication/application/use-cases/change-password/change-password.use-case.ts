@@ -33,10 +33,12 @@ export class ChangePasswordUseCase {
       throw new InvalidCredentialsError();
     }
 
-    const currentMatches = await this.passwordHasher.verify(
-      command.currentPassword,
-      credential.getPasswordHash().toString(),
-    );
+    // A Social Sign-In-only credential (docs/14-adrs.md ADR-008) has no
+    // current password to prove -- it sets its first one through
+    // forgot-password/reset-password instead, which proves email ownership.
+    const storedHash = credential.getPasswordHash();
+    const currentMatches =
+      storedHash !== undefined && (await this.passwordHasher.verify(command.currentPassword, storedHash.toString()));
     if (!currentMatches) {
       throw new InvalidCredentialsError();
     }

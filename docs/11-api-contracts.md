@@ -112,6 +112,7 @@ Contract consistency principle: wherever a Realtime message represents the same 
 11. Security
 
 JWT: short-lived access tokens (issued by AuthenticationModule, Sprint 15 — first-party, no Keycloak; docs/14-adrs.md ADR-005), carrying role and account ID claims only — never embedding PHI or business data in the token itself.
+Social Sign-In (docs/14-adrs.md ADR-008): Google/Facebook sign-in ends in the same first-party session. The browser-navigation endpoints GET /auth/oauth/:provider/start and /callback answer 302 only (never a JSON envelope); the callback sets the same httpOnly refresh-token cookie as /auth/login, and the frontend obtains its access token through /auth/refresh -- no token is ever placed in a redirect URL. GET /auth/oauth/providers (public) lists the providers this deployment has configured.
 Refresh Tokens: longer-lived, rotated on use, revocable server-side (supports the Phase 4 requirement that a compromised session can be forcibly terminated).
 Scopes: fine-grained OAuth-style scopes for future third-party API access (Phase 4's Future Integrations) — e.g., clinical:read, appointments:write — even though V1's own first-party clients use full role-based access, designing the scope model now avoids a breaking change when third-party API access (Phase 1.2's revenue stream) eventually launches.
 Permissions: enforced server-side per Phase 9's AuthModule.can() contract — the API layer never trusts a client's claim about what it's allowed to do.

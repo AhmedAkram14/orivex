@@ -131,7 +131,7 @@ describe('ChangePasswordUseCase', () => {
       }),
     );
 
-    assert.equal(credentialRepository.saved[0].getPasswordHash().toString(), 'hashed:BrandNewStr0ng');
+    assert.equal(credentialRepository.saved[0].getPasswordHash()?.toString(), 'hashed:BrandNewStr0ng');
     assert.equal(sessionRepository.saved.length, 1);
     assert.equal(sessionRepository.saved[0].getId(), otherSession.getId());
     assert.ok(sessionRepository.saved[0].getRevokedAt());

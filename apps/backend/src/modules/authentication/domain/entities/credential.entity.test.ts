@@ -78,7 +78,7 @@ describe('Credential', () => {
 
     credential.changePassword(newHash);
 
-    assert.equal(credential.getPasswordHash().toString(), 'new-hashed-value');
+    assert.equal(credential.getPasswordHash()?.toString(), 'new-hashed-value');
     const events = credential.releaseDomainEvents();
     assert.equal(events.length, 1);
     assert.equal(events[0].eventName, 'authentication.password.changed');

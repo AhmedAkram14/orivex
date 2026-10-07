@@ -5,3 +5,5 @@ export const PASSWORD_HASHER = Symbol('PasswordHasher');
 export const TOKEN_GENERATOR = Symbol('TokenGenerator');
 export const JWT_SIGNER = Symbol('JwtSigner');
 export const EMAIL_SENDER = Symbol('EmailSender');
+export const EXTERNAL_IDENTITY_REPOSITORY = Symbol('ExternalIdentityRepository');
+export const OAUTH_PROVIDER_REGISTRY = Symbol('OAuthProviderRegistry');

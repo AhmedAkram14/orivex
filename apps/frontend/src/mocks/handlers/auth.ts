@@ -205,6 +205,11 @@ export const authHandlers = [
     });
   }),
 
+  // Social Sign-In is a real browser redirect through Google/Facebook that
+  // no mock can stand in for -- so mock mode offers no providers, and the
+  // sign-in buttons stay hidden rather than leading to a dead end.
+  http.get(`${base()}${AUTH_PATHS.oauthProviders}`, () => HttpResponse.json({ data: { providers: [] } })),
+
   http.get(`${base()}${AUTH_PATHS.securitySummary}`, ({ request }) => {
     const token = bearerToken(request);
     if (!isValidAccessToken(token)) {

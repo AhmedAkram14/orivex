@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { RegisterForm } from '@/features/auth/components/register-form';
 import { AuthCard } from '@/features/auth/components/auth-card';
+import { SocialSignInButtons } from '@/features/auth/components/social-sign-in-buttons';
 import { Link } from '@/shared/i18n/navigation';
 import { buildPageMetadata } from '@/shared/lib/seo';
 import type { AppLocale } from '@/shared/i18n/routing';
@@ -32,7 +33,10 @@ export default async function RegisterPage() {
         </>
       }
     >
-      <RegisterForm />
+      <div className="flex flex-col gap-4">
+        <SocialSignInButtons />
+        <RegisterForm />
+      </div>
     </AuthCard>
   );
 }
