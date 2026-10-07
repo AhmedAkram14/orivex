@@ -111,22 +111,19 @@ export class OAuthController {
     @Res() response: Response,
   ): Promise<void> {
     const attempt = readOAuthAttemptCookie(request);
-    // Single use: cleared whatever the outcome, so a callback URL can never
-    // be replayed against the same attempt.
-    clearOAuthAttemptCookie(this.configService, response);
     const locale = attempt?.locale ?? 'en';
 
     // Google/Facebook send `error` (e.g. access_denied) when the person
     // backs out of the consent screen -- a normal outcome, not a failure.
     if (providerError) {
-      this.redirectToFrontend(response, locale, '/oauth-callback', { error: OAUTH_ERROR.cancelled });
+      this.failAttempt(response, locale, OAUTH_ERROR.cancelled);
       return;
     }
 
     // The CSRF check: the callback must belong to an attempt this same
     // browser started, for this same provider.
     if (!attempt || !code || !state || attempt.state !== state || attempt.provider !== parseOAuthProvider(providerParam)) {
-      this.redirectToFrontend(response, locale, '/oauth-callback', { error: OAUTH_ERROR.invalidState });
+      this.failAttempt(response, locale, OAUTH_ERROR.invalidState);
       return;
     }
 
@@ -143,15 +140,32 @@ export class OAuthController {
       );
 
       if (result.status === 'verification_required') {
+        clearOAuthAttemptCookie(this.configService, response);
         this.redirectToFrontend(response, locale, '/check-email', { email: result.email, reason: 'register' });
         return;
       }
 
+      // Exactly ONE Set-Cookie on success -- the refresh cookie -- and the
+      // attempt cookie deliberately left to expire on its own (10 min).
+      // This response reaches the browser through the frontend's /auth/*
+      // proxy, and a second Set-Cookie (the attempt-cookie clear) cost us
+      // the refresh cookie in production: the browser never received it
+      // and the first /auth/refresh found no cookie at all. Leaving the
+      // attempt cookie is harmless -- its state/verifier are useless
+      // without a fresh provider code, which is single-use, and the next
+      // /start overwrites it.
       setRefreshCookie(this.configService, response, result.refreshToken, result.refreshTokenExpiresAt);
       this.redirectToFrontend(response, locale, '/oauth-callback', attempt.returnTo ? { returnTo: attempt.returnTo } : {});
     } catch (error) {
-      this.redirectToFrontend(response, locale, '/oauth-callback', { error: this.toErrorCode(error) });
+      this.failAttempt(response, locale, this.toErrorCode(error));
     }
+  }
+
+  // Every non-success outcome: drop the attempt cookie (the only cookie on
+  // these responses) and send the browser back with the reason.
+  private failAttempt(response: Response, locale: OAuthLocale, errorCode: string): void {
+    clearOAuthAttemptCookie(this.configService, response);
+    this.redirectToFrontend(response, locale, '/oauth-callback', { error: errorCode });
   }
 
   private toErrorCode(error: unknown): string {
