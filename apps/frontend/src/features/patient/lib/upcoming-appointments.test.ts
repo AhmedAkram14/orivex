@@ -8,9 +8,28 @@ import {
   selectUpcomingAppointments,
 } from '@/features/patient/lib/upcoming-appointments';
 
-// A fixed "now" well clear of midnight so same-day logic is unambiguous.
+// A Cairo wall-clock time as the real instant, so the test means the same thing in any machine time zone (CI
+// runs in UTC, where 23:30 "local" yesterday is already 02:30 today in Cairo).
+function cairoTime(year: number, monthIndex: number, day: number, hour = 0, minute = 0): Date {
+  const guess = Date.UTC(year, monthIndex, day, hour, minute);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    hourCycle: 'h23',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  }).formatToParts(new Date(guess));
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)!.value);
+  const shown = Date.UTC(part('year'), part('month') - 1, part('day'), part('hour'), part('minute'));
+  return new Date(guess - (shown - guess));
+}
+
+// A fixed "now" well clear of midnight so same-day logic is unambiguous. Like `getCairoNow()`, its local
+// fields are the Cairo wall clock (Sept 24, 12:00).
 const NOW = new Date(2026, 8, 24, 12, 0, 0);
-const at = (dayOffset: number, hour = 12, minute = 0) => new Date(2026, 8, 24 + dayOffset, hour, minute).toISOString();
+const at = (dayOffset: number, hour = 12, minute = 0) => cairoTime(2026, 8, 24 + dayOffset, hour, minute).toISOString();
 
 function appt(id: string, status: AppointmentStatus, scheduledAt: string): Appointment {
   return {

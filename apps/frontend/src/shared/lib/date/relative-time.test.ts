@@ -17,10 +17,13 @@ describe('formatRelativeTime', () => {
     expect(formatRelativeTime(date, 'en', 'Active now')).toBe('3 days ago');
   });
 
-  it('formats minutes ago in Arabic, using Eastern Arabic numerals', () => {
+  it("formats minutes ago in Arabic, with the runtime's own Arabic digits", () => {
     const date = new Date(Date.now() - 5 * 60_000);
     const result = formatRelativeTime(date, 'ar', 'الآن');
-    expect(result).toContain('٥');
+    // Which digits `ar` uses ("٥" or "5") comes from the runtime's ICU data, not from this function -- the
+    // same Node prints "٥" on one machine and "5" on another -- so compare with that runtime's own `ar` five.
+    expect(result).toContain(new Intl.NumberFormat('ar').format(5));
+    expect(result).toContain('دقائق');
   });
 
   it('formats a future date with future phrasing', () => {

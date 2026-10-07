@@ -103,10 +103,19 @@ describe('DoctorSchedulePage', () => {
   });
 
   // One real appointment inside the visible week (today at noon), served by
-  // the same endpoint the page really calls.
+  // the same endpoint the page really calls. "Noon" is Cairo noon -- the
+  // calendar shows Cairo time, so a machine-local noon would read 3:00 PM on
+  // a UTC machine (CI).
   function mockOneAppointment(status: string, id: string) {
-    const noon = new Date();
-    noon.setHours(12, 0, 0, 0);
+    const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' })
+      .format(new Date())
+      .split('-')
+      .map(Number);
+    const guess = Date.UTC(year!, month! - 1, day!, 12);
+    const cairoHour = Number(
+      new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', hourCycle: 'h23' }).format(new Date(guess)),
+    );
+    const noon = new Date(guess - (cairoHour - 12) * 60 * 60_000);
     server.use(
       http.get(`${env.apiBaseUrl}/appointments/doctor/schedule`, () =>
         HttpResponse.json({
