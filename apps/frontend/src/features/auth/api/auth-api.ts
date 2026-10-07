@@ -1,6 +1,5 @@
 import { apiFetch } from '@/shared/lib/api/client';
 import { AUTH_PATHS, oauthStartPath } from '@/features/auth/api/paths';
-import { env } from '@/shared/lib/env';
 import { withCrossTabRefreshLock } from '@/shared/auth/cross-tab-refresh-lock';
 import type {
   ForgotPasswordRequest,
@@ -124,10 +123,16 @@ export const authApi = {
 
   getOAuthProviders: () => apiFetch<OAuthProvidersResponse>({ path: AUTH_PATHS.oauthProviders }),
 
-  /** Absolute URL a Social Sign-In button navigates the whole page to (not fetched). */
+  /**
+   * Same-origin URL a Social Sign-In button navigates the whole page to (not
+   * fetched). Deliberately relative, never `env.apiBaseUrl`: the walk must go
+   * through this app's own /auth/* proxy (next.config.ts) so the refresh
+   * cookie the callback sets is first-party here, like /auth/login's -- a
+   * direct hop to the backend would leave it on the backend's domain.
+   */
   oauthStartUrl: (provider: OAuthProvider, options: { locale: string; returnTo?: string | null }) => {
     const query = new URLSearchParams({ locale: options.locale });
     if (options.returnTo) query.set('returnTo', options.returnTo);
-    return `${env.apiBaseUrl}${oauthStartPath(provider)}?${query.toString()}`;
+    return `${oauthStartPath(provider)}?${query.toString()}`;
   },
 };

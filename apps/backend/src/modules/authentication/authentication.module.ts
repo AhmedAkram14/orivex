@@ -94,17 +94,20 @@ import { OAuthController } from './presentation/controllers/oauth.controller.js'
     { provide: AUTH_TOKEN_REPOSITORY, useClass: PrismaAuthTokenRepository },
     { provide: EXTERNAL_IDENTITY_REPOSITORY, useClass: PrismaExternalIdentityRepository },
     // Social Sign-In (docs/14-adrs.md ADR-008): each provider is built only
-    // when its own id+secret AND both public origins are configured -- an
+    // when its own id+secret AND FRONTEND_URL are configured -- an
     // unconfigured provider is simply absent (GET /auth/oauth/providers
     // won't list it, /start redirects back with provider_unavailable).
+    // The redirect URI is on the frontend's origin, not this backend's:
+    // the browser walks the whole flow through the frontend's /auth/*
+    // proxy (apps/frontend next.config.ts), so the refresh cookie the
+    // callback sets is first-party there -- exactly like /auth/login's.
     {
       provide: OAUTH_PROVIDER_REGISTRY,
       useFactory: (configService: ConfigService<EnvConfig, true>): OAuthProviderRegistryPort => {
-        const backendUrl = configService.get('BACKEND_PUBLIC_URL', { infer: true });
         const frontendUrl = configService.get('FRONTEND_URL', { infer: true });
         const clients: OAuthProviderClientPort[] = [];
-        if (backendUrl && frontendUrl) {
-          const redirectUri = (provider: string) => new URL(`/auth/oauth/${provider}/callback`, backendUrl).toString();
+        if (frontendUrl) {
+          const redirectUri = (provider: string) => new URL(`/auth/oauth/${provider}/callback`, frontendUrl).toString();
           const googleClientId = configService.get('GOOGLE_OAUTH_CLIENT_ID', { infer: true });
           const googleClientSecret = configService.get('GOOGLE_OAUTH_CLIENT_SECRET', { infer: true });
           if (googleClientId && googleClientSecret) {

@@ -953,7 +953,7 @@ get:
 tags: [Authentication]
 operationId: listOAuthProviders
 summary: Social Sign-In providers configured in this deployment
-description: Public. A provider is listed only when its client id + secret, BACKEND_PUBLIC_URL and FRONTEND_URL are all configured; an empty list means Social Sign-In is off.
+description: Public. A provider is listed only when its client id + secret and FRONTEND_URL are configured. Like every /auth/* path, all three are reached through the frontend's same-origin /auth/* proxy (apps/frontend next.config.ts), and the provider redirect URI is ${FRONTEND_URL}/auth/oauth/{provider}/callback, so the refresh cookie the callback sets is first-party on the frontend; an empty list means Social Sign-In is off.
 responses:
 '200':
 description: Configured providers.

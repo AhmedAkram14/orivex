@@ -28,18 +28,18 @@ function offerProviders(providers: string[]) {
 }
 
 describe('SocialSignInButtons', () => {
-  it('links each configured provider to the backend start URL, carrying the locale and returnTo', async () => {
+  it('links each configured provider to the same-origin (proxied) start URL, carrying the locale and returnTo', async () => {
     offerProviders(['google', 'facebook']);
     renderWithProviders(<SocialSignInButtons />);
 
     const google = await screen.findByRole('link', { name: 'Continue with Google' });
     expect(google).toHaveAttribute(
       'href',
-      `${env.apiBaseUrl}/auth/oauth/google/start?locale=en&returnTo=%2Fappointments%2Fnew`,
+      `/auth/oauth/google/start?locale=en&returnTo=%2Fappointments%2Fnew`,
     );
     expect(screen.getByRole('link', { name: 'Continue with Facebook' })).toHaveAttribute(
       'href',
-      `${env.apiBaseUrl}/auth/oauth/facebook/start?locale=en&returnTo=%2Fappointments%2Fnew`,
+      `/auth/oauth/facebook/start?locale=en&returnTo=%2Fappointments%2Fnew`,
     );
   });
 

@@ -143,14 +143,13 @@ export const envSchema = z.object({
   // only production path.
   SMTP_HOST: z.string().min(1).optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
-  // Social Sign-In (docs/14-adrs.md ADR-008). This backend's own public
-  // origin (e.g. https://orivex-backend.onrender.com) -- the OAuth
-  // redirect URIs registered with Google/Facebook are
-  // `${BACKEND_PUBLIC_URL}/auth/oauth/<provider>/callback` and must match
-  // exactly, so it isn't inferred from request headers. Social Sign-In
-  // needs this AND FRONTEND_URL (where the callback sends the browser
-  // back); with either unset no provider is offered at all.
-  BACKEND_PUBLIC_URL: z.string().url().optional(),
+  // Social Sign-In (docs/14-adrs.md ADR-008). The OAuth redirect URIs are
+  // on the FRONTEND's origin -- `${FRONTEND_URL}/auth/oauth/<provider>/
+  // callback`, register exactly that with each provider -- because the
+  // frontend proxies /auth/* to this backend (apps/frontend
+  // next.config.ts), which is what keeps the refresh cookie first-party.
+  // With FRONTEND_URL unset no provider is offered at all.
+  //
   // Each provider is optional and independent, same not-configured idiom
   // as every other provider in this schema: a provider is offered only
   // when both its id and secret are set (GET /auth/oauth/providers).
