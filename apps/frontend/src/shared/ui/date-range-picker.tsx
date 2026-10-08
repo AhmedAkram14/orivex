@@ -4,7 +4,8 @@ import { CalendarRange } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { Icon } from '@/shared/icons/icon';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import { cairoYear } from '@/shared/lib/date/iso-date';
+import { DateField, filterDate } from '@/shared/ui/date-field';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 
@@ -90,27 +91,31 @@ export function DateRangePicker({ dateFrom, dateTo, onChange, idPrefix = 'date-r
         </PopoverTrigger>
         <PopoverContent align="start" className="flex w-auto flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <label htmlFor={`${idPrefix}-from`} className="text-caption text-text-tertiary">
+            <span id={`${idPrefix}-from-label`} className="text-caption text-text-tertiary">
               {t('from')}
-            </label>
-            <Input
+            </span>
+            <DateField
               id={`${idPrefix}-from`}
-              type="date"
+              labelledBy={`${idPrefix}-from-label`}
               value={dateFrom}
-              onChange={(event) => event.target.value && onChange(event.target.value, dateTo)}
-              className="w-44"
+              onChange={(value) => filterDate(value, (date) => date && onChange(date, dateTo))}
+              fromYear={2020}
+              toYear={cairoYear()}
+              className="w-72"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label htmlFor={`${idPrefix}-to`} className="text-caption text-text-tertiary">
+            <span id={`${idPrefix}-to-label`} className="text-caption text-text-tertiary">
               {t('to')}
-            </label>
-            <Input
+            </span>
+            <DateField
               id={`${idPrefix}-to`}
-              type="date"
+              labelledBy={`${idPrefix}-to-label`}
               value={dateTo}
-              onChange={(event) => event.target.value && onChange(dateFrom, event.target.value)}
-              className="w-44"
+              onChange={(value) => filterDate(value, (date) => date && onChange(dateFrom, date))}
+              fromYear={2020}
+              toYear={cairoYear() + 1}
+              className="w-72"
             />
           </div>
         </PopoverContent>

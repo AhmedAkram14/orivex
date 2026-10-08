@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarDays, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
+import { useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAddDoctorException } from '@/features/scheduling/hooks/use-add-doctor-exception';
 import { useRemoveDoctorException } from '@/features/scheduling/hooks/use-remove-doctor-exception';
@@ -12,6 +13,7 @@ import {
 } from '@/features/scheduling/schemas/schedule-exception.schema';
 import type { ScheduleException } from '@/features/scheduling/types';
 import { ApiError } from '@/shared/lib/api/client';
+import { cairoYear } from '@/shared/lib/date/iso-date';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
@@ -19,7 +21,7 @@ import { Button } from '@/shared/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { FormChoice, FormDateField } from '@/shared/ui/form-controls';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
 
 const badgeVariantByType: Record<ScheduleException['type'], 'warning' | 'danger' | 'info'> = {
@@ -56,6 +58,9 @@ export function ScheduleExceptionForm({ onAdded, defaultDate, replacing }: Sched
   const tValidation = useTranslations('scheduling.timeOff.validation');
   const addException = useAddDoctorException();
   const removeException = useRemoveDoctorException();
+  const dateLabelId = useId();
+  const typeLabelId = useId();
+  const thisYear = cairoYear();
 
   const form = useForm<ScheduleExceptionFormValues>({
     resolver: zodResolver(createScheduleExceptionSchema(tValidation)),
@@ -99,11 +104,11 @@ export function ScheduleExceptionForm({ onAdded, defaultDate, replacing }: Sched
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('date')}</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
+            <FormItem className="gap-2">
+              <FormLabel id={dateLabelId} className="font-semibold">
+                {t('date')}
+              </FormLabel>
+              <FormDateField field={field} labelId={dateLabelId} fromYear={thisYear - 1} toYear={thisYear + 3} />
               <FormMessage />
             </FormItem>
           )}
@@ -112,20 +117,15 @@ export function ScheduleExceptionForm({ onAdded, defaultDate, replacing }: Sched
           control={form.control}
           name="type"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('typeLabel')}</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="vacation">{tType('vacation')}</SelectItem>
-                  <SelectItem value="unavailable">{tType('unavailable')}</SelectItem>
-                  <SelectItem value="extra-hours">{tType('extra-hours')}</SelectItem>
-                </SelectContent>
-              </Select>
+            <FormItem className="gap-2">
+              <FormLabel id={typeLabelId} className="font-semibold">
+                {t('typeLabel')}
+              </FormLabel>
+              <FormChoice
+                field={field}
+                labelId={typeLabelId}
+                options={(['vacation', 'unavailable', 'extra-hours'] as const).map((type) => ({ value: type, label: tType(type) }))}
+              />
               <FormMessage />
             </FormItem>
           )}

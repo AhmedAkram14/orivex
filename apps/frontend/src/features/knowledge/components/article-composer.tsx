@@ -15,7 +15,7 @@ import { Button } from '@/shared/ui/button';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { MarkdownField } from '@/features/knowledge/components/markdown-field';
 import { Textarea } from '@/shared/ui/textarea';
 
@@ -202,18 +202,19 @@ export function ArticleComposer({ mode, onDone }: ArticleComposerProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="knowledge-article-language" className="text-sm font-medium text-text-secondary">
+            <span id="knowledge-article-language-label" className="text-sm font-medium text-text-secondary">
               {t('languageLabel')}
-            </label>
-            <Select value={language} onValueChange={(value) => { setLanguage(value as KnowledgeArticleLanguage); clearMessages(); }}>
-              <SelectTrigger id="knowledge-article-language" className="w-56" aria-label={t('languageLabel')}>
-                <SelectValue placeholder={t('languagePlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Arabic">{t('languageOptions.Arabic')}</SelectItem>
-                <SelectItem value="English">{t('languageOptions.English')}</SelectItem>
-              </SelectContent>
-            </Select>
+            </span>
+            <SegmentedControl
+              mode="radio"
+              ariaLabelledBy="knowledge-article-language-label"
+              value={language}
+              onChange={(value) => {
+                setLanguage(value as KnowledgeArticleLanguage);
+                clearMessages();
+              }}
+              options={(['Arabic', 'English'] as const).map((option) => ({ value: option, label: t(`languageOptions.${option}`) }))}
+            />
           </div>
 
           <div className="flex flex-col gap-2">

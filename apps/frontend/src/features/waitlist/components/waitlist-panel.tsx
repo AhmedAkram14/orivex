@@ -14,7 +14,9 @@ import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Input } from '@/shared/ui/input';
+import { cairoYear, isRealIsoDate } from '@/shared/lib/date/iso-date';
+import { DateField } from '@/shared/ui/date-field';
+import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 
@@ -179,39 +181,36 @@ export function WaitlistPanel() {
             </SelectContent>
           </Select>
 
-          <Select value={consultationType} onValueChange={(value) => setConsultationType(value as WaitlistConsultationType | 'any')}>
-            <SelectTrigger aria-label={t('consultationTypeLabel')}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">{t('consultationTypeAny')}</SelectItem>
-              <SelectItem value="free">{t('consultationTypeFree')}</SelectItem>
-              <SelectItem value="paid">{t('consultationTypePaid')}</SelectItem>
-            </SelectContent>
-          </Select>
-
           <div className="flex flex-col gap-2">
-            <label htmlFor="waitlist-earliest" className="text-xs font-medium text-text-primary">
-              {t('earliestLabel')}
-            </label>
-            <Input
-              id="waitlist-earliest"
-              type="date"
-              value={earliestAcceptableAt}
-              onChange={(event) => setEarliestAcceptableAt(event.target.value)}
+            <span id="waitlist-type-label" className="text-xs font-medium text-text-primary">
+              {t('consultationTypeLabel')}
+            </span>
+            <SegmentedControl
+              mode="radio"
+              fullWidth
+              ariaLabelledBy="waitlist-type-label"
+              value={consultationType}
+              onChange={(value) => setConsultationType(value as WaitlistConsultationType | 'any')}
+              options={[
+                { value: 'any', label: t('consultationTypeAny') },
+                { value: 'free', label: t('consultationTypeFree') },
+                { value: 'paid', label: t('consultationTypePaid') },
+              ]}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="waitlist-latest" className="text-xs font-medium text-text-primary">
+            <span id="waitlist-earliest-label" className="text-xs font-medium text-text-primary">
+              {t('earliestLabel')}
+            </span>
+            <DateField id="waitlist-earliest" labelledBy="waitlist-earliest-label" value={earliestAcceptableAt} onChange={setEarliestAcceptableAt} fromYear={cairoYear()} toYear={cairoYear() + 2} />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span id="waitlist-latest-label" className="text-xs font-medium text-text-primary">
               {t('latestLabel')}
-            </label>
-            <Input
-              id="waitlist-latest"
-              type="date"
-              value={latestAcceptableAt}
-              onChange={(event) => setLatestAcceptableAt(event.target.value)}
-            />
+            </span>
+            <DateField id="waitlist-latest" labelledBy="waitlist-latest-label" value={latestAcceptableAt} onChange={setLatestAcceptableAt} fromYear={cairoYear()} toYear={cairoYear() + 2} />
           </div>
 
           {joinWaitlist.isError && <Alert variant="danger">{t('joinError')}</Alert>}
@@ -222,7 +221,7 @@ export function WaitlistPanel() {
             </Button>
             <Button
               loading={joinWaitlist.isPending}
-              disabled={!selectedDoctorId || !latestAcceptableAt}
+              disabled={!selectedDoctorId || !isRealIsoDate(latestAcceptableAt) || !isRealIsoDate(earliestAcceptableAt)}
               onClick={handleJoin}
             >
               {t('confirmJoin')}

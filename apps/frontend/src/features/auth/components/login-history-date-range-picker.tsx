@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
+import { cairoYear } from '@/shared/lib/date/iso-date';
+import { DateField, filterDate } from '@/shared/ui/date-field';
 
 export interface LoginHistoryDateRangePickerProps {
   /** ISO date (YYYY-MM-DD), or undefined for "no lower bound". Controlled -- no date state of its own, mirroring ReportsDateRangePicker's pattern. */
@@ -28,27 +29,31 @@ export function LoginHistoryDateRangePicker({ from, to, onChange }: LoginHistory
   return (
     <div className="flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-1">
-        <label htmlFor="login-history-date-from" className="text-xs text-text-tertiary">
+        <span id="login-history-date-from-label" className="text-xs text-text-tertiary">
           {t('from')}
-        </label>
-        <Input
+        </span>
+        <DateField
           id="login-history-date-from"
-          type="date"
+          labelledBy="login-history-date-from-label"
           value={from ?? ''}
-          onChange={(event) => onChange(event.target.value || undefined, to)}
-          className="w-40"
+          onChange={(value) => filterDate(value, (date) => onChange(date, to))}
+          fromYear={2020}
+          toYear={cairoYear()}
+          className="w-72"
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor="login-history-date-to" className="text-xs text-text-tertiary">
+        <span id="login-history-date-to-label" className="text-xs text-text-tertiary">
           {t('to')}
-        </label>
-        <Input
+        </span>
+        <DateField
           id="login-history-date-to"
-          type="date"
+          labelledBy="login-history-date-to-label"
           value={to ?? ''}
-          onChange={(event) => onChange(from, event.target.value || undefined)}
-          className="w-40"
+          onChange={(value) => filterDate(value, (date) => onChange(from, date))}
+          fromYear={2020}
+          toYear={cairoYear()}
+          className="w-72"
         />
       </div>
       <div className="flex flex-wrap gap-2">

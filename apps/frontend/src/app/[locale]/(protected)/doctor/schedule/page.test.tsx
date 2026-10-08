@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { http, HttpResponse } from 'msw';
@@ -11,6 +11,16 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import { TooltipProvider } from '@/shared/ui/tooltip';
 import enMessages from '../../../../../../messages/en.json';
+
+/** Picks a YYYY-MM-DD date in the named Day / Month / Year group (the shared DateField). */
+function pickDate(groupName: string, iso: string) {
+  const group = screen.getByRole('group', { name: groupName });
+  const [year, month, day] = iso.split('-');
+  fireEvent.change(within(group).getByRole('combobox', { name: 'Day' }), { target: { value: day } });
+  fireEvent.change(within(group).getByRole('combobox', { name: 'Month' }), { target: { value: month } });
+  fireEvent.change(within(group).getByRole('combobox', { name: 'Year' }), { target: { value: year } });
+}
+
 
 // Doctor Reports page rebuild (Phase 2): a mutable `currentSearchParams`
 // module-level variable, mirroring `messaging-workspace.test.tsx`'s own
@@ -268,7 +278,8 @@ describe('DoctorSchedulePage', () => {
     await screen.findByText('No time off scheduled');
 
     await userEvent.click(screen.getByRole('button', { name: 'Add time off' }));
-    fireEvent.change(await screen.findByLabelText('Date'), { target: { value: '2026-08-15' } });
+    await screen.findByRole('group', { name: 'Date' });
+    pickDate('Date', '2026-08-15');
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     // The dialog closes and the new row appears in the table.

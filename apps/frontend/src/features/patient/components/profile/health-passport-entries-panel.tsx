@@ -12,6 +12,8 @@ import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Icon } from '@/shared/icons/icon';
 import { Input } from '@/shared/ui/input';
+import { DateField } from '@/shared/ui/date-field';
+import { cairoYear, isRealIsoDate } from '@/shared/lib/date/iso-date';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 
@@ -81,12 +83,19 @@ export function HealthPassportEntriesPanel() {
             <Input id="passport-entry-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('titlePlaceholder')} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="passport-entry-date" className="text-xs font-medium text-text-primary">
+            <span id="passport-entry-date-label" className="text-xs font-medium text-text-primary">
               {t('dateLabel')}
-            </label>
-            <Input id="passport-entry-date" type="date" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} />
+            </span>
+            <DateField
+              id="passport-entry-date"
+              labelledBy="passport-entry-date-label"
+              value={occurredAt}
+              onChange={setOccurredAt}
+              fromYear={cairoYear() - 120}
+              toYear={cairoYear()}
+            />
           </div>
-          <Button type="button" size="sm" loading={recordEntry.isPending} disabled={!title.trim()} onClick={handleAdd}>
+          <Button type="button" size="sm" loading={recordEntry.isPending} disabled={!title.trim() || (occurredAt !== '' && !isRealIsoDate(occurredAt))} onClick={handleAdd}>
             <Icon icon={Plus} size="sm" className="me-2" />
             {t('add')}
           </Button>

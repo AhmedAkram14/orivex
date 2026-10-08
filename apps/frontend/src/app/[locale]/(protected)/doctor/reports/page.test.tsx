@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,14 @@ import { env } from '@/shared/lib/env';
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
+
+/** Reads the YYYY-MM-DD date shown in the named Day / Month / Year group. */
+function readDate(groupName: string): string {
+  const group = screen.getByRole('group', { name: groupName });
+  const value = (name: string) => (within(group).getByRole('combobox', { name }) as HTMLSelectElement).value;
+  return `${value('Year')}-${value('Month')}-${value('Day')}`;
+}
+
 
 const replaceMock = vi.fn();
 let mockSearchParams = new URLSearchParams();
@@ -136,8 +144,8 @@ describe('DoctorReportsPage', () => {
 
     await screen.findByText('62', {}, { timeout: 10000 });
     await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
-    expect(screen.getByLabelText('From')).toHaveValue('2026-08-01');
-    expect(screen.getByLabelText('To')).toHaveValue('2026-08-31');
+    expect(readDate('From')).toBe('2026-08-01');
+    expect(readDate('To')).toBe('2026-08-31');
   }, 15000);
 
   it('defaults to the last 30 days when the URL has no date params', async () => {
@@ -145,11 +153,9 @@ describe('DoctorReportsPage', () => {
     await screen.findByText('62');
     await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
 
-    const fromInput = screen.getByLabelText('From') as HTMLInputElement;
-    const toInput = screen.getByLabelText('To') as HTMLInputElement;
-    expect(fromInput.value).not.toBe('');
-    expect(toInput.value).not.toBe('');
-    expect(new Date(toInput.value).getTime() - new Date(fromInput.value).getTime()).toBeCloseTo(30 * 24 * 60 * 60 * 1000, -5);
+    const from = readDate('From');
+    const to = readDate('To');
+    expect(new Date(to).getTime() - new Date(from).getTime()).toBeCloseTo(30 * 24 * 60 * 60 * 1000, -5);
   });
 
   it('clicking a preset updates the inputs and writes the URL via router.replace', async () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,8 +17,13 @@ describe('ReportsDateRangePicker', () => {
   it('renders both date inputs (inside the custom-range popover) with the given controlled values', async () => {
     renderPicker(vi.fn());
     await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
-    expect(screen.getByLabelText('From')).toHaveValue('2026-08-01');
-    expect(screen.getByLabelText('To')).toHaveValue('2026-08-31');
+    // Day / Month / Year selects (the shared DateField), not the browser's mm/dd/yyyy date input.
+    const from = screen.getByRole('group', { name: 'From' });
+    const to = screen.getByRole('group', { name: 'To' });
+    expect(within(from).getByRole('combobox', { name: 'Day' })).toHaveValue('01');
+    expect(within(from).getByRole('combobox', { name: 'Month' })).toHaveValue('08');
+    expect(within(from).getByRole('combobox', { name: 'Year' })).toHaveValue('2026');
+    expect(within(to).getByRole('combobox', { name: 'Day' })).toHaveValue('31');
   });
 
   it('calls onChange with a 7-day range when the "7 days" preset is clicked', async () => {
@@ -50,7 +55,12 @@ describe('ReportsDateRangePicker', () => {
     renderPicker(onChange);
     await userEvent.click(screen.getByRole('button', { name: /Custom range|–/ }));
 
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-01-01' } });
+    fireEvent.change(
+      within(screen.getByRole('group', { name: 'From' })).getByRole('combobox', { name: 'Month' }),
+      {
+        target: { value: '01' },
+      },
+    );
 
     expect(onChange).toHaveBeenCalledWith('2026-01-01', '2026-08-31');
   });

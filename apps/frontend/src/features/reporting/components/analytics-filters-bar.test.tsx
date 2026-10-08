@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,9 +26,14 @@ describe('AnalyticsFiltersBar', () => {
   it('propagates a date-from change to onChange', async () => {
     const onChange = renderBar();
 
-    await userEvent.type(screen.getByLabelText('From'), '2026-01-15');
+    // Day / Month / Year: a filter only changes once the date is complete.
+    const from = screen.getByRole('group', { name: 'From' });
+    await userEvent.selectOptions(within(from).getByRole('combobox', { name: 'Day' }), '15');
+    await userEvent.selectOptions(within(from).getByRole('combobox', { name: 'Month' }), '01');
+    expect(onChange).not.toHaveBeenCalled();
+    await userEvent.selectOptions(within(from).getByRole('combobox', { name: 'Year' }), '2026');
 
-    expect(onChange).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith({ dateFrom: '2026-01-15' });
   });
 
   it('propagates the Compare Periods toggle', async () => {

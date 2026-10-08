@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,16 @@ import { resetPatientStore, setPatientAppointments } from '@/mocks/patient-store
 import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
+
+/** Picks a YYYY-MM-DD date in the named Day / Month / Year group (the shared DateField). */
+function pickDate(groupName: string, iso: string) {
+  const group = screen.getByRole('group', { name: groupName });
+  const [year, month, day] = iso.split('-');
+  fireEvent.change(within(group).getByRole('combobox', { name: 'Day' }), { target: { value: day } });
+  fireEvent.change(within(group).getByRole('combobox', { name: 'Month' }), { target: { value: month } });
+  fireEvent.change(within(group).getByRole('combobox', { name: 'Year' }), { target: { value: year } });
+}
+
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
@@ -78,9 +88,8 @@ describe('PatientWaitlistPage', () => {
     await user.click(screen.getByRole('button', { name: 'Join a waitlist' }));
     await user.click(screen.getByRole('combobox', { name: 'Doctor' }));
     await user.click(await screen.findByText('Dr. Omar Hassan'));
-    const latestInput = screen.getByLabelText('Latest date');
     const futureDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    await user.type(latestInput, futureDate);
+    pickDate('Latest date', futureDate);
     await user.click(screen.getByRole('button', { name: 'Join waitlist' }));
 
     await waitFor(() => expect(screen.queryByText('No waitlist entries')).not.toBeInTheDocument());
@@ -97,9 +106,8 @@ describe('PatientWaitlistPage', () => {
     await user.click(screen.getByRole('button', { name: 'Join a waitlist' }));
     await user.click(screen.getByRole('combobox', { name: 'Doctor' }));
     await user.click(await screen.findByText('Dr. Omar Hassan'));
-    const latestInput = screen.getByLabelText('Latest date');
     const futureDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    await user.type(latestInput, futureDate);
+    pickDate('Latest date', futureDate);
     await user.click(screen.getByRole('button', { name: 'Join waitlist' }));
     await screen.findByText('Waiting');
 

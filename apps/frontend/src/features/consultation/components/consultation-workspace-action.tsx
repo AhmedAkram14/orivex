@@ -18,6 +18,9 @@ import { Button } from '@/shared/ui/button';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
+import { cairoYear, isRealIsoDate } from '@/shared/lib/date/iso-date';
+import { DateField } from '@/shared/ui/date-field';
+import { SegmentedControl } from '@/shared/ui/segmented-control';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
@@ -456,16 +459,19 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                   placeholder={t('diagnosisPlaceholder')}
                   rows={3}
                 />
-                <Select value={certaintyLevel} onValueChange={(value) => setCertaintyLevel(value as typeof certaintyLevel)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="suspected">{t('certainty.suspected')}</SelectItem>
-                    <SelectItem value="confirmed">{t('certainty.confirmed')}</SelectItem>
-                    <SelectItem value="ruled_out">{t('certainty.ruled_out')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-2">
+                  <span id="diagnosis-certainty-label" className="text-sm font-medium text-text-primary">
+                    {t('certaintyLabel')}
+                  </span>
+                  <SegmentedControl
+                    mode="radio"
+                    fullWidth
+                    ariaLabelledBy="diagnosis-certainty-label"
+                    value={certaintyLevel}
+                    onChange={(value) => setCertaintyLevel(value as typeof certaintyLevel)}
+                    options={(['suspected', 'confirmed', 'ruled_out'] as const).map((level) => ({ value: level, label: t(`certainty.${level}`) }))}
+                  />
+                </div>
                 <label className="flex items-center gap-2 text-sm text-text-secondary">
                   <Checkbox checked={startJourney} onCheckedChange={(checked) => setStartJourney(checked === true)} />
                   {t('startJourneyLabel')}
@@ -502,17 +508,24 @@ export function ConsultationWorkspaceAction({ consultationSessionId }: Consultat
                       placeholder={t('followUpReasonPlaceholder')}
                       rows={3}
                     />
-                    <Input
-                      type="date"
-                      value={followUpDate}
-                      onChange={(event) => setFollowUpDate(event.target.value)}
-                    />
+                    <div className="flex flex-col gap-2">
+                      <span id="follow-up-date-label" className="text-sm font-medium text-text-primary">
+                        {t('followUpDateLabel')}
+                      </span>
+                      <DateField
+                        labelledBy="follow-up-date-label"
+                        value={followUpDate}
+                        onChange={setFollowUpDate}
+                        fromYear={cairoYear()}
+                        toYear={cairoYear() + 1}
+                      />
+                    </div>
                     {recommendFollowUp.isError && <Alert variant="danger">{t('saveError')}</Alert>}
                     <Button
                       type="button"
                       size="sm"
                       loading={recommendFollowUp.isPending}
-                      disabled={!followUpReason.trim()}
+                      disabled={!followUpReason.trim() || (followUpDate !== '' && !isRealIsoDate(followUpDate))}
                       onClick={async () => {
                         await recommendFollowUp.mutateAsync({
                           reason: followUpReason,

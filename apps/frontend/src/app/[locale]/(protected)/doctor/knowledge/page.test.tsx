@@ -67,8 +67,8 @@ async function openComposer(user: ReturnType<typeof userEvent.setup>) {
 }
 
 async function selectLanguage(user: ReturnType<typeof userEvent.setup>, language: 'Arabic' | 'English') {
-  await user.click(screen.getByRole('combobox', { name: 'Language' }));
-  await user.click(await screen.findByRole('option', { name: language }));
+  // The article language is a two-option radio group now (was a dropdown).
+  await user.click(screen.getByRole('radio', { name: language }));
 }
 
 describe('DoctorKnowledgePage', () => {

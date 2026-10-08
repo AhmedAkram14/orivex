@@ -6,12 +6,14 @@ import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-l
 import type { AnalyticsPreferences, RefreshInterval } from '@/features/reporting/lib/analytics-preferences';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Input } from '@/shared/ui/input';
+import { cairoYear } from '@/shared/lib/date/iso-date';
+import { DateField, filterDate } from '@/shared/ui/date-field';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Switch } from '@/shared/ui/switch';
 
-function Label({ htmlFor, children }: { htmlFor: string; children: ReactNode }) {
+function Label({ htmlFor, id, children }: { htmlFor: string; id?: string; children: ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="text-xs text-text-tertiary">
+    <label htmlFor={htmlFor} id={id} className="text-xs text-text-tertiary">
       {children}
     </label>
   );
@@ -43,23 +45,31 @@ export function AnalyticsFiltersBar({ preferences, onChange }: AnalyticsFiltersB
   return (
     <div className="flex flex-wrap items-end gap-4 rounded-lg border border-border-default bg-surface p-4">
       <div className="flex flex-col gap-1">
-        <Label htmlFor="analytics-date-from">{t('dateFrom')}</Label>
-        <Input
+        <Label id="analytics-date-from-label" htmlFor="analytics-date-from">
+          {t('dateFrom')}
+        </Label>
+        <DateField
           id="analytics-date-from"
-          type="date"
+          labelledBy="analytics-date-from-label"
           value={preferences.dateFrom ?? ''}
-          onChange={(event) => onChange({ dateFrom: event.target.value || undefined })}
-          className="w-40"
+          onChange={(value) => filterDate(value, (date) => onChange({ dateFrom: date }))}
+          fromYear={2020}
+          toYear={cairoYear()}
+          className="w-72"
         />
       </div>
       <div className="flex flex-col gap-1">
-        <Label htmlFor="analytics-date-to">{t('dateTo')}</Label>
-        <Input
+        <Label id="analytics-date-to-label" htmlFor="analytics-date-to">
+          {t('dateTo')}
+        </Label>
+        <DateField
           id="analytics-date-to"
-          type="date"
+          labelledBy="analytics-date-to-label"
           value={preferences.dateTo ?? ''}
-          onChange={(event) => onChange({ dateTo: event.target.value || undefined })}
-          className="w-40"
+          onChange={(value) => filterDate(value, (date) => onChange({ dateTo: date }))}
+          fromYear={2020}
+          toYear={cairoYear()}
+          className="w-72"
         />
       </div>
       <div className="flex flex-col gap-1">
