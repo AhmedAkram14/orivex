@@ -100,7 +100,7 @@ export function ProfileStep({ profile, onSaved, onBack, submitLabel }: ProfileSt
       licenseExpiryDate: profile?.licenseExpiryDate?.slice(0, 10) ?? '',
       departmentId: profile?.departmentId,
       workExperience:
-        profile?.workExperience.map((entry) => ({
+        profile?.workExperience?.map((entry) => ({
           organizationName: entry.organizationName,
           position: entry.position,
           professionalRank: entry.professionalRank,

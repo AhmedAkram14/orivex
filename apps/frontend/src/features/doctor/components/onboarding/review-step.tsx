@@ -117,6 +117,10 @@ export function ReviewStep({ account, profile, documents, slots, onSubmitted, on
   }
 
   const previewed = preview ? documents[preview] : undefined;
+  // Lists the API always returns; tolerated if a partial profile comes back.
+  const languages = profile.languages ?? [];
+  const insuranceProviders = profile.insuranceProviders ?? [];
+  const workExperience = profile.workExperience ?? [];
 
   return (
     <div className="flex flex-col gap-4">
@@ -173,18 +177,18 @@ export function ReviewStep({ account, profile, documents, slots, onSubmitted, on
         <Rows
           rows={[
             { label: tProfile('biography'), value: profile.biography ? <bdi className="whitespace-pre-line">{profile.biography}</bdi> : none },
-            { label: tProfile('languages'), value: profile.languages.length ? profile.languages.map((language) => tLanguages(language)).join(' · ') : none },
-            { label: tProfile('insuranceProviders'), value: profile.insuranceProviders.length ? <bdi>{profile.insuranceProviders.join(' · ')}</bdi> : none },
+            { label: tProfile('languages'), value: languages.length ? languages.map((language) => tLanguages(language)).join(' · ') : none },
+            { label: tProfile('insuranceProviders'), value: insuranceProviders.length ? <bdi>{insuranceProviders.join(' · ')}</bdi> : none },
           ]}
         />
       </Summary>
 
       <Summary title={tProfile('workExperience')} editLabel={t('editSection', { section: tProfile('workExperience') })} onEdit={() => onEdit('profile')}>
-        {profile.workExperience.length === 0 ? (
+        {workExperience.length === 0 ? (
           <p className="text-sm">{none}</p>
         ) : (
           <ul className="flex flex-col gap-2 text-sm">
-            {profile.workExperience.map((entry, index) => (
+            {workExperience.map((entry, index) => (
               <li key={index} className="flex flex-col">
                 <span className="font-semibold text-text-primary">
                   <bdi>{entry.position}</bdi>
