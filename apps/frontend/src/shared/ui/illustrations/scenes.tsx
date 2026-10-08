@@ -194,6 +194,20 @@ export const RoleDoctor = (p: SceneProps) => (
   </Scene>
 );
 
+/** Patient intake: an ID card with a check (peach, the patient audience colour). The photo is a plain silhouette. */
+export const IdCheck = (p: SceneProps) => (
+  <Scene {...p}>
+    {disc('warm')}
+    <rect x="20" y="34" width="78" height="52" rx="6" className={S} />
+    <rect x="28" y="44" width="22" height="26" rx="3" className={S} />
+    <circle cx="39" cy="53" r="4.5" />
+    <path d="M31 69a8 7 0 0 1 16 0" />
+    <path d="M58 50h30M58 58h24M58 66h16" />
+    <circle cx="88" cy="84" r="12" className="fill-pulse" />
+    <path d="M82 84l4 4 8-8" strokeWidth="2.5" />
+  </Scene>
+);
+
 export const ConsultationEnded = (p: SceneProps) => (
   <Scene {...p}>
     {disc('pulse')}

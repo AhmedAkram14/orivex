@@ -32,7 +32,7 @@ import { EmptyState } from '@/shared/ui/empty-state';
 import { ErrorState } from '@/shared/ui/error-state';
 import { Icon } from '@/shared/icons/icon';
 import { InsetRow } from '@/shared/ui/inset-row';
-import { PulseLine } from '@/shared/ui/pulse-line';
+import { StepProgress } from '@/shared/ui/step-progress';
 import { Illustration } from '@/shared/ui/illustrations/illustration';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { SpecialtyChip } from '@/shared/ui/specialty-chip';
@@ -220,33 +220,14 @@ export function BookingFlow({ doctorId }: BookingFlowProps) {
   const progress = (
     <div className="flex flex-col gap-4">
       {doctorChip}
-      <div className="flex flex-col gap-2" role="group" aria-label={tUi('stepsLabel')}>
-        <ol className="flex items-center justify-between gap-2 text-small">
-          {STEP_ORDER.map((key, index) => (
-            <li
-              key={key}
-              aria-current={index === stepIndex ? 'step' : undefined}
-              className={cn(
-                'flex items-center gap-2',
-                index <= stepIndex ? 'font-semibold text-text-primary' : 'text-text-tertiary',
-              )}
-            >
-              <span
-                className={cn(
-                  'flex size-6 items-center justify-center rounded-full text-caption tabular-nums',
-                  index < stepIndex && 'bg-text-primary text-text-inverse',
-                  index === stepIndex && 'bg-pulse text-pulse-foreground',
-                  index > stepIndex && 'bg-surface-2',
-                )}
-              >
-                {index + 1}
-              </span>
-              {key === 'review' && step === 'payment' ? tUi('steps.payment') : tUi(`steps.${key}`)}
-            </li>
-          ))}
-        </ol>
-        <PulseLine variant="progress" progress={stepIndex / (STEP_ORDER.length - 1)} />
-      </div>
+      <StepProgress
+        label={tUi('stepsLabel')}
+        currentIndex={stepIndex}
+        steps={STEP_ORDER.map((key) => ({
+          key,
+          label: key === 'review' && step === 'payment' ? tUi('steps.payment') : tUi(`steps.${key}`),
+        }))}
+      />
     </div>
   );
 

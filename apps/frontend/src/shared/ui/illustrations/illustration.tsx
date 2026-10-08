@@ -7,6 +7,7 @@ import {
   ConnectionError,
   ConsultationEnded,
   DisputesNone,
+  IdCheck,
   InboxQuiet,
   LabsNone,
   PrescriptionNone,
@@ -37,6 +38,7 @@ const SCENES = {
   'consultation-ended': ConsultationEnded,
   'role-patient': RolePatient,
   'role-doctor': RoleDoctor,
+  'id-check': IdCheck,
 } as const satisfies Record<string, ComponentType<SceneProps>>;
 
 export type IllustrationKey = keyof typeof SCENES;

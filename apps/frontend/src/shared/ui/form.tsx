@@ -2,7 +2,7 @@
 
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
-import { createContext, forwardRef, useContext, useId, type HTMLAttributes } from 'react';
+import { createContext, forwardRef, useContext, useId, type HTMLAttributes, type ReactNode } from 'react';
 import {
   Controller,
   FormProvider,
@@ -53,7 +53,8 @@ interface FormItemContextValue {
 
 const FormItemContext = createContext<FormItemContextValue | null>(null);
 
-function useFormField() {
+/** The current field's ids and state -- for a control made of several elements (e.g. a Day/Month/Year date) that wires `aria-*` itself. */
+export function useFormField() {
   const fieldContext = useContext(FormFieldContext);
   const itemContext = useContext(FormItemContext);
   const { getFieldState, formState } = useFormContext();
@@ -136,8 +137,8 @@ export const FormDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<H
 );
 FormDescription.displayName = 'FormDescription';
 
-export const FormMessage = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, children, ...props }, ref) => {
+export const FormMessage = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement> & { icon?: ReactNode }>(
+  ({ className, children, icon, ...props }, ref) => {
     const { error, formMessageId } = useFormField();
     const body = error ? String(error.message) : children;
 
@@ -146,7 +147,14 @@ export const FormMessage = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLP
     }
 
     return (
-      <p ref={ref} id={formMessageId} role="alert" className={cn('text-xs text-danger', className)} {...props}>
+      <p
+        ref={ref}
+        id={formMessageId}
+        role="alert"
+        className={cn('text-xs text-danger', icon && 'flex items-start gap-1.5', className)}
+        {...props}
+      >
+        {icon}
         {body}
       </p>
     );
