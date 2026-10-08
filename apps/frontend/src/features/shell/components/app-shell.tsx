@@ -41,7 +41,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isDoctor = user?.roles.includes('doctor') ?? false;
   const { data: doctorProfile } = useDoctorProfile({ enabled: isDoctor });
   const { data: specialties } = useSpecialtiesList();
-  const matchedSpecialty = doctorProfile
+  // Doctors only: a disabled query still returns cached data, and the doctor application caches the applicant's draft
+  // profile -- without this check a still-unverified patient applicant saw "· Psychiatry" under their name.
+  const matchedSpecialty = isDoctor && doctorProfile
     ? specialties?.find((specialty) => specialty.id === doctorProfile.specialtyId)
     : undefined;
   // Phase 8 AR localization fix: this topbar/menu subtitle was reading

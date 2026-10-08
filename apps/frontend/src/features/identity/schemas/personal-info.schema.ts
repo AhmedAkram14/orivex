@@ -1,29 +1,25 @@
 import { z } from 'zod';
+import { cairoToday, isRealIsoDate } from '@/shared/lib/date/iso-date';
 
 type Translate = (key: string, values?: Record<string, string | number | Date>) => string;
+
+/** A real date (31 Feb rejected), not in the future (Cairo today); the API takes any ISO 8601 and sets no age bound. */
+function dateOfBirth(t: Translate) {
+  return z
+    .string()
+    .min(1, t('dateOfBirthRequired'))
+    .refine(isRealIsoDate, t('dateOfBirthInvalid'))
+    .refine((value) => !isRealIsoDate(value) || value <= cairoToday(), t('dateOfBirthFuture'));
+}
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.1/O.6): the shared Personal Info step's schema -- matches MyAccountController's real UpdatePersonalProfileRequestDto exactly (dateOfBirth/gender/nationalityId/address). Full name is Account-owned, set once at registration, not editable through this step. */
 export function createPersonalInfoSchema(t: Translate) {
   return z.object({
-    dateOfBirth: z.string().min(1, t('dateOfBirthRequired')),
+    dateOfBirth: dateOfBirth(t),
     gender: z.enum(['male', 'female', 'other'], { required_error: t('genderRequired') }),
     nationalityId: z.string().min(1, t('nationalityRequired')),
     address: z.string().min(1, t('addressRequired')).max(500, t('addressTooLong', { max: 500 })),
   });
-}
-
-/** True for a real calendar date written `YYYY-MM-DD` (rejects 2026-02-31 and partial dates). */
-function isRealIsoDate(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return false;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-}
-
-/** Today in Cairo (the operating time zone) as `YYYY-MM-DD`. */
-function cairoToday(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
 }
 
 /**
@@ -33,11 +29,7 @@ function cairoToday(): string {
  */
 export function createEssentialInfoSchema(t: Translate) {
   return z.object({
-    dateOfBirth: z
-      .string()
-      .min(1, t('dateOfBirthRequired'))
-      .refine(isRealIsoDate, t('dateOfBirthInvalid'))
-      .refine((value) => !isRealIsoDate(value) || value <= cairoToday(), t('dateOfBirthFuture')),
+    dateOfBirth: dateOfBirth(t),
     gender: z.enum(['male', 'female', 'other'], { required_error: t('genderRequired') }),
     phoneNumber: z
       .string()

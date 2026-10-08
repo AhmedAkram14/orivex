@@ -6,13 +6,21 @@ import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useMyVerifications } from '@/features/doctor/hooks/use-my-verifications';
 import type { DoctorProfile } from '@/features/doctor/api/types';
 import { ProfileStep } from '@/features/doctor/components/onboarding/profile-step';
-import { ReviewStep } from '@/features/doctor/components/onboarding/review-step';
+import {
+  ReviewStep,
+  type ReviewEditTarget,
+} from '@/features/doctor/components/onboarding/review-step';
 import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
+import { FocusedPage } from '@/features/journey/components/focused-page';
 import { Alert } from '@/shared/ui/alert';
 import { Skeleton } from '@/shared/ui/skeleton';
-import { Stepper } from '@/shared/ui/stepper';
-import { DocumentsStep, type DocumentSlots } from '@/shared/verification/components/documents-step';
+import { StepProgress } from '@/shared/ui/step-progress';
+import {
+  DocumentsStep,
+  type DocumentGroup,
+  type DocumentSlots,
+} from '@/shared/verification/components/documents-step';
 import { VerificationStatus } from '@/shared/verification/components/verification-status';
 import type { MediaAssetPurpose } from '@/shared/media/types';
 import { Link } from '@/shared/i18n/navigation';
@@ -29,16 +37,21 @@ const DOCTOR_DOCUMENT_SLOTS: readonly MediaAssetPurpose[] = [
   'board_certificate',
   'professional_membership_card',
 ];
+const DOCTOR_DOCUMENT_GROUPS: readonly DocumentGroup[] = [
+  { key: 'identity', slots: ['national_id_front', 'national_id_back', 'selfie_with_id'] },
+  {
+    key: 'qualifications',
+    slots: [
+      'medical_license',
+      'graduation_certificate',
+      'board_certificate',
+      'professional_membership_card',
+    ],
+  },
+];
 
-// Onboarding Redesign (2026-07-21 proposal, Stage O.6): 'personal' is the
-// new leading step (the shared Personal Info step, §0a). The resume logic
-// below is unchanged from before this step existed -- an existing
-// DoctorProfile with nothing submitted yet still resumes at 'documents'
-// (personal + professional info were both necessarily already completed to
-// reach that state in the first place, since the wizard is strictly
-// sequential); only the *first-time-through* default moved from 'profile'
-// to 'personal'.
-type WizardStep = 'personal' | 'profile' | 'documents' | 'review';
+const STEPS = ['personal', 'profile', 'documents', 'review'] as const;
+type WizardStep = (typeof STEPS)[number];
 
 /**
  * Doctor Onboarding (Phase 4 continuation) -- the entire self-service
@@ -51,13 +64,16 @@ type WizardStep = 'personal' | 'profile' | 'documents' | 'review';
  *   continues at the Documents step (personal + professional info were
  *   both necessarily completed already to reach this state).
  * - Latest VerificationCase is Submitted/UnderReview/MoreInfoNeeded/
- *   ReVerificationDue -> Pending (blocked from re-entering the wizard).
+ *   ReVerificationDue -> Pending (the status screen replaces the form).
  * - Latest is Rejected -> shows the reason, offers "Edit and resubmit"
- *   which re-enters the wizard at step 1 with the existing profile
- *   pre-filled.
+ *   which re-enters the wizard with the existing profile pre-filled.
  * - Latest is Approved -> the account has already been promoted to Doctor
  *   by `PromoteDoctorRoleOnVerificationHandler`; this view is only ever
  *   seen if the applicant navigates back here directly.
+ *
+ * A focused page (no app shell): the header names the application's state, the stepper's completed steps are
+ * buttons, and every step stays mounted while the applicant moves around, so going back never loses what they typed.
+ * "Edit" on Review jumps to that step and returns to Review once it's saved.
  */
 export function OnboardingFlow() {
   const t = useTranslations('doctor.onboarding');
@@ -67,18 +83,35 @@ export function OnboardingFlow() {
   const { data: verifications, isLoading: verificationsLoading } = useMyVerifications(profile?.id);
 
   const [step, setStep] = useState<WizardStep>('personal');
+  const [furthest, setFurthest] = useState(0);
   const [documents, setDocuments] = useState<DocumentSlots>({});
   const [resubmitting, setResubmitting] = useState(false);
   const [workingProfile, setWorkingProfile] = useState<DoctorProfile | undefined>(undefined);
+  const [returnToReview, setReturnToReview] = useState(false);
 
   const latestCase = useMemo(() => verifications?.[0], [verifications]);
+
+  function goTo(next: WizardStep) {
+    setStep(next);
+    setFurthest((current) => Math.max(current, STEPS.indexOf(next)));
+    if (typeof document !== 'undefined' && document.scrollingElement)
+      document.scrollingElement.scrollTop = 0;
+  }
+
+  function afterSave(next: WizardStep) {
+    if (returnToReview) {
+      setReturnToReview(false);
+      goTo('review');
+    } else {
+      goTo(next);
+    }
+  }
 
   // Resume at the right step exactly once, the moment real data first
   // becomes available -- a profile that already exists with nothing
   // submitted yet (Draft) resumes at Documents, never forces the applicant
   // back through Profile again. Deliberately a one-shot effect (not a
-  // reactive derivation) so it never fights the user's own Back navigation
-  // once the wizard is showing.
+  // reactive derivation) so it never fights the user's own Back navigation.
   const hasResumedRef = useRef(false);
   useEffect(() => {
     if (hasResumedRef.current) return;
@@ -86,96 +119,156 @@ export function OnboardingFlow() {
     hasResumedRef.current = true;
     if (hasProfile && (!verifications || verifications.length === 0)) {
       setStep('documents');
+      setFurthest(2);
     }
   }, [profileLoading, hasProfile, verificationsLoading, verifications]);
 
-  if (accountLoading || profileLoading || (hasProfile && verificationsLoading)) {
-    return (
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-40 w-full" />
+  const status = latestCase && !resubmitting ? latestCase.status : undefined;
+  const subtitle =
+    status === undefined
+      ? t('applicationStatus.inProgress')
+      : status === 'rejected' || status === 'more_info_needed'
+        ? t('applicationStatus.needsChanges')
+        : status === 'approved'
+          ? t('applicationStatus.approved')
+          : t('applicationStatus.underReview');
+
+  const loading = accountLoading || profileLoading || (hasProfile && verificationsLoading);
+  const effectiveProfile = workingProfile ?? profile ?? undefined;
+  const stepIndex = STEPS.indexOf(step);
+  const allDocuments = DOCTOR_DOCUMENT_SLOTS.every((slot) => documents[slot]);
+  // How far the stepper may jump: steps already reached, but never past what the data allows.
+  const maxReachable = Math.min(furthest, !effectiveProfile ? 1 : !allDocuments ? 2 : 3);
+
+  const intro = (title: string, description: string) => (
+    <div className="flex flex-col gap-3 sm:gap-5">
+      <StepProgress
+        label={t('progressLabel')}
+        currentIndex={stepIndex}
+        maxReachableIndex={maxReachable}
+        onStepSelect={(index) => goTo(STEPS[index]!)}
+        compactLabel={t('stepOf', {
+          current: stepIndex + 1,
+          total: STEPS.length,
+          label: t(`steps.${step}`),
+        })}
+        steps={STEPS.map((key) => ({ key, label: t(`steps.${key}`) }))}
+      />
+      <div className="flex flex-col gap-2">
+        <h1 className="font-display text-[1.625rem]/8 font-bold text-text-primary sm:text-[2rem]/10">
+          {title}
+        </h1>
+        <p className="text-sm text-text-secondary sm:text-base">{description}</p>
       </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <FocusedPage subtitle={subtitle} exitHref="/patient">
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </FocusedPage>
     );
   }
 
   if (profileError) {
-    return <Alert variant="danger">{t('loadError')}</Alert>;
+    return (
+      <FocusedPage subtitle={subtitle} exitHref="/patient">
+        <Alert variant="danger">{t('loadError')}</Alert>
+      </FocusedPage>
+    );
   }
 
-  const effectiveProfile = workingProfile ?? profile ?? undefined;
-
-  // A decided case blocks re-entering the wizard unless it was Rejected/
-  // MoreInfoNeeded and the applicant explicitly asked to edit + resubmit.
+  // A decided or pending case replaces the form unless it was Rejected/MoreInfoNeeded and the applicant explicitly
+  // asked to edit and resubmit.
   if (latestCase && !resubmitting) {
     return (
-      <VerificationStatus
-        verificationCase={latestCase}
-        translationNamespace="doctor.onboarding.status"
-        onEditAndResubmit={
-          latestCase.status === 'rejected' || latestCase.status === 'more_info_needed'
-            ? () => {
-                setResubmitting(true);
-                setStep('profile');
-              }
-            : undefined
-        }
-        approvedAction={
-          <Button asChild>
-            <Link href="/doctor">{t('status.goToDoctorPortal')}</Link>
-          </Button>
-        }
-      />
+      <FocusedPage subtitle={subtitle} exitHref="/patient">
+        <VerificationStatus
+          verificationCase={latestCase}
+          translationNamespace="doctor.onboarding.status"
+          onEditAndResubmit={
+            latestCase.status === 'rejected' || latestCase.status === 'more_info_needed'
+              ? () => {
+                  setResubmitting(true);
+                  goTo('profile');
+                }
+              : undefined
+          }
+          pendingAction={
+            <Button asChild variant="secondary">
+              <Link href="/patient">{t('status.goToDashboard')}</Link>
+            </Button>
+          }
+          approvedAction={
+            <Button asChild>
+              <Link href="/doctor">{t('status.goToDoctorPortal')}</Link>
+            </Button>
+          }
+        />
+      </FocusedPage>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <Stepper
-        className="mx-auto w-full max-w-xl"
-        currentKey={step}
-        steps={[
-          { key: 'personal', label: t('steps.personal') },
-          { key: 'profile', label: t('steps.profile') },
-          { key: 'documents', label: t('steps.documents') },
-          { key: 'review', label: t('steps.review') },
-        ]}
-      />
+    <FocusedPage
+      subtitle={subtitle}
+      exitHref="/patient"
+      intro={intro(t(`stepTitles.${step}`), t(`stepDescriptions.${step}`))}
+    >
+      {/* Every step stays mounted (hidden when not current) so moving back and forth keeps unsaved edits. */}
+      <div hidden={step !== 'personal'}>
+        <PersonalInfoStep
+          account={account}
+          actions="bar"
+          submitLabel={t('continue')}
+          onSaved={() => afterSave('profile')}
+        />
+      </div>
 
-      {step === 'personal' && (
-        <PersonalInfoStep account={account} onSaved={() => setStep('profile')} />
-      )}
-
-      {step === 'profile' && (
+      <div hidden={step !== 'profile'}>
         <ProfileStep
           profile={effectiveProfile}
+          submitLabel={t('continue')}
+          onBack={() => goTo('personal')}
           onSaved={(saved) => {
             setWorkingProfile(saved);
-            setStep('documents');
+            afterSave('documents');
           }}
         />
-      )}
+      </div>
 
-      {step === 'documents' && (
+      <div hidden={step !== 'documents'}>
         <DocumentsStep
           slots={DOCTOR_DOCUMENT_SLOTS}
+          groups={DOCTOR_DOCUMENT_GROUPS}
           translationNamespace="doctor.onboarding.documentsStep"
           documents={documents}
           onDocumentsChange={setDocuments}
-          onBack={() => setStep('profile')}
-          onContinue={() => setStep('review')}
+          onBack={() => goTo('profile')}
+          onContinue={() => afterSave('review')}
         />
-      )}
+      </div>
 
       {step === 'review' && effectiveProfile && (
         <ReviewStep
+          account={account}
           profile={effectiveProfile}
           documents={documents}
-          onBack={() => setStep('documents')}
+          slots={DOCTOR_DOCUMENT_SLOTS}
+          onBack={() => goTo('documents')}
+          onEdit={(target: ReviewEditTarget) => {
+            setReturnToReview(true);
+            goTo(target);
+          }}
           onSubmitted={() => {
             setResubmitting(false);
           }}
         />
       )}
-    </div>
+    </FocusedPage>
   );
 }

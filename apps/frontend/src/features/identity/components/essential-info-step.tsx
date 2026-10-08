@@ -1,9 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ChevronDown, CircleAlert, Lock } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
-import { useId, useState, type FocusEvent, type ReactNode, type Ref } from 'react';
+import { CircleAlert } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useId, type ReactNode, type Ref } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { Account } from '@/features/identity/api/types';
 import { useUpdatePersonalProfile } from '@/features/identity/hooks/use-update-personal-profile';
@@ -11,11 +11,13 @@ import { createEssentialInfoSchema, type EssentialInfoFormValues } from '@/featu
 import { Icon } from '@/shared/icons/icon';
 import { ApiError } from '@/shared/lib/api/client';
 import { cn } from '@/shared/lib/cn';
+import { cairoYear } from '@/shared/lib/date/iso-date';
 import { env } from '@/shared/lib/env';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, useFormField } from '@/shared/ui/form';
-import { Input } from '@/shared/ui/input';
+import { DateField, isCompleteDate } from '@/shared/ui/date-field';
+import { LockedField } from '@/shared/ui/locked-field';
 import { SegmentedControl } from '@/shared/ui/segmented-control';
 
 export interface EssentialInfoStepProps {
@@ -29,34 +31,8 @@ const GENDERS = ['male', 'female', 'other'] as const;
 const LABEL = 'font-semibold';
 const HELP = 'text-small text-text-tertiary';
 const errorIcon = <Icon icon={CircleAlert} size="xs" className="mt-px shrink-0" />;
-// Shared with `Input`: a native select drawn like the text fields (same height, border, focus ring and error state).
-const SELECT =
-  'h-10 w-full appearance-none rounded-md border border-border-default bg-surface ps-3 pe-8 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2 aria-[invalid=true]:border-danger aria-[invalid=true]:focus-visible:ring-danger';
 
-// ---- Date of birth: Day / Month / Year, composed into the same `YYYY-MM-DD` string the date input produced.
-
-interface DateParts {
-  day: string;
-  month: string;
-  year: string;
-}
-
-function partsOf(value: string | undefined): DateParts {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value ?? '');
-  if (!match) return { day: '', month: '', year: '' };
-  return { year: match[1] === '0000' ? '' : match[1]!, month: match[2] === '00' ? '' : match[2]!, day: match[3] === '00' ? '' : match[3]! };
-}
-
-/** All three chosen -> `YYYY-MM-DD`; none -> ''; some -> a partial string the schema rejects as "Enter a real date". */
-function composeDate({ day, month, year }: DateParts): string {
-  if (!day && !month && !year) return '';
-  return `${year || '0000'}-${month || '00'}-${day || '00'}`;
-}
-
-function isCompleteDate(value: string | undefined): boolean {
-  const parts = partsOf(value);
-  return Boolean(parts.day && parts.month && parts.year);
-}
+// ---- Date of birth: the shared DateField (Day / Month / Year), giving the same `YYYY-MM-DD` the date input produced.
 
 function DateOfBirthControl({
   value,
@@ -71,73 +47,21 @@ function DateOfBirthControl({
   dayRef: Ref<HTMLSelectElement>;
   labelId: string;
 }) {
-  const t = useTranslations('identity.personalInfoStep');
-  const format = useFormatter();
   const { error, formItemId, formMessageId } = useFormField();
-  const [parts, setParts] = useState<DateParts>(() => partsOf(value));
-  const thisYear = Number(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric' }).format(new Date()));
-  const describedBy = error ? formMessageId : undefined;
-
-  function update(next: Partial<DateParts>) {
-    const merged = { ...parts, ...next };
-    setParts(merged);
-    onChange(composeDate(merged));
-  }
-
-  // "Touched" once focus leaves all three selects, not when it moves between them.
-  function handleBlur(event: FocusEvent<HTMLDivElement>) {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onBlur();
-  }
-
-  const segment = (
-    key: keyof DateParts,
-    options: { value: string; label: string }[],
-    ref?: Ref<HTMLSelectElement>,
-    id?: string,
-  ) => (
-    <div className="relative min-w-0">
-      <select
-        ref={ref}
-        id={id}
-        aria-label={t(key)}
-        aria-invalid={!!error}
-        aria-describedby={describedBy}
-        value={parts[key]}
-        onChange={(event) => update({ [key]: event.target.value })}
-        className={cn(SELECT, !parts[key] && 'text-text-tertiary')}
-      >
-        <option value="">{t(key)}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value} className="text-text-primary">
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <Icon icon={ChevronDown} size="sm" className="pointer-events-none absolute end-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
-    </div>
-  );
-
+  const year = cairoYear();
   return (
-    <div role="group" aria-labelledby={labelId} onBlur={handleBlur} className="grid grid-cols-[1fr_1.35fr_1.2fr] gap-2">
-      {segment(
-        'day',
-        Array.from({ length: 31 }, (_, index) => ({ value: String(index + 1).padStart(2, '0'), label: format.number(index + 1) })),
-        dayRef,
-        formItemId,
-      )}
-      {segment(
-        'month',
-        Array.from({ length: 12 }, (_, index) => ({
-          value: String(index + 1).padStart(2, '0'),
-          label: format.dateTime(new Date(Date.UTC(2000, index, 1)), { month: 'short', timeZone: 'UTC' }),
-        })),
-      )}
-      {segment(
-        'year',
-        // Newest first; 120 years back covers everyone (the app and the API set no age bound).
-        Array.from({ length: 121 }, (_, index) => ({ value: String(thisYear - index), label: format.number(thisYear - index, { useGrouping: false }) })),
-      )}
-    </div>
+    <DateField
+      id={formItemId}
+      value={value}
+      onChange={onChange}
+      onBlur={onBlur}
+      firstRef={dayRef}
+      labelledBy={labelId}
+      fromYear={year - 120}
+      toYear={year}
+      invalid={!!error}
+      describedBy={error ? formMessageId : undefined}
+    />
   );
 }
 
@@ -209,7 +133,6 @@ export function EssentialInfoStep({ account, onSaved, footnote }: EssentialInfoS
   const t = useTranslations('identity.personalInfoStep');
   const tValidation = useTranslations('identity.personalInfoStep.validation');
   const updatePersonalProfile = useUpdatePersonalProfile();
-  const nameId = useId();
   const dateLabelId = useId();
   const genderLabelId = useId();
   const countryId = useId();
@@ -244,30 +167,17 @@ export function EssentialInfoStep({ account, onSaved, footnote }: EssentialInfoS
         )}
 
         {/* Full name: account-owned, set at registration; read-only here and everywhere else in the app. */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor={nameId} className="text-sm font-semibold text-text-primary">
-            {t('fullName')}
-          </label>
-          <div className="relative">
-            <Input
-              id={nameId}
-              readOnly
-              value={account?.displayName ?? ''}
-              aria-describedby={`${nameId}-help`}
-              className="cursor-default border-border-default bg-surface-2 pe-9 text-text-secondary"
-            />
-            <Icon icon={Lock} size="sm" className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
-          </div>
-          <p id={`${nameId}-help`} className={HELP}>
-            {t.rich('fullNameHelp', {
-              support: (chunks) => (
-                <a href={`mailto:${env.supportEmail}`} className="font-medium text-text-primary underline underline-offset-2">
-                  {chunks}
-                </a>
-              ),
-            })}
-          </p>
-        </div>
+        <LockedField
+          label={t('fullName')}
+          value={account?.displayName ?? ''}
+          help={t.rich('fullNameHelp', {
+            support: (chunks) => (
+              <a href={`mailto:${env.supportEmail}`} className="font-medium text-text-primary underline underline-offset-2">
+                {chunks}
+              </a>
+            ),
+          })}
+        />
 
         <FormField
           control={form.control}

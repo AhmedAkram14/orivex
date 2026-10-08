@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { EssentialInfoStep } from '@/features/identity/components/essential-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
-import { FocusedHeader } from '@/features/journey/components/focused-header';
+import { FocusedPage } from '@/features/journey/components/focused-page';
 import { useRouter } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
@@ -42,21 +42,17 @@ export function PatientIntakeFlow() {
   );
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface-subtle">
-      <FocusedHeader />
-
-      <main className="mx-auto flex w-full max-w-130 flex-1 flex-col gap-4 sm:gap-6 sm:px-0 sm:pt-2 sm:pb-12">
+    <FocusedPage width="narrow" className="max-sm:px-0">
         <div className="flex flex-col gap-3 px-4 sm:gap-5 sm:px-0">
           <StepProgress
-            className="max-sm:hidden"
             label={t('progressLabel')}
+            compactLabel={t('stepOf', { current: 2, total: 2 })}
             currentIndex={1}
             steps={[
               { key: 'role', label: t('steps.role') },
               { key: 'details', label: t('steps.details') },
             ]}
           />
-          <p className="text-small font-semibold text-text-secondary sm:hidden">{t('stepOf', { current: 2, total: 2 })}</p>
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-[1.625rem]/8 font-bold text-text-primary sm:text-[2rem]/10">{t('title')}</h1>
             <p className="text-sm text-text-secondary sm:text-base">{t('subtitle')}</p>
@@ -81,7 +77,6 @@ export function PatientIntakeFlow() {
         </section>
 
         <div className="max-sm:hidden">{trustLine}</div>
-      </main>
-    </div>
+    </FocusedPage>
   );
 }

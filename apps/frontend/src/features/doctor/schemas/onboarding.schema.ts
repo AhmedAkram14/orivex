@@ -17,7 +17,7 @@ type Translate = (key: string, values?: Record<string, string | number | Date>) 
 // exactly (organizationName/position non-empty, startDate required,
 // endDate/description optional), plus a frontend-only endDate >= startDate
 // check the backend doesn't need to restate (it stores raw ISO dates).
-function createWorkExperienceEntrySchema(t: Translate) {
+export function createWorkExperienceEntrySchema(t: Translate) {
   return z
     .object({
       organizationName: z.string().min(1, t('workExperienceOrganizationRequired')),
@@ -63,3 +63,5 @@ export function createOnboardingProfileSchema(t: Translate) {
 }
 
 export type OnboardingProfileFormValues = z.infer<ReturnType<typeof createOnboardingProfileSchema>>;
+
+export type WorkExperienceEntryValues = z.infer<ReturnType<typeof createWorkExperienceEntrySchema>>;

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { http, HttpResponse } from 'msw';
@@ -9,7 +9,10 @@ import { OnboardingFlow } from './onboarding-flow';
 import { resetDoctorStore } from '@/mocks/doctor-store';
 import { resetIdentityStore } from '@/mocks/identity-store';
 import { server } from '@/mocks/server';
+import { AuthContext } from '@/shared/auth/auth-context';
+import type { AuthState } from '@/shared/auth/types';
 import { env } from '@/shared/lib/env';
+import { ThemeProvider } from '@/shared/providers/theme-provider';
 import enMessages from '../../../../../messages/en.json';
 
 vi.mock('next/navigation', () => ({
@@ -23,6 +26,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const base = () => env.apiBaseUrl;
+const now = () => new Date().toISOString();
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
@@ -32,284 +36,243 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+const authState: AuthState = {
+  status: 'authenticated',
+  user: { id: 'user-applicant', email: 'applicant@orivex.dev', fullName: 'Ahmed Akram', roles: ['patient'] },
+};
+
 function renderFlow() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
-        <OnboardingFlow />
+        <ThemeProvider>
+          <AuthContext.Provider value={authState}>
+            <OnboardingFlow />
+          </AuthContext.Provider>
+        </ThemeProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>,
   );
 }
 
+const noProfile = () =>
+  http.get(`${base()}/doctors/me`, () =>
+    HttpResponse.json({ error: { code: 'NOT_FOUND', message: 'not found', requestId: 'r', timestamp: now() } }, { status: 404 }),
+  );
+// A genuinely blank account (the shared mock seed has personal info filled in for other tests).
+const blankAccount = () =>
+  http.get(`${base()}/accounts/me`, () =>
+    HttpResponse.json({
+      data: { id: 'user-applicant', email: 'applicant@orivex.dev', role: 'patient', status: 'active', displayName: 'Ahmed Akram', preferredLanguage: 'en', createdAt: now(), updatedAt: now() },
+    }),
+  );
+const verifications = (status: string, reason?: string) =>
+  http.get(`${base()}/doctors/:id/verifications`, () =>
+    HttpResponse.json({ data: [{ id: 'case-1', doctorId: 'doctor-profile-1', status, reason, submittedAt: now(), decidedAt: status === 'under_review' ? null : now() }] }),
+  );
+
+type User = ReturnType<typeof userEvent.setup>;
+
+async function pickDate(user: User, scope: HTMLElement, { day, month, year }: { day?: string; month: string; year: string }) {
+  if (day) await user.selectOptions(within(scope).getByRole('combobox', { name: 'Day' }), day);
+  await user.selectOptions(within(scope).getByRole('combobox', { name: 'Month' }), month);
+  await user.selectOptions(within(scope).getByRole('combobox', { name: 'Year' }), year);
+}
+
+async function completePersonal(user: User) {
+  await pickDate(user, await screen.findByRole('group', { name: 'Date of birth' }), { day: '15', month: '06', year: '1985' });
+  await user.click(screen.getByRole('radio', { name: 'Female' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Nationality' }), 'country-eg');
+  await user.type(screen.getByRole('textbox', { name: 'Address' }), '12 Tahrir Street, Cairo');
+  await user.click(screen.getByRole('button', { name: 'Continue' }));
+}
+
+async function completeProfessional(user: User) {
+  await user.type(await screen.findByRole('textbox', { name: 'License number' }), 'LIC-9001');
+  await pickDate(user, screen.getByRole('group', { name: 'License expiry date' }), { day: '01', month: '01', year: '2031' });
+  await user.click(screen.getByRole('radio', { name: 'Registrar' }));
+  await user.click(screen.getByRole('combobox', { name: /Specialty/ }));
+  await user.click(await screen.findByRole('option', { name: /Dermatology/ }));
+  await user.click(screen.getByRole('checkbox', { name: 'English' }));
+  await user.click(screen.getByRole('button', { name: 'Continue' }));
+}
+
 describe('OnboardingFlow', () => {
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): the shared
-  // Personal Info step is now the wizard's leading step, ahead of
-  // Professional Info -- this is the explicit "resume at the right step
-  // still works with the new leading step inserted" regression the
-  // proposal calls for.
-  it('starts at the Personal Info step (Draft) when no doctor profile exists yet, then advances to Professional Info', async () => {
+  it('sends the same personal-info and profile bodies as before (dates YYYY-MM-DD, gender value, languages array, Independent Practice = no hospital)', async () => {
+    const user = userEvent.setup();
+    let personalBody: unknown;
+    let registerBody: unknown;
     server.use(
-      http.get(`${base()}/doctors/me`, () =>
-        HttpResponse.json(
-          { error: { code: 'NOT_FOUND', message: 'not found', requestId: 'r', timestamp: new Date().toISOString() } },
-          { status: 404 },
-        ),
-      ),
-      // This test exercises the genuinely-blank-personal-info scenario --
-      // `identity-store.ts`'s shared seed account now carries a filled-in
-      // dateOfBirth/gender/nationalityId/address (needed for Stage O.7's
-      // Patient Identity Verification tests), so it's overridden here back
-      // to unset, matching a real account that has never completed the
-      // shared Personal Info step yet.
-      http.get(`${base()}/accounts/me`, () =>
-        HttpResponse.json({
-          data: {
-            id: 'user-doctor-1',
-            email: 'doctor@orivex.dev',
-            role: 'doctor',
-            status: 'active',
-            displayName: 'Dr. Sarah Ahmed',
-            preferredLanguage: 'en',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        }),
-      ),
+      noProfile(),
+      blankAccount(),
+      http.patch(`${base()}/accounts/me`, async ({ request }) => {
+        personalBody = await request.json();
+        return HttpResponse.json({ data: { id: 'user-applicant', email: 'applicant@orivex.dev', role: 'patient', status: 'active', displayName: 'Ahmed Akram', preferredLanguage: 'en', createdAt: now(), updatedAt: now(), ...(personalBody as object) } });
+      }),
+      http.post(`${base()}/doctors`, async ({ request }) => {
+        registerBody = await request.json();
+        return HttpResponse.json({ data: { id: 'doctor-profile-new', accountId: 'user-applicant', ...(registerBody as object), workExperience: [], languages: ['en'], insuranceProviders: [] } }, { status: 201 });
+      }),
     );
-
     renderFlow();
 
-    expect(await screen.findByLabelText('Date of birth')).toBeInTheDocument();
-    expect(screen.queryByLabelText('License number')).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'License number' })).not.toBeInTheDocument();
+    await completePersonal(user);
+    await waitFor(() => expect(personalBody).toBeDefined());
+    expect(personalBody).toEqual({ dateOfBirth: '1985-06-15', gender: 'female', nationalityId: 'country-eg', address: '12 Tahrir Street, Cairo' });
 
-    await userEvent.type(screen.getByLabelText('Date of birth'), '1985-06-15');
-    await userEvent.click(screen.getByRole('combobox', { name: 'Gender' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Female' }));
-    await userEvent.click(screen.getByRole('combobox', { name: 'Nationality' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Egypt' }));
-    await userEvent.type(screen.getByLabelText('Address'), '12 Tahrir Street, Cairo');
-    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
+    await completeProfessional(user);
+    await waitFor(() => expect(registerBody).toBeDefined());
+    expect(registerBody).toEqual({
+      licenseNumber: 'LIC-9001',
+      specialtyId: 'specialty-dermatology',
+      languages: ['en'],
+      insuranceProviders: [],
+      professionalRank: 'registrar',
+      licenseExpiryDate: '2031-01-01',
+      workExperience: [],
+    });
 
-    expect(await screen.findByLabelText('License number')).toBeInTheDocument();
-  }, 15000);
-
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): the redesigned
-  // Professional Info step -- reference-data specialty dropdown,
-  // Professional Rank, License Expiry Date, and "Independent Practice"
-  // (no hospital/department required) all the way through to the
-  // redesigned 7-slot Documents step.
-  it('completes Personal Info then Professional Info (Independent Practice) and reaches the 7-slot Documents step', async () => {
-    server.use(
-      http.get(`${base()}/doctors/me`, () =>
-        HttpResponse.json(
-          { error: { code: 'NOT_FOUND', message: 'not found', requestId: 'r', timestamp: new Date().toISOString() } },
-          { status: 404 },
-        ),
-      ),
-      // See the previous test's comment: overridden back to a genuinely
-      // blank personal-info account, since `identity-store.ts`'s shared seed
-      // account now carries a filled-in dateOfBirth for Stage O.7's Patient
-      // Identity Verification tests.
-      http.get(`${base()}/accounts/me`, () =>
-        HttpResponse.json({
-          data: {
-            id: 'user-doctor-1',
-            email: 'doctor@orivex.dev',
-            role: 'doctor',
-            status: 'active',
-            displayName: 'Dr. Sarah Ahmed',
-            preferredLanguage: 'en',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        }),
-      ),
-    );
-
-    renderFlow();
-
-    await userEvent.type(await screen.findByLabelText('Date of birth'), '1985-06-15');
-    await userEvent.click(screen.getByRole('combobox', { name: 'Gender' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Female' }));
-    await userEvent.click(screen.getByRole('combobox', { name: 'Nationality' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Egypt' }));
-    await userEvent.type(screen.getByLabelText('Address'), '12 Tahrir Street, Cairo');
-    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
-
-    await userEvent.type(await screen.findByLabelText('License number'), 'LIC-9001');
-    await userEvent.click(screen.getByRole('combobox', { name: 'Specialty' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Dermatology' }));
-    await userEvent.click(screen.getByRole('combobox', { name: 'Professional rank' }));
-    await userEvent.click(await screen.findByRole('option', { name: 'Registrar' }));
-    await userEvent.type(screen.getByLabelText('License expiry date'), '2031-01-01');
-    await userEvent.click(screen.getByLabelText('English'));
-    // Hospital defaults to "Independent Practice" -- no department field
-    // should even render, so this is left untouched.
-    await userEvent.click(screen.getByRole('button', { name: 'Create profile and continue' }));
-
-    expect(await screen.findByText('National ID (front)')).toBeInTheDocument();
+    // The documents step, grouped, with the progress line.
+    expect(await screen.findByText('Upload 7 documents')).toBeInTheDocument();
+    expect(screen.getByText('0 of 7 uploaded')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Identity' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Qualifications' })).toBeInTheDocument();
     expect(screen.getByText('Professional membership card')).toBeInTheDocument();
-  }, 15000);
+  }, 30000);
 
-  it('resumes at the documents step (Draft) when a profile exists but nothing has been submitted', async () => {
+  it('keeps unsaved edits when going back, and the stepper navigates to completed steps', async () => {
+    const user = userEvent.setup();
+    server.use(noProfile(), blankAccount());
+    renderFlow();
+
+    await completePersonal(user);
+    await user.type(await screen.findByRole('textbox', { name: 'License number' }), 'LIC-77');
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+    // Back on step 1: what was entered is still there.
+    expect(await screen.findByRole('textbox', { name: 'Address' })).toHaveValue('12 Tahrir Street, Cairo');
+    // Step 2 isn't "completed" yet, so the stepper can't jump to it -- Continue does.
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByRole('textbox', { name: 'License number' })).toHaveValue('LIC-77');
+    // Completed steps are buttons.
+    await user.click(screen.getByRole('button', { name: /Personal Info/ }));
+    expect(await screen.findByRole('textbox', { name: 'Address' })).toHaveValue('12 Tahrir Street, Cairo');
+  }, 30000);
+
+  it('shows "Independent practice" once in the hospital list even when the data repeats it', async () => {
+    const user = userEvent.setup();
+    server.use(
+      noProfile(),
+      blankAccount(),
+      http.get(`${base()}/hospitals`, () =>
+        HttpResponse.json({
+          data: [
+            { id: 'h-1', name: 'Cairo International Hospital', address: 'Cairo', createdAt: now(), updatedAt: now() },
+            { id: 'h-1', name: 'Cairo International Hospital', address: 'Cairo', createdAt: now(), updatedAt: now() },
+            { id: 'h-ip', name: 'Independent Practice', address: '', createdAt: now(), updatedAt: now() },
+          ],
+        }),
+      ),
+    );
+    renderFlow();
+    await completePersonal(user);
+    await user.click(await screen.findByRole('combobox', { name: /Hospital/ }));
+    expect(await screen.findAllByRole('option', { name: /Independent practice/i })).toHaveLength(1);
+    expect(screen.getAllByRole('option', { name: 'Cairo International Hospital' })).toHaveLength(1);
+  }, 30000);
+
+  it('resumes at Documents for a draft profile, warns about the same file used twice, and guards Submit against a double click', async () => {
+    const user = userEvent.setup();
+    let submits = 0;
     server.use(
       http.get(`${base()}/doctors/:id/verifications`, () => HttpResponse.json({ data: [] })),
+      http.post(`${base()}/doctors/:id/verifications`, async () => {
+        submits += 1;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return HttpResponse.json({ data: { id: 'case-new', doctorId: 'doctor-profile-1', status: 'submitted', submittedAt: now(), decidedAt: null } }, { status: 201 });
+      }),
     );
+    const { container } = renderFlow();
 
+    expect(await screen.findByText('Upload 7 documents')).toBeInTheDocument();
+    const inputs = () => [...container.querySelectorAll<HTMLInputElement>('input[type="file"]:not([capture])')];
+    const file = (name: string) => new File(['%PDF-1.4 test'], name, { type: 'application/pdf' });
+
+    await user.upload(inputs()[0]!, file('id-front.pdf'));
+    expect(await screen.findByText('1 of 7 uploaded')).toBeInTheDocument();
+    // The same file for the next slot: a warning first, nothing uploaded until confirmed.
+    await user.upload(inputs()[1]!, file('id-front.pdf'));
+    expect(await screen.findByText('This looks like the same file you used for National ID (front). Upload the correct document.')).toBeInTheDocument();
+    expect(screen.getByText('1 of 7 uploaded')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Choose another file' }));
+
+    const names = ['id-back.pdf', 'selfie.pdf', 'license.pdf', 'graduation.pdf', 'board.pdf', 'membership.pdf'];
+    for (const [index, name] of names.entries()) {
+      await user.upload(inputs()[index + 1]!, file(name));
+      expect(await screen.findByText(`${index + 2} of 7 uploaded`)).toBeInTheDocument();
+    }
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    // Review: every section with Edit, and the documents.
+    expect(await screen.findByRole('heading', { name: 'About you' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'License' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Practice' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit License' })).toBeInTheDocument();
+    const submit = screen.getByRole('button', { name: 'Submit for verification' });
+    await user.dblClick(submit);
+    await waitFor(() => expect(submits).toBe(1));
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(submits).toBe(1);
+  }, 45000);
+
+  it('replaces the form with the status screen while a case is under review', async () => {
+    server.use(verifications('under_review'));
     renderFlow();
 
-    expect(await screen.findByText('National ID (front)')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Date of birth')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('License number')).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Application received' })).toBeInTheDocument();
+    expect(screen.getByText('Under review')).toBeInTheDocument();
+    expect(screen.getByText('Our team reviews your license and documents.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Go to dashboard' })).toHaveAttribute('href', '/en/patient');
+    expect(screen.queryByText('Upload 7 documents')).not.toBeInTheDocument();
+    // The header names the application's state, not a specialty.
+    expect(screen.getByText('Doctor application · Under review')).toBeInTheDocument();
   });
 
-  it('shows the Pending status and blocks the wizard when a verification is under review', async () => {
-    server.use(
-      http.get(`${base()}/doctors/:id/verifications`, () =>
-        HttpResponse.json({
-          data: [
-            {
-              id: 'case-1',
-              doctorId: 'doctor-profile-1',
-              status: 'under_review',
-              submittedAt: new Date().toISOString(),
-              decidedAt: null,
-            },
-          ],
-        }),
-      ),
-    );
-
-    renderFlow();
-
-    expect(await screen.findByText('Under review')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Your application is being reviewed. You will gain access to the Doctor Portal automatically once approved.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('National ID (front)')).not.toBeInTheDocument();
-  });
-
-  // Onboarding Redesign (2026-07-21 proposal, Stage O.6): MoreInfoNeeded
-  // gets its own friendlier copy now, distinct from Rejected's.
   it('shows the MoreInfoNeeded status with its own copy, distinct from Rejected', async () => {
-    server.use(
-      http.get(`${base()}/doctors/:id/verifications`, () =>
-        HttpResponse.json({
-          data: [
-            {
-              id: 'case-1',
-              doctorId: 'doctor-profile-1',
-              status: 'more_info_needed',
-              reason: 'Please upload a clearer photo of your medical license.',
-              submittedAt: new Date().toISOString(),
-              decidedAt: new Date().toISOString(),
-            },
-          ],
-        }),
-      ),
-    );
-
+    server.use(verifications('more_info_needed', 'Please upload a clearer photo of your medical license.'));
     renderFlow();
 
     expect(await screen.findByText('More info needed')).toBeInTheDocument();
-    expect(
-      screen.getByText('We need one more thing from you before we can continue reviewing your application.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('You can edit your profile and documents, then resubmit for review.'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('We need one more thing from you before we can continue reviewing your application.')).toBeInTheDocument();
+    expect(screen.queryByText('You can edit your profile and documents, then resubmit for review.')).not.toBeInTheDocument();
   });
 
-  it('shows the rejection reason and lets the applicant edit and resubmit', async () => {
-    server.use(
-      http.get(`${base()}/doctors/:id/verifications`, () =>
-        HttpResponse.json({
-          data: [
-            {
-              id: 'case-1',
-              doctorId: 'doctor-profile-1',
-              status: 'rejected',
-              reason: 'The submitted license number could not be verified.',
-              submittedAt: new Date().toISOString(),
-              decidedAt: new Date().toISOString(),
-            },
-          ],
-        }),
-      ),
-    );
-
-    renderFlow();
-
-    expect(await screen.findByText('Rejected')).toBeInTheDocument();
-    expect(screen.getByText('The submitted license number could not be verified.')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Edit and resubmit' }));
-
-    expect(await screen.findByLabelText('License number')).toBeInTheDocument();
-  });
-
-  // Regression: PATCH /doctors/me's real DTO never accepts licenseNumber
-  // (only registration sets it, once) and the global ValidationPipe's
-  // forbidNonWhitelisted rejects any extra field outright -- the license
-  // number field is disabled (not removed) during resubmit, so it was
-  // still riding along in the submitted form values.
-  it('never sends licenseNumber on the resubmit PATCH, even though the disabled field still carries a value', async () => {
-    server.use(
-      http.get(`${base()}/doctors/:id/verifications`, () =>
-        HttpResponse.json({
-          data: [
-            {
-              id: 'case-1',
-              doctorId: 'doctor-profile-1',
-              status: 'rejected',
-              reason: 'The submitted license number could not be verified.',
-              submittedAt: new Date().toISOString(),
-              decidedAt: new Date().toISOString(),
-            },
-          ],
-        }),
-      ),
-    );
+  it('shows the rejection reason; edit-and-resubmit reopens the form with the license number locked and never sends it on the PATCH', async () => {
+    const user = userEvent.setup();
     let patchBody: Record<string, unknown> | undefined;
     server.use(
+      verifications('rejected', 'The submitted license number could not be verified.'),
       http.patch(`${base()}/doctors/me`, async ({ request }) => {
         patchBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ data: { id: 'doctor-profile-1' } });
       }),
     );
-
     renderFlow();
-    await screen.findByText('Rejected');
-    await userEvent.click(screen.getByRole('button', { name: 'Edit and resubmit' }));
 
-    await screen.findByLabelText('License number');
-    await userEvent.click(screen.getByRole('button', { name: 'Save and continue' }));
+    expect(await screen.findByText('Rejected')).toBeInTheDocument();
+    expect(screen.getByText('The submitted license number could not be verified.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Edit and resubmit' }));
 
+    const license = await screen.findByRole('textbox', { name: 'License number' });
+    expect(license).toHaveAttribute('readonly');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(patchBody).toBeDefined());
     expect(patchBody).not.toHaveProperty('licenseNumber');
-  });
+  }, 30000);
 
   it('shows an approved message with a link to the Doctor Portal', async () => {
-    server.use(
-      http.get(`${base()}/doctors/:id/verifications`, () =>
-        HttpResponse.json({
-          data: [
-            {
-              id: 'case-1',
-              doctorId: 'doctor-profile-1',
-              status: 'approved',
-              submittedAt: new Date().toISOString(),
-              decidedAt: new Date().toISOString(),
-            },
-          ],
-        }),
-      ),
-    );
-
+    server.use(verifications('approved'));
     renderFlow();
 
     expect(await screen.findByText('Approved')).toBeInTheDocument();

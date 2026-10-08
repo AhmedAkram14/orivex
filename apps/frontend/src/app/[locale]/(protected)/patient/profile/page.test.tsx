@@ -72,10 +72,10 @@ describe('PatientProfilePage', () => {
     await screen.findByText('Amina Youssef');
 
     await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
-    expect(screen.getByLabelText('Date of birth')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Date of birth' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(await screen.findByText('Personal information')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Date of birth')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Date of birth' })).not.toBeInTheDocument();
   });
 });
