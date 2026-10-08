@@ -1,54 +1,87 @@
 'use client';
 
+import { ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
-import { Heading } from '@/design-system/typography';
 import { EssentialInfoStep } from '@/features/identity/components/essential-info-step';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
+import { FocusedHeader } from '@/features/journey/components/focused-header';
 import { useRouter } from '@/shared/i18n/navigation';
+import { Icon } from '@/shared/icons/icon';
 import { Alert } from '@/shared/ui/alert';
+import { Illustration } from '@/shared/ui/illustrations/illustration';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { StepProgress } from '@/shared/ui/step-progress';
 
 /**
- * Patient intake (product decision, 2026-09): one short step -- date of birth,
- * gender and phone, the only things booking truly needs -- before the
- * dashboard opens. Everything else (nationality, address, blood type,
- * allergies, chronic conditions, emergency contact, insurance) is an optional
- * nudge on the Overview; allergies are asked right before a first booking.
- * Supersedes the 2026-07-26 two-step Personal + Medical gate.
+ * Patient intake (product decision, 2026-09): one short step -- date of birth, gender and phone, the only things
+ * booking truly needs -- before the dashboard opens. Everything else (nationality, address, blood type, allergies,
+ * chronic conditions, emergency contact, insurance) is an optional nudge on the Overview; allergies are asked right
+ * before a first booking.
+ *
+ * A focused page like role selection (step 1 of the same flow): its own header, no sidebar, one card. No "Back":
+ * choosing "I'm a patient" already created the patient profile, and going back would not undo it (applying as a
+ * doctor stays one click away in the account menu).
  */
 export function PatientIntakeFlow() {
   const t = useTranslations('journey.intake');
-  const tFlow = useTranslations('profileFlow');
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: account, isLoading, isError } = useMyAccount();
-
-  if (isLoading) {
-    return (
-      <div className="mx-auto flex max-w-md flex-col gap-3 py-8">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (isError || !account) {
-    return <Alert variant="danger">{t('loadError')}</Alert>;
-  }
 
   async function handleSaved() {
     await queryClient.invalidateQueries({ queryKey: ['journey-status'] });
     router.push('/patient');
   }
 
+  const trustLine = (
+    <p className="flex items-start justify-center gap-1.5 text-center text-xs text-text-tertiary">
+      <Icon icon={ShieldCheck} size="xs" className="mt-px shrink-0" />
+      {t('trustLine')}
+    </p>
+  );
+
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 py-8">
-      <div className="flex flex-col gap-2 text-center">
-        <Heading as="h1" level={2}>{t('title')}</Heading>
-        <p className="text-text-secondary">{tFlow('intakeDescription')}</p>
-      </div>
-      <EssentialInfoStep account={account} onSaved={handleSaved} />
+    <div className="flex min-h-dvh flex-col bg-surface-subtle">
+      <FocusedHeader />
+
+      <main className="mx-auto flex w-full max-w-130 flex-1 flex-col gap-4 sm:gap-6 sm:px-0 sm:pt-2 sm:pb-12">
+        <div className="flex flex-col gap-3 px-4 sm:gap-5 sm:px-0">
+          <StepProgress
+            className="max-sm:hidden"
+            label={t('progressLabel')}
+            currentIndex={1}
+            steps={[
+              { key: 'role', label: t('steps.role') },
+              { key: 'details', label: t('steps.details') },
+            ]}
+          />
+          <p className="text-small font-semibold text-text-secondary sm:hidden">{t('stepOf', { current: 2, total: 2 })}</p>
+          <div className="flex flex-col gap-2">
+            <h1 className="font-display text-[1.625rem]/8 font-bold text-text-primary sm:text-[2rem]/10">{t('title')}</h1>
+            <p className="text-sm text-text-secondary sm:text-base">{t('subtitle')}</p>
+          </div>
+        </div>
+
+        {/* The card: full-bleed on a phone (its button pinned to the bottom), a bordered 520px card from sm. */}
+        <section className="flex flex-1 flex-col bg-surface px-4 pt-5 sm:flex-none sm:rounded-(--r-card) sm:border sm:border-border-default sm:p-8">
+          <Illustration name="id-check" size={72} className="mb-5 max-sm:hidden" />
+          {isLoading ? (
+            <div className="flex flex-col gap-5">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : isError || !account ? (
+            <Alert variant="danger">{t('loadError')}</Alert>
+          ) : (
+            <EssentialInfoStep account={account} onSaved={handleSaved} footnote={trustLine} />
+          )}
+        </section>
+
+        <div className="max-sm:hidden">{trustLine}</div>
+      </main>
     </div>
   );
 }

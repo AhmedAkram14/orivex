@@ -15,17 +15,21 @@ import { loginAs } from './support/login.js';
 // Browse screens directly, with the same real routing/accessibility-tree
 // rigor as every other spec in this suite.
 test.describe('Choose Your Journey', () => {
-  test('renders both journey cards and "Practice as a Doctor" routes into the Doctor Onboarding wizard', async ({
+  test('offers both roles as radio cards; choosing "I\'m a doctor" and Continue routes into the Doctor Onboarding wizard', async ({
     page,
   }) => {
     await loginAs(page, 'patient');
 
     await page.goto('/en/journey');
 
-    await expect(page.getByRole('heading', { name: "I'm a Patient" })).toBeVisible();
-    await expect(page.getByRole('heading', { name: "I'm a Doctor" })).toBeVisible();
+    await expect(page.getByRole('radio', { name: "I'm a patient" })).toBeVisible();
+    const doctor = page.getByRole('radio', { name: "I'm a doctor" });
+    await expect(doctor).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled();
 
-    await page.getByRole('button', { name: 'Apply as a Doctor' }).click();
+    await doctor.click();
+    await expect(doctor).toHaveAttribute('aria-checked', 'true');
+    await page.getByRole('button', { name: 'Continue as a doctor' }).click();
     await expect(page).toHaveURL(/\/en\/doctor\/onboarding$/);
   });
 });

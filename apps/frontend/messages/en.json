@@ -841,9 +841,17 @@
       "address": "Address",
       "phone": "Phone number",
       "phonePlaceholder": "+20 100 000 0000",
+      "fullNameHelp": "From your account. To change it, <support>contact support</support>.",
+      "day": "Day",
+      "month": "Month",
+      "year": "Year",
+      "phoneHelp": "Shared with the doctors you book with, so they can reach you.",
+      "phoneCountry": "Egypt (+20)",
       "saveAndContinue": "Save and continue",
       "validation": {
         "dateOfBirthRequired": "Date of birth is required.",
+        "dateOfBirthInvalid": "Enter a real date.",
+        "dateOfBirthFuture": "Date of birth can't be in the future.",
         "genderRequired": "Gender is required.",
         "nationalityRequired": "Nationality is required.",
         "addressRequired": "Address is required.",
@@ -2914,12 +2922,15 @@
     "choosePatientError": "Something went wrong setting up your account. Please try again.",
     "trustLine": "Your data is encrypted, and only authorized staff can see it.",
     "intake": {
-      "title": "Complete your profile",
-      "description": "Before you reach your dashboard, we need some basic and medical information about you.",
+      "title": "A few details before your first visit",
+      "subtitle": "We need these to book appointments. You can add the rest later from your profile.",
+      "progressLabel": "Your progress",
       "steps": {
-        "personal": "Personal Info",
-        "medical": "Medical Information"
+        "role": "Role",
+        "details": "Your details"
       },
+      "stepOf": "Step {current} of {total}",
+      "trustLine": "Only you, the doctors you book with and authorized ORIVEX staff can see these details.",
       "loadError": "Something went wrong loading your profile. Please try again."
     }
   },

@@ -1,23 +1,21 @@
 'use client';
 
-import { Check, Headphones, Info, ShieldCheck } from 'lucide-react';
+import { Check, Info, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useId, useRef, useState, type KeyboardEvent } from 'react';
 
 import { useChoosePatientJourney } from '@/features/journey/hooks/use-choose-patient-journey';
-import { UserMenu } from '@/features/shell/components/user-menu';
+import { FocusedHeader } from '@/features/journey/components/focused-header';
 import { useAuth } from '@/shared/auth/auth-context';
 import { useRouter } from '@/shared/i18n/navigation';
 import { useDirection } from '@/shared/i18n/use-direction';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
-import { env } from '@/shared/lib/env';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Illustration, type IllustrationKey } from '@/shared/ui/illustrations/illustration';
-import { Logo } from '@/shared/ui/logo';
 
 type JourneyIntent = 'patient' | 'doctor';
 
@@ -59,7 +57,6 @@ const ORDER: JourneyIntent[] = ['patient', 'doctor'];
  */
 export function JourneyScreen() {
   const t = useTranslations('journey');
-  const tCommon = useTranslations('common');
   const router = useRouter();
   const direction = useDirection();
   const { user } = useAuth();
@@ -104,24 +101,7 @@ export function JourneyScreen() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface-subtle">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
-        <div className="flex items-center gap-2 text-lg font-semibold text-text-primary">
-          <Logo size="sm" />
-          {tCommon('appName')}
-        </div>
-        <div className="flex items-center gap-6">
-          <a href={`mailto:${env.supportEmail}`} className="hidden items-center gap-2 sm:flex">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary-subtle text-text-secondary">
-              <Icon icon={Headphones} size="sm" />
-            </span>
-            <span className="flex flex-col text-sm">
-              <span className="text-text-secondary">{t('needHelp')}</span>
-              <span className="font-medium text-text-primary">{t('contactSupport')}</span>
-            </span>
-          </a>
-          <UserMenu showName />
-        </div>
-      </header>
+      <FocusedHeader />
 
       <main className="mx-auto flex w-full max-w-220 flex-1 flex-col items-center gap-5 px-4 pt-2 sm:justify-center sm:gap-6 sm:px-6 sm:pb-10">
         <div className="flex flex-col items-center gap-2 text-center sm:gap-3">
