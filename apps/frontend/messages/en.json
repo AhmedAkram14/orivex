@@ -2136,7 +2136,7 @@
       "bookAgainAction": "Book again with {doctor}",
       "nextVisitHelper": "Next: {date}",
       "unreadMessagesTitle": "Unread messages",
-      "activePrescriptionsEmptyInline": "No active prescriptions right now.",
+      "viewPastPrescriptions": "View past prescriptions",
       "needsAttention": {
         "title": "Needs your attention",
         "awaitingUpdate": "Awaiting an update from {doctor}",
@@ -2183,7 +2183,7 @@
       "upcomingAppointmentsEmptyDescription": "Book a visit with a doctor and it will appear here.",
       "activePrescriptionsTitle": "Active prescriptions",
       "activePrescriptionsEmptyTitle": "No active prescriptions",
-      "activePrescriptionsEmptyDescription": "Your active prescriptions will appear here once they are prescribed.",
+      "activePrescriptionsEmptyDescription": "Prescriptions from your doctors will appear here.",
       "summaryLoadError": "Couldn't load your health summary.",
       "upcomingAppointmentsLoadError": "Couldn't load your upcoming appointments.",
       "activePrescriptionsLoadError": "Couldn't load your active prescriptions.",
@@ -2199,17 +2199,6 @@
       "becomeADoctor": {
         "title": "Want to practice on Orivex?",
         "action": "Become a Doctor"
-      },
-      "quickActionsTitle": "Quick actions",
-      "quickActions": {
-        "bookAppointment": "Book appointment",
-        "viewProfile": "View profile",
-        "viewAppointments": "View appointments",
-        "browseDoctors": "Browse doctors",
-        "browseSpecialties": "Browse specialties",
-        "viewRecords": "View records",
-        "viewPrescriptions": "View prescriptions",
-        "becomeADoctor": "Become a Doctor"
       }
     },
     "doctors": {

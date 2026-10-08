@@ -7,9 +7,9 @@ import { getCairoNow } from '@/shared/lib/date/timezone';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
 import { AppointmentCard } from '@/shared/ui/appointments/appointment-card';
-import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { Link } from '@/shared/i18n/navigation';
+import { CardHeaderLink } from '@/features/patient/components/overview-list';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
@@ -40,18 +40,9 @@ export function UpcomingAppointmentsWidget() {
 
   return (
     <WidgetContainer
-      title={<span className="text-lg font-semibold">{t('upcomingAppointmentsTitle')}</span>}
+      title={<span className="text-h3">{t('upcomingAppointmentsTitle')}</span>}
       titleAs="h2"
-      className="rounded-3xl border-border-default shadow-sm"
-      actions={
-        <Button asChild variant="ghost" size="sm">
-          {/* A short visible label keeps the card title on one line; the sr-only title keeps the link's purpose. */}
-          <Link href="/patient/appointments">
-            {t('viewAll')}
-            <span className="sr-only"> {t('upcomingAppointmentsTitle')}</span>
-          </Link>
-        </Button>
-      }
+      actions={<CardHeaderLink href="/patient/appointments" label={t('viewAll')} context={t('upcomingAppointmentsTitle')} />}
     >
       {isError ? (
         <Alert variant="danger">

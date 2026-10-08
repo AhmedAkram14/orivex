@@ -23,7 +23,7 @@ interface SnapshotRow {
  * A row whose data source has nothing to show is omitted, and the whole card
  * disappears when every row is empty -- never a placeholder value.
  */
-export function HealthSnapshotCard() {
+export function HealthSnapshotCard({ className }: { className?: string }) {
   const t = useTranslations('patient.dashboard.snapshot');
   const format = useFormatter();
   const vitals = usePatientHealthDashboard();
@@ -32,7 +32,7 @@ export function HealthSnapshotCard() {
 
   if (vitals.isLoading || records.isLoading || profile.isLoading) {
     return (
-      <WidgetContainer title={<span className="text-lg font-semibold">{t('title')}</span>} titleAs="h2" className="rounded-3xl">
+      <WidgetContainer data-slot="health-snapshot" title={<span className="text-h3">{t('title')}</span>} titleAs="h2" className={className}>
         <div className="flex flex-col gap-2" aria-busy="true" aria-live="polite">
           <Skeleton className="h-5 w-3/4" />
           <Skeleton className="h-5 w-1/2" />
@@ -72,11 +72,7 @@ export function HealthSnapshotCard() {
   if (rows.length === 0) return null;
 
   return (
-    <WidgetContainer
-      title={<span className="text-lg font-semibold">{t('title')}</span>}
-      titleAs="h2"
-      className="rounded-3xl border-border-default shadow-sm"
-    >
+    <WidgetContainer data-slot="health-snapshot" title={<span className="text-h3">{t('title')}</span>} titleAs="h2" className={className}>
       <dl className="grid gap-3 @xl:grid-cols-2">
         {rows.map((row) => (
           <div key={row.id} className="flex flex-col gap-0.5">

@@ -2136,7 +2136,7 @@
       "bookAgainAction": "احجز مجددًا مع {doctor}",
       "nextVisitHelper": "التالي: {date}",
       "unreadMessagesTitle": "رسائل غير مقروءة",
-      "activePrescriptionsEmptyInline": "لا توجد وصفات نشطة حاليًا.",
+      "viewPastPrescriptions": "عرض الوصفات السابقة",
       "needsAttention": {
         "title": "يحتاج إلى انتباهك",
         "awaitingUpdate": "بانتظار تحديث من {doctor}",
@@ -2183,7 +2183,7 @@
       "upcomingAppointmentsEmptyDescription": "احجز موعدًا مع طبيب وسيظهر هنا.",
       "activePrescriptionsTitle": "الوصفات النشطة",
       "activePrescriptionsEmptyTitle": "لا توجد وصفات نشطة",
-      "activePrescriptionsEmptyDescription": "ستظهر وصفاتك النشطة هنا بمجرد صرفها.",
+      "activePrescriptionsEmptyDescription": "ستظهر هنا الوصفات التي يكتبها أطباؤك.",
       "summaryLoadError": "تعذّر تحميل ملخص صحتك.",
       "upcomingAppointmentsLoadError": "تعذّر تحميل مواعيدك القادمة.",
       "activePrescriptionsLoadError": "تعذّر تحميل وصفاتك النشطة.",
@@ -2199,17 +2199,6 @@
       "becomeADoctor": {
         "title": "هل تريد الممارسة على أوريفكس؟",
         "action": "كن طبيبًا"
-      },
-      "quickActionsTitle": "إجراءات سريعة",
-      "quickActions": {
-        "bookAppointment": "حجز موعد",
-        "viewProfile": "عرض الملف الشخصي",
-        "viewAppointments": "عرض المواعيد",
-        "browseDoctors": "تصفح الأطباء",
-        "browseSpecialties": "تصفح التخصصات",
-        "viewRecords": "عرض السجلات",
-        "viewPrescriptions": "عرض الوصفات",
-        "becomeADoctor": "كن طبيبًا"
       }
     },
     "doctors": {

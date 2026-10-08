@@ -1,12 +1,11 @@
 'use client';
 
+import { ClipboardList, Stethoscope } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { usePatientMedicalRecords } from '@/features/patient/hooks/use-patient-medical-records';
+import { CardHeaderLink, OverviewList, OverviewRow } from '@/features/patient/components/overview-list';
 import { Alert } from '@/shared/ui/alert';
-import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
 import { EmptyState } from '@/shared/ui/empty-state';
-import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
@@ -15,12 +14,13 @@ const MAX_ITEMS = 3;
 /**
  * The "My Health" dashboard's "Recent medical records" widget -- real
  * `GET /patients/me/medical-records` data (the source `/patient/records`
- * renders), newest few only. Each row shows a one-line preview of the
- * entry's own note and links to that entry on the Records page
- * (`?highlight=<id>` scrolls to and rings it). Only the real `visit` /
- * `condition` entry types the backend returns -- no invented categories.
+ * renders), newest few only. Each row shows the entry's own note (two lines
+ * at most) and links to that entry on the Records page (`?highlight=<id>`
+ * scrolls to and rings it). Only the real `visit` / `condition` entry types
+ * the backend returns -- no invented categories; the type is the row's glyph
+ * and the first word of its meta line.
  */
-export function RecentMedicalRecordsWidget() {
+export function RecentMedicalRecordsWidget({ className }: { className?: string }) {
   const t = useTranslations('patient.dashboard');
   const tRecords = useTranslations('patient.records');
   const tType = useTranslations('patient.records.type');
@@ -31,18 +31,10 @@ export function RecentMedicalRecordsWidget() {
 
   return (
     <WidgetContainer
-      title={<span className="text-lg font-semibold">{t('recentMedicalRecordsTitle')}</span>}
+      title={<span className="text-h3">{t('recentMedicalRecordsTitle')}</span>}
       titleAs="h2"
-      className="rounded-3xl border-border-default shadow-sm"
-      actions={
-        <Button asChild variant="ghost" size="sm">
-          {/* A short visible label keeps the card title on one line; the sr-only title keeps the link's purpose. */}
-          <Link href="/patient/records">
-            {t('viewAll')}
-            <span className="sr-only"> {t('recentMedicalRecordsTitle')}</span>
-          </Link>
-        </Button>
-      }
+      className={className}
+      actions={<CardHeaderLink href="/patient/records" label={t('viewAll')} context={t('recentMedicalRecordsTitle')} />}
     >
       {isError ? (
         <Alert variant="danger">
@@ -53,32 +45,26 @@ export function RecentMedicalRecordsWidget() {
         </Alert>
       ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
         </div>
       ) : recent.length > 0 ? (
-        <ul className="flex flex-col divide-y divide-border-default">
+        <OverviewList>
           {recent.map((entry) => (
-            <li key={entry.id}>
-              <Link
-                href={`/patient/records?highlight=${entry.id}`}
-                className="flex flex-col gap-1 rounded-md py-3 transition-colors hover:bg-secondary-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
-              >
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-text-primary">{entry.title}</span>
-                  <Badge variant={entry.type === 'visit' ? 'info' : 'neutral'}>{tType(entry.type)}</Badge>
-                </span>
-                {entry.description && <span className="line-clamp-1 text-sm text-text-secondary">{entry.description}</span>}
-                <span className="text-xs text-text-tertiary">
-                  {format.dateTime(new Date(entry.date), { year: 'numeric', month: 'short', day: 'numeric' })}
-                  {entry.doctorName && <span> · {entry.doctorName}</span>}
-                </span>
-              </Link>
-            </li>
+            <OverviewRow
+              key={entry.id}
+              href={`/patient/records?highlight=${entry.id}`}
+              icon={entry.type === 'visit' ? Stethoscope : ClipboardList}
+              title={entry.title}
+              body={entry.description}
+              meta={[tType(entry.type), format.dateTime(new Date(entry.date), { year: 'numeric', month: 'short', day: 'numeric' }), entry.doctorName]
+                .filter(Boolean)
+                .join(' · ')}
+            />
           ))}
-        </ul>
+        </OverviewList>
       ) : (
-        <EmptyState illustration="records-start" size="sm" className="py-6" title={t('recentMedicalRecordsEmptyTitle')} description={t('recentMedicalRecordsEmptyDescription')} />
+        <EmptyState illustration="records-start" size="sm" title={t('recentMedicalRecordsEmptyTitle')} description={t('recentMedicalRecordsEmptyDescription')} />
       )}
     </WidgetContainer>
   );

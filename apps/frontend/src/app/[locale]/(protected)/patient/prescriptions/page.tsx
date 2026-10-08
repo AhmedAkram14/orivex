@@ -1,6 +1,7 @@
 'use client';
 
 import { Printer } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
@@ -31,6 +32,8 @@ import { WorkspaceHeader } from '@/shared/ui/layout/workspace-header';
 export default function PatientPrescriptionsPage() {
   const t = useTranslations('patient.prescriptions');
   const { data: prescriptions, isLoading, isError } = usePatientPrescriptions();
+  // `?tab=previous` opens on the Previous tab (the Overview's "View past prescriptions" link).
+  const initialTab = useSearchParams().get('tab') === 'previous' ? 'previous' : 'active';
 
   const all = useMemo(() => prescriptions ?? [], [prescriptions]);
   const active = useMemo(() => all.filter((p) => p.status === 'active'), [all]);
@@ -59,7 +62,7 @@ export default function PatientPrescriptionsPage() {
             <Skeleton className="h-24 w-full" />
           </div>
         ) : (
-          <Tabs defaultValue="active">
+          <Tabs defaultValue={initialTab}>
             <TabsList>
               <TabsTrigger value="active">{t('activeTab')}</TabsTrigger>
               <TabsTrigger value="previous">{t('previousTab')}</TabsTrigger>

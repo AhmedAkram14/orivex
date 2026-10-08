@@ -4,10 +4,10 @@ import { Pill } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { usePatientActivePrescriptions } from '@/features/patient/hooks/use-patient-active-prescriptions';
 import type { ActivePrescriptionPreview } from '@/features/patient/api/types';
+import { CardHeaderLink, OverviewList, OverviewRow } from '@/features/patient/components/overview-list';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
-import { Icon } from '@/shared/icons/icon';
+import { EmptyState } from '@/shared/ui/empty-state';
 import { Link } from '@/shared/i18n/navigation';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetContainer } from '@/shared/ui/layout/widget-container';
@@ -23,26 +23,17 @@ function StatusBadge({ status }: { status: ActivePrescriptionPreview['status'] }
   return <Badge variant={badgeVariantByStatus[status]}>{t(status)}</Badge>;
 }
 
-/** The redesigned "My Health" dashboard's "Active Prescriptions" widget — a lightweight preview list (medication name, dosage, prescriber, status), the most recent few only, with a "View prescriptions" link to the full page. Empty today since no Clinical module is wired into the frontend yet. */
-export function ActivePrescriptionsWidget() {
+export function ActivePrescriptionsWidget({ className }: { className?: string }) {
   const t = useTranslations('patient.dashboard');
   const { data: items, isLoading, isError, refetch } = usePatientActivePrescriptions();
   const recent = (items ?? []).slice(0, MAX_ITEMS);
 
   return (
     <WidgetContainer
-      title={<span className="text-lg font-semibold">{t('activePrescriptionsTitle')}</span>}
+      title={<span className="text-h3">{t('activePrescriptionsTitle')}</span>}
       titleAs="h2"
-      className="rounded-3xl border-border-default shadow-sm"
-      actions={
-        <Button asChild variant="ghost" size="sm">
-          {/* A short visible label keeps the card title on one line; the sr-only title keeps the link's purpose. */}
-          <Link href="/patient/prescriptions">
-            {t('viewAll')}
-            <span className="sr-only"> {t('activePrescriptionsTitle')}</span>
-          </Link>
-        </Button>
-      }
+      className={className}
+      actions={<CardHeaderLink href="/patient/prescriptions" label={t('viewAll')} context={t('activePrescriptionsTitle')} />}
     >
       {isError ? (
         <Alert variant="danger">
@@ -53,28 +44,31 @@ export function ActivePrescriptionsWidget() {
         </Alert>
       ) : isLoading ? (
         <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
         </div>
       ) : recent.length > 0 ? (
-        <ul className="flex flex-col gap-3">
+        <OverviewList>
           {recent.map((item) => (
-            <li key={item.id} className="flex items-center gap-3 rounded-xl border border-border-default/70 p-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-success-subtle text-success-emphasis">
-                <Icon icon={Pill} size="sm" />
-              </div>
-              <div className="flex flex-1 flex-col gap-0.5">
-                <p className="text-sm font-medium text-text-primary">{item.medicationName}</p>
-                <p className="text-sm text-text-secondary">{item.dosageLabel}</p>
-                <p className="text-xs text-text-tertiary">{t('prescribedBy', { name: item.prescribedBy })}</p>
-              </div>
-              <StatusBadge status={item.status} />
-            </li>
+            <OverviewRow key={item.id} icon={Pill} title={item.medicationName} body={item.dosageLabel} trailing={<StatusBadge status={item.status} />} />
           ))}
-        </ul>
+        </OverviewList>
       ) : (
-        // Compact single line -- the empty card used to take ~480px for no content.
-        <p className="text-sm text-text-secondary">{t('activePrescriptionsEmptyInline')}</p>
+        <EmptyState
+          illustration="prescription-none"
+          size="sm"
+          title={t('activePrescriptionsEmptyTitle')}
+          description={t('activePrescriptionsEmptyDescription')}
+          // A quiet link, not a button: the Prescriptions page's Previous tab, for anything that has ended.
+          action={
+            <Link
+              href="/patient/prescriptions?tab=previous"
+              className="rounded-sm text-sm font-medium text-care-text underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+            >
+              {t('viewPastPrescriptions')}
+            </Link>
+          }
+        />
       )}
     </WidgetContainer>
   );

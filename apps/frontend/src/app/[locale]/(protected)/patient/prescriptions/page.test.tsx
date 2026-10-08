@@ -11,11 +11,13 @@ import { AuthContext } from '@/shared/auth/auth-context';
 import type { AuthState } from '@/shared/auth/types';
 import enMessages from '../../../../../../messages/en.json';
 
+let searchParams = new URLSearchParams();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), forward: vi.fn() }),
   usePathname: () => '/patient/prescriptions',
   useParams: () => ({ locale: 'en' }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => searchParams,
   redirect: vi.fn(),
   permanentRedirect: vi.fn(),
   RedirectType: { push: 'push', replace: 'replace' },
@@ -36,6 +38,7 @@ beforeEach(() => {
 
 afterEach(() => {
   resetPatientStore();
+  searchParams = new URLSearchParams();
 });
 
 function renderPage() {
@@ -69,6 +72,14 @@ describe('PatientPrescriptionsPage', () => {
 
     expect(screen.getByRole('tab', { name: 'Active' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Previous' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Active' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('opens on the Previous tab from ?tab=previous (the Overview link to past prescriptions)', async () => {
+    searchParams = new URLSearchParams('tab=previous');
+    renderPage();
+
+    expect(await screen.findByRole('tab', { name: 'Previous' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('renders real prescription data with KPI counts and status badges', async () => {

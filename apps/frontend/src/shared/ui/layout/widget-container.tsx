@@ -35,7 +35,9 @@ export function WidgetContainer({
     <Card className={cn('flex flex-col', className)} {...props}>
       {(title || actions) && (
         // Title and action never squeeze each other: the title may balance onto two lines, the action never wraps.
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+        // The header -> content distance is `--card-head-gap` where an area sets one (the patient Overview's
+        // cards: 16px), and the card's own padding otherwise.
+        <CardHeader data-slot="widget-header" className="flex-row items-center justify-between gap-3 space-y-0 pb-[var(--card-head-gap,var(--card-pad))]">
           {/* At least an action's height (a small button), so a header without one is as tall as a header with one. */}
           <div className="flex min-h-8 min-w-0 flex-col justify-center gap-1">
             {title && <CardTitle as={titleAs} className="text-base text-balance">{title}</CardTitle>}
@@ -46,6 +48,7 @@ export function WidgetContainer({
       )}
       {/* A scrolling content slot must be keyboard-reachable (WCAG 2.1.1 / axe scrollable-region-focusable): without a tab stop a keyboard user can't scroll it. */}
       <CardContent
+        data-slot="widget-content"
         className={cn('flex-1', footer && 'pb-2', isScrollable && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring', contentClassName)}
         {...(isScrollable ? { tabIndex: 0, ...(typeof title === 'string' ? { role: 'region', 'aria-label': title } : {}) } : {})}
       >

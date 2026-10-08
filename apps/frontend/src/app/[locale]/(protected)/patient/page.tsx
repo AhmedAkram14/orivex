@@ -1,14 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTranslations } from 'next-intl';
 import { ActivePrescriptionsWidget } from '@/features/patient/components/active-prescriptions-widget';
 import { HealthSnapshotCard } from '@/features/patient/components/health-snapshot-card';
 import { NeedsAttentionCard } from '@/features/patient/components/needs-attention-card';
 import { NextAppointmentCard } from '@/features/patient/components/next-appointment-card';
 import { ProfileNudgeCard } from '@/features/patient/components/profile-nudge-card';
 import { PatientSummaryStrip } from '@/features/patient/components/patient-summary-strip';
-import { PatientQuickActions } from '@/features/patient/components/patient-quick-actions';
 import { RecentActivity } from '@/features/patient/components/recent-activity';
 import { RecentMedicalRecordsWidget } from '@/features/patient/components/recent-medical-records-widget';
 import { UpcomingAppointmentsWidget } from '@/features/patient/components/upcoming-appointments-widget';
@@ -17,30 +15,41 @@ import { useJourneyStatus } from '@/features/journey/hooks/use-journey-status';
 import { RequireRole } from '@/shared/auth/require-role';
 import { useRouter } from '@/shared/i18n/navigation';
 import { HeroSurface } from '@/shared/ui/hero-surface';
-import { DashboardGrid, DashboardGroup, Page } from '@/shared/ui/layout/page';
+import { DashboardGroup, Page } from '@/shared/ui/layout/page';
 import { RouteLoadingSkeleton } from '@/shared/ui/layout/route-loading-skeleton';
-import { WidgetContainer } from '@/shared/ui/layout/widget-container';
+import { cn } from '@/shared/lib/cn';
 
 /**
  * The Patient Portal's dashboard -- reachable only by the `patient` role.
  * ONE patient HeroSurface (the greeting is the page's h1) carrying the
  * patient's next step (their next appointment, or a Book CTA); then the
- * needs-attention list (only when non-empty), ONE MetricStrip, and widgets
- * that size to their content (`items-start`, so a short card never stretches
- * to a tall neighbour and sits half-empty). Every widget composes an existing
- * real hook.
+ * needs-attention list (only when non-empty), ONE MetricStrip and the upcoming
+ * appointments; then the card area. Every widget composes an existing real hook.
  *
- * Three groups, `--group-gap` apart; cards inside a group `--card-gap` apart
- * on both axes. The activity feed (the tallest list) stands beside a column of
- * prescriptions and quick actions, so the two sides end near the same line,
- * and the records list takes the full width below.
+ * Three blocks, `--group-gap` apart; inside the card area every gap, across and
+ * down, is `--card-gap`. From 1024px the area is a grid: Health snapshot across
+ * the top (when there is anything to show), then Active prescriptions over
+ * Recent medical records beside Recent activity. The rows stretch, so both
+ * columns end on the same line: the records card takes the space the left
+ * column has left over. Below 1024px it is one column in reading order.
+ * Quick actions are not on this page: booking is the hero's call to action and
+ * the sidebar's Browse Doctors, and records and prescriptions are these cards'
+ * own "View all" links and their sidebar entries.
  *
  * Profile-completion gate: an incomplete `PatientProfile` is redirected to
  * `/patient/intake` -- but only for the three things booking needs (date of
  * birth, gender, phone); the rest is the optional ProfileNudgeCard.
  */
+// One card style for the area: 16px from each header to its content, 20px card padding on phones.
+// Health snapshot renders nothing when there is nothing to show, so its row exists only while it does
+// (an empty grid row would still add a gap).
+const OVERVIEW_CARDS = cn(
+  'grid grid-cols-1 gap-(--card-gap) [--card-head-gap:16px] max-sm:[--card-pad:20px]',
+  "lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:[grid-template-areas:'rx_activity'_'records_activity']",
+  "lg:has-[>[data-slot=health-snapshot]]:grid-rows-[auto_auto_1fr] lg:has-[>[data-slot=health-snapshot]]:[grid-template-areas:'snapshot_snapshot'_'rx_activity'_'records_activity']",
+);
+
 export default function PatientDashboardPage() {
-  const t = useTranslations('patient.dashboard');
   const router = useRouter();
   const journeyStatus = useJourneyStatus();
   const { needsPatientIntake } = journeyStatus.data ?? {};
@@ -68,25 +77,16 @@ export default function PatientDashboardPage() {
           <NeedsAttentionCard />
           <PatientSummaryStrip />
           <ProfileNudgeCard />
-          <HealthSnapshotCard />
-        </DashboardGroup>
-
-        {/* The widgets. */}
-        <DashboardGroup>
           <UpcomingAppointmentsWidget />
-
-          <DashboardGrid columns={2}>
-            <DashboardGroup>
-              <ActivePrescriptionsWidget />
-              <WidgetContainer title={<span className="text-h3">{t('quickActionsTitle')}</span>} titleAs="h2">
-                <PatientQuickActions />
-              </WidgetContainer>
-            </DashboardGroup>
-            <RecentActivity />
-          </DashboardGrid>
-
-          <RecentMedicalRecordsWidget />
         </DashboardGroup>
+
+        {/* The card area: DOM order is the one-column reading order (snapshot, prescriptions, activity, records). */}
+        <div data-slot="overview-cards" className={OVERVIEW_CARDS}>
+          <HealthSnapshotCard className="lg:[grid-area:snapshot]" />
+          <ActivePrescriptionsWidget className="lg:[grid-area:rx]" />
+          <RecentActivity className="lg:[grid-area:activity]" />
+          <RecentMedicalRecordsWidget className="lg:[grid-area:records]" />
+        </div>
       </Page>
     </RequireRole>
   );

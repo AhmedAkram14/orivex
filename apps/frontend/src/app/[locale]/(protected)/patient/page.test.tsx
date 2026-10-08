@@ -76,7 +76,10 @@ describe('PatientDashboardPage', () => {
     expect(await screen.findByText(/Amina/)).toBeInTheDocument();
     expect(await screen.findByText("Here's what's happening with your health today.")).toBeInTheDocument();
     expect(await screen.findByText('No upcoming appointments')).toBeInTheDocument();
-    expect(await screen.findByText('No active prescriptions right now.')).toBeInTheDocument();
+    expect(await screen.findByText('No active prescriptions')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View past prescriptions' })).toHaveAttribute('href', '/en/patient/prescriptions?tab=previous');
+    // No Quick actions card: booking is the hero's call to action, records and prescriptions are the cards' own links.
+    expect(screen.queryByRole('heading', { name: 'Quick actions' })).not.toBeInTheDocument();
     // The hero's empty state is the only one: no second, empty "Upcoming appointments" card below it.
     expect(screen.queryByText('No appointments scheduled yet')).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Upcoming appointments' })).not.toBeInTheDocument();
@@ -133,7 +136,7 @@ describe('PatientDashboardPage', () => {
 
     const bookAgain = await screen.findByRole('link', { name: 'Book again with Dr. Dalia Anwar' });
     expect(bookAgain).toHaveAttribute('href', '/en/patient/appointments/book?doctorId=doctor-1');
-    // The hero's primary CTA and the quick action both go to the doctor directory, never the dead-end booking page.
+    // The hero's primary CTA goes to the doctor directory, never the dead-end booking page.
     const bookLinks = screen.getAllByRole('link', { name: 'Book appointment' });
     expect(bookLinks.length).toBeGreaterThan(0);
     for (const link of bookLinks) expect(link).toHaveAttribute('href', '/en/patient/doctors');
