@@ -181,3 +181,30 @@ In `docs/redesign/doctor-application/`.
 
 - **before/:** each step at 1150×674 EN light and 390×844 AR dark (personal, professional, documents, documents uploaded, review, patient verification).
 - **after/:** the same steps plus the open specialty list and the submitted status, at 1440 EN light, 1150 EN light and 390 AR dark.
+
+## Phase B: the same controls in every app form
+
+You asked for every form in the app to match. The scope was data-entry forms. List filters and sort controls (admin queues, the doctor directory, analytics) stay dropdowns, which is the right control in a toolbar.
+
+| Form | Before | Now |
+|---|---|---|
+| Doctor Profile editor (`/doctor/profile`, Edit) | Native dates in work experience; dropdowns; bare number inputs; inline experience cards | **The same controls as application step 2**, now one shared module (`features/doctor/components/profile-fields.tsx`) used by both: specialty combobox with glyph, years stepper, EGP fee, deduplicated hospital and department, language chips, insurance tokens, work experience in the dialog. Publications and awards stay inline text rows. Save and Cancel in the sticky action bar |
+| Time off (Schedule) | Native date; a 3-option dropdown | `DateField`; **Vacation / Unavailable / Extra hours** as a radio group. A half-picked date reads "Select a date." |
+| Waitlist join dialog | Two native dates; a 3-option dropdown without a visible label | `DateField` × 2; **Any / Free / Paid** as a labelled radio group. Join waits for complete dates |
+| Consultation workspace | Certainty dropdown and follow-up date, neither labelled | Both labelled. **Suspected / Confirmed / Ruled out** as a radio group; the optional follow-up date as a `DateField` (Save waits if it is half-picked) |
+| Knowledge article composer | A 2-option language dropdown | **Arabic / English** radio group |
+| Health passport entry | Native date | `DateField` (optional; Add waits if it is half-picked) |
+| Date-range filters: Earnings/Reports custom range, login history, admin analytics | Native `mm/dd/yyyy` inputs | `DateField` pairs. A filter changes only once a date is complete (`filterDate`); emptying it clears the filter |
+
+- **No native date input is left in the app.**
+- **New shared pieces:**
+  - `FormDateField` and `FormChoice` (`shared/ui/form-controls.tsx`) wire `DateField` and the radio `SegmentedControl` into any form field;
+  - `filterDate` handles filter dates.
+- **Bodies are unchanged:** every date is still `YYYY-MM-DD` (or the same ISO conversion as before), and every choice keeps its values.
+- **Verification:**
+  - typecheck clean;
+  - lint 0 errors;
+  - unit tests 960/960. Tests that drove the old controls were updated: the range pickers, analytics filters, knowledge, reports, schedule, waitlist and doctor profile;
+  - production build OK;
+  - a browser check (mock mode) of the time-off dialog, the profile editor and its experience dialog, the Earnings range, the patient profile editor, login history and admin analytics, in EN light 1440 and AR dark 390: no native date inputs, no sideways scroll, no axe violations;
+  - the waitlist dialog couldn't be opened in the browser because the mock patient has no eligible doctor, so it is covered by its unit tests.
