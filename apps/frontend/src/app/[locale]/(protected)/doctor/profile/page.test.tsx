@@ -106,11 +106,10 @@ describe('DoctorProfilePage', () => {
     expect(screen.getByText('Experience')).toBeInTheDocument();
     expect(screen.queryByText('doctor.profile.experience')).not.toBeInTheDocument();
 
-    // The seeded work-experience entries (doctor-store.ts) are now editable
-    // here too, not just at onboarding. "Cairo University Hospitals" matches
-    // twice -- it's also the seeded award's issuingBody, now editable below.
-    expect(screen.getAllByDisplayValue('Cairo University Hospitals').length).toBeGreaterThan(0);
-    expect(screen.getByDisplayValue('Ain Shams University Hospital')).toBeInTheDocument();
+    // The seeded work-experience entries (doctor-store.ts) are listed with Edit / Remove (edited in a dialog, the
+    // same editor the doctor application uses).
+    expect(screen.getByRole('button', { name: 'Edit Cairo University Hospitals' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edit Ain Shams University Hospital' })).toBeInTheDocument();
 
     // Publications/Awards are now editable here too -- the read view's "Add
     // Publication"/"Add Award" empty-state actions open this same edit mode.
@@ -127,10 +126,8 @@ describe('DoctorProfilePage', () => {
     // The seeded mock doctor's languages are the real ['en', 'ar'] codes
     // (doctor-store.ts) -- both checkboxes must reflect that on mount, not
     // render unchecked despite the profile genuinely having both set.
-    const arabicCheckbox = screen.getByRole('checkbox', { name: 'Arabic' });
-    const englishCheckbox = screen.getByRole('checkbox', { name: 'English' });
-    expect(arabicCheckbox).toHaveAttribute('aria-checked', 'true');
-    expect(englishCheckbox).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('checkbox', { name: 'Arabic' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'English' })).toBeChecked();
   });
 
   it('unchecking "I currently work here" stays unchecked and reveals a real end-date input (regression: falsy-string bug)', async () => {
@@ -140,18 +137,18 @@ describe('DoctorProfilePage', () => {
 
     await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
 
-    // The seeded ongoing entry ("Cairo University Hospitals", no endDate)
-    // starts checked; unchecking it must NOT immediately flip back to
-    // checked (the bug: setting endDate to '' as a placeholder made
-    // `!endDate` falsely true again since '' is falsy in JS).
-    const checkboxes = screen.getAllByRole('checkbox', { name: 'I currently work here' });
-    const firstCheckbox = checkboxes[0];
-    expect(firstCheckbox).toHaveAttribute('data-state', 'checked');
+    // The seeded ongoing entry ("Cairo University Hospitals", no endDate) opens with "I currently work here"
+    // checked; unchecking it must stay unchecked and reveal the end date.
+    await user.click(screen.getByRole('button', { name: 'Edit Cairo University Hospitals' }));
+    const dialog = await screen.findByRole('dialog');
+    const current = within(dialog).getByRole('checkbox', { name: 'I currently work here' });
+    expect(current).toHaveAttribute('data-state', 'checked');
+    expect(within(dialog).queryByRole('group', { name: 'End date' })).not.toBeInTheDocument();
 
-    await user.click(firstCheckbox);
+    await user.click(current);
 
-    expect(firstCheckbox).toHaveAttribute('data-state', 'unchecked');
-    expect(screen.getAllByLabelText('End date').length).toBeGreaterThan(0);
+    expect(current).toHaveAttribute('data-state', 'unchecked');
+    expect(within(dialog).getByRole('group', { name: 'End date' })).toBeInTheDocument();
   });
 
   it('edit mode now lets a doctor change their consultation fee, hospital, and insurance providers -- previously view-only fields with no way to edit them from this page', async () => {
@@ -185,14 +182,12 @@ describe('DoctorProfilePage', () => {
     await screen.findAllByText('Dr. Sarah Ahmed');
     await userEvent.click(screen.getAllByRole('button', { name: /Edit profile/ })[0]);
 
-    const before = screen.getAllByDisplayValue('Cairo University Hospitals').length;
-
-    await userEvent.click(screen.getAllByRole('button', { name: 'Remove work experience entry' })[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Cairo University Hospitals' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent('Remove this work experience entry?');
+    expect(dialog).toHaveTextContent('Remove this experience?');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
-    expect(screen.getAllByDisplayValue('Cairo University Hospitals').length).toBe(before);
+    expect(screen.getByRole('button', { name: 'Edit Cairo University Hospitals' })).toBeInTheDocument();
   });
 });

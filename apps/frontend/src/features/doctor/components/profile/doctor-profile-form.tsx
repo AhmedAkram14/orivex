@@ -1,49 +1,59 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2, X } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
-import { useState } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { CircleAlert, Plus, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useId, useState, type ReactNode } from 'react';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import type { DoctorProfile } from '@/features/doctor/api/types';
-import { useDepartmentsList } from '@/features/doctor/hooks/use-departments-list';
-import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
-import { useUpdateDoctorProfile } from '@/features/doctor/hooks/use-update-doctor-profile';
 import {
-  createDoctorProfileSchema,
-  type DoctorProfileFormValues,
-} from '@/features/doctor/schemas/profile.schema';
-import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
+  DepartmentCombobox,
+  FeeInput,
+  HospitalCombobox,
+  InsuranceTokens,
+  LanguageChips,
+  SpecialtyCombobox,
+  WorkExperienceEditor,
+  YearsStepper,
+} from '@/features/doctor/components/profile-fields';
+import { useUpdateDoctorProfile } from '@/features/doctor/hooks/use-update-doctor-profile';
+import { createDoctorProfileSchema, type DoctorProfileFormValues } from '@/features/doctor/schemas/profile.schema';
 import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard';
 import { ApiError } from '@/shared/lib/api/client';
-import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Icon } from '@/shared/icons/icon';
+import { ActionBar } from '@/shared/ui/action-bar';
 import { Alert } from '@/shared/ui/alert';
-import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Checkbox } from '@/shared/ui/checkbox';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/shared/ui/form';
 import { Input } from '@/shared/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Textarea } from '@/shared/ui/textarea';
 
-const SUPPORTED_LANGUAGES = ['en', 'ar'] as const;
-const PROFESSIONAL_RANKS = ['resident', 'registrar', 'specialist', 'consultant', 'professor'] as const;
 const MAX_WORK_EXPERIENCE_ENTRIES = 10;
 const MAX_PUBLICATION_ENTRIES = 20;
 const MAX_AWARD_ENTRIES = 20;
-// Doctor Onboarding's hospital dropdown needs an explicit "Independent
-// Practice" option alongside real hospitals -- a Select item can't carry an
-// empty-string value, so this sentinel maps to `hospitalId: undefined` at
-// the form-state level (see onValueChange below). Mirrors ProfileStep's own
-// identical sentinel exactly.
-const INDEPENDENT_PRACTICE_VALUE = '__independent_practice__';
 
 export interface DoctorProfileFormProps {
   profile: DoctorProfile;
   onSaved: () => void;
   onCancel: () => void;
+}
+
+const errorIcon = <Icon icon={CircleAlert} size="xs" className="mt-px shrink-0" />;
+
+function Group({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+  const id = useId();
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-5 rounded-(--r-card) border border-border-default bg-surface p-5 sm:p-6">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id={id} className="text-small font-semibold text-text-secondary">
+          {title}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
 }
 
 /**
@@ -52,29 +62,24 @@ export interface DoctorProfileFormProps {
  * years of experience, languages, consultation fee, hospital/department
  * affiliation, insurance providers, and the work-experience/publications/
  * awards lists. Identity fields (`fullName`, `email`, `phoneNumber`) are
- * Account-owned (Identity has no update-profile endpoint yet) and
- * `licenseNumber` is excluded on purpose (the backend's update DTO never
- * accepts it -- only set once at registration) — mirrors
- * `PatientProfileForm`'s own identity-field exclusion rationale exactly.
- * Specialty/hospital/department are reference-data dropdowns (mirrors the
- * Doctor Onboarding wizard's own Professional Info step, `ProfileStep`),
- * not free-text inputs.
+ * Account-owned and `licenseNumber` is excluded on purpose (the backend's update DTO never accepts it -- only set
+ * once at registration).
+ *
+ * The same controls as the doctor application's Professional Info step (`profile-fields`): a searchable specialty
+ * with its glyph, the years stepper, the EGP fee, a deduplicated hospital list, language chips, insurance tokens and
+ * work experience edited in a dialog. Same body as before.
  */
 export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileFormProps) {
   const t = useTranslations('doctor.profile');
   const tValidation = useTranslations('doctor.profile.validation');
-  const tLanguages = useTranslations('doctor.profile.languageNames');
   const tShared = useTranslations('doctor.onboarding.profileStep');
-  const tRanks = useTranslations('doctor.onboarding.profileStep.professionalRanks');
-  const locale = useLocale();
   const updateProfile = useUpdateDoctorProfile();
-  const { data: specialties, isLoading: specialtiesLoading } = useSpecialtiesList();
-  const { data: hospitals, isLoading: hospitalsLoading } = useHospitalsList();
-  const [insuranceDraft, setInsuranceDraft] = useState('');
-  // Removing a row is destructive: it goes through ConfirmDialog, never window.confirm.
-  const [pendingRemove, setPendingRemove] = useState<{ kind: 'work' | 'publication' | 'award'; index: number } | null>(null);
+  const languagesLabelId = useId();
+  // Removing a publication or award is destructive: it goes through ConfirmDialog, never window.confirm.
+  const [pendingRemove, setPendingRemove] = useState<{ kind: 'publication' | 'award'; index: number } | null>(null);
 
   const form = useForm<DoctorProfileFormValues>({
+    mode: 'onTouched',
     resolver: zodResolver(createDoctorProfileSchema(tValidation)),
     defaultValues: {
       specialtyId: profile.specialtyId,
@@ -100,8 +105,7 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
 
   useUnsavedChangesGuard(form.formState.isDirty, t('unsavedChangesWarning'));
 
-  const selectedHospitalId = form.watch('hospitalId');
-  const { data: departments, isLoading: departmentsLoading } = useDepartmentsList(selectedHospitalId);
+  const selectedHospitalId = useWatch({ control: form.control, name: 'hospitalId' });
   const workExperience = useFieldArray({ control: form.control, name: 'workExperience' });
   const publications = useFieldArray({ control: form.control, name: 'publications' });
   const awards = useFieldArray({ control: form.control, name: 'awards' });
@@ -124,559 +128,251 @@ export function DoctorProfileForm({ profile, onSaved, onCancel }: DoctorProfileF
           </Alert>
         )}
 
-        <FormField
-          control={form.control}
-          name="specialtyId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('specialty')}</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange} disabled={specialtiesLoading}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('specialtyPlaceholder')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {(specialties ?? []).map((specialty) => (
-                    <SelectItem key={specialty.id} value={specialty.id}>
-                      {pickLocalizedName(specialty.name, specialty.nameAr, locale)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="biography"
-          render={({ field }) => (
-            <FormItem>
-              {/* "About" -- not "Professional information", which the read
-                  view uses for the specialty/fee/license card just above
-                  the "About" section this field actually edits. The same
-                  label on two different things was its own bug. */}
-              <FormLabel>{t('about')}</FormLabel>
-              <FormControl>
-                <Textarea {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="yearsOfExperience"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('yearsOfExperienceLabel')}</FormLabel>
-              <FormControl>
-                <Input type="number" min={0} max={80} {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="consultationFeeAmount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('consultationFee')}</FormLabel>
-              <FormControl>
-                <Input type="number" min={0} step="0.01" {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="hospitalId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{tShared('hospital')}</FormLabel>
-              <Select
-                value={field.value ?? INDEPENDENT_PRACTICE_VALUE}
-                onValueChange={(value) => {
-                  const nextHospitalId = value === INDEPENDENT_PRACTICE_VALUE ? undefined : value;
-                  field.onChange(nextHospitalId);
-                  if (!nextHospitalId) {
-                    form.setValue('departmentId', undefined);
-                  }
-                }}
-                disabled={hospitalsLoading}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={tShared('hospitalPlaceholder')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value={INDEPENDENT_PRACTICE_VALUE}>{tShared('independentPractice')}</SelectItem>
-                  {(hospitals ?? []).map((hospital) => (
-                    <SelectItem key={hospital.id} value={hospital.id}>
-                      {hospital.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {selectedHospitalId && (
+        <Group title={tShared('groups.practice')}>
           <FormField
             control={form.control}
-            name="departmentId"
+            name="specialtyId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>{tShared('department')}</FormLabel>
-                <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={departmentsLoading}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={tShared('departmentPlaceholder')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {(departments ?? []).map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
+              <FormItem className="gap-2">
+                <FormLabel className="font-semibold">{t('specialty')}</FormLabel>
+                <SpecialtyCombobox field={field} />
+                <FormMessage icon={errorIcon} />
               </FormItem>
             )}
           />
-        )}
-
-        <FormField
-          control={form.control}
-          name="insuranceProviders"
-          render={({ field }) => {
-            const providers = field.value ?? [];
-            function addProvider() {
-              const trimmed = insuranceDraft.trim();
-              if (!trimmed || providers.includes(trimmed)) return;
-              field.onChange([...providers, trimmed]);
-              setInsuranceDraft('');
-            }
-            return (
-              <FormItem>
-                <FormLabel>{tShared('insuranceProviders')}</FormLabel>
-                <FormControl>
-                  <div className="flex flex-col gap-2">
-                    {providers.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {providers.map((provider) => (
-                          <Badge key={provider} variant="neutral" className="gap-1.5">
-                            {provider}
-                            <button
-                              type="button"
-                              aria-label={tShared('removeInsuranceProvider', { provider })}
-                              onClick={() => field.onChange(providers.filter((value) => value !== provider))}
-                            >
-                              <Icon icon={X} size="xs" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <Input
-                        value={insuranceDraft}
-                        onChange={(event) => setInsuranceDraft(event.target.value)}
-                        placeholder={tShared('insuranceProvidersPlaceholder')}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            addProvider();
-                          }
-                        }}
-                      />
-                      <Button type="button" variant="secondary" onClick={addProvider}>
-                        {tShared('addInsuranceProvider')}
-                      </Button>
-                    </div>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
-
-        <FormField
-          control={form.control}
-          name="languages"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('languages')}</FormLabel>
-              <FormControl>
-                <div className="flex flex-col gap-2">
-                  {SUPPORTED_LANGUAGES.map((language) => (
-                    <label key={language} className="flex items-center gap-2 text-sm text-text-secondary">
-                      <Checkbox
-                        checked={field.value?.includes(language)}
-                        onCheckedChange={(checked) => {
-                          const next = checked
-                            ? [...(field.value ?? []), language]
-                            : (field.value ?? []).filter((value) => value !== language);
-                          field.onChange(next);
-                        }}
-                      />
-                      {tLanguages(language)}
-                    </label>
-                  ))}
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-primary">{tShared('workExperience')}</p>
-            {workExperience.fields.length < MAX_WORK_EXPERIENCE_ENTRIES && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  workExperience.append({
-                    organizationName: '',
-                    position: '',
-                    professionalRank: undefined,
-                    startDate: '',
-                    endDate: undefined,
-                    description: '',
-                  })
-                }
-              >
-                <Icon icon={Plus} size="sm" className="me-2" />
-                {tShared('addWorkExperience')}
-              </Button>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="yearsOfExperience"
+              render={({ field }) => (
+                <FormItem className="gap-2">
+                  <FormLabel className="font-semibold">{t('yearsOfExperienceLabel')}</FormLabel>
+                  <YearsStepper field={field} />
+                  <FormMessage icon={errorIcon} />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="consultationFeeAmount"
+              render={({ field }) => (
+                <FormItem className="gap-2">
+                  <FormLabel className="font-semibold">{t('consultationFee')}</FormLabel>
+                  <FeeInput field={field} />
+                  <FormMessage icon={errorIcon} />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="hospitalId"
+              render={({ field }) => (
+                <FormItem className="gap-2">
+                  <FormLabel className="font-semibold">{tShared('hospital')}</FormLabel>
+                  <HospitalCombobox field={field} onIndependent={() => form.setValue('departmentId', undefined, { shouldDirty: true })} />
+                  <FormMessage icon={errorIcon} />
+                </FormItem>
+              )}
+            />
+            {selectedHospitalId && (
+              <FormField
+                control={form.control}
+                name="departmentId"
+                render={({ field }) => (
+                  <FormItem className="gap-2">
+                    <FormLabel className="font-semibold">{tShared('department')}</FormLabel>
+                    <DepartmentCombobox field={field} hospitalId={selectedHospitalId} />
+                    <FormMessage icon={errorIcon} />
+                  </FormItem>
+                )}
+              />
             )}
           </div>
+        </Group>
 
-          {workExperience.fields.length === 0 ? (
-            <p className="text-sm text-text-secondary">{tShared('workExperienceEmpty')}</p>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {workExperience.fields.map((entryField, index) => {
-                // Deliberately `=== undefined`, not a truthiness check --
-                // unchecking sets endDate to '' (a placeholder so the date
-                // input has a defined, editable value), and '' is falsy in
-                // JS, so `!watchedValue` would immediately flip back to
-                // "currently work here" the instant the box was unchecked.
-                const isCurrent = form.watch(`workExperience.${index}.endDate`) === undefined;
-                return (
-                  <div key={entryField.id} className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex flex-1 flex-col gap-3">
-                        <FormField
-                          control={form.control}
-                          name={`workExperience.${index}.organizationName`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tShared('workExperienceOrganization')}</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`workExperience.${index}.position`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tShared('workExperiencePosition')}</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`workExperience.${index}.professionalRank`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tShared('workExperienceRank')}</FormLabel>
-                              <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder={tShared('workExperienceRankPlaceholder')} />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {PROFESSIONAL_RANKS.map((rank) => (
-                                    <SelectItem key={rank} value={rank}>
-                                      {tRanks(rank)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`workExperience.${index}.startDate`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tShared('workExperienceStartDate')}</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <label className="flex items-center gap-2 text-sm text-text-secondary">
-                          <Checkbox
-                            checked={isCurrent}
-                            onCheckedChange={(checked) => {
-                              form.setValue(`workExperience.${index}.endDate`, checked ? undefined : '');
-                            }}
-                          />
-                          {tShared('workExperienceCurrentlyWorkHere')}
-                        </label>
-                        {!isCurrent && (
-                          <FormField
-                            control={form.control}
-                            name={`workExperience.${index}.endDate`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{tShared('workExperienceEndDate')}</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} value={field.value ?? ''} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                        <FormField
-                          control={form.control}
-                          name={`workExperience.${index}.description`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{tShared('workExperienceDescription')}</FormLabel>
-                              <FormControl>
-                                <Textarea {...field} value={field.value ?? ''} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={tShared('removeWorkExperience')}
-                        onClick={() => setPendingRemove({ kind: 'work', index })}
-                      >
-                        <Icon icon={Trash2} size="sm" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <Group title={tShared('groups.aboutYou')}>
+          <FormField
+            control={form.control}
+            name="biography"
+            render={({ field }) => (
+              <FormItem className="gap-2">
+                <FormLabel className="font-semibold">{t('about')}</FormLabel>
+                <FormControl>
+                  <Textarea {...field} value={field.value ?? ''} rows={4} dir="auto" />
+                </FormControl>
+                <FormMessage icon={errorIcon} />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="languages"
+            render={({ field }) => (
+              <FormItem className="gap-2">
+                <FormLabel id={languagesLabelId} className="font-semibold">
+                  {t('languages')}
+                </FormLabel>
+                <LanguageChips field={field} labelId={languagesLabelId} />
+                <FormMessage icon={errorIcon} />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="insuranceProviders"
+            render={({ field }) => (
+              <FormItem className="gap-2">
+                <FormLabel className="font-semibold">{tShared('insuranceProviders')}</FormLabel>
+                <InsuranceTokens field={field} placeholder={tShared('insuranceProvidersPlaceholder')} />
+                <FormDescription className="text-small text-text-tertiary">{tShared('insuranceProvidersHelp')}</FormDescription>
+                <FormMessage icon={errorIcon} />
+              </FormItem>
+            )}
+          />
+        </Group>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-primary">{t('publications')}</p>
-            {publications.fields.length < MAX_PUBLICATION_ENTRIES && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => publications.append({ title: '', reference: '' })}
-              >
-                <Icon icon={Plus} size="sm" className="me-2" />
+        <Group title={tShared('workExperience')}>
+          <WorkExperienceEditor
+            entries={workExperience.fields}
+            max={MAX_WORK_EXPERIENCE_ENTRIES}
+            onAdd={workExperience.append}
+            onUpdate={workExperience.update}
+            onRemove={workExperience.remove}
+          />
+        </Group>
+
+        <Group
+          title={t('publications')}
+          action={
+            publications.fields.length < MAX_PUBLICATION_ENTRIES ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => publications.append({ title: '', reference: '' })}>
+                <Icon icon={Plus} size="sm" />
                 {t('addPublication')}
               </Button>
-            )}
-          </div>
-
+            ) : undefined
+          }
+        >
           {publications.fields.length === 0 ? (
             <p className="text-sm text-text-secondary">{t('publicationsFormEmpty')}</p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col divide-y divide-border-default">
               {publications.fields.map((entryField, index) => (
-                <div key={entryField.id} className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-1 flex-col gap-3">
-                      <FormField
-                        control={form.control}
-                        name={`publications.${index}.title`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('publicationTitle')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`publications.${index}.reference`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('publicationReference')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('removePublication')}
-                      onClick={() => setPendingRemove({ kind: 'publication', index })}
-                    >
-                      <Icon icon={Trash2} size="sm" />
-                    </Button>
+                <div key={entryField.id} className="flex items-start gap-2 py-3 first:pt-0 last:pb-0">
+                  <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name={`publications.${index}.title`}
+                      render={({ field }) => (
+                        <FormItem className="gap-2">
+                          <FormLabel className="font-semibold">{t('publicationTitle')}</FormLabel>
+                          <FormControl>
+                            <Input {...field} dir="auto" />
+                          </FormControl>
+                          <FormMessage icon={errorIcon} />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`publications.${index}.reference`}
+                      render={({ field }) => (
+                        <FormItem className="gap-2">
+                          <FormLabel className="font-semibold">{t('publicationReference')}</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value ?? ''} dir="auto" />
+                          </FormControl>
+                          <FormMessage icon={errorIcon} />
+                        </FormItem>
+                      )}
+                    />
                   </div>
+                  <Button type="button" variant="ghost" size="icon" className="mt-7" aria-label={t('removePublication')} onClick={() => setPendingRemove({ kind: 'publication', index })}>
+                    <Icon icon={Trash2} size="sm" />
+                  </Button>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Group>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-primary">{t('awards')}</p>
-            {awards.fields.length < MAX_AWARD_ENTRIES && (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => awards.append({ title: '', issuingBody: '' })}
-              >
-                <Icon icon={Plus} size="sm" className="me-2" />
+        <Group
+          title={t('awards')}
+          action={
+            awards.fields.length < MAX_AWARD_ENTRIES ? (
+              <Button type="button" variant="secondary" size="sm" onClick={() => awards.append({ title: '', issuingBody: '' })}>
+                <Icon icon={Plus} size="sm" />
                 {t('addAward')}
               </Button>
-            )}
-          </div>
-
+            ) : undefined
+          }
+        >
           {awards.fields.length === 0 ? (
             <p className="text-sm text-text-secondary">{t('awardsFormEmpty')}</p>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col divide-y divide-border-default">
               {awards.fields.map((entryField, index) => (
-                <div key={entryField.id} className="flex flex-col gap-3 rounded-lg border border-border-default p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-1 flex-col gap-3">
-                      <FormField
-                        control={form.control}
-                        name={`awards.${index}.title`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('awardTitle')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`awards.${index}.issuingBody`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('awardIssuingBody')}</FormLabel>
-                            <FormControl>
-                              <Input {...field} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={t('removeAward')}
-                      onClick={() => setPendingRemove({ kind: 'award', index })}
-                    >
-                      <Icon icon={Trash2} size="sm" />
-                    </Button>
+                <div key={entryField.id} className="flex items-start gap-2 py-3 first:pt-0 last:pb-0">
+                  <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name={`awards.${index}.title`}
+                      render={({ field }) => (
+                        <FormItem className="gap-2">
+                          <FormLabel className="font-semibold">{t('awardTitle')}</FormLabel>
+                          <FormControl>
+                            <Input {...field} dir="auto" />
+                          </FormControl>
+                          <FormMessage icon={errorIcon} />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`awards.${index}.issuingBody`}
+                      render={({ field }) => (
+                        <FormItem className="gap-2">
+                          <FormLabel className="font-semibold">{t('awardIssuingBody')}</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value ?? ''} dir="auto" />
+                          </FormControl>
+                          <FormMessage icon={errorIcon} />
+                        </FormItem>
+                      )}
+                    />
                   </div>
+                  <Button type="button" variant="ghost" size="icon" className="mt-7" aria-label={t('removeAward')} onClick={() => setPendingRemove({ kind: 'award', index })}>
+                    <Icon icon={Trash2} size="sm" />
+                  </Button>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Group>
 
-        {/* Sticky, not static at the bottom of a form long enough to need
-            real scrolling to reach -- every save shouldn't cost a long
-            scroll back down. Save is disabled until something has actually
-            changed (`isDirty`); an invalid-but-dirty submit still goes
-            through to `handleSubmit` so its real field errors surface,
-            rather than a permanently-disabled button that never explains
-            why. */}
-        <div className="sticky bottom-0 flex items-center gap-2 border-t border-border-default bg-surface/95 py-3 backdrop-blur-sm">
-          <Button type="submit" loading={updateProfile.isPending} disabled={!form.formState.isDirty}>
-            {t('save')}
-          </Button>
-          <Button type="button" variant="secondary" onClick={onCancel}>
-            {t('cancel')}
-          </Button>
-        </div>
+        {/* Save is disabled until something has actually changed (`isDirty`); an invalid-but-dirty submit still goes
+            through so its real field errors surface. */}
+        <ActionBar
+          start={
+            <Button type="button" variant="secondary" onClick={onCancel}>
+              {t('cancel')}
+            </Button>
+          }
+          end={
+            <Button type="submit" loading={updateProfile.isPending} disabled={!form.formState.isDirty}>
+              {t('save')}
+            </Button>
+          }
+        />
       </form>
       <ConfirmDialog
         open={pendingRemove !== null}
         onOpenChange={(next) => !next && setPendingRemove(null)}
-        title={
-          pendingRemove?.kind === 'work'
-            ? tShared('removeWorkExperience')
-            : pendingRemove?.kind === 'publication'
-              ? t('removePublication')
-              : t('removeAward')
-        }
-        description={
-          pendingRemove?.kind === 'work'
-            ? t('confirmRemoveWorkExperience')
-            : pendingRemove?.kind === 'publication'
-              ? t('confirmRemovePublication')
-              : t('confirmRemoveAward')
-        }
-        confirmLabel={
-          pendingRemove?.kind === 'work'
-            ? tShared('removeWorkExperience')
-            : pendingRemove?.kind === 'publication'
-              ? t('removePublication')
-              : t('removeAward')
-        }
+        title={pendingRemove?.kind === 'publication' ? t('removePublication') : t('removeAward')}
+        description={pendingRemove?.kind === 'publication' ? t('confirmRemovePublication') : t('confirmRemoveAward')}
+        confirmLabel={pendingRemove?.kind === 'publication' ? t('removePublication') : t('removeAward')}
         onConfirm={() => {
-          if (pendingRemove?.kind === 'work') workExperience.remove(pendingRemove.index);
           if (pendingRemove?.kind === 'publication') publications.remove(pendingRemove.index);
           if (pendingRemove?.kind === 'award') awards.remove(pendingRemove.index);
           setPendingRemove(null);

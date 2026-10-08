@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useState, type FocusEvent, type Ref } from 'react';
 import { cn } from '@/shared/lib/cn';
+import { isRealIsoDate } from '@/shared/lib/date/iso-date';
 import { NativeSelect } from '@/shared/ui/native-select';
 
 export { cairoToday, cairoYear, isRealIsoDate } from '@/shared/lib/date/iso-date';
@@ -53,6 +54,12 @@ function compose({ day, month, year }: Parts, granularity: DateFieldGranularity)
   if (!dayPart && !month && !year) return '';
   // A partial date stays a partial string ("0000-03-15") so a schema can reject it as incomplete.
   return `${year || '0000'}-${month || '00'}-${dayPart || '00'}`;
+}
+
+/** For a filter's date: apply a complete real date, clear on an emptied field, and ignore a partly-picked one. */
+export function filterDate(value: string, apply: (date: string | undefined) => void): void {
+  if (value === '') apply(undefined);
+  else if (isRealIsoDate(value)) apply(value);
 }
 
 /** True when `value` has every part of a `YYYY-MM-DD` date filled in (it may still not be a real date -- see `isRealIsoDate`). */
