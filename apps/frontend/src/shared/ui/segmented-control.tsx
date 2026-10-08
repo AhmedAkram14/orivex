@@ -31,6 +31,8 @@ export interface SegmentedControlProps<T extends string> {
   /** Stretch the options to share the full width equally. */
   fullWidth?: boolean;
   className?: string;
+  /** Extra classes for each option (e.g. a grid of cards for many or long options). */
+  itemClassName?: string;
 }
 
 /** A pill-shaped single-choice control (presets, time ranges, view modes; in `radio` mode, a short form choice). The selected option is the ink fill. */
@@ -47,6 +49,7 @@ export function SegmentedControl<T extends string>({
   describedBy,
   fullWidth,
   className,
+  itemClassName,
 }: SegmentedControlProps<T>) {
   const direction = useDirection();
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -111,6 +114,7 @@ export function SegmentedControl<T extends string>({
               'h-8 rounded-full px-3.5 text-small font-medium transition-colors duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring pointer-coarse:min-h-11',
               fullWidth && 'flex-1',
               selected ? 'bg-primary text-primary-foreground' : 'text-text-secondary hover:bg-surface-2',
+              itemClassName,
             )}
           >
             {option.label}

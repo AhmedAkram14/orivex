@@ -69,7 +69,8 @@ export function PulseLine({ variant = 'divider', animated = false, progress = 0,
         <span className="absolute inset-x-0 h-px bg-border-default" />
         <span
           className="absolute inset-y-0 start-0 flex items-center transition-[width] duration-(--duration-slow) ease-standard"
-          style={{ width: `${clamped * 100}%` }}
+          // The glyph rides just past the fill's head; leave its 2rem at the end so a full track never overflows.
+          style={{ width: `calc((100% - 2rem) * ${clamped})` }}
         >
           <span className="h-0.5 flex-1 bg-current" />
           <PulseGlyph animated={animated} className="-me-8 h-5 w-8" />

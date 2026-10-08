@@ -842,9 +842,6 @@
       "phone": "Phone number",
       "phonePlaceholder": "+20 100 000 0000",
       "fullNameHelp": "From your account. To change it, <support>contact support</support>.",
-      "day": "Day",
-      "month": "Month",
-      "year": "Year",
       "phoneHelp": "Shared with the doctors you book with, so they can reach you.",
       "phoneCountry": "Egypt (+20)",
       "saveAndContinue": "Save and continue",
@@ -858,7 +855,11 @@
         "addressTooLong": "Address must be {max} characters or fewer.",
         "phoneRequired": "Phone number is required.",
         "phoneInvalid": "Enter a valid phone number."
-      }
+      },
+      "prefilled": "Pre-filled from your profile",
+      "nationalityOnlyOption": "The only nationality available at the moment.",
+      "addressPlaceholder": "Street, area, city",
+      "back": "Back"
     }
   },
   "disputes": {
@@ -1465,7 +1466,6 @@
         "procedure": "Procedure"
       },
       "nextAvailableSlotTitle": "Next Available Slot",
-      "viewFullCalendar": "View full calendar",
       "noUpcomingSlots": "No upcoming available slots in the next two weeks.",
       "quickActionsTitle": "Quick Actions",
       "quickActionBlockTimeOff": "Block Time Off",
@@ -1673,7 +1673,6 @@
         "specialty": "Specialty",
         "specialtyPlaceholder": "Select a specialty",
         "professionalRank": "Professional rank",
-        "professionalRankPlaceholder": "Select a rank",
         "professionalRanks": {
           "resident": "Resident",
           "registrar": "Registrar",
@@ -1687,17 +1686,15 @@
         "consultationFee": "Consultation fee",
         "hospital": "Hospital",
         "hospitalPlaceholder": "Select a hospital",
-        "independentPractice": "Independent Practice",
+        "independentPractice": "Independent practice",
         "department": "Department",
         "departmentPlaceholder": "Select a department",
         "languages": "Languages",
         "insuranceProviders": "Insurance providers",
         "insuranceProvidersPlaceholder": "e.g. Misr Insurance",
-        "addInsuranceProvider": "Add",
-        "removeInsuranceProvider": "Remove {provider}",
         "workExperience": "Work experience",
         "workExperienceEmpty": "No work experience added yet.",
-        "addWorkExperience": "Add Work Experience",
+        "addWorkExperience": "Add experience",
         "workExperienceOrganization": "Organization",
         "workExperiencePosition": "Position",
         "workExperienceRank": "Rank / degree",
@@ -1706,9 +1703,6 @@
         "workExperienceEndDate": "End date",
         "workExperienceCurrentlyWorkHere": "I currently work here",
         "workExperienceDescription": "Description",
-        "removeWorkExperience": "Remove work experience entry",
-        "createAndContinue": "Create profile and continue",
-        "saveAndContinue": "Save and continue",
         "validation": {
           "licenseNumberRequired": "License number is required.",
           "specialtyRequired": "Specialty is required.",
@@ -1722,11 +1716,42 @@
           "workExperienceOrganizationRequired": "Organization name is required.",
           "workExperiencePositionRequired": "Position is required.",
           "workExperienceStartDateRequired": "Start date is required.",
-          "workExperienceEndDateInvalid": "End date must be on or after the start date."
-        }
+          "workExperienceEndDateInvalid": "End date must be on or after the start date.",
+          "workExperienceEndDateRequired": "Add an end date, or tick “I currently work here”."
+        },
+        "groups": {
+          "license": "License",
+          "practice": "Practice",
+          "aboutYou": "About you as a doctor"
+        },
+        "licenseNumberLocked": "Set when you first applied; it can't be changed.",
+        "specialtySearch": "Search specialties",
+        "hospitalSearch": "Search hospitals",
+        "departmentSearch": "Search departments",
+        "noMatches": "No matches",
+        "yearsSuffix": "years",
+        "experienceDecrease": "Fewer years",
+        "experienceIncrease": "More years",
+        "consultationFeeHelp": "Shown on your profile, and you can change it later in Profile. What each visit costs is set per day in Schedule.",
+        "biographyHelp": "For example: “Consultant cardiologist with 12 years in heart-failure care.”",
+        "insuranceProvidersHelp": "Type a provider and press Enter or a comma.",
+        "editWorkExperience": "Edit experience",
+        "workExperienceDialogDescription": "Where you worked and in what role.",
+        "saveWorkExperience": "Save",
+        "editWorkExperienceFor": "Edit {name}",
+        "removeWorkExperienceFor": "Remove {name}",
+        "removeWorkExperienceTitle": "Remove this experience?",
+        "removeWorkExperienceDescription": "It is removed from your application when you continue.",
+        "present": "present",
+        "edit": "Edit",
+        "remove": "Remove",
+        "cancel": "Cancel",
+        "back": "Back",
+        "addInsuranceProvider": "Add",
+        "removeInsuranceProvider": "Remove {provider}",
+        "removeWorkExperience": "Remove work experience entry"
       },
       "documentsStep": {
-        "description": "Upload each of the following documents (PDF, JPG, or PNG). All 7 are required to submit for verification.",
         "slots": {
           "national_id_front": "National ID (front)",
           "national_id_back": "National ID (back)",
@@ -1736,20 +1761,38 @@
           "board_certificate": "Board certificate",
           "professional_membership_card": "Professional membership card"
         },
-        "uploadButton": "Upload",
         "uploadError": "Could not upload this file. Please try again.",
-        "remove": "Remove",
         "back": "Back",
-        "continue": "Continue"
+        "continue": "Continue",
+        "heading": "Upload {total} documents",
+        "progress": "{done} of {total} uploaded",
+        "groups": {
+          "identity": "Identity",
+          "qualifications": "Qualifications"
+        },
+        "descriptions": {
+          "national_id_front": "A clear photo or scan of the front of your National ID.",
+          "national_id_back": "A clear photo or scan of the back of your National ID.",
+          "selfie_with_id": "A photo of you holding your National ID.",
+          "medical_license": "A clear photo or scan of your medical license.",
+          "graduation_certificate": "A clear photo or scan of your graduation certificate.",
+          "board_certificate": "A clear photo or scan of your board certificate.",
+          "professional_membership_card": "A clear photo or scan of your professional membership card."
+        },
+        "privacy": "Documents are used only for verification and are reviewed by authorized ORIVEX staff."
       },
       "reviewStep": {
-        "description": "Review your details before submitting for verification.",
-        "licenseNumber": "License number",
-        "specialty": "Specialty",
         "documents": "Documents",
         "documentsCount": "{count, plural, one {# document} other {# documents}}",
         "back": "Back",
-        "submit": "Submit for verification"
+        "submit": "Submit for verification",
+        "notProvided": "Not provided",
+        "sections": {
+          "personal": "About you"
+        },
+        "editSection": "Edit {section}",
+        "edit": "Edit",
+        "years": "{count, plural, one {# year} other {# years}}"
       },
       "status": {
         "badge": {
@@ -1761,13 +1804,47 @@
           "rejected": "Rejected",
           "suspended": "Suspended"
         },
-        "pendingDescription": "Your application is being reviewed. You will gain access to the Doctor Portal automatically once approved.",
+        "pendingDescription": "Your application is in. Here's what happens next.",
         "approvedDescription": "Your application has been approved. You now have full access to the Doctor Portal.",
         "goToDoctorPortal": "Go to Doctor Portal",
         "rejectedDescription": "You can edit your profile and documents, then resubmit for review.",
         "moreInfoDescription": "We need one more thing from you before we can continue reviewing your application.",
         "editAndResubmit": "Edit and resubmit",
-        "suspendedDescription": "Your verification has been suspended. Please contact support for details."
+        "suspendedDescription": "Your verification has been suspended. Please contact support for details.",
+        "title": {
+          "pending": "Application received",
+          "approved": "You're verified",
+          "rejected": "Application not approved",
+          "more_info_needed": "We need a bit more",
+          "suspended": "Verification suspended"
+        },
+        "nextSteps": {
+          "review": "Our team reviews your license and documents.",
+          "notify": "You'll get a notification here when there's a decision.",
+          "access": "Once approved, your account opens the Doctor Portal automatically."
+        },
+        "goToDashboard": "Go to dashboard"
+      },
+      "progressLabel": "Application steps",
+      "stepOf": "Step {current} of {total} · {label}",
+      "continue": "Continue",
+      "applicationStatus": {
+        "inProgress": "Doctor application · In progress",
+        "underReview": "Doctor application · Under review",
+        "needsChanges": "Doctor application · Needs changes",
+        "approved": "Doctor application · Approved"
+      },
+      "stepTitles": {
+        "personal": "About you",
+        "profile": "Your practice",
+        "documents": "Your documents",
+        "review": "Review and submit"
+      },
+      "stepDescriptions": {
+        "personal": "Used to verify your identity. Your date of birth, gender, nationality and address aren't shown on your doctor profile.",
+        "profile": "Patients see these details on your doctor profile.",
+        "documents": "Clear photos or scans. We use them only to verify your identity and your license.",
+        "review": "Check your application, then submit it for verification."
       }
     },
     "patients": {
@@ -2480,7 +2557,7 @@
       }
     },
     "identityVerification": {
-      "title": "Verify Your Identity",
+      "title": "Verify your identity",
       "description": "Upload a National ID and a selfie so we can confirm it's really you.",
       "loadError": "Couldn't load your verification status.",
       "steps": {
@@ -2488,21 +2565,25 @@
         "review": "Review & Submit"
       },
       "documentsStep": {
-        "description": "Upload each of the following (PDF, JPG, or PNG). All 3 are required to submit for verification.",
         "slots": {
           "national_id_front": "National ID (front)",
           "national_id_back": "National ID (back)",
           "selfie_with_id": "Selfie with ID"
         },
-        "uploadButton": "Upload",
         "uploadError": "Could not upload this file. Please try again.",
-        "remove": "Remove",
         "back": "Back",
-        "continue": "Continue"
+        "continue": "Continue",
+        "heading": "Upload {total} documents",
+        "progress": "{done} of {total} uploaded",
+        "descriptions": {
+          "national_id_front": "A clear photo or scan of the front of your National ID.",
+          "national_id_back": "A clear photo or scan of the back of your National ID.",
+          "selfie_with_id": "A photo of you holding your National ID."
+        },
+        "privacy": "Documents are used only for verification and are reviewed by authorized ORIVEX staff."
       },
       "reviewStep": {
         "description": "Review your documents before submitting for verification.",
-        "documents": "Documents",
         "documentsCount": "{count, plural, one {# document} other {# documents}}",
         "back": "Back",
         "submit": "Submit for verification"
@@ -2517,14 +2598,27 @@
           "rejected": "Rejected",
           "suspended": "Suspended"
         },
-        "pendingDescription": "Your identity verification is being reviewed. This usually only takes a short while.",
+        "pendingDescription": "Your documents are in. Here's what happens next.",
         "approvedDescription": "Your identity has been verified.",
         "continueAction": "Continue",
         "goToDashboard": "Go to My Health",
         "rejectedDescription": "You can edit your documents and resubmit for review.",
         "moreInfoDescription": "We need one more thing from you before we can continue reviewing your submission.",
         "editAndResubmit": "Edit and resubmit",
-        "suspendedDescription": "Your verification has been suspended. Please contact support for details."
+        "suspendedDescription": "Your verification has been suspended. Please contact support for details.",
+        "title": {
+          "pending": "Documents received",
+          "approved": "Identity verified",
+          "rejected": "Verification not approved",
+          "more_info_needed": "We need a bit more",
+          "suspended": "Verification suspended"
+        },
+        "nextSteps": {
+          "review": "Our team checks your documents.",
+          "notify": "You'll get a notification here when there's a decision.",
+          "access": "Once verified, you can book, join consultations and pay."
+        },
+        "backToWhereYouWere": "Back to where you were"
       },
       "gate": {
         "title": {
@@ -2540,7 +2634,9 @@
           "payment": "Making a payment requires a verified identity, to protect your account."
         },
         "startVerification": "Start verification"
-      }
+      },
+      "progressLabel": "Verification steps",
+      "stepOf": "Step {current} of {total} · {label}"
     }
   },
   "verifyPrescription": {
@@ -2932,7 +3028,8 @@
       "stepOf": "Step {current} of {total}",
       "trustLine": "Only you, the doctors you book with and authorized ORIVEX staff can see these details.",
       "loadError": "Something went wrong loading your profile. Please try again."
-    }
+    },
+    "exit": "Exit"
   },
   "admin": {
     "disputeResolution": {
@@ -3690,6 +3787,29 @@
     },
     "confirm": {
       "cancel": "Cancel"
+    },
+    "dateField": {
+      "day": "Day",
+      "month": "Month",
+      "year": "Year"
+    },
+    "upload": {
+      "types": "PDF, JPG or PNG",
+      "choose": "Choose file",
+      "chooseLabel": "Choose a file for {name}",
+      "takePhoto": "Take a photo",
+      "orDrop": "or drop it here",
+      "cancel": "Cancel",
+      "replace": "Replace",
+      "replaceLabel": "Replace {name}",
+      "remove": "Remove",
+      "removeLabel": "Remove {name}",
+      "retry": "Retry",
+      "uploadingLabel": "Uploading {name}",
+      "typeError": "This file type isn't accepted. Use a PDF, JPG or PNG.",
+      "duplicate": "This looks like the same file you used for {name}. Upload the correct document.",
+      "uploadAnyway": "Upload anyway",
+      "chooseAnother": "Choose another file"
     }
   },
   "chrome": {

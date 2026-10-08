@@ -842,9 +842,6 @@
       "phone": "رقم الهاتف",
       "phonePlaceholder": "+20 100 000 0000",
       "fullNameHelp": "من حسابك. لتغييره، <support>تواصل مع الدعم</support>.",
-      "day": "اليوم",
-      "month": "الشهر",
-      "year": "السنة",
       "phoneHelp": "يُشارك مع الأطباء الذين تحجز معهم ليتمكنوا من التواصل معك.",
       "phoneCountry": "مصر (+20)",
       "saveAndContinue": "حفظ ومتابعة",
@@ -858,7 +855,11 @@
         "addressTooLong": "يجب ألا يتجاوز العنوان {max} حرفًا.",
         "phoneRequired": "رقم الهاتف مطلوب.",
         "phoneInvalid": "أدخل رقم هاتف صحيحًا."
-      }
+      },
+      "prefilled": "مُعبّأ من ملفك الشخصي",
+      "nationalityOnlyOption": "الجنسية الوحيدة المتاحة حاليًا.",
+      "addressPlaceholder": "الشارع، المنطقة، المدينة",
+      "back": "رجوع"
     }
   },
   "disputes": {
@@ -1465,7 +1466,6 @@
         "procedure": "إجراء طبي"
       },
       "nextAvailableSlotTitle": "أقرب موعد متاح",
-      "viewFullCalendar": "عرض التقويم الكامل",
       "noUpcomingSlots": "لا توجد أوقات متاحة قادمة خلال الأسبوعين القادمين.",
       "quickActionsTitle": "إجراءات سريعة",
       "quickActionBlockTimeOff": "حجب وقت إجازة",
@@ -1673,7 +1673,6 @@
         "specialty": "التخصص",
         "specialtyPlaceholder": "اختر تخصصًا",
         "professionalRank": "الدرجة المهنية",
-        "professionalRankPlaceholder": "اختر درجة",
         "professionalRanks": {
           "resident": "طبيب مقيم",
           "registrar": "طبيب أخصائي مساعد",
@@ -1693,11 +1692,9 @@
         "languages": "اللغات",
         "insuranceProviders": "شركات التأمين",
         "insuranceProvidersPlaceholder": "مثال: مصر للتأمين",
-        "addInsuranceProvider": "إضافة",
-        "removeInsuranceProvider": "إزالة {provider}",
         "workExperience": "الخبرة العملية",
         "workExperienceEmpty": "لم تتم إضافة أي خبرة عملية بعد.",
-        "addWorkExperience": "إضافة خبرة عملية",
+        "addWorkExperience": "إضافة خبرة",
         "workExperienceOrganization": "الجهة",
         "workExperiencePosition": "المنصب",
         "workExperienceRank": "الدرجة العلمية / الرتبة",
@@ -1706,9 +1703,6 @@
         "workExperienceEndDate": "تاريخ الانتهاء",
         "workExperienceCurrentlyWorkHere": "أعمل هنا حاليًا",
         "workExperienceDescription": "الوصف",
-        "removeWorkExperience": "إزالة الخبرة العملية",
-        "createAndContinue": "إنشاء الملف الشخصي والمتابعة",
-        "saveAndContinue": "حفظ ومتابعة",
         "validation": {
           "licenseNumberRequired": "رقم الترخيص مطلوب.",
           "specialtyRequired": "التخصص مطلوب.",
@@ -1722,11 +1716,42 @@
           "workExperienceOrganizationRequired": "اسم الجهة مطلوب.",
           "workExperiencePositionRequired": "المنصب مطلوب.",
           "workExperienceStartDateRequired": "تاريخ البدء مطلوب.",
-          "workExperienceEndDateInvalid": "يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء أو مساويًا له."
-        }
+          "workExperienceEndDateInvalid": "يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء أو مساويًا له.",
+          "workExperienceEndDateRequired": "أضف تاريخ الانتهاء، أو حدّد «أعمل هنا حاليًا»."
+        },
+        "groups": {
+          "license": "الترخيص",
+          "practice": "الممارسة",
+          "aboutYou": "عنك كطبيب"
+        },
+        "licenseNumberLocked": "يُحدَّد عند تقديمك الأول ولا يمكن تغييره.",
+        "specialtySearch": "ابحث في التخصصات",
+        "hospitalSearch": "ابحث في المستشفيات",
+        "departmentSearch": "ابحث في الأقسام",
+        "noMatches": "لا توجد نتائج",
+        "yearsSuffix": "سنوات",
+        "experienceDecrease": "سنوات أقل",
+        "experienceIncrease": "سنوات أكثر",
+        "consultationFeeHelp": "تظهر في ملفك، ويمكنك تغييرها لاحقًا من الملف الشخصي. تكلفة كل زيارة تُحدَّد لكل يوم من الجدول الزمني.",
+        "biographyHelp": "مثال: «استشاري أمراض قلب بخبرة 12 عامًا في علاج قصور القلب.»",
+        "insuranceProvidersHelp": "اكتب اسم الشركة ثم اضغط Enter أو الفاصلة.",
+        "editWorkExperience": "تعديل الخبرة",
+        "workExperienceDialogDescription": "أين عملت وبأي دور.",
+        "saveWorkExperience": "حفظ",
+        "editWorkExperienceFor": "تعديل {name}",
+        "removeWorkExperienceFor": "إزالة {name}",
+        "removeWorkExperienceTitle": "إزالة هذه الخبرة؟",
+        "removeWorkExperienceDescription": "ستُزال من طلبك عند المتابعة.",
+        "present": "حتى الآن",
+        "edit": "تعديل",
+        "remove": "إزالة",
+        "cancel": "إلغاء",
+        "back": "رجوع",
+        "addInsuranceProvider": "إضافة",
+        "removeInsuranceProvider": "إزالة {provider}",
+        "removeWorkExperience": "إزالة الخبرة العملية"
       },
       "documentsStep": {
-        "description": "ارفع كل مستند من المستندات التالية (PDF أو JPG أو PNG). جميع المستندات السبعة مطلوبة للتقديم للتوثيق.",
         "slots": {
           "national_id_front": "البطاقة الشخصية (الوجه الأمامي)",
           "national_id_back": "البطاقة الشخصية (الوجه الخلفي)",
@@ -1736,20 +1761,38 @@
           "board_certificate": "شهادة البورد",
           "professional_membership_card": "بطاقة العضوية النقابية"
         },
-        "uploadButton": "رفع",
         "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى.",
-        "remove": "إزالة",
         "back": "رجوع",
-        "continue": "متابعة"
+        "continue": "متابعة",
+        "heading": "ارفع {total} مستندات",
+        "progress": "تم رفع {done} من {total}",
+        "groups": {
+          "identity": "الهوية",
+          "qualifications": "المؤهلات"
+        },
+        "descriptions": {
+          "national_id_front": "صورة أو نسخة ممسوحة واضحة للوجه الأمامي من بطاقتك الشخصية.",
+          "national_id_back": "صورة أو نسخة ممسوحة واضحة للوجه الخلفي من بطاقتك الشخصية.",
+          "selfie_with_id": "صورة لك وأنت تحمل بطاقتك الشخصية.",
+          "medical_license": "صورة أو نسخة ممسوحة واضحة لترخيصك الطبي.",
+          "graduation_certificate": "صورة أو نسخة ممسوحة واضحة لشهادة تخرجك.",
+          "board_certificate": "صورة أو نسخة ممسوحة واضحة لشهادة البورد.",
+          "professional_membership_card": "صورة أو نسخة ممسوحة واضحة لبطاقة عضويتك النقابية."
+        },
+        "privacy": "تُستخدم المستندات للتوثيق فقط ويراجعها موظفو أوريفكس المخوّلون."
       },
       "reviewStep": {
-        "description": "راجع بياناتك قبل التقديم للتوثيق.",
-        "licenseNumber": "رقم الترخيص",
-        "specialty": "التخصص",
         "documents": "المستندات",
         "documentsCount": "{count, plural, one {# مستند} other {# مستندات}}",
         "back": "رجوع",
-        "submit": "تقديم للتوثيق"
+        "submit": "تقديم للتوثيق",
+        "notProvided": "غير مُدخل",
+        "sections": {
+          "personal": "عنك"
+        },
+        "editSection": "تعديل {section}",
+        "edit": "تعديل",
+        "years": "{count, plural, zero {# سنة} one {سنة واحدة} two {سنتان} few {# سنوات} many {# سنة} other {# سنة}}"
       },
       "status": {
         "badge": {
@@ -1761,13 +1804,47 @@
           "rejected": "مرفوض",
           "suspended": "موقوف"
         },
-        "pendingDescription": "طلبك قيد المراجعة. ستحصل على الوصول إلى لوحة الطبيب تلقائيًا بمجرد الموافقة.",
+        "pendingDescription": "وصلنا طلبك. إليك ما سيحدث بعد ذلك.",
         "approvedDescription": "تمت الموافقة على طلبك. أصبح لديك الآن وصول كامل إلى لوحة الطبيب.",
         "goToDoctorPortal": "الذهاب إلى لوحة الطبيب",
         "rejectedDescription": "يمكنك تعديل ملفك الشخصي ومستنداتك، ثم إعادة التقديم للمراجعة.",
         "moreInfoDescription": "نحتاج إلى شيء واحد إضافي منك قبل أن نتمكن من متابعة مراجعة طلبك.",
         "editAndResubmit": "تعديل وإعادة التقديم",
-        "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل."
+        "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل.",
+        "title": {
+          "pending": "تم استلام طلبك",
+          "approved": "تم توثيقك",
+          "rejected": "لم تتم الموافقة على الطلب",
+          "more_info_needed": "نحتاج إلى المزيد",
+          "suspended": "تم تعليق التوثيق"
+        },
+        "nextSteps": {
+          "review": "يراجع فريقنا ترخيصك ومستنداتك.",
+          "notify": "ستصلك إشعار هنا عند صدور القرار.",
+          "access": "بعد الموافقة، يفتح حسابك لوحة الطبيب تلقائيًا."
+        },
+        "goToDashboard": "الذهاب إلى لوحة التحكم"
+      },
+      "progressLabel": "خطوات الطلب",
+      "stepOf": "الخطوة {current} من {total} · {label}",
+      "continue": "متابعة",
+      "applicationStatus": {
+        "inProgress": "طلب الانضمام كطبيب · قيد الإعداد",
+        "underReview": "طلب الانضمام كطبيب · قيد المراجعة",
+        "needsChanges": "طلب الانضمام كطبيب · يحتاج تعديلات",
+        "approved": "طلب الانضمام كطبيب · موافق عليه"
+      },
+      "stepTitles": {
+        "personal": "عنك",
+        "profile": "ممارستك المهنية",
+        "documents": "مستنداتك",
+        "review": "المراجعة والتقديم"
+      },
+      "stepDescriptions": {
+        "personal": "تُستخدم للتحقق من هويتك. لا يظهر تاريخ ميلادك وجنسك وجنسيتك وعنوانك في ملفك كطبيب.",
+        "profile": "يرى المرضى هذه التفاصيل في ملفك كطبيب.",
+        "documents": "صور أو نسخ ممسوحة واضحة. نستخدمها فقط للتحقق من هويتك وترخيصك.",
+        "review": "راجع طلبك، ثم قدّمه للتوثيق."
       }
     },
     "patients": {
@@ -2480,7 +2557,7 @@
       }
     },
     "identityVerification": {
-      "title": "التحقق من الهوية",
+      "title": "تحقق من هويتك",
       "description": "ارفع بطاقة هوية وطنية وصورة شخصية للتأكد من هويتك.",
       "loadError": "تعذّر تحميل حالة التحقق من هويتك.",
       "steps": {
@@ -2488,21 +2565,25 @@
         "review": "المراجعة والتقديم"
       },
       "documentsStep": {
-        "description": "ارفع كل مستند من المستندات التالية (PDF أو JPG أو PNG). المستندات الثلاثة جميعها مطلوبة للتقديم للتوثيق.",
         "slots": {
           "national_id_front": "البطاقة الشخصية (الوجه الأمامي)",
           "national_id_back": "البطاقة الشخصية (الوجه الخلفي)",
           "selfie_with_id": "صورة شخصية مع البطاقة"
         },
-        "uploadButton": "رفع",
         "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى.",
-        "remove": "إزالة",
         "back": "رجوع",
-        "continue": "متابعة"
+        "continue": "متابعة",
+        "heading": "ارفع {total} مستندات",
+        "progress": "تم رفع {done} من {total}",
+        "descriptions": {
+          "national_id_front": "صورة أو نسخة ممسوحة واضحة للوجه الأمامي من بطاقتك الشخصية.",
+          "national_id_back": "صورة أو نسخة ممسوحة واضحة للوجه الخلفي من بطاقتك الشخصية.",
+          "selfie_with_id": "صورة لك وأنت تحمل بطاقتك الشخصية."
+        },
+        "privacy": "تُستخدم المستندات للتوثيق فقط ويراجعها موظفو أوريفكس المخوّلون."
       },
       "reviewStep": {
         "description": "راجع مستنداتك قبل التقديم للتوثيق.",
-        "documents": "المستندات",
         "documentsCount": "{count, plural, one {# مستند} other {# مستندات}}",
         "back": "رجوع",
         "submit": "تقديم للتوثيق"
@@ -2517,14 +2598,27 @@
           "rejected": "مرفوض",
           "suspended": "موقوف"
         },
-        "pendingDescription": "التحقق من هويتك قيد المراجعة. عادةً ما يستغرق ذلك وقتًا قصيرًا فقط.",
+        "pendingDescription": "وصلتنا مستنداتك. إليك ما سيحدث بعد ذلك.",
         "approvedDescription": "تم التحقق من هويتك.",
         "continueAction": "متابعة",
         "goToDashboard": "الذهاب إلى صحتي",
         "rejectedDescription": "يمكنك تعديل مستنداتك وإعادة التقديم للمراجعة.",
         "moreInfoDescription": "نحتاج إلى شيء واحد إضافي منك قبل أن نتمكن من متابعة مراجعة طلبك.",
         "editAndResubmit": "تعديل وإعادة التقديم",
-        "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل."
+        "suspendedDescription": "تم تعليق التوثيق الخاص بك. يرجى التواصل مع الدعم لمزيد من التفاصيل.",
+        "title": {
+          "pending": "تم استلام مستنداتك",
+          "approved": "تم التحقق من هويتك",
+          "rejected": "لم تتم الموافقة على التحقق",
+          "more_info_needed": "نحتاج إلى المزيد",
+          "suspended": "تم تعليق التوثيق"
+        },
+        "nextSteps": {
+          "review": "يراجع فريقنا مستنداتك.",
+          "notify": "ستصلك إشعار هنا عند صدور القرار.",
+          "access": "بعد التحقق، يمكنك الحجز وحضور الاستشارات والدفع."
+        },
+        "backToWhereYouWere": "العودة إلى حيث كنت"
       },
       "gate": {
         "title": {
@@ -2540,7 +2634,9 @@
           "payment": "يتطلب إجراء الدفع هوية موثقة، لحماية حسابك."
         },
         "startVerification": "بدء التحقق"
-      }
+      },
+      "progressLabel": "خطوات التحقق",
+      "stepOf": "الخطوة {current} من {total} · {label}"
     }
   },
   "verifyPrescription": {
@@ -2932,7 +3028,8 @@
       "stepOf": "الخطوة {current} من {total}",
       "trustLine": "لا يرى هذه التفاصيل إلا أنت والأطباء الذين تحجز معهم وموظفو أوريفكس المخوّلون.",
       "loadError": "حدث خطأ أثناء تحميل ملفك الشخصي. حاول مرة أخرى."
-    }
+    },
+    "exit": "خروج"
   },
   "admin": {
     "disputeResolution": {
@@ -3690,6 +3787,29 @@
     },
     "confirm": {
       "cancel": "إلغاء"
+    },
+    "dateField": {
+      "day": "اليوم",
+      "month": "الشهر",
+      "year": "السنة"
+    },
+    "upload": {
+      "types": "PDF أو JPG أو PNG",
+      "choose": "اختيار ملف",
+      "chooseLabel": "اختيار ملف لـ {name}",
+      "takePhoto": "التقاط صورة",
+      "orDrop": "أو أفلته هنا",
+      "cancel": "إلغاء",
+      "replace": "استبدال",
+      "replaceLabel": "استبدال {name}",
+      "remove": "إزالة",
+      "removeLabel": "إزالة {name}",
+      "retry": "إعادة المحاولة",
+      "uploadingLabel": "جارٍ رفع {name}",
+      "typeError": "نوع الملف غير مقبول. استخدم PDF أو JPG أو PNG.",
+      "duplicate": "يبدو أن هذا هو نفس الملف الذي استخدمته لـ {name}. ارفع المستند الصحيح.",
+      "uploadAnyway": "الرفع على أي حال",
+      "chooseAnother": "اختيار ملف آخر"
     }
   },
   "chrome": {
