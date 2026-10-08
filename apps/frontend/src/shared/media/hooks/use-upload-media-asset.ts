@@ -22,6 +22,58 @@ export async function putFileToSignedUrl(signedUrl: string, file: File): Promise
   }
 }
 
+/** Thrown when an upload is cancelled through its `AbortSignal`. */
+export class UploadCancelledError extends Error {
+  constructor() {
+    super('Upload cancelled.');
+    this.name = 'UploadCancelledError';
+  }
+}
+
+/**
+ * The same PUT as `putFileToSignedUrl` (same URL, header and body), through XMLHttpRequest so the caller can show
+ * progress (0..1) and cancel it -- `fetch` reports neither for an upload body.
+ */
+export function putFileToSignedUrlWithProgress(
+  signedUrl: string,
+  file: File,
+  { onProgress, signal }: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {},
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new UploadCancelledError());
+      return;
+    }
+    const request = new XMLHttpRequest();
+    request.open('PUT', signedUrl);
+    request.setRequestHeader('Content-Type', file.type);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress?.(event.loaded / event.total);
+    };
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        onProgress?.(1);
+        resolve();
+      } else {
+        reject(new Error(`Upload to storage failed with status ${request.status}.`));
+      }
+    };
+    request.onerror = () => reject(new Error('Upload to storage failed.'));
+    request.onabort = () => reject(new UploadCancelledError());
+    signal?.addEventListener('abort', () => request.abort(), { once: true });
+    request.send(file);
+  });
+}
+
+export interface UploadMediaAssetVariables {
+  file: File;
+  purpose: MediaAssetPurpose;
+  /** 0..1 while the file's bytes go up; when given, the PUT reports progress (see `putFileToSignedUrlWithProgress`). */
+  onProgress?: (fraction: number) => void;
+  /** Cancels the upload (rejects with `UploadCancelledError`). */
+  signal?: AbortSignal;
+}
+
 /**
  * The full upload-intent -> PUT -> confirm flow (AssetModule's real
  * three-step contract) as one mutation: callers only ever hand it a `File`
@@ -29,7 +81,7 @@ export async function putFileToSignedUrl(signedUrl: string, file: File): Promise
  */
 export function useUploadMediaAsset() {
   return useMutation({
-    mutationFn: async ({ file, purpose }: { file: File; purpose: MediaAssetPurpose }): Promise<MediaAsset> => {
+    mutationFn: async ({ file, purpose, onProgress, signal }: UploadMediaAssetVariables): Promise<MediaAsset> => {
       const intent = await mediaApi.createUploadIntent({
         contentType: file.type,
         purpose,
@@ -38,7 +90,12 @@ export function useUploadMediaAsset() {
       if (!intent.signedUrl) {
         throw new Error('No signed upload URL was returned.');
       }
-      await putFileToSignedUrl(intent.signedUrl, file);
+      if (onProgress || signal) {
+        await putFileToSignedUrlWithProgress(intent.signedUrl, file, { onProgress, signal });
+      } else {
+        await putFileToSignedUrl(intent.signedUrl, file);
+      }
+      if (signal?.aborted) throw new UploadCancelledError();
       return mediaApi.confirmUpload(intent.id);
     },
   });

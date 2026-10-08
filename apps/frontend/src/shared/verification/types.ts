@@ -35,4 +35,9 @@ export interface VerificationCase {
 export interface UploadedDocument {
   id: string;
   fileName: string;
+  /** Bytes and MIME type of the file the applicant picked (for the tile, the review and the duplicate check). */
+  size?: number;
+  contentType?: string;
+  /** A local `blob:` URL of the picked file, for a thumbnail or preview -- never sent anywhere. */
+  previewUrl?: string;
 }

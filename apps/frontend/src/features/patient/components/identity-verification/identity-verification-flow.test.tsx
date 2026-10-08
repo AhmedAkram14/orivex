@@ -8,7 +8,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import { IdentityVerificationFlow } from './identity-verification-flow';
 import { resetPatientStore, setPatientVerified } from '@/mocks/patient-store';
 import { server } from '@/mocks/server';
+import { AuthContext } from '@/shared/auth/auth-context';
+import type { AuthState } from '@/shared/auth/types';
 import { env } from '@/shared/lib/env';
+import { ThemeProvider } from '@/shared/providers/theme-provider';
 import enMessages from '../../../../../messages/en.json';
 
 vi.mock('next/navigation', () => ({
@@ -30,12 +33,21 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
+const authState: AuthState = {
+  status: 'authenticated',
+  user: { id: 'user-patient-1', email: 'patient@orivex.dev', fullName: 'Amina Youssef', roles: ['patient'] },
+};
+
 function renderFlow(returnTo?: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Africa/Cairo">
-        <IdentityVerificationFlow returnTo={returnTo} />
+        <ThemeProvider>
+          <AuthContext.Provider value={authState}>
+            <IdentityVerificationFlow returnTo={returnTo} />
+          </AuthContext.Provider>
+        </ThemeProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>,
   );
@@ -46,7 +58,7 @@ async function uploadAllDocuments() {
   for (let index = 0; index < fileNames.length; index += 1) {
     const fileName = fileNames[index];
     const file = new File(['content'], fileName, { type: 'image/jpeg' });
-    const inputs = document.querySelectorAll('input[type="file"]');
+    const inputs = document.querySelectorAll('input[type="file"]:not([capture])');
     await userEvent.upload(inputs[index] as HTMLInputElement, file);
     await screen.findByText(fileName, undefined, { timeout: 3000 });
   }
@@ -87,9 +99,10 @@ describe('IdentityVerificationFlow', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Submit for verification' }));
 
     expect(await screen.findByText('Submitted')).toBeInTheDocument();
-    expect(
-      screen.getByText('Your identity verification is being reviewed. This usually only takes a short while.'),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Documents received' })).toBeInTheDocument();
+    // No review time is promised (none is defined anywhere).
+    expect(screen.queryByText(/short while/)).not.toBeInTheDocument();
+    expect(screen.getByText('Our team checks your documents.')).toBeInTheDocument();
   }, 15000);
 
   it('shows the rejection reason and lets the applicant edit and resubmit', async () => {

@@ -1,40 +1,46 @@
 'use client';
 
+import { ArrowLeft, FileText, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRef } from 'react';
 import { useSubmitPatientVerification } from '@/features/patient/hooks/use-submit-patient-verification';
+import type { MediaAssetPurpose } from '@/shared/media/types';
 import type { DocumentSlots } from '@/shared/verification/components/documents-step';
 import { ApiError } from '@/shared/lib/api/client';
+import { Icon } from '@/shared/icons/icon';
+import { ActionBar } from '@/shared/ui/action-bar';
 import { Alert } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent } from '@/shared/ui/card';
 
 export interface PatientReviewStepProps {
   patientProfileId: string;
   documents: DocumentSlots;
+  slots: readonly MediaAssetPurpose[];
   onSubmitted: () => void;
   onBack: () => void;
 }
 
 /**
- * Onboarding Redesign (2026-07-21 proposal, Stage O.7): Patient Identity
- * Verification's final step -- mirrors Doctor Onboarding's `ReviewStep`
- * shape for UI/code consistency (§2), but is its own component rather than
- * a literal generalization: a Patient submission has no license/specialty
- * fields at all (`SubmitPatientVerificationRequestDto` is documentAssetIds
- * only), so there is nothing to make those fields optional over.
+ * Patient identity verification's last step: the three documents as they will be sent, then
+ * `POST /patients/:id/verifications` with `{ documentAssetIds }` (unchanged), guarded against a double submit.
  */
-export function PatientReviewStep({ patientProfileId, documents, onSubmitted, onBack }: PatientReviewStepProps) {
+export function PatientReviewStep({ patientProfileId, documents, slots, onSubmitted, onBack }: PatientReviewStepProps) {
   const t = useTranslations('patient.identityVerification.reviewStep');
+  const tSlots = useTranslations('patient.identityVerification.documentsStep.slots');
   const submitVerification = useSubmitPatientVerification(patientProfileId);
+  const submitting = useRef(false);
   const documentAssetIds = Object.values(documents)
     .filter((document): document is NonNullable<typeof document> => Boolean(document))
     .map((document) => document.id);
 
   async function handleSubmit() {
+    if (submitting.current) return;
+    submitting.current = true;
     try {
       await submitVerification.mutateAsync({ documentAssetIds });
       onSubmitted();
     } catch {
+      submitting.current = false;
       // Inline error rendered below from submitVerification.error.
     }
   }
@@ -49,25 +55,46 @@ export function PatientReviewStep({ patientProfileId, documents, onSubmitted, on
         </Alert>
       )}
 
-      <Card>
-        <CardContent className="flex flex-col gap-2 pt-6">
-          <dl className="flex flex-col gap-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-text-tertiary">{t('documents')}</dt>
-              <dd className="font-medium text-text-primary">{t('documentsCount', { count: documentAssetIds.length })}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+      <section className="flex flex-col gap-3 rounded-(--r-card) border border-border-default bg-surface p-5">
+        <h2 className="text-small font-semibold text-text-secondary">{t('documentsCount', { count: documentAssetIds.length })}</h2>
+        <ul className="flex flex-col gap-2">
+          {slots.map((slot) => {
+            const document = documents[slot];
+            if (!document) return null;
+            return (
+              <li key={slot} className="flex items-center gap-3">
+                {document.contentType?.startsWith('image/') && document.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a local blob: preview of the picked file
+                  <img src={document.previewUrl} alt="" className="size-10 rounded-md object-cover ring-1 ring-border-strong" />
+                ) : (
+                  <span className="flex size-10 items-center justify-center rounded-md bg-surface-2 ring-1 ring-border-strong">
+                    <Icon icon={FileText} size="sm" />
+                  </span>
+                )}
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-semibold text-text-primary">{tSlots(slot)}</span>
+                  <bdi className="truncate text-small text-text-secondary">{document.fileName}</bdi>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
-      <div className="flex items-center gap-2">
-        <Button type="button" variant="secondary" onClick={onBack}>
-          {t('back')}
-        </Button>
-        <Button type="button" onClick={handleSubmit} loading={submitVerification.isPending}>
-          {t('submit')}
-        </Button>
-      </div>
+      <ActionBar
+        start={
+          <Button type="button" variant="secondary" onClick={onBack}>
+            <Icon icon={ArrowLeft} size="sm" flipRtl />
+            {t('back')}
+          </Button>
+        }
+        end={
+          <Button type="button" onClick={handleSubmit} loading={submitVerification.isPending} disabled={submitVerification.isPending || submitVerification.isSuccess}>
+            <Icon icon={Send} size="sm" flipRtl />
+            {t('submit')}
+          </Button>
+        }
+      />
     </div>
   );
 }

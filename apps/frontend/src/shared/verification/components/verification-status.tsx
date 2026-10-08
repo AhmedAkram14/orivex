@@ -6,11 +6,15 @@ import type { VerificationCase } from '@/shared/verification/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
-import { Card, CardContent } from '@/shared/ui/card';
+import { Illustration } from '@/shared/ui/illustrations/illustration';
 
 export interface VerificationStatusProps {
   verificationCase: VerificationCase;
-  /** The `next-intl` namespace this status view's own strings live under (`badge.*`/`pendingDescription`/`approvedDescription`/`rejectedDescription`/`moreInfoDescription`/`suspendedDescription`/`editAndResubmit`). */
+  /**
+   * The `next-intl` namespace this status view's own strings live under (`badge.*`, `title.*`, `pendingDescription`,
+   * `nextSteps.*`, `approvedDescription`, `rejectedDescription`, `moreInfoDescription`, `suspendedDescription`,
+   * `editAndResubmit`).
+   */
   translationNamespace: string;
   /** Rejected/more-info-needed only: lets the applicant go edit their profile/documents and resubmit. */
   onEditAndResubmit?: () => void;
@@ -21,6 +25,8 @@ export interface VerificationStatusProps {
    * caller may still pass a `returnTo`-aware action instead.
    */
   approvedAction?: ReactNode;
+  /** Rendered while the case is pending (e.g. "Go to dashboard"). */
+  pendingAction?: ReactNode;
 }
 
 const BADGE_VARIANT: Record<VerificationCase['status'], 'warning' | 'success' | 'danger' | 'info' | 'neutral'> = {
@@ -34,61 +40,73 @@ const BADGE_VARIANT: Record<VerificationCase['status'], 'warning' | 'success' | 
 };
 
 /**
- * Onboarding Redesign (2026-07-21 proposal, Stage O.2/O.6/O.7): the
- * applicant's own status view for every non-Draft state -- Pending
- * (Submitted/UnderReview/MoreInfoNeeded/ReVerificationDue), Approved,
- * Rejected, Suspended -- shared between Doctor Onboarding and Patient
- * Identity Verification (the same generalized `VerificationCase` aggregate,
- * Stage O.2). Reuses the exact `VerificationStatus` values TrustModule
- * already models; no new status vocabulary invented here.
+ * The verification outcome screen -- what an applicant sees right after submitting and on every later visit (it
+ * replaces the form until the case is decided): the verified-seal scene, a title for the state, the status, and what
+ * happens next. Every line comes from the real case status; no review time is promised (none is defined anywhere).
  */
 export function VerificationStatus({
   verificationCase,
   translationNamespace,
   onEditAndResubmit,
   approvedAction,
+  pendingAction,
 }: VerificationStatusProps) {
   const t = useTranslations(translationNamespace);
+  const status = verificationCase.status;
 
-  const isPending =
-    verificationCase.status === 'submitted' ||
-    verificationCase.status === 'under_review' ||
-    verificationCase.status === 're_verification_due';
-  const isMoreInfoNeeded = verificationCase.status === 'more_info_needed';
-  const isRejectedOrMoreInfo = verificationCase.status === 'rejected' || isMoreInfoNeeded;
+  const isPending = status === 'submitted' || status === 'under_review' || status === 're_verification_due';
+  const isMoreInfoNeeded = status === 'more_info_needed';
+  const isRejectedOrMoreInfo = status === 'rejected' || isMoreInfoNeeded;
+  const titleKey = isPending ? 'pending' : status;
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 pt-6">
-        <div className="flex items-center gap-2">
-          <Badge variant={BADGE_VARIANT[verificationCase.status]}>{t(`badge.${verificationCase.status}`)}</Badge>
-        </div>
+    <section
+      data-verification-status={status}
+      className="flex flex-col items-center gap-5 rounded-(--r-card) border border-border-default bg-surface px-5 py-8 text-center sm:px-10 sm:py-10"
+    >
+      {(isPending || status === 'approved') && <Illustration name="verified-seal" />}
+      <div className="flex flex-col items-center gap-2">
+        <Badge variant={BADGE_VARIANT[status]}>{t(`badge.${status}`)}</Badge>
+        <h1 className="font-display text-2xl font-bold text-text-primary">{t(`title.${titleKey}`)}</h1>
+      </div>
 
-        {isPending && <p className="text-sm text-text-secondary">{t('pendingDescription')}</p>}
+      {isPending && (
+        <>
+          <p className="max-w-md text-sm text-text-secondary">{t('pendingDescription')}</p>
+          <ol className="flex w-full max-w-md flex-col gap-2 text-start">
+            {(['review', 'notify', 'access'] as const).map((step, index) => (
+              <li key={step} className="flex items-start gap-3 rounded-lg bg-surface-2 px-4 py-3 text-sm text-text-primary">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface text-caption font-semibold tabular-nums ring-1 ring-border-default">
+                  {index + 1}
+                </span>
+                {t(`nextSteps.${step}`)}
+              </li>
+            ))}
+          </ol>
+          {pendingAction}
+        </>
+      )}
 
-        {verificationCase.status === 'approved' && (
-          <>
-            <p className="text-sm text-text-secondary">{t('approvedDescription')}</p>
-            {approvedAction}
-          </>
-        )}
+      {status === 'approved' && (
+        <>
+          <p className="max-w-md text-sm text-text-secondary">{t('approvedDescription')}</p>
+          {approvedAction}
+        </>
+      )}
 
-        {isRejectedOrMoreInfo && (
-          <>
-            {verificationCase.reason && (
-              <Alert variant={isMoreInfoNeeded ? 'warning' : 'danger'}>{verificationCase.reason}</Alert>
-            )}
-            <p className="text-sm text-text-secondary">
-              {isMoreInfoNeeded ? t('moreInfoDescription') : t('rejectedDescription')}
-            </p>
-            {onEditAndResubmit && <Button onClick={onEditAndResubmit}>{t('editAndResubmit')}</Button>}
-          </>
-        )}
+      {isRejectedOrMoreInfo && (
+        <>
+          {verificationCase.reason && (
+            <Alert variant={isMoreInfoNeeded ? 'warning' : 'danger'} className="w-full max-w-md text-start">
+              {verificationCase.reason}
+            </Alert>
+          )}
+          <p className="max-w-md text-sm text-text-secondary">{isMoreInfoNeeded ? t('moreInfoDescription') : t('rejectedDescription')}</p>
+          {onEditAndResubmit && <Button onClick={onEditAndResubmit}>{t('editAndResubmit')}</Button>}
+        </>
+      )}
 
-        {verificationCase.status === 'suspended' && (
-          <p className="text-sm text-text-secondary">{t('suspendedDescription')}</p>
-        )}
-      </CardContent>
-    </Card>
+      {status === 'suspended' && <p className="max-w-md text-sm text-text-secondary">{t('suspendedDescription')}</p>}
+    </section>
   );
 }
