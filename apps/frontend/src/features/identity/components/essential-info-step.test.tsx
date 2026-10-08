@@ -69,7 +69,7 @@ describe('EssentialInfoStep', () => {
     const { onSaved } = renderStep();
 
     await fill(user, { day: '15', month: '03', year: '1990' });
-    await user.click(screen.getByRole('radio', { name: 'Female', exact: true }));
+    await user.click(screen.getByRole('radio', { name: /^Female$/ }));
     // Typed the way Egyptians often write it (leading 0); the mask shows the local part.
     await user.type(screen.getByRole('textbox', { name: 'Phone number' }), '01001234567');
     expect(screen.getByRole('textbox', { name: 'Phone number' })).toHaveValue('100 123 4567');
