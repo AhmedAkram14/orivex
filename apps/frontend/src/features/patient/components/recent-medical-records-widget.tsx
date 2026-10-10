@@ -53,7 +53,7 @@ export function RecentMedicalRecordsWidget({ className }: { className?: string }
           {recent.map((entry) => (
             <OverviewRow
               key={entry.id}
-              href={`/patient/records?highlight=${entry.id}`}
+              href={`/patient/records?tab=${entry.type === 'visit' ? 'visits' : 'conditions'}&highlight=${entry.id}`}
               icon={entry.type === 'visit' ? Stethoscope : ClipboardList}
               title={entry.title}
               body={entry.description}

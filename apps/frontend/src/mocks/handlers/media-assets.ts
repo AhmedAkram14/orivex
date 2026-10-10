@@ -2,6 +2,8 @@ import { http, HttpResponse } from 'msw';
 import { env } from '@/shared/lib/env';
 import type { MediaAsset, MediaAssetPurpose } from '@/shared/media/types';
 import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
+import { LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
+import { addDocumentForAccount } from '@/mocks/media-asset-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
@@ -65,7 +67,7 @@ export const mediaAssetHandlers = [
 
   http.put(`${base()}/mock-object-storage/:id`, () => new HttpResponse(null, { status: 200 })),
 
-  http.post(`${base()}/media-assets/:id/confirm`, ({ params }) => {
+  http.post(`${base()}/media-assets/:id/confirm`, ({ params, request }) => {
     const id = params.id as string;
     const declared = declaredAssetsById[id];
     const asset: MediaAsset = {
@@ -76,6 +78,18 @@ export const mediaAssetHandlers = [
       signedUrl: `${base()}/mock-object-storage/${id}`,
     };
     confirmedAssetsById[id] = asset;
+    // A confirmed clinical document is listed by GET /patients/me/documents from now on.
+    const ownerAccountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
+    if (CLINICAL_PURPOSES.includes(asset.purpose)) {
+      addDocumentForAccount(ownerAccountId, {
+        id,
+        ownerAccountId,
+        purpose: asset.purpose as 'clinical_attachment' | 'lab_report',
+        contentType: asset.contentType,
+        createdAt: new Date().toISOString(),
+        signedUrl: `${base()}/mock-object-storage/${id}`,
+      });
+    }
     return HttpResponse.json({ data: asset });
   }),
 

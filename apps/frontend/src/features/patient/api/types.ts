@@ -350,6 +350,46 @@ export interface MedicalRecordEntry {
 
 export type MedicalRecordsResponse = MedicalRecordEntry[];
 
+/** The two clinical media-asset purposes (the backend's CLINICAL_MEDIA_ASSET_PURPOSES): a patient's own upload, or a lab report a doctor added to their chart. */
+export type PatientDocumentPurpose = 'clinical_attachment' | 'lab_report';
+
+/**
+ * One of the patient's own clinical documents -- `GET /patients/me/documents`
+ * (MediaAssetListItemResponseDto, the same shape the doctor chart's
+ * documents list reads). The real asset has no file name and no uploader, so
+ * neither is ever shown or invented; `signedUrl` is a short-lived link, null
+ * while the file isn't available.
+ */
+export interface PatientDocument {
+  id: string;
+  purpose: PatientDocumentPurpose;
+  contentType: string;
+  /** ISO timestamp. */
+  createdAt: string;
+  signedUrl: string | null;
+}
+
+export type PatientDocumentsResponse = PatientDocument[];
+
+export type HealthGraphNodeType = 'condition' | 'symptom' | 'medication' | 'lab_result' | 'radiology_result';
+
+/**
+ * A node of the patient's own health graph -- `GET /patients/{id}/health-graph`
+ * (HealthGraphNodeResponseDto). Labs & imaging read its `lab_result` and
+ * `radiology_result` nodes: a text description and a date, no values,
+ * reference ranges or images.
+ */
+export interface HealthGraphNode {
+  id: string;
+  nodeType: HealthGraphNodeType;
+  icd11Code: null;
+  description: string | null;
+  certaintyLevel: 'suspected' | 'confirmed' | 'ruled_out';
+  source: 'clinical' | 'patient_reported' | 'device';
+  /** ISO timestamp. */
+  createdAt: string;
+}
+
 /**
  * A fixed 2-value literal, not a 3rd `'completed'` state -- nothing in the
  * real Prescription domain ever marks a prescription "completed" as distinct

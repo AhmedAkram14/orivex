@@ -30,12 +30,41 @@ export function setDocumentsForAccount(accountId: string, assets: MockMediaAsset
   assetsByOwnerAccountId.set(accountId, assets);
 }
 
+/** A confirmed clinical upload joins its owner's documents, newest first -- what the real list returns next. */
+export function addDocumentForAccount(accountId: string, asset: MockMediaAsset): void {
+  assetsByOwnerAccountId.set(accountId, [asset, ...(assetsByOwnerAccountId.get(accountId) ?? [])]);
+}
+
 export function getDocumentsForAccount(accountId: string | undefined): MockMediaAsset[] {
   if (!accountId) return [];
   return assetsByOwnerAccountId.get(accountId) ?? [];
 }
 
+/**
+ * The patient's lab and imaging results as health-graph nodes (`lab_result` / `radiology_result`), keyed by
+ * account. Nothing seeds them: an account has none until a test sets some.
+ */
+export interface MockResultNode {
+  id: string;
+  nodeType: 'lab_result' | 'radiology_result';
+  description: string | null;
+  source: 'clinical' | 'patient_reported' | 'device';
+  createdAt: string;
+}
+
+const resultNodesByAccountId = new Map<string, MockResultNode[]>();
+
+export function setResultNodesForAccount(accountId: string, nodes: MockResultNode[]): void {
+  resultNodesByAccountId.set(accountId, nodes);
+}
+
+export function getResultNodesForAccount(accountId: string | undefined): MockResultNode[] {
+  if (!accountId) return [];
+  return resultNodesByAccountId.get(accountId) ?? [];
+}
+
 /** Test-only: restores the seed state. Never called from application code. */
 export function resetMediaAssetStore(): void {
   assetsByOwnerAccountId.clear();
+  resultNodesByAccountId.clear();
 }

@@ -2429,47 +2429,102 @@
     },
     "records": {
       "title": "السجلات الطبية",
-      "description": "تاريخك السريري وزياراتك وحالاتك وسجلات الرعاية المشتركة في مكان واحد.",
+      "description": "زياراتك وحالاتك الصحية ومستنداتك ونتائجك، كلٌّ في مكانه.",
       "loadError": "تعذّر تحميل سجلاتك الطبية.",
-      "timelineTitle": "الجدول الزمني السريري",
-      "timelineEmptyTitle": "لا توجد سجلات طبية بعد",
-      "timelineEmptyDescription": "ستظهر هنا الزيارات والأمراض المسجلة من فريق الرعاية الخاص بك.",
-      "download": "تنزيل",
-      "viewDetails": "عرض التفاصيل",
-      "showLess": "عرض أقل",
-      "filters": {
-        "all": "الكل",
-        "visit": "الزيارات",
-        "condition": "الأمراض"
-      },
       "type": {
         "visit": "زيارة",
-        "condition": "مرض"
+        "condition": "حالة"
       },
       "summary": {
-        "totalVisits": "إجمالي الزيارات",
-        "conditions": "الأمراض"
+        "visits": "الزيارات",
+        "conditions": "الحالات",
+        "documents": "المستندات",
+        "lastVisit": "آخر زيارة",
+        "noVisitYet": "لا توجد ملاحظات زيارة بعد"
       },
-      "conditionsTitle": "الأمراض",
-      "conditionsEmptyTitle": "لا توجد أمراض مسجلة",
-      "conditionsEmptyDescription": "ستظهر هنا الأمراض التي يسجلها فريق الرعاية الخاص بك.",
-      "recordedOn": "سُجّل في {date}",
-      "recentPrescriptionsTitle": "أحدث الوصفات الطبية",
-      "viewAllPrescriptions": "عرض الكل",
-      "recentPrescriptionsEmptyTitle": "لا توجد وصفات طبية بعد",
-      "recentPrescriptionsEmptyDescription": "ستظهر هنا الوصفات الطبية من فريق الرعاية الخاص بك.",
-      "labImagingTitle": "المختبر والأشعة",
-      "labResults": "نتائج المختبر",
-      "labResultsUnavailableTitle": "نتائج المختبر غير متاحة بعد",
-      "labResultsUnavailableDescription": "ستظهر النتائج هنا عند توفرها.",
-      "imaging": "الأشعة",
-      "imagingUnavailableTitle": "الأشعة غير متاحة بعد",
-      "imagingUnavailableDescription": "ستظهر السجلات الإشعاعية هنا عند توفرها.",
-      "clinicalUpload": {
-        "title": "المستندات الطبية",
-        "description": "ارفع مستندًا طبيًا لمشاركته مع فريق الرعاية الخاص بك (PDF أو JPG أو PNG).",
-        "uploadButton": "رفع مستند",
-        "uploadError": "تعذر رفع هذا الملف. حاول مرة أخرى."
+      "tabs": {
+        "label": "أقسام السجلات الطبية",
+        "overview": "نظرة عامة",
+        "visits": "الزيارات",
+        "conditions": "الحالات",
+        "documents": "المستندات",
+        "results": "التحاليل والأشعة",
+        "medications": "الأدوية",
+        "prescriptions": "الوصفات"
+      },
+      "overview": {
+        "viewAll": "عرض الكل",
+        "conditionsTitle": "الحالات",
+        "conditionsEmptyTitle": "لا توجد حالات مسجّلة",
+        "conditionsEmptyDescription": "ستظهر هنا الحالات التي يسجّلها أطباؤك.",
+        "latestVisitTitle": "آخر زيارة",
+        "noVisitTitle": "لا توجد زيارات بعد",
+        "noVisitDescription": "ستظهر هنا ملاحظات استشاراتك.",
+        "readFullNote": "قراءة الملاحظة كاملة",
+        "resultsTitle": "أحدث النتائج",
+        "resultsEmptyTitle": "لا توجد نتائج تحاليل أو أشعة بعد",
+        "resultsEmptyDescription": "ستظهر هنا النتائج التي يطلبها طبيبك.",
+        "documentsTitle": "أحدث المستندات",
+        "documentsEmptyTitle": "لا توجد مستندات بعد",
+        "documentsEmptyDescription": "ستظهر هنا التقارير والصور التي تضيفها أنت أو أطباؤك."
+      },
+      "visits": {
+        "doctorFilter": "الطبيب",
+        "allDoctors": "كل الأطباء",
+        "expandAll": "فتح الكل",
+        "collapseAll": "طيّ الكل",
+        "showNote": "قراءة الملاحظة كاملة",
+        "hideNote": "إخفاء الملاحظة",
+        "emptyTitle": "لا توجد زيارات بعد",
+        "emptyDescription": "ستظهر هنا ملاحظات استشاراتك.",
+        "sections": {
+          "subjective": "ما أخبرت به الطبيب",
+          "objective": "الفحص",
+          "assessment": "التقييم",
+          "plan": "الخطة"
+        }
+      },
+      "conditions": {
+        "title": "الحالات المسجّلة",
+        "description": "الأحدث أولًا، حسب تاريخ تسجيل طبيبك لها.",
+        "recordedOn": "سُجّلت في {date}",
+        "emptyTitle": "لا توجد حالات مسجّلة",
+        "emptyDescription": "ستظهر هنا الحالات التي يسجّلها أطباؤك."
+      },
+      "documents": {
+        "upload": "رفع مستند",
+        "listLabel": "مستنداتك",
+        "tileLabel": "إضافة مستند",
+        "tileDescription": "تقرير أو صورة أشعة أو خطاب تحتفظ به مع سجلاتك.",
+        "uploadError": "تعذّر رفع هذا الملف. حاول مرة أخرى.",
+        "uploaded": "{count, plural, one {تم الرفع. المستند ضمن مستنداتك.} other {تم رفع # ملفات. هي ضمن مستنداتك.}}",
+        "emptyList": "ستظهر هنا المستندات التي ترفعها.",
+        "purpose": {
+          "clinical_attachment": "مستند طبي",
+          "lab_report": "تقرير تحليل"
+        },
+        "view": "عرض",
+        "viewLabel": "عرض {name} بتاريخ {date}",
+        "notAvailable": "غير متاح بعد"
+      },
+      "results": {
+        "labsTitle": "نتائج التحاليل",
+        "imagingTitle": "الأشعة",
+        "labsEmptyTitle": "لا توجد نتائج تحاليل بعد",
+        "imagingEmptyTitle": "لا توجد أشعة بعد",
+        "emptyDescription": "ستظهر هنا النتائج التي يطلبها طبيبك.",
+        "untitledLab": "نتيجة تحليل",
+        "untitledImaging": "نتيجة أشعة",
+        "source": {
+          "clinical": "من فريق رعايتك",
+          "patient_reported": "أبلغت عنها أنت",
+          "device": "من جهاز"
+        }
+      },
+      "uploadDialog": {
+        "title": "رفع مستند",
+        "description": "أضف تقريرًا أو صورة أشعة أو خطابًا إلى سجلاتك الطبية. يمكن للأطباء المعالجين لك رؤيته.",
+        "done": "تم"
       }
     },
     "prescriptions": {

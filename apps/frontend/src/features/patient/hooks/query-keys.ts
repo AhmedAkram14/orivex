@@ -6,6 +6,8 @@ export const patientActivePrescriptionsKeys = createQueryKeyFactory('patient-act
 export const patientProfileKeys = createQueryKeyFactory('patient-profile');
 export const patientAppointmentsKeys = createQueryKeyFactory('patient-appointments');
 export const patientMedicalRecordsKeys = createQueryKeyFactory('patient-medical-records');
+export const patientDocumentsKeys = createQueryKeyFactory('patient-documents');
+export const patientHealthGraphKeys = createQueryKeyFactory('patient-health-graph');
 export const patientPrescriptionsKeys = createQueryKeyFactory('patient-prescriptions');
 export const patientHealthDashboardKeys = createQueryKeyFactory('patient-health-dashboard');
 // Onboarding Redesign (2026-07-21 proposal, Stage O.5).

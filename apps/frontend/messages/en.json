@@ -2428,48 +2428,103 @@
       }
     },
     "records": {
-      "title": "Medical Records",
-      "description": "Your clinical history, visits, conditions, and shared care records in one place.",
+      "title": "Medical records",
+      "description": "Your visits, conditions, documents and results, each in its own place.",
       "loadError": "Couldn't load your medical records.",
-      "timelineTitle": "Clinical Timeline",
-      "timelineEmptyTitle": "No medical records yet",
-      "timelineEmptyDescription": "Visits and conditions recorded by your care team will appear here.",
-      "download": "Download",
-      "viewDetails": "View details",
-      "showLess": "Show less",
-      "filters": {
-        "all": "All",
-        "visit": "Visits",
-        "condition": "Conditions"
-      },
       "type": {
         "visit": "Visit",
         "condition": "Condition"
       },
       "summary": {
-        "totalVisits": "Total Visits",
-        "conditions": "Conditions"
+        "visits": "Visits",
+        "conditions": "Conditions",
+        "documents": "Documents",
+        "lastVisit": "Last visit",
+        "noVisitYet": "No visit notes yet"
       },
-      "conditionsTitle": "Conditions",
-      "conditionsEmptyTitle": "No conditions on record",
-      "conditionsEmptyDescription": "Conditions recorded by your care team will appear here.",
-      "recordedOn": "Recorded {date}",
-      "recentPrescriptionsTitle": "Recent Prescriptions",
-      "viewAllPrescriptions": "View all",
-      "recentPrescriptionsEmptyTitle": "No prescriptions yet",
-      "recentPrescriptionsEmptyDescription": "Prescriptions from your care team will appear here.",
-      "labImagingTitle": "Labs & Imaging",
-      "labResults": "Lab Results",
-      "labResultsUnavailableTitle": "Lab results aren't available yet",
-      "labResultsUnavailableDescription": "Results will appear here when available.",
-      "imaging": "Imaging",
-      "imagingUnavailableTitle": "Imaging isn't available yet",
-      "imagingUnavailableDescription": "Imaging records will appear here when available.",
-      "clinicalUpload": {
-        "title": "Clinical Documents",
-        "description": "Upload a clinical document to share with your care team (PDF, JPG, or PNG).",
-        "uploadButton": "Upload document",
-        "uploadError": "Could not upload this file. Please try again."
+      "tabs": {
+        "label": "Medical records sections",
+        "overview": "Overview",
+        "visits": "Visits",
+        "conditions": "Conditions",
+        "documents": "Documents",
+        "results": "Labs & imaging",
+        "medications": "Medications",
+        "prescriptions": "Prescriptions"
+      },
+      "overview": {
+        "viewAll": "View all",
+        "conditionsTitle": "Conditions",
+        "conditionsEmptyTitle": "No conditions on record",
+        "conditionsEmptyDescription": "Conditions your doctors record will appear here.",
+        "latestVisitTitle": "Latest visit",
+        "noVisitTitle": "No visits yet",
+        "noVisitDescription": "Notes from your consultations will appear here.",
+        "readFullNote": "Read full note",
+        "resultsTitle": "Recent results",
+        "resultsEmptyTitle": "No lab or imaging results yet",
+        "resultsEmptyDescription": "Results your doctor orders will appear here.",
+        "documentsTitle": "Recent documents",
+        "documentsEmptyTitle": "No documents yet",
+        "documentsEmptyDescription": "Reports and scans you or your doctors add will appear here."
+      },
+      "visits": {
+        "doctorFilter": "Doctor",
+        "allDoctors": "All doctors",
+        "expandAll": "Expand all",
+        "collapseAll": "Collapse all",
+        "showNote": "Read full note",
+        "hideNote": "Hide note",
+        "emptyTitle": "No visits yet",
+        "emptyDescription": "Notes from your consultations will appear here.",
+        "sections": {
+          "subjective": "What you told the doctor",
+          "objective": "Examination",
+          "assessment": "Assessment",
+          "plan": "Plan"
+        }
+      },
+      "conditions": {
+        "title": "Conditions on record",
+        "description": "Newest first, by the date your doctor recorded them.",
+        "recordedOn": "Recorded {date}",
+        "emptyTitle": "No conditions on record",
+        "emptyDescription": "Conditions your doctors record will appear here."
+      },
+      "documents": {
+        "upload": "Upload document",
+        "listLabel": "Your documents",
+        "tileLabel": "Add a document",
+        "tileDescription": "A report, scan or letter to keep with your records.",
+        "uploadError": "Couldn't upload this file. Try again.",
+        "uploaded": "{count, plural, one {Uploaded. It is in your documents.} other {# files uploaded. They are in your documents.}}",
+        "emptyList": "Uploaded documents will appear here.",
+        "purpose": {
+          "clinical_attachment": "Medical document",
+          "lab_report": "Lab report"
+        },
+        "view": "View",
+        "viewLabel": "View {name} from {date}",
+        "notAvailable": "Not available yet"
+      },
+      "results": {
+        "labsTitle": "Lab results",
+        "imagingTitle": "Imaging",
+        "labsEmptyTitle": "No lab results yet",
+        "imagingEmptyTitle": "No imaging yet",
+        "emptyDescription": "Results your doctor orders will appear here.",
+        "untitledLab": "Lab result",
+        "untitledImaging": "Imaging result",
+        "source": {
+          "clinical": "From your care team",
+          "patient_reported": "Reported by you",
+          "device": "From a device"
+        }
+      },
+      "uploadDialog": {
+        "title": "Upload a document",
+        "description": "Add a report, scan or letter to your medical records. Doctors treating you can see it.",
+        "done": "Done"
       }
     },
     "prescriptions": {

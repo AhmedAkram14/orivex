@@ -7,10 +7,12 @@ import type {
   BookedAppointment,
   CancelledAppointment,
   HealthDashboardResponse,
+  HealthGraphNode,
   HealthPassportEntry,
   IdentityVerificationStatus,
   MedicalRecordsResponse,
   PatientDashboardSummary,
+  PatientDocumentsResponse,
   PatientProfile,
   PatientProfileExistsResponse,
   PatientProfileUpdateRequest,
@@ -82,6 +84,11 @@ export const patientApi = {
     }),
 
   getMedicalRecords: () => apiFetch<MedicalRecordsResponse>({ path: PATIENT_PATHS.medicalRecords }),
+
+  getDocuments: () => apiFetch<PatientDocumentsResponse>({ path: PATIENT_PATHS.documents }),
+
+  // The patient's own health graph (readable only by its own patient or a doctor with active consent).
+  getHealthGraph: (patientProfileId: string) => apiFetch<HealthGraphNode[]>({ path: PATIENT_PATHS.healthGraph(patientProfileId) }),
 
   getPrescriptions: () => apiFetch<PrescriptionsResponse>({ path: PATIENT_PATHS.prescriptions }),
 

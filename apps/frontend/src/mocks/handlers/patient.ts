@@ -34,6 +34,8 @@ import {
   updateProfile,
 } from '@/mocks/patient-store';
 import { identityVerificationRequiredResponse, isPatientVerified } from '@/mocks/identity-verification-gate';
+import { LEGACY_PATIENT_ACCOUNT_ID } from '@/mocks/auth-store';
+import { getDocumentsForAccount, getResultNodesForAccount } from '@/mocks/media-asset-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
 
 const base = () => env.apiBaseUrl;
@@ -170,6 +172,32 @@ export const patientHandlers = [
   http.get(`${base()}${PATIENT_PATHS.medicalRecords}`, ({ request }) =>
     HttpResponse.json({ data: getMedicalRecords(resolveRequestAccountId(request)) }),
   ),
+
+  // The patient's own confirmed clinical documents, newest first (PatientDashboardController.getDocuments).
+  http.get(`${base()}${PATIENT_PATHS.documents}`, ({ request }) => {
+    const documents = [...getDocumentsForAccount(resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID)].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    return HttpResponse.json({ data: documents.map(({ id, purpose, contentType, createdAt, signedUrl }) => ({ id, purpose, contentType, createdAt, signedUrl })) });
+  }),
+
+  // The patient's own health graph (HealthGraphController.getHealthGraph): their condition records plus any
+  // lab / imaging result nodes. Another patient's id is a 404, as on the real route.
+  http.get(`${base()}/patients/:id/health-graph`, ({ params, request }) => {
+    const accountId = resolveRequestAccountId(request) ?? LEGACY_PATIENT_ACCOUNT_ID;
+    const profile = getProfile(accountId);
+    if (!profile || profile.id !== params.id) {
+      return HttpResponse.json(
+        { error: { code: 'NOT_FOUND', message: 'Patient not found.', requestId: 'mock', timestamp: new Date().toISOString() } },
+        { status: 404 },
+      );
+    }
+    const conditions = getMedicalRecords(accountId)
+      .filter((entry) => entry.type === 'condition')
+      .map((entry) => ({ id: entry.id, nodeType: 'condition', icd11Code: null, description: entry.title, certaintyLevel: 'confirmed', source: 'clinical', createdAt: entry.date }));
+    const results = getResultNodesForAccount(accountId).map((node) => ({ ...node, icd11Code: null, certaintyLevel: 'confirmed' }));
+    return HttpResponse.json({ data: [...conditions, ...results] });
+  }),
 
   http.get(`${base()}${PATIENT_PATHS.prescriptions}`, ({ request }) =>
     HttpResponse.json({ data: getPrescriptions(resolveRequestAccountId(request)) }),

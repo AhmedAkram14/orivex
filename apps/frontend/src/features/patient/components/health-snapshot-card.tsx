@@ -62,7 +62,7 @@ export function HealthSnapshotCard({ className }: { className?: string }) {
         .map((entry) => entry.title)
         .join(' · '),
       detail: conditions.length > 3 ? t('moreConditions', { count: conditions.length - 3 }) : undefined,
-      href: '/patient/records',
+      href: '/patient/records?tab=conditions',
     });
   }
 
