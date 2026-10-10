@@ -62,8 +62,11 @@ export function HeroSection() {
               typography.css actually defines) rather than reaching for
               Tailwind's un-tokenized text-6xl -- this is the one place on
               the page large-scale type is appropriate, so it's the one
-              place Display (not Heading) is used. */}
-          <Display as="h1" className="text-balance text-4xl text-text-primary sm:text-display-hero">
+              place Display (not Heading) is used. Arabic gets a taller line:
+              Plex Sans Arabic's glyph box is ~1.5em, so at the hero token's
+              ~1.14 leading line 2's highlight painted over the dots under
+              line 1 (the ي in رعايتك / الصحية). 1.6 keeps the boxes apart. */}
+          <Display as="h1" className="text-balance text-4xl text-text-primary sm:text-display-hero rtl:leading-[1.6]">
             {t('headlineLine1')}
             <br />
             <span className="rounded-md bg-pulse px-2 text-pulse-foreground box-decoration-clone">{t('headlineLine2')}</span>
