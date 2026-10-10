@@ -6,6 +6,10 @@ import { JwtAuthGuard } from '../../../authentication/presentation/guards/jwt-au
 import { RolesGuard } from '../../../authentication/presentation/guards/roles.guard.js';
 import type { AccessTokenClaims } from '../../../authentication/application/ports/jwt-signer.port.js';
 import type { Account } from '../../../identity/domain/entities/account.entity.js';
+import { ListMediaAssetsForOwnerUseCase } from '../../../asset/application/use-cases/list-media-assets-for-owner/list-media-assets-for-owner.use-case.js';
+import { CLINICAL_MEDIA_ASSET_PURPOSES } from '../../../asset/domain/enums/media-asset-purpose.enum.js';
+import { MediaAssetStatus } from '../../../asset/domain/enums/media-asset-status.enum.js';
+import { MediaAssetListItemResponseDto } from '../../../asset/presentation/dto/media-asset-list-item-response.dto.js';
 import { GetAccountByIdUseCase } from '../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import type { DoctorProfile } from '../../../doctor/domain/entities/doctor-profile.entity.js';
@@ -81,6 +85,7 @@ export class PatientDashboardController {
     private readonly listClinicalNotesForConsultationSessionUseCase: ListClinicalNotesForConsultationSessionUseCase,
     private readonly getHealthGraphSubgraphUseCase: GetHealthGraphSubgraphUseCase,
     private readonly listMedicalSpecialtiesUseCase: ListMedicalSpecialtiesUseCase,
+    private readonly listMediaAssetsForOwnerUseCase: ListMediaAssetsForOwnerUseCase,
   ) {}
 
   // Onboarding Redesign (2026-07-21 proposal, Stage O.9): DoctorProfile no
@@ -233,6 +238,28 @@ export class PatientDashboardController {
     );
 
     return envelope(entries);
+  }
+
+  // The patient's own clinical documents (Medical Records > Documents): the ones
+  // they uploaded and the ones a treating doctor uploaded to their chart -- both
+  // are owned by the patient's account (POST /doctor/patients/:id/documents/
+  // upload-intent resolves the owner server-side). Same use case, purposes and
+  // DTO as the doctor chart's GET /doctor/patients/:id/documents; identity-
+  // verification uploads are never included (CLINICAL_MEDIA_ASSET_PURPOSES).
+  // Only confirmed uploads -- an upload-intent that was never confirmed has no
+  // file behind it -- newest first, each with a short-lived download URL.
+  @Get('me/documents')
+  async getDocuments(
+    @CurrentUser() user: AccessTokenClaims,
+  ): Promise<ResponseEnvelope<MediaAssetListItemResponseDto[]>> {
+    const results = await this.listMediaAssetsForOwnerUseCase.execute({
+      ownerAccountId: user.accountId,
+      purposes: [...CLINICAL_MEDIA_ASSET_PURPOSES],
+    });
+    const documents = results
+      .filter(({ asset }) => asset.getStatus() === MediaAssetStatus.Confirmed)
+      .sort((a, b) => b.asset.getCreatedAt().getTime() - a.asset.getCreatedAt().getTime());
+    return envelope(documents.map(({ asset, signedUrl }) => MediaAssetListItemResponseDto.fromDomain(asset, signedUrl)));
   }
 
   private computeLastVisitAt(appointments: Appointment[]): string | undefined {

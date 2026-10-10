@@ -56,6 +56,12 @@ import type { VitalReadingRepository } from '../../domain/repositories/vital-rea
 import { ListMedicalSpecialtiesUseCase } from '../../../reference/application/use-cases/list-medical-specialties/list-medical-specialties.use-case.js';
 import { MedicalSpecialty } from '../../../reference/domain/entities/medical-specialty.entity.js';
 import type { MedicalSpecialtyRepository } from '../../../reference/domain/repositories/medical-specialty.repository.js';
+import { ListMediaAssetsForOwnerUseCase } from '../../../asset/application/use-cases/list-media-assets-for-owner/list-media-assets-for-owner.use-case.js';
+import type { ObjectStoragePort } from '../../../asset/application/ports/object-storage.port.js';
+import { MediaAsset } from '../../../asset/domain/entities/media-asset.entity.js';
+import { MediaAssetPurpose } from '../../../asset/domain/enums/media-asset-purpose.enum.js';
+import { MediaAssetStatus } from '../../../asset/domain/enums/media-asset-status.enum.js';
+import type { MediaAssetRepository } from '../../../asset/domain/repositories/media-asset.repository.js';
 
 import { PatientDashboardController } from './patient-dashboard.controller.js';
 
@@ -237,6 +243,49 @@ class InMemoryHealthGraphRepository implements HealthGraphRepository {
   async save(): Promise<void> {}
 }
 
+class InMemoryMediaAssetRepository implements MediaAssetRepository {
+  constructor(private readonly assets: MediaAsset[]) {}
+  async findById(id: string): Promise<MediaAsset | null> {
+    return this.assets.find((asset) => asset.getId() === id) ?? null;
+  }
+  async findByOwner(ownerAccountId: string, purposes?: MediaAssetPurpose[]): Promise<MediaAsset[]> {
+    return this.assets.filter(
+      (asset) => asset.getOwnerAccountId() === ownerAccountId && (!purposes || purposes.includes(asset.getPurpose())),
+    );
+  }
+  async save(): Promise<void> {}
+}
+
+class FakeObjectStorage implements ObjectStoragePort {
+  async createPresignedUploadUrl(): Promise<string> {
+    return 'unused';
+  }
+  async createPresignedDownloadUrl(storageKey: string): Promise<string> {
+    return `https://storage.example.com/${storageKey}?download=true`;
+  }
+  async checkConnectivity(): Promise<void> {}
+}
+
+function mediaAsset(props: {
+  id: string;
+  ownerAccountId: string;
+  purpose: MediaAssetPurpose;
+  status: MediaAssetStatus;
+  daysAgo: number;
+}): MediaAsset {
+  const at = new Date(Date.now() - props.daysAgo * 24 * 60 * 60_000);
+  return MediaAsset.reconstitute({
+    id: props.id,
+    ownerAccountId: props.ownerAccountId,
+    purpose: props.purpose,
+    contentType: props.purpose === MediaAssetPurpose.LabReport ? 'application/pdf' : 'image/jpeg',
+    storageKey: `${props.purpose}/${props.id}`,
+    status: props.status,
+    createdAt: at,
+    updatedAt: at,
+  });
+}
+
 class FakeJwtSigner implements JwtSignerPort {
   constructor(private readonly accountIdByToken: Record<string, string>) {}
   async sign(): Promise<never> {
@@ -362,6 +411,18 @@ describe('PatientDashboardController (integration)', () => {
       authoringDoctorId: doctor.getId(),
     });
 
+    const patientAccountId = patientAccount.getId().toString();
+    const doctorAccountId = doctorAccount.getId().toString();
+    const mediaAssets = [
+      // Uploaded by the patient a day ago, and a lab report a doctor added to the chart today: both listed, newest first.
+      mediaAsset({ id: '99999999-9999-4999-8999-999999999991', ownerAccountId: patientAccountId, purpose: MediaAssetPurpose.ClinicalAttachment, status: MediaAssetStatus.Confirmed, daysAgo: 1 }),
+      mediaAsset({ id: '99999999-9999-4999-8999-999999999992', ownerAccountId: patientAccountId, purpose: MediaAssetPurpose.LabReport, status: MediaAssetStatus.Confirmed, daysAgo: 0 }),
+      // Never listed: an upload that was never confirmed, an identity document, another account's file.
+      mediaAsset({ id: '99999999-9999-4999-8999-999999999993', ownerAccountId: patientAccountId, purpose: MediaAssetPurpose.ClinicalAttachment, status: MediaAssetStatus.Pending, daysAgo: 0 }),
+      mediaAsset({ id: '99999999-9999-4999-8999-999999999994', ownerAccountId: patientAccountId, purpose: MediaAssetPurpose.NationalIdFront, status: MediaAssetStatus.Confirmed, daysAgo: 0 }),
+      mediaAsset({ id: '99999999-9999-4999-8999-999999999995', ownerAccountId: doctorAccountId, purpose: MediaAssetPurpose.ClinicalAttachment, status: MediaAssetStatus.Confirmed, daysAgo: 0 }),
+    ];
+
     const moduleRef = await Test.createTestingModule({
       controllers: [PatientDashboardController],
       providers: [
@@ -436,6 +497,11 @@ describe('PatientDashboardController (integration)', () => {
                 }),
               ]),
             ),
+        },
+        {
+          provide: ListMediaAssetsForOwnerUseCase,
+          useFactory: () =>
+            new ListMediaAssetsForOwnerUseCase(new InMemoryMediaAssetRepository(mediaAssets), new FakeObjectStorage()),
         },
       ],
     }).compile();
@@ -629,5 +695,37 @@ describe('PatientDashboardController (integration)', () => {
 
     const dates = response.body.data.map((item: { date: string }) => new Date(item.date).getTime());
     assert.ok(dates[0] >= dates[1], 'entries should be sorted most-recent-first');
+  });
+
+  it('GET /patients/me/documents rejects a request with no bearer token', async () => {
+    const response = await request(app.getHttpServer()).get('/patients/me/documents').expect(401);
+    assert.equal(response.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it("GET /patients/me/documents lists only the caller's confirmed clinical documents, newest first, with download URLs", async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/documents')
+      .set('Authorization', `Bearer ${VALID_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(
+      response.body.data.map((item: { id: string }) => item.id),
+      ['99999999-9999-4999-8999-999999999992', '99999999-9999-4999-8999-999999999991'],
+    );
+    const [labReport, attachment] = response.body.data;
+    assert.equal(labReport.purpose, 'lab_report');
+    assert.equal(labReport.contentType, 'application/pdf');
+    assert.equal(labReport.signedUrl, 'https://storage.example.com/lab_report/99999999-9999-4999-8999-999999999992?download=true');
+    assert.equal(attachment.purpose, 'clinical_attachment');
+    assert.ok(attachment.createdAt);
+  });
+
+  it('GET /patients/me/documents returns an empty list for an account with no documents', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/patients/me/documents')
+      .set('Authorization', `Bearer ${NO_PROFILE_TOKEN}`)
+      .expect(200);
+
+    assert.deepEqual(response.body.data, []);
   });
 });
