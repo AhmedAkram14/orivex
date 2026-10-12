@@ -132,17 +132,24 @@ export const envSchema = z.object({
   // The verified sender address SendGrid requires on every outbound email
   // -- required together with the API key once SendGrid is actually bound.
   SENDGRID_FROM_EMAIL: z.string().email().optional(),
-  // I3 -- Notification email delivery. Local-dev-only real transport: when
-  // SendGrid isn't configured (no SENDGRID_API_KEY) and SMTP_HOST is set,
-  // AuthenticationModule binds SmtpEmailSender (nodemailer) instead of the
-  // silent LoggingEmailSender stub -- pointed at the already-provisioned
-  // Mailpit service (infrastructure/docker/docker-compose.yml) by default in
-  // .env.development, so local email delivery is genuinely verifiable
-  // (open http://localhost:8025) without needing a real SendGrid API key.
-  // Never set in production -- SendGrid (or unset -> Logging) remains the
-  // only production path.
+  // SMTP email delivery: when SendGrid isn't configured (no
+  // SENDGRID_API_KEY) and SMTP_HOST is set, AuthenticationModule binds
+  // SmtpEmailSender (nodemailer) instead of the silent LoggingEmailSender
+  // stub. Two uses:
+  //   - local dev: the already-provisioned Mailpit service
+  //     (infrastructure/docker/docker-compose.yml, .env.development) --
+  //     unauthenticated, verifiable at http://localhost:8025;
+  //   - production: any SMTP relay (e.g. Brevo, smtp-relay.brevo.com:587)
+  //     with SMTP_USER/SMTP_PASSWORD and a sender verified with that
+  //     relay in SMTP_FROM_EMAIL.
+  // Port 465 means implicit TLS; any other port upgrades with STARTTLS
+  // when the server offers it.
   SMTP_HOST: z.string().min(1).optional(),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  // Set both or neither -- neither means an unauthenticated relay (Mailpit).
+  SMTP_USER: z.string().min(1).optional(),
+  SMTP_PASSWORD: z.string().min(1).optional(),
+  SMTP_FROM_EMAIL: z.string().email().optional(),
   // Social Sign-In (docs/14-adrs.md ADR-008). The OAuth redirect URIs are
   // on the FRONTEND's origin -- `${FRONTEND_URL}/auth/oauth/<provider>/
   // callback`, register exactly that with each provider -- because the

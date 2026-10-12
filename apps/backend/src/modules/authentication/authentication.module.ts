@@ -144,15 +144,22 @@ import { OAuthController } from './presentation/controllers/oauth.controller.js'
           sgMail.setApiKey(apiKey);
           return new SendGridEmailSender(sgMail, fromEmail, frontendUrl);
         }
-        // I3 -- Notification email delivery: local-dev real transport via
-        // the already-provisioned Mailpit service, so email is genuinely
-        // verifiable (http://localhost:8025) without a real SendGrid key.
-        // Only reached when SendGrid isn't configured; SendGrid always wins.
+        // SMTP: Mailpit in local dev (unauthenticated), or a real relay
+        // such as Brevo in production (SMTP_USER/SMTP_PASSWORD). Only
+        // reached when SendGrid isn't configured; SendGrid always wins.
         const smtpHost = configService.get('SMTP_HOST', { infer: true });
         if (smtpHost) {
           const smtpPort = configService.get('SMTP_PORT', { infer: true });
-          const transport = createTransport({ host: smtpHost, port: smtpPort, secure: false });
-          return new SmtpEmailSender(transport, fromEmail ?? 'noreply@orivex.dev', frontendUrl);
+          const smtpUser = configService.get('SMTP_USER', { infer: true });
+          const smtpPassword = configService.get('SMTP_PASSWORD', { infer: true });
+          const transport = createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            ...(smtpUser && smtpPassword ? { auth: { user: smtpUser, pass: smtpPassword } } : {}),
+          });
+          const smtpFromEmail = configService.get('SMTP_FROM_EMAIL', { infer: true }) ?? fromEmail ?? 'noreply@orivex.dev';
+          return new SmtpEmailSender(transport, smtpFromEmail, frontendUrl);
         }
         return new LoggingEmailSender(logger, configService);
       },

@@ -476,7 +476,9 @@ export class AdministrationController {
     dto.openApiEnabled = this.configService.get('OPENAPI_ENABLED', { infer: true });
     dto.paymentGatewayConfigured = Boolean(this.configService.get('STRIPE_SECRET_KEY', { infer: true }));
     dto.telemedicineConfigured = Boolean(this.configService.get('LIVEKIT_URL', { infer: true }));
-    dto.emailProviderConfigured = Boolean(this.configService.get('SENDGRID_API_KEY', { infer: true }));
+    dto.emailProviderConfigured = Boolean(
+      this.configService.get('SENDGRID_API_KEY', { infer: true }) || this.configService.get('SMTP_HOST', { infer: true }),
+    );
     dto.notificationQueueConfigured = Boolean(this.configService.get('REDIS_URL', { infer: true }));
     return envelope(dto);
   }

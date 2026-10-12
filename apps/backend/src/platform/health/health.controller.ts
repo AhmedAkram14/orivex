@@ -101,7 +101,10 @@ export class HealthController {
       }
     }
 
-    const emailStatus = this.configService.get('SENDGRID_API_KEY', { infer: true }) ? 'configured' : 'not configured';
+    const emailStatus =
+      this.configService.get('SENDGRID_API_KEY', { infer: true }) || this.configService.get('SMTP_HOST', { infer: true })
+        ? 'configured'
+        : 'not configured';
 
     return {
       status: 'ok',
