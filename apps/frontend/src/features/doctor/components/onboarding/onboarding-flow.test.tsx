@@ -279,3 +279,76 @@ describe('OnboardingFlow', () => {
     expect(screen.getByRole('link', { name: 'Go to Doctor Portal' })).toHaveAttribute('href', '/en/doctor');
   });
 });
+
+describe('OnboardingFlow: dates', () => {
+  // Today in Cairo, as the form sees it.
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(new Date());
+  const thisYear = Number(today.slice(0, 4));
+  const yearOptions = (group: HTMLElement) =>
+    within(within(group).getByRole('combobox', { name: 'Year' }))
+      .getAllByRole('option')
+      .map((option) => (option as HTMLOptionElement).value)
+      .filter(Boolean)
+      .map(Number);
+
+  it("offers birth years for a practising doctor's age only (22 to 90), and says so for an age outside it", async () => {
+    const user = userEvent.setup();
+    server.use(noProfile(), blankAccount());
+    renderFlow();
+
+    const group = await screen.findByRole('group', { name: 'Date of birth' });
+    const years = yearOptions(group);
+    expect(Math.max(...years)).toBe(thisYear - 22);
+    expect(Math.min(...years)).toBe(thisYear - 91);
+    expect(years).not.toContain(thisYear);
+
+    // Born on 31 December, 22 years ago: still 21 until that day (unless today is that day).
+    if (!today.endsWith('-12-31')) {
+      await pickDate(user, group, { day: '31', month: '12', year: String(thisYear - 22) });
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(await screen.findByText('A practising doctor must be between 22 and 90 years old. Check your date of birth.')).toBeInTheDocument();
+    }
+  }, 30000);
+
+  it('offers license expiry years from this year on, and refuses a date before today inline', async () => {
+    const user = userEvent.setup();
+    server.use(noProfile(), blankAccount());
+    renderFlow();
+    await completePersonal(user);
+
+    const group = await screen.findByRole('group', { name: 'License expiry date' });
+    expect(Math.min(...yearOptions(group))).toBe(thisYear);
+
+    // 1 January this year is in the past (unless today is 1 January).
+    if (!today.endsWith('-01-01')) {
+      await pickDate(user, group, { day: '01', month: '01', year: String(thisYear) });
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(await screen.findByText('This license has expired. Enter an expiry date of today or later.')).toBeInTheDocument();
+    }
+  }, 30000);
+
+  it("shows the API's own refusals: an expired license on its field, an age out of range above the form", async () => {
+    const user = userEvent.setup();
+    let refusal = 'LICENSE_EXPIRED';
+    server.use(
+      noProfile(),
+      blankAccount(),
+      http.post(`${base()}/doctors`, () =>
+        HttpResponse.json({ error: { code: refusal, message: 'refused', requestId: 'r', timestamp: now() } }, { status: 422 }),
+      ),
+    );
+    renderFlow();
+    await completePersonal(user);
+    await completeProfessional(user);
+
+    const group = screen.getByRole('group', { name: 'License expiry date' });
+    expect(await within(group.parentElement!).findByText('This license has expired. Enter an expiry date of today or later.')).toBeInTheDocument();
+
+    refusal = 'DOCTOR_AGE_OUT_OF_RANGE';
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    // The client-side expiry error stays until the date changes; pick a later one and send again.
+    await pickDate(user, group, { day: '02', month: '01', year: '2031' });
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('A practising doctor must be between 22 and 90 years old.');
+  }, 30000);
+});

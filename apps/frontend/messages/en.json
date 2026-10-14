@@ -854,7 +854,9 @@
         "addressRequired": "Address is required.",
         "addressTooLong": "Address must be {max} characters or fewer.",
         "phoneRequired": "Phone number is required.",
-        "phoneInvalid": "Enter a valid phone number."
+        "phoneInvalid": "Enter a valid phone number.",
+        "dateOfBirthTooOld": "Check the year: that is more than {max} years ago.",
+        "dateOfBirthAgeRange": "A practising doctor must be between {min} and {max} years old. Check your date of birth."
       },
       "prefilled": "Pre-filled from your profile",
       "nationalityOnlyOption": "The only nationality available at the moment.",
@@ -1706,6 +1708,8 @@
           "specialtyRequired": "Specialty is required.",
           "professionalRankRequired": "Professional rank is required.",
           "licenseExpiryDateRequired": "License expiry date is required.",
+          "licenseExpiryDateInvalid": "Enter a real date.",
+          "licenseExpiryDatePast": "This license has expired. Enter an expiry date of today or later.",
           "departmentRequired": "Department is required when a hospital is selected.",
           "biographyTooLong": "Biography must be {max} characters or fewer.",
           "experienceInvalid": "Enter a valid number of years (0-80).",
@@ -1715,7 +1719,8 @@
           "workExperiencePositionRequired": "Position is required.",
           "workExperienceStartDateRequired": "Start date is required.",
           "workExperienceEndDateInvalid": "End date must be on or after the start date.",
-          "workExperienceEndDateRequired": "Add an end date, or tick “I currently work here”."
+          "workExperienceEndDateRequired": "Add an end date, or tick “I currently work here”.",
+          "dateOfBirthAgeRange": "A practising doctor must be between {min} and {max} years old. Go back to Personal info to check your date of birth."
         },
         "groups": {
           "license": "License",

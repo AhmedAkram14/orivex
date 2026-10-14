@@ -202,7 +202,7 @@ export function JourneyScreen() {
         </div>
 
         {/* Continue: below the cards on desktop, pinned to the bottom of the screen on a phone. */}
-        <div className="flex w-full flex-col items-center gap-3 max-sm:sticky max-sm:bottom-0 max-sm:-mx-4 max-sm:mt-auto max-sm:w-[calc(100%+2rem)] max-sm:border-t max-sm:border-border-default max-sm:bg-surface-subtle max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-full flex-col items-center gap-3 max-sm:sticky max-sm:bottom-0 max-sm:-mx-4 max-sm:mt-auto max-sm:w-[calc(100%+2rem)] max-sm:border-t max-sm:border-border-default max-sm:bg-canvas max-sm:px-4 max-sm:pt-3 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button
             size="lg"
             data-journey-continue=""

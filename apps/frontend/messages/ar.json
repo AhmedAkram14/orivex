@@ -854,7 +854,9 @@
         "addressRequired": "العنوان مطلوب.",
         "addressTooLong": "يجب ألا يتجاوز العنوان {max} حرفًا.",
         "phoneRequired": "رقم الهاتف مطلوب.",
-        "phoneInvalid": "أدخل رقم هاتف صحيحًا."
+        "phoneInvalid": "أدخل رقم هاتف صحيحًا.",
+        "dateOfBirthTooOld": "راجع السنة: هذا التاريخ منذ أكثر من {max} عامًا.",
+        "dateOfBirthAgeRange": "يجب أن يكون عمر الطبيب الممارس بين {min} و{max} عامًا. راجع تاريخ ميلادك."
       },
       "prefilled": "مُعبّأ من ملفك الشخصي",
       "nationalityOnlyOption": "الجنسية الوحيدة المتاحة حاليًا.",
@@ -1706,6 +1708,8 @@
           "specialtyRequired": "التخصص مطلوب.",
           "professionalRankRequired": "الدرجة المهنية مطلوبة.",
           "licenseExpiryDateRequired": "تاريخ انتهاء الترخيص مطلوب.",
+          "licenseExpiryDateInvalid": "أدخل تاريخًا صحيحًا.",
+          "licenseExpiryDatePast": "انتهت صلاحية هذا الترخيص. أدخل تاريخ انتهاء اليوم أو بعده.",
           "departmentRequired": "القسم مطلوب عند اختيار مستشفى.",
           "biographyTooLong": "يجب ألا تتجاوز النبذة {max} حرفًا.",
           "experienceInvalid": "أدخل عددًا صحيحًا من السنوات (0-80).",
@@ -1715,7 +1719,8 @@
           "workExperiencePositionRequired": "المنصب مطلوب.",
           "workExperienceStartDateRequired": "تاريخ البدء مطلوب.",
           "workExperienceEndDateInvalid": "يجب أن يكون تاريخ الانتهاء بعد تاريخ البدء أو مساويًا له.",
-          "workExperienceEndDateRequired": "أضف تاريخ الانتهاء، أو حدّد «أعمل هنا حاليًا»."
+          "workExperienceEndDateRequired": "أضف تاريخ الانتهاء، أو حدّد «أعمل هنا حاليًا».",
+          "dateOfBirthAgeRange": "يجب أن يكون عمر الطبيب الممارس بين {min} و{max} عامًا. ارجع إلى البيانات الشخصية لمراجعة تاريخ ميلادك."
         },
         "groups": {
           "license": "الترخيص",

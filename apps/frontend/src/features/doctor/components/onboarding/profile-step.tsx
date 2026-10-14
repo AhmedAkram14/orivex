@@ -20,6 +20,7 @@ import { PROFESSIONAL_RANKS } from '@/features/doctor/components/onboarding/work
 import { useRegisterDoctorProfile } from '@/features/doctor/hooks/use-register-doctor-profile';
 import { useUpdateDoctorProfile } from '@/features/doctor/hooks/use-update-doctor-profile';
 import { createOnboardingProfileSchema, type OnboardingProfileFormValues } from '@/features/doctor/schemas/onboarding.schema';
+import { DOCTOR_AGE_RANGE } from '@/features/doctor/lib/eligibility';
 import { ApiError } from '@/shared/lib/api/client';
 import { cn } from '@/shared/lib/cn';
 import { cairoYear } from '@/shared/lib/date/iso-date';
@@ -127,17 +128,23 @@ export function ProfileStep({ profile, onSaved, onBack, submitLabel }: ProfileSt
       const { licenseNumber: _licenseNumber, ...updateValues } = values;
       const saved = isEditing ? await updateProfile.mutateAsync(updateValues) : await registerProfile.mutateAsync(values);
       onSaved(saved);
-    } catch {
-      // Inline error rendered below from mutation.error.
+    } catch (error) {
+      // An expired license is shown on its field; any other refusal, inline above the form.
+      if (error instanceof ApiError && error.code === 'LICENSE_EXPIRED') {
+        form.setError('licenseExpiryDate', { message: tValidation('licenseExpiryDatePast') }, { shouldFocus: true });
+      }
     }
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-        {mutation.error instanceof ApiError && (
+        {mutation.error instanceof ApiError && mutation.error.code !== 'LICENSE_EXPIRED' && (
           <Alert variant="danger" role="alert">
-            {mutation.error.message}
+            {/* The date of birth from step 1 is outside a practising doctor's age: say so in the page's language. */}
+            {mutation.error.code === 'DOCTOR_AGE_OUT_OF_RANGE'
+              ? tValidation('dateOfBirthAgeRange', { min: DOCTOR_AGE_RANGE.min, max: DOCTOR_AGE_RANGE.max })
+              : mutation.error.message}
           </Alert>
         )}
 
@@ -168,7 +175,14 @@ export function ProfileStep({ profile, onSaved, onBack, submitLabel }: ProfileSt
                   <FormLabel id={ids.expiry} className="font-semibold">
                     {t('licenseExpiryDate')}
                   </FormLabel>
-                  <FormDateField field={field} labelId={ids.expiry} fromYear={thisYear - 10} toYear={thisYear + 30} />
+                  <FormDateField
+                    field={field}
+                    labelId={ids.expiry}
+                    // Today or later only. A past date already on file (a resubmission) keeps its year in the
+                    // list, so it shows -- with its error -- instead of a blank year.
+                    fromYear={Math.min(thisYear, /^\d{4}/.test(field.value ?? '') ? Number(field.value!.slice(0, 4)) : thisYear)}
+                    toYear={thisYear + 30}
+                  />
                   <FormMessage icon={errorIcon} />
                 </FormItem>
               )}
@@ -186,9 +200,11 @@ export function ProfileStep({ profile, onSaved, onBack, submitLabel }: ProfileSt
                   field={field}
                   labelId={ids.rank}
                   options={PROFESSIONAL_RANKS.map((rank) => ({ value: rank, label: tRanks(rank) }))}
-                  // Five options, some long in Arabic: two columns on a phone, one row from sm.
-                  className="grid grid-cols-2 rounded-xl sm:grid-cols-5"
-                  itemClassName="h-auto min-h-9 rounded-lg px-2 py-1.5 leading-tight whitespace-normal"
+                  // Five options, some long in Arabic. Each label stays on one line: two columns on a phone; from
+                  // sm, rows that wrap when the labels don't fit side by side (English: one row; Arabic: two), each
+                  // row's options sharing its width.
+                  className="grid grid-cols-2 rounded-xl sm:flex sm:flex-wrap"
+                  itemClassName="h-auto min-h-9 rounded-lg px-3 py-1.5 whitespace-nowrap"
                 />
                 <FormMessage icon={errorIcon} />
               </FormItem>
@@ -208,31 +224,31 @@ export function ProfileStep({ profile, onSaved, onBack, submitLabel }: ProfileSt
               </FormItem>
             )}
           />
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="yearsOfExperience"
-              render={({ field }) => (
-                <FormItem className="gap-2">
-                  <FormLabel className="font-semibold">{t('experience')}</FormLabel>
-                  <YearsStepper field={field} />
-                  <FormMessage icon={errorIcon} />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="consultationFeeAmount"
-              render={({ field }) => (
-                <FormItem className="gap-2">
+          <FormField
+            control={form.control}
+            name="consultationFeeAmount"
+            render={({ field: feeField }) => (
+              <FormItem className="grid gap-x-5 gap-y-2 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="yearsOfExperience"
+                  render={({ field }) => (
+                    <FormItem className="gap-2">
+                      <FormLabel className="font-semibold">{t('experience')}</FormLabel>
+                      <YearsStepper field={field} />
+                      <FormMessage icon={errorIcon} />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex flex-col gap-2 max-sm:mt-3">
                   <FormLabel className="font-semibold">{t('consultationFee')}</FormLabel>
-                  <FeeInput field={field} />
-                  <FormDescription className="text-small text-text-tertiary">{t('consultationFeeHelp')}</FormDescription>
+                  <FeeInput field={feeField} />
                   <FormMessage icon={errorIcon} />
-                </FormItem>
-              )}
-            />
-          </div>
+                </div>
+                <FormDescription className="text-small text-text-tertiary sm:col-span-2">{t('consultationFeeHelp')}</FormDescription>
+              </FormItem>
+            )}
+          />
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}

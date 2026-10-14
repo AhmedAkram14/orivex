@@ -1,21 +1,39 @@
 import { z } from 'zod';
-import { cairoToday, isRealIsoDate } from '@/shared/lib/date/iso-date';
+import { ageInYears, cairoToday, isRealIsoDate } from '@/shared/lib/date/iso-date';
 
 type Translate = (key: string, values?: Record<string, string | number | Date>) => string;
 
 /** A real date (31 Feb rejected), not in the future (Cairo today); the API takes any ISO 8601 and sets no age bound. */
-function dateOfBirth(t: Translate) {
-  return z
+/** The oldest age a date of birth may give -- a bound on typos, the same one the API applies. */
+export const MAX_AGE_YEARS = 120;
+
+export interface AgeRange {
+  min: number;
+  max: number;
+}
+
+function dateOfBirth(t: Translate, ageRange?: AgeRange) {
+  const isPastDay = (value: string) => isRealIsoDate(value) && value <= cairoToday();
+  const age = (value: string) => ageInYears(value, cairoToday());
+  const base = z
     .string()
     .min(1, t('dateOfBirthRequired'))
     .refine(isRealIsoDate, t('dateOfBirthInvalid'))
-    .refine((value) => !isRealIsoDate(value) || value <= cairoToday(), t('dateOfBirthFuture'));
+    .refine((value) => !isRealIsoDate(value) || value <= cairoToday(), t('dateOfBirthFuture'))
+    .refine((value) => !isPastDay(value) || age(value) <= MAX_AGE_YEARS, t('dateOfBirthTooOld', { max: MAX_AGE_YEARS }));
+  // Only a flow with an age range (the doctor application) adds -- and translates -- this rule.
+  if (!ageRange) return base;
+  return base.refine(
+    (value) => !isPastDay(value) || (age(value) >= ageRange.min && age(value) <= ageRange.max),
+    t('dateOfBirthAgeRange', { min: ageRange.min, max: ageRange.max }),
+  );
 }
 
 /** Onboarding Redesign (2026-07-21 proposal, Stage O.1/O.6): the shared Personal Info step's schema -- matches MyAccountController's real UpdatePersonalProfileRequestDto exactly (dateOfBirth/gender/nationalityId/address). Full name is Account-owned, set once at registration, not editable through this step. */
-export function createPersonalInfoSchema(t: Translate) {
+// `ageRange`: the doctor application's practising-age range (22-90); everyone else, any plausible date.
+export function createPersonalInfoSchema(t: Translate, options: { ageRange?: AgeRange } = {}) {
   return z.object({
-    dateOfBirth: dateOfBirth(t),
+    dateOfBirth: dateOfBirth(t, options.ageRange),
     gender: z.enum(['male', 'female', 'other'], { required_error: t('genderRequired') }),
     nationalityId: z.string().min(1, t('nationalityRequired')),
     address: z.string().min(1, t('addressRequired')).max(500, t('addressTooLong', { max: 500 })),

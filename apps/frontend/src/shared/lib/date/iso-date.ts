@@ -22,3 +22,11 @@ export function cairoYear(): number {
     ),
   );
 }
+
+/** Whole years from `birthDay` to `onDay` (both `YYYY-MM-DD`): a birthday counts once its day is reached. */
+export function ageInYears(birthDay: string, onDay: string): number {
+  const [by, bm, bd] = birthDay.split('-').map(Number);
+  const [ty, tm, td] = onDay.split('-').map(Number);
+  const hadBirthdayThisYear = tm! > bm! || (tm === bm && td! >= bd!);
+  return ty! - by! - (hadBirthdayThisYear ? 0 : 1);
+}

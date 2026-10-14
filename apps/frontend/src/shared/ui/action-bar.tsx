@@ -14,12 +14,19 @@ export interface ActionBarProps {
 /**
  * A multi-step flow's one action bar: Back at the inline start, the primary action at the inline end, pinned to the
  * bottom of the screen so the next step is always one tap away (on every step, at every size).
+ *
+ * Opaque (the page's own canvas colour), with a hairline on top. It used to name a colour token that doesn't
+ * exist (`surface-subtle`), so it was transparent under a blur, and the form scrolling underneath showed through
+ * as smudged, ghosted text (worst in dark mode). It sits after the last field, so scrolled to the bottom
+ * that field is clear of it; `data-action-bar` gives the page a matching bottom scroll padding (globals.css),
+ * so a field brought into view by focus or an error stops above the bar, not under it.
  */
 export function ActionBar({ start, end, footnote, className }: ActionBarProps) {
   return (
     <div
+      data-action-bar=""
       className={cn(
-        'sticky bottom-0 z-(--z-sticky) -mx-4 mt-2 flex flex-col gap-2 border-t border-border-default bg-surface-subtle/95 px-4 py-3 backdrop-blur-sm',
+        'sticky bottom-0 z-(--z-sticky) -mx-4 mt-2 flex flex-col gap-2 border-t border-border-default bg-canvas px-4 py-3',
         'pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:mx-0 sm:rounded-b-(--r-card) sm:px-0',
         className,
       )}

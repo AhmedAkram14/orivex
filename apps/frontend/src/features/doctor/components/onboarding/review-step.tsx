@@ -9,6 +9,7 @@ import { useHospitalsList } from '@/features/doctor/hooks/use-hospitals-list';
 import { useSubmitVerification } from '@/features/doctor/hooks/use-submit-verification';
 import type { Account } from '@/features/identity/api/types';
 import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
+import { useCountryName } from '@/shared/i18n/country-name';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
 import type { MediaAssetPurpose } from '@/shared/media/types';
 import type { DocumentSlots } from '@/shared/verification/components/documents-step';
@@ -89,6 +90,7 @@ export function ReviewStep({ account, profile, documents, slots, onSubmitted, on
   const [preview, setPreview] = useState<MediaAssetPurpose | undefined>(undefined);
   const { data: specialties } = useSpecialtiesList();
   const { data: countries } = useCountriesList();
+  const countryName = useCountryName();
   const { data: hospitals } = useHospitalsList();
   const { data: departments } = useDepartmentsList(profile.hospitalId);
 
@@ -136,7 +138,7 @@ export function ReviewStep({ account, profile, documents, slots, onSubmitted, on
             { label: tPersonal('fullName'), value: account?.displayName ? <bdi>{account.displayName}</bdi> : none },
             { label: tPersonal('dateOfBirth'), value: date(account?.dateOfBirth) },
             { label: tPersonal('gender'), value: account?.gender ? tPersonal(`genderOptions.${account.gender}`) : none },
-            { label: tPersonal('nationality'), value: countries?.find((country) => country.id === account?.nationalityId)?.name ?? none },
+            { label: tPersonal('nationality'), value: (() => { const country = countries?.find((entry) => entry.id === account?.nationalityId); return country ? countryName(country) : none; })() },
             { label: tPersonal('address'), value: account?.address ? <bdi>{account.address}</bdi> : none },
           ]}
         />

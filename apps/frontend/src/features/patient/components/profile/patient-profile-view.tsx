@@ -22,6 +22,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import type { PatientProfile } from '@/features/patient/api/types';
 import { HealthPassportEntriesPanel } from '@/features/patient/components/profile/health-passport-entries-panel';
 import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
+import { useCountryName } from '@/shared/i18n/country-name';
 import { useInsuranceProvidersList } from '@/features/reference/hooks/use-insurance-providers-list';
 import { PersonAvatar } from '@/shared/ui/avatar';
 import { Icon } from '@/shared/icons/icon';
@@ -85,7 +86,9 @@ export function PatientProfileView({ profile, onEdit }: PatientProfileViewProps)
   const { data: countries } = useCountriesList();
   const { data: insuranceProviders } = useInsuranceProvidersList();
 
-  const nationalityName = countries?.find((country) => country.id === profile.nationalityId)?.name;
+  const countryName = useCountryName();
+  const nationality = countries?.find((country) => country.id === profile.nationalityId);
+  const nationalityName = nationality ? countryName(nationality) : undefined;
   const insuranceProviderName = insuranceProviders?.find(
     (provider) => provider.id === profile.insuranceProviderId,
   )?.name;

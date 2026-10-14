@@ -11,6 +11,7 @@ import {
   type ReviewEditTarget,
 } from '@/features/doctor/components/onboarding/review-step';
 import { PersonalInfoStep } from '@/features/identity/components/personal-info-step';
+import { DOCTOR_AGE_RANGE } from '@/features/doctor/lib/eligibility';
 import { useMyAccount } from '@/features/identity/hooks/use-my-account';
 import { FocusedPage } from '@/features/journey/components/focused-page';
 import { Alert } from '@/shared/ui/alert';
@@ -225,6 +226,7 @@ export function OnboardingFlow() {
           account={account}
           actions="bar"
           submitLabel={t('continue')}
+          ageRange={DOCTOR_AGE_RANGE}
           onSaved={() => afterSave('profile')}
         />
       </div>

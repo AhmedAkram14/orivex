@@ -7,7 +7,8 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import type { Account } from '@/features/identity/api/types';
 import { useUpdatePersonalProfile } from '@/features/identity/hooks/use-update-personal-profile';
-import { createPersonalInfoSchema, type PersonalInfoFormValues } from '@/features/identity/schemas/personal-info.schema';
+import { createPersonalInfoSchema, MAX_AGE_YEARS, type AgeRange, type PersonalInfoFormValues } from '@/features/identity/schemas/personal-info.schema';
+import { useCountryName } from '@/shared/i18n/country-name';
 import { useCountriesList } from '@/features/reference/hooks/use-countries-list';
 import { Icon } from '@/shared/icons/icon';
 import { ApiError } from '@/shared/lib/api/client';
@@ -35,14 +36,25 @@ export interface PersonalInfoStepProps {
   submitLabel?: string;
   /** Shown above the fields (a step's title and purpose). */
   intro?: ReactNode;
+  /**
+   * The ages this person may be, inclusive (the doctor application: 22-90). Limits the year list to them and
+   * says so when the date falls outside. Without it, any plausible date of birth (up to 120 years ago).
+   */
+  ageRange?: AgeRange;
 }
 
 const GENDERS = ['male', 'female', 'other'] as const;
 const errorIcon = <Icon icon={CircleAlert} size="xs" className="mt-px shrink-0" />;
 
-function DateOfBirth({ value, onChange, onBlur, inputRef, labelId }: { value: string; onChange: (value: string) => void; onBlur: () => void; inputRef: React.Ref<HTMLSelectElement>; labelId: string }) {
+function DateOfBirth({ value, onChange, onBlur, inputRef, labelId, ageRange }: { value: string; onChange: (value: string) => void; onBlur: () => void; inputRef: React.Ref<HTMLSelectElement>; labelId: string; ageRange?: AgeRange }) {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
   const year = cairoYear();
+  // The years someone of these ages can have been born in: the oldest may be born a year earlier (their
+  // birthday still to come this year). A date already on file stays selectable even when outside the range,
+  // so it shows -- with its error -- instead of a blank year.
+  const savedYear = /^\d{4}/.test(value) ? Number(value.slice(0, 4)) : undefined;
+  const fromYear = Math.min(year - (ageRange?.max ?? MAX_AGE_YEARS) - 1, savedYear ?? Infinity);
+  const toYear = Math.max(year - (ageRange?.min ?? 0), savedYear ?? -Infinity);
   return (
     <DateField
       id={formItemId}
@@ -51,8 +63,8 @@ function DateOfBirth({ value, onChange, onBlur, inputRef, labelId }: { value: st
       onBlur={onBlur}
       firstRef={inputRef}
       labelledBy={labelId}
-      fromYear={year - 120}
-      toYear={year}
+      fromYear={fromYear}
+      toYear={toYear}
       invalid={!!error}
       describedBy={error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId}
     />
@@ -90,10 +102,11 @@ function Gender({ value, onChange, onBlur, focusRef, labelId }: { value: Persona
  * Body unchanged: `{ dateOfBirth: 'YYYY-MM-DD', gender, nationalityId, address }`. Date of birth and gender come
  * pre-filled from the account when it already has them (a patient who did the intake), and say so.
  */
-export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack, submitLabel, intro }: PersonalInfoStepProps) {
+export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack, submitLabel, intro, ageRange }: PersonalInfoStepProps) {
   const t = useTranslations('identity.personalInfoStep');
   const tValidation = useTranslations('identity.personalInfoStep.validation');
   const { data: countries, isLoading: countriesLoading } = useCountriesList();
+  const countryName = useCountryName();
   const updatePersonalProfile = useUpdatePersonalProfile();
   const dateLabelId = useId();
   const genderLabelId = useId();
@@ -103,7 +116,7 @@ export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack,
   const form = useForm<PersonalInfoFormValues>({
     // Validate on blur (then on change), never before the field has been touched.
     mode: 'onTouched',
-    resolver: zodResolver(createPersonalInfoSchema(tValidation)),
+    resolver: zodResolver(createPersonalInfoSchema(tValidation, { ageRange })),
     defaultValues: {
       dateOfBirth: account?.dateOfBirth?.slice(0, 10) ?? '',
       gender: account?.gender,
@@ -122,8 +135,11 @@ export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack,
     try {
       const saved = await updatePersonalProfile.mutateAsync(values);
       onSaved(saved);
-    } catch {
-      // Inline error rendered below from mutation.error.
+    } catch (error) {
+      // A date of birth the API refuses is shown on the field itself; anything else, inline below.
+      if (error instanceof ApiError && error.code === 'INVALID_DATE_OF_BIRTH') {
+        form.setError('dateOfBirth', { message: tValidation('dateOfBirthInvalid') }, { shouldFocus: true });
+      }
     }
   }
 
@@ -133,7 +149,7 @@ export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack,
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
         {intro}
-        {updatePersonalProfile.error instanceof ApiError && (
+        {updatePersonalProfile.error instanceof ApiError && updatePersonalProfile.error.code !== 'INVALID_DATE_OF_BIRTH' && (
           <Alert variant="danger" role="alert">
             {updatePersonalProfile.error.message}
           </Alert>
@@ -160,7 +176,7 @@ export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack,
                 <FormLabel id={dateLabelId} className="font-semibold">
                   {t('dateOfBirth')}
                 </FormLabel>
-                <DateOfBirth value={field.value} onChange={field.onChange} onBlur={field.onBlur} inputRef={field.ref} labelId={dateLabelId} />
+                <DateOfBirth value={field.value} onChange={field.onChange} onBlur={field.onBlur} inputRef={field.ref} labelId={dateLabelId} ageRange={ageRange} />
                 {prefilled.dateOfBirth && <FormDescription className="text-small text-text-tertiary">{t('prefilled')}</FormDescription>}
                 <FormMessage icon={errorIcon} />
               </FormItem>
@@ -184,7 +200,7 @@ export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack,
         </div>
 
         {onlyCountry ? (
-          <LockedField label={t('nationality')} value={onlyCountry.name} help={t('nationalityOnlyOption')} />
+          <LockedField label={t('nationality')} value={countryName(onlyCountry)} help={t('nationalityOnlyOption')} />
         ) : (
           <FormField
             control={form.control}
@@ -204,7 +220,7 @@ export function PersonalInfoStep({ account, onSaved, actions = 'button', onBack,
                     <option value="">{t('nationalityPlaceholder')}</option>
                     {(countries ?? []).map((country) => (
                       <option key={country.id} value={country.id} className="text-text-primary">
-                        {country.name}
+                        {countryName(country)}
                       </option>
                     ))}
                   </NativeSelect>

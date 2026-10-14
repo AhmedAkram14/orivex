@@ -40,6 +40,16 @@ body {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
   }
+
+  /*
+   * A page with a sticky ActionBar (shared/ui/action-bar.tsx): whatever scrolls the page -- the document in the
+   * focused onboarding layout, <main> in the app shell -- keeps a bar's height clear at the bottom, so a field
+   * scrolled into view (focus, the first invalid field on submit) lands above the bar, never under it.
+   */
+  html:has([data-action-bar]),
+  main:has([data-action-bar]) {
+    scroll-padding-bottom: 7rem;
+  }
 }
 
 /* Script-aware font switching by `lang`, not by component prop — so any

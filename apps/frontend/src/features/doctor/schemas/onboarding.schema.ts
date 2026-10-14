@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cairoToday, isRealIsoDate } from '@/shared/lib/date/iso-date';
 
 type Translate = (key: string, values?: Record<string, string | number | Date>) => string;
 
@@ -49,7 +50,12 @@ export function createOnboardingProfileSchema(t: Translate) {
       professionalRank: z.enum(['resident', 'registrar', 'specialist', 'consultant', 'professor'], {
         required_error: t('professionalRankRequired'),
       }),
-      licenseExpiryDate: z.string().min(1, t('licenseExpiryDateRequired')),
+      // A real date, today or later (Cairo): an expired license isn't accepted -- the API checks the same.
+      licenseExpiryDate: z
+        .string()
+        .min(1, t('licenseExpiryDateRequired'))
+        .refine(isRealIsoDate, t('licenseExpiryDateInvalid'))
+        .refine((value) => !isRealIsoDate(value) || value >= cairoToday(), t('licenseExpiryDatePast')),
       departmentId: z.string().optional(),
       // Doctor Profile Redesign (2026-08-02): the work-history timeline backing
       // the Profile page's "Experience" section.
