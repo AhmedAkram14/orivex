@@ -2,6 +2,7 @@ import { ConflictError, NotFoundError, ValidationError } from '../../../../share
 import { AvailabilityWindowConflictError } from '../../domain/exceptions/availability-window-conflict.error.js';
 import { DepartmentNotFoundError } from '../../domain/exceptions/department-not-found.error.js';
 import { DoctorDomainError } from '../../domain/exceptions/doctor-domain.error.js';
+import { DoctorAgeOutOfRangeError, LicenseExpiredError } from '../../domain/exceptions/doctor-eligibility.error.js';
 import { DoctorFreeSlotDailyCapExceededError } from '../../domain/exceptions/doctor-free-slot-daily-cap-exceeded.error.js';
 import { DoctorProfileAlreadyExistsError } from '../../domain/exceptions/doctor-profile-already-exists.error.js';
 import { HospitalNotFoundError } from '../../domain/exceptions/hospital-not-found.error.js';
@@ -34,6 +35,12 @@ export function mapDoctorError(error: unknown): unknown {
     error instanceof DepartmentNotFoundError
   ) {
     return new NotFoundError(error.message);
+  }
+  if (error instanceof DoctorAgeOutOfRangeError) {
+    return new ValidationError(error.message, 'DOCTOR_AGE_OUT_OF_RANGE');
+  }
+  if (error instanceof LicenseExpiredError) {
+    return new ValidationError(error.message, 'LICENSE_EXPIRED');
   }
   if (error instanceof DoctorDomainError) {
     return new ValidationError(error.message);

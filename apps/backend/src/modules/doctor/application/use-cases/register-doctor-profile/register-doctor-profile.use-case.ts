@@ -2,6 +2,7 @@ import { ConflictError, NotFoundError } from '../../../../../shared/errors/app-e
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
 import { GetAccountByIdUseCase } from '../../../../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
 import { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
+import { assertLicenseNotExpired, assertPractisingAge } from '../../../domain/services/doctor-eligibility.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
 
 import type { RegisterDoctorProfileCommand } from './register-doctor-profile.command.js';
@@ -30,6 +31,10 @@ export class RegisterDoctorProfileUseCase {
     if (existing) {
       throw new ConflictError('A doctor profile already exists for this account.');
     }
+
+    // A practising doctor's age (from the date of birth on the account) and an unexpired license.
+    assertPractisingAge(account.getUserProfile().getDateOfBirth());
+    assertLicenseNotExpired(command.licenseExpiryDate);
 
     const profile = DoctorProfile.register({
       accountId: command.accountId,

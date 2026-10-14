@@ -10,6 +10,7 @@ import { DisplayName } from '../../../../identity/domain/value-objects/display-n
 import { EmailAddress } from '../../../../identity/domain/value-objects/email-address.value-object.js';
 import type { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
 import { ProfessionalRank } from '../../../domain/enums/professional-rank.enum.js';
+import { DoctorAgeOutOfRangeError, LicenseExpiredError } from '../../../domain/exceptions/doctor-eligibility.error.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
 
 import { RegisterDoctorProfileCommand } from './register-doctor-profile.command.js';
@@ -211,6 +212,44 @@ describe('RegisterDoctorProfileUseCase', () => {
           }),
         ),
       ConflictError,
+    );
+    assert.equal(doctorRepo.saved.length, 0);
+  });
+
+  it('rejects an applicant whose date of birth gives an age outside 22-90, saving nothing', async () => {
+    account.updatePersonalProfile({ dateOfBirth: new Date(Date.now() - 18 * 365.25 * 24 * 60 * 60 * 1000) });
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new RegisterDoctorProfileCommand({ accountId: account.getId().toString(), licenseNumber: 'LIC-123', specialtyId: SPECIALTY_ID }),
+        ),
+      DoctorAgeOutOfRangeError,
+    );
+    assert.equal(doctorRepo.saved.length, 0);
+  });
+
+  it('accepts an applicant of a practising age', async () => {
+    account.updatePersonalProfile({ dateOfBirth: new Date('1985-03-01') });
+
+    const profile = await useCase.execute(
+      new RegisterDoctorProfileCommand({ accountId: account.getId().toString(), licenseNumber: 'LIC-123', specialtyId: SPECIALTY_ID }),
+    );
+    assert.ok(profile);
+  });
+
+  it('rejects an expired license, saving nothing', async () => {
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new RegisterDoctorProfileCommand({
+            accountId: account.getId().toString(),
+            licenseNumber: 'LIC-123',
+            specialtyId: SPECIALTY_ID,
+            licenseExpiryDate: new Date('2016-06-30'),
+          }),
+        ),
+      LicenseExpiredError,
     );
     assert.equal(doctorRepo.saved.length, 0);
   });

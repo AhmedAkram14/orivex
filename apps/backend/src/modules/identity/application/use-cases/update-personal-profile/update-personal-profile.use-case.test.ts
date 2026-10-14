@@ -7,7 +7,7 @@ import { Gender } from '../../../domain/enums/gender.enum.js';
 import type { AccountRepository } from '../../../domain/repositories/account.repository.js';
 import { DisplayName } from '../../../domain/value-objects/display-name.value-object.js';
 import { EmailAddress } from '../../../domain/value-objects/email-address.value-object.js';
-import { NotFoundError } from '../../../../../shared/errors/app-error.js';
+import { NotFoundError, ValidationError } from '../../../../../shared/errors/app-error.js';
 
 import { UpdatePersonalProfileCommand } from './update-personal-profile.command.js';
 import { UpdatePersonalProfileUseCase } from './update-personal-profile.use-case.js';
@@ -108,6 +108,21 @@ describe('UpdatePersonalProfileUseCase', () => {
       NotFoundError,
     );
 
+    assert.equal(repository.saved.length, 0);
+  });
+
+  it('rejects a date of birth in the future, or more than 120 years ago, saving nothing', async () => {
+    const account = buildAccount();
+    const repository = new FakeAccountRepository(account);
+    const useCase = new UpdatePersonalProfileUseCase(repository);
+    const accountId = account.getId().toString();
+
+    for (const dateOfBirth of [new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), new Date('1890-01-01')]) {
+      await assert.rejects(
+        () => useCase.execute(new UpdatePersonalProfileCommand({ accountId, dateOfBirth })),
+        (error: unknown) => error instanceof ValidationError && error.code === 'INVALID_DATE_OF_BIRTH',
+      );
+    }
     assert.equal(repository.saved.length, 0);
   });
 });

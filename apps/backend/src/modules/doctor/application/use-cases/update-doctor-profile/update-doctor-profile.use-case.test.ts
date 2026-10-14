@@ -5,6 +5,7 @@ import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import { DoctorProfile } from '../../../domain/entities/doctor-profile.entity.js';
 import { ProfessionalRank } from '../../../domain/enums/professional-rank.enum.js';
 import { DoctorDomainError } from '../../../domain/exceptions/doctor-domain.error.js';
+import { LicenseExpiredError } from '../../../domain/exceptions/doctor-eligibility.error.js';
 import type { DoctorProfileRepository } from '../../../domain/repositories/doctor-profile.repository.js';
 
 import { UpdateDoctorProfileCommand } from './update-doctor-profile.command.js';
@@ -229,5 +230,33 @@ describe('UpdateDoctorProfileUseCase', () => {
       DoctorDomainError,
     );
     assert.equal(repo.saved.length, 0);
+  });
+
+  it('rejects changing the license expiry to a past date', async () => {
+    const profile = buildProfile();
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    await assert.rejects(
+      () => useCase.execute(new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), licenseExpiryDate: new Date('2020-01-01') })),
+      LicenseExpiredError,
+    );
+    assert.equal(repo.saved.length, 0);
+  });
+
+  it('accepts the license expiry already on file, even once it has passed, so the rest of the profile can be saved', async () => {
+    const profile = DoctorProfile.register({
+      accountId: '11111111-1111-4111-8111-111111111111',
+      licenseNumber: 'LIC-1',
+      specialtyId: SPECIALTY_ID,
+      licenseExpiryDate: new Date('2020-01-01'),
+    });
+    const repo = new FakeDoctorProfileRepository(profile);
+    const useCase = new UpdateDoctorProfileUseCase(repo, new NoopDispatcher());
+
+    const updated = await useCase.execute(
+      new UpdateDoctorProfileCommand({ doctorProfileId: profile.getId(), biography: 'Still practising.', licenseExpiryDate: new Date('2020-01-01') }),
+    );
+    assert.equal(updated.getBiography(), 'Still practising.');
   });
 });
