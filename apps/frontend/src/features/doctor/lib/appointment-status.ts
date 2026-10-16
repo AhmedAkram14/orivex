@@ -25,7 +25,10 @@ import type { AppointmentStatus } from '@/features/doctor/api/types';
  * IMPLEMENTATION_NOTES.md for why that wasn't changed to match this
  * definition.
  */
-export const NON_TERMINAL_APPOINTMENT_STATUSES = new Set<AppointmentStatus>(['requested', 'confirmed', 'rescheduled']);
+// Not 'rescheduled': that status marks a reschedule's OLD, superseded
+// appointment -- the new time is its own requested/confirmed appointment --
+// so it belongs to history, never to upcoming or "needs resolution".
+export const NON_TERMINAL_APPOINTMENT_STATUSES = new Set<AppointmentStatus>(['requested', 'confirmed']);
 
 export function isUpcomingAppointment(
   appointment: { status: AppointmentStatus; scheduledAt: string | Date },

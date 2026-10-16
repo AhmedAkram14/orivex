@@ -99,7 +99,15 @@ export class BookAppointmentUseCase {
 
     const isFree = window.getPricing().isFree();
 
-    await this.reserveSlotUseCase.execute(new ReserveSlotCommand({ availabilityWindowId: command.availabilityWindowId }));
+    // A free request the doctor must approve can stay Requested for days, so
+    // its slot is held until the slot itself starts -- with the default
+    // short hold it lapsed after 15 minutes and the slot was offered to, and
+    // could be held by, another patient while this request was pending.
+    // Decline, cancel and expiry all release it.
+    const awaitsApproval = isFree && !doctor.getAutoApproveFreeBookings();
+    await this.reserveSlotUseCase.execute(
+      new ReserveSlotCommand({ availabilityWindowId: command.availabilityWindowId, holdUntil: awaitsApproval ? window.getStartTime() : undefined }),
+    );
 
     // Consultation Pricing Redesign: the window's own pricing is snapshotted
     // onto the Appointment here, at booking time -- the one and only moment

@@ -128,6 +128,7 @@ describe('ReportingController (integration)', () => {
             execute: async () => ({
               pending: 0,
               approved: 0,
+              approvedDoctors: 0,
               rejected: 0,
               suspended: 0,
               averageReviewTimeHours: null,

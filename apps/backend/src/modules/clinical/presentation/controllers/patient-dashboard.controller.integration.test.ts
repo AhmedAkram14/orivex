@@ -305,6 +305,7 @@ describe('PatientDashboardController (integration)', () => {
   let doctorAccount: Account;
   let doctor: DoctorProfile;
   let confirmedAppointment: Appointment;
+  let supersededAppointment: Appointment;
   let session: ConsultationSession;
   let signedPrescription: Prescription;
   let expiredPrescription: Prescription;
@@ -347,6 +348,19 @@ describe('PatientDashboardController (integration)', () => {
       scheduledAt: new Date(Date.now() + 60 * 60_000),
     });
     confirmedAppointment.confirm();
+
+    // The OLD appointment of a reschedule: still dated in the future, but
+    // superseded -- the visit is the replacement appointment. It must never
+    // count as upcoming (the dashboard previously showed both).
+    supersededAppointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: '66666666-6666-4666-8666-666666666666',
+      pricing: ConsultationPricing.free(),
+      scheduledAt: new Date(Date.now() + 30 * 60_000),
+    });
+    supersededAppointment.confirm();
+    supersededAppointment.markRescheduled();
 
     session = ConsultationSession.open(confirmedAppointment.getId());
 
@@ -445,7 +459,7 @@ describe('PatientDashboardController (integration)', () => {
         {
           provide: ListAppointmentsForPatientUseCase,
           useFactory: () =>
-            new ListAppointmentsForPatientUseCase(new InMemoryAppointmentRepository([confirmedAppointment])),
+            new ListAppointmentsForPatientUseCase(new InMemoryAppointmentRepository([confirmedAppointment, supersededAppointment])),
         },
         {
           provide: GetDoctorProfileByIdUseCase,

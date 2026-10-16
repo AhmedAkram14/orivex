@@ -358,9 +358,12 @@ import { TelemedicineWebhookController } from './presentation/controllers/teleme
     },
     {
       provide: StartConsultationUseCase,
-      useFactory: (repository: ConsultationSessionRepository, eventDispatcher: DomainEventDispatcher) =>
-        new StartConsultationUseCase(repository, eventDispatcher),
-      inject: [CONSULTATION_SESSION_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
+      useFactory: (
+        repository: ConsultationSessionRepository,
+        appointmentRepository: AppointmentRepository,
+        eventDispatcher: DomainEventDispatcher,
+      ) => new StartConsultationUseCase(repository, appointmentRepository, eventDispatcher),
+      inject: [CONSULTATION_SESSION_REPOSITORY, APPOINTMENT_REPOSITORY, DOMAIN_EVENT_DISPATCHER],
     },
     {
       provide: CloseConsultationUseCase,

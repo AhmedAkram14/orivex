@@ -27,17 +27,23 @@ export class CloseConsultationUseCase {
       throw new NotFoundError(`ConsultationSession "${command.consultationSessionId}" not found.`);
     }
 
+    // The appointment is completed (and so validated) before anything is
+    // saved: closing a cancelled, rescheduled or no-show appointment's
+    // leftover session as "completed" must leave both untouched, not persist
+    // a completed session and then fail on the appointment.
+    const appointment =
+      command.completionReason === ConsultationCompletionReason.Completed
+        ? await this.appointmentRepository.findById(session.getAppointmentId())
+        : null;
+    appointment?.complete();
+
     session.close(command.completionReason);
     await this.consultationSessionRepository.save(session);
     const events = [...session.releaseDomainEvents()];
 
-    if (command.completionReason === ConsultationCompletionReason.Completed) {
-      const appointment = await this.appointmentRepository.findById(session.getAppointmentId());
-      if (appointment) {
-        appointment.complete();
-        await this.appointmentRepository.save(appointment);
-        events.push(...appointment.releaseDomainEvents());
-      }
+    if (appointment) {
+      await this.appointmentRepository.save(appointment);
+      events.push(...appointment.releaseDomainEvents());
     }
 
     await this.eventDispatcher.dispatch(events);

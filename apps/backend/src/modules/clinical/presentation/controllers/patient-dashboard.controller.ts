@@ -43,11 +43,12 @@ const ALL_VITAL_TYPES: readonly VitalType[] = [VitalType.Weight, VitalType.Blood
 
 // Appointments still awaiting or scheduled for a real consultation
 // (docs/12-openapi.md's AppointmentSummary.status) -- Cancelled/NoShow/
-// Completed are all terminal, never shown as "upcoming."
+// Completed are all terminal, never shown as "upcoming." So is Rescheduled:
+// it marks the OLD, superseded appointment of a reschedule (the new time is
+// a separate Requested/Confirmed appointment carrying rescheduledFromId).
 const NON_TERMINAL_APPOINTMENT_STATUSES: ReadonlySet<AppointmentStatus> = new Set([
   AppointmentStatus.Requested,
   AppointmentStatus.Confirmed,
-  AppointmentStatus.Rescheduled,
 ]);
 
 interface ActivePrescriptionView {

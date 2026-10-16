@@ -20,7 +20,8 @@ import type { AppointmentStatus } from '../../domain/enums/appointment-status.en
 // Patients page redesign: email/phoneNumber/dateOfBirth/gender come straight
 // off the patient's own Account (already fetched in toPatientListItems for
 // patientName) -- no new query. nextAppointmentAt is the soonest
-// Requested/Confirmed/Rescheduled appointment still in the future, or null
+// Requested/Confirmed appointment still in the future (never a superseded
+// Rescheduled one -- the new time is its own appointment), or null
 // when there isn't one -- never a fabricated "next visit". There is
 // deliberately no "last diagnosis" field: that lives in ClinicalModule,
 // which already imports ConsultationModule (Clean Architecture's one-way

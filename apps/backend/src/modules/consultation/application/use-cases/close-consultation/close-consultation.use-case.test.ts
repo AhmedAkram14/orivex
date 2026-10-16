@@ -6,6 +6,7 @@ import { Appointment } from '../../../domain/entities/appointment.entity.js';
 import { AppointmentStatus } from '../../../domain/enums/appointment-status.enum.js';
 import { ConsultationCompletionReason } from '../../../domain/enums/consultation-completion-reason.enum.js';
 import { ConsultationState } from '../../../domain/enums/consultation-state.enum.js';
+import { ConsultationDomainError } from '../../../domain/exceptions/consultation-domain.error.js';
 import type { AppointmentRepository } from '../../../domain/repositories/appointment.repository.js';
 import { ConsultationSession } from '../../../domain/entities/consultation-session.entity.js';
 import type { ConsultationSessionRepository } from '../../../domain/repositories/consultation-session.repository.js';
@@ -143,6 +144,47 @@ describe('CloseConsultationUseCase', () => {
 
     assert.equal(appointment.getStatus(), AppointmentStatus.Confirmed);
     assert.equal(appointmentRepo.saved.length, 0);
+  });
+
+  // A cancelled, rescheduled or no-show appointment leaves its session in
+  // WaitingRoom; "completing" it must be refused with nothing saved, not
+  // persist a completed session and then fail on the appointment.
+  for (const [label, settle] of [
+    ['cancelled', (appointment: Appointment) => appointment.cancel('patient')],
+    ['rescheduled (superseded)', (appointment: Appointment) => appointment.markRescheduled()],
+    ['a no-show', (appointment: Appointment) => appointment.markNoShow()],
+  ] as const) {
+    it(`refuses a completed close when the appointment is ${label}, saving nothing`, async () => {
+      const appointment = buildConfirmedAppointment();
+      const session = ConsultationSession.open(appointment.getId());
+      settle(appointment);
+      const sessionRepo = new FakeConsultationSessionRepository(session);
+      const appointmentRepo = new FakeAppointmentRepository(appointment);
+      const useCase = new CloseConsultationUseCase(sessionRepo, appointmentRepo, new NoopDispatcher());
+
+      await assert.rejects(
+        () => useCase.execute(new CloseConsultationCommand({ consultationSessionId: session.getId(), completionReason: ConsultationCompletionReason.Completed })),
+        ConsultationDomainError,
+      );
+      assert.equal(session.getState(), ConsultationState.WaitingRoom);
+      assert.equal(sessionRepo.saved.length, 0);
+      assert.equal(appointmentRepo.saved.length, 0);
+    });
+  }
+
+  it('still lets an interrupted close end a cancelled appointment\'s leftover session', async () => {
+    const appointment = buildConfirmedAppointment();
+    const session = ConsultationSession.open(appointment.getId());
+    appointment.cancel('patient');
+    const sessionRepo = new FakeConsultationSessionRepository(session);
+    const useCase = new CloseConsultationUseCase(sessionRepo, new FakeAppointmentRepository(appointment), new NoopDispatcher());
+
+    await useCase.execute(
+      new CloseConsultationCommand({ consultationSessionId: session.getId(), completionReason: ConsultationCompletionReason.InterruptedTechnical }),
+    );
+
+    assert.equal(session.getState(), ConsultationState.Closed);
+    assert.equal(appointment.getStatus(), AppointmentStatus.Cancelled);
   });
 
   it('throws NotFoundError when the session does not exist', async () => {

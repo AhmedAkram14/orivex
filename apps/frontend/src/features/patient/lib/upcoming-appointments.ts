@@ -11,7 +11,10 @@ import { getCairoNow } from '@/shared/lib/date/timezone';
  * applied only the status check and showed weeks-old "Confirmed" requests as
  * the next appointment).
  */
-export const PATIENT_UPCOMING_STATUSES: AppointmentStatus[] = ['requested', 'confirmed', 'rescheduled'];
+// Not 'rescheduled': that status marks a reschedule's OLD, superseded
+// appointment (the new time is its own requested/confirmed appointment), so it
+// is history -- never upcoming, never "awaiting an update".
+export const PATIENT_UPCOMING_STATUSES: AppointmentStatus[] = ['requested', 'confirmed'];
 
 const EXPIRED_REQUEST_LOOKBACK_DAYS = 30;
 
@@ -34,7 +37,7 @@ export function selectPastAppointments(appointments: Appointment[], now: Date = 
 }
 
 export interface NeedsAttention {
-  /** Still requested/confirmed/rescheduled although the date has passed -- nothing resolved it. */
+  /** Still requested/confirmed although the date has passed -- nothing resolved it. */
   awaitingUpdate: Appointment[];
   /** Requests that lapsed unanswered, within the lookback window. */
   expired: Appointment[];

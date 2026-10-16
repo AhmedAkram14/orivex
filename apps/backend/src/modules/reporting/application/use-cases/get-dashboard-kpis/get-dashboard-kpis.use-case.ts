@@ -71,7 +71,7 @@ export class GetDashboardKpisUseCase {
 
     return {
       totalDoctors: doctors.total,
-      verifiedDoctors: verification.approved,
+      verifiedDoctors: verification.approvedDoctors,
       pendingVerification: verification.pending,
       totalPatients: patients.total,
       activePatients: patientAnalytics.activePatients,

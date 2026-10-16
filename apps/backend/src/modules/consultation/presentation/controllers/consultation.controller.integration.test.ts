@@ -68,6 +68,7 @@ import { VerificationStatus } from '../../../trust/domain/enums/verification-sta
 import { RequiresIdentityVerificationGuard } from '../../../trust/presentation/guards/requires-identity-verification.guard.js';
 import { Appointment } from '../../domain/entities/appointment.entity.js';
 import { ConsultationCompletionReason } from '../../domain/enums/consultation-completion-reason.enum.js';
+import { ConsultationState } from '../../domain/enums/consultation-state.enum.js';
 import { ConsultationFeedback } from '../../domain/entities/consultation-feedback.entity.js';
 import { ConsultationSession } from '../../domain/entities/consultation-session.entity.js';
 import type { AppointmentRepository } from '../../domain/repositories/appointment.repository.js';
@@ -603,7 +604,7 @@ describe('Consultation controllers (integration)', () => {
       releaseSlotUseCase,
       confirmAppointmentUseCase,
     );
-    const startConsultationUseCase = new StartConsultationUseCase(sessionRepo, new NoopDomainEventDispatcher());
+    const startConsultationUseCase = new StartConsultationUseCase(sessionRepo, appointmentRepo, new NoopDomainEventDispatcher());
     const closeConsultationUseCase = new CloseConsultationUseCase(
       sessionRepo,
       appointmentRepo,
@@ -1035,6 +1036,31 @@ describe('Consultation controllers (integration)', () => {
       .expect(404);
 
     assert.equal(response.body.error.code, 'NOT_FOUND');
+  });
+
+  it('POST /consultations/:id/start rejects the leftover WaitingRoom session of a cancelled appointment', async () => {
+    // Confirming opened the session; cancelling leaves it in WaitingRoom
+    // until the stale-session sweep closes it hours after the slot.
+    const cancelled = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: secondFreeWindow.getId(),
+      pricing: ConsultationPricing.free(),
+      scheduledAt: new Date(),
+    });
+    cancelled.confirm();
+    cancelled.cancel('patient');
+    await appointmentRepo.save(cancelled);
+    const leftover = ConsultationSession.open(cancelled.getId());
+    await sessionRepo.save(leftover);
+
+    const response = await request(app.getHttpServer())
+      .post(`/consultations/${leftover.getId()}/start`)
+      .set('Authorization', `Bearer ${VALID_DOCTOR_TOKEN}`)
+      .expect(422);
+
+    assert.equal(response.body.error.code, 'VALIDATION_FAILED');
+    assert.equal((await sessionRepo.findById(leftover.getId()))?.getState(), ConsultationState.WaitingRoom);
   });
 
   it('PATCH /appointments/:id rejects a request with no bearer token', async () => {

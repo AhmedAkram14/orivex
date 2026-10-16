@@ -97,10 +97,10 @@ export class DoctorAppointmentsController {
     });
 
     const dto = new DoctorDashboardSummaryResponseDto();
+    // Rescheduled marks a reschedule's OLD, superseded appointment -- the visit
+    // itself is the new Requested/Confirmed one.
     dto.consultationsToday = todaysAppointments.filter((appointment) =>
-      [AppointmentStatus.Requested, AppointmentStatus.Confirmed, AppointmentStatus.Rescheduled].includes(
-        appointment.getStatus(),
-      ),
+      [AppointmentStatus.Requested, AppointmentStatus.Confirmed].includes(appointment.getStatus()),
     ).length;
     // A reasonable proxy for "checked in and waiting" -- Confirmed today --
     // there is no live queue/check-in system to report from.
@@ -142,6 +142,7 @@ export class DoctorAppointmentsController {
         appointment.getStatus() !== AppointmentStatus.Cancelled &&
         appointment.getStatus() !== AppointmentStatus.NoShow &&
         appointment.getStatus() !== AppointmentStatus.Expired &&
+        appointment.getStatus() !== AppointmentStatus.Rescheduled &&
         (appointment.getStatus() !== AppointmentStatus.Requested || appointment.getScheduledAt() > now),
     );
 
@@ -585,7 +586,8 @@ export class DoctorAppointmentsController {
           (a, b) => b.getScheduledAt().getTime() - a.getScheduledAt().getTime(),
         )[0];
         const now = new Date();
-        const upcomingStatuses = new Set([AppointmentStatus.Requested, AppointmentStatus.Confirmed, AppointmentStatus.Rescheduled]);
+        // Not Rescheduled: that is a reschedule's superseded appointment; the new one is Requested/Confirmed.
+        const upcomingStatuses = new Set([AppointmentStatus.Requested, AppointmentStatus.Confirmed]);
         const nextAppointment = [...patientAppointments]
           .filter((appointment) => appointment.getScheduledAt() > now && upcomingStatuses.has(appointment.getStatus()))
           .sort((a, b) => a.getScheduledAt().getTime() - b.getScheduledAt().getTime())[0];

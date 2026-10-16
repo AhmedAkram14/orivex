@@ -153,6 +153,36 @@ describe('MintConsultationRoomTokenUseCase', () => {
     assert.equal(generator.lastRequest, undefined, 'the gateway must never be called for a closed session');
   });
 
+  // A cancel, reschedule or no-show leaves the session in WaitingRoom until
+  // the stale-session sweep closes it; inside the join window its room must
+  // still be refused.
+  for (const [label, settle] of [
+    ['cancelled', (appointment: Appointment) => appointment.cancel('patient')],
+    ['rescheduled (superseded)', (appointment: Appointment) => appointment.markRescheduled()],
+    ['a no-show', (appointment: Appointment) => appointment.markNoShow()],
+  ] as const) {
+    it(`rejects joining the room when the appointment is ${label}, inside the join window`, async () => {
+      const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
+      const appointment = buildAppointment(new Date(Date.now() + 5 * 60_000), session.getAppointmentId());
+      settle(appointment);
+      const generator = new FakeRoomTokenGenerator();
+      const useCase = new MintConsultationRoomTokenUseCase(
+        new FakeConsultationSessionRepository(session),
+        new FakeAppointmentRepository(appointment) as unknown as AppointmentRepository,
+        generator,
+      );
+
+      await assert.rejects(
+        () =>
+          useCase.execute(
+            new MintConsultationRoomTokenCommand({ consultationSessionId: session.getId(), identity: 'patient-account-1', displayName: 'Amina Youssef', role: 'patient' }),
+          ),
+        ConsultationDomainError,
+      );
+      assert.equal(generator.lastRequest, undefined, 'the gateway must never be called for an appointment that is not going ahead');
+    });
+  }
+
   it('rejects a patient joining more than 30 minutes before the scheduled time', async () => {
     const session = ConsultationSession.open('11111111-1111-4111-8111-111111111111');
     const scheduledAt = new Date(Date.now() + 45 * 60_000);

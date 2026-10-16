@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ConsultationState } from '@prisma/client';
+import { Prisma, ConsultationCompletionReason, ConsultationState } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { ReportFilter } from '../../application/dto/report-filter.js';
@@ -29,7 +29,11 @@ export class PrismaTelemedicineAnalyticsQueryService implements TelemedicineAnal
 
     const [totalSessions, completedSessions, durationAgg] = await Promise.all([
       this.prisma.consultationSession.count({ where }),
-      this.prisma.consultationSession.count({ where: { ...where, state: ConsultationState.COMPLETED } }),
+      // A finished consultation ends CLOSED with completionReason COMPLETED
+      // (ConsultationSession.close()); the COMPLETED *state* is never set.
+      this.prisma.consultationSession.count({
+        where: { ...where, state: ConsultationState.CLOSED, completionReason: ConsultationCompletionReason.COMPLETED },
+      }),
       this.queryAverageDuration(filter, hasAppointmentFilter),
     ]);
 

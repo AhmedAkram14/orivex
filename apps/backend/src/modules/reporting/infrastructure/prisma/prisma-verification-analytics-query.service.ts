@@ -17,9 +17,15 @@ export class PrismaVerificationAnalyticsQueryService implements VerificationAnal
       ...(filter.verificationStatus ? { status: filter.verificationStatus.toUpperCase() as PrismaVerificationStatus } : {}),
     };
 
-    const [statusRows, subjectRows, avgReviewTime] = await Promise.all([
+    const [statusRows, subjectRows, approvedDoctorRows, avgReviewTime] = await Promise.all([
       this.prisma.verificationCase.groupBy({ by: ['status'], where, _count: { _all: true } }),
       this.prisma.verificationCase.groupBy({ by: ['subjectType'], where, _count: { _all: true } }),
+      // One row per doctor: a doctor whose first application was rejected and a
+      // later one approved (or who was re-verified) is still one verified doctor.
+      this.prisma.verificationCase.groupBy({
+        by: ['subjectAccountId'],
+        where: { AND: [where, { subjectType: VerificationSubjectType.DOCTOR, status: PrismaVerificationStatus.APPROVED }] },
+      }),
       this.queryAverageReviewTime(filter),
     ]);
 
@@ -34,6 +40,7 @@ export class PrismaVerificationAnalyticsQueryService implements VerificationAnal
         countFor(PrismaVerificationStatus.MORE_INFO_NEEDED) +
         countFor(PrismaVerificationStatus.RE_VERIFICATION_DUE),
       approved: countFor(PrismaVerificationStatus.APPROVED),
+      approvedDoctors: approvedDoctorRows.length,
       rejected: countFor(PrismaVerificationStatus.REJECTED),
       suspended: countFor(PrismaVerificationStatus.SUSPENDED),
       averageReviewTimeHours: avgReviewTime,

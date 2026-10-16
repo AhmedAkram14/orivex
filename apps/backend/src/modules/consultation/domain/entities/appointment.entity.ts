@@ -215,6 +215,19 @@ export class Appointment {
     this.updatedAt = new Date();
   }
 
+  // Guard for starting a consultation and for joining its room
+  // (StartConsultationUseCase, MintConsultationRoomTokenUseCase): a session
+  // is opened in WaitingRoom when the appointment is confirmed and is left
+  // there if the appointment is later cancelled, rescheduled or marked a
+  // no-show (the stale-session sweep only closes it hours after the slot).
+  // Only a still-Confirmed appointment may have its consultation go ahead;
+  // a Completed one has its session closed already.
+  assertConsultationAllowed(): void {
+    if (this.status !== AppointmentStatus.Confirmed) {
+      throw new ConsultationDomainError(`Appointment "${this.id}" is not Confirmed; its consultation cannot be started or joined.`);
+    }
+  }
+
   // Called when its ConsultationSession closes with a completed outcome.
   complete(): void {
     if (this.status !== AppointmentStatus.Confirmed) {

@@ -17,7 +17,7 @@ export class ReserveSlotUseCase {
 
   async execute(command: ReserveSlotCommand): Promise<AvailabilityWindow> {
     return this.reserveAvailabilityWindowUseCase.execute(
-      new ReserveAvailabilityWindowCommand({ availabilityWindowId: command.availabilityWindowId }),
+      new ReserveAvailabilityWindowCommand({ availabilityWindowId: command.availabilityWindowId, holdUntil: command.holdUntil }),
     );
   }
 }

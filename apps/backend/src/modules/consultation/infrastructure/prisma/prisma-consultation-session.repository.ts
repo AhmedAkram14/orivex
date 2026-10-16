@@ -32,7 +32,15 @@ export class PrismaConsultationSessionRepository implements ConsultationSessionR
 
   async findStale(updatedBefore: Date): Promise<ConsultationSession[]> {
     const rows = await this.prisma.consultationSession.findMany({
-      where: { state: { in: [...OPEN_STATES] }, updatedAt: { lt: updatedBefore } },
+      // A session sits in WaitingRoom from the moment its appointment is
+      // confirmed, often days before the visit, so "not updated for a while"
+      // alone would sweep every upcoming appointment. It is only stale once
+      // its slot also started before the cutoff.
+      where: {
+        state: { in: [...OPEN_STATES] },
+        updatedAt: { lt: updatedBefore },
+        appointment: { scheduledAt: { lt: updatedBefore } },
+      },
       include: INCLUDE_CONNECTION_LOGS,
     });
     return rows.map((row) => toDomainConsultationSession(row));

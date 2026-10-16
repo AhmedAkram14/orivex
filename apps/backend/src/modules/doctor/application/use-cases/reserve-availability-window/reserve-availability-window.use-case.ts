@@ -1,6 +1,6 @@
 import { NotFoundError } from '../../../../../shared/errors/app-error.js';
 import type { DomainEventDispatcher } from '../../../../../shared/domain/domain-event-dispatcher.js';
-import type { AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
+import { DEFAULT_HOLD_MINUTES, type AvailabilityWindow } from '../../../domain/entities/availability-window.entity.js';
 import type { AvailabilityWindowRepository } from '../../../domain/repositories/availability-window.repository.js';
 
 import type { ReserveAvailabilityWindowCommand } from './reserve-availability-window.command.js';
@@ -22,7 +22,11 @@ export class ReserveAvailabilityWindowUseCase {
       throw new NotFoundError(`AvailabilityWindow "${command.availabilityWindowId}" not found.`);
     }
 
-    window.hold();
+    // A holdUntil only ever lengthens the hold, never shortens it below the
+    // default booking-flow hold.
+    const now = new Date();
+    const minutesUntil = command.holdUntil ? Math.ceil((command.holdUntil.getTime() - now.getTime()) / 60_000) : 0;
+    window.hold(now, minutesUntil > DEFAULT_HOLD_MINUTES ? minutesUntil : undefined);
 
     await this.availabilityWindowRepository.save(window);
     await this.eventDispatcher.dispatch(window.releaseDomainEvents());

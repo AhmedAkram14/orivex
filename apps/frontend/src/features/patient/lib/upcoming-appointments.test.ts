@@ -107,3 +107,24 @@ describe('selectLastCompletedAppointment', () => {
     expect(selectLastCompletedAppointment([appt('x', 'cancelled', at(-1))])).toBeUndefined();
   });
 });
+
+// A reschedule leaves TWO appointments: the original, now `rescheduled`
+// (terminal, superseded), and the replacement at the new time
+// (`requested`/`confirmed`, with rescheduledFromId pointing back).
+describe('rescheduled appointments', () => {
+  const original = appt('original', 'rescheduled', at(3));
+  const replacement = appt('replacement', 'confirmed', at(6));
+  const pastOriginal = appt('past-original', 'rescheduled', at(-40));
+
+  it('counts only the replacement as upcoming, never the superseded original', () => {
+    expect(selectUpcomingAppointments([original, replacement, pastOriginal], NOW).map((a) => a.id)).toEqual(['replacement']);
+  });
+
+  it('keeps the superseded original in history', () => {
+    expect(selectPastAppointments([original, replacement, pastOriginal], NOW).map((a) => a.id).sort()).toEqual(['original', 'past-original']);
+  });
+
+  it('never lists a superseded original as "awaiting an update"', () => {
+    expect(selectNeedsAttention([original, replacement, pastOriginal], NOW).awaitingUpdate).toEqual([]);
+  });
+});

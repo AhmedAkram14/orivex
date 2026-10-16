@@ -48,7 +48,11 @@ export class NotifyApplicantOfVerificationDecisionHandler {
       // what's missing, so its note is appended plainly with no label.
       const notePrefix = event.status === 'rejected' ? 'Reason' : event.status === 'approved' ? 'Note' : null;
       const description = event.reason ? (notePrefix ? `${base} ${notePrefix}: ${event.reason}` : `${base} ${event.reason}`) : base;
-      const actionUrl = event.subjectType === 'doctor' ? '/doctor/onboarding' : '/patient/verify-identity';
+      // An approved doctor is promoted to the Doctor role (PromoteDoctorRoleOnVerificationHandler)
+      // and the onboarding wizard is closed to them from then on, so the link opens their
+      // workspace. A rejected or more-info applicant still resubmits through onboarding.
+      const actionUrl =
+        event.subjectType === 'doctor' ? (event.status === 'approved' ? '/doctor' : '/doctor/onboarding') : '/patient/verify-identity';
 
       const notification = Notification.create({ accountId: event.subjectAccountId, title, description, actionUrl });
       await this.notificationRepository.save(notification);

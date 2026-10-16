@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 
 import type { EnvConfig } from '../../../../core/configuration/env.schema.js';
 import { getClientIp } from '../../../../platform/http/get-client-ip.js';
+import { REFRESH_TOKEN_THROTTLER } from '../../../../platform/http/throttlers.js';
 import { envelope, type ResponseEnvelope } from '../../../../shared/http/response-envelope.js';
 import type { AccessTokenClaims, JwtSignerPort } from '../../application/ports/jwt-signer.port.js';
 import { JWT_SIGNER } from '../../application/ports/tokens.js';
@@ -49,6 +50,7 @@ import { VerifyEmailResponseDto } from '../dto/verify-email-response.dto.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { mapAuthenticationError } from '../mappers/authentication-exception.mapper.js';
 import { clearRefreshCookie, readRefreshCookie, setRefreshCookie, type RequestWithCookies } from '../utils/refresh-cookie.util.js';
+import { refreshTokenThrottleTracker } from '../utils/refresh-token-throttle-tracker.js';
 
 // Core credential-flow endpoints only -- device-session management
 // (GET/DELETE /auth/sessions, POST /auth/logout-all) and login history
@@ -130,9 +132,12 @@ export class AuthenticationController {
     clearRefreshCookie(this.configService, response);
   }
 
+  // 5/min per refresh token (per IP when there is no cookie), so users behind
+  // one proxy no longer share a bucket; the per-IP ceiling is the API-wide
+  // `default` (100/min), not this route's own 5/min.
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ [REFRESH_TOKEN_THROTTLER]: { limit: 5, ttl: 60_000, getTracker: refreshTokenThrottleTracker } })
   async refresh(
     @Req() request: RequestWithCookies,
     @Res({ passthrough: true }) response: Response,

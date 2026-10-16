@@ -171,6 +171,82 @@ describe('NotifyOfConsultationInterruptedHandler', () => {
     assert.equal(logger.errors.length, 0);
   });
 
+  // D13: the stale-session sweep also closes the leftover WaitingRoom session
+  // of an appointment that never happened. Nobody's consultation was
+  // "interrupted" there, so neither side is told it was.
+  for (const [label, settle] of [
+    ['cancelled', (appointment: Appointment) => appointment.cancel('patient')],
+    ['rescheduled', (appointment: Appointment) => appointment.markRescheduled()],
+    ['expired', (appointment: Appointment) => appointment.expire()],
+  ] as const) {
+    it(`sends nothing when the session's appointment was ${label}`, async () => {
+      const patient = PatientProfile.create({ accountId: '55555555-5555-4555-8555-555555555555' });
+      const doctor = DoctorProfile.register({
+        accountId: '66666666-6666-4666-8666-666666666666',
+        licenseNumber: 'LIC-1',
+        specialtyId: '77777777-7777-4777-8777-777777777777',
+      });
+      const appointment = Appointment.request({
+        patientId: patient.getId(),
+        doctorId: doctor.getId(),
+        availabilityWindowId: '44444444-4444-4444-8444-444444444444',
+        pricing: ConsultationPricing.free(),
+        scheduledAt: new Date(Date.now() - 24 * 60 * 60_000),
+      });
+      settle(appointment);
+      const session = ConsultationSession.open(appointment.getId());
+
+      const notificationRepo = new FakeNotificationRepository();
+      const logger = new FakeLogger();
+      const handler = new NotifyOfConsultationInterruptedHandler(
+        new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(session)),
+        new GetAppointmentByIdUseCase(new FakeAppointmentRepository(appointment)),
+        new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
+        new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctor)),
+        notificationRepo,
+        logger as never,
+      );
+
+      await handler.handle({ consultationSessionId: session.getId() });
+
+      assert.equal(notificationRepo.saved.length, 0);
+      assert.equal(logger.errors.length, 0);
+    });
+  }
+
+  it('still notifies both sides for a no-show (the patient never joined a real, booked visit)', async () => {
+    const patient = PatientProfile.create({ accountId: '55555555-5555-4555-8555-555555555555' });
+    const doctor = DoctorProfile.register({
+      accountId: '66666666-6666-4666-8666-666666666666',
+      licenseNumber: 'LIC-1',
+      specialtyId: '77777777-7777-4777-8777-777777777777',
+    });
+    const appointment = Appointment.request({
+      patientId: patient.getId(),
+      doctorId: doctor.getId(),
+      availabilityWindowId: '44444444-4444-4444-8444-444444444444',
+      pricing: ConsultationPricing.free(),
+      scheduledAt: new Date(Date.now() - 24 * 60 * 60_000),
+    });
+    appointment.confirm();
+    appointment.markNoShow();
+    const session = ConsultationSession.open(appointment.getId());
+
+    const notificationRepo = new FakeNotificationRepository();
+    const handler = new NotifyOfConsultationInterruptedHandler(
+      new GetConsultationSessionByIdUseCase(new FakeConsultationSessionRepository(session)),
+      new GetAppointmentByIdUseCase(new FakeAppointmentRepository(appointment)),
+      new GetPatientProfileByIdUseCase(new FakePatientProfileRepository(patient)),
+      new GetDoctorProfileByIdUseCase(new FakeDoctorProfileRepository(doctor)),
+      notificationRepo,
+      new FakeLogger() as never,
+    );
+
+    await handler.handle({ consultationSessionId: session.getId() });
+
+    assert.equal(notificationRepo.saved.length, 2);
+  });
+
   it('is a silent no-op for an unknown session id (never throws)', async () => {
     const notificationRepo = new FakeNotificationRepository();
     const logger = new FakeLogger();

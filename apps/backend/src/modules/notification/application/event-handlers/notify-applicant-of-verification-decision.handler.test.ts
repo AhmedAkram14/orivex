@@ -76,7 +76,8 @@ describe('NotifyApplicantOfVerificationDecisionHandler', () => {
     assert.equal(notification.getTitle(), 'Verification approved');
     assert.match(notification.getDescription(), /approved/);
     assert.doesNotMatch(notification.getDescription(), /Reason:/);
-    assert.equal(notification.getActionUrl(), '/doctor/onboarding');
+    // D3: an approved doctor can no longer open the onboarding wizard -- the link opens their workspace.
+    assert.equal(notification.getActionUrl(), '/doctor');
     assert.equal(logger.errors.length, 0);
   });
 

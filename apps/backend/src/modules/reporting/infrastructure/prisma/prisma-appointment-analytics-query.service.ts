@@ -51,11 +51,14 @@ export class PrismaAppointmentAnalyticsQueryService implements AppointmentAnalyt
       this.prisma.appointment.groupBy({ by: ['status'], where, _count: { _all: true } }),
       this.prisma.appointment.groupBy({ by: ['consultationType'], where, _count: { _all: true } }),
       this.prisma.appointment.count({ where }),
+      // RESCHEDULED is a reschedule's superseded original, not a visit that
+      // will happen -- the new time is its own REQUESTED/CONFIRMED row, so
+      // counting both would count one visit twice.
       this.prisma.appointment.count({
         where: {
           ...where,
           scheduledAt: { gt: new Date() },
-          status: { in: [PrismaAppointmentStatus.REQUESTED, PrismaAppointmentStatus.CONFIRMED, PrismaAppointmentStatus.RESCHEDULED] },
+          status: { in: [PrismaAppointmentStatus.REQUESTED, PrismaAppointmentStatus.CONFIRMED] },
         },
       }),
       this.queryByBucket(filter, bucket),

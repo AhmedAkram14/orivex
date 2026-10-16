@@ -61,10 +61,12 @@ export class PrismaDoctorAnalyticsQueryService implements DoctorAnalyticsQueryPo
       const rowsForDoctor = statusRows.filter((row) => row.doctorId === profile.id);
       const countFor = (status: PrismaAppointmentStatus): number =>
         rowsForDoctor.find((row) => row.status === status)?._count._all ?? 0;
+      // Not RESCHEDULED: that is a reschedule's superseded original, which
+      // keeps that status forever (past slots included); the new time is its
+      // own REQUESTED/CONFIRMED appointment and is counted as such.
       const upcomingStatuses: PrismaAppointmentStatus[] = [
         PrismaAppointmentStatus.REQUESTED,
         PrismaAppointmentStatus.CONFIRMED,
-        PrismaAppointmentStatus.RESCHEDULED,
       ];
       const upcomingAppointments = rowsForDoctor
         .filter((row) => upcomingStatuses.includes(row.status))
@@ -79,10 +81,10 @@ export class PrismaDoctorAnalyticsQueryService implements DoctorAnalyticsQueryPo
         // "Upcoming" is inherently forward-looking regardless of the date
         // filter's upper bound -- approximated here from status only
         // (not re-checked against `now`) since this is a batched query
-        // across every doctor; acceptable because REQUESTED/CONFIRMED/
-        // RESCHEDULED appointments are never in the past in normal
-        // operation (CloseConsultationUseCase/RescheduleOrCancel always
-        // transition past appointments out of these statuses).
+        // across every doctor; acceptable because REQUESTED/CONFIRMED
+        // appointments are never in the past in normal operation (the
+        // expiry and no-show sweeps and CloseConsultation always transition
+        // past appointments out of these statuses).
         upcomingAppointments,
         cancelledCount: countFor(PrismaAppointmentStatus.CANCELLED),
         totalAppointments,

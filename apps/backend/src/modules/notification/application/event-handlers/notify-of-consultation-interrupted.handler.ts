@@ -1,12 +1,23 @@
 import type { PinoLoggerService } from '../../../../platform/logging/pino-logger.service.js';
 import type { GetAppointmentByIdUseCase } from '../../../consultation/application/use-cases/get-appointment-by-id/get-appointment-by-id.use-case.js';
 import type { GetConsultationSessionByIdUseCase } from '../../../consultation/application/use-cases/get-consultation-session-by-id/get-consultation-session-by-id.use-case.js';
+import { AppointmentStatus } from '../../../consultation/domain/enums/appointment-status.enum.js';
 import type { GetDoctorProfileByIdUseCase } from '../../../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import type { GetPatientProfileByIdUseCase } from '../../../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { Notification } from '../../domain/entities/notification.entity.js';
 import { NotificationCategory } from '../../domain/enums/notification-category.enum.js';
 import { NotificationEntityType } from '../../domain/enums/notification-entity-type.enum.js';
 import type { NotificationRepository } from '../../domain/repositories/notification.repository.js';
+
+// The stale-session sweep also closes the leftover WaitingRoom session of an
+// appointment that was cancelled, rescheduled or expired -- no consultation
+// was ever going to happen there, so telling either side it was
+// "interrupted" would be false.
+const APPOINTMENT_STATUSES_WITHOUT_A_CONSULTATION: ReadonlySet<AppointmentStatus> = new Set([
+  AppointmentStatus.Cancelled,
+  AppointmentStatus.Rescheduled,
+  AppointmentStatus.Expired,
+]);
 
 export interface ConsultationInterruptedEventPayload {
   consultationSessionId: string;
@@ -40,7 +51,7 @@ export class NotifyOfConsultationInterruptedHandler {
       }
 
       const appointment = await this.getAppointmentByIdUseCase.execute({ appointmentId: session.getAppointmentId() });
-      if (!appointment) {
+      if (!appointment || APPOINTMENT_STATUSES_WITHOUT_A_CONSULTATION.has(appointment.getStatus())) {
         return;
       }
 

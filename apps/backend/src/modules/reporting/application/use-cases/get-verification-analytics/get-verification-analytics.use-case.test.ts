@@ -8,6 +8,7 @@ describe('GetVerificationAnalyticsUseCase', () => {
     const expected = {
       pending: 2,
       approved: 5,
+      approvedDoctors: 3,
       rejected: 1,
       suspended: 0,
       averageReviewTimeHours: 12.5,

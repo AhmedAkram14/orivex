@@ -10,7 +10,9 @@ import { ReserveAvailabilityWindowUseCase } from '../../../../doctor/application
 import { ConfirmAvailabilityWindowUseCase } from '../../../../doctor/application/use-cases/confirm-availability-window/confirm-availability-window.use-case.js';
 import { AvailabilityWindow } from '../../../../doctor/domain/entities/availability-window.entity.js';
 import { DoctorProfile } from '../../../../doctor/domain/entities/doctor-profile.entity.js';
+import { AvailabilityWindowStatus } from '../../../../doctor/domain/enums/availability-window-status.enum.js';
 import { ConsultationType as DoctorConsultationType } from '../../../../doctor/domain/enums/consultation-type.enum.js';
+import { AvailabilityWindowConflictError } from '../../../../doctor/domain/exceptions/availability-window-conflict.error.js';
 import type { AvailabilityWindowRepository } from '../../../../doctor/domain/repositories/availability-window.repository.js';
 import { ConsultationPricing as DoctorConsultationPricing } from '../../../../doctor/domain/value-objects/consultation-pricing.value-object.js';
 import { Money as DoctorMoney } from '../../../../doctor/domain/value-objects/money.value-object.js';
@@ -620,6 +622,50 @@ describe('BookAppointmentUseCase', () => {
       assert.equal(appointmentRepo.saved.length, 1);
       assert.equal(dispatcher.dispatched.length, 1);
       assert.equal(dispatcher.dispatched[0].constructor.name, 'AppointmentBookedEvent');
+    });
+  });
+
+  // A free request waits on the doctor's approval, often for days; its slot
+  // must stay held for that whole time, or another patient is offered -- and
+  // can hold -- the same slot while the request is pending.
+  describe('slot hold while a request is pending', () => {
+    const MINUTE = 60_000;
+    const book = (window: AvailabilityWindow, doctor = buildDoctorProfile()) =>
+      buildUseCase({ appointmentRepo: new FakeAppointmentRepository(), window, doctor }).execute(
+        new BookAppointmentCommand({
+          patientId: '11111111-1111-4111-8111-111111111111',
+          doctorId: '22222222-2222-4222-8222-222222222222',
+          availabilityWindowId: window.getId(),
+        }),
+      );
+
+    it('holds a free request until its slot starts, so another patient cannot take the slot after 15 minutes', async () => {
+      const window = buildWindow(DoctorConsultationType.Free);
+      await book(window);
+
+      // Held to the minute the slot starts (rounded up to a whole minute).
+      const holdEnds = window.getHoldExpiresAt()?.getTime() ?? 0;
+      assert.ok(holdEnds >= window.getStartTime().getTime() && holdEnds < window.getStartTime().getTime() + MINUTE);
+      const twentyMinutesLater = new Date(Date.now() + 20 * MINUTE);
+      assert.equal(window.isHoldExpired(twentyMinutesLater), false);
+      assert.throws(() => window.hold(twentyMinutesLater), AvailabilityWindowConflictError);
+    });
+
+    it('keeps the short booking-flow hold for a paid booking awaiting payment', async () => {
+      const window = buildWindow(DoctorConsultationType.Paid);
+      const before = Date.now();
+      await book(window);
+
+      const holdMinutes = ((window.getHoldExpiresAt()?.getTime() ?? 0) - before) / MINUTE;
+      assert.ok(holdMinutes >= 14.9 && holdMinutes <= 15.1, `expected a 15-minute hold, got ${holdMinutes.toFixed(2)} minutes`);
+    });
+
+    it('books the slot outright when the doctor auto-approves free bookings', async () => {
+      const window = buildWindow(DoctorConsultationType.Free);
+      await book(window, buildDoctorProfile(true));
+
+      assert.equal(window.getStatus(), AvailabilityWindowStatus.Booked);
+      assert.equal(window.getHoldExpiresAt(), undefined);
     });
   });
 });

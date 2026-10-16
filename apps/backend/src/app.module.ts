@@ -27,6 +27,7 @@ import { PrismaModule } from './platform/database/prisma.module.js';
 import { EventsModule } from './platform/events/events.module.js';
 import { AllExceptionsFilter } from './platform/filters/all-exceptions.filter.js';
 import { HealthModule } from './platform/health/health.module.js';
+import { APP_THROTTLERS } from './platform/http/throttlers.js';
 import { RequestLoggingInterceptor } from './platform/interceptors/request-logging.interceptor.js';
 import { LoggingModule } from './platform/logging/logging.module.js';
 import { CorrelationIdMiddleware } from './platform/middleware/correlation-id.middleware.js';
@@ -39,7 +40,7 @@ import { RealtimeModule } from './platform/realtime/realtime.module.js';
     PrismaModule,
     EventsModule,
     RealtimeModule,
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRoot(APP_THROTTLERS),
     HealthModule,
     IdentityModule,
     TrustModule,

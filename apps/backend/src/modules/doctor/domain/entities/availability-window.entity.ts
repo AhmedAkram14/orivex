@@ -7,7 +7,7 @@ import { DoctorDomainError } from '../exceptions/doctor-domain.error.js';
 import { AvailabilityWindowStatus } from '../enums/availability-window-status.enum.js';
 import type { ConsultationPricing } from '../value-objects/consultation-pricing.value-object.js';
 
-const DEFAULT_HOLD_MINUTES = 15;
+export const DEFAULT_HOLD_MINUTES = 15;
 
 export interface DefineAvailabilityWindowProps {
   doctorId: string;

@@ -45,6 +45,7 @@ export class MintConsultationRoomTokenUseCase {
 
     const appointment = await this.appointmentRepository.findById(session.getAppointmentId());
     if (appointment) {
+      appointment.assertConsultationAllowed();
       const scheduledAt = appointment.getScheduledAt().getTime();
       if (now.getTime() < scheduledAt - JOIN_WINDOW_OPENS_BEFORE_MS) {
         throw new ConsultationDomainError('This consultation is not open to join yet.');
