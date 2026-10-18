@@ -53,10 +53,12 @@ describe('PrismaDoctorDirectoryQueryService (real PostgreSQL) -- rating filter',
     await prisma.$disconnect();
   });
 
-  async function createDoctor(props: { yearsOfExperience?: number; consultationFeeAmount?: number } = {}): Promise<string> {
+  async function createDoctor(
+    props: { yearsOfExperience?: number; consultationFeeAmount?: number; role?: 'doctor' | 'patient' } = {},
+  ): Promise<string> {
     const accountId = randomUUID();
     await prisma.account.create({
-      data: { id: accountId, email: `i10-rating-doctor-${accountId}@test.orivex.dev`, role: 'doctor', displayName: 'Dr. I10 Rating Test' },
+      data: { id: accountId, email: `i10-rating-doctor-${accountId}@test.orivex.dev`, role: props.role ?? 'doctor', displayName: 'Dr. I10 Rating Test' },
     });
     cleanupAccountIds.push(accountId);
     const profile = await prisma.doctorProfile.create({
@@ -199,6 +201,21 @@ describe('PrismaDoctorDirectoryQueryService (real PostgreSQL) -- rating filter',
     assert.equal(page1.entries.length, 2, 'page 1 must return exactly `limit` rows from the FILTERED set');
     assert.ok(page1.total >= 3, 'total must reflect the full filtered count, not just this page');
     assert.equal(page1.total, page2.total, 'total must be identical across pages of the same filter');
+  });
+
+  it('lists approved doctors only: an applicant whose account is still a patient never appears, with or without a rating filter', async () => {
+    const approved = await createDoctor();
+    const applicant = await createDoctor({ role: 'patient' });
+    await createFeedback(approved, 5);
+    await createFeedback(applicant, 5);
+
+    const all = await service.search({ limit: 500, offset: 0 });
+    assert.ok(all.entries.some((e) => e.doctorProfileId === approved), 'an approved doctor is listed');
+    assert.ok(!all.entries.some((e) => e.doctorProfileId === applicant), 'an unapproved applicant is not listed');
+
+    const rated = await service.search({ minRating: 4, limit: 500, offset: 0 });
+    assert.ok(rated.entries.some((e) => e.doctorProfileId === approved));
+    assert.ok(!rated.entries.some((e) => e.doctorProfileId === applicant), 'not through the rating path either');
   });
 
   it('18. zero-result behavior: an impossible rating threshold returns an honest empty result, not an error', async () => {

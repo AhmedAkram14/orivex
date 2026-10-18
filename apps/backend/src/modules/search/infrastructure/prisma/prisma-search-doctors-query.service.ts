@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 import type {
   DoctorSearchParams,
   DoctorSearchResult,
@@ -19,8 +20,11 @@ export class PrismaSearchDoctorsQueryService implements SearchDoctorsPort {
   // Public doctor directory (Patient / Nurse / Receptionist / HospitalAdmin
   // callers): OR-matches display name, specialty name, or hospital name --
   // already-public data, same as GET /doctors.
+  // Approved doctors only (account role doctor), like GET /doctors and the public
+  // directory: an applicant's DoctorProfile exists before any approval.
   async searchPublic({ query, limit }: DoctorSearchParams): Promise<DoctorSearchResult> {
     const where: Prisma.DoctorProfileWhereInput = {
+      account: { role: AccountRole.Doctor },
       OR: [
         { account: { displayName: { contains: query, mode: 'insensitive' } } },
         { medicalSpecialty: { name: { contains: query, mode: 'insensitive' } } },

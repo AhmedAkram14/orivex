@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { AccountRole } from '../../../identity/domain/enums/account-role.enum.js';
 // Plain TypeScript-class reuse, NOT a NestJS import -- PrismaConsultationFeedbackRepository's
 // only dependency is the same shared PrismaService this class already has
 // (confirmed: its constructor takes nothing else), so instantiating it
@@ -64,11 +65,16 @@ export class PrismaDoctorDirectoryQueryService implements DoctorDirectoryQueryPo
     const hasAvailabilityFilter = Boolean(filter.consultationType || filter.availableWithinDays);
 
     const where: Prisma.DoctorProfileWhereInput = {
+      // Approved doctors only, the same rule as the public directory
+      // (PrismaPublicDirectoryQueryService): a DoctorProfile exists from the
+      // moment an application is submitted, and only an admin's approval
+      // promotes the account's role to doctor. Without this, pending and
+      // never-approved applicants were listed to patients.
+      account: { role: AccountRole.Doctor, ...(filter.gender ? { gender: filter.gender } : {}) },
       ...(filter.hospitalId ? { hospitalId: filter.hospitalId } : {}),
       ...(filter.specialty ? { medicalSpecialty: { name: { contains: filter.specialty, mode: 'insensitive' } } } : {}),
       ...(filter.specialtyId ? { specialtyId: filter.specialtyId } : {}),
       ...(filter.language ? { languages: { has: filter.language } } : {}),
-      ...(filter.gender ? { account: { gender: filter.gender } } : {}),
       ...(filter.minYearsOfExperience !== undefined ? { yearsOfExperience: { gte: filter.minYearsOfExperience } } : {}),
       ...(filter.minFeeAmount !== undefined || filter.maxFeeAmount !== undefined
         ? {
