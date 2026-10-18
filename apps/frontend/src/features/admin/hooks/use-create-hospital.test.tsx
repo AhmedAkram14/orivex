@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { adminApi } from '@/features/admin/api/admin-api';
-import { adminHospitalsKeys, platformKpisKeys } from '@/features/admin/hooks/query-keys';
+import { adminHospitalsKeys } from '@/features/admin/hooks/query-keys';
 import type { Hospital } from '@/features/admin/api/types';
 
 import { useCreateHospital } from './use-create-hospital';
@@ -21,7 +21,7 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 describe('useCreateHospital', () => {
-  it('invalidates the hospitals list and platform KPIs after creating a hospital', async () => {
+  it('invalidates the hospitals list after creating a hospital', async () => {
     vi.mocked(adminApi.createHospital).mockResolvedValue({ id: 'hosp-1', name: 'Cairo General' } as Hospital);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -33,6 +33,5 @@ describe('useCreateHospital', () => {
 
     const invalidatedKeys = invalidateSpy.mock.calls.map((call) => (call[0] as { queryKey?: unknown } | undefined)?.queryKey);
     expect(invalidatedKeys).toContainEqual(adminHospitalsKeys.all);
-    expect(invalidatedKeys).toContainEqual(platformKpisKeys.all);
   });
 });

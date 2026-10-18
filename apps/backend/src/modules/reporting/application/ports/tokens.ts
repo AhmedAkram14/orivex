@@ -8,3 +8,4 @@ export const PAYMENT_ANALYTICS_QUERY = Symbol('PaymentAnalyticsQueryPort');
 export const TELEMEDICINE_ANALYTICS_QUERY = Symbol('TelemedicineAnalyticsQueryPort');
 export const VERIFICATION_ANALYTICS_QUERY = Symbol('VerificationAnalyticsQueryPort');
 export const NOTIFICATION_ANALYTICS_QUERY = Symbol('NotificationAnalyticsQueryPort');
+export const ADMIN_QUEUE_QUERY = Symbol('AdminQueueQueryPort');

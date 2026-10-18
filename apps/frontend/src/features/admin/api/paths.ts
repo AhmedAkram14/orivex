@@ -1,6 +1,7 @@
 /** Path constants for `/admin/*` — mirrors `features/scheduling/api/paths.ts`'s convention exactly. Real backend routes (AdministrationModule's AdministrationController, ORIVEX Roadmap 2.0 Stage 4). */
 export const ADMIN_PATHS = {
-  kpis: '/admin/kpis',
+  // ReportingModule's AdminOverviewController -- the Overview page's one aggregate read.
+  overview: '/admin/overview',
   accounts: '/admin/accounts',
   accountRole: (id: string) => `/admin/accounts/${id}/role`,
   securityEventsForAccount: (id: string) => `/admin/accounts/${id}/security-events`,

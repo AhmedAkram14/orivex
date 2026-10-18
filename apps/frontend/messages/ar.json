@@ -3212,7 +3212,10 @@
         "averageConsultationDuration": "متوسط مدة الاستشارة",
         "averageRating": "متوسط التقييم",
         "notAvailable": "غير متاح",
-        "minutes": "دقيقة"
+        "minutes": "دقيقة",
+        "activeDoctors": "الأطباء النشطون",
+        "activeHelper": "أتمّوا زيارة خلال آخر 30 يومًا",
+        "activeHelperFiltered": "أتمّوا زيارة خلال الفترة المحددة"
       },
       "appointments": {
         "loadError": "تعذّر تحميل تحليلات المواعيد.",
@@ -3294,7 +3297,8 @@
           "settled": "مسوّاة",
           "refunded": "مستردة",
           "disputed": "متنازع عليها"
-        }
+        },
+        "viewTransactions": "عرض المعاملات"
       },
       "telemedicine": {
         "loadError": "تعذّر تحميل تحليلات التطبيب عن بُعد.",
@@ -3335,13 +3339,46 @@
         "exportError": "فشل التصدير. حاول مرة أخرى."
       }
     },
+    "payments": {
+      "title": "المدفوعات",
+      "description": "كل معاملات الدفع على المنصة، مع الاستردادات."
+    },
     "overview": {
       "title": "نظرة عامة",
-      "description": "مؤشرات الأداء والإدارة على مستوى المنصة.",
-      "activeDoctorCount": "الأطباء النشطون",
-      "activePatientCount": "المرضى النشطون",
-      "hospitalCount": "المستشفيات",
-      "kpisLoadError": "تعذر تحميل مؤشرات الأداء."
+      "description": "ما يحتاج إلى انتباهك الآن، وحال المنصة.",
+      "attention": {
+        "title": "يحتاج إلى انتباه",
+        "verifications": "طلبات توثيق معلّقة",
+        "disputes": "نزاعات مفتوحة",
+        "reviews": "تقييمات مُبلَّغ عنها",
+        "oldestHours": "أقدمها ينتظر منذ {count, plural, zero {# ساعة} one {ساعة واحدة} two {ساعتين} few {# ساعات} many {# ساعة} other {# ساعة}}",
+        "oldestDays": "أقدمها ينتظر منذ {count, plural, zero {# يوم} one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}}",
+        "oldestUnknown": "وقت الانتظار غير مسجّل",
+        "late": "متأخر",
+        "averageReview": "متوسط وقت المراجعة: {hours, plural, zero {# ساعة} one {ساعة واحدة} two {ساعتان} few {# ساعات} many {# ساعة} other {# ساعة}}",
+        "emptyTitle": "لا شيء يحتاج إلى انتباه",
+        "emptyDescription": "لا توجد طلبات توثيق معلّقة ولا نزاعات مفتوحة ولا تقييمات مُبلَّغ عنها الآن."
+      },
+      "health": {
+        "title": "حالة المنصة",
+        "appointmentsToday": "مواعيد اليوم",
+        "appointmentsWeek": "{count} في آخر 7 أيام",
+        "completionRate": "نسبة الإتمام",
+        "ratesHelper": "الإلغاء {cancelled} · عدم الحضور {noShow} · منذ البداية",
+        "revenueToday": "إيرادات اليوم",
+        "vsLastWeek": "مقارنةً بالوقت نفسه الأسبوع الماضي",
+        "noBaseline": "لا إيرادات في الوقت نفسه الأسبوع الماضي",
+        "activeDoctors": "الأطباء النشطون",
+        "activePatients": "المرضى النشطون",
+        "activeHelper": "أتمّوا زيارة خلال آخر {days} يومًا",
+        "failedPayments": "مدفوعات فاشلة",
+        "failedHelper": "آخر {days} يومًا"
+      },
+      "error": {
+        "title": "تعذّر تحميل النظرة العامة",
+        "description": "هذا لا يعني أن كل شيء على ما يرام: قد تكون هناك عناصر بانتظارك. أعد المحاولة، أو افتح قائمة مباشرةً."
+      },
+      "auditLogLink": "عرض سجل التدقيق"
     },
     "users": {
       "title": "المستخدمون",

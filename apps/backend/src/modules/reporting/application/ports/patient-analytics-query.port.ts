@@ -1,13 +1,15 @@
+import type { DateWindow } from '../dto/previous-period.js';
 import type { ReportFilter } from '../dto/report-filter.js';
 
 export interface PatientAnalyticsResult {
   newPatients: number;
   returningPatients: number;
   verifiedPatients: number;
-  // "Active" = has at least one appointment within the filter window --
-  // Account carries no separate active/inactive flag AccountRepository
-  // exposes (findAll has no status filter), so this is the only real,
-  // non-fabricated definition of "active" this data model supports.
+  // "Active" = took part in at least one COMPLETED appointment within the
+  // filter window (the trailing 30 days when no range is given) -- the same
+  // definition as DoctorAnalyticsQueryPort.countActiveDoctors. Account
+  // carries no separate active/inactive flag, so real visits are the only
+  // non-fabricated signal; a cancelled or missed booking is not activity.
   activePatients: number;
   // "unknown" is always present and rendered like any other segment --
   // Account.gender/dateOfBirth are optional, and sparsity is surfaced, not
@@ -19,4 +21,6 @@ export interface PatientAnalyticsResult {
 
 export interface PatientAnalyticsQueryPort {
   getAnalytics(filter: ReportFilter): Promise<PatientAnalyticsResult>;
+  /** Distinct patients with a COMPLETED appointment scheduled in the window -- what `activePatients` reports. */
+  countActivePatients(window: DateWindow): Promise<number>;
 }

@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, AppointmentStatus as PrismaAppointmentStatus, PaymentStatus as PrismaPaymentStatus } from '@prisma/client';
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import type { DateWindow } from '../../application/dto/previous-period.js';
 import type { ReportFilter } from '../../application/dto/report-filter.js';
 import type { DoctorActivityRow, DoctorAnalyticsQueryPort } from '../../application/ports/doctor-analytics-query.port.js';
+
+import { completedVisitsIn } from './completed-visits-in-window.js';
 
 // Per-doctor activity across Appointment/ConsultationSession/PaymentTransaction
 // -- every metric is a single batched groupBy/raw query across every doctor
@@ -93,6 +96,11 @@ export class PrismaDoctorAnalyticsQueryService implements DoctorAnalyticsQueryPo
         patientCount: patientCountByDoctor.get(profile.id) ?? 0,
       };
     });
+  }
+
+  async countActiveDoctors(window: DateWindow): Promise<number> {
+    const rows = await this.prisma.appointment.groupBy({ by: ['doctorId'], where: completedVisitsIn(window) });
+    return rows.length;
   }
 
   private async queryAverageDuration(doctorIds: string[], filter: ReportFilter): Promise<Map<string, number>> {

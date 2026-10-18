@@ -8,8 +8,10 @@ import { SidebarSectionLabel } from '@/shared/ui/layout/sidebar';
 import { cn } from '@/shared/lib/cn';
 
 // Active item: pulse wash (16% light / 12% dark), ink text, and a 3px pulse bar on the inline-start edge.
+// 36px rows (py-2) on a mouse so the Admin and Doctor lists fit a 768px-tall laptop screen without scrolling;
+// touch keeps its 44px minimum (pointer-coarse:min-h-11).
 const itemClass = cn(
-  'relative flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm outline-none transition-colors duration-(--duration-fast) pointer-coarse:min-h-11',
+  'relative flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm outline-none transition-colors duration-(--duration-fast) pointer-coarse:min-h-11',
   'text-text-secondary hover:bg-surface-2 hover:text-text-primary',
   'focus-visible:ring-2 focus-visible:ring-focus-ring',
   'data-[active=true]:bg-pulse-subtle data-[active=true]:font-medium data-[active=true]:text-text-primary',

@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/features/admin/api/admin-api';
-import { adminVerificationQueueKeys } from '@/features/admin/hooks/query-keys';
+import { adminOverviewKeys, adminVerificationQueueKeys } from '@/features/admin/hooks/query-keys';
 import type { SuspendVerificationCaseRequest } from '@/features/admin/api/types';
 
 /**
@@ -18,6 +18,7 @@ export function useSuspendVerificationCase() {
       adminApi.suspendVerificationCase(id, request),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminVerificationQueueKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminOverviewKeys.all });
     },
   });
 }

@@ -7,7 +7,6 @@ import { KnowledgeModule } from '../knowledge/knowledge.module.js';
 import { GetDoctorProfileByIdUseCase } from '../doctor/application/use-cases/get-doctor-profile-by-id/get-doctor-profile-by-id.use-case.js';
 import { IdentityModule } from '../identity/identity.module.js';
 import { GetAccountByIdUseCase } from '../identity/application/use-cases/get-account-by-id/get-account-by-id.use-case.js';
-import { ListAccountsUseCase } from '../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 import { GetPatientProfileByIdUseCase } from '../patient/application/use-cases/get-patient-profile-by-id/get-patient-profile-by-id.use-case.js';
 import { PatientModule } from '../patient/patient.module.js';
 import { ListPaymentTransactionsUseCase } from '../payment/application/use-cases/list-payment-transactions/list-payment-transactions.use-case.js';
@@ -21,7 +20,6 @@ import { TrustModule } from '../trust/trust.module.js';
 import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from './application/ports/tokens.js';
 import { CreateDepartmentUseCase } from './application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalUseCase } from './application/use-cases/create-hospital/create-hospital.use-case.js';
-import { GetPlatformKpisUseCase } from './application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
 import { GetVerificationHistoryUseCase } from './application/use-cases/get-verification-history/get-verification-history.use-case.js';
 import { GetVerificationReviewQueueUseCase } from './application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsUseCase } from './application/use-cases/list-departments/list-departments.use-case.js';
@@ -68,12 +66,6 @@ import { HospitalDirectoryController } from './presentation/controllers/hospital
       useFactory: (hospitalRepository: HospitalRepository, departmentRepository: DepartmentRepository) =>
         new CreateDepartmentUseCase(hospitalRepository, departmentRepository),
       inject: [HOSPITAL_REPOSITORY, DEPARTMENT_REPOSITORY],
-    },
-    {
-      provide: GetPlatformKpisUseCase,
-      useFactory: (listAccountsUseCase: ListAccountsUseCase, hospitalRepository: HospitalRepository) =>
-        new GetPlatformKpisUseCase(listAccountsUseCase, hospitalRepository),
-      inject: [ListAccountsUseCase, HOSPITAL_REPOSITORY],
     },
     {
       provide: GetVerificationReviewQueueUseCase,
@@ -125,7 +117,6 @@ import { HospitalDirectoryController } from './presentation/controllers/hospital
     CreateHospitalUseCase,
     ListDepartmentsUseCase,
     CreateDepartmentUseCase,
-    GetPlatformKpisUseCase,
   ],
 })
 export class AdministrationModule {}

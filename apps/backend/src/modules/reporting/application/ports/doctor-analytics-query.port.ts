@@ -1,3 +1,4 @@
+import type { DateWindow } from '../dto/previous-period.js';
 import type { ReportFilter } from '../dto/report-filter.js';
 
 // Deliberately excludes rating -- GetDoctorAnalyticsUseCase merges this row
@@ -19,4 +20,6 @@ export interface DoctorActivityRow {
 
 export interface DoctorAnalyticsQueryPort {
   getActivity(filter: ReportFilter): Promise<DoctorActivityRow[]>;
+  /** Distinct doctors with a COMPLETED appointment scheduled in the window -- the same "active" as PatientAnalyticsQueryPort.countActivePatients. */
+  countActiveDoctors(window: DateWindow): Promise<number>;
 }

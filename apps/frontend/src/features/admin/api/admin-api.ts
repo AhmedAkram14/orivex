@@ -6,6 +6,7 @@ import type { ConsultationFeedback, Dispute, DisputeCategory } from '@/features/
 import type { KnowledgeArticle, KnowledgeArticleStatus } from '@/features/knowledge/api/types';
 import type {
   AdminAccount,
+  AdminOverview,
   CreateDepartmentRequest,
   CreateHospitalRequest,
   Department,
@@ -17,7 +18,6 @@ import type {
   ListAdminPaymentTransactionsResult,
   ListAuditLogParams,
   ListAuditLogResult,
-  PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
   SuspendVerificationCaseRequest,
@@ -68,7 +68,7 @@ function buildAuditLogQuery(params: ListAuditLogParams): string {
  * AdministrationController, ORIVEX Roadmap 2.0 Stage 4).
  */
 export const adminApi = {
-  getKpis: () => apiFetch<PlatformKpis>({ path: ADMIN_PATHS.kpis }),
+  getOverview: () => apiFetch<AdminOverview>({ path: ADMIN_PATHS.overview }),
 
   listAccounts: (params: ListAccountsParams = {}) =>
     apiFetch<ListAccountsResult>({ path: buildAccountsQuery(params) }),

@@ -403,7 +403,7 @@ export const NAVIGATION_CONFIG: NavItemConfig[] = [
         id: 'admin-workspace-payments',
         labelKey: 'adminPayments',
         icon: Receipt,
-        href: '/admin/analytics#payments',
+        href: '/admin/payments',
         roles: ['super_admin'],
       },
       {

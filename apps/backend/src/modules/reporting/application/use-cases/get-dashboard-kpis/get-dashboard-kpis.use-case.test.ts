@@ -30,11 +30,13 @@ describe('GetDashboardKpisUseCase', () => {
           total: 2,
         }),
       } as never,
+      { countActiveDoctors: async () => 4 } as never,
     );
 
     const result = await useCase.execute({});
 
     assert.equal(result.totalDoctors, 5);
+    assert.equal(result.activeDoctors, 4);
     assert.equal(result.totalPatients, 20);
     assert.equal(result.activePatients, 12);
     // D6: 4 approved cases include a patient's identity verification; "Verified doctors" counts doctors only.
@@ -56,6 +58,7 @@ describe('GetDashboardKpisUseCase', () => {
       { getAnalytics: async () => ({ revenue: 0, revenueGrowthPercent: null, transactions: 0, successfulPayments: 0, failedPayments: 0, refunds: 0, averageConsultationPrice: null }) } as never,
       { getAnalytics: async () => ({ newPatients: 0, returningPatients: 0, verifiedPatients: 0, activePatients: 0, genderDistribution: {}, ageDistribution: [], mostActivePatients: [] }) } as never,
       { execute: async () => ({ entries: [], total: 0 }) } as never,
+      { countActiveDoctors: async () => 0 } as never,
     );
 
     const result = await useCase.execute({});

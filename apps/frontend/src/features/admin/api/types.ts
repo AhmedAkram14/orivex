@@ -1,11 +1,39 @@
 import type { Role } from '@/shared/auth/types';
 import type { Money, PaymentStatus } from '@/features/payment/api/types';
 
-/** Matches AdministrationModule's real PlatformKpisResponseDto exactly. */
-export interface PlatformKpis {
-  activeDoctorCount: number;
-  activePatientCount: number;
-  hospitalCount: number;
+/** One admin work queue: its size and when its longest-waiting item arrived (ISO; null when empty or never recorded). Matches ReportingModule's WorkQueueSnapshotDto. */
+export interface WorkQueueSnapshot {
+  count: number;
+  oldestWaitingSince: string | null;
+}
+
+/** Matches ReportingModule's AdminOverviewResponseDto exactly (`GET /admin/overview`). */
+export interface AdminOverview {
+  generatedAt: string;
+  needsAttention: {
+    pendingVerifications: WorkQueueSnapshot;
+    openDisputes: WorkQueueSnapshot;
+    flaggedReviews: WorkQueueSnapshot;
+  };
+  averageVerificationReviewHours: number | null;
+  health: {
+    /** Cairo calendar day. */
+    appointmentsToday: number;
+    /** Today and the 6 days before it. */
+    appointmentsLast7Days: number;
+    /** All time, 0-1 -- Analytics' appointment rates with no filter. */
+    completionRate: number;
+    cancellationRate: number;
+    noShowRate: number;
+    revenueToday: number;
+    /** Today so far vs the same time last week; null with no baseline revenue. */
+    revenueChangePercent: number | null;
+    /** Trailing 30 days. */
+    failedPayments: number;
+    activeDoctors: number;
+    activePatients: number;
+    activeWindowDays: number;
+  };
 }
 
 export type AccountStatus = 'active' | 'suspended' | 'closed';

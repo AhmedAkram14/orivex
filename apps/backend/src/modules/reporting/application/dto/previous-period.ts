@@ -8,7 +8,9 @@ export interface DateWindow {
   to: Date;
 }
 
-const DEFAULT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+/** Length of the window used when no explicit range is given. */
+export const DEFAULT_WINDOW_DAYS = 30;
+const DEFAULT_WINDOW_MS = DEFAULT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 export function resolveCurrentWindow(dateFrom?: Date, dateTo?: Date): DateWindow {
   const to = dateTo ?? new Date();

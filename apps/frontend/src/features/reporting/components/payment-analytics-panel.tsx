@@ -6,7 +6,9 @@ import { Heading } from '@/design-system/typography';
 import { usePaymentAnalytics } from '@/features/reporting/hooks/use-payment-analytics';
 import { ExportButton } from '@/features/reporting/components/export-button';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
+import { Link } from '@/shared/i18n/navigation';
 import { Alert } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
 import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 export function PaymentAnalyticsPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
@@ -20,9 +22,15 @@ export function PaymentAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Heading as="h2" level={4}>{t('title')}</Heading>
-        <ExportButton section="payments" filter={filter} />
+        <div className="flex flex-wrap items-center gap-2">
+          {/* The transactions table (with refunds) lives on its own page, not repeated here. */}
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/admin/payments">{t('viewTransactions')}</Link>
+          </Button>
+          <ExportButton section="payments" filter={filter} />
+        </div>
       </div>
       <MetricGrid columns={4}>
         <MetricStat icon={Wallet} label={t('revenue')} value={(data?.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} loading={isLoading} />

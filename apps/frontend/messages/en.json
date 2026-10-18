@@ -3212,7 +3212,10 @@
         "averageConsultationDuration": "Avg. consultation duration",
         "averageRating": "Average rating",
         "notAvailable": "Not available",
-        "minutes": "min"
+        "minutes": "min",
+        "activeDoctors": "Active doctors",
+        "activeHelper": "Completed a visit in the last 30 days",
+        "activeHelperFiltered": "Completed a visit in the selected period"
       },
       "appointments": {
         "loadError": "Could not load appointment analytics.",
@@ -3294,7 +3297,8 @@
           "settled": "Settled",
           "refunded": "Refunded",
           "disputed": "Disputed"
-        }
+        },
+        "viewTransactions": "View transactions"
       },
       "telemedicine": {
         "loadError": "Could not load telemedicine analytics.",
@@ -3335,13 +3339,46 @@
         "exportError": "Export failed. Try again."
       }
     },
+    "payments": {
+      "title": "Payments",
+      "description": "Every payment transaction on the platform, with refunds."
+    },
     "overview": {
       "title": "Overview",
-      "description": "Platform-wide KPIs and administration.",
-      "activeDoctorCount": "Active doctors",
-      "activePatientCount": "Active patients",
-      "hospitalCount": "Hospitals",
-      "kpisLoadError": "Could not load platform KPIs."
+      "description": "What needs your attention now, and how the platform is doing.",
+      "attention": {
+        "title": "Needs attention",
+        "verifications": "Pending verifications",
+        "disputes": "Open disputes",
+        "reviews": "Flagged reviews",
+        "oldestHours": "Oldest waiting {count, plural, one {# hour} other {# hours}}",
+        "oldestDays": "Oldest waiting {count, plural, one {# day} other {# days}}",
+        "oldestUnknown": "Waiting time not recorded",
+        "late": "Overdue",
+        "averageReview": "Average review time: {hours, plural, one {# hour} other {# hours}}",
+        "emptyTitle": "Nothing needs attention",
+        "emptyDescription": "No pending verifications, open disputes or flagged reviews right now."
+      },
+      "health": {
+        "title": "Platform health",
+        "appointmentsToday": "Appointments today",
+        "appointmentsWeek": "{count} in the last 7 days",
+        "completionRate": "Completion rate",
+        "ratesHelper": "Cancelled {cancelled} · No-show {noShow} · all time",
+        "revenueToday": "Revenue today",
+        "vsLastWeek": "vs. this time last week",
+        "noBaseline": "No revenue this time last week",
+        "activeDoctors": "Active doctors",
+        "activePatients": "Active patients",
+        "activeHelper": "Completed a visit in the last {days} days",
+        "failedPayments": "Failed payments",
+        "failedHelper": "Last {days} days"
+      },
+      "error": {
+        "title": "We couldn't load the overview",
+        "description": "This isn't an all-clear: items may still be waiting. Try again, or open a queue directly."
+      },
+      "auditLogLink": "View audit log"
     },
     "users": {
       "title": "Users",

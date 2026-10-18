@@ -13,6 +13,8 @@ export interface ReportFilterParams {
 
 export interface DashboardKpis {
   totalDoctors: number;
+  /** Distinct doctors with a completed visit in the window -- the same "active" as activePatients. */
+  activeDoctors: number;
   verifiedDoctors: number;
   pendingVerification: number;
   totalPatients: number;

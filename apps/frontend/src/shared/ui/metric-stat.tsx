@@ -172,7 +172,9 @@ export function MetricStat({
   const body = (
     <>
       {icon && <Icon icon={icon} size="md" className="absolute end-4 top-4 text-text-tertiary" />}
-      <p className={cn('min-w-0 text-small text-text-tertiary', icon && 'pe-8')}>{label}</p>
+      {/* Two lines reserved for the label in grids and strips, so a label that wraps (narrow tiles, Arabic) never
+          pushes its figure below its neighbours'. The hero stands alone and keeps its natural height. */}
+      <p className={cn('min-w-0 text-small text-text-tertiary', variant !== 'hero' && 'min-h-[2lh]', icon && 'pe-8')}>{label}</p>
       {loading || preview ? (
         <Skeleton className={cn('mt-2', isHero ? 'h-11 w-32' : 'h-8 w-16', preview && 'animate-none! bg-none!')} />
       ) : (

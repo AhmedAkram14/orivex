@@ -14,7 +14,7 @@ describe('GetPatientAnalyticsUseCase', () => {
       ageDistribution: [{ bucket: 'unknown', count: 5 }],
       mostActivePatients: [],
     };
-    const useCase = new GetPatientAnalyticsUseCase({ getAnalytics: async () => expected });
+    const useCase = new GetPatientAnalyticsUseCase({ getAnalytics: async () => expected, countActivePatients: async () => expected.activePatients });
 
     const result = await useCase.execute({});
 

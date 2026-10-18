@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { AppBreadcrumbs } from '@/features/shell/components/breadcrumbs';
-import { AdminPaymentsTable } from '@/features/admin/components/admin-payments-table';
 import { AnalyticsFiltersBar } from '@/features/reporting/components/analytics-filters-bar';
 import { DashboardKpiGrid } from '@/features/reporting/components/dashboard-kpi-grid';
 import { useAnalyticsPreferences } from '@/features/reporting/hooks/use-analytics-preferences';
@@ -47,10 +46,10 @@ const NotificationAnalyticsPanel = dynamic(
 
 /**
  * The Admin Workspace's Analytics Dashboard -- ORIVEX Roadmap 2.0's Stage 9
- * (Reporting & Analytics), the home `GetPlatformKpisUseCase`'s own comment
- * deferred appointment-count/revenue KPIs to. Every section below is a real
- * ReportingModule endpoint; filters/compare/refresh-interval are owned by
- * `useAnalyticsPreferences` and shared across every panel.
+ * (Reporting & Analytics). Every section below is a real ReportingModule
+ * endpoint; filters/compare/refresh-interval are owned by
+ * `useAnalyticsPreferences` and shared across every panel. The transactions
+ * table lives on /admin/payments; the payments panel links there.
  */
 export default function AdminAnalyticsPage() {
   const t = useTranslations('admin.analytics');
@@ -61,13 +60,19 @@ export default function AdminAnalyticsPage() {
       <Page>
         <WorkspaceHeader breadcrumbs={<AppBreadcrumbs />} title={t('title')} description={t('description')} />
         <AnalyticsFiltersBar preferences={{ ...filter, refreshInterval }} onChange={updatePreferences} />
-        <DashboardKpiGrid filter={filter} refetchIntervalMs={refetchIntervalMs} />
-        <AppointmentAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
+        {/* Section anchors are the Overview's drill-through targets (/admin/analytics#appointments, ...). */}
+        <section id="kpis" className="scroll-mt-4">
+          <DashboardKpiGrid filter={filter} refetchIntervalMs={refetchIntervalMs} />
+        </section>
+        <section id="appointments" className="scroll-mt-4">
+          <AppointmentAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
+        </section>
         <DoctorLeaderboardPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
-        <PatientAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
-        <PaymentAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
-        <section id="payments">
-          <AdminPaymentsTable />
+        <section id="patients" className="scroll-mt-4">
+          <PatientAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
+        </section>
+        <section id="payments" className="scroll-mt-4">
+          <PaymentAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
         </section>
         <TelemedicineAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />
         <VerificationAnalyticsPanel filter={filter} refetchIntervalMs={refetchIntervalMs} />

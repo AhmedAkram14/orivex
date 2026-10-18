@@ -17,7 +17,6 @@ import {
   createHospital,
   getAuditLog,
   getFeatureFlags,
-  getPlatformKpis,
   getSecurityEventsForAccount,
   getVerificationCase,
   getVerificationCaseHistory,
@@ -33,6 +32,7 @@ import { listAllTransactionsForAdmin, refundTransaction } from '@/mocks/payment-
 import { listConsultationFeedbackByModerationStatus, moderateConsultationFeedback } from '@/mocks/consultation-store';
 import { listDisputesByStatus, resolveDispute } from '@/mocks/disputes-store';
 import { resolveRequestAccountId } from '@/mocks/request-account';
+import { getAdminOverview } from '@/mocks/admin-overview';
 import { LEGACY_DOCTOR_ACCOUNT_ID } from '@/mocks/auth-store';
 
 const base = () => env.apiBaseUrl;
@@ -51,7 +51,7 @@ function errorResponse(status: number, code: string, message: string) {
  * test suite deterministic, matching `scheduling.ts`'s own precedent.
  */
 export const adminHandlers = [
-  http.get(`${base()}${ADMIN_PATHS.kpis}`, () => HttpResponse.json({ data: getPlatformKpis() })),
+  http.get(`${base()}${ADMIN_PATHS.overview}`, () => HttpResponse.json({ data: getAdminOverview() })),
 
   http.get(`${base()}${ADMIN_PATHS.accounts}`, ({ request }) => {
     const url = new URL(request.url);

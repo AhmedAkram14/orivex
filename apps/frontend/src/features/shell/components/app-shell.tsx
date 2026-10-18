@@ -8,6 +8,7 @@ import { BottomNav, useHasBottomNav } from '@/features/shell/components/bottom-n
 import { MobileNav } from '@/features/shell/components/mobile-nav';
 import { NotificationBell } from '@/features/shell/components/notification-bell';
 import { SidebarNav } from '@/features/shell/components/sidebar-nav';
+import { SidebarScrollArea } from '@/features/shell/components/sidebar-scroll-area';
 import { UserMenu } from '@/features/shell/components/user-menu';
 import { useDoctorProfile } from '@/features/doctor/hooks/use-doctor-profile';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
@@ -102,32 +103,18 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Topbar>
       <div className="flex flex-1 overflow-hidden">
         <Sidebar className="hidden lg:flex">
-          {/* Security Center audit: on a role with enough nav items (e.g.
-              Admin's two groups), the last item -- often "Settings"/
-              "Security" -- sat exactly at this region's bottom edge and
-              rendered visibly cut in half, with nothing to signal "this
-              scrolls, there's more below." A `scrollbar-color`/webkit-track
-              customization here (this div's previous approach) only styles
-              a scrollbar that Chromium's overlay-scrollbar behavior still
-              hides until actively scrolling/hovering, so it never actually
-              fixed the "looks broken" problem. A bottom fade mask is
-              hover-independent and unambiguous: content visibly fades out
-              near the edge instead of hard-clipping mid-glyph, and it's a
-              harmless no-op on a role with few enough items that nothing
-              actually overflows. */}
-          <div className="relative min-h-0 flex-1">
-            <div className="h-full overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent,black_20px,black_calc(100%-28px),transparent)]">
-              <SidebarNav />
-              {/* Real spacer, not just the mask's fade -- guarantees the
-                  last item's full height is scrollable past the fade zone
-                  rather than the fade eating into its final pixels. */}
-              <div className="h-7" aria-hidden="true" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-3 border-t border-border-default pt-3">
-            <HelpCenterCard />
-            <p className="px-2 text-xs text-text-tertiary">{t('footer', { year: new Date().getFullYear() })}</p>
-          </div>
+          {/* One scroll region for the nav and the help/footer block -- see SidebarScrollArea for why the footer is
+              no longer pinned under the nav. */}
+          <SidebarScrollArea
+            footer={
+              <>
+                <HelpCenterCard />
+                <p className="px-2 text-xs text-text-tertiary">{t('footer', { year: new Date().getFullYear() })}</p>
+              </>
+            }
+          >
+            <SidebarNav />
+          </SidebarScrollArea>
         </Sidebar>
         <Content className={hasBottomNav ? 'max-md:pb-20' : undefined}>{children}</Content>
       </div>

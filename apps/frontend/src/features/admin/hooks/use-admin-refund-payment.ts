@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/features/admin/api/admin-api';
-import { adminPaymentsKeys } from '@/features/admin/hooks/query-keys';
+import { adminOverviewKeys, adminPaymentsKeys } from '@/features/admin/hooks/query-keys';
 
 /**
  * SuperAdmin refund mutation -- calls `POST /admin/payments/:id/refund`.
@@ -19,6 +19,8 @@ export function useAdminRefundPayment() {
     mutationFn: (paymentTransactionId: string) => adminApi.refundPayment(paymentTransactionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminPaymentsKeys.lists() });
+      // A refund moves today's revenue on the Overview.
+      queryClient.invalidateQueries({ queryKey: adminOverviewKeys.all });
     },
   });
 }

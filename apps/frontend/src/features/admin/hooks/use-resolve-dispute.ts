@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '@/features/admin/api/admin-api';
-import { adminDisputesKeys } from '@/features/admin/hooks/query-keys';
+import { adminDisputesKeys, adminOverviewKeys } from '@/features/admin/hooks/query-keys';
 
 /** I11 -- Admin dispute resolution: the SuperAdmin's one-time decision. */
 export function useResolveDispute() {
@@ -12,6 +12,7 @@ export function useResolveDispute() {
     mutationFn: ({ id, status, resolutionNotes }: { id: string; status: 'resolved' | 'dismissed'; resolutionNotes: string }) =>
       adminApi.resolveDispute(id, status, resolutionNotes),
     onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: adminOverviewKeys.all });
       await queryClient.invalidateQueries({ queryKey: adminDisputesKeys.lists() });
     },
   });

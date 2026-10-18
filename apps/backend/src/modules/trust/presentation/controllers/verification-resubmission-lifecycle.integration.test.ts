@@ -55,7 +55,6 @@ import { ListHospitalsUseCase } from '../../../administration/application/use-ca
 import { CreateHospitalUseCase } from '../../../administration/application/use-cases/create-hospital/create-hospital.use-case.js';
 import { ListDepartmentsUseCase } from '../../../administration/application/use-cases/list-departments/list-departments.use-case.js';
 import { CreateDepartmentUseCase } from '../../../administration/application/use-cases/create-department/create-department.use-case.js';
-import { GetPlatformKpisUseCase } from '../../../administration/application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
 import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from '../../../administration/application/ports/tokens.js';
 import { Department } from '../../../administration/domain/entities/department.entity.js';
 import { Hospital } from '../../../administration/domain/entities/hospital.entity.js';
@@ -551,11 +550,6 @@ describe('Verification resubmission lifecycle (integration)', () => {
         {
           provide: CreateDepartmentUseCase,
           useFactory: () => new CreateDepartmentUseCase(hospitalRepository, departmentRepository),
-        },
-        {
-          provide: GetPlatformKpisUseCase,
-          useFactory: (listAccounts: ListAccountsUseCase) => new GetPlatformKpisUseCase(listAccounts, hospitalRepository),
-          inject: [ListAccountsUseCase],
         },
         { provide: PAYMENT_TRANSACTION_REPOSITORY, useValue: new InMemoryPaymentTransactionRepository() },
         { provide: PAYMENT_GATEWAY, useValue: new FakePaymentGateway() },

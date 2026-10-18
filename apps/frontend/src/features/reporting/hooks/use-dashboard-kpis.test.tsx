@@ -21,6 +21,7 @@ function createWrapper(queryClient: QueryClient) {
 
 const kpis: DashboardKpis = {
   totalDoctors: 5,
+  activeDoctors: 3,
   verifiedDoctors: 4,
   pendingVerification: 1,
   totalPatients: 20,

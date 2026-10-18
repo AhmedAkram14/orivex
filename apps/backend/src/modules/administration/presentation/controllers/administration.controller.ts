@@ -65,7 +65,6 @@ import type { CreateDepartmentCommand } from '../../application/use-cases/create
 import { CreateDepartmentUseCase } from '../../application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalCommand } from '../../application/use-cases/create-hospital/create-hospital.command.js';
 import { CreateHospitalUseCase } from '../../application/use-cases/create-hospital/create-hospital.use-case.js';
-import { GetPlatformKpisUseCase } from '../../application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
 import { GetVerificationHistoryUseCase } from '../../application/use-cases/get-verification-history/get-verification-history.use-case.js';
 import { GetVerificationReviewQueueUseCase } from '../../application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsQuery } from '../../application/use-cases/list-departments/list-departments.query.js';
@@ -94,7 +93,6 @@ import { ListKnowledgeArticlesQueryDto } from '../dto/list-knowledge-articles-qu
 import { ModerateKnowledgeArticleRequestDto } from '../dto/moderate-knowledge-article-request.dto.js';
 import { ListReviewsQueryDto } from '../dto/list-reviews-query.dto.js';
 import { ResolveDisputeRequestDto } from '../dto/resolve-dispute-request.dto.js';
-import { PlatformKpisResponseDto } from '../dto/platform-kpis-response.dto.js';
 import { SecurityEventResponseDto } from '../dto/security-event-response.dto.js';
 import { UpdateAccountRoleRequestDto } from '../dto/update-account-role-request.dto.js';
 import { VerificationQueueQueryDto } from '../dto/verification-queue-query.dto.js';
@@ -119,7 +117,6 @@ export class AdministrationController {
     private readonly createHospitalUseCase: CreateHospitalUseCase,
     private readonly listDepartmentsUseCase: ListDepartmentsUseCase,
     private readonly createDepartmentUseCase: CreateDepartmentUseCase,
-    private readonly getPlatformKpisUseCase: GetPlatformKpisUseCase,
     private readonly getVerificationReviewQueueUseCase: GetVerificationReviewQueueUseCase,
     private readonly reviewVerificationCaseUseCase: ReviewVerificationCaseUseCase,
     private readonly suspendVerificationCaseUseCase: SuspendVerificationCaseUseCase,
@@ -138,12 +135,6 @@ export class AdministrationController {
     private readonly moderateArticleUseCase: ModerateArticleUseCase,
     private readonly configService: ConfigService<EnvConfig, true>,
   ) {}
-
-  @Get('kpis')
-  async getKpis(): Promise<ResponseEnvelope<PlatformKpisResponseDto>> {
-    const result = await this.getPlatformKpisUseCase.execute();
-    return envelope(PlatformKpisResponseDto.fromResult(result));
-  }
 
   @Get('accounts')
   async listAccounts(@Query() query: ListAccountsQueryDto): Promise<ResponseEnvelope<ListAccountsResponseDto>> {

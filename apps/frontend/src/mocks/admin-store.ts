@@ -7,7 +7,6 @@ import type {
   Hospital,
   ListAccountsParams,
   ListAuditLogResult,
-  PlatformKpis,
   ReviewVerificationCaseRequest,
   SecurityEvent,
   SuspendVerificationCaseRequest,
@@ -66,14 +65,6 @@ function seedDepartments(): Record<string, Department[]> {
 let accounts: AdminAccount[] = seedAccounts();
 let hospitals: Hospital[] = seedHospitals();
 let departmentsByHospital: Record<string, Department[]> = seedDepartments();
-
-export function getPlatformKpis(): PlatformKpis {
-  return {
-    activeDoctorCount: accounts.filter((a) => a.role === 'doctor' && a.status === 'active').length,
-    activePatientCount: accounts.filter((a) => a.role === 'patient' && a.status === 'active').length,
-    hospitalCount: hospitals.length,
-  };
-}
 
 export function listAccounts(params: ListAccountsParams): { accounts: AdminAccount[]; total: number; page: number; limit: number } {
   const page = params.page ?? 1;

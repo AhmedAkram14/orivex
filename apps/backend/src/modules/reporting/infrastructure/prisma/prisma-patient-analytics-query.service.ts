@@ -3,8 +3,10 @@ import { Prisma, VerificationStatus as PrismaVerificationStatus, VerificationSub
 
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type { ReportFilter } from '../../application/dto/report-filter.js';
-import { resolveCurrentWindow } from '../../application/dto/previous-period.js';
+import { resolveCurrentWindow, type DateWindow } from '../../application/dto/previous-period.js';
 import type { PatientAnalyticsQueryPort, PatientAnalyticsResult } from '../../application/ports/patient-analytics-query.port.js';
+
+import { completedVisitsIn } from './completed-visits-in-window.js';
 
 const AGE_BUCKET_SQL = Prisma.sql`
   CASE
@@ -37,7 +39,7 @@ export class PrismaPatientAnalyticsQueryService implements PatientAnalyticsQuery
       this.prisma.account.groupBy({ by: ['gender'], where: { role: 'patient', ...patientDateFilter }, _count: { _all: true } }),
       this.queryAgeDistribution(patientDateFilter),
       this.countPatientsWithMinAppointments(filter, 2),
-      this.countDistinctAppointmentPatients(activeWindow.from, activeWindow.to),
+      this.countActivePatients(activeWindow),
       this.queryMostActivePatients(filter),
     ]);
 
@@ -82,11 +84,8 @@ export class PrismaPatientAnalyticsQueryService implements PatientAnalyticsQuery
     return rows.filter((row) => row._count._all >= minCount).length;
   }
 
-  private async countDistinctAppointmentPatients(from: Date, to: Date): Promise<number> {
-    const rows = await this.prisma.appointment.groupBy({
-      by: ['patientId'],
-      where: { scheduledAt: { gte: from, lte: to } },
-    });
+  async countActivePatients(window: DateWindow): Promise<number> {
+    const rows = await this.prisma.appointment.groupBy({ by: ['patientId'], where: completedVisitsIn(window) });
     return rows.length;
   }
 

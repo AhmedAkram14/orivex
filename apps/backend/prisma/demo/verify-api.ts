@@ -239,7 +239,7 @@ async function verifyAdmin(): Promise<void> {
   record(key, 'login', true);
   const now = new Date();
   const range = `dateFrom=${iso(new Date(now.getTime() - 90 * MS_PER_DAY))}&dateTo=${iso(now)}`;
-  await expectOk(key, token, '/admin/kpis');
+  await expectOk(key, token, '/admin/overview');
   for (const section of ['kpis', 'appointments', 'doctors', 'patients', 'payments', 'telemedicine', 'verification', 'notifications']) {
     await expectOk(key, token, `/admin/analytics/${section}?${range}`);
   }
@@ -282,12 +282,12 @@ async function verifyAuthorization(): Promise<void> {
     const token = await login(doctorEmail);
     const response = await call(token, `/doctor/patients/${stranger.id}/profile`);
     record('authz', `${doctorEmail.split('@')[0]} -> unrelated patient chart denied`, response.status === 403 || response.status === 404, `HTTP ${response.status}`);
-    const admin = await call(token, '/admin/kpis');
-    record('authz', 'doctor -> /admin/kpis denied', admin.status === 403, `HTTP ${admin.status}`);
+    const admin = await call(token, '/admin/overview');
+    record('authz', 'doctor -> /admin/overview denied', admin.status === 403, `HTTP ${admin.status}`);
     break;
   }
-  const admin = await call(tokenA, '/admin/kpis');
-  record('authz', 'patient -> /admin/kpis denied', admin.status === 403, `HTTP ${admin.status}`);
+  const admin = await call(tokenA, '/admin/overview');
+  record('authz', 'patient -> /admin/overview denied', admin.status === 403, `HTTP ${admin.status}`);
 }
 
 async function main(): Promise<void> {

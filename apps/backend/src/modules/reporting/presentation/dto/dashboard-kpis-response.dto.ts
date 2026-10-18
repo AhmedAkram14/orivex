@@ -2,6 +2,7 @@ import type { DashboardKpisResult } from '../../application/use-cases/get-dashbo
 
 export class DashboardKpisResponseDto {
   totalDoctors!: number;
+  activeDoctors!: number;
   verifiedDoctors!: number;
   pendingVerification!: number;
   totalPatients!: number;

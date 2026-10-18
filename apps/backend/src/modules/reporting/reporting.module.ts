@@ -7,6 +7,7 @@ import { IdentityModule } from '../identity/identity.module.js';
 import { ListAccountsUseCase } from '../identity/application/use-cases/list-accounts/list-accounts.use-case.js';
 
 import {
+  ADMIN_QUEUE_QUERY,
   APPOINTMENT_ANALYTICS_QUERY,
   DOCTOR_ANALYTICS_QUERY,
   NOTIFICATION_ANALYTICS_QUERY,
@@ -15,6 +16,7 @@ import {
   TELEMEDICINE_ANALYTICS_QUERY,
   VERIFICATION_ANALYTICS_QUERY,
 } from './application/ports/tokens.js';
+import type { AdminQueueQueryPort } from './application/ports/admin-queue-query.port.js';
 import type { AppointmentAnalyticsQueryPort } from './application/ports/appointment-analytics-query.port.js';
 import type { DoctorAnalyticsQueryPort } from './application/ports/doctor-analytics-query.port.js';
 import type { NotificationAnalyticsQueryPort } from './application/ports/notification-analytics-query.port.js';
@@ -22,6 +24,7 @@ import type { PatientAnalyticsQueryPort } from './application/ports/patient-anal
 import type { PaymentAnalyticsQueryPort } from './application/ports/payment-analytics-query.port.js';
 import type { TelemedicineAnalyticsQueryPort } from './application/ports/telemedicine-analytics-query.port.js';
 import type { VerificationAnalyticsQueryPort } from './application/ports/verification-analytics-query.port.js';
+import { GetAdminOverviewUseCase } from './application/use-cases/get-admin-overview/get-admin-overview.use-case.js';
 import { ExportReportCsvUseCase } from './application/use-cases/export-report-csv/export-report-csv.use-case.js';
 import { GetAppointmentAnalyticsUseCase } from './application/use-cases/get-appointment-analytics/get-appointment-analytics.use-case.js';
 import { GetDashboardKpisUseCase } from './application/use-cases/get-dashboard-kpis/get-dashboard-kpis.use-case.js';
@@ -31,6 +34,7 @@ import { GetPatientAnalyticsUseCase } from './application/use-cases/get-patient-
 import { GetPaymentAnalyticsUseCase } from './application/use-cases/get-payment-analytics/get-payment-analytics.use-case.js';
 import { GetTelemedicineAnalyticsUseCase } from './application/use-cases/get-telemedicine-analytics/get-telemedicine-analytics.use-case.js';
 import { GetVerificationAnalyticsUseCase } from './application/use-cases/get-verification-analytics/get-verification-analytics.use-case.js';
+import { PrismaAdminQueueQueryService } from './infrastructure/prisma/prisma-admin-queue-query.service.js';
 import { PrismaAppointmentAnalyticsQueryService } from './infrastructure/prisma/prisma-appointment-analytics-query.service.js';
 import { PrismaDoctorAnalyticsQueryService } from './infrastructure/prisma/prisma-doctor-analytics-query.service.js';
 import { PrismaNotificationAnalyticsQueryService } from './infrastructure/prisma/prisma-notification-analytics-query.service.js';
@@ -38,6 +42,7 @@ import { PrismaPatientAnalyticsQueryService } from './infrastructure/prisma/pris
 import { PrismaPaymentAnalyticsQueryService } from './infrastructure/prisma/prisma-payment-analytics-query.service.js';
 import { PrismaTelemedicineAnalyticsQueryService } from './infrastructure/prisma/prisma-telemedicine-analytics-query.service.js';
 import { PrismaVerificationAnalyticsQueryService } from './infrastructure/prisma/prisma-verification-analytics-query.service.js';
+import { AdminOverviewController } from './presentation/controllers/admin-overview.controller.js';
 import { ReportingController } from './presentation/controllers/reporting.controller.js';
 
 // Reporting & Analytics module (ORIVEX Roadmap 2.0's "Stage 9", the home
@@ -50,7 +55,7 @@ import { ReportingController } from './presentation/controllers/reporting.contro
 // IdentityModule's own exported use cases, never a re-derived calculation.
 @Module({
   imports: [AuthenticationGuardsModule, IdentityModule, ConsultationModule],
-  controllers: [ReportingController],
+  controllers: [ReportingController, AdminOverviewController],
   providers: [
     { provide: APPOINTMENT_ANALYTICS_QUERY, useClass: PrismaAppointmentAnalyticsQueryService },
     { provide: DOCTOR_ANALYTICS_QUERY, useClass: PrismaDoctorAnalyticsQueryService },
@@ -59,6 +64,7 @@ import { ReportingController } from './presentation/controllers/reporting.contro
     { provide: TELEMEDICINE_ANALYTICS_QUERY, useClass: PrismaTelemedicineAnalyticsQueryService },
     { provide: VERIFICATION_ANALYTICS_QUERY, useClass: PrismaVerificationAnalyticsQueryService },
     { provide: NOTIFICATION_ANALYTICS_QUERY, useClass: PrismaNotificationAnalyticsQueryService },
+    { provide: ADMIN_QUEUE_QUERY, useClass: PrismaAdminQueueQueryService },
     {
       provide: GetAppointmentAnalyticsUseCase,
       useFactory: (port: AppointmentAnalyticsQueryPort) => new GetAppointmentAnalyticsUseCase(port),
@@ -105,6 +111,7 @@ import { ReportingController } from './presentation/controllers/reporting.contro
         paymentQuery: PaymentAnalyticsQueryPort,
         patientQuery: PatientAnalyticsQueryPort,
         getDoctorAnalyticsUseCase: GetDoctorAnalyticsUseCase,
+        doctorQuery: DoctorAnalyticsQueryPort,
       ) =>
         new GetDashboardKpisUseCase(
           listAccountsUseCase,
@@ -114,6 +121,7 @@ import { ReportingController } from './presentation/controllers/reporting.contro
           paymentQuery,
           patientQuery,
           getDoctorAnalyticsUseCase,
+          doctorQuery,
         ),
       inject: [
         ListAccountsUseCase,
@@ -123,6 +131,26 @@ import { ReportingController } from './presentation/controllers/reporting.contro
         PAYMENT_ANALYTICS_QUERY,
         PATIENT_ANALYTICS_QUERY,
         GetDoctorAnalyticsUseCase,
+        DOCTOR_ANALYTICS_QUERY,
+      ],
+    },
+    {
+      provide: GetAdminOverviewUseCase,
+      useFactory: (
+        queueQuery: AdminQueueQueryPort,
+        verificationQuery: VerificationAnalyticsQueryPort,
+        appointmentQuery: AppointmentAnalyticsQueryPort,
+        paymentQuery: PaymentAnalyticsQueryPort,
+        patientQuery: PatientAnalyticsQueryPort,
+        doctorQuery: DoctorAnalyticsQueryPort,
+      ) => new GetAdminOverviewUseCase(queueQuery, verificationQuery, appointmentQuery, paymentQuery, patientQuery, doctorQuery),
+      inject: [
+        ADMIN_QUEUE_QUERY,
+        VERIFICATION_ANALYTICS_QUERY,
+        APPOINTMENT_ANALYTICS_QUERY,
+        PAYMENT_ANALYTICS_QUERY,
+        PATIENT_ANALYTICS_QUERY,
+        DOCTOR_ANALYTICS_QUERY,
       ],
     },
     {

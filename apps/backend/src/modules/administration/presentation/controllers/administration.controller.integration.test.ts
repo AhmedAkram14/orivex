@@ -78,7 +78,6 @@ import { PatientIdentityDetails } from '../../../trust/domain/value-objects/pati
 import { DEPARTMENT_REPOSITORY, HOSPITAL_REPOSITORY } from '../../application/ports/tokens.js';
 import { CreateDepartmentUseCase } from '../../application/use-cases/create-department/create-department.use-case.js';
 import { CreateHospitalUseCase } from '../../application/use-cases/create-hospital/create-hospital.use-case.js';
-import { GetPlatformKpisUseCase } from '../../application/use-cases/get-platform-kpis/get-platform-kpis.use-case.js';
 import { GetVerificationHistoryUseCase } from '../../application/use-cases/get-verification-history/get-verification-history.use-case.js';
 import { GetVerificationReviewQueueUseCase } from '../../application/use-cases/get-verification-review-queue/get-verification-review-queue.use-case.js';
 import { ListDepartmentsUseCase } from '../../application/use-cases/list-departments/list-departments.use-case.js';
@@ -562,11 +561,6 @@ describe('AdministrationController (integration)', () => {
           useFactory: () => new CreateDepartmentUseCase(hospitalRepository, departmentRepository),
         },
         {
-          provide: GetPlatformKpisUseCase,
-          useFactory: (listAccounts: ListAccountsUseCase) => new GetPlatformKpisUseCase(listAccounts, hospitalRepository),
-          inject: [ListAccountsUseCase],
-        },
-        {
           provide: ListPendingVerificationCasesUseCase,
           useFactory: () => new ListPendingVerificationCasesUseCase(verificationCaseRepository),
         },
@@ -658,33 +652,6 @@ describe('AdministrationController (integration)', () => {
 
   after(async () => {
     await app.close();
-  });
-
-  it('GET /admin/kpis rejects a request with no bearer token', async () => {
-    await request(app.getHttpServer()).get('/admin/kpis').expect(401);
-  });
-
-  it('GET /admin/kpis rejects a non-SuperAdmin caller with 403', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/admin/kpis')
-      .set('Authorization', `Bearer ${DOCTOR_TOKEN}`)
-      .expect(403);
-    assert.equal(response.body.error.code, 'FORBIDDEN');
-  });
-
-  it('GET /admin/kpis returns identity-owned counts', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/admin/kpis')
-      .set('Authorization', `Bearer ${SUPER_ADMIN_TOKEN}`)
-      .expect(200);
-
-    // 2 doctors, 1 patient: 'doctor-to-promote@example.com' plus this
-    // suite's own payment-admin fixture accounts (paymentDoctorAccount,
-    // paymentPatientAccount), seeded to give GET /admin/payments a real
-    // patient/doctor name pair to resolve.
-    assert.equal(response.body.data.activeDoctorCount, 2);
-    assert.equal(response.body.data.activePatientCount, 1);
-    assert.equal(response.body.data.hospitalCount, 0);
   });
 
   it('GET /admin/accounts lists accounts with pagination metadata', async () => {

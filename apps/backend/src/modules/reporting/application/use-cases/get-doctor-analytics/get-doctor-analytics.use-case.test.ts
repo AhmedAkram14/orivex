@@ -26,6 +26,9 @@ class FakeDoctorAnalyticsQuery implements DoctorAnalyticsQueryPort {
   async getActivity(): Promise<DoctorActivityRow[]> {
     return this.rows;
   }
+  async countActiveDoctors(): Promise<number> {
+    return 0;
+  }
 }
 
 function fakeRatings(map: Record<string, { averageRating: number | null; reviewCount: number }>): GetDoctorRatingAggregatesUseCase {

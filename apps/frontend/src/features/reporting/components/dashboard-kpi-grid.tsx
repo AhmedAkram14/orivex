@@ -48,14 +48,17 @@ export function DashboardKpiGrid({ filter, refetchIntervalMs }: DashboardKpiGrid
 
   const format = (value: number | null | undefined, fractionDigits = 0): string =>
     value === null || value === undefined ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
+  // The same definition the admin Overview shows under its own active tiles.
+  const activeHelper = filter.dateFrom || filter.dateTo ? t('activeHelperFiltered') : t('activeHelper');
 
   return (
     <MetricGrid columns={4}>
       <MetricStat icon={Stethoscope} label={t('totalDoctors')} value={format(data?.totalDoctors)} loading={isLoading} href="/admin/users" />
+      <MetricStat icon={Activity} label={t('activeDoctors')} value={format(data?.activeDoctors)} helperText={activeHelper} loading={isLoading} />
       <MetricStat icon={BadgeCheck} label={t('verifiedDoctors')} value={format(data?.verifiedDoctors)} loading={isLoading} href="/admin/verification-queue" />
       <MetricStat icon={Hourglass} label={t('pendingVerification')} value={format(data?.pendingVerification)} loading={isLoading} href="/admin/verification-queue" />
       <MetricStat icon={Users} label={t('totalPatients')} value={format(data?.totalPatients)} loading={isLoading} href="/admin/users" />
-      <MetricStat icon={Activity} label={t('activePatients')} value={format(data?.activePatients)} loading={isLoading} />
+      <MetricStat icon={Activity} label={t('activePatients')} value={format(data?.activePatients)} helperText={activeHelper} loading={isLoading} />
       <MetricStat icon={CalendarClock} label={t('totalAppointments')} value={format(data?.totalAppointments)} loading={isLoading} />
       <MetricStat icon={CalendarCheck} label={t('completedAppointments')} value={format(data?.completedAppointments)} loading={isLoading} />
       <MetricStat icon={CalendarX} label={t('cancelledAppointments')} value={format(data?.cancelledAppointments)} loading={isLoading} />

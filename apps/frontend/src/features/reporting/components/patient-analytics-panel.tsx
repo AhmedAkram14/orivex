@@ -16,6 +16,7 @@ import { WidgetContainer } from '@/shared/ui/layout/widget-container';
 
 export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
   const t = useTranslations('admin.analytics.patients');
+  const tKpis = useTranslations('admin.analytics.kpis');
   const { data, isLoading, isError } = usePatientAnalytics(filter, refetchIntervalMs);
 
   if (isError) return <Alert variant="danger">{t('loadError')}</Alert>;
@@ -33,7 +34,13 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
         <MetricStat icon={Users} label={t('newPatients')} value={String(data?.newPatients ?? 0)} loading={isLoading} />
         <MetricStat icon={Users} label={t('returningPatients')} value={String(data?.returningPatients ?? 0)} loading={isLoading} />
         <MetricStat icon={Users} label={t('verifiedPatients')} value={String(data?.verifiedPatients ?? 0)} loading={isLoading} />
-        <MetricStat icon={Users} label={t('activePatients')} value={String(data?.activePatients ?? 0)} loading={isLoading} />
+        <MetricStat
+          icon={Users}
+          label={t('activePatients')}
+          value={String(data?.activePatients ?? 0)}
+          helperText={filter.dateFrom || filter.dateTo ? tKpis('activeHelperFiltered') : tKpis('activeHelper')}
+          loading={isLoading}
+        />
       </MetricGrid>
       <div className="grid grid-cols-1 gap-4 @xl:grid-cols-2">
         <ChartContainer title={t('genderTitle')}>

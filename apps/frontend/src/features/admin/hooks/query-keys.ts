@@ -1,6 +1,6 @@
 import { createQueryKeyFactory } from '@/shared/lib/api/query-keys';
 
-export const platformKpisKeys = createQueryKeyFactory('admin-platform-kpis');
+export const adminOverviewKeys = createQueryKeyFactory('admin-overview');
 export const adminAccountsKeys = createQueryKeyFactory('admin-accounts');
 export const adminSecurityEventsKeys = createQueryKeyFactory('admin-security-events');
 export const adminHospitalsKeys = createQueryKeyFactory('admin-hospitals');

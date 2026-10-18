@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { adminApi } from '@/features/admin/api/admin-api';
-import { adminAccountsKeys, platformKpisKeys } from '@/features/admin/hooks/query-keys';
+import { adminAccountsKeys } from '@/features/admin/hooks/query-keys';
 import type { AdminAccount } from '@/features/admin/api/types';
 
 import { useUpdateAccountRole } from './use-update-account-role';
@@ -21,7 +21,7 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 describe('useUpdateAccountRole', () => {
-  it('invalidates the accounts list and platform KPIs after a successful role change', async () => {
+  it('invalidates the accounts list after a successful role change', async () => {
     vi.mocked(adminApi.updateAccountRole).mockResolvedValue({ id: 'acct-1', role: 'nurse' } as AdminAccount);
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
@@ -33,6 +33,5 @@ describe('useUpdateAccountRole', () => {
 
     const invalidatedKeys = invalidateSpy.mock.calls.map((call) => (call[0] as { queryKey?: unknown } | undefined)?.queryKey);
     expect(invalidatedKeys).toContainEqual(adminAccountsKeys.all);
-    expect(invalidatedKeys).toContainEqual(platformKpisKeys.all);
   });
 });
