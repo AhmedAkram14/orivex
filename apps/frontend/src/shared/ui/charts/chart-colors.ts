@@ -1,16 +1,18 @@
 /**
- * Fixed-order categorical palette for every chart in this app — reuses the
- * design system's own theme-aware CSS custom properties (design-system/
- * tokens/colors.css) rather than introducing new hardcoded hex values.
- * Assigned by position, never cycled/generated: a series always gets the
- * same color regardless of how many other series are present.
+ * Fixed-order categorical palette for every chart in this app -- the
+ * design system's `--color-chart-1..6` tokens (design-system/tokens), each a
+ * distinct hue validated for colour-vision deficiency in both themes. The
+ * previous set mixed three greys, so pie segments (gender, age) were hard to
+ * tell apart. Assigned by position, never cycled/generated: a series always
+ * gets the same color regardless of how many other series are present.
  */
 export const CHART_SERIES_COLORS = [
-  'color-mix(in srgb, var(--color-text-primary) 80%, transparent)',
-  'var(--color-care)',
-  'var(--color-text-tertiary)',
-  'var(--color-pulse)',
-  'var(--color-text-secondary)',
+  'var(--color-chart-1)',
+  'var(--color-chart-2)',
+  'var(--color-chart-3)',
+  'var(--color-chart-4)',
+  'var(--color-chart-5)',
+  'var(--color-chart-6)',
 ] as const;
 
 /** Status colours are reserved for a value that is clinically evaluated (in range / out of range) -- never for series identity. */

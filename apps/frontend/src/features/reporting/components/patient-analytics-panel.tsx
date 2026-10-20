@@ -21,8 +21,11 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
 
   if (isError) return <Alert variant="danger">{t('loadError')}</Alert>;
 
-  const genderSlices = Object.entries(data?.genderDistribution ?? {}).map(([name, value]) => ({ name, value }));
-  const ageSlices = (data?.ageDistribution ?? []).map((bucket) => ({ name: bucket.bucket, value: bucket.count }));
+  // The API sends raw keys (male/female/other/unknown, "30-44"/"unknown"); the legend shows them in the page's language.
+  const genderName = (key: string) => (['male', 'female', 'other'].includes(key) ? t(`gender.${key}`) : t('unknown'));
+  const ageName = (bucket: string) => (bucket === 'unknown' ? t('unknown') : t('ageBucket', { range: bucket }));
+  const genderSlices = Object.entries(data?.genderDistribution ?? {}).map(([name, value]) => ({ name: genderName(name), value }));
+  const ageSlices = (data?.ageDistribution ?? []).map((bucket) => ({ name: ageName(bucket.bucket), value: bucket.count }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -30,7 +33,7 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
         <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="patients" filter={filter} />
       </div>
-      <MetricGrid columns={4}>
+      <MetricGrid columns={4} minColumns={2}>
         <MetricStat icon={Users} label={t('newPatients')} value={String(data?.newPatients ?? 0)} loading={isLoading} />
         <MetricStat icon={Users} label={t('returningPatients')} value={String(data?.returningPatients ?? 0)} loading={isLoading} />
         <MetricStat icon={Users} label={t('verifiedPatients')} value={String(data?.verifiedPatients ?? 0)} loading={isLoading} />
@@ -55,7 +58,7 @@ export function PatientAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
           <ul className="flex flex-col gap-2 text-sm">
             {data.mostActivePatients.map((patient) => (
               <li key={patient.patientId} className="flex items-center justify-between border-b border-border-default py-1 last:border-0">
-                <span>{patient.displayName}</span>
+                <span dir="auto">{patient.displayName}</span>
                 <span className="tabular-nums text-text-tertiary">{patient.appointmentCount}</span>
               </li>
             ))}

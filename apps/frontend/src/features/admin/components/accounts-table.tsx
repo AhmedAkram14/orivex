@@ -116,7 +116,8 @@ export function AccountsTable() {
         <TableHeader>
           <TableRow>
             <TableHead>{t('columnName')}</TableHead>
-            <TableHead>{t('columnEmail')}</TableHead>
+            {/* Phones: the email folds under the name -- the one thing that tells two same-named accounts apart. */}
+            <TableHead className="max-sm:hidden">{t('columnEmail')}</TableHead>
             <TableHead>{t('columnStatus')}</TableHead>
             <TableHead>{t('columnRole')}</TableHead>
           </TableRow>
@@ -124,8 +125,19 @@ export function AccountsTable() {
         <TableBody>
           {data.accounts.map((account) => (
             <TableRow key={account.id}>
-              <TableCell>{account.displayName}</TableCell>
-              <TableCell>{account.email}</TableCell>
+              <TableCell>
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span dir="auto" className="font-medium text-text-primary">
+                    {account.displayName}
+                  </span>
+                  <span dir="ltr" className="truncate text-start text-xs text-text-tertiary sm:hidden">
+                    {account.email}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell className="max-sm:hidden">
+                <span dir="ltr">{account.email}</span>
+              </TableCell>
               <TableCell>
                 <Badge variant={account.status === 'active' ? 'success' : 'danger'}>
                   {t(`status.${account.status}`)}

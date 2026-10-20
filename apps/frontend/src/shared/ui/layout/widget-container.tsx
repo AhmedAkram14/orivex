@@ -34,16 +34,17 @@ export function WidgetContainer({
   return (
     <Card className={cn('flex flex-col', className)} {...props}>
       {(title || actions) && (
-        // Title and action never squeeze each other: the title may balance onto two lines, the action never wraps.
+        // Title and action never squeeze each other: the title keeps at least ~12rem (it may balance onto two lines),
+        // and when the row can't hold both, the actions wrap below the title instead of overlapping it (a phone).
         // The header -> content distance is `--card-head-gap` where an area sets one (the patient Overview's
         // cards: 16px), and the card's own padding otherwise.
-        <CardHeader data-slot="widget-header" className="flex-row items-center justify-between gap-3 space-y-0 pb-[var(--card-head-gap,var(--card-pad))]">
+        <CardHeader data-slot="widget-header" className="flex-row flex-wrap items-center justify-between gap-3 space-y-0 pb-[var(--card-head-gap,var(--card-pad))]">
           {/* At least an action's height (a small button), so a header without one is as tall as a header with one. */}
-          <div className="flex min-h-8 min-w-0 flex-col justify-center gap-1">
+          <div className="flex min-h-8 min-w-0 flex-1 basis-48 flex-col justify-center gap-1">
             {title && <CardTitle as={titleAs} className="text-base text-balance">{title}</CardTitle>}
             {description && <CardDescription>{description}</CardDescription>}
           </div>
-          {actions && <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">{actions}</div>}
+          {actions && <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{actions}</div>}
         </CardHeader>
       )}
       {/* A scrolling content slot must be keyboard-reachable (WCAG 2.1.1 / axe scrollable-region-focusable): without a tab stop a keyboard user can't scroll it. */}

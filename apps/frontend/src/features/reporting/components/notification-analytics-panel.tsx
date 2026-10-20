@@ -30,7 +30,7 @@ export function NotificationAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         </div>
         <ExportButton section="notifications" filter={filter} />
       </div>
-      <MetricGrid columns={3}>
+      <MetricGrid columns={3} minColumns={2}>
         <MetricStat icon={Bell} label={t('sent')} value={String(data?.sent ?? 0)} loading={isLoading} />
         <MetricStat icon={Bell} label={t('read')} value={String(data?.read ?? 0)} loading={isLoading} />
         <MetricStat icon={Bell} label={t('unread')} value={String(data?.unread ?? 0)} loading={isLoading} />

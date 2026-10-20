@@ -27,7 +27,7 @@ export function VerificationAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         <Heading as="h2" level={4}>{t('title')}</Heading>
         <ExportButton section="verification" filter={filter} />
       </div>
-      <MetricGrid columns={4}>
+      <MetricGrid columns={4} minColumns={2}>
         <MetricStat icon={ShieldCheck} label={t('pending')} value={String(data?.pending ?? 0)} loading={isLoading} href="/admin/verification-queue" />
         <MetricStat icon={ShieldCheck} label={t('approved')} value={String(data?.approved ?? 0)} loading={isLoading} href="/admin/verification-queue" />
         <MetricStat icon={ShieldCheck} label={t('rejected')} value={String(data?.rejected ?? 0)} loading={isLoading} href="/admin/verification-queue" />

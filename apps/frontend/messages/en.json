@@ -18,7 +18,8 @@
       "label": "Pagination",
       "previousPage": "Previous page",
       "nextPage": "Next page",
-      "pageOf": "Page {page} of {pageCount}"
+      "pageOf": "Page {page} of {pageCount}",
+      "goToPage": "Go to page {page}"
     },
     "carousel": {
       "pagesLabel": "Carousel pages",
@@ -3109,7 +3110,10 @@
         "conduct": "Conduct",
         "technical_issue": "Technical issue",
         "other": "Other"
-      }
+      },
+      "raisedBy": "Raised by",
+      "unknownAccount": "Unknown account",
+      "appointmentRef": "Appointment"
     },
     "reviewModeration": {
       "title": "Review Moderation",
@@ -3164,7 +3168,42 @@
       "columnActor": "Actor",
       "columnAction": "Action",
       "columnSubject": "Subject",
-      "columnReason": "Reason"
+      "columnReason": "Reason",
+      "unknownActor": "Unknown account",
+      "reasonLabel": "Reason:",
+      "actions": {
+        "health_graph_read": "Viewed health graph",
+        "health_journeys_read": "Viewed health journeys",
+        "patient_chart_profile_read": "Viewed patient profile",
+        "patient_chart_appointments_read": "Viewed patient appointments",
+        "patient_chart_medical_records_read": "Viewed medical records",
+        "patient_chart_prescriptions_read": "Viewed prescriptions",
+        "patient_chart_documents_read": "Viewed documents",
+        "patient_chart_vitals_read": "Viewed vitals",
+        "clinical_note_recorded": "Recorded clinical note",
+        "diagnosis_recorded": "Recorded diagnosis",
+        "vital_reading_recorded": "Recorded vital reading",
+        "prescription_signed": "Signed prescription",
+        "doctor_verification_decided": "Decided verification",
+        "verification_case_suspended": "Suspended verification",
+        "journey_stage_updated": "Updated journey stage",
+        "ai_suggestion_requested": "Requested AI suggestion",
+        "ai_suggestion_decided": "Decided on AI suggestion",
+        "lab_request_ordered": "Ordered lab request",
+        "patient_chart_condition_added": "Added condition",
+        "patient_chart_document_upload_intent_created": "Started document upload",
+        "patient_chart_document_uploaded": "Uploaded document",
+        "patient_allergies_confirmed_none": "Confirmed no allergies"
+      },
+      "subjects": {
+        "patient": "Patient",
+        "PatientProfile": "Patient profile",
+        "doctor": "Doctor",
+        "consultation_session": "Consultation",
+        "verification_case": "Verification case",
+        "health_journey": "Health journey",
+        "ai_suggestion": "AI suggestion"
+      }
     },
     "analytics": {
       "title": "Analytics",
@@ -3193,7 +3232,10 @@
         "comparePrevious": "Compare to previous period",
         "refreshInterval": "Refresh",
         "refreshOff": "Off",
-        "refreshEvery": "Every {seconds}s"
+        "refreshEvery": "Every {seconds}s",
+        "title": "Filters",
+        "activeCount": "{count} active",
+        "done": "Show results"
       },
       "kpis": {
         "loadError": "Could not load dashboard KPIs.",
@@ -3259,7 +3301,14 @@
         "ageTitle": "Age distribution",
         "mostActiveTitle": "Most active patients",
         "emptyTitle": "No patient data yet",
-        "emptyDescription": "Patient activity will appear here once appointments are booked."
+        "emptyDescription": "Patient activity will appear here once appointments are booked.",
+        "gender": {
+          "male": "Male",
+          "female": "Female",
+          "other": "Other"
+        },
+        "unknown": "Not recorded",
+        "ageBucket": "{range} yrs"
       },
       "payments": {
         "loadError": "Could not load payment analytics.",
@@ -3298,7 +3347,8 @@
           "refunded": "Refunded",
           "disputed": "Disputed"
         },
-        "viewTransactions": "View transactions"
+        "viewTransactions": "View transactions",
+        "noPreviousRevenue": "No revenue in the previous period"
       },
       "telemedicine": {
         "loadError": "Could not load telemedicine analytics.",
@@ -3539,7 +3589,8 @@
           "lab_report": "Lab report",
           "profile_image": "Profile image",
           "knowledge_media": "Knowledge media"
-        }
+        },
+        "openFullSize": "Open full size"
       },
       "actionsSection": "Review decision",
       "actions": {
@@ -3566,7 +3617,10 @@
       },
       "historySection": "Submission history",
       "historyReviewerLimitation": "Timestamps and outcomes are real; which admin made each decision isn't recorded yet.",
-      "historyEmpty": "No submission history yet."
+      "historyEmpty": "No submission history yet.",
+      "practice": "Practice",
+      "independentPractice": "Independent practice",
+      "accountRolePromotedOnApproval": "Becomes Doctor when this case is approved"
     },
     "featureFlags": {
       "title": "Feature Flags",
@@ -3579,8 +3633,16 @@
         "openApiEnabled": "OpenAPI docs",
         "paymentGatewayConfigured": "Payment gateway (Stripe)",
         "telemedicineConfigured": "Telemedicine (LiveKit)",
-        "emailProviderConfigured": "Email provider (SendGrid)",
+        "emailProviderConfigured": "Email provider",
         "notificationQueueConfigured": "Notification queue (Redis)"
+      },
+      "descriptions": {
+        "paymentGatewayConfigured": "Card payments for paid consultations, and refunds.",
+        "telemedicineConfigured": "Video rooms for online consultations.",
+        "emailProviderConfigured": "Sign-in codes, booking confirmations and reminders by email.",
+        "notificationQueueConfigured": "Scheduled reminders and in-app notifications.",
+        "observabilityEnabled": "Request tracing for diagnosing errors and slow pages.",
+        "openApiEnabled": "The interactive API reference at /docs."
       }
     }
   },

@@ -40,7 +40,11 @@ const STATUS_OPTIONS: VerificationCaseStatus[] = [
 function ApplicantCell({ accountId }: { accountId: string }) {
   const { data: account, isLoading } = useAccountById(accountId);
   if (isLoading) return <Skeleton className="h-4 w-32" />;
-  return <span>{account?.displayName ?? accountId}</span>;
+  return (
+    <span dir="auto" className="font-medium text-text-primary">
+      {account?.displayName ?? accountId}
+    </span>
+  );
 }
 
 /**
@@ -104,30 +108,37 @@ export function VerificationQueue() {
           <TableHeader>
             <TableRow>
               <TableHead>{t('columnApplicant')}</TableHead>
-              <TableHead>{t('columnType')}</TableHead>
+              {/* Phones: type and date fold under the applicant, so Status and the action stay in view. */}
+              <TableHead className="max-sm:hidden">{t('columnType')}</TableHead>
               <TableHead>{t('columnStatus')}</TableHead>
-              <TableHead>{t('columnSubmitted')}</TableHead>
-              <TableHead>{t('columnActions')}</TableHead>
+              <TableHead className="max-sm:hidden">{t('columnSubmitted')}</TableHead>
+              <TableHead className="text-end">{t('columnActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {cases.map((verificationCase: VerificationCase) => (
               <TableRow key={verificationCase.id}>
                 <TableCell>
-                  <ApplicantCell accountId={verificationCase.subjectAccountId} />
+                  <div className="flex flex-col gap-0.5">
+                    <ApplicantCell accountId={verificationCase.subjectAccountId} />
+                    <span className="text-xs text-text-tertiary sm:hidden">
+                      {t(`subjectType${verificationCase.subjectType === 'doctor' ? 'Doctor' : 'Patient'}`)} ·{' '}
+                      {format.dateTime(new Date(verificationCase.submittedAt), { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
                 </TableCell>
-                <TableCell>{t(`subjectType${verificationCase.subjectType === 'doctor' ? 'Doctor' : 'Patient'}`)}</TableCell>
+                <TableCell className="max-sm:hidden">{t(`subjectType${verificationCase.subjectType === 'doctor' ? 'Doctor' : 'Patient'}`)}</TableCell>
                 <TableCell>
                   <Badge variant={STATUS_BADGE_VARIANT[verificationCase.status]}>{t(`status.${verificationCase.status}`)}</Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="max-sm:hidden">
                   {format.dateTime(new Date(verificationCase.submittedAt), {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric',
                   })}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-end">
                   <Button asChild size="sm" variant="secondary">
                     <Link href={`/admin/verification-queue/${verificationCase.id}`}>{t('viewCase')}</Link>
                   </Button>

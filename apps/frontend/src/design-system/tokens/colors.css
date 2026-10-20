@@ -118,6 +118,17 @@
   --color-accent-purple: #6d28d9;
   --color-accent-purple-subtle: #ede9fe;
 
+  /* Chart series, in fixed order (blue, orange, aqua, yellow, magenta, violet) -- a categorical palette validated for
+     colour-vision deficiency on the light and dark surfaces (worst adjacent CVD deltaE 9.1 light / 8.4 dark). Slots
+     3-5 sit under 3:1 on white, so every chart using them keeps a legend and direct labels. Dark steps live in
+     theme-dark.css. */
+  --color-chart-1: #1466f5;
+  --color-chart-2: #eb6834;
+  --color-chart-3: #1baf7a;
+  --color-chart-4: #eda100;
+  --color-chart-5: #e87ba4;
+  --color-chart-6: #6250d6;
+
   --color-focus-ring: #1466f5;
 
   --color-cta-surface: #e4e9dc;

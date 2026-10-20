@@ -6,6 +6,8 @@ import { useDoctorByAccountId } from '@/features/doctor/hooks/use-doctor-by-acco
 import { useVerificationCase } from '@/features/admin/hooks/use-verification-case';
 import { useVerificationCaseHistory } from '@/features/admin/hooks/use-verification-case-history';
 import { useSpecialtiesList } from '@/features/reference/hooks/use-specialties-list';
+import { useDepartments } from '@/features/admin/hooks/use-departments';
+import { useHospitals } from '@/features/admin/hooks/use-hospitals';
 import type { VerificationCase, VerificationCaseStatus } from '@/features/admin/api/types';
 import { pickLocalizedName } from '@/shared/i18n/localized-name';
 import { Alert } from '@/shared/ui/alert';
@@ -33,11 +35,15 @@ export interface VerificationCaseDetailProps {
   verificationCaseId: string;
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+/** `dir="auto"`: a value is often the applicant's own text (a Latin name or address on the Arabic page), which must keep its own direction. */
+function InfoRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
       <p className="text-xs text-text-tertiary">{label}</p>
-      <p className="text-sm text-text-secondary">{value}</p>
+      <p dir="auto" className="text-start text-sm text-text-secondary">
+        {value}
+      </p>
+      {hint && <p className="text-xs text-text-tertiary">{hint}</p>}
     </div>
   );
 }
@@ -75,6 +81,17 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
     verificationCase.subjectType === 'doctor',
   );
   const { data: history } = useVerificationCaseHistory(verificationCase.id);
+  const { data: hospitals } = useHospitals();
+  const { data: departments } = useDepartments(doctorProfile?.hospitalId);
+  // Where the applicant practises, by name: a hospital (and department, when one is set) or independent practice --
+  // never a raw department id, and never "Not on record" for a doctor who simply has no hospital.
+  const hospitalName = hospitals?.find((hospital) => hospital.id === doctorProfile?.hospitalId)?.name;
+  const departmentName = departments?.find((department) => department.id === doctorProfile?.departmentId)?.name;
+  const practice = !doctorProfile
+    ? t('notOnRecord')
+    : !doctorProfile.hospitalId
+      ? t('independentPractice')
+      : [hospitalName, departmentName].filter(Boolean).join(' · ') || t('notOnRecord');
   const { data: specialties } = useSpecialtiesList();
   const matchedSpecialty = specialties?.find((specialty) => specialty.id === doctorProfile?.specialtyId);
   const specialtyName = matchedSpecialty
@@ -99,7 +116,13 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
               <InfoRow label={t('applicantGender')} value={account.gender ? t(`gender.${account.gender}`) : t('notOnRecord')} />
               <InfoRow label={t('applicantAddress')} value={account.address ?? t('notOnRecord')} />
               <InfoRow label={t('applicantAccountStatus')} value={t(`accountStatus.${account.status}`)} />
-              <InfoRow label={t('applicantAccountRole')} value={t(`accountRole.${account.role}`)} />
+              {/* A doctor applicant's account stays "patient" until an admin approves the case (the role is promoted on
+                  approval), which read as a mistake to reviewers -- say what it means. */}
+              <InfoRow
+                label={t('applicantAccountRole')}
+                value={t(`accountRole.${account.role}`)}
+                hint={verificationCase.subjectType === 'doctor' && account.role === 'patient' ? t('accountRolePromotedOnApproval') : undefined}
+              />
             </CardContent>
           </Card>
         )}
@@ -130,7 +153,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
             </div>
             {verificationCase.reason && (
               <Alert variant={verificationCase.status === 'more_info_needed' ? 'warning' : 'danger'}>
-                {verificationCase.reason}
+                <span dir="auto">{verificationCase.reason}</span>
               </Alert>
             )}
           </CardContent>
@@ -155,7 +178,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
                 label={t('professionalRankLabel')}
                 value={doctorProfile?.professionalRank ? t(`professionalRank.${doctorProfile.professionalRank}`) : t('notOnRecord')}
               />
-              <InfoRow label={t('department')} value={doctorProfile?.departmentId ?? t('notOnRecord')} />
+              <InfoRow label={t('practice')} value={practice} />
               <InfoRow
                 label={t('yearsOfExperience')}
                 value={doctorProfile?.yearsOfExperience !== undefined ? String(doctorProfile.yearsOfExperience) : t('notOnRecord')}
@@ -192,7 +215,7 @@ function VerificationCaseDetailBody({ verificationCase }: { verificationCase: Ve
                         {format.dateTime(new Date(entry.submittedAt), { dateStyle: 'medium', timeStyle: 'short' })}
                       </span>
                     </div>
-                    {entry.reason && <p className="text-sm text-text-secondary">{entry.reason}</p>}
+                    {entry.reason && <p dir="auto" className="text-start text-sm text-text-secondary">{entry.reason}</p>}
                   </CardContent>
                 </Card>
               </li>

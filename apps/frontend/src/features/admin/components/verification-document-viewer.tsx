@@ -39,8 +39,20 @@ export function VerificationDocumentViewer({ mediaAssetId }: VerificationDocumen
         <p className="text-sm font-medium text-text-primary">{label}</p>
         {!asset.signedUrl && <p className="text-sm text-text-secondary">{t('notYetAvailable')}</p>}
         {asset.signedUrl && isImage && (
-          // eslint-disable-next-line @next/next/no-img-element -- a short-lived, admin-authorized presigned S3 URL, not a Next-optimizable static asset.
-          <img src={asset.signedUrl} alt={label} className="max-h-64 w-auto rounded-md border border-border-default object-contain" />
+          // The document fills its card (a fixed-height, letterboxed frame -- a 256px-tall thumbnail in a wide card
+          // was too small to read) and opens full size in a new tab.
+          <a
+            href={asset.signedUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative block overflow-hidden rounded-md border border-border-default bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- a short-lived, admin-authorized presigned S3 URL, not a Next-optimizable static asset. */}
+            <img src={asset.signedUrl} alt={label} className="h-80 w-full object-contain @xl:h-96" />
+            <span className="absolute inset-e-2 bottom-2 rounded-full bg-surface/90 px-2.5 py-1 text-xs font-medium text-text-primary shadow-xs">
+              {t('openFullSize')}
+            </span>
+          </a>
         )}
         {asset.signedUrl && !isImage && (
           <a

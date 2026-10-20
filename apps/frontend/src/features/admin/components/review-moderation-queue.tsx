@@ -1,9 +1,8 @@
 'use client';
 
-import { Star } from 'lucide-react';
+import { Eye, EyeOff, Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { Heading } from '@/design-system/typography';
 import { useAdminReviews } from '@/features/admin/hooks/use-admin-reviews';
 import { useModerateReview } from '@/features/admin/hooks/use-moderate-review';
 import { Alert } from '@/shared/ui/alert';
@@ -66,9 +65,6 @@ export function ReviewModerationQueue() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Heading as="h2" level={4}>
-        {t('title')}
-      </Heading>
 
       {!reviews || reviews.length === 0 ? (
         <EmptyState illustration="waiting-room-empty" title={t('emptyTitle')} description={t('emptyDescription')} />
@@ -89,25 +85,36 @@ export function ReviewModerationQueue() {
                 </div>
                 <Badge variant="warning">{t('flaggedBadge')}</Badge>
               </div>
-              {review.comment && <p className="text-sm text-text-secondary">{review.comment}</p>}
+              {/* The patient's and the doctor's own words keep their own direction (an English review on the Arabic
+                  page would otherwise move its full stop to the front). */}
+              {review.comment && (
+                <p dir="auto" className="text-start text-sm text-text-secondary">
+                  {review.comment}
+                </p>
+              )}
               <p className="text-xs text-text-tertiary">
-                {t('flaggedReasonLabel')}: {review.moderationReason}
+                {t('flaggedReasonLabel')}: <bdi className="text-text-secondary">{review.moderationReason}</bdi>
               </p>
-              <div className="flex gap-2">
+              {/* Restore is the quiet default; hiding a patient's review is the deliberate one -- outlined danger with an
+                  icon, set apart at the end of the row. */}
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
                   onClick={() => setPending({ feedbackId: review.id, status: 'visible' })}
                 >
+                  <Icon icon={Eye} size="sm" />
                   {t('restoreAction')}
                 </Button>
                 <Button
                   type="button"
                   variant="destructive"
                   size="sm"
+                  className="ms-auto"
                   onClick={() => setPending({ feedbackId: review.id, status: 'hidden' })}
                 >
+                  <Icon icon={EyeOff} size="sm" />
                   {t('hideAction')}
                 </Button>
               </div>

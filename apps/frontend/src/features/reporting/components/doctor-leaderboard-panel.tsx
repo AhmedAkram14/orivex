@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { Link } from '@/shared/i18n/navigation';
 import { useDoctorAnalytics } from '@/features/reporting/hooks/use-doctor-analytics';
 import { ExportButton } from '@/features/reporting/components/export-button';
@@ -27,6 +28,7 @@ const SORT_OPTIONS: DoctorSortBy[] = ['revenue', 'rating', 'completedConsultatio
  */
 export function DoctorLeaderboardPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
   const t = useTranslations('admin.analytics.doctors');
+  const format = useFormatter();
   const [sortBy, setSortBy] = useState<DoctorSortBy>('revenue');
   const { data, isLoading, isError } = useDoctorAnalytics({ ...filter, sortBy, limit: 10 }, refetchIntervalMs);
 
@@ -38,7 +40,7 @@ export function DoctorLeaderboardPanel({ filter, refetchIntervalMs }: { filter: 
       actions={
         <div className="flex items-center gap-2">
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as DoctorSortBy)}>
-            <SelectTrigger aria-label={t('sortBy')} className="w-48">
+            <SelectTrigger aria-label={t('sortBy')} className="w-44">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -73,15 +75,18 @@ export function DoctorLeaderboardPanel({ filter, refetchIntervalMs }: { filter: 
           <TableBody>
             {data.entries.map((entry) => (
               <TableRow key={entry.doctorId}>
-                <TableCell>
-                  <Link href="/admin/users" className="font-medium text-primary hover:underline">
+                {/* One line per name: a narrow card scrolls the table sideways rather than stacking a name 3 lines tall. */}
+                <TableCell className="whitespace-nowrap">
+                  <Link href="/admin/users" dir="auto" className="font-medium text-primary hover:underline">
                     {entry.displayName}
                   </Link>
                 </TableCell>
-                <TableCell className="text-end tabular-nums">{entry.completedConsultations}</TableCell>
-                <TableCell className="text-end tabular-nums">{entry.averageRating == null ? '—' : `${entry.averageRating.toFixed(1)} (${entry.reviewCount})`}</TableCell>
-                <TableCell className="text-end tabular-nums">{entry.revenueGenerated.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                <TableCell className="text-end tabular-nums">{entry.patientCount}</TableCell>
+                <TableCell className="text-end tabular-nums">{format.number(entry.completedConsultations)}</TableCell>
+                <TableCell className="whitespace-nowrap text-end tabular-nums">
+                  {entry.averageRating == null ? '—' : `${format.number(entry.averageRating, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} (${format.number(entry.reviewCount)})`}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-end tabular-nums">{formatCurrency(format, entry.revenueGenerated, 'EGP')}</TableCell>
+                <TableCell className="text-end tabular-nums">{format.number(entry.patientCount)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

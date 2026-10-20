@@ -1,4 +1,6 @@
-import { forwardRef, type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttributes } from 'react';
+'use client';
+
+import { forwardRef, useEffect, useRef, useState, type HTMLAttributes, type TdHTMLAttributes, type ThHTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 
 /**
@@ -11,12 +13,60 @@ import { cn } from '@/shared/lib/cn';
  * without needing to change this file.
  */
 
+/**
+ * Which inline edges of a sideways-scrolling region still have content past them. Logical, so it reads the same
+ * in RTL (where Chromium reports scrollLeft as 0 at the start and negative towards the end).
+ */
+function useInlineOverflow() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const update = () => {
+      const max = element.scrollWidth - element.clientWidth;
+      const position = Math.abs(element.scrollLeft);
+      const start = max > 1 && position > 1;
+      const end = max > 1 && position < max - 1;
+      setEdges((previous) => (previous.start === start && previous.end === end ? previous : { start, end }));
+    };
+    update();
+    element.addEventListener('scroll', update, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(element);
+    if (element.firstElementChild) observer?.observe(element.firstElementChild);
+    return () => {
+      element.removeEventListener('scroll', update);
+      observer?.disconnect();
+    };
+  }, []);
+
+  return { ref, edges };
+}
+
+/**
+ * A table too wide for its card scrolls sideways inside it, and says so: the edge with more columns past it fades
+ * out (a mask, so it works on any background; overlay scrollbars stay hidden until scrolled, so on a phone clipped
+ * columns otherwise just looked cut off), and the region takes keyboard focus so it can be scrolled without a pointer.
+ */
 export const Table = forwardRef<HTMLTableElement, HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-x-auto">
-      <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
-    </div>
-  ),
+  ({ className, ...props }, ref) => {
+    const { ref: scrollRef, edges } = useInlineOverflow();
+    const scrollable = edges.start || edges.end;
+    // The gradient runs from the inline start; `to left` in RTL so "start" is the right-hand edge there.
+    const fade = `linear-gradient(to var(--table-fade-direction, right), ${edges.start ? 'transparent' : 'black'}, black 32px, black calc(100% - 32px), ${edges.end ? 'transparent' : 'black'})`;
+    return (
+      <div
+        ref={scrollRef}
+        className="relative w-full overflow-x-auto [--table-fade-direction:right] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rtl:[--table-fade-direction:left]"
+        style={scrollable ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
+        {...(scrollable ? { tabIndex: 0 } : {})}
+      >
+        <table ref={ref} className={cn('w-full caption-bottom text-sm', className)} {...props} />
+      </div>
+    );
+  },
 );
 Table.displayName = 'Table';
 

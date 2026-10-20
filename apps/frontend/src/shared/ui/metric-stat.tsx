@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight, type LucideIcon } from 'lucide-react';
-import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Link } from '@/shared/i18n/navigation';
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
@@ -50,6 +50,9 @@ export interface MetricStatProps {
 }
 
 const COUNT_UP_MS = 600;
+
+/** Set by MetricGrid: its tiles share the grid's rows (subgrid), so labels, figures and footers line up across a row. */
+const InMetricGrid = createContext(false);
 
 /**
  * A figure never wraps mid-token ("EGP 969. / 00"): it stays on one line and
@@ -168,13 +171,15 @@ export function MetricStat({
 }: MetricStatProps) {
   const { text: display, animating } = useCountUpOnce(value, !loading && !preview);
   const isHero = size ? size === 'xl' : variant === 'hero';
+  const inGrid = useContext(InMetricGrid) && variant === 'tile';
 
   const body = (
     <>
       {icon && <Icon icon={icon} size="md" className="absolute end-4 top-4 text-text-tertiary" />}
-      {/* Two lines reserved for the label in grids and strips, so a label that wraps (narrow tiles, Arabic) never
-          pushes its figure below its neighbours'. The hero stands alone and keeps its natural height. */}
-      <p className={cn('min-w-0 text-small text-text-tertiary', variant !== 'hero' && 'min-h-[2lh]', icon && 'pe-8')}>{label}</p>
+      {/* A label that wraps (a narrow tile, Arabic) must not push its figure below its neighbours'. In a MetricGrid
+          the tiles share rows, so the label row is as tall as that row's longest label and no taller; a strip's
+          inline segments reserve two lines instead. The hero stands alone. */}
+      <p className={cn('min-w-0 text-small text-text-tertiary', variant === 'inline' && 'min-h-[2lh]', icon && 'pe-8')}>{label}</p>
       {loading || preview ? (
         <Skeleton className={cn('mt-2', isHero ? 'h-11 w-32' : 'h-8 w-16', preview && 'animate-none! bg-none!')} />
       ) : (
@@ -215,7 +220,10 @@ export function MetricStat({
     variant === 'inline'
       ? 'relative flex min-w-40 flex-1 snap-start flex-col px-(--card-pad) py-4'
       : cn(
-          'relative flex h-full min-w-0 flex-col rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs',
+          'relative min-w-0 rounded-(--r-card) border border-border-default bg-surface p-(--card-pad) shadow-xs',
+          // Label / figure / footer take the three grid rows MetricGrid gives each child (an absent footer leaves its
+          // row empty). Wrapped in another element, subgrid falls back to a plain stacked grid.
+          inGrid ? 'grid h-full grid-rows-subgrid gap-y-0' : 'flex h-full flex-col',
           isHero && 'sm:p-8',
         );
 
@@ -234,19 +242,38 @@ export function MetricStat({
 export interface MetricGridProps extends HTMLAttributes<HTMLDivElement> {
   /** Column count once the grid is at least 960px wide; two columns from 640px, one below. */
   columns?: 2 | 3 | 4;
+  /**
+   * Columns below 640px. `2` packs a long run of short figures (an analytics page's dozen-plus KPIs) two to a row on
+   * a phone instead of one full-width card each; keep the default `1` for tiles with long helper text.
+   */
+  minColumns?: 1 | 2;
 }
 
 /**
- * Equal-height grid for `tile` stats (`grid-auto-rows: 1fr`, `minmax(0, 1fr)` columns so long values
- * never overflow). Columns follow the width the grid actually has (its own size container), not the
+ * Grid for `tile` stats: each tile spans three rows it shares with its row-mates (label, figure, footer), so
+ * tiles in a row are equal height and their figures line up even when one label wraps (`minmax(0, 1fr)`
+ * columns so long values never overflow). Columns follow the width the grid actually has (its own size container), not the
  * viewport: 1 below 640px, 2 from 640px, `columns` from 960px.
  */
-export function MetricGrid({ columns = 4, className, ...props }: MetricGridProps) {
+export function MetricGrid({ columns = 4, minColumns = 1, className, ...props }: MetricGridProps) {
   const cols = { 2: '', 3: '@wide:grid-cols-3', 4: '@wide:grid-cols-4' }[columns];
   return (
-    <div className="@container">
-      <div className={cn('grid auto-rows-fr grid-cols-1 gap-(--card-gap) @pane:grid-cols-2', cols, className)} {...props} />
-    </div>
+    <InMetricGrid.Provider value={true}>
+      <div className="@container">
+        {/* Every child spans three rows (label / figure / footer). No row gap -- it would also open between a
+            tile's own rows; tiles are spaced vertically by a bottom margin (--metric-gap), cancelled under the
+            last row. */}
+        <div
+          className={cn(
+            'grid -mb-(--metric-gap) gap-x-(--metric-gap) gap-y-0 [--metric-gap:var(--card-gap)] *:row-span-3 *:mb-(--metric-gap) @pane:grid-cols-2',
+            minColumns === 2 ? 'grid-cols-2 max-sm:[--metric-gap:0.5rem]' : 'grid-cols-1',
+            cols,
+            className,
+          )}
+          {...props}
+        />
+      </div>
+    </InMetricGrid.Provider>
   );
 }
 

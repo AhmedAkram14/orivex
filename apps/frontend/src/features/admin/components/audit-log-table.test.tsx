@@ -44,7 +44,7 @@ describe('AuditLogTable', () => {
     expect(await screen.findByText('No audit entries match these filters')).toBeInTheDocument();
   });
 
-  it('renders real entries returned from the server', async () => {
+  it('renders entries as readable words: a translated action, the role, a short id and a subject label', async () => {
     server.use(
       http.get(`${base()}/admin/audit-log`, () =>
         HttpResponse.json({
@@ -72,9 +72,11 @@ describe('AuditLogTable', () => {
 
     renderTable();
 
-    expect(await screen.findByText('health_graph_read')).toBeInTheDocument();
-    expect(screen.getByText('doctor-account-1')).toBeInTheDocument();
-    expect(screen.getByText('PatientProfile')).toBeInTheDocument();
+    expect(await screen.findByText('Viewed health graph')).toBeInTheDocument();
+    expect(screen.queryByText('health_graph_read')).not.toBeInTheDocument();
+    expect(screen.getByText('Doctor')).toBeInTheDocument();
+    expect(screen.getByLabelText('doctor-account-1')).toHaveTextContent('doctor-a…');
+    expect(screen.getByText('Patient profile')).toBeInTheDocument();
   });
 
   it('sends the actor filter through to the server as a real querystring param', async () => {

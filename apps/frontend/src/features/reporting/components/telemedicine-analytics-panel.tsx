@@ -31,7 +31,7 @@ export function TelemedicineAnalyticsPanel({ filter, refetchIntervalMs }: { filt
         </div>
         <ExportButton section="telemedicine" filter={filter} />
       </div>
-      <MetricGrid columns={3}>
+      <MetricGrid columns={3} minColumns={2}>
         <MetricStat icon={Video} label={t('totalSessions')} value={String(data?.totalSessions ?? 0)} loading={isLoading} />
         <MetricStat icon={Video} label={t('completedSessions')} value={String(data?.completedSessions ?? 0)} loading={isLoading} />
         <MetricStat

@@ -7,15 +7,13 @@ import {
   CalendarClock,
   CalendarX,
   Clock,
-  CreditCard,
   Hourglass,
   Star,
   Stethoscope,
   Users,
   Video,
-  Wallet,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useDashboardKpis } from '@/features/reporting/hooks/use-dashboard-kpis';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
 import { Alert } from '@/shared/ui/alert';
@@ -40,6 +38,7 @@ export interface DashboardKpiGridProps {
  */
 export function DashboardKpiGrid({ filter, refetchIntervalMs }: DashboardKpiGridProps) {
   const t = useTranslations('admin.analytics.kpis');
+  const formatter = useFormatter();
   const { data, isLoading, isError } = useDashboardKpis(filter, refetchIntervalMs);
 
   if (isError) {
@@ -47,12 +46,12 @@ export function DashboardKpiGrid({ filter, refetchIntervalMs }: DashboardKpiGrid
   }
 
   const format = (value: number | null | undefined, fractionDigits = 0): string =>
-    value === null || value === undefined ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: fractionDigits });
+    value === null || value === undefined ? '—' : formatter.number(value, { maximumFractionDigits: fractionDigits });
   // The same definition the admin Overview shows under its own active tiles.
   const activeHelper = filter.dateFrom || filter.dateTo ? t('activeHelperFiltered') : t('activeHelper');
 
   return (
-    <MetricGrid columns={4}>
+    <MetricGrid columns={4} minColumns={2}>
       <MetricStat icon={Stethoscope} label={t('totalDoctors')} value={format(data?.totalDoctors)} loading={isLoading} href="/admin/users" />
       <MetricStat icon={Activity} label={t('activeDoctors')} value={format(data?.activeDoctors)} helperText={activeHelper} loading={isLoading} />
       <MetricStat icon={BadgeCheck} label={t('verifiedDoctors')} value={format(data?.verifiedDoctors)} loading={isLoading} href="/admin/verification-queue" />
@@ -64,8 +63,6 @@ export function DashboardKpiGrid({ filter, refetchIntervalMs }: DashboardKpiGrid
       <MetricStat icon={CalendarX} label={t('cancelledAppointments')} value={format(data?.cancelledAppointments)} loading={isLoading} />
       <MetricStat icon={Clock} label={t('upcomingAppointments')} value={format(data?.upcomingAppointments)} loading={isLoading} />
       <MetricStat icon={Video} label={t('videoConsultations')} value={format(data?.videoConsultations)} loading={isLoading} />
-      <MetricStat icon={CreditCard} label={t('payments')} value={format(data?.payments)} loading={isLoading} />
-      <MetricStat icon={Wallet} label={t('revenue')} value={format(data?.revenue, 2)} loading={isLoading} />
       <MetricStat
         icon={Clock}
         label={t('averageConsultationDuration')}

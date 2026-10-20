@@ -148,7 +148,7 @@ function AttentionCard({ item, averageReviewHours }: { item: TriageItem; average
       <p data-numeric className="font-display text-metric tabular-nums text-text-primary">
         <bdi>{format.number(item.count)}</bdi>
       </p>
-      <div className="mt-auto flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         {age ? (
           <p className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-small', item.late ? 'text-warning-emphasis' : 'text-text-secondary')}>
             {item.late && (

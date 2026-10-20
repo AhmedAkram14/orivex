@@ -18,7 +18,8 @@
       "label": "الترقيم بين الصفحات",
       "previousPage": "الصفحة السابقة",
       "nextPage": "الصفحة التالية",
-      "pageOf": "صفحة {page} من {pageCount}"
+      "pageOf": "صفحة {page} من {pageCount}",
+      "goToPage": "الانتقال إلى الصفحة {page}"
     },
     "carousel": {
       "pagesLabel": "صفحات العرض",
@@ -3109,7 +3110,10 @@
         "conduct": "سلوك",
         "technical_issue": "مشكلة تقنية",
         "other": "أخرى"
-      }
+      },
+      "raisedBy": "مقدَّم من",
+      "unknownAccount": "حساب غير معروف",
+      "appointmentRef": "الموعد"
     },
     "reviewModeration": {
       "title": "مراجعة التقييمات",
@@ -3164,7 +3168,42 @@
       "columnActor": "الفاعل",
       "columnAction": "الإجراء",
       "columnSubject": "الموضوع",
-      "columnReason": "السبب"
+      "columnReason": "السبب",
+      "unknownActor": "حساب غير معروف",
+      "reasonLabel": "السبب:",
+      "actions": {
+        "health_graph_read": "عرض الملف الصحي",
+        "health_journeys_read": "عرض الرحلات الصحية",
+        "patient_chart_profile_read": "عرض ملف المريض",
+        "patient_chart_appointments_read": "عرض مواعيد المريض",
+        "patient_chart_medical_records_read": "عرض السجلات الطبية",
+        "patient_chart_prescriptions_read": "عرض الوصفات",
+        "patient_chart_documents_read": "عرض المستندات",
+        "patient_chart_vitals_read": "عرض المؤشرات الحيوية",
+        "clinical_note_recorded": "تسجيل ملاحظة سريرية",
+        "diagnosis_recorded": "تسجيل تشخيص",
+        "vital_reading_recorded": "تسجيل قراءة حيوية",
+        "prescription_signed": "توقيع وصفة",
+        "doctor_verification_decided": "البت في طلب توثيق",
+        "verification_case_suspended": "تعليق التوثيق",
+        "journey_stage_updated": "تحديث مرحلة الرحلة",
+        "ai_suggestion_requested": "طلب اقتراح من الذكاء الاصطناعي",
+        "ai_suggestion_decided": "البت في اقتراح الذكاء الاصطناعي",
+        "lab_request_ordered": "طلب تحليل مخبري",
+        "patient_chart_condition_added": "إضافة حالة مرضية",
+        "patient_chart_document_upload_intent_created": "بدء رفع مستند",
+        "patient_chart_document_uploaded": "رفع مستند",
+        "patient_allergies_confirmed_none": "تأكيد عدم وجود حساسية"
+      },
+      "subjects": {
+        "patient": "مريض",
+        "PatientProfile": "ملف المريض",
+        "doctor": "طبيب",
+        "consultation_session": "استشارة",
+        "verification_case": "طلب توثيق",
+        "health_journey": "رحلة صحية",
+        "ai_suggestion": "اقتراح الذكاء الاصطناعي"
+      }
     },
     "analytics": {
       "title": "التحليلات",
@@ -3193,7 +3232,10 @@
         "comparePrevious": "قارن بالفترة السابقة",
         "refreshInterval": "التحديث",
         "refreshOff": "متوقف",
-        "refreshEvery": "كل {seconds} ثانية"
+        "refreshEvery": "كل {seconds} ثانية",
+        "title": "عوامل التصفية",
+        "activeCount": "{count} مفعّلة",
+        "done": "عرض النتائج"
       },
       "kpis": {
         "loadError": "تعذّر تحميل مؤشرات الأداء الرئيسية.",
@@ -3259,7 +3301,14 @@
         "ageTitle": "التوزيع العمري",
         "mostActiveTitle": "الأكثر نشاطًا من المرضى",
         "emptyTitle": "لا توجد بيانات مرضى بعد",
-        "emptyDescription": "سيظهر نشاط المرضى هنا بمجرد حجز المواعيد."
+        "emptyDescription": "سيظهر نشاط المرضى هنا بمجرد حجز المواعيد.",
+        "gender": {
+          "male": "ذكر",
+          "female": "أنثى",
+          "other": "آخر"
+        },
+        "unknown": "غير مسجّل",
+        "ageBucket": "{range} سنة"
       },
       "payments": {
         "loadError": "تعذّر تحميل تحليلات المدفوعات.",
@@ -3298,7 +3347,8 @@
           "refunded": "مستردة",
           "disputed": "متنازع عليها"
         },
-        "viewTransactions": "عرض المعاملات"
+        "viewTransactions": "عرض المعاملات",
+        "noPreviousRevenue": "لا إيرادات في الفترة السابقة"
       },
       "telemedicine": {
         "loadError": "تعذّر تحميل تحليلات التطبيب عن بُعد.",
@@ -3363,7 +3413,7 @@
         "title": "حالة المنصة",
         "appointmentsToday": "مواعيد اليوم",
         "appointmentsWeek": "{count} في آخر 7 أيام",
-        "completionRate": "نسبة الإتمام",
+        "completionRate": "معدل الإكمال",
         "ratesHelper": "الإلغاء {cancelled} · عدم الحضور {noShow} · منذ البداية",
         "revenueToday": "إيرادات اليوم",
         "vsLastWeek": "مقارنةً بالوقت نفسه الأسبوع الماضي",
@@ -3539,7 +3589,8 @@
           "lab_report": "تقرير مختبر",
           "profile_image": "صورة الملف الشخصي",
           "knowledge_media": "وسائط معرفية"
-        }
+        },
+        "openFullSize": "فتح بالحجم الكامل"
       },
       "actionsSection": "قرار المراجعة",
       "actions": {
@@ -3566,7 +3617,10 @@
       },
       "historySection": "سجل التقديمات",
       "historyReviewerLimitation": "الطوابع الزمنية والنتائج حقيقية؛ لم يتم تسجيل هوية المسؤول الذي اتخذ كل قرار بعد.",
-      "historyEmpty": "لا يوجد سجل تقديمات بعد."
+      "historyEmpty": "لا يوجد سجل تقديمات بعد.",
+      "practice": "جهة العمل",
+      "independentPractice": "عيادة مستقلة",
+      "accountRolePromotedOnApproval": "يصبح طبيبًا عند الموافقة على هذا الطلب"
     },
     "featureFlags": {
       "title": "مزايا النظام",
@@ -3579,8 +3633,16 @@
         "openApiEnabled": "وثائق OpenAPI",
         "paymentGatewayConfigured": "بوابة الدفع (Stripe)",
         "telemedicineConfigured": "الاستشارة عن بعد (LiveKit)",
-        "emailProviderConfigured": "مزود البريد الإلكتروني (SendGrid)",
+        "emailProviderConfigured": "مزود البريد الإلكتروني",
         "notificationQueueConfigured": "طابور الإشعارات (Redis)"
+      },
+      "descriptions": {
+        "paymentGatewayConfigured": "الدفع بالبطاقة للاستشارات المدفوعة، والاستردادات.",
+        "telemedicineConfigured": "غرف الفيديو للاستشارات عن بعد.",
+        "emailProviderConfigured": "رموز تسجيل الدخول وتأكيدات الحجز والتذكيرات عبر البريد.",
+        "notificationQueueConfigured": "التذكيرات المجدولة والإشعارات داخل التطبيق.",
+        "observabilityEnabled": "تتبع الطلبات لتشخيص الأخطاء والصفحات البطيئة.",
+        "openApiEnabled": "مرجع الواجهة البرمجية التفاعلي على /docs."
       }
     }
   },

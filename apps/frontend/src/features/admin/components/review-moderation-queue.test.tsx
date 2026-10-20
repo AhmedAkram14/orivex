@@ -55,7 +55,8 @@ describe('ReviewModerationQueue', () => {
     renderWithProviders(<ReviewModerationQueue />);
 
     await screen.findByText('Contains a patient name by accident.');
-    expect(screen.getByText(/Flagged because: Contains a name\./)).toBeInTheDocument();
+    // The reason is the doctor's own text, isolated (<bdi>) so it keeps its own direction after the label.
+    expect(screen.getByText('Contains a name.').closest('p')).toHaveTextContent('Flagged because: Contains a name.');
 
     await user.click(screen.getByRole('button', { name: 'Hide' }));
     await user.type(screen.getByPlaceholderText('Explain your decision'), 'Confirmed identifying details.');

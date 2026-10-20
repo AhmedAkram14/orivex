@@ -4,7 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import enMessages from '../../../messages/en.json';
-import { Pagination } from './pagination';
+import { pageItems, Pagination } from './pagination';
 
 // K6 -- AR/EN localization fix (ORIVEX Remaining Work Audit): Pagination
 // now reads real translated strings via useTranslations, so every render
@@ -34,5 +34,27 @@ describe('Pagination', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Previous page' }));
     expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it('jumps straight to a numbered page and marks the current one', async () => {
+    const onPageChange = vi.fn();
+    render(withIntl(<Pagination page={2} pageCount={5} onPageChange={onPageChange} />));
+
+    expect(screen.getByRole('button', { name: 'Go to page 2' })).toHaveAttribute('aria-current', 'page');
+    await userEvent.click(screen.getByRole('button', { name: 'Go to page 5' }));
+    expect(onPageChange).toHaveBeenCalledWith(5);
+  });
+});
+
+describe('pageItems', () => {
+  it('lists every page when there are seven or fewer', () => {
+    expect(pageItems(1, 3)).toEqual([1, 2, 3]);
+    expect(pageItems(4, 7)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+  });
+
+  it('keeps the first, last and neighbouring pages, with a gap where pages are skipped', () => {
+    expect(pageItems(1, 12)).toEqual([1, 2, 3, 4, 'ellipsis', 12]);
+    expect(pageItems(6, 12)).toEqual([1, 'ellipsis', 5, 6, 7, 'ellipsis', 12]);
+    expect(pageItems(12, 12)).toEqual([1, 'ellipsis', 9, 10, 11, 12]);
   });
 });

@@ -2,9 +2,9 @@
 
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { Heading } from '@/design-system/typography';
 import { useAdminDisputes, type AdminDisputeStatusFilter } from '@/features/admin/hooks/use-admin-disputes';
 import { useResolveDispute } from '@/features/admin/hooks/use-resolve-dispute';
+import { useAccountById } from '@/features/identity/hooks/use-account-by-id';
 import type { DisputeCategory } from '@/features/consultation/api/types';
 import { Alert } from '@/shared/ui/alert';
 import { Badge } from '@/shared/ui/badge';
@@ -37,6 +37,32 @@ const STATUS_FILTERS: Array<AdminDisputeStatusFilter | 'all'> = ['open', 'resolv
  * an omitted status to Open server-side, so there is no single "all" request
  * to make), plus a category filter and a category badge on every row.
  */
+/**
+ * Who raised the dispute, by name (the same `GET /accounts/:id` the verification queue uses), with the appointment's
+ * short id for matching. The other party and the amount aren't in the dispute payload.
+ */
+function RaisedBy({ accountId, appointmentId }: { accountId: string; appointmentId: string }) {
+  const t = useTranslations('admin.disputeResolution');
+  const { data: account, isLoading } = useAccountById(accountId);
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      {isLoading ? (
+        <Skeleton className="h-4 w-36" />
+      ) : (
+        <p className="text-sm font-medium text-text-primary">
+          {t('raisedBy')} <bdi>{account?.displayName ?? t('unknownAccount')}</bdi>
+        </p>
+      )}
+      <p className="text-xs text-text-tertiary">
+        {t('appointmentRef')}{' '}
+        <span dir="ltr" title={appointmentId} className="font-mono">
+          {appointmentId.slice(0, 8)}…
+        </span>
+      </p>
+    </div>
+  );
+}
+
 export function DisputeQueue() {
   const t = useTranslations('admin.disputeResolution');
   const format = useFormatter();
@@ -82,9 +108,6 @@ export function DisputeQueue() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Heading as="h2" level={4}>
-        {t('title')}
-      </Heading>
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AdminDisputeStatusFilter | 'all')}>
@@ -120,9 +143,9 @@ export function DisputeQueue() {
         <ul className="flex flex-col gap-3">
           {disputes.map((dispute) => (
             <li key={dispute.id} className="flex flex-col gap-2 rounded-2xl border border-border-default p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs text-text-tertiary">{dispute.appointmentId.slice(0, 8)}</span>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <RaisedBy accountId={dispute.raisedByAccountId} appointmentId={dispute.appointmentId} />
+                <div className="flex flex-wrap items-center gap-2">
                   {dispute.category && <Badge variant="neutral">{t(`category.${dispute.category}`)}</Badge>}
                   <StatusBadge status={dispute.status} label={t(`status.${dispute.status}`)} />
                   <span className="text-xs text-text-tertiary">
@@ -130,7 +153,9 @@ export function DisputeQueue() {
                   </span>
                 </div>
               </div>
-              <p className="text-sm text-text-secondary">{dispute.reason}</p>
+              <p dir="auto" className="text-start text-sm text-text-secondary">
+                {dispute.reason}
+              </p>
               {dispute.status === 'open' && (
                 <div className="flex gap-2">
                   <Button

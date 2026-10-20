@@ -1,8 +1,9 @@
 'use client';
 
 import { TrendingDown, TrendingUp, Wallet } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { Heading } from '@/design-system/typography';
+import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { usePaymentAnalytics } from '@/features/reporting/hooks/use-payment-analytics';
 import { ExportButton } from '@/features/reporting/components/export-button';
 import type { ReportFilterParams } from '@/features/reporting/api/types';
@@ -13,12 +14,15 @@ import { MetricGrid, MetricStat } from '@/shared/ui/metric-stat';
 
 export function PaymentAnalyticsPanel({ filter, refetchIntervalMs }: { filter: ReportFilterParams; refetchIntervalMs: number | false }) {
   const t = useTranslations('admin.analytics.payments');
+  const format = useFormatter();
   const { data, isLoading, isError } = usePaymentAnalytics(filter, refetchIntervalMs);
+  // Payments are taken in EGP only (Egypt V1).
+  const money = (amount: number) => formatCurrency(format, amount, 'EGP');
 
   if (isError) return <Alert variant="danger">{t('loadError')}</Alert>;
 
   const growth = data?.revenueGrowthPercent;
-  const growthLabel = growth == null ? t('notAvailable') : `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`;
+  const growthLabel = growth == null ? '—' : `${growth >= 0 ? '+' : ''}${format.number(growth / 100, { style: 'percent', maximumFractionDigits: 1 })}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -32,20 +36,23 @@ export function PaymentAnalyticsPanel({ filter, refetchIntervalMs }: { filter: R
           <ExportButton section="payments" filter={filter} />
         </div>
       </div>
-      <MetricGrid columns={4}>
-        <MetricStat icon={Wallet} label={t('revenue')} value={(data?.revenue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} loading={isLoading} />
-        <MetricStat
-          icon={growth != null && growth < 0 ? TrendingDown : TrendingUp}
-          label={t('revenueGrowth')}
-          value={growthLabel}
-          helperText={filter.comparePrevious ? t('comparePreviousPeriod') : undefined}
-          loading={isLoading}
-        />
-        <MetricStat icon={Wallet} label={t('transactions')} value={String(data?.transactions ?? 0)} loading={isLoading} />
-        <MetricStat icon={Wallet} label={t('averagePrice')} value={data?.averageConsultationPrice == null ? t('notAvailable') : data.averageConsultationPrice.toFixed(2)} loading={isLoading} />
-        <MetricStat icon={Wallet} label={t('successful')} value={String(data?.successfulPayments ?? 0)} loading={isLoading} />
-        <MetricStat icon={Wallet} label={t('failed')} value={String(data?.failedPayments ?? 0)} loading={isLoading} />
-        <MetricStat icon={Wallet} label={t('refunds')} value={String(data?.refunds ?? 0)} loading={isLoading} />
+      <MetricGrid columns={4} minColumns={2}>
+        <MetricStat icon={Wallet} label={t('revenue')} value={money(data?.revenue ?? 0)} loading={isLoading} />
+        {/* Growth exists only against a comparison period, so the tile appears only when "Compare" is on. */}
+        {filter.comparePrevious && (
+          <MetricStat
+            icon={growth != null && growth < 0 ? TrendingDown : TrendingUp}
+            label={t('revenueGrowth')}
+            value={growthLabel}
+            helperText={growth == null ? t('noPreviousRevenue') : t('comparePreviousPeriod')}
+            loading={isLoading}
+          />
+        )}
+        <MetricStat icon={Wallet} label={t('transactions')} value={format.number(data?.transactions ?? 0)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('averagePrice')} value={data?.averageConsultationPrice == null ? '—' : money(data.averageConsultationPrice)} helperText={data?.averageConsultationPrice == null ? t('notAvailable') : undefined} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('successful')} value={format.number(data?.successfulPayments ?? 0)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('failed')} value={format.number(data?.failedPayments ?? 0)} loading={isLoading} />
+        <MetricStat icon={Wallet} label={t('refunds')} value={format.number(data?.refunds ?? 0)} loading={isLoading} />
       </MetricGrid>
     </div>
   );

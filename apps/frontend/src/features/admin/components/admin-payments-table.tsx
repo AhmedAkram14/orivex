@@ -6,7 +6,6 @@ import { formatCurrency } from '@/shared/lib/currency/format-currency';
 import { Heading } from '@/design-system/typography';
 import { useAdminPayments } from '@/features/admin/hooks/use-admin-payments';
 import { useAdminRefundPayment } from '@/features/admin/hooks/use-admin-refund-payment';
-import type { PaymentStatus } from '@/features/payment/api/types';
 import { ApiError } from '@/shared/lib/api/client';
 import { Alert } from '@/shared/ui/alert';
 import { StatusBadge } from '@/shared/ui/status-badge';
@@ -102,15 +101,15 @@ export function AdminPaymentsTable() {
             const refundable = REFUNDABLE_STATUSES.has(transaction.status);
             return (
               <TableRow key={transaction.id}>
-                <TableCell>{transaction.patientName}</TableCell>
-                <TableCell>{transaction.doctorName}</TableCell>
+                <TableCell><bdi>{transaction.patientName}</bdi></TableCell>
+                <TableCell><bdi>{transaction.doctorName}</bdi></TableCell>
                 <TableCell className="text-end tabular-nums">
                   {formatCurrency(format, transaction.amount.amount, transaction.amount.currency)}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={transaction.status} label={t(`status.${transaction.status}`)} />
                 </TableCell>
-                <TableCell>{new Date(transaction.createdAt).toLocaleDateString(undefined, { timeZone: 'Africa/Cairo' })}</TableCell>
+                <TableCell className="whitespace-nowrap">{format.dateTime(new Date(transaction.createdAt), { dateStyle: 'medium', timeZone: 'Africa/Cairo' })}</TableCell>
                 <TableCell>
                   {refundable ? (
                     <Button

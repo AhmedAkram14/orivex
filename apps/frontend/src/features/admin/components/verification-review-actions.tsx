@@ -129,7 +129,9 @@ export function VerificationReviewActions({ verificationCase }: VerificationRevi
             <Button variant="secondary" onClick={() => openDialog('more_info_needed')}>
               {t('requestMoreInfo')}
             </Button>
-            <Button variant="ghost" onClick={() => openDialog('reject')}>
+            {/* The destructive decision reads as one: outlined danger, set apart at the far end of the row (a plain
+                text link beside Approve made rejecting look like the minor option). Its dialog asks for a reason. */}
+            <Button variant="destructive" className="sm:ms-auto" onClick={() => openDialog('reject')}>
               {t('reject')}
             </Button>
           </>
