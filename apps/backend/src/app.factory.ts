@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module.js';
+import { parseCorsOrigins } from './core/configuration/cors-origins.js';
 import type { EnvConfig } from './core/configuration/env.schema.js';
 import { buildOpenApiDocument } from './platform/openapi/openapi-document.js';
 import { PinoLoggerService } from './platform/logging/pino-logger.service.js';
@@ -31,10 +32,10 @@ export async function createApp(options: { globalPrefix?: string } = {}): Promis
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({
-    origin: configService
-      .get('CORS_ORIGINS', { infer: true })
-      .split(',')
-      .map((origin) => origin.trim()),
+    origin: parseCorsOrigins(
+      configService.get('CORS_ORIGINS', { infer: true }),
+      configService.get('CORS_ORIGINS_EXTRA', { infer: true }),
+    ),
     credentials: true,
   });
   app.useGlobalPipes(

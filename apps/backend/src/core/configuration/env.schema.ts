@@ -10,6 +10,7 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   CORS_ORIGINS: z.string().min(1),
+  CORS_ORIGINS_EXTRA: z.string().optional(),
   // The frontend's own canonical origin (e.g. https://orivex-eg.vercel.app,
   // http://localhost:3000 in dev) -- used only to build real clickable
   // links in outbound email (verify-email/reset-password), since both

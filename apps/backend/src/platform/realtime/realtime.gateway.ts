@@ -12,6 +12,7 @@ import type { Server, Socket } from 'socket.io';
 
 import type { JwtSignerPort } from '../../modules/authentication/application/ports/jwt-signer.port.js';
 import { JWT_SIGNER } from '../../modules/authentication/application/ports/tokens.js';
+import { parseCorsOrigins } from '../../core/configuration/cors-origins.js';
 import { PinoLoggerService } from '../logging/pino-logger.service.js';
 
 import type { RealtimeEmitterPort } from './ports/realtime-emitter.port.js';
@@ -25,15 +26,15 @@ import type { RealtimeEmitterPort } from './ports/realtime-emitter.port.js';
 // Auth reuses AuthenticationModule's own JwtSignerPort (via
 // AuthenticationGuardsModule, which has no business-logic dependencies --
 // see that module's own comment on why it's safe to import from anywhere)
-// rather than a parallel socket-specific auth scheme. `CORS_ORIGINS` is read
-// directly from process.env because @WebSocketGateway's options are
+// rather than a parallel socket-specific auth scheme. The CORS origin
+// settings are read directly from process.env because @WebSocketGateway's options are
 // evaluated at class-decoration time, before Nest's DI container (and so
-// ConfigService) exists -- matches main.ts's own `app.enableCors` origin
+// ConfigService) exists -- matches app.factory's `app.enableCors` origin
 // list exactly.
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: (process.env.CORS_ORIGINS ?? '').split(',').map((origin) => origin.trim()),
+    origin: parseCorsOrigins(process.env.CORS_ORIGINS, process.env.CORS_ORIGINS_EXTRA),
     credentials: true,
   },
 })
