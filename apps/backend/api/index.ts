@@ -25,5 +25,6 @@ async function getApp(): Promise<NestExpressApplication> {
 
 export default async function handler(request: Request, response: Response): Promise<void> {
   const app = await getApp();
-  app.getHttpAdapter().getInstance()(request, response);
+  const expressHandler = app.getHttpAdapter().getInstance() as unknown as (request: Request, response: Response) => void;
+  expressHandler(request, response);
 }
