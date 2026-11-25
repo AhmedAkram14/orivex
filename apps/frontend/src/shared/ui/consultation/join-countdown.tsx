@@ -1,6 +1,8 @@
 'use client';
 
 import { Clock } from 'lucide-react';
+import { useLocale } from 'next-intl';
+
 import { Icon } from '@/shared/icons/icon';
 import { cn } from '@/shared/lib/cn';
 import { useJoinCountdown } from '@/shared/hooks/use-join-countdown';
@@ -12,9 +14,28 @@ export interface JoinCountdownProps {
   className?: string;
 }
 
-/** "1:59:00" while more than an hour remains, then "59:00" counting down every second once under an hour. */
-function formatCountdown(ms: number): string {
+/** Uses localized day/hour/minute units above 24 hours, then switches to a clock below that. */
+function formatCountdown(ms: number, locale: string): string {
   const totalSeconds = Math.ceil(ms / 1000);
+  if (totalSeconds > 24 * 60 * 60) {
+    const days = Math.floor(totalSeconds / (24 * 60 * 60));
+    const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const parts: string[] = [];
+
+    if (days > 0) {
+      parts.push(new Intl.NumberFormat(locale, { style: 'unit', unit: 'day', unitDisplay: 'long' }).format(days));
+    }
+    if (hours > 0) {
+      parts.push(new Intl.NumberFormat(locale, { style: 'unit', unit: 'hour', unitDisplay: 'long' }).format(hours));
+    }
+    if (minutes > 0) {
+      parts.push(new Intl.NumberFormat(locale, { style: 'unit', unit: 'minute', unitDisplay: 'long' }).format(minutes));
+    }
+
+    return new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(parts);
+  }
+
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -32,6 +53,7 @@ function formatCountdown(ms: number): string {
  */
 export function JoinCountdown({ scheduledAt, label, className }: JoinCountdownProps) {
   const { canJoin, msUntilOpen } = useJoinCountdown(scheduledAt);
+  const locale = useLocale();
 
   // Nothing to show once the window is open (a real Join action takes
   // over) or once it's already closed (msUntilOpen is clamped to 0 then
@@ -41,7 +63,7 @@ export function JoinCountdown({ scheduledAt, label, className }: JoinCountdownPr
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-xs text-text-tertiary tabular-nums', className)}>
       <Icon icon={Clock} size="xs" />
-      {label} {formatCountdown(msUntilOpen)}
+      {label} {formatCountdown(msUntilOpen, locale)}
     </span>
   );
 }
