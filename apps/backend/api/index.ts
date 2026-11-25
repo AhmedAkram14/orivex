@@ -7,13 +7,12 @@ function stripVercelPathParameter(request: Request): void {
   const [pathname, rawQuery] = request.url.split('?', 2);
   if (!rawQuery || !pathname.startsWith('/api/')) return;
 
-  const routePath = pathname.slice('/api/'.length);
   const query = new URLSearchParams(rawQuery);
-  if (!query.getAll('path').includes(routePath)) return;
+  if (!query.has('path')) return;
 
   const filteredQuery = new URLSearchParams();
   query.forEach((value, key) => {
-    if (key !== 'path' || value !== routePath) filteredQuery.append(key, value);
+    if (key !== 'path') filteredQuery.append(key, value);
   });
 
   const serializedQuery = filteredQuery.toString();
