@@ -5,7 +5,7 @@ let appPromise: Promise<NestExpressApplication> | undefined;
 
 function stripVercelPathParameter(request: Request): void {
   const [pathname, rawQuery] = request.url.split('?', 2);
-  if (!rawQuery || !pathname.startsWith('/api/')) return;
+  if (!rawQuery) return;
 
   const query = new URLSearchParams(rawQuery);
   if (!query.has('path')) return;
