@@ -1,4 +1,10 @@
 {
   "buildCommand": "pnpm exec prisma generate && pnpm build",
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api"
+    }
+  ]
 }
