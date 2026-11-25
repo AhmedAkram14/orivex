@@ -4,6 +4,9 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 let appPromise: Promise<NestExpressApplication> | undefined;
 
 function stripVercelPathParameter(request: Request): void {
+  // Vercel may populate Express's parsed query before this URL is normalized.
+  delete request.query.path;
+
   const [pathname, rawQuery] = request.url.split('?', 2);
   if (!rawQuery) return;
 
