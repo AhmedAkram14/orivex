@@ -20,7 +20,7 @@ interface ReadinessResponse {
   timestamp: string;
   checks: {
     database: 'ok';
-    objectStorage: 'ok';
+    objectStorage: 'ok' | 'disabled';
     // 'disabled' whenever REDIS_URL is unset -- intentionally never a
     // failure (ORIVEX Roadmap 2.0 Stage 3's own graceful-degradation
     // idiom: the app is fully ready without a queue configured). Only
@@ -83,11 +83,15 @@ export class HealthController {
       throw new ServiceUnavailableException(`Not ready: database unreachable (${reason}).`);
     }
 
-    try {
-      await this.objectStorage.checkConnectivity();
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Object storage unreachable.';
-      throw new ServiceUnavailableException(`Not ready: object storage unreachable (${reason}).`);
+    let objectStorageStatus: 'ok' | 'disabled' = 'disabled';
+    if (this.configService.get('S3_ENDPOINT', { infer: true })) {
+      try {
+        await this.objectStorage.checkConnectivity();
+        objectStorageStatus = 'ok';
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'Object storage unreachable.';
+        throw new ServiceUnavailableException(`Not ready: object storage unreachable (${reason}).`);
+      }
     }
 
     let queueStatus: 'ok' | 'disabled' = 'disabled';
@@ -109,7 +113,7 @@ export class HealthController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      checks: { database: 'ok', objectStorage: 'ok', queue: queueStatus, email: emailStatus },
+      checks: { database: 'ok', objectStorage: objectStorageStatus, queue: queueStatus, email: emailStatus },
     };
   }
 }

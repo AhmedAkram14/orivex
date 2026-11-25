@@ -24,7 +24,12 @@ class FakeMediaAssetRepository implements MediaAssetRepository {
 }
 
 class FakeObjectStorage implements ObjectStoragePort {
+  constructor(private readonly shouldFailUpload = false) {}
+
   async createPresignedUploadUrl(storageKey: string): Promise<string> {
+    if (this.shouldFailUpload) {
+      throw new Error('Storage unavailable.');
+    }
     return `https://storage.example.com/${storageKey}?upload=true`;
   }
   async createPresignedDownloadUrl(storageKey: string): Promise<string> {
@@ -52,5 +57,24 @@ describe('CreateUploadIntentUseCase', () => {
     assert.ok(result.signedUrl.includes('upload=true'));
     assert.equal(repo.saved.length, 1);
     assert.ok(result.asset.getStorageKey().startsWith('doctor_certificate/'));
+  });
+
+  it('does not persist an upload intent when storage cannot issue an upload URL', async () => {
+    const repo = new FakeMediaAssetRepository();
+    const useCase = new CreateUploadIntentUseCase(repo, new FakeObjectStorage(true));
+
+    await assert.rejects(
+      () =>
+        useCase.execute(
+          new CreateUploadIntentCommand({
+            ownerAccountId: '11111111-1111-4111-8111-111111111111',
+            purpose: MediaAssetPurpose.DoctorCertificate,
+            contentType: 'image/png',
+          }),
+        ),
+      /Storage unavailable/,
+    );
+
+    assert.equal(repo.saved.length, 0);
   });
 });

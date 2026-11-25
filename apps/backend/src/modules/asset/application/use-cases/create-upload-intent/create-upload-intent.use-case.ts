@@ -29,11 +29,11 @@ export class CreateUploadIntentUseCase {
       sizeEstimate: command.sizeEstimate,
     });
 
-    await this.mediaAssetRepository.save(asset);
     const signedUrl = await this.objectStorage.createPresignedUploadUrl(
       asset.getStorageKey(),
       asset.getContentType(),
     );
+    await this.mediaAssetRepository.save(asset);
 
     return { asset, signedUrl };
   }

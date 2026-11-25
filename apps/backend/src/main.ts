@@ -1,72 +1,23 @@
 import 'reflect-metadata';
 
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
-import type { NestExpressApplication } from '@nestjs/platform-express';
-import { SwaggerModule } from '@nestjs/swagger';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
 
-import { AppModule } from './app.module.js';
 import type { EnvConfig } from './core/configuration/env.schema.js';
-import { buildOpenApiDocument } from './platform/openapi/openapi-document.js';
 import { bootstrapErrorReporting } from './platform/observability/error-reporting.js';
 import { bootstrapTracing } from './platform/observability/tracing.js';
 import { PinoLoggerService } from './platform/logging/pino-logger.service.js';
-import { createValidationException } from './platform/validation/validation-exception-factory.js';
 
 async function bootstrap(): Promise<void> {
-  // Both must run before any instrumented module is imported/instantiated --
-  // tracing patches http/express/@prisma/client at the module-loader level,
-  // and Sentry needs to be initialized before requests can flow through it.
+  // Initialize instrumentation before importing the Nest module graph.
   const tracing = bootstrapTracing();
   bootstrapErrorReporting();
 
-  // rawBody: true keeps the untouched request Buffer available on
-  // req.rawBody alongside Nest's normal parsed req.body -- required by the
-  // Stripe webhook receiver (payment-webhook.controller.ts) to verify the
-  // signature, which is computed over the exact raw bytes Stripe sent.
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, rawBody: true });
-
+  const { createApp } = await import('./app.factory.js');
+  const app = await createApp();
   const logger = app.get(PinoLoggerService);
-  app.useLogger(logger);
-
   const configService = app.get(ConfigService<EnvConfig, true>);
 
-  // Render puts exactly one reverse proxy in front of this process. Without
-  // this, Express's req.ip resolves to that proxy's own internal-network
-  // hop address (::ffff:10.x.x.x) instead of the real client IP carried in
-  // X-Forwarded-For -- breaks session/login-history IP accuracy.
-  app.set('trust proxy', 1);
-  app.use(helmet());
-  // Required for AuthenticationModule to read the httpOnly refresh-token
-  // cookie (req.cookies) -- unpopulated without this middleware.
-  app.use(cookieParser());
-  app.enableCors({
-    origin: configService
-      .get('CORS_ORIGINS', { infer: true })
-      .split(',')
-      .map((origin) => origin.trim()),
-    credentials: true,
-  });
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      exceptionFactory: createValidationException,
-    }),
-  );
-  const openApiEnabled = configService.get('OPENAPI_ENABLED', { infer: true }) || configService.get('NODE_ENV', { infer: true }) !== 'production';
-  if (openApiEnabled) {
-    SwaggerModule.setup('docs', app, buildOpenApiDocument(app));
-  }
-
   app.enableShutdownHooks();
-  // Flushes any buffered spans before the process actually exits --
-  // separate from Nest's own onModuleDestroy hooks above, since the
-  // tracing SDK is initialized outside the Nest DI container.
   process.on('SIGTERM', () => void tracing.shutdown());
   process.on('SIGINT', () => void tracing.shutdown());
 

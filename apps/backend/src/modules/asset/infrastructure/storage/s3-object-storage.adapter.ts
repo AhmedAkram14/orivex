@@ -17,14 +17,22 @@ export class S3ObjectStorageAdapter implements ObjectStoragePort {
   private readonly bucket: string;
 
   constructor(configService: ConfigService<EnvConfig, true>) {
-    this.bucket = configService.get('S3_BUCKET', { infer: true });
+    const endpoint = configService.get('S3_ENDPOINT', { infer: true });
+    const accessKeyId = configService.get('S3_ACCESS_KEY_ID', { infer: true });
+    const secretAccessKey = configService.get('S3_SECRET_ACCESS_KEY', { infer: true });
+    const bucket = configService.get('S3_BUCKET', { infer: true });
+    if (!endpoint || !accessKeyId || !secretAccessKey || !bucket) {
+      throw new Error('S3 storage configuration is incomplete.');
+    }
+
+    this.bucket = bucket;
     this.client = new S3Client({
-      endpoint: configService.get('S3_ENDPOINT', { infer: true }),
+      endpoint,
       region: configService.get('S3_REGION', { infer: true }),
       forcePathStyle: configService.get('S3_FORCE_PATH_STYLE', { infer: true }),
       credentials: {
-        accessKeyId: configService.get('S3_ACCESS_KEY_ID', { infer: true }),
-        secretAccessKey: configService.get('S3_SECRET_ACCESS_KEY', { infer: true }),
+        accessKeyId,
+        secretAccessKey,
       },
       // Newer SDK versions default to signing a checksum into presigned
       // URLs (WHEN_SUPPORTED). The frontend's document-upload flow does a

@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import type { EnvConfig } from '../../core/configuration/env.schema.js';
 import { AuthenticationGuardsModule } from '../authentication/authentication-guards.module.js';
 import { TrustGuardsModule } from '../trust/trust-guards.module.js';
 
@@ -12,6 +14,7 @@ import { ListMediaAssetsForOwnerUseCase } from './application/use-cases/list-med
 import type { MediaAssetRepository } from './domain/repositories/media-asset.repository.js';
 import { PrismaMediaAssetRepository } from './infrastructure/prisma/prisma-media-asset.repository.js';
 import { S3ObjectStorageAdapter } from './infrastructure/storage/s3-object-storage.adapter.js';
+import { UnavailableObjectStorageAdapter } from './infrastructure/storage/unavailable-object-storage.adapter.js';
 import { MediaAssetController } from './presentation/controllers/media-asset.controller.js';
 
 // AssetModule "depends on nothing business-specific, only the storage
@@ -26,7 +29,14 @@ import { MediaAssetController } from './presentation/controllers/media-asset.con
   controllers: [MediaAssetController],
   providers: [
     { provide: MEDIA_ASSET_REPOSITORY, useClass: PrismaMediaAssetRepository },
-    { provide: OBJECT_STORAGE, useClass: S3ObjectStorageAdapter },
+    {
+      provide: OBJECT_STORAGE,
+      useFactory: (configService: ConfigService<EnvConfig, true>): ObjectStoragePort =>
+        configService.get('S3_ENDPOINT', { infer: true })
+          ? new S3ObjectStorageAdapter(configService)
+          : new UnavailableObjectStorageAdapter(),
+      inject: [ConfigService],
+    },
     {
       provide: CreateUploadIntentUseCase,
       useFactory: (repository: MediaAssetRepository, storage: ObjectStoragePort) =>

@@ -15,12 +15,14 @@ import { validateEnv } from './env.schema.js';
 // Prisma seed build (`tsconfig.seed.json`, rootDir ".") emit this file at
 // different depths (`dist/core/configuration/` vs `dist-seed/src/core/
 // configuration/`), so a fixed depth is only ever correct for one of them.
-function findRepoRoot(startDir: string): string {
+// Serverless bundles may omit the workspace marker; hosted environments
+// provide their configuration through process environment variables.
+function findRepoRoot(startDir: string): string | undefined {
   let dir = startDir;
   while (!fs.existsSync(path.join(dir, 'pnpm-workspace.yaml'))) {
     const parent = path.dirname(dir);
     if (parent === dir) {
-      throw new Error(`Could not locate repo root (pnpm-workspace.yaml) above ${startDir}`);
+      return undefined;
     }
     dir = parent;
   }
@@ -37,7 +39,7 @@ const nodeEnv = process.env.NODE_ENV ?? 'development';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      envFilePath: [path.join(repoRoot, '.env.local'), path.join(repoRoot, `.env.${nodeEnv}`)],
+      envFilePath: repoRoot ? [path.join(repoRoot, '.env.local'), path.join(repoRoot, `.env.${nodeEnv}`)] : [],
     }),
   ],
 })

@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
+  // Only for synthetic previews without an S3-compatible file store.
+  PREVIEW_MODE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   CORS_ORIGINS: z.string().min(1),
@@ -54,11 +59,11 @@ export const envSchema = z.object({
   // Handler). Requiring this at boot would fail deployments that
   // legitimately don't have Redis provisioned yet.
   REDIS_URL: z.string().min(1).optional(),
-  S3_ENDPOINT: z.string().url(),
+  S3_ENDPOINT: z.string().url().optional(),
   S3_REGION: z.string().min(1).default('us-east-1'),
-  S3_ACCESS_KEY_ID: z.string().min(1),
-  S3_SECRET_ACCESS_KEY: z.string().min(1),
-  S3_BUCKET: z.string().min(1),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).optional(),
   // MinIO (local dev / self-hosted S3-compatible storage) requires
   // path-style addressing; real AWS S3 does not.
   S3_FORCE_PATH_STYLE: z
@@ -170,6 +175,30 @@ export const envSchema = z.object({
     .string()
     .regex(/^v\d+\.\d+$/)
     .default('v25.0'),
+}).superRefine((config, context) => {
+  const requiredS3Values = [
+    config.S3_ENDPOINT,
+    config.S3_ACCESS_KEY_ID,
+    config.S3_SECRET_ACCESS_KEY,
+    config.S3_BUCKET,
+  ];
+  const configuredValues = requiredS3Values.filter(Boolean).length;
+
+  if (configuredValues > 0 && configuredValues < requiredS3Values.length) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['S3_ENDPOINT'],
+      message: 'Configure all S3 variables together, or omit them entirely for preview mode.',
+    });
+  }
+
+  if (!config.PREVIEW_MODE && configuredValues !== requiredS3Values.length) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['S3_ENDPOINT'],
+      message: 'S3 storage is required unless PREVIEW_MODE=true.',
+    });
+  }
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

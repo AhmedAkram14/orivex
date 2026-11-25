@@ -41,6 +41,7 @@ class FakeNotificationQueue {
 interface BuildControllerOptions {
   databaseFails: boolean;
   objectStorageFails: boolean;
+  storageConfigured?: boolean;
   redisUrl?: string;
   queueFails?: boolean;
   sendgridApiKey?: string;
@@ -48,6 +49,7 @@ interface BuildControllerOptions {
 
 async function buildController(options: BuildControllerOptions): Promise<HealthController> {
   const configValues: Record<string, string | undefined> = {
+    S3_ENDPOINT: options.storageConfigured === false ? undefined : 'https://storage.example',
     REDIS_URL: options.redisUrl,
     SENDGRID_API_KEY: options.sendgridApiKey,
   };
@@ -103,6 +105,19 @@ describe('HealthController', () => {
       assert.equal((error as { getStatus?: () => number }).getStatus?.(), 503);
       return true;
     });
+  });
+
+  it('reports object storage as disabled when preview mode has no storage configured', async () => {
+    const controller = await buildController({
+      databaseFails: false,
+      objectStorageFails: true,
+      storageConfigured: false,
+    });
+
+    const result = await controller.readiness();
+
+    assert.equal(result.status, 'ok');
+    assert.equal(result.checks.objectStorage, 'disabled');
   });
 
   it('reports the queue as disabled (never failing readiness) when REDIS_URL is unset', async () => {
